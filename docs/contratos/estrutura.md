@@ -1,6 +1,10 @@
 # Estrutura do monorepo, interfaces internas e ambiente (contrato v1)
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**, com banco e arquivos no Supabase
 
+## Mudanças 13/10 (deploy)
+- Runbook em [`../deploy.md`](../deploy.md): `api/Dockerfile` (contexto = raiz), `.dockerignore`, `scripts/api-start.sh` (migrate deploy + start), `scripts/storage-cors-check.mjs` (CORS do storage com URL assinada real).
+- Gusta 13/10: VPS = Hostinger `srv1798762` (compartilhada com a API do Lab), Supabase **Free** (arquivo ≤ 50 MB, pausa com 7 dias parado), domínio provisório (`*.vercel.app` + domínio do EasyPanel). Em produção `UPLOAD_MAX_BYTES=48000000` e `CHAMPION_MAX_SEC=60`; o que estoura 50 MB está em `deploy.md` §8 (substitui o "≥ 200 MB" do §6 enquanto for Free).
+
 ## Mudanças 09/10 (editor no vídeo v1; detalhe em [`editor-v1.md`](editor-v1.md))
 - **Banco:** migração `20261009120000_editor_v1` (aditiva): `creatives.edit_doc`, `creatives.edit_revision` (default 0), `creatives.remix_base`, `renders.doc`, `renders.edit_revision`.
 - **Tipos:** `contratos/src/editor.ts` (EditDoc, EditorState, travas, `EDIT_CONFLICT`/`EDIT_NOT_SUPPORTED`, SSE `editor.updated`), exportado pelo index. Campos novos em tipos existentes (`editedInEditor`, `Render.doc`/`editRevision`, `hasEditorChanges`/`editorAvailable`) são obrigatórios desde o F2a (09/10).

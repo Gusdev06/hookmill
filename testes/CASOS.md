@@ -209,3 +209,15 @@ Fixtures novas: `fixtures/campeoes/curto-6s.mp4` (recorte de 6 s do fala-split-2
 | IU-01/02 | navegador EN e PT-BR: upload pelo input → plano → Generate → falha + Retry → Download → preview → In zip → Download zip (arquivo PK com o nome do contrato) |
 | IU-03 | >1 oferta (seletor), Leave out, Library "Use this" |
 | IU-04 | CLIENT: o que a tela oferece; In zip e zip pelo CLIENT |
+
+### Estado em 13/10 (Q1)
+- API (`npm run iterate`, mock + render fake): **12/12** (IT-01..12).
+- Navegador (1440 e 390, EN e PT-BR): fluxo inteiro passa nos 2 tamanhos; **IU-01/02 marcam 1 falha soft** (bug 1 abaixo); IU-03/04 passam. Telas lidas.
+- Tempo real (IT-TEMPO, `RENDER_IMPL=remotion`, campeão de 49 s, 11 peças = 33 renders, neste Mac com a API 3001 do Gusta ligada ao mesmo tempo): **9:16 de todas em 29,1 min; tudo em 118,4 min**. Média por render: 9:16 142 s, 4:5 249 s, 1:1 237 s (saída ~49 s cada). 0 falhas; saídas 1080 px com áudio. A 11ª peça foi inserida pelo QA (o mock planeja 9-10; ver bug 4).
+#### Bugs abertos (Q1)
+1. [frontend] Alerta "Downloaded" não aparece depois do Download zip (caminho 202 building → ready) sem recarregar a página: `download-screen.tsx` só invalida `["creatives"]` no useEffect do zip pronto, e o GET que grava `downloadedAt` (`zip.service.ts` view) devolve o lote ainda com `downloadedAt: null`. Telas `iter-*-08a-baixado-sem-alerta.png`.
+2. [frontend] Peça falha mostra o `failReason` cru do backend em inglês ("The render failed. Retry.") antes da dica, também em PT-BR, e repete "Retry": `generate-screen.tsx:149` usa `p.failReason ?? t(err.<code>)`; o contrato diz traduzir pelo código.
+3. [frontend, baixa] CLIENT vê "Generate N pieces", "Retry" e "Leave out" habilitados; ao clicar, toast "Your role can't do this" (a API barra com 403 certo).
+4. [ia (mock) + backend, baixa] CUT nunca sai no mock: com o teardown mock de 4 blocos, todo CUT proposto estoura o alvo e o reparo tira (`cut_too_long`); `allowedFor` libera CUT sem checar se algum conjunto de blocos inteiros cabe em 20 s, e a peça some sem entrar em `insight.swaps`. O mock também repete NATIVE_SEARCH com a mesma busca (o reparo tira como `duplicate`) e gera buscas sem sentido ("how to nobody tells you this about the").
+5. [video, baixa] LAYOUT-REVIEW em 9:16: uma faixa do gancho escrito do original aparece embaixo do card de review (contact sheet do IT-TEMPO).
+6. [backend, nota] O 1º GET /iterate/:id com zip pronto já grava `downloadedAt`, mesmo sem ninguém baixar.

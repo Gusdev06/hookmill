@@ -1,0 +1,40 @@
+# Contexto de build da imagem da api = raiz do monorepo (a api depende dos workspaces contratos e video).
+# Só entra o que o api/Dockerfile copia: package.json de cada workspace (o lockfile exige todos), contratos/, video/, api/, scripts/.
+
+# dependências e saídas de build (a imagem refaz tudo)
+**/node_modules
+**/dist
+**/.next
+**/out
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+**/.DS_Store
+
+# segredos
+**/.env
+**/.env.*
+!**/.env.example
+
+# git e infra local
+.git
+.infra
+.nvmrc
+
+# o que a api não usa: só o package.json fica (npm ci confere o lockfile contra todos os workspaces)
+web/*
+!web/package.json
+testes/*
+!testes/package.json
+design
+docs
+time
+reports
+research_notes
+tmp-*
+
+# mídia de teste: só os .mp4 saem. O Root.tsx do bundle importa public/fixtures/amostra.json, então os .json ficam
+# (o bundle.mjs apaga public/fixtures da saída depois)
+video/public/fixtures/*.mp4
+video/fixtures
+api/src/integracoes/sondas/*/out
