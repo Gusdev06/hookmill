@@ -1,0 +1,635 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Design tokens: design/fase2-telas-novas-2026-10-12.md §3 (replaces wizard-v1 §3).
+ * Single light theme. Lime is the only accent (action + selection), never a status.
+ * Dark "ink" = sidebar, instrument panels, editor stage/timeline.
+ *
+ * Name collisions with shadcn, resolved here:
+ *  - spec --accent (lime) lives in --brand (shadcn's --accent is the hover surface, spec: --accent → --card-2).
+ *  - spec --input (#FFFFFF field) lives in --field (shadcn's --input is the field border, spec: --input → --line-strong).
+ */
+:root {
+  /* surfaces */
+  --bg: #eeeeea;
+  --card: #fdfdfb;
+  --card-2: #f3f4f0;
+  --field: #ffffff;
+  /* lines */
+  --line: #dcddd7;
+  --line-soft: #e4e5e0;
+  --line-strong: #cfd1cb;
+  --control: #b9bcb5;
+  --sep: #9a9f96;
+  /* text */
+  --fg: #15171a;
+  --fg-2: #3b4047;
+  --fg-3: #5a6068;
+  --fg-btn: #4a5058;
+  /* the accent */
+  --brand: #c8f03c;
+  --brand-hover: #bde52f;
+  --brand-ink: #3e5200;
+  --brand-soft: #f0f8d2;
+  --brand-edge: #a9cc2a;
+  /* ink (dark instrument) */
+  --ink: #16181b;
+  --ink-2: #202328;
+  --ink-3: #2a2e33;
+  --ink-line: #2e3238;
+  --ink-fg: #f2f3ee;
+  --ink-fg-2: #c5cad0;
+  --ink-fg-3: #9aa1a9;
+  --ink-body: #e8eae4;
+  /* status */
+  --ok-bg: #e2f3e8;
+  --ok: #0b6b43;
+  --ok-dot: #1c9a5e;
+  --ok-edge: #b7dec5;
+  --warn-bg: #fbf0d3;
+  --warn: #7a5000;
+  --warn-edge: #e9c76b;
+  --warn-dot: #d39b12;
+  --bad-bg: #fbe7dd;
+  --bad: #a8360c;
+  --bad-edge: #e4b9a6;
+  --info-bg: #e6ebfc;
+  --info: #2b4bc8;
+  --info-edge: #c3cef6;
+  --info-on-ink: #8fa6ff;
+  /* radius + size */
+  --r-chip: 8px;
+  --r-ctl: 10px;
+  --r-btn: 12px;
+  --r-card: 16px;
+  --r-panel: 18px;
+  --gut: clamp(16px, 3vw, 32px);
+  /* height of the sticky shell bar above the content (0 on desktop: the sidebar is beside it) */
+  --hdr-h: 0px;
+
+  color-scheme: light;
+}
+
+/* aliases: declared on every token scope so they follow .on-ink / .on-light */
+:root,
+.on-ink,
+.on-light {
+  /* legacy names used by the v1 screens, remapped to the new palette (no screen redesign in F2) */
+  --surface: var(--card);
+  --surface-2: var(--card-2);
+  --hover: var(--line-soft);
+  --line-2: var(--line-strong);
+  --stage: var(--ink);
+  --blue: var(--info);
+  --blue-bg: var(--info-bg);
+  --amber: var(--warn);
+  --amber-bg: var(--warn-bg);
+  --red: var(--bad);
+  --red-bg: var(--bad-bg);
+  --green: var(--ok-dot);
+  --green-bg: var(--ok-bg);
+
+  /* shadcn mapping (§3) */
+  --radius: 0.75rem;
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card-foreground: var(--fg);
+  --popover: var(--card);
+  --popover-foreground: var(--fg);
+  --primary: var(--fg);
+  --primary-foreground: #ffffff;
+  --secondary: var(--card-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--card-2);
+  --muted-foreground: var(--fg-3);
+  --accent: var(--card-2);
+  --accent-foreground: var(--fg);
+  --destructive: var(--bad);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--info);
+  --sidebar: var(--ink);
+  --sidebar-foreground: var(--ink-fg-2);
+  --sidebar-accent: var(--ink-3);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #15171a;
+  --sidebar-border: var(--ink-line);
+
+}
+
+/*
+ * .on-ink: re-points the text/line/surface tokens for content that sits on --ink
+ * (sidebar, instrument panel, editor stage, video overlays). Components keep using
+ * text-fg / border-line and read correctly on the dark surface.
+ */
+.on-ink {
+  --bg: var(--ink);
+  --card: var(--ink-2);
+  --card-2: var(--ink-3);
+  --field: var(--ink-2);
+  --line: var(--ink-line);
+  --line-soft: var(--ink-line);
+  --line-strong: #3a3f46;
+  --control: #4a5058;
+  --fg: var(--ink-fg);
+  --fg-2: var(--ink-fg-2);
+  --fg-3: var(--ink-fg-3);
+  --fg-btn: var(--ink-fg-2);
+  --hover: var(--ink-3);
+  --info: var(--info-on-ink);
+  --info-bg: rgba(143, 166, 255, 0.14);
+  --warn: #f3d27a;
+  --warn-bg: #3a2e10;
+  --warn-edge: #6b5418;
+  --bad: #ff9a76;
+  --bad-bg: rgba(255, 120, 80, 0.14);
+  --bad-edge: rgba(255, 120, 80, 0.4);
+  --ok: #7fd6a5;
+  --ok-bg: rgba(28, 154, 94, 0.18);
+  --primary: var(--ink-fg);
+  --primary-foreground: var(--ink);
+  --accent: var(--ink-3);
+  --accent-foreground: var(--ink-fg);
+  --popover: var(--ink-2);
+  --popover-foreground: var(--ink-fg);
+  color-scheme: dark;
+  color: var(--fg);
+}
+
+/* .on-light: back to the light tokens inside an .on-ink area (editor properties panel). */
+.on-light {
+  --bg: #eeeeea;
+  --card: #fdfdfb;
+  --card-2: #f3f4f0;
+  --field: #ffffff;
+  --line: #dcddd7;
+  --line-soft: #e4e5e0;
+  --line-strong: #cfd1cb;
+  --control: #b9bcb5;
+  --fg: #15171a;
+  --fg-2: #3b4047;
+  --fg-3: #5a6068;
+  --fg-btn: #4a5058;
+  --hover: #e4e5e0;
+  --info: #2b4bc8;
+  --info-bg: #e6ebfc;
+  --warn: #7a5000;
+  --warn-bg: #fbf0d3;
+  --warn-edge: #e9c76b;
+  --bad: #a8360c;
+  --bad-bg: #fbe7dd;
+  --bad-edge: #e4b9a6;
+  --ok: #0b6b43;
+  --ok-bg: #e2f3e8;
+  --primary: #15171a;
+  --primary-foreground: #ffffff;
+  --accent: #f3f4f0;
+  --accent-foreground: #15171a;
+  --popover: #fdfdfb;
+  --popover-foreground: #15171a;
+  color-scheme: light;
+  color: var(--fg);
+}
+
+@theme inline {
+  /* shadcn */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  /* design system */
+  --color-bg: var(--bg);
+  --color-card-2: var(--card-2);
+  --color-field: var(--field);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--control);
+  --color-sep: var(--sep);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-btn: var(--fg-btn);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-edge: var(--brand-edge);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-line: var(--ink-line);
+  --color-ink-fg: var(--ink-fg);
+  --color-ink-fg-2: var(--ink-fg-2);
+  --color-ink-fg-3: var(--ink-fg-3);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-dot: var(--ok-dot);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-on-ink: var(--info-on-ink);
+
+  /* status (in progress = blue · waiting = amber · failed = red · ready = green) */
+  --color-status-progress: var(--info);
+  --color-status-progress-bg: var(--info-bg);
+  --color-status-progress-edge: var(--info-edge);
+  --color-status-waiting: var(--warn);
+  --color-status-waiting-bg: var(--warn-bg);
+  --color-status-waiting-edge: var(--warn-edge);
+  --color-status-failed: var(--bad);
+  --color-status-failed-bg: var(--bad-bg);
+  --color-status-failed-edge: var(--bad-edge);
+  --color-status-approved: var(--ok);
+  --color-status-approved-bg: var(--ok-bg);
+  --color-status-approved-edge: var(--ok-edge);
+
+  /* legacy (v1 screens) */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hover: var(--hover);
+  --color-line-2: var(--line-2);
+  --color-stage: var(--stage);
+
+  /* chip 8 · control 10 · button 12 · card 16 · panel 18 */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-btn: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+
+  --font-sans: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Menlo, monospace;
+
+  /* spec §6: ≤760 mobile, ≤900 stacked grids */
+  --breakpoint-tablet: 761px;
+  --breakpoint-desktop: 901px;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    margin: 0;
+    overflow-x: clip;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    text-wrap: balance;
+    font-weight: 700;
+  }
+  /* h1: 30 px (24 mobile), 800, wide */
+  h1 {
+    font-size: 24px;
+    line-height: 1.1;
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.015em;
+  }
+  @media (min-width: 761px) {
+    h1 {
+      font-size: 30px;
+    }
+  }
+  h2 {
+    font-size: 16px;
+  }
+  h3 {
+    font-size: 14px;
+  }
+  button {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--info);
+    outline-offset: 2px;
+  }
+  @media (max-width: 760px) {
+    :root {
+      --hdr-h: 56px;
+    }
+  }
+}
+
+@layer components {
+  /* step label: mono 11px, uppercase, .06em */
+  .step-lbl {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-3);
+  }
+  .row-sub {
+    font-size: 13px;
+    color: var(--fg-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* skeleton shimmer */
+  .sk {
+    display: block;
+    background: linear-gradient(90deg, var(--card-2) 0%, var(--line-soft) 50%, var(--card-2) 100%);
+    background-size: 200% 100%;
+    animation: sk 1.4s linear infinite;
+    border-radius: 4px;
+  }
+
+  /* status dot */
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+    background: var(--fg-3);
+  }
+  .dot[data-status="progress"] {
+    background: var(--info);
+    box-shadow: 0 0 0 3px var(--info-bg);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .dot[data-status="waiting"] {
+    background: var(--warn-dot);
+  }
+  .dot[data-status="failed"] {
+    background: var(--bad);
+  }
+  .dot[data-status="approved"] {
+    background: var(--ok-dot);
+  }
+
+  /* creatives list: 5-column grid on desktop, stacked under 760px (spec §4/§6) */
+  .crow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16px;
+    gap: 4px 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-top: 1px solid var(--line);
+    width: 100%;
+    text-align: left;
+    color: inherit;
+  }
+  .crow:first-child {
+    border-top: 0;
+  }
+  .crow > .c-col {
+    grid-column: 1;
+  }
+  .crow > .c-chev {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    color: var(--fg-3);
+  }
+  .crow > .c-engine {
+    display: none;
+  }
+  .crow > .c-time {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    font-size: 12px;
+  }
+  @media (min-width: 761px) {
+    .crow {
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) 20px;
+      gap: 16px;
+      padding: 12px 16px;
+    }
+    .crow > .c-col,
+    .crow > .c-chev {
+      grid-column: auto;
+      grid-row: auto;
+    }
+    .crow > .c-engine {
+      display: grid;
+    }
+    .crow > .c-time {
+      display: grid;
+      flex-direction: column;
+      gap: 2px;
+      font-size: inherit;
+    }
+  }
+
+  /* ── waiting effects (libraries.dev stand-ins; only in wait states, spec §2.5) ── */
+  .orb {
+    width: 56px;
+    height: 56px;
+    position: relative;
+    flex: none;
+    filter: blur(0.5px);
+  }
+  .orb i {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    mix-blend-mode: multiply;
+    animation: orb 3.2s ease-in-out infinite;
+  }
+  .orb i:nth-child(1) {
+    background: radial-gradient(circle at 35% 35%, var(--fg-3) 0, rgba(90, 96, 104, 0.35) 30%, transparent 62%);
+  }
+  .orb i:nth-child(2) {
+    background: radial-gradient(circle at 65% 45%, var(--info) 0, rgba(43, 75, 200, 0.3) 30%, transparent 60%);
+    animation-delay: -1s;
+    animation-duration: 2.6s;
+  }
+  .orb i:nth-child(3) {
+    background: radial-gradient(circle at 45% 70%, var(--brand) 0, var(--brand-edge) 30%, transparent 60%);
+    animation-delay: -2s;
+    animation-duration: 3.8s;
+  }
+  .stream::after {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 14px;
+    background: var(--fg);
+    vertical-align: -2px;
+    margin-left: 2px;
+    animation: blink 1s steps(1) infinite;
+  }
+  .beam::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(from var(--a), transparent 0 70%, var(--brand) 82%, var(--info) 92%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    animation: beam 2.4s linear infinite;
+    pointer-events: none;
+  }
+  .spin-ring {
+    border-radius: 50%;
+    border: 1.5px solid var(--info);
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+  }
+  /* ── F2 base: mono label, Soon pattern, image-generation wait, FlowBar spinner ── */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+  .wide {
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.01em;
+  }
+  /* Soon content: faded, desaturated, not interactive (also gets inert + aria-hidden) */
+  .soon-body {
+    opacity: 0.5;
+    filter: saturate(0.35);
+    pointer-events: none;
+    user-select: none;
+  }
+  .example-stripes {
+    background: repeating-linear-gradient(135deg, var(--card-2) 0 6px, var(--line-soft) 6px 12px);
+  }
+  /* ImageGeneration: grain + lime scan (only while generating) */
+  .imggen {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 30% 30%, #d9dcd3 0 2px, transparent 3px) 0 0 / 9px 9px,
+      radial-gradient(circle at 70% 60%, #cdd0c7 0 1.5px, transparent 2.5px) 0 0 / 7px 7px,
+      var(--card-2);
+  }
+  .imggen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(200, 240, 60, 0) 40%, rgba(200, 240, 60, 0.35) 50%, rgba(253, 253, 251, 0.6) 52%, transparent 62%);
+    background-size: 100% 220%;
+    animation: scan 2.2s ease-in-out infinite;
+  }
+  /* FlowBar: ring around the current step while it runs */
+  .circ-run::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    border-top-color: var(--brand-edge);
+    animation: spin 1s linear infinite;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@property --a {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes beam {
+  to {
+    --a: 360deg;
+  }
+}
+@keyframes orb {
+  0%,
+  100% {
+    transform: rotate(0) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(0.86);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes scan {
+  from {
+    background-position: 0 120%;
+  }
+  to {
+    background-position: 0 -120%;
+  }
+}
+@keyframes sk {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+  }
+  .beam::before {
+    background: linear-gradient(90deg, var(--brand), var(--info));
+  }
+}

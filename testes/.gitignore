@@ -1,0 +1,11 @@
+.env
+.cache/
+playwright-report/
+test-results/
+
+# feature 2: mídia de teste gerada por fixtures/campeoes/gerar.mjs (fora do git; o script e o manifest.json vão)
+fixtures/campeoes/*.mp4
+fixtures/campeoes/*.mov
+fixtures/campeoes/*.m4a
+fixtures/campeoes/*.aiff
+fixtures/campeoes/.tmp/

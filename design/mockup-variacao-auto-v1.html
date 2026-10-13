@@ -1,0 +1,804 @@
+<title>HookMill Auto Variations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@600&display=swap">
+<style>
+/* Layout: HookMill shell (dark sidebar + light work area). One progressive screen: source → why it works → batch plan, with the dark instrument panel on the right.
+   Single light theme by decision (Ads Machine skin, 12/10). Tokens are the approved Phase 2 tokens. Colors inside .tf frames are video content (data), not UI. */
+:root{
+  --bg:#EEEEEA; --card:#FDFDFB; --card-2:#F3F4F0; --input:#FFFFFF;
+  --line:#DCDDD7; --line-soft:#E4E5E0; --line-strong:#CFD1CB; --control:#B9BCB5; --sep:#9A9F96;
+  --fg:#15171A; --fg-2:#3B4047; --fg-3:#5A6068; --fg-btn:#4A5058; --on-ink-btn:#FFFFFF;
+  --accent:#C8F03C; --accent-ink:#3E5200; --accent-soft:#F0F8D2; --accent-edge:#A9CC2A;
+  --ink:#16181B; --ink-2:#202328; --ink-3:#2A2E33; --ink-line:#2E3238; --ink-fg:#F2F3EE; --ink-fg-2:#C5CAD0; --ink-fg-3:#9AA1A9; --ink-body:#E8EAE4;
+  --ok-bg:#E2F3E8; --ok:#0B6B43; --ok-dot:#1C9A5E;
+  --warn-bg:#FBF0D3; --warn:#7A5000; --warn-line:#E9C76B;
+  --bad-bg:#FBE7DD; --bad:#A8360C; --bad-edge:#E4B9A6;
+  --info-bg:#E6EBFC; --info:#2B4BC8;
+  --font:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --hand:'Caveat','Bradley Hand','Segoe Print',cursive;
+  --r-chip:8px; --r-ctl:10px; --r-btn:12px; --r-card:16px; --r-panel:18px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.45;color:var(--fg)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+a{color:var(--fg)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+
+/* prototype bar (not product) */
+.proto{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:var(--ink);color:var(--ink-fg-2);border-bottom:1px solid var(--ink-line);padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:12px}
+.proto b{color:var(--ink-fg);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.proto select{background:var(--ink-2);color:var(--ink-fg);border:1px solid var(--ink-line);border-radius:8px;min-height:32px;padding:0 8px;font:inherit;max-width:100%}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--ink-fg-2);border-radius:7px;min-height:28px;padding:0 10px;cursor:pointer;font-size:12px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--fg);font-weight:700}
+.proto .note{margin-left:auto;color:var(--ink-fg-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.frame{container-type:inline-size;container-name:app;margin:0 auto;width:100%;background:var(--bg);position:relative}
+.frame.phone{width:390px;max-width:100%;margin-block:20px;border:1px solid var(--line-strong);border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(21,23,26,.12)}
+
+/* shell */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - 50px);position:relative}
+.side{background:var(--ink);color:var(--ink-fg-2);padding:18px 14px 20px;display:flex;flex-direction:column;gap:18px;position:sticky;top:50px;height:calc(100vh - 50px);overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 6px;color:var(--ink-fg);text-decoration:none}
+.brand-mark{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--fg);font-weight:800;font-stretch:125%;font-size:10px;flex:none}
+.brand-name{font-weight:800;font-stretch:125%;font-size:15px}
+.client{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border-radius:12px;background:var(--ink-2);border:1px solid var(--ink-line);color:var(--ink-fg);cursor:pointer;text-align:left;width:100%}
+.client-av{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:#1E2550;color:#E9DFC9;font-weight:800}
+.client small{display:block;font-size:12px;color:var(--ink-fg-3)}
+.navgrp{display:flex;flex-direction:column;gap:2px}
+.navlab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-fg-3);padding:0 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border-radius:10px;border:0;background:transparent;color:var(--ink-fg-2);font-weight:500;cursor:pointer;text-align:left;width:100%}
+.nav svg{stroke:var(--ink-fg-3)}
+.nav:hover{background:var(--ink-2)}
+.nav[aria-current="page"]{background:var(--ink-3);color:#fff;font-weight:700}
+.nav[aria-current="page"] svg{stroke:var(--accent)}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--fg);background:var(--accent);border-radius:999px;padding:1px 7px}
+.soon-mini{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-fg-3);border:1px dashed var(--ink-fg-3);border-radius:999px;padding:0 6px}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--ink-line);padding-top:12px}
+.me{display:flex;align-items:center;gap:10px;padding:0 6px}
+.me-av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;background:var(--ink-line);color:var(--ink-fg);font-weight:700;font-size:13px;flex:none}
+.me b{color:var(--ink-fg);font-weight:600;display:block}.me small{font-size:12px;color:var(--ink-fg-3)}
+.lang{display:inline-flex;margin-left:auto;border:1px solid var(--ink-line);border-radius:8px;overflow:hidden}
+.lang button{border:0;background:transparent;color:var(--ink-fg-3);font-family:var(--mono);font-size:11px;min-height:30px;padding:0 8px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink-3);color:var(--ink-fg)}
+.topm{display:none}
+main.work{min-width:0;padding:24px 32px 120px}
+.wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* type */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--fg-3);text-transform:uppercase}
+.h1{margin:0;font-size:30px;line-height:1.1;font-weight:800;font-stretch:125%;letter-spacing:-.015em;text-wrap:balance}
+.h2{margin:0;font-size:16px;font-weight:700;text-wrap:balance}
+.lede{margin:0;color:var(--fg-3);max-width:680px;text-wrap:pretty}
+.head{display:flex;flex-direction:column;gap:8px}
+.muted{color:var(--fg-3)} .small{font-size:13px} .tiny{font-size:12px}
+
+/* surfaces */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ink{background:var(--ink);color:var(--ink-body);border-radius:var(--r-panel);padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ink .eyebrow{color:var(--ink-fg-2)}
+.ink-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ink-list li{display:flex;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--ink-line)}
+.ink-list li:last-child{border-bottom:0;padding-bottom:0}
+.ink-list span:first-child{color:var(--ink-fg-2)} .ink-list span:last-child{color:#fff;font-weight:600;text-align:right}
+.big{font-family:var(--mono);font-size:54px;font-weight:600;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col-main{flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.col-side{flex:1 1 300px;max-width:100%;min-width:0;display:flex;flex-direction:column;gap:16px;position:sticky;top:66px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:var(--r-btn);border:1px solid transparent;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn-lg{min-height:50px;padding:0 18px}
+.btn-sm{min-height:36px;padding:0 12px;border-radius:10px;font-size:13px}
+.btn-accent{background:var(--accent);color:var(--fg)} .btn-accent:hover{background:#BDE52F}
+.btn-ink{background:var(--fg);color:var(--on-ink-btn)} .btn-ink:hover{background:#2A2E33}
+.btn-out{background:var(--card);border-color:var(--line-strong);font-weight:600} .btn-out:hover{border-color:var(--fg)}
+.btn-ghost{background:transparent;color:var(--fg-btn);font-weight:600}
+.btn-on-ink{background:transparent;color:var(--ink-body);font-weight:600;border-color:var(--ink-line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.linkbtn{border:0;background:none;padding:0;cursor:pointer;font-weight:700;text-decoration:underline;text-underline-offset:3px;color:var(--fg)}
+
+/* tags */
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;height:fit-content}
+.t-ok{background:var(--ok-bg);color:var(--ok)} .t-warn{background:var(--warn-bg);color:var(--warn)}
+.t-bad{background:var(--bad-bg);color:var(--bad)} .t-info{background:var(--info-bg);color:var(--info)}
+.t-neutral{background:var(--card-2);color:var(--fg-2);border:1px solid var(--line-soft)}
+.t-ink{background:var(--fg);color:var(--accent)}
+.code{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.02em;padding:2px 7px;border-radius:6px;background:var(--card-2);border:1px solid var(--line-soft);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:999px;background:currentColor;flex:none}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.soon{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;background:var(--card);color:var(--fg-2);border:1px dashed var(--control);white-space:nowrap}
+
+/* alerts */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;border:1px solid}
+.alert svg{flex:none}
+.alert .a-body{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.al-bad{background:var(--bad-bg);border-color:var(--bad-edge);color:#5E1E06}
+.al-warn{background:var(--warn-bg);border-color:var(--warn-line);color:#4A3100}
+.al-ok{background:var(--ok-bg);border-color:#B7DEC5;color:#0B4D31}
+.al-info{background:var(--info-bg);border-color:#C3CEF6;color:#1D2F7A}
+.arow{display:flex;gap:8px;flex-wrap:wrap}
+
+/* flow bar */
+.flow{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:8px 10px 8px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.flow-name{display:flex;flex-direction:column}
+.flow-name b{font-weight:800;font-stretch:125%;font-size:15px}
+.flow-ph{display:flex;flex-wrap:wrap;align-items:center;gap:6px;list-style:none;margin:0;padding:0}
+.ph{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px 0 8px;border-radius:999px;border:0;background:transparent;font-weight:600;color:var(--fg)}
+.ph-next{color:var(--fg-btn)}
+.ph small{font-family:var(--mono);font-size:11px;color:var(--fg-3);font-weight:500}
+.ph-cur{display:flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--card-2);border:1px solid var(--line-soft)}
+.ph-cur > span{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--fg-3);padding-right:4px}
+.st{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;background:var(--fg);color:#fff;font-weight:700;white-space:nowrap}
+.circ{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:600;border:1.5px solid var(--control);color:var(--fg);flex:none;position:relative}
+.circ.on{background:var(--accent);border-color:var(--accent)}
+.circ.run::after{content:"";position:absolute;inset:-4px;border-radius:999px;border:2px solid transparent;border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.flow-exit{margin-left:auto}
+.flow-m{display:none}
+
+/* action bar */
+.actionbar{position:sticky;bottom:0;z-index:5;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 10px 10px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:0 -6px 24px rgba(21,23,26,.06);padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.actionbar .hint{flex:1 1 220px;color:var(--fg-2);font-size:13px;min-width:0}
+.actionbar .btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* waiting effects (only in waiting states) */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.beam{position:relative}
+.beam::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),transparent 0 70%,var(--accent) 82%,var(--info) 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:beam 2.4s linear infinite;pointer-events:none}
+@keyframes beam{to{--a:360deg}}
+.imggen{position:relative;overflow:hidden;aspect-ratio:9/16;border-radius:8px;border:1px solid var(--line);background:radial-gradient(circle at 30% 30%,#D9DCD3 0 2px,transparent 3px) 0 0/9px 9px,radial-gradient(circle at 70% 60%,#CDD0C7 0 1.5px,transparent 2.5px) 0 0/7px 7px,var(--card-2)}
+.imggen::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 0%,rgba(200,240,60,0) 40%,rgba(200,240,60,.35) 50%,rgba(253,253,251,.6) 52%,transparent 62%);background-size:100% 220%;animation:scan 2.2s ease-in-out infinite}
+@keyframes scan{from{background-position:0 120%}to{background-position:0 -120%}}
+.sk{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--card-2) 0%,var(--line-soft) 50%,var(--card-2) 100%);background-size:200% 100%;animation:shim 1.6s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.beam::before,.imggen::after,.circ.run::after,.pulse,.sk{animation:none!important}.beam::before{background:linear-gradient(90deg,var(--accent),var(--info))}}
+
+.bar{height:8px;border-radius:999px;background:var(--line-soft);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--fg)}
+.ink .bar{background:var(--ink-line)} .ink .bar i{background:var(--accent)}
+.minibar{width:120px;height:6px}
+.qthumb{aspect-ratio:9/16;border-radius:8px;border:1px dashed var(--control);background:var(--card-2)}
+.check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:13px}
+.check li{display:flex;gap:10px;align-items:flex-start}
+.check li > span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.check small{font-family:var(--mono);font-size:11px;color:var(--ink-fg-3);overflow-wrap:anywhere}
+.check .todo{color:var(--ink-fg-3)}
+.check .stop{color:#FFB79A}
+.chk-box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--control);display:inline-grid;place-items:center;flex:none;background:var(--card)}
+.chk-box.on{background:var(--accent);border-color:var(--accent)}
+
+/* source */
+.src{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:start}
+.src .facts{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:12px;color:var(--fg-3)}
+.blocks{display:flex;gap:3px;width:100%}
+.blocks span{flex:var(--w);min-width:0;border-radius:6px;padding:5px 6px;font-size:11px;font-weight:600;background:var(--card-2);border:1px solid var(--line-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blocks span.k{background:var(--accent-soft);border-color:#DCEB9F}
+.blocks small{display:block;font-family:var(--mono);font-weight:500;font-size:10px;color:var(--fg-3)}
+.drop{border:1.5px dashed var(--control);border-radius:16px;background:var(--card);padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.libpick{display:flex;gap:12px;align-items:center;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.libpick .t{width:40px;flex:none}
+.srcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px;align-items:start}
+
+/* why */
+.why{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.why li{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid var(--line-soft)}
+.why li:first-child{border-top:0;padding-top:2px}
+.why .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--fg-3);padding-top:2px}
+.why .ref{display:block;font-size:12px;color:var(--fg-3);margin-top:3px}
+.keeps{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.keeps span.pill{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);border:1px solid #DCEB9F;font-weight:600}
+.cardfoot{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;border-top:1px solid var(--line-soft);padding-top:10px;font-size:12px;color:var(--fg-3)}
+
+/* plan */
+.pgrp{display:flex;flex-direction:column;gap:0}
+.pgrp-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;padding-bottom:10px}
+.pgrp-h h3{margin:0;font-size:15px;font-weight:700;display:flex;gap:8px;align-items:center}
+.prow{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line-soft)}
+.prow .l{display:flex;flex-direction:column;gap:3px;min-width:0}
+.prow .l .c{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.prow .say{font-size:13px;color:var(--fg-2);text-wrap:pretty}
+.nomusic{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--fg-3);border-top:1px dashed var(--line-strong);padding-top:10px;margin-top:2px}
+
+/* rows (batch) */
+.rows{display:flex;flex-direction:column;gap:10px}
+.srow{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:start;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.srow.failed{border-color:var(--bad-edge)}
+.srow .meta{display:flex;flex-direction:column;gap:5px;min-width:0}
+.srow .line1{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.srow .reason{color:var(--bad);font-size:13px;font-weight:600}
+.srow .act{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.grp{display:flex;flex-direction:column;gap:10px}
+.grp-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;padding:4px 2px}
+.grp-h h3{margin:0;font-size:15px;font-weight:700}
+
+/* result */
+.folders{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}
+.folder{display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line)}
+.folder .fi{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--card-2);border:1px solid var(--line-soft)}
+.folder.div .fi{background:var(--fg)}
+.folder .ft{display:flex;flex-direction:column;gap:5px;min-width:0}
+.folder .path{font-family:var(--mono);font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+.rcard{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;background:var(--card);border:1px solid var(--line);min-width:0}
+.rcard.out{opacity:.5}
+.rcard .tw{position:relative;cursor:pointer;border:0;padding:0;background:none;display:block;width:100%}
+.rcard .tw .play{position:absolute;inset:auto auto 8px 8px;width:30px;height:30px;border-radius:999px;background:rgba(253,253,251,.94);display:grid;place-items:center}
+.rcard .say{font-size:12px;color:var(--fg-2);line-height:1.35}
+.rcard .bot{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--line-soft);padding-top:8px}
+.inzip{display:inline-flex;gap:6px;align-items:center;border:0;background:none;padding:0;cursor:pointer;font-size:12px;font-weight:600;min-height:36px}
+.fmts{display:flex;gap:4px}
+.fmts span{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:5px;border:1px solid var(--line-soft);color:var(--fg-3)}
+.filt{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--card-2);border:1px solid var(--line-soft);border-radius:12px;padding:3px}
+.filt button{border:0;background:transparent;border-radius:9px;min-height:38px;padding:0 12px;font-weight:600;color:var(--fg-btn);cursor:pointer}
+.filt button[aria-pressed="true"]{background:var(--card);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+.modal{position:absolute;inset:0;z-index:40;background:rgba(21,23,26,.62);display:flex;justify-content:center;align-items:flex-start;padding:70px 16px 40px}
+.sheet{width:min(820px,100%);background:var(--card);border-radius:var(--r-panel);overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px)}
+.sheet .stage{background:var(--ink);padding:22px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.sheet .stage .pl{width:min(280px,100%)}
+.sheet .side2{padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.scrub{width:min(280px,100%);display:flex;align-items:center;gap:10px;color:var(--ink-fg-2);font-family:var(--mono);font-size:12px}
+.scrub .bar{flex:1;height:4px;background:var(--ink-line)} .scrub .bar i{background:var(--ink-fg)}
+.playbtn{width:36px;height:36px;border-radius:999px;border:0;background:var(--ink-fg);display:grid;place-items:center;cursor:pointer;flex:none}
+.cmp{display:inline-flex;gap:2px;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:10px;padding:3px}
+.cmp button{border:0;background:transparent;color:var(--ink-fg-2);border-radius:8px;min-height:34px;padding:0 12px;font-weight:600;cursor:pointer}
+.cmp button[aria-pressed="true"]{background:var(--ink-3);color:#fff}
+.fnames{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.fnames li{font-family:var(--mono);font-size:12px;padding:7px 9px;border-radius:8px;background:var(--card-2);border:1px solid var(--line-soft);overflow-wrap:anywhere}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line-soft);font-size:13px}
+.kv span:first-child{color:var(--fg-3)}
+
+/* brain › music */
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;min-height:44px;padding:0 14px;font-weight:600;color:var(--fg-btn);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-current="page"]{color:var(--fg);border-bottom-color:var(--fg)}
+.track{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-soft)}
+.track .pb{width:40px;height:40px;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);display:grid;place-items:center;cursor:pointer}
+.wave{display:flex;gap:2px;align-items:center;height:18px}
+.wave i{width:3px;border-radius:2px;background:var(--control)}
+
+/* catalog */
+.catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:14px}
+.citem{display:grid;grid-template-columns:104px minmax(0,1fr);gap:14px;padding:14px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line);min-width:0}
+.citem .ct{display:flex;flex-direction:column;gap:6px;min-width:0}
+.citem .ct b{font-size:15px}
+.citem .rule{font-size:12px;color:var(--fg-2);text-wrap:pretty}
+.citem .rule em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--fg-3);display:block}
+.secth{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between}
+
+/* ===== ad frames (content colors are video data) ===== */
+.tf{position:relative;aspect-ratio:9/16;width:100%;max-width:100%;border-radius:10px;overflow:hidden;container-type:inline-size;background:#1E2550;color:#fff;font-family:var(--font);line-height:1.2}
+.tf .v{position:absolute;inset:0;overflow:hidden;background:var(--t-bg)}
+.tf .v .o{position:absolute;width:58%;aspect-ratio:1;right:-14%;top:7%;border-radius:999px;background:var(--t-orb)}
+.tf .v .p{position:absolute;left:-15%;right:-15%;bottom:-8%;height:38%;border-radius:50% 50% 0 0;background:var(--t-pil)}
+.tf .v .m{position:absolute;left:20%;width:60%;bottom:17%;aspect-ratio:2.7/1;border-radius:999px;background:var(--t-msk)}
+.tn-night{--t-bg:#1E2550;--t-orb:#E9DFC9;--t-pil:#2C3570;--t-msk:#0E1230}
+.tn-dawn{--t-bg:#F2C29A;--t-orb:#FF8E4D;--t-pil:#FBE4CF;--t-msk:#2B2142}
+.tn-plum{--t-bg:#3A2142;--t-orb:#F3D3E3;--t-pil:#50305B;--t-msk:#170C1C}
+.tn-sand{--t-bg:#E5D8C3;--t-orb:#C99A62;--t-pil:#F5EDE1;--t-msk:#1E2550}
+.tn-ink{--t-bg:#17191C;--t-orb:#F7F2E2;--t-pil:#25282D;--t-msk:#0B0C0E}
+.tf .chipf{position:absolute;font-family:var(--mono);font-size:6.5cqw;font-weight:600;padding:.8cqw 2.6cqw;border-radius:999px;background:rgba(17,19,22,.84);color:#fff;white-space:nowrap}
+.tf .capt{position:absolute;left:8%;right:8%;text-align:center;font-weight:800;font-size:8.5cqw;line-height:1.55;text-wrap:balance}
+.tf .capt span{background:#fff;color:#111;padding:.4cqw 1.8cqw;border-radius:1cqw;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.tf .capt.box span{background:#111;color:#fff}
+.tf .capt mark{background:#F7E04B;color:#111;padding:0 1cqw;border-radius:1cqw}
+.tf .tlf{position:absolute;left:6%;right:6%;bottom:5%;display:flex;gap:1.4cqw;height:4.5cqw}
+.tf .tlf i{flex:var(--w,1);border-radius:1cqw;background:#F7F2E2}
+.tf .tlf i.x{background:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 1cqw,transparent 1cqw 2cqw);opacity:.7}
+.tf .tlf i.y{background:#F7E04B}
+.tf .stack{position:absolute;left:6%;bottom:6%;display:flex;flex-direction:column;gap:1.4cqw}
+.tf .stack span{font-family:var(--mono);font-size:6cqw;font-weight:600;padding:.8cqw 2.4cqw;border-radius:1.6cqw;background:rgba(17,19,22,.84);color:#fff;width:fit-content}
+.tf .stack span.f{background:#F7E04B;color:#111}
+.tf .lp{position:absolute;background:#FAF7F1;color:#1E2550;display:flex;flex-direction:column;gap:2.6cqw;padding:5cqw}
+.tf .lp .nb{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:6cqw}
+.tf .lp .nb i{width:10cqw;height:1.4cqw;background:#1E2550;border-radius:1cqw}
+.tf .lp .pr{flex:1;border-radius:3cqw;background:#E9DFC9;position:relative;min-height:12cqw}
+.tf .lp .pr::after{content:"";position:absolute;left:22%;right:22%;top:38%;height:24%;border-radius:999px;background:#1E2550}
+.tf .lp .pt{font-weight:800;font-size:7cqw}
+.tf .lp .by{background:#1E2550;color:#FAF7F1;font-size:6cqw;font-weight:700;text-align:center;border-radius:2cqw;padding:2cqw}
+.tf .srch{position:absolute;left:6%;right:6%;top:9%;background:#fff;color:#202124;border-radius:999px;padding:3cqw 4cqw;font-size:6.6cqw;box-shadow:0 1cqw 4cqw rgba(0,0,0,.18);display:flex;gap:2cqw;align-items:center}
+.tf .srch b{font-weight:500}
+.tf .srch u{display:inline-block;width:.6cqw;height:7cqw;background:#2B4BC8;text-decoration:none}
+.tf .res{position:absolute;left:8%;right:8%;top:24%;display:flex;flex-direction:column;gap:2cqw}
+.tf .res i{height:2.2cqw;border-radius:1cqw;background:#D8DBE0}
+.tf .res i:nth-child(1){width:70%;background:#9DB0F0}.tf .res i:nth-child(2){width:92%}.tf .res i:nth-child(3){width:80%}
+.tf .bub{position:absolute;max-width:76%;font-size:6.6cqw;padding:2.4cqw 3.4cqw;border-radius:4.5cqw;line-height:1.25}
+.tf .bub.l{left:6%;background:#ECECEE;color:#111;border-bottom-left-radius:1cqw}
+.tf .bub.r{right:6%;background:#3478F6;color:#fff;border-bottom-right-radius:1cqw}
+.tf .notes{position:absolute;left:0;right:0;top:0;height:52%;background:#FFF7CC;color:#3A3000;padding:5cqw 6cqw;font-size:7cqw;line-height:9cqw;background-image:repeating-linear-gradient(transparent 0 9cqw,#EADF98 9cqw calc(9cqw + 1px));background-position:0 14cqw}
+.tf .notes .nh{font-family:var(--font);font-weight:700;color:#C08A00;font-size:6cqw;display:block;margin-bottom:1cqw}
+.tf .paper{position:absolute;left:0;right:0;top:0;height:52%;background:#F7F4EC;color:#1E2550;font-family:var(--hand);font-size:14cqw;line-height:1.05;padding:8cqw 7cqw}
+.tf .paper s{display:block;width:40%;height:1.2cqw;background:#C0392B;border-radius:1cqw;margin-top:2cqw;text-decoration:none}
+.tf .sb{position:absolute;top:2.5%;left:4%;right:4%;display:flex;gap:1.2cqw;z-index:2}
+.tf .sb i{flex:1;height:.9cqw;border-radius:1cqw;background:rgba(255,255,255,.45)}
+.tf .sb i:first-child{background:#fff}
+.tf .sn{position:absolute;top:5.5%;left:5%;display:flex;gap:2cqw;align-items:center;font-size:6cqw;font-weight:700;z-index:2}
+.tf .sn i{width:8cqw;height:8cqw;border-radius:999px;background:#E9DFC9;border:.8cqw solid #fff}
+.tf .rp{position:absolute;left:5%;right:5%;bottom:3%;border:.5cqw solid rgba(255,255,255,.8);border-radius:999px;font-size:5.5cqw;padding:2.4cqw 4cqw;color:rgba(255,255,255,.9);z-index:2}
+.tf .phd{position:absolute;left:0;right:0;font-size:6cqw;font-weight:700;color:#111;display:flex;gap:2cqw;align-items:center;padding:0 5cqw}
+.tf .phd i{width:7cqw;height:7cqw;border-radius:999px;background:#1E2550}
+.tf .icons{position:absolute;left:5%;display:flex;gap:3cqw}
+.tf .icons i{width:6cqw;height:6cqw;border-radius:1.6cqw;border:.7cqw solid #111}
+.tf .ln{position:absolute;left:5%;height:2cqw;border-radius:1cqw;background:#D8DBE0}
+.tf .rv{position:absolute;left:6%;right:6%;top:6%;background:#fff;color:#1A1A1A;border-radius:3.5cqw;padding:4cqw;display:flex;flex-direction:column;gap:1.6cqw;box-shadow:0 1cqw 4cqw rgba(0,0,0,.12)}
+.tf .rv .stars{color:#E8A317;font-size:7cqw;letter-spacing:.6cqw}
+.tf .rv q{font-size:6.4cqw;font-weight:600;line-height:1.3}
+.tf .rv small{font-size:5cqw;color:#6B6B6B}
+.tf .hl{position:absolute;left:7%;right:7%;top:8%;font-weight:900;font-size:12cqw;line-height:1.02;color:#fff;font-stretch:125%;text-wrap:balance}
+.tf .ec{position:absolute;inset:0;background:#1E2550;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4cqw;padding:8cqw;text-align:center;color:#FAF7F1}
+.tf .ec b{font-size:13cqw;line-height:1.02;font-weight:900;font-stretch:125%}
+.tf .ec span{font-size:6.5cqw;opacity:.8}
+.tf .ec i{font-style:normal;background:#FAF7F1;color:#1E2550;font-weight:800;font-size:6.5cqw;padding:2.5cqw 6cqw;border-radius:999px}
+.tf .wv{position:absolute;left:6%;bottom:6%;display:flex;gap:2cqw;align-items:center;padding:1.6cqw 3cqw;border-radius:999px;background:rgba(17,19,22,.84)}
+.tf .wv svg{width:6cqw;height:6cqw}
+.tf .wv span{display:flex;gap:.8cqw;align-items:center;height:6cqw}
+.tf .wv span i{width:.9cqw;border-radius:1cqw;background:#F7F2E2}
+.tf .pip{position:absolute;right:6%;bottom:7%;width:40%;aspect-ratio:3/4;border-radius:4cqw;overflow:hidden;border:1cqw solid #fff;box-shadow:0 1.5cqw 5cqw rgba(0,0,0,.3)}
+.tf .ar{position:absolute;inset:0;display:flex;gap:6%;align-items:center;justify-content:center;background:#F3F4F0}
+.tf .ar i{border:1.2cqw solid #15171A;border-radius:2cqw;display:grid;place-items:center;font-family:var(--mono);font-style:normal;font-size:5cqw;color:#15171A;font-weight:600}
+
+/* responsive */
+@container app (max-width: 760px){
+  .app{grid-template-columns:minmax(0,1fr);min-height:auto}
+  .side{display:none}
+  .app.menu .side{display:flex;position:absolute;top:56px;left:0;right:0;height:auto;z-index:30}
+  .topm{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--ink-fg);padding:8px 16px;min-height:56px;position:sticky;top:50px;z-index:20}
+  .topm .client{min-height:40px;padding:4px 8px;flex:1;min-width:0}
+  .topm .client-av{width:26px;height:26px;font-size:12px}
+  .icobtn{width:40px;height:40px;border-radius:10px;border:1px solid var(--ink-line);background:transparent;display:grid;place-items:center;cursor:pointer}
+  main.work{padding:16px 16px 150px}
+  .h1{font-size:24px}
+  .flow{display:none}
+  .flow-m{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+  .flow-m .r1{display:flex;align-items:center;gap:10px}
+  .flow-m .r1 .t{flex:1;min-width:0;display:flex;flex-direction:column}
+  .flow-m .r1 .t b{font-weight:800;font-stretch:125%;font-size:15px}
+  .segs{display:grid;gap:3px}
+  .segs i{height:5px;border-radius:999px;background:var(--line)}
+  .segs i.d{background:var(--fg)} .segs i.c{background:var(--accent);outline:1px solid var(--accent-edge)}
+  .actionbar{position:fixed;left:0;right:0;bottom:0;border-radius:0;border-width:1px 0 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+  .frame.phone .actionbar{position:sticky;margin-inline:-16px}
+  .actionbar .hint{flex-basis:100%}
+  .actionbar .btns{width:100%;display:grid;grid-auto-flow:column;grid-auto-columns:auto;grid-template-columns:auto 1fr}
+  .actionbar .btns.one{grid-template-columns:1fr}
+  .actionbar .btns .btn{width:100%}
+  .col-side{position:static}
+  .big{font-size:42px}
+  .src{grid-template-columns:84px minmax(0,1fr)}
+  .blocks span{font-size:10px;padding:4px}
+  .blocks small{display:none}
+  .why li{grid-template-columns:minmax(0,1fr);gap:2px}
+  .srow{grid-template-columns:44px minmax(0,1fr)}
+  .srow .act{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+  .rgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .modal{padding:0;position:absolute}
+  .sheet{grid-template-columns:minmax(0,1fr);border-radius:0;min-height:100%}
+  .citem{grid-template-columns:88px minmax(0,1fr)}
+}
+@media (min-width:761px){.topm .icobtn{display:none}}
+</style>
+
+<div class="proto" role="region" aria-label="Prototype controls (not part of the product)">
+  <b>PROTOTYPE</b>
+  <label for="scr" class="sr">Screen</label>
+  <select id="scr" aria-label="Screen"></select>
+  <span>State</span><div class="seg" id="states"></div>
+  <div class="seg" id="dev"><button data-dev="desktop" aria-pressed="true">Desktop</button><button data-dev="phone" aria-pressed="false">Phone 390</button></div>
+  <span class="note">Example data · Mooncloth is fictional · costs are placeholders</span>
+</div>
+<div class="stagewrap"><div class="frame" id="frame"></div></div>
+<div id="toast" class="toast" hidden style="position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:80;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.25)"></div>
+
+<script>
+(function(){
+const S={screen:'flow',st:{},dev:'desktop',menu:false,filter:'all',out:{},cmp:'var',prev:'LAYOUT-SPLIT-LP',lic:true,catf:'all'};
+try{const h=location.hash.slice(1); if(h) S.screen=h;}catch(e){}
+
+const SCREENS=[
+ {id:'flow',g:'Iterate a winner',l:'1 · Upload → why → plan → Generate',states:['empty','uploading','analyzing','ready','ready + music','no Brain','short video','analysis failed']},
+ {id:'batch',g:'Iterate a winner',l:'2 · Rendering the batch',states:['in progress','one failed','all ready']},
+ {id:'result',g:'Iterate a winner',l:'3 · Result + zip',states:['ready','preview','downloaded']},
+ {id:'music',g:'Brain',l:'Brain › Music',states:['empty','uploading','with tracks']},
+ {id:'catalog',g:'For maquina-video',l:'Catalog of v1 types',states:['default']},
+];
+const byId=id=>SCREENS.find(s=>s.id===id)||SCREENS[0];
+
+const P={
+ home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/>',
+ chart:'<path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M21 20H3"/>',
+ chat:'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',
+ brain:'<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 7h7"/><path d="m7.3 9.2 3.5 6.6"/><path d="m16.7 9.2-3.5 6.6"/>',
+ iter:'<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 3v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 21v-5h5"/>',
+ bulb:'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6 1 1.3 1 2.4h5.6c0-1.1.4-1.8 1-2.4A6 6 0 0 0 12 3z"/>',
+ review:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+ lib:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+ bld:'<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>',
+ check:'<path d="m5 12.5 4.5 4.5L19 7"/>', x:'<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
+ right:'<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', left:'<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
+ updown:'<path d="m8 9 4-4 4 4"/><path d="m8 15 4 4 4-4"/>', chev:'<path d="m9 6 6 6-6 6"/>',
+ play:'<path d="M7 4v16l13-8z"/>', dl:'<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+ refresh:'<path d="M20 11a8 8 0 0 0-14.7-4.3L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.7 4.3L20 16"/><path d="M20 21v-5h-5"/>',
+ alert:'<path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.5v.5"/>', info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 8v.5"/>',
+ up:'<path d="M12 19V6"/><path d="m6 11 6-6 6 6"/>', menu:'<path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/>',
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ note:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+ trash:'<path d="M5 7h14"/><path d="M10 7V4h4v3"/><path d="M7 7l1 13h8l1-13"/>', clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+ copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>'
+};
+const ic=(n,s=18,st='currentColor',w=1.9)=>`<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${st}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||''}</svg>`;
+
+/* ---------- type frames (what each variation looks like in 9:16) ---------- */
+const V=(t='night',style='')=>`<div class="v tn-${t}" style="${style}"><i class="o"></i><i class="p"></i><i class="m"></i></div>`;
+const LP=(style)=>`<div class="lp" style="${style}"><div class="nb">mooncloth<i></i></div><div class="pr"></div><div class="pt">$39 · Weighted mask</div><div class="by">Try it 60 nights</div></div>`;
+const NOTE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="#F7F2E2" stroke-width="2.2" stroke-linecap="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>';
+const TF={
+ orig:()=>V('night'),
+ cut:()=>V('night')+`<span class="chipf" style="top:5%;left:6%">0:32 → 0:15</span><div class="tlf"><i style="--w:1"></i><i class="x" style="--w:2"></i><i style="--w:2"></i><i class="x" style="--w:1"></i><i style="--w:1.4"></i></div>`,
+ cold:()=>V('sand')+`<span class="chipf" style="top:5%;left:6%">0:14 → 0:00</span><div class="tlf"><i class="y" style="--w:1.3"></i><i style="--w:1"></i><i style="--w:2"></i><i style="--w:2"></i><i style="--w:1.4"></i></div>`,
+ order:()=>V('night')+`<div class="stack"><span class="f">1 PROOF</span><span>2 PROBLEM</span><span>3 PRODUCT</span><span>4 CTA</span></div>`,
+ pace:()=>V('night')+`<span class="chipf" style="top:5%;left:6%">0:32 → 0:27</span><div class="tlf" style="gap:.4cqw"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>`,
+ hooktext:()=>V('night')+`<div class="capt" style="top:10%"><span>Nothing gets through. I checked.</span></div>`,
+ caption:()=>V('night')+`<div class="capt box" style="bottom:22%"><span>it blocks <mark>every</mark> bit of light</span></div>`,
+ endcard:()=>`<div class="ec"><b>60 nights to try it</b><span>Free returns. Keep it if you sleep.</span><i>mooncloth.com</i></div>`,
+ music:()=>V('night')+`<div class="wv">${NOTE_SVG}<span>${[3,5,2,6,4,5,2].map(h=>`<i style="height:${h}cqw"></i>`).join('')}</span></div>`,
+ search:()=>`<div class="v" style="background:#F6F6F4"></div><div class="srch">${'<svg viewBox="0 0 24 24" width="12%" fill="none" stroke="#5F6368" stroke-width="2.4"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>'}<b>sleep mask that blocks all light</b><u></u></div><div class="res"><i></i><i></i><i></i></div>`+V('night','top:44%'),
+ dm:()=>`<div class="v" style="background:#fff"></div><div class="bub l" style="top:6%">ok which mask did you end up keeping??</div><div class="bub r" style="top:22%">I tried 11. only one stays on all night</div>`+V('night','top:44%'),
+ notes:()=>`<div class="notes"><span class="nh">Notes</span>masks I tried: 11<br>still wearing: 1<br>why: it's weighted</div>`+V('night','top:52%'),
+ hand:()=>`<div class="paper">11 masks.<br>1 kept.<s></s></div>`+V('night','top:52%'),
+ split:()=>LP('left:0;right:0;top:0;height:46%')+V('night','top:46%'),
+ pip:()=>LP('inset:0')+`<div class="pip">${V('night')}</div>`,
+ story:()=>V('plum')+`<div class="sb"><i></i><i></i><i></i></div><div class="sn"><i></i>dana.sleeps</div><div class="rp">Send message</div>`,
+ post:()=>`<div class="v" style="background:#fff"></div><div class="phd" style="top:4%"><i></i>mooncloth</div>`+V('night','top:13%;bottom:27%')+`<div class="icons" style="bottom:19%"><i></i><i></i><i></i></div><span class="ln" style="bottom:12%;width:70%"></span><span class="ln" style="bottom:7%;width:50%"></span>`,
+ review:()=>`<div class="v" style="background:#F3EEE4"></div><div class="rv"><span class="stars">★★★★★</span><q>Eleven masks later, it's the only one I kept.</q><small>Dana R. · verified buyer</small></div>`+V('night','top:46%;left:10%;right:10%;bottom:4%;border-radius:4cqw'),
+ static:()=>V('ink')+`<div class="hl">Shine a flashlight at it. Nothing gets through.</div><span class="chipf" style="bottom:5%;right:6%">PNG</span>`,
+ formats:()=>`<div class="ar"><i style="width:24%;aspect-ratio:9/16">9:16</i><i style="width:24%;aspect-ratio:4/5">4:5</i><i style="width:24%;aspect-ratio:1">1:1</i></div>`
+};
+const tf=(k)=>`<div class="tf" role="img" aria-label="${(K[k]||{name:k==='formats'?'Formats':'Original video'}).name} in 9:16">${TF[k]()}</div>`;
+
+/* ---------- catalog of v1 types ---------- */
+const K={
+ cut:{name:'Cut by block',axis:'it',code:'CUT-15S',does:'Shorter version made of whole blocks: hook, proof, CTA. Never cuts mid-sentence.',when:'Video is 25 s or longer and has 4 or more blocks. 15 s first; 20 s if the proof needs it.',needs:'Teardown blocks'},
+ cold:{name:'Cold open',axis:'it',code:'COLD-OPEN',does:'The strongest moment (proof, reaction) jumps to second 0, then the video plays from the start.',when:'There is a visual proof or reaction after 0:05 that is stronger than the opening frame.',needs:'Teardown blocks'},
+ order:{name:'Block order',axis:'it',code:'ORDER-PROOF-1ST',does:'Same clips and words, blocks in another order (proof before problem, offer before mechanism).',when:'Proof comes after the problem and the video has 4+ blocks.',needs:'Teardown blocks'},
+ pace:{name:'Pace',axis:'it',code:'PACE-FAST',does:'Pauses and breaths removed, jump cuts. No speed-up of the voice.',when:'Silence adds up to 2 s or more, or speech runs under 2.3 words per second.',needs:'Transcript with timing'},
+ hooktext:{name:'Hook written on screen',axis:'it',code:'HOOK-TEXT-2',does:'New headline over the first 3 s. The voice stays the same.',when:'Always 1 per batch; 2 if the original has no on-screen hook. Text comes from the why + the Brain angle.',needs:'Analysis (Claude)'},
+ caption:{name:'Caption style',axis:'it',code:'CAPTION-BOX',does:'Another caption style: box, karaoke, size, position.',when:'The original has no captions, thin captions, or captions inside the Reels UI zone. At most 1.',needs:'Transcript'},
+ endcard:{name:'End card / offer',axis:'it',code:'ENDCARD-60N',does:'2 s card at the end with the offer, guarantee or price.',when:'The Brain has an offer or guarantee and the original has no end card.',needs:'Brain › Offer (or the spoken CTA)'},
+ music:{name:'Music',axis:'it',code:'MUSIC-T1',does:'A track from Brain › Music under the voice; original audio ducked.',when:'Only if Brain › Music has tracks. 1 per batch, the track whose tempo fits the cut.',needs:'Tracks uploaded by the client'},
+ search:{name:'Native hook · search bar',axis:'div',code:'NATIVE-SEARCH',does:'Opens on a search bar typing the problem, then the video.',when:'The hook names a problem people search for (problem-aware).',needs:'Analysis (Claude)'},
+ dm:{name:'Native hook · DM',axis:'div',code:'NATIVE-DM',does:'Opens on a chat: a friend asks, the creator answers with the hook.',when:'The hook is a confession or a personal story.',needs:'Analysis (Claude)'},
+ notes:{name:'Native hook · notes',axis:'div',code:'NATIVE-NOTES',does:'Opens on a phone note with a short list, then the video.',when:'The hook is a list, a count or steps ("I tried 11").',needs:'Analysis (Claude)'},
+ hand:{name:'Native hook · handwriting',axis:'div',code:'NATIVE-HAND',does:'Opens on a number or claim written by hand on paper.',when:'The hook carries one strong number or claim.',needs:'Analysis (Claude)'},
+ split:{name:'Layout · split with page',axis:'div',code:'LAYOUT-SPLIT-LP',does:'Top half: product page or product photo. Bottom half: the original video.',when:'The Brain has the product page URL or a product photo.',needs:'Brain › Product (URL or photo)'},
+ pip:{name:'Layout · picture-in-picture',axis:'div',code:'LAYOUT-PIP',does:'Product page full screen, the creator in a corner window.',when:'Talking-head video and the Brain has the product page or photo.',needs:'Brain › Product'},
+ story:{name:'Layout · story frame',axis:'div',code:'LAYOUT-STORY',does:'The video inside an Instagram story frame, with bars and reply field.',when:'Always available. Used when the batch still needs a new look.',needs:'Nothing'},
+ post:{name:'Layout · feed post frame',axis:'div',code:'LAYOUT-POST',does:'The video as a feed post, with header and like row. Built for 4:5.',when:'Always available. Picked over story when the video is calm and long.',needs:'Nothing'},
+ review:{name:'Layout · review background',axis:'div',code:'LAYOUT-REVIEW',does:'A real review on top, the video below.',when:'The Brain has a review or testimonial.',needs:'Brain › Proof'},
+ static:{name:'Static',axis:'div',code:'STATIC-F1',does:'The strongest frame + one headline, as an image (PNG).',when:'Always 1 per batch, from the proof moment if there is one.',needs:'Analysis (Claude)'},
+};
+
+/* ---------- plan data ---------- */
+const MC='MC_1012_';
+const PLAN_FULL={
+ it:[['cut','Only the length changes: hook, flashlight test, CTA. 0:32 becomes 0:15.'],['cold','Opens on the flashlight test (0:14), then plays from the start.'],['order','Proof moves before the problem. Same clips, same words.'],['pace','Pauses taken out. 0:32 becomes 0:27.'],['hooktext','New headline on screen: “Nothing gets through. I checked.” Same voice.'],['endcard','Ends on a 2 s card with the 60-night offer from the Brain.']],
+ div:[['split','Top half shows the Mooncloth product page; the video plays below.'],['review','Dana\'s 5-star review from the Brain sits on top of the video.'],['search','Opens on a search for “sleep mask that blocks all light”, then the video.'],['pip','Product page full screen, the creator in a corner window.'],['static','Frame at 0:16 (flashlight on the mask) + headline. Image.']]
+};
+const MUSIC_ROW=['music','“Low Hum” from Brain › Music under the voice. Original audio lowered.'];
+const PLAN_NOBRAIN={
+ it:[['cut','Only the length changes: hook, flashlight test, CTA. 0:32 becomes 0:15.'],['cold','Opens on the flashlight test (0:14), then plays from the start.'],['pace','Pauses taken out. 0:32 becomes 0:27.'],['hooktext','New headline on screen: “Nothing gets through. I checked.” Same voice.'],['endcard','Ends on a 2 s card with the spoken CTA: “Sixty nights to try it.”']],
+ div:[['notes','Opens on a phone note: “masks I tried: 11, still wearing: 1”.'],['search','Opens on a search for “sleep mask that blocks all light”, then the video.'],['story','The video inside an Instagram story frame.'],['static','Frame at 0:16 (flashlight on the mask) + headline. Image.']]
+};
+const PLAN_SHORT={
+ it:[['hooktext','New headline on screen: “Nothing gets through.” Same voice.'],['caption','Box captions, moved above the Reels UI.'],['endcard','Ends on a 2 s card with the 60-night offer from the Brain.']],
+ div:[['search','Opens on a search for “sleep mask that blocks all light”, then the video.'],['split','Top half shows the Mooncloth product page; the video plays below.'],['story','The video inside an Instagram story frame.'],['static','Best frame + headline. Image.']]
+};
+function plan(st){
+ if(st==='no Brain')return PLAN_NOBRAIN;
+ if(st==='short video')return PLAN_SHORT;
+ const p={it:PLAN_FULL.it.slice(),div:PLAN_FULL.div.slice()};
+ if(st==='ready + music')p.it.push(MUSIC_ROW);
+ return p;
+}
+const fileOf=(k,fmt='9x16')=>`${MC}${K[k].code}_${fmt}.${k==='static'?'png':'mp4'}`;
+
+/* ---------- shell ---------- */
+function sidebar(active){
+ const it=(id,icon,label,extra='',go='')=>`<button class="nav" ${go?`data-go="${go}"`:`data-toast="${label}: exists today, not part of this mockup."`} ${active===id?'aria-current="page"':''}>${ic(icon,20)}${label}${extra}</button>`;
+ return `<nav class="side" aria-label="Main">
+  <span class="brand"><span class="brand-mark">HM</span><span class="brand-name">HookMill</span></span>
+  <button class="client" data-toast="Switch client"><span class="client-av">M</span><span style="flex:1;min-width:0"><b style="font-weight:700">Mooncloth</b><small>Client workspace</small></span>${ic('updown',18,'#9AA1A9',1.75)}</button>
+  <div class="navgrp"><span class="navlab">WORKSPACE</span>
+   ${it('home','home','Home')}
+   ${it('campaigns','chart','Campaigns','<span class="soon-mini">SOON</span>')}
+   ${it('eddy','chat','Eddy','<span class="soon-mini">SOON</span>')}
+   ${it('brain','brain','Brain','','music')}
+  </div>
+  <div class="navgrp"><span class="navlab">MAKE ADS</span>
+   ${it('iterate','iter','Iterate a winner','','flow')}
+   ${it('concepts','bulb','New concepts')}
+   ${it('review','review','Review','<span class="badge">3</span>')}
+   ${it('library','lib','Library')}
+  </div>
+  <div class="side-foot">
+   ${it('clients','bld','All clients')}
+   <div class="me"><span class="me-av">T</span><span style="min-width:0"><b>Tordan</b><small>Agency admin</small></span>
+    <span class="lang" role="group" aria-label="Interface language"><button aria-pressed="true">EN</button><button aria-pressed="false" data-toast="PT-BR: every string has a key (next-intl)">PT</button></span></div>
+  </div></nav>`;
+}
+function topm(){return `<div class="topm"><span class="brand-mark">HM</span><button class="client" data-toast="Switch client"><span class="client-av">M</span><span style="flex:1;min-width:0"><b>Mooncloth</b></span>${ic('updown',16,'#9AA1A9')}</button><button class="icobtn" data-act="menu" aria-label="Open menu" aria-expanded="${S.menu}">${ic('menu',20,'#F2F3EE')}</button></div>`}
+function shell(active,inner,extra=''){return `<div class="app ${S.menu?'menu':''}">${sidebar(active)}<div style="min-width:0">${topm()}<main class="work"><div class="wrap">${inner}</div></main></div></div>${extra}`}
+
+const STEPS=[['analyze','Analyze','Plan'],['batch','Generate','Make'],['result','Download','Ship']];
+function flowbar(cur,running){
+ const ci=STEPS.findIndex(s=>s[0]===cur);
+ const parts=STEPS.map((s,i)=>{
+  if(i<ci) return `<li><span class="ph"><span class="circ on">${ic('check',12,'#15171A',3)}</span>${s[2]}<small>${s[1]} · done</small></span></li>`;
+  if(i>ci) return `<li><span class="ph ph-next"><span class="circ">${i+1}</span>${s[2]}<small>${s[1]}</small></span></li>`;
+  return `<li class="ph-cur"><span>${s[2].toUpperCase()}</span><span class="st" aria-current="step"><span class="circ on ${running?'run':''}">${i+1}</span>${s[1]}</span></li>`;
+ });
+ const sep=`<li aria-hidden="true">${ic('chev',16,'#9A9F96',2)}</li>`;
+ return `<nav class="flow" aria-label="Iterate a winner steps"><div class="flow-name"><span class="eyebrow">MOONCLOTH</span><b>Iterate a winner</b></div><ol class="flow-ph">${parts.join(sep)}</ol><button class="btn btn-ghost flow-exit" data-toast="Exit: back to Home. Anything running keeps going.">${ic('x',16)}Exit</button></nav>
+ <nav class="flow-m" aria-label="Iterate a winner steps"><div class="r1"><div class="t"><span class="eyebrow">Iterate a winner · ${STEPS[ci][2]}</span><b>${STEPS[ci][1]}</b></div><span class="num small muted">Step ${ci+1} of 3</span></div><div class="segs" style="grid-template-columns:repeat(3,1fr)">${STEPS.map((s,i)=>`<i class="${i<ci?'d':i===ci?'c':''}"></i>`).join('')}</div></nav>`;
+}
+const actionbar=(hint,btns,one)=>`<div class="actionbar"><span class="hint">${hint}</span><div class="btns ${one?'one':''}">${btns}</div></div>`;
+
+/* ================= screens ================= */
+const R={};
+const BLOCKS=[['Hook','0:00',3,1],['Problem','0:03',7,0],['Product','0:10',4,0],['Proof','0:14',10,1],['CTA','0:24',8,1]];
+const blockStrip=(short)=>short?`<div class="blocks"><span style="--w:1">One shot · no clear blocks<small>0:00–0:07</small></span></div>`:`<div class="blocks" aria-label="Blocks found in the video">${BLOCKS.map(b=>`<span class="${b[3]?'k':''}" style="--w:${b[2]}" title="${b[0]} from ${b[1]}">${b[0]}<small>${b[1]}</small></span>`).join('')}</div>`;
+
+function sourceCard(st){
+ const short=st==='short video';
+ const name=short?'mask-flashlight-7s.mp4':'I tried 11 sleep masks';
+ const facts=short?['0:07','9:16','1080×1920','12 MB','1 shot']:['0:32','9:16','1080×1920','From the Library','6 cuts'];
+ return `<div class="card"><div class="src"><div>${tf(short?'static':'orig')}</div><div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:0"><span class="eyebrow">THE WINNER</span><h2 class="h2" style="font-size:18px">${name}</h2></div><button class="btn btn-sm btn-ghost" data-go="flow" data-state-after="empty">Change video</button></div>
+  <div class="facts">${facts.map(f=>`<span>${f}</span>`).join('')}</div>
+  ${st==='analyzing'?`<div style="display:flex;flex-direction:column;gap:6px"><span class="tiny muted">Blocks · found so far</span><div class="blocks"><span class="k" style="--w:3">Hook<small>0:00</small></span><span style="--w:7">Problem<small>0:03</small></span><span style="--w:22;border-style:dashed;color:var(--fg-3)">reading…<small>frame 412 of 960</small></span></div></div>`:`<div style="display:flex;flex-direction:column;gap:6px"><span class="tiny muted">Blocks the AI found${short?'':' · highlighted = kept in every piece'}</span>${blockStrip(short)}</div>`}
+ </div></div></div>`;
+}
+
+function whyCard(st){
+ const nb=st==='no Brain';const short=st==='short video';
+ const L=nb?[
+  ['HOOK','A number confession, “I tried 11 sleep masks”, in the first 2 seconds. It promises a verdict, so people stay to hear it.','From the video'],
+  ['PROOF','The flashlight test at 0:14 shows the claim instead of saying it. It\'s the strongest frame in the video.','From the video'],
+  ['CTA','Ends on risk reversal: “Sixty nights to try it.”','From the video · the Brain has no offer to compare']
+ ]:short?[
+  ['HOOK','Opens on the proof itself: a flashlight against the mask, no talking. The image is the hook.','From the video'],
+  ['PROOF','“Nothing gets through” is shown, not claimed. Matches Brain › Proof: blackout test.','Brain › Proof'],
+  ['CTA','No spoken CTA. The 60-night offer in the Brain isn\'t in the video.','Brain › Offer']
+ ]:[
+  ['HOOK','A number confession, “I tried 11 sleep masks”, in the first 2 seconds. It speaks to the Brain\'s buyer: women 28–40 who already tried cheap masks.','Brain › Audience: “tried and gave up”'],
+  ['PROOF','The flashlight test at 0:14 shows the claim instead of saying it. It\'s the strongest frame in the video.','Brain › Proof: blackout test'],
+  ['CTA','Ends on risk reversal, “60 nights to try it”, which is the offer in the Brain.','Brain › Offer: 60-night trial']
+ ];
+ const keeps=short?['The flashlight shot','“Nothing gets through”']:['Hook words','The creator','Flashlight test','60-night CTA'];
+ return `<section class="card" aria-labelledby="whyh"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><h2 class="h2" id="whyh">Why this ad works</h2>${nb?'<span class="tag t-warn">Video only</span>':''}</div>
+  <ul class="why">${L.map(l=>`<li><span class="k">${l[0]}</span><span>${l[1]}<span class="ref">${l[2]}</span></span></li>`).join('')}</ul>
+  <div class="keeps"><span class="tiny muted" style="margin-right:2px">Kept in every piece:</span>${keeps.map(k=>`<span class="pill">${k}</span>`).join('')}</div>
+  <div class="cardfoot"><span>Read from the video${nb?'':' and Mooncloth\'s Brain'}.</span><span style="display:inline-flex;gap:8px;align-items:center">Metrics not used · connect Meta <span class="soon">SOON</span></span></div>
+ </section>`;
+}
+
+function planCard(st){
+ const p=plan(st);const music=st==='ready + music';
+ const row=([k,say])=>`<div class="prow"><div>${tf(k)}</div><div class="l"><div class="c"><span class="code">${K[k].code}</span><span class="tiny muted">${K[k].name}</span></div><span class="say">${say}</span></div></div>`;
+ return `<section class="card" aria-labelledby="planh" style="gap:18px"><div class="head" style="gap:4px"><h2 class="h2" id="planh">The batch · ${p.it.length+p.div.length} pieces</h2><span class="small muted">Each piece changes one thing. Its file name says what.</span></div>
+  <div class="pgrp"><div class="pgrp-h"><h3><span class="tag t-neutral">Stretch its life</span><span class="num">${p.it.length}</span></h3><span class="tiny muted">Same concept, fresh edit. Meta reads these as the same ad.</span></div>${p.it.map(row).join('')}
+   ${music?'':`<div class="nomusic">${ic('note',14)}No music variation: Brain › Music has no tracks.<button class="linkbtn tiny" data-go="music">Add tracks</button></div>`}</div>
+  <div class="pgrp"><div class="pgrp-h"><h3><span class="tag t-ink">New audience</span><span class="num">${p.div.length}</span></h3><span class="tiny muted">Different first frame and layout. Meta reads these as new ads.</span></div>${p.div.map(row).join('')}</div>
+  <div class="cardfoot" style="justify-content:flex-start"><span>Every piece comes in 9:16, 4:5 and 1:1. Formats don't count as variations.</span></div>
+ </section>`;
+}
+
+function inkPanel(st){
+ const p=plan(st);const n=p.it.length+p.div.length;
+ return `<div class="ink"><span class="eyebrow">THIS BATCH</span>
+  <div style="display:flex;align-items:baseline;gap:10px"><span class="big">${n}</span><span style="color:#fff;font-weight:600">pieces</span></div>
+  <ul class="ink-list"><li><span>Stretch its life</span><span>${p.it.length}</span></li><li><span>New audience</span><span>${p.div.length}</span></li><li><span>Files</span><span>${n*3} · 3 formats each</span></li><li><span>Ready in</span><span>about ${Math.round(n*0.4)} min</span></li></ul>
+  <ul class="ink-list" style="border-top:1px solid var(--ink-line);padding-top:12px"><li><span>Analysis</span><span class="num">$0.06 · done</span></li><li><span>Rendering</span><span class="num">$0.00</span></li><li><span>Video credits</span><span>None used</span></li></ul>
+  <p class="small" style="margin:0;color:var(--ink-fg-2)">Everything here is edited from your video. Nothing new is generated.</p></div>`;
+}
+
+R.flow=st=>{
+ if(st==='empty'||st==='uploading'){
+  const up=st==='uploading';
+  return shell('iterate',`${flowbar('analyze')}
+  <div class="head"><h1 class="h1">Upload an ad that works</h1><p class="lede">HookMill reads it, finds why it works and plans the variations. You only press Generate.</p></div>
+  <div class="srcs"><div style="display:flex;flex-direction:column;gap:12px">
+   ${up?`<div class="card"><div style="display:flex;gap:12px;align-items:center"><div style="width:44px;flex:none"><div class="qthumb"></div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:8px"><b class="small" style="overflow-wrap:anywhere">mooncloth-11-masks-final.mp4</b><span class="num small">62%</span></div><div class="bar"><i style="width:62%"></i></div><span class="num tiny muted">48 of 78 MB · about 12 s left</span></div><button class="btn btn-sm btn-ghost" data-go="flow" data-state-after="empty">Cancel</button></div><span class="tiny muted">The analysis starts by itself when the upload finishes.</span></div>`
+   :`<div class="drop">${ic('up',26)}<b>Drop the video here</b><span class="small muted">MP4 or MOV, up to 500 MB and 3 minutes. Your ads, other accounts' ads, raw creator files.</span><button class="btn btn-ink btn-sm" data-go="flow" data-state-after="uploading">Choose a file</button></div>`}
+   <span class="tiny muted" style="display:flex;gap:6px;align-items:center">${ic('info',14)}The analysis starts as soon as the video is in. It costs about $0.06.</span>
+  </div>
+  <div class="card"><b>Or pick from your Library</b>
+   ${[['I tried 11 sleep masks','Winner · 0:32 · marked Sep 28','night'],['Flashlight test','Winner · 0:21 · marked Oct 2','ink'],['Partner reads till 1am','0:27 · approved Oct 5','plum']].map((a,i)=>`<div class="libpick"><div class="t">${tf(i===1?'static':'orig').replace('tn-night','tn-'+a[2])}</div><span style="flex:1;min-width:0"><b class="small">${a[0]}</b><span class="tiny muted" style="display:block">${a[1]}</span></span><button class="btn btn-sm btn-out" data-go="flow" data-state-after="analyzing">Use this</button></div>`).join('')}
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" class="tiny muted"><span class="soon">SOON</span>Pick your best ads straight from Meta.</div>
+  </div></div>
+  ${actionbar(up?'Uploading. The analysis starts by itself.':'Choose a video to start.',`<button class="btn btn-accent" disabled>Generate</button>`,true)}`);
+ }
+ if(st==='analysis failed'){
+  return shell('iterate',`${flowbar('analyze')}
+  <div class="head"><h1 class="h1">We couldn't read this video</h1></div>
+  <div class="alert al-bad" role="alert">${ic('alert',20)}<div class="a-body"><b>The file stops playing at 0:11 of 0:32.</b><span>Without the rest we can't see the proof or the CTA, so there is nothing to plan from. Export it again from your editor and upload the new file. Nothing was charged.</span><div class="arow"><button class="btn btn-sm btn-ink" data-go="flow" data-state-after="empty">${ic('up',14)}Upload another file</button><button class="btn btn-sm btn-out" data-go="flow" data-state-after="analyzing">${ic('refresh',14)}Try again</button></div></div></div>
+  <div class="cols"><div class="col-main">${sourceCard('analyzing').replace('reading…','stopped<small>file ends at 0:11</small>').replace(/frame 412 of 960/,'')}</div>
+  <aside class="col-side"><div class="ink"><span class="eyebrow">ANALYSIS STOPPED</span><ul class="check">
+   <li>${ic('check',16,'#C8F03C',2.5)}<span>Uploaded<small>78 MB · 0:32 in the header</small></span></li>
+   <li class="stop">${ic('x',16,'#FFB79A',2.5)}<span>Reading the video<small>decoder error at frame 330: file truncated</small></span></li>
+   <li class="todo">${ic('clock',16,'#9AA1A9')}<span>Checking against the Brain</span></li>
+   <li class="todo">${ic('clock',16,'#9AA1A9')}<span>Planning the batch</span></li></ul></div></aside></div>
+  ${actionbar('Upload a complete file to continue.',`<button class="btn btn-accent" disabled>Generate</button>`,true)}`);
+ }
+ if(st==='analyzing'){
+  return shell('iterate',`${flowbar('analyze',true)}
+  <div class="head"><span class="eyebrow">STARTED 34 S AGO</span><h1 class="h1">Reading your ad</h1></div>
+  <div class="cols"><div class="col-main">${sourceCard('analyzing')}
+   <section class="card" aria-busy="true"><h2 class="h2">Why this ad works</h2>${[90,76,84].map(w=>`<div style="display:grid;grid-template-columns:76px 1fr;gap:12px;padding:8px 0"><div class="sk" style="width:50px"></div><div style="display:flex;flex-direction:column;gap:6px"><div class="sk" style="width:${w}%"></div><div class="sk" style="width:${w-30}%"></div></div></div>`).join('')}</section>
+   <section class="card" aria-busy="true"><h2 class="h2">The batch</h2>${[1,2,3,4].map(()=>`<div class="prow"><div class="imggen"></div><div style="display:flex;flex-direction:column;gap:6px"><div class="sk" style="width:30%"></div><div class="sk" style="width:80%"></div></div></div>`).join('')}</section>
+  </div>
+  <aside class="col-side"><div class="ink beam" role="status"><span class="eyebrow">ANALYZING</span>
+   <div style="display:flex;align-items:baseline;gap:10px"><span class="big">2/3</span><span style="color:#fff;font-weight:600">steps</span></div>
+   <div class="bar"><i style="width:52%"></i></div>
+   <ul class="check">
+    <li>${ic('check',16,'#C8F03C',2.5)}<span>Reading the video<small>transcript · 6 cuts · 5 blocks · best frame at 0:16</small></span></li>
+    <li><span class="dot pulse" style="color:var(--accent);margin:4px"></span><span style="color:#fff">Checking against the Brain<small>audience, offer, proof, product page</small></span></li>
+    <li class="todo">${ic('clock',16,'#9AA1A9')}<span>Planning the batch</span></li></ul>
+   <ul class="ink-list"><li><span>Time left</span><span>about 40 s</span></li></ul>
+   <p class="small" style="margin:0;color:var(--ink-fg-2)">You can close this page. The plan waits for you in Home › Waiting for you.</p>
+   <button class="btn btn-on-ink" data-toast="Back to Home">${ic('left',16)}Back to Home</button></div></aside></div>
+  ${actionbar('Generate unlocks when the plan is ready.',`<button class="btn btn-accent" disabled>Generate</button>`,true)}`);
+ }
+ // ready variants
+ const p=plan(st);const n=p.it.length+p.div.length;
+ const notes=st==='no Brain'?`<div class="alert al-warn">${ic('alert',20)}<div class="a-body"><b>Mooncloth's Brain is empty, so this read comes from the video alone.</b><span>Without the product page and reviews, the two layouts that use them were swapped for a note and a story frame. Fill the Brain and the next batch gets sharper.</span><div class="arow"><button class="btn btn-sm btn-out" data-go="music">Open the Brain</button></div></div></div>`
+  :st==='short video'?`<div class="alert al-warn">${ic('alert',20)}<div class="a-body"><b>7 seconds and one continuous shot, so there are no blocks to cut, reorder or open on.</b><span>The plan uses on-screen text, captions, layouts and a static instead: ${n} pieces.</span></div></div>`:'';
+ return shell('iterate',`${flowbar('analyze')}
+  <div class="head"><span class="eyebrow">ANALYZED IN 1 MIN 12 S</span><h1 class="h1">${n} new pieces from this ad</h1></div>
+  ${notes}
+  <div class="cols"><div class="col-main">${sourceCard(st)}${whyCard(st)}${planCard(st)}</div>
+  <aside class="col-side">${inkPanel(st)}</aside></div>
+  ${actionbar(`${n} pieces · ${n*3} files · about ${Math.round(n*0.4)} min · no video credits`,`<button class="btn btn-accent btn-lg" data-go="batch" data-state-after="in progress">Generate ${n} pieces${ic('right',16)}</button>`,true)}`);
+};
+
+/* ---- batch ---- */
+const ITEMS=()=>[...PLAN_FULL.it.map(r=>({k:r[0],say:r[1],g:'it'})),...PLAN_FULL.div.map(r=>({k:r[0],say:r[1],g:'div'}))];
+R.batch=st=>{
+ const failed=st==='one failed', all=st==='all ready';
+ const S0={cut:'ready',cold:'ready',order:'ready',pace:'rendering',hooktext:'ready',endcard:'queued',split:failed?'failed':'ready',review:'ready',search:'rendering',pip:'queued',static:'ready'};
+ const pct={pace:64,search:31};
+ const items=ITEMS().map(it=>({...it,s:all?'ready':S0[it.k]}));
+ const total=items.length, ready=items.filter(i=>i.s==='ready').length;
+ const chip=it=>({ready:'<span class="tag t-ok"><span class="dot"></span>Ready</span>',rendering:`<span class="tag t-info"><span class="dot pulse"></span>Rendering · ${pct[it.k]}%</span>`,queued:'<span class="tag t-neutral">Queued</span>',failed:'<span class="tag t-bad">Failed</span>'}[it.s]);
+ const row=it=>`<div class="srow ${it.s==='rendering'?'beam':''} ${it.s==='failed'?'failed':''}"><div>${it.s==='ready'?tf(it.k):it.s==='rendering'?'<div class="imggen"></div>':'<div class="qthumb"></div>'}</div><div class="meta"><div class="line1"><span class="code">${K[it.k].code}</span>${chip(it)}</div>${it.s==='failed'?'<span class="reason">The product page didn\'t load: mooncloth.com blocked our browser (403). Retry with the product photo from the Brain, or leave this piece out.</span>':''}<span class="small" style="color:var(--fg-2)">${it.say}</span>${it.s==='rendering'?`<span class="num tiny muted">${it.k==='pace'?'4:5 · frame 520 of 810':'9:16 · frame 250 of 810'}</span>`:''}</div><div class="act">${it.s==='ready'?`<button class="btn btn-sm btn-out" data-go="result" data-state-after="preview" data-prev="${K[it.k].code}">Preview</button>`:it.s==='failed'?`<button class="btn btn-sm btn-ink" data-toast="Retrying with the product photo">${ic('refresh',14)}Retry with photo</button><button class="btn btn-sm btn-ghost" data-toast="LAYOUT-SPLIT-LP left out of the zip">Leave out</button>`:it.s==='rendering'?`<div class="bar minibar"><i style="width:${pct[it.k]}%"></i></div>`:''}</div></div>`;
+ const grp=(g,t,d,cls)=>{const its=items.filter(i=>i.g===g);return `<section class="grp"><div class="grp-h"><h3><span class="tag ${cls}">${t}</span> <span class="num muted" style="font-weight:500">· ${its.length}</span></h3><span class="tiny muted">${d}</span></div><div class="rows">${its.map(row).join('')}</div></section>`};
+ return shell('iterate',`${flowbar('batch',!all)}
+  <div class="cols"><div class="col-main">
+   <div class="head"><span class="eyebrow">FROM “I TRIED 11 SLEEP MASKS” · ${all?'DONE IN 4 MIN 40 S':'STARTED 2 MIN AGO'}</span><h1 class="h1">${all?`All ${total} pieces are ready`:`Rendering ${total} pieces · ${ready} ready`}</h1></div>
+   ${failed?`<div class="alert al-bad" role="alert">${ic('alert',20)}<div class="a-body"><b>LAYOUT-SPLIT-LP failed. The other 10 keep going.</b><span>Retry runs only this piece. Rendering costs nothing, so a retry costs nothing.</span></div></div>`:''}
+   ${all?`<div class="alert al-ok" role="status">${ic('check',20,'#0B6B43',2.5)}<div class="a-body"><b>${total} of ${total} ready in 4 min 40 s · $0.06 spent in total</b><span>Preview them, then download the zip.</span></div></div>`:''}
+   ${grp('it','Stretch its life','Same concept, fresh edit','t-neutral')}
+   ${grp('div','New audience','New first frame and layout','t-ink')}
+  </div>
+  <aside class="col-side"><div class="ink ${all?'':'beam'}" role="status"><span class="eyebrow">${all?'READY':'RENDERING'}</span>
+   <div style="display:flex;align-items:baseline;gap:10px"><span class="big">${ready}/${total}</span><span style="color:#fff;font-weight:600">pieces</span></div>
+   <div class="bar"><i style="width:${Math.round(ready/total*100)}%"></i></div>
+   <ul class="ink-list"><li><span>Now</span><span>${all?'Finished':'PACE-FAST, NATIVE-SEARCH'}</span></li><li><span>Time left</span><span>${all?'—':'about 2 min'}</span></li><li><span>Files</span><span>${all?total*3:ready*3} of ${total*3}</span></li><li><span>Video credits</span><span>None used</span></li></ul>
+   ${all?'':`<p class="small" style="margin:0;color:var(--ink-fg-2)">You can close this page. The batch keeps rendering and shows up in Home › Waiting for you.</p><button class="btn btn-on-ink" data-toast="Back to Home">${ic('left',16)}Back to Home</button>`}
+  </div></aside></div>
+  ${actionbar(all?'All pieces ready.':failed?'You can download now; the failed piece stays out unless you retry it.':'Download unlocks when all pieces are done. Ready ones can be previewed now.',`<button class="btn btn-accent" data-go="result" data-state-after="ready" ${all||failed?'':'disabled'}>Continue to download${ic('right',16)}</button>`,true)}`);
+};
+
+/* ---- result ---- */
+R.result=st=>{
+ const items=ITEMS();
+ const shown=items.filter(i=>S.filter==='all'||i.g===S.filter);
+ const inZip=items.filter(i=>!S.out[i.k]);
+ const nIt=inZip.filter(i=>i.g==='it').length, nDiv=inZip.filter(i=>i.g==='div').length;
+ const card=it=>{const out=!!S.out[it.k];return `<div class="rcard ${out?'out':''}"><button class="tw" data-go="result" data-state-after="preview" data-prev="${K[it.k].code}" aria-label="Preview ${K[it.k].code}">${tf(it.k)}<span class="play">${ic('play',12,'#15171A')}</span></button>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center"><span class="code" style="font-size:11px">${K[it.k].code}</span></div>
+  <span class="say">${it.say}</span>
+  <div class="bot"><span class="tag ${it.g==='it'?'t-neutral':'t-ink'}" style="font-size:10px">${it.g==='it'?'Stretch':'New audience'}</span><button class="inzip" data-out="${it.k}" aria-pressed="${!out}"><span class="chk-box ${out?'':'on'}" style="width:18px;height:18px">${out?'':ic('check',11,'#15171A',3)}</span>In zip</button></div></div>`};
+ let modal='';
+ if(st==='preview'){
+  const it=items.find(i=>K[i.k].code===S.prev)||items[6];
+  const orig=S.cmp==='orig';
+  modal=`<div class="modal" role="dialog" aria-modal="true" aria-label="Preview ${K[it.k].code}"><div class="sheet">
+   <div class="stage"><div class="cmp" role="group" aria-label="Compare"><button data-cmp="var" aria-pressed="${!orig}">Variation</button><button data-cmp="orig" aria-pressed="${orig}">Original</button></div>
+    <div class="pl">${tf(orig?'orig':it.k)}</div>
+    <div class="scrub"><button class="playbtn" aria-label="Play">${ic('play',14,'#15171A')}</button><div class="bar"><i style="width:22%"></i></div><span>0:03 / ${it.k==='cut'?'0:15':it.k==='pace'?'0:27':'0:32'}</span></div></div>
+   <div class="side2"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><span class="eyebrow">${it.g==='it'?'STRETCH ITS LIFE':'NEW AUDIENCE'}</span><h2 class="h2" style="font-size:18px">${K[it.k].name}</h2></div><button class="btn btn-sm btn-ghost" data-go="result" data-state-after="ready" aria-label="Close preview">${ic('x',16)}</button></div>
+    <div><span class="tiny muted">The one thing that changed</span><p style="margin:4px 0 0">${it.say}</p></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span class="tiny muted">Files in the zip</span><ul class="fnames">${['9x16','4x5','1x1'].map(f=>`<li>${fileOf(it.k,f)}</li>`).join('')}</ul></div>
+    <div class="kv"><span>Folder</span><span class="mono tiny">${it.g==='it'?'1-stretch-its-life':'2-new-audience'}</span></div>
+    <div class="arow"><button class="btn btn-sm btn-out" data-out="${it.k}">${S.out[it.k]?'Put back in zip':'Leave out of zip'}</button><button class="btn btn-sm btn-ghost" data-toast="Opens this piece in the editor (Edit in video)">Edit in video</button></div>
+   </div></div></div>`;
+ }
+ const done=st==='downloaded';
+ return shell('iterate',`${flowbar('result')}
+  <div class="head"><span class="eyebrow">FROM “I TRIED 11 SLEEP MASKS” · 12 OCT</span><h1 class="h1">${inZip.length} pieces, ready to upload</h1><p class="lede">Two folders, because they go to different places in Ads Manager. Every file name says what changed.</p></div>
+  ${done?`<div class="alert al-ok" role="status">${ic('check',20,'#0B6B43',2.5)}<div class="a-body"><b>Downloaded · ${inZip.length*3} files</b><span class="num small" style="overflow-wrap:anywhere">MC_1012_I-TRIED-11-MASKS_variations.zip</span><span>All ${inZip.length} are in the Library as variations of “I tried 11 sleep masks”.</span></div></div>`:''}
+  <div class="folders">
+   <div class="folder">${'<span class="fi">'+ic('folder',20)+'</span>'}<div class="ft"><span class="path">1-stretch-its-life/ · ${nIt} pieces</span><b>A test ad set for this same concept</b><span class="small" style="color:var(--fg-2)">Keep it apart from the winner's ad set, which stays running. New ads in the winner's set barely get delivery. When one beats the winner, move it to the main set.</span></div></div>
+   <div class="folder div">${'<span class="fi">'+ic('folder',20,'#C8F03C')+'</span>'}<div class="ft"><span class="path">2-new-audience/ · ${nDiv} pieces</span><b>A new ad set</b><span class="small" style="color:var(--fg-2)">These look different to Meta, so they can find people the winner doesn't reach. One ad set, all ${nDiv} together.</span></div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center"><div class="filt" role="group" aria-label="Filter">${[['all','All · '+items.length],['it','Stretch · '+items.filter(i=>i.g==='it').length],['div','New audience · '+items.filter(i=>i.g==='div').length]].map(([k,l])=>`<button data-filter="${k}" aria-pressed="${S.filter===k}">${l}</button>`).join('')}</div><span class="tiny muted">Each piece: 9:16, 4:5 and 1:1 in the same folder.</span></div>
+  <div class="rgrid">${shown.map(card).join('')}</div>
+  ${actionbar(`${inZip.length} pieces · ${inZip.length*3} files · 212 MB`,`<button class="btn btn-out" data-toast="Back to Home">Home</button><button class="btn btn-accent" data-go="result" data-state-after="downloaded">${ic('dl',16)}Download zip</button>`)}`,modal);
+};
+
+/* ---- Brain › Music ---- */
+R.music=st=>{
+ const up=st==='uploading', has=st==='with tracks'||up;
+ const T=[['Low Hum','2:14','Calm · 72 BPM'],['Night Drive','1:48','Upbeat · 118 BPM']];
+ const wave=n=>`<span class="wave" aria-hidden="true">${Array.from({length:22},(_,i)=>`<i style="height:${4+((i*7+n*5)%13)}px"></i>`).join('')}</span>`;
+ return shell('brain',`
+  <div class="head"><span class="eyebrow">MOONCLOTH</span><h1 class="h1">Brain</h1><p class="lede">What HookMill knows about this client. Every batch reads it.</p></div>
+  <div class="tabs" role="tablist">${['Product','Audience','Offer','Proof','Music'].map(t=>`<button role="tab" ${t==='Music'?'aria-current="page"':''} data-toast="${t}: exists in the Brain today">${t}</button>`).join('')}</div>
+  <div class="cols"><div class="col-main">
+   <section class="card"><div class="head" style="gap:4px"><h2 class="h2">Music for variations <span class="tag t-neutral" style="margin-left:6px">Optional</span></h2><span class="small muted">Upload tracks once. When there's a track here, each batch can include one music variation. With no tracks, batches simply don't have one.</span></div>
+    <div class="drop" style="padding:20px">${ic('note',22)}<b>Drop audio files here</b><span class="small muted">MP3, WAV or M4A · up to 20 MB each · up to 10 tracks</span><button class="btn btn-ink btn-sm" data-go="music" data-state-after="uploading" ${S.lic?'':'disabled'}>Choose files</button></div>
+    <button class="kv" style="border:0;background:none;padding:0;cursor:pointer;justify-content:flex-start;gap:10px;align-items:flex-start;text-align:left" data-act="lic"><span class="chk-box ${S.lic?'on':''}">${S.lic?ic('check',13,'#15171A',3):''}</span><span style="color:var(--fg)">Mooncloth has the rights to use these tracks in paid ads.<span class="tiny muted" style="display:block">HookMill doesn't check licenses. You answer for the tracks you upload.</span></span></button>
+   </section>
+   <section class="card" style="gap:0"><h2 class="h2" style="padding-bottom:10px">Tracks <span class="num muted" style="font-weight:500">· ${has?(up?3:2):0}</span></h2>
+    ${has?T.map((t,i)=>`<div class="track"><button class="pb" aria-label="Play ${t[0]}" data-toast="Playing ${t[0]}">${ic('play',14)}</button><div style="display:flex;flex-direction:column;gap:4px;min-width:0"><b class="small">${t[0]}</b><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${wave(i)}<span class="num tiny muted">${t[1]} · ${t[2]}</span></div></div><button class="btn btn-sm btn-ghost" aria-label="Remove ${t[0]}" data-toast="${t[0]} removed">${ic('trash',16)}</button></div>`).join('')
+     +(up?`<div class="track"><span class="pb" aria-hidden="true" style="cursor:default">${ic('up',14)}</span><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><b class="small">soft-piano-loop.wav</b><span class="num tiny">44%</span></div><div class="bar" style="height:6px"><i style="width:44%"></i></div></div><button class="btn btn-sm btn-ghost" data-go="music" data-state-after="with tracks">Cancel</button></div>`:'')
+     :`<p class="small muted" style="margin:0;padding:10px 0;border-top:1px solid var(--line-soft)">No tracks yet. Batches from Mooncloth won't include a music variation.</p>`}
+   </section></div>
+   <aside class="col-side"><div class="ink"><span class="eyebrow">HOW IT'S USED</span><ul class="ink-list"><li><span>Per batch</span><span>1 music variation</span></li><li><span>Which track</span><span>Tempo that fits the cut</span></li><li><span>Voice</span><span>Kept; music sits under it</span></li><li><span>File tag</span><span class="num">MUSIC-T1</span></li></ul>
+    <p class="small" style="margin:0;color:var(--ink-fg-2)">Meta and TikTok already swap music for free, so HookMill makes at most one music piece per batch.</p></div></aside></div>`);
+};
+
+/* ---- catalog ---- */
+R.catalog=()=>{
+ const ks=Object.keys(K).filter(k=>S.catf==='all'||K[k].axis===S.catf);
+ const it=k=>{const t=K[k];return `<div class="citem"><div>${tf(k)}</div><div class="ct"><span class="tag ${t.axis==='it'?'t-neutral':'t-ink'}" style="align-self:flex-start">${t.axis==='it'?'Iteration · Stretch':'Diversity · New audience'}</span><b>${t.name}</b><span class="code" style="align-self:flex-start">${t.code}</span><span class="rule">${t.does}</span><span class="rule"><em>THE AI USES IT WHEN</em>${t.when}</span><span class="rule"><em>NEEDS</em>${t.needs}</span></div></div>`};
+ return `<main class="work"><div class="wrap">
+  <div class="head"><span class="eyebrow">FOR MAQUINA-VIDEO · REMOTION TEMPLATES · V1, NO VIDEO CREDITS</span><h1 class="h1">The ${Object.keys(K).length} variation types</h1><p class="lede">Each frame shows how the piece looks at 9:16. Every type changes one thing on top of the original video. Diversity types change the first frame, which is what Meta compares. Placeholder art; the real piece uses the uploaded video.</p></div>
+  <div class="secth"><div class="filt" role="group" aria-label="Filter types">${[['all','All'],['div','Diversity · '+Object.values(K).filter(t=>t.axis==='div').length],['it','Iteration · '+Object.values(K).filter(t=>t.axis==='it').length]].map(([k,l])=>`<button data-catf="${k}" aria-pressed="${S.catf===k}">${l}</button>`).join('')}</div><span class="tiny muted">Batch rule: 8 to 12 pieces, at least 40% diversity, layouts and static first.</span></div>
+  <div class="catgrid">${ks.map(it).join('')}
+   <div class="citem" style="background:var(--card-2);border-style:dashed"><div>${tf('formats')}</div><div class="ct"><span class="tag t-neutral" style="align-self:flex-start">Not a variation</span><b>Formats</b><span class="code" style="align-self:flex-start">_9x16 _4x5 _1x1</span><span class="rule">Every piece is rendered in all three, captions and layouts re-laid out. Delivered together in the same folder.</span><span class="rule"><em>NEVER COUNTS</em>Not in the piece count, not in the plan lines.</span></div></div>
+  </div></div></main>`;
+};
+
+/* ================= render ================= */
+const frame=document.getElementById('frame');
+const selEl=document.getElementById('scr');
+const groups=[...new Set(SCREENS.map(s=>s.g))];
+selEl.innerHTML=groups.map(g=>`<optgroup label="${g}">${SCREENS.filter(s=>s.g===g).map(s=>`<option value="${s.id}">${s.l}</option>`).join('')}</optgroup>`).join('');
+const DEF={flow:'ready'};
+function cur(){const s=byId(S.screen);return S.st[s.id]||DEF[s.id]||s.states[0]}
+function render(){
+ const s=byId(S.screen);selEl.value=s.id;
+ document.getElementById('states').innerHTML=s.states.map(x=>`<button data-st="${x}" aria-pressed="${cur()===x}">${x}</button>`).join('');
+ document.querySelectorAll('#dev button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.dev===S.dev));
+ frame.className='frame'+(S.dev==='phone'?' phone':'');
+ frame.innerHTML=R[s.id](cur());
+}
+let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)}
+function go(id,state){if(!R[id])return;S.screen=id;S.menu=false;if(state)S.st[id]=state;try{history.replaceState(null,'','#'+id)}catch(e){}render();window.scrollTo({top:0})}
+selEl.addEventListener('change',e=>go(e.target.value));
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ const d=b.dataset;
+ if(d.st){S.st[S.screen]=d.st;render();return}
+ if(d.dev){S.dev=d.dev;render();return}
+ if(d.prev){S.prev=d.prev;S.cmp='var'}
+ if(d.go){go(d.go,d.stateAfter);if(d.go==='result'&&d.stateAfter==='downloaded')toast('Downloaded MC_1012_I-TRIED-11-MASKS_variations.zip');return}
+ if(d.out){S.out[d.out]=!S.out[d.out];render();return}
+ if(d.filter){S.filter=d.filter;render();return}
+ if(d.catf){S.catf=d.catf;render();return}
+ if(d.cmp){S.cmp=d.cmp;render();return}
+ if(d.act==='menu'){S.menu=!S.menu;render();return}
+ if(d.act==='lic'){S.lic=!S.lic;render();return}
+ if(d.toast){toast(d.toast);return}
+});
+render();
+})();
+</script>

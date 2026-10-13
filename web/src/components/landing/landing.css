@@ -1,0 +1,70 @@
+/* Landing (/welcome). Tokens from globals.css; nothing here is a new color. */
+.lp-display {
+  font-weight: 800;
+  font-stretch: 125%;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.lp-h1 {
+  font-size: clamp(36px, 6.1vw, 92px);
+}
+.lp-h2 {
+  font-size: clamp(26px, 3.4vw, 46px);
+  line-height: 1.02;
+}
+.lp-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-3);
+}
+
+/* batch panel: rows arrive one after the other, the generating bars keep filling */
+.lp-row {
+  animation: lp-in 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 110ms + 250ms);
+}
+.lp-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--info-on-ink);
+  animation: lp-fill 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: calc(var(--i, 0) * 400ms);
+  transform-origin: left;
+}
+.lp-thumb {
+  background:
+    radial-gradient(120% 70% at 50% 18%, var(--t1, #3a3f46) 0 32%, transparent 33%),
+    linear-gradient(180deg, var(--t2, #2a2e33) 0%, var(--t3, #202328) 100%);
+}
+@keyframes lp-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lp-fill {
+  0% {
+    transform: scaleX(0.08);
+  }
+  70%,
+  100% {
+    transform: scaleX(0.86);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-row,
+  .lp-bar > span {
+    animation: none;
+  }
+  .lp-bar > span {
+    transform: scaleX(0.6);
+  }
+}

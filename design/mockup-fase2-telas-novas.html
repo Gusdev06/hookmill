@@ -1,0 +1,897 @@
+<title>HookMill Phase 2 Screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: Ads Machine shell. Dark sidebar + light work area; dark "instrument" panels for summaries, waits and the editor stage.
+   Single light theme by decision (mockup Ads Machine, 12/10). Every color is a token below. */
+:root{
+  --bg:#EEEEEA; --card:#FDFDFB; --card-2:#F3F4F0; --input:#FFFFFF;
+  --line:#DCDDD7; --line-soft:#E4E5E0; --line-strong:#CFD1CB; --control:#B9BCB5; --sep:#9A9F96;
+  --fg:#15171A; --fg-2:#3B4047; --fg-3:#5A6068; --fg-btn:#4A5058; --on-ink-btn:#FFFFFF;
+  --accent:#C8F03C; --accent-ink:#3E5200; --accent-soft:#F0F8D2; --accent-edge:#A9CC2A;
+  --ink:#16181B; --ink-2:#202328; --ink-3:#2A2E33; --ink-line:#2E3238; --ink-fg:#F2F3EE; --ink-fg-2:#C5CAD0; --ink-fg-3:#9AA1A9; --ink-body:#E8EAE4;
+  --ok-bg:#E2F3E8; --ok:#0B6B43; --ok-dot:#1C9A5E;
+  --warn-bg:#FBF0D3; --warn:#7A5000; --warn-line:#E9C76B;
+  --bad-bg:#FBE7DD; --bad:#A8360C; --bad-edge:#E4B9A6;
+  --info-bg:#E6EBFC; --info:#2B4BC8; --info-on-ink:#8FA6FF;
+  --font:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --r-chip:8px; --r-ctl:10px; --r-btn:12px; --r-card:16px; --r-panel:18px; --r-pill:999px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.45;color:var(--fg)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+a{color:var(--fg)} a:hover{color:var(--accent-ink)}
+.mono{font-family:var(--mono)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- prototype bar (not product) ---------- */
+.proto{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--ink);color:var(--ink-fg-2);border-bottom:1px solid var(--ink-line);padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:12px}
+.proto b{color:var(--ink-fg);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.proto select{background:var(--ink-2);color:var(--ink-fg);border:1px solid var(--ink-line);border-radius:8px;min-height:32px;padding:0 8px;font:inherit;max-width:100%}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--ink-fg-2);border-radius:7px;min-height:28px;padding:0 10px;cursor:pointer;font-size:12px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--fg);font-weight:700}
+.proto .note{margin-left:auto;color:var(--ink-fg-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.qthumb{aspect-ratio:9/16;border-radius:8px;border:1px dashed var(--control);background:var(--card-2)}
+
+/* ---------- frame + container queries ---------- */
+.stagewrap{padding-block:0}
+.frame{container-type:inline-size;container-name:app;margin:0 auto;width:100%;background:var(--bg)}
+.frame.phone{width:390px;max-width:100%;margin-block:20px;border:1px solid var(--line-strong);border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(21,23,26,.12)}
+
+/* ---------- app shell ---------- */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - 50px);position:relative}
+.side{background:var(--ink);color:var(--ink-fg-2);padding:18px 14px 20px;display:flex;flex-direction:column;gap:18px;position:sticky;top:50px;height:calc(100vh - 50px);overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 6px;color:var(--ink-fg);text-decoration:none}
+.brand-mark{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--fg);font-weight:800;font-stretch:125%;font-size:10px}
+.brand-name{font-weight:800;font-stretch:125%;font-size:15px;letter-spacing:-.01em}
+.client{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border-radius:12px;background:var(--ink-2);border:1px solid var(--ink-line);color:var(--ink-fg);cursor:pointer;text-align:left;width:100%}
+.client-av{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:#1E2550;color:#E9DFC9;font-weight:800}
+.client small{display:block;font-size:12px;color:var(--ink-fg-3)}
+.navgrp{display:flex;flex-direction:column;gap:2px}
+.navlab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-fg-3);padding:0 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border-radius:10px;border:0;background:transparent;color:var(--ink-fg-2);font-weight:500;cursor:pointer;text-align:left;width:100%}
+.nav svg{stroke:var(--ink-fg-3)}
+.nav:hover{background:var(--ink-2)}
+.nav[aria-current="page"]{background:var(--ink-3);color:#fff;font-weight:700}
+.nav[aria-current="page"] svg{stroke:var(--accent)}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--fg);background:var(--accent);border-radius:999px;padding:1px 7px}
+.soon-mini{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-fg-3);border:1px dashed var(--ink-fg-3);border-radius:999px;padding:0 6px}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--ink-line);padding-top:12px}
+.me{display:flex;align-items:center;gap:10px;padding:0 6px}
+.me-av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;background:var(--ink-line);color:var(--ink-fg);font-weight:700;font-size:13px;flex:none}
+.me b{color:var(--ink-fg);font-weight:600;display:block}.me small{font-size:12px;color:var(--ink-fg-3)}
+.lang{display:inline-flex;margin-left:auto;border:1px solid var(--ink-line);border-radius:8px;overflow:hidden}
+.lang button{border:0;background:transparent;color:var(--ink-fg-3);font-family:var(--mono);font-size:11px;min-height:30px;padding:0 8px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink-3);color:var(--ink-fg)}
+
+.topm{display:none}
+main.work{min-width:0;padding:24px 32px 120px}
+.wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* ---------- type ---------- */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--fg-3);text-transform:uppercase}
+.h1{margin:0;font-size:30px;line-height:1.1;font-weight:800;font-stretch:125%;letter-spacing:-.015em;text-wrap:balance}
+.h2{margin:0;font-size:16px;font-weight:700}
+.lede{margin:0;color:var(--fg-3);max-width:680px;text-wrap:pretty}
+.head{display:flex;flex-direction:column;gap:8px}
+.headrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.muted{color:var(--fg-3)} .small{font-size:13px} .tiny{font-size:12px}
+
+/* ---------- surfaces ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.sel{border:1.5px solid var(--fg)}
+.ink{background:var(--ink);color:var(--ink-body);border-radius:var(--r-panel);padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ink .eyebrow{color:var(--ink-fg-2)}
+.ink-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ink-list li{display:flex;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--ink-line)}
+.ink-list li:last-child{border-bottom:0;padding-bottom:0}
+.ink-list span:first-child{color:var(--ink-fg-2)} .ink-list span:last-child{color:#fff;font-weight:600;text-align:right}
+.big{font-family:var(--mono);font-size:54px;font-weight:600;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col-main{flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.col-side{flex:1 1 300px;max-width:100%;min-width:0;display:flex;flex-direction:column;gap:16px}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px}
+.divider{border-top:1px solid var(--line-soft)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:var(--r-btn);border:1px solid transparent;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn-lg{min-height:50px;padding:0 18px}
+.btn-sm{min-height:36px;padding:0 12px;border-radius:10px;font-size:13px}
+.btn-accent{background:var(--accent);color:var(--fg)} .btn-accent:hover{background:#BDE52F;color:var(--fg)}
+.btn-ink{background:var(--fg);color:var(--on-ink-btn)} .btn-ink:hover{color:var(--on-ink-btn);background:#2A2E33}
+.btn-out{background:var(--card);border-color:var(--line-strong);font-weight:600}
+.btn-out:hover{border-color:var(--fg)}
+.btn-ghost{background:transparent;color:var(--fg-btn);font-weight:600}
+.btn-bad{background:var(--card);border-color:var(--bad-edge);color:var(--bad);font-weight:600}
+.btn-on-ink{background:transparent;color:var(--ink-body);font-weight:600;border-color:var(--ink-line)}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+
+/* ---------- tags ---------- */
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;height:fit-content}
+.t-ok{background:var(--ok-bg);color:var(--ok)} .t-warn{background:var(--warn-bg);color:var(--warn)}
+.t-bad{background:var(--bad-bg);color:var(--bad)} .t-info{background:var(--info-bg);color:var(--info)}
+.t-neutral{background:var(--card-2);color:var(--fg-2);border:1px solid var(--line-soft)}
+.t-ink{background:var(--fg);color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:999px;background:currentColor;flex:none}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.soon{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:999px;background:var(--card);color:var(--fg-2);border:1px dashed var(--control);white-space:nowrap;height:fit-content}
+.example{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;padding:2px 7px;border-radius:999px;background:repeating-linear-gradient(135deg,var(--card-2) 0 6px,var(--line-soft) 6px 12px);color:var(--fg-2);border:1px solid var(--line-strong);white-space:nowrap}
+
+/* ---------- alerts ---------- */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;border:1px solid}
+.alert .a-body{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.alert b{font-weight:700}
+.al-bad{background:var(--bad-bg);border-color:var(--bad-edge);color:#5E1E06}
+.al-warn{background:var(--warn-bg);border-color:var(--warn-line);color:#4A3100}
+.al-ok{background:var(--ok-bg);border-color:#B7DEC5;color:#0B4D31}
+.al-info{background:var(--info-bg);border-color:#C3CEF6;color:#1D2F7A}
+
+/* ---------- flow bar ---------- */
+.flow{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:8px 10px 8px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.flow-name{display:flex;flex-direction:column}
+.flow-name b{font-weight:800;font-stretch:125%;font-size:15px;letter-spacing:-.01em}
+.flow-ph{display:flex;flex-wrap:wrap;align-items:center;gap:6px;list-style:none;margin:0;padding:0}
+.chev{stroke:var(--sep)}
+.ph{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px 0 8px;border-radius:999px;border:0;background:transparent;font-weight:600;cursor:pointer;color:var(--fg)}
+.ph:hover{background:var(--card-2)}
+.ph-next{color:var(--fg-btn);cursor:default}.ph-next:hover{background:transparent}
+.ph small{font-family:var(--mono);font-size:11px;color:var(--fg-3);font-weight:500}
+.ph-cur{display:flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--card-2);border:1px solid var(--line-soft)}
+.ph-cur > span{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--fg-3);padding-right:4px}
+.st{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:0;background:transparent;font-weight:600;cursor:pointer;color:var(--fg-btn);white-space:nowrap}
+.st:hover{background:var(--card)}
+.st.done{color:var(--fg)}
+.st[aria-current="step"]{background:var(--fg);color:#fff;font-weight:700}
+.st.soonst{color:var(--fg-3);cursor:help}
+.circ{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:600;border:1.5px solid var(--control);color:var(--fg);flex:none;position:relative}
+.circ.on{background:var(--accent);border-color:var(--accent);color:var(--fg)}
+.circ.dash{border-style:dashed;color:var(--fg-3)}
+.circ.run::after{content:"";position:absolute;inset:-4px;border-radius:999px;border:2px solid transparent;border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.flow-exit{margin-left:auto}
+.flow-m{display:none}
+
+/* ---------- action bar ---------- */
+.actionbar{position:sticky;bottom:0;z-index:5;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 10px 10px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:0 -6px 24px rgba(21,23,26,.06);padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.actionbar .hint{flex:1 1 220px;color:var(--fg-2);font-size:13px;min-width:0}
+.actionbar .btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- ad frame (video content colors are data) ---------- */
+.adf{position:relative;width:100%;max-width:100%;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:var(--t-bg);color:#fff;flex:none}
+.adf .orb{position:absolute;width:58%;aspect-ratio:1;right:-14%;top:7%;border-radius:999px;background:var(--t-orb)}
+.adf .pil{position:absolute;left:-15%;right:-15%;bottom:-8%;height:38%;border-radius:50% 50% 0 0;background:var(--t-pil)}
+.adf .msk{position:absolute;left:20%;width:60%;bottom:17%;aspect-ratio:2.7/1;border-radius:999px;background:var(--t-msk)}
+.adf .cap{position:absolute;left:9%;right:9%;top:29%;text-align:center;font-weight:800;line-height:1.6;text-wrap:balance;font-size:var(--cap,16px)}
+.adf .cap span{background:#111316;color:#fff;padding:2px 6px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.adf .lbl{position:absolute;top:8px;left:8px;font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 7px;border-radius:999px;background:rgba(253,253,251,.94);color:var(--fg)}
+.adf .chips{position:absolute;left:8px;right:8px;bottom:8px;display:flex;justify-content:space-between}
+.adf .chips span{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 7px;border-radius:999px;background:rgba(17,19,22,.8);color:#fff}
+.tn-night{--t-bg:#1E2550;--t-orb:#E9DFC9;--t-pil:#2C3570;--t-msk:#0E1230}
+.tn-dawn{--t-bg:#F2C29A;--t-orb:#FF8E4D;--t-pil:#FBE4CF;--t-msk:#2B2142}
+.tn-plum{--t-bg:#3A2142;--t-orb:#F3D3E3;--t-pil:#50305B;--t-msk:#170C1C}
+.tn-sage{--t-bg:#BFCFB8;--t-orb:#F6F1E2;--t-pil:#E4EBDF;--t-msk:#22362B}
+.tn-sand{--t-bg:#E5D8C3;--t-orb:#C99A62;--t-pil:#F5EDE1;--t-msk:#1E2550}
+.tn-ink{--t-bg:#17191C;--t-orb:#C8F03C;--t-pil:#25282D;--t-msk:#0B0C0E}
+
+/* ---------- waiting effects (only in waiting states) ---------- */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.beam{position:relative}
+.beam::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),transparent 0 70%,var(--accent) 82%,var(--info) 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:beam 2.4s linear infinite;pointer-events:none}
+@keyframes beam{to{--a:360deg}}
+.imggen{position:relative;overflow:hidden;background:radial-gradient(circle at 30% 30%,#D9DCD3 0 2px,transparent 3px) 0 0/9px 9px,radial-gradient(circle at 70% 60%,#CDD0C7 0 1.5px,transparent 2.5px) 0 0/7px 7px,var(--card-2)}
+.imggen::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 0%,rgba(200,240,60,.0) 40%,rgba(200,240,60,.35) 50%,rgba(253,253,251,.6) 52%,transparent 62%);background-size:100% 220%;animation:scan 2.2s ease-in-out infinite}
+@keyframes scan{from{background-position:0 120%}to{background-position:0 -120%}}
+@media (prefers-reduced-motion:reduce){.beam::before,.imggen::after,.circ.run::after,.pulse,.spin{animation:none!important}.beam::before{background:linear-gradient(90deg,var(--accent),var(--info))}}
+
+/* ---------- bars ---------- */
+.bar{height:8px;border-radius:999px;background:var(--line-soft);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--fg)}
+.bar.okb i{background:var(--ok-dot)}
+.ink .bar{background:var(--ink-line)} .ink .bar i{background:var(--accent)}
+
+/* ---------- face tiles ---------- */
+.faces{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.face{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/5;border:1px solid var(--line);background:var(--fbg);cursor:pointer;padding:0;width:100%}
+.face .fh{position:absolute;left:28%;width:44%;top:14%;aspect-ratio:1/1.05;border-radius:50% 50% 46% 46%;background:var(--fhair)}
+.face .fs{position:absolute;left:32%;width:36%;top:21%;aspect-ratio:1/1.2;border-radius:46% 46% 50% 50%;background:var(--fskin)}
+.face .fb{position:absolute;left:14%;right:14%;bottom:-8%;height:34%;border-radius:48% 48% 0 0;background:var(--fcloth)}
+.face[aria-pressed="true"]{outline:2.5px solid var(--fg);outline-offset:2px}
+.face .chk{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:999px;background:var(--accent);display:grid;place-items:center}
+.face .fl{position:absolute;left:8px;bottom:8px;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:rgba(253,253,251,.94);color:var(--fg)}
+.face.faded{opacity:.4;filter:grayscale(.6)}
+.face.gen{background:none}
+.face.gen .genlab{position:absolute;left:8px;right:8px;bottom:8px;font-family:var(--mono);font-size:11px;color:var(--fg-2);display:flex;justify-content:space-between}
+
+/* ---------- form bits ---------- */
+label.lab{font-weight:700;font-size:13px}
+.inp,.ta,.sel{width:100%;border:1px solid var(--line-strong);border-radius:10px;background:var(--input);font:inherit;color:var(--fg);padding:10px 12px;min-height:44px}
+.ta{resize:vertical;min-height:72px}
+.toggle{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--card-2);border:1px solid var(--line-soft);border-radius:12px;padding:3px}
+.toggle button{border:0;background:transparent;border-radius:9px;min-height:38px;padding:0 12px;font-weight:600;color:var(--fg-btn);cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--card);color:var(--fg);box-shadow:0 1px 0 var(--line),0 0 0 1px var(--line)}
+.radio{width:20px;height:20px;border-radius:999px;border:1.5px solid var(--control);display:inline-grid;place-items:center;flex:none}
+.radio.on{border-color:var(--fg)} .radio.on::after{content:"";width:10px;height:10px;border-radius:999px;background:var(--fg)}
+.chk-box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--control);display:inline-grid;place-items:center;flex:none}
+.chk-box.on{background:var(--accent);border-color:var(--accent)}
+.switch{width:40px;height:24px;border-radius:999px;background:var(--line-strong);position:relative;flex:none;border:0;cursor:pointer}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:999px;background:#fff;transition:left .15s}
+.switch[aria-checked="true"]{background:var(--fg)} .switch[aria-checked="true"]::after{left:19px;background:var(--accent)}
+.fieldrow{display:flex;flex-direction:column;gap:6px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line-soft);font-size:13px}
+.kv:first-child{border-top:0}
+.kv span:first-child{color:var(--fg-3)}
+
+/* ---------- engine ---------- */
+.eng{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line);cursor:pointer;text-align:left;min-width:0}
+.eng.on{border:1.5px solid var(--fg)}
+.est{display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--line-soft);padding-top:10px;font-family:var(--mono);font-size:13px}
+.est span span{color:var(--fg-3)}
+
+/* ---------- scene rows ---------- */
+.rows{display:flex;flex-direction:column;gap:10px}
+.srow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:start;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.srow.failed{border-color:var(--bad-edge)}
+.srow .thumb{width:56px}
+.srow .thumb .adf{border-radius:8px}
+.srow .imggen{aspect-ratio:9/16;border-radius:8px;border:1px solid var(--line)}
+.srow .meta{display:flex;flex-direction:column;gap:5px;min-width:0}
+.srow .line1{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.srow .line1 b{font-weight:700}
+.srow .prompt{font-family:var(--mono);font-size:12px;color:var(--fg-3);overflow-wrap:anywhere}
+.srow .reason{color:var(--bad);font-size:13px;font-weight:600}
+.srow .act{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.minibar{width:120px;height:6px}
+.grp{display:flex;flex-direction:column;gap:10px}
+.grp-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:4px 2px}
+.grp-h h3{margin:0;font-size:15px;font-weight:700}
+
+/* ---------- edit ---------- */
+.stagecard{background:var(--ink);border-radius:var(--r-panel);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;position:relative}
+.player{width:min(300px,100%);position:relative}
+.player .adf{border-radius:14px}
+.scrub{width:min(300px,100%);display:flex;align-items:center;gap:10px;color:var(--ink-fg-2);font-family:var(--mono);font-size:12px}
+.scrub .bar{flex:1;height:4px;background:var(--ink-line)} .scrub .bar i{background:var(--ink-fg)}
+.playbtn{width:36px;height:36px;border-radius:999px;border:0;background:var(--ink-fg);display:grid;place-items:center;cursor:pointer;flex:none}
+.overlay{position:absolute;inset:0;border-radius:14px;background:rgba(17,19,22,.82);display:flex;flex-direction:column;justify-content:center;gap:12px;padding:20px;color:var(--ink-body)}
+.check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:13px}
+.check li{display:flex;gap:8px;align-items:center}
+.check .todo{color:var(--ink-fg-3)}
+.tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tpl{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:stretch;font-size:12px;font-weight:600}
+.tpl[aria-pressed="true"]{border:1.5px solid var(--fg)}
+.tpl .mini{aspect-ratio:9/12;border-radius:8px;background:#1E2550;position:relative;overflow:hidden}
+.tpl .mini i{position:absolute;left:14%;right:14%;height:9%;border-radius:3px;background:#fff}
+.entry{background:var(--accent-soft);border:1px solid #DCEB9F;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+
+/* ---------- soon pattern ---------- */
+.soon-block{position:relative;border:1px dashed var(--control);border-radius:var(--r-card);background:var(--card-2);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.soon-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.soon-head .what{flex:1 1 260px;color:var(--fg-2);font-size:13px;min-width:0}
+.soon-head .what b{color:var(--fg)}
+.soon-body{opacity:.5;filter:saturate(.35);pointer-events:none;user-select:none}
+.soon-hero{background:var(--card);border:1px solid var(--line);border-radius:var(--r-panel);padding:22px;display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center}
+.soon-hero .txt{flex:1 1 380px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.soon-hero h2{margin:0;font-size:20px;font-weight:800;font-stretch:125%}
+.soon-preview{border:1px dashed var(--control);border-radius:var(--r-panel);padding:14px;display:flex;flex-direction:column;gap:14px;background:var(--card-2)}
+.soon-strip{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px}
+.kpi{padding:16px 18px;border-radius:16px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.kpi .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:var(--fg-3);font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px;border-bottom:1px solid var(--line-soft)}
+.tbl td.n{font-family:var(--mono);text-align:right}
+.scrollx{overflow-x:auto}
+.opt{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:16px;text-align:left;background:var(--card);border:1px solid var(--line);cursor:pointer;min-width:0}
+.opt.on{border:1.5px solid var(--fg)}
+.opt.soonopt{background:var(--card-2);border:1px dashed var(--control);cursor:not-allowed}
+.opt.soonopt .soft{opacity:.6}
+.opt .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.opt .foot{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;border-top:1px solid var(--line-soft)}
+.pill{font-size:12px;padding:3px 8px;border-radius:999px;background:var(--card-2);border:1px solid var(--line-soft);color:var(--fg-2)}
+.drop{border:1.5px dashed var(--control);border-radius:16px;background:var(--card);padding:26px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.srcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px;align-items:start}
+
+/* ---------- map ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.maplist{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px}
+.mapitem{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--line);cursor:pointer;text-align:left}
+.mapitem:hover{border-color:var(--fg)}
+.seq{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.seq span.s{padding:4px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.seq span.n{background:var(--accent-soft);border-color:#DCEB9F;font-weight:700}
+.seq span.z{border-style:dashed;color:var(--fg-3)}
+
+/* ---------- editor ---------- */
+.ed{display:grid;grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:56px minmax(460px,1fr) 250px;min-height:calc(100vh - 50px);background:var(--ink)}
+.ed-top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--ink-line);color:var(--ink-fg-2);min-width:0}
+.ed-top .title{color:var(--ink-fg);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-top .sp{flex:1}
+.icobtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--ink-line);background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink-fg-2);flex:none}
+.ed-stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;background:radial-gradient(ellipse at center,#202328 0%,#16181B 70%);min-width:0}
+.ed-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;color:var(--ink-fg-2);font-size:12px}
+.ed-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--ink-2);border:1px solid var(--ink-line);font-family:var(--mono);font-size:11px;color:var(--ink-fg-2)}
+.ed-chip.warn{background:#3A2E10;border-color:#6B5418;color:#F3D27A}
+.vid{position:relative;height:420px;aspect-ratio:9/16;max-width:100%}
+.vid .adf{height:100%;width:auto;border-radius:6px}
+.safe{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,rgba(242,163,58,.22) 0 6px,transparent 6px 12px);border-color:rgba(242,163,58,.55);border-style:dashed;border-width:0}
+.safe.t{top:0;height:9%;border-bottom-width:1px}.safe.b{bottom:0;height:20%;border-top-width:1px}.safe.r{top:9%;bottom:20%;right:0;left:auto;width:14%;border-left-width:1px}
+.selbox{position:absolute;left:9%;right:9%;top:27.5%;height:13%;border:1.5px solid var(--accent);border-radius:2px}
+.selbox i{position:absolute;width:9px;height:9px;background:var(--accent);border:1px solid var(--ink);border-radius:2px}
+.selbox i.a{left:-5px;top:-5px}.selbox i.b{right:-5px;top:-5px}.selbox i.c{left:-5px;bottom:-5px}.selbox i.d{right:-5px;bottom:-5px}
+.selbox i.e{left:-5px;top:calc(50% - 6px);height:12px;width:6px}.selbox i.f{right:-5px;top:calc(50% - 6px);height:12px;width:6px}
+.selbox .rot{position:absolute;left:calc(50% - 5px);top:-24px;width:10px;height:10px;border-radius:999px;background:var(--accent)}
+.selbox .rot::after{content:"";position:absolute;left:4px;top:10px;width:1.5px;height:12px;background:var(--accent)}
+.selbox .tagxy{position:absolute;left:0;bottom:-26px;font-family:var(--mono);font-size:11px;background:var(--accent);color:var(--fg);padding:2px 6px;border-radius:4px;white-space:nowrap}
+.guide{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--info-on-ink)}
+.ed-panel{grid-row:2/4;grid-column:2;background:var(--card);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column}
+.ed-sec{padding:14px 16px;border-bottom:1px solid var(--line-soft);display:flex;flex-direction:column;gap:10px}
+.ed-sec h4{margin:0;font-size:12px;font-family:var(--mono);letter-spacing:.08em;color:var(--fg-3);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line-strong);cursor:pointer;background:var(--c)}
+.sw button[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px}
+.range{display:flex;align-items:center;gap:10px}
+.range .track{flex:1;height:4px;border-radius:999px;background:var(--line);position:relative}
+.range .track i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--fg)}
+.range .track b{position:absolute;top:-6px;width:16px;height:16px;border-radius:999px;background:var(--card);border:1.5px solid var(--fg)}
+.ninp{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:10px;background:var(--input);min-height:36px;padding:0 10px;gap:6px;font-family:var(--mono);font-size:13px}
+.ninp span{color:var(--fg-3)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ed-tl{grid-column:1;border-top:1px solid var(--ink-line);display:flex;flex-direction:column;min-width:0;color:var(--ink-fg-2)}
+.tl-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--ink-line);font-size:12px;flex-wrap:wrap}
+.tl-scroll{overflow-x:auto;overflow-y:hidden;flex:1;position:relative}
+.tl-in{position:relative;width:calc(96px + 27 * 40px + 120px);padding-bottom:8px}
+.ruler{height:22px;margin-left:96px;position:relative;border-bottom:1px solid var(--ink-line);font-family:var(--mono);font-size:10px;color:var(--ink-fg-3)}
+.ruler span{position:absolute;top:4px}
+.trk{display:flex;align-items:center;height:32px;margin-top:6px}
+.trk .tn{width:96px;flex:none;padding-left:12px;font-size:11px;font-family:var(--mono);color:var(--ink-fg-3);position:sticky;left:0;background:var(--ink);height:100%;display:flex;align-items:center;z-index:2}
+.trk .lane{position:relative;flex:1;height:100%}
+.clip{position:absolute;top:2px;bottom:2px;border-radius:6px;background:var(--ink-3);border:1px solid var(--ink-line);font-size:11px;color:var(--ink-fg);padding:0 8px;display:flex;align-items:center;overflow:hidden;white-space:nowrap}
+.clip.scene{background:linear-gradient(90deg,var(--ccol) 0 36px,var(--ink-3) 36px);padding-left:42px}
+.clip.selc{border:1.5px solid var(--accent);box-shadow:inset 4px 0 0 var(--accent),inset -4px 0 0 var(--accent)}
+.clip.dashc{border-style:dashed;background:transparent;color:var(--ink-fg-3)}
+.clip .ticks{position:absolute;left:6px;right:6px;bottom:5px;display:flex;gap:4px}
+.clip .ticks i{height:3px;flex:1;border-radius:2px;background:var(--ink-fg-3)}
+.clip .ticks i.w{background:#F2A33A}
+.playhead{position:absolute;top:0;bottom:0;width:1.5px;background:var(--ink-fg);z-index:3}
+.playhead::before{content:"";position:absolute;top:0;left:-5px;width:12px;height:10px;background:var(--ink-fg);clip-path:polygon(0 0,100% 0,50% 100%)}
+.exportcard{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:min(380px,calc(100% - 24px));background:var(--ink-2);border:1px solid var(--ink-line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;color:var(--ink-body);z-index:4}
+.exportcard .bar{background:var(--ink-line)} .exportcard .bar i{background:var(--accent)}
+.ed-dock{display:none}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:80;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center}
+
+/* =================== responsive (container) =================== */
+@container app (max-width: 900px){
+  .faces{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container app (max-width: 760px){
+  .app{grid-template-columns:minmax(0,1fr);min-height:auto}
+  .side{display:none}
+  .app.menu .side{display:flex;position:absolute;top:56px;left:0;right:0;height:auto;z-index:30;border-bottom:1px solid var(--ink-line)}
+  .topm{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--ink-fg);padding:8px 16px;min-height:56px;position:sticky;top:50px;z-index:20}
+  .topm .client{min-height:40px;padding:4px 8px;flex:1;min-width:0}
+  .topm .client-av{width:26px;height:26px;font-size:12px}
+  main.work{padding:16px 16px 140px}
+  .h1{font-size:24px}
+  .flow{display:none}
+  .flow-m{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+  .flow-m .r1{display:flex;align-items:center;gap:10px}
+  .flow-m .r1 .t{flex:1;min-width:0;display:flex;flex-direction:column}
+  .flow-m .r1 .t b{font-weight:800;font-stretch:125%;font-size:15px}
+  .segs{display:grid;gap:3px}
+  .segs i{height:5px;border-radius:999px;background:var(--line)}
+  .segs i.d{background:var(--fg)} .segs i.c{background:var(--accent);outline:1px solid var(--accent-edge)} .segs i.z{background:transparent;border:1px dashed var(--control)}
+  .actionbar{position:fixed;left:0;right:0;bottom:0;border-radius:0;border-width:1px 0 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+  .frame.phone .actionbar{position:sticky;margin-inline:-16px}
+  .actionbar .hint{flex-basis:100%}
+  .actionbar .btns{width:100%;display:grid;grid-template-columns:auto 1fr}
+  .actionbar .btns .btn{width:100%}
+  .srow{grid-template-columns:44px minmax(0,1fr)}
+  .srow .thumb{width:44px}
+  .srow .act{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+  .big{font-size:42px}
+  .tpls{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ed{grid-template-columns:minmax(0,1fr);grid-template-rows:52px auto auto auto;min-height:auto}
+  .ed-panel{display:none}
+  .ed-stage{padding:12px}
+  .vid{height:380px}
+  .ed-tl{grid-column:1}
+  .tl-in{width:calc(70px + 27 * 24px + 60px)}
+  .trk .tn{width:70px;padding-left:8px}
+  .ruler{margin-left:70px}
+  .ed-dock{display:flex;flex-direction:column;gap:8px;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ink-line);background:var(--ink)}
+  .ed-dock .dk{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .ed-dock .dk button{min-height:48px;border-radius:10px;border:1px solid var(--ink-line);background:var(--ink-2);color:var(--ink-fg);font-weight:600;font-size:12px;cursor:pointer}
+  .ed-dock .dk button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+  .ed-top .hide-m{display:none}
+  .soon-hero{padding:16px}
+}
+</style>
+
+<div class="proto" role="region" aria-label="Prototype controls (not part of the product)">
+  <b>PROTOTYPE</b>
+  <label for="scr" class="sr">Screen</label>
+  <select id="scr" aria-label="Screen"></select>
+  <span>State</span><div class="seg" id="states"></div>
+  <div class="seg" id="dev"><button data-dev="desktop" aria-pressed="true">Desktop</button><button data-dev="phone" aria-pressed="false">Phone 390</button></div>
+  <span class="note">Example data · Mooncloth is fictional · costs are placeholders</span>
+</div>
+<div class="stagewrap"><div class="frame" id="frame"></div></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+const S={screen:'map',st:{},dev:'desktop',menu:false,face:1,eng:'scenes',model:'kling',fmt:'9:16',tpl:'bold',cap:'word',pos:'bottom',endcard:true,lib:true,tone:'night',dock:'hook',plan:{faces:true,hooks:true,layout:true}};
+try{const h=location.hash.slice(1); if(h) S.screen=h;}catch(e){}
+
+const SCREENS=[
+ {id:'map',g:'Overview',l:'Flow map',states:['default']},
+ {id:'face',g:'New concepts (path 2)',l:'Face',states:['ready','generating','blocked']},
+ {id:'engine',g:'New concepts (path 2)',l:'Engine',states:['ready','over cap']},
+ {id:'gen',g:'New concepts (path 2)',l:'Generate',states:['in progress','scene failed','all ready']},
+ {id:'edit',g:'New concepts (path 2)',l:'Edit',states:['ready','changed','rendering','render failed','after editor']},
+ {id:'send',g:'New concepts (path 2)',l:'Send (Meta soon) + download',states:['ready','done']},
+ {id:'batch',g:'Iterate a winner (path 1)',l:'Batch generation',states:['in progress','one failed','all ready']},
+ {id:'editor',g:'Editor',l:'Edit in video',states:['hook selected','exporting']},
+ {id:'soon-section',g:'Soon pattern',l:'Whole section: Campaigns',states:['default']},
+ {id:'soon-home',g:'Soon pattern',l:'Block: Home results',states:['default']},
+ {id:'soon-pick',g:'Soon pattern',l:'Block: Pick from Meta',states:['default']},
+ {id:'soon-plan',g:'Soon pattern',l:'Block: new iteration types',states:['default']},
+];
+const byId=id=>SCREENS.find(s=>s.id===id)||SCREENS[0];
+
+/* ---------- icons ---------- */
+const P={
+ home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/>',
+ chart:'<path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M21 20H3"/>',
+ chat:'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',
+ brain:'<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 7h7"/><path d="m7.3 9.2 3.5 6.6"/><path d="m16.7 9.2-3.5 6.6"/>',
+ iter:'<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 3v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 21v-5h5"/>',
+ bulb:'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6 1 1.3 1 2.4h5.6c0-1.1.4-1.8 1-2.4A6 6 0 0 0 12 3z"/>',
+ review:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+ lib:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+ bld:'<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>',
+ check:'<path d="m5 12.5 4.5 4.5L19 7"/>', x:'<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
+ right:'<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', left:'<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
+ chev:'<path d="m9 6 6 6-6 6"/>', updown:'<path d="m8 9 4-4 4 4"/><path d="m8 15 4 4 4-4"/>',
+ clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', play:'<path d="M7 4v16l13-8z"/>',
+ dl:'<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>', refresh:'<path d="M20 11a8 8 0 0 0-14.7-4.3L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.7 4.3L20 16"/><path d="M20 21v-5h-5"/>',
+ alert:'<path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.5v.5"/>', lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>', vol:'<path d="M4 9.5h4L13 5v14l-5-4.5H4z"/><path d="M16.5 9a4 4 0 0 1 0 6"/>',
+ undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>', redo:'<path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/>',
+ menu:'<path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/>', up:'<path d="M12 19V6"/><path d="m6 11 6-6 6 6"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ film:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18"/><path d="M16 3v18"/><path d="M4 8h4"/><path d="M4 16h4"/><path d="M16 8h4"/><path d="M16 16h4"/>',
+ copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+ trash:'<path d="M5 7h14"/><path d="M10 7V4h4v3"/><path d="M7 7l1 13h8l1-13"/>'
+};
+const ic=(n,s=18,st='currentColor',w=1.9)=>`<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${st}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||''}</svg>`;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ---------- data ---------- */
+const SCENES=[
+ {n:1,lab:'Hook',tc:'0:00–0:04',say:'I haven’t slept past 5am in three years.',pr:'close-up, woman awake in bed, blue dawn light through blinds, handheld, 9:16',tone:'dawn'},
+ {n:2,lab:'Problem',tc:'0:04–0:10',say:'Cheap masks slip off or press on my eyes.',pr:'hands pulling a thin satin mask off, it slides down, bedside lamp, soft focus',tone:'plum'},
+ {n:3,lab:'Product',tc:'0:10–0:17',say:'This one’s weighted, so it stays put, and it blocks every bit of light.',pr:'macro of weighted beads inside navy mask, then flashlight test against it, dark room',tone:'night'},
+ {n:4,lab:'Proof',tc:'0:17–0:22',say:'Eleven masks later, it’s the only one I kept.',pr:'drawer full of discarded sleep masks, she closes it, morning sun, slow push-in',tone:'sand'},
+ {n:5,lab:'CTA',tc:'0:22–0:27',say:'Sixty nights to try it. Link below.',pr:'mask on pillow, sunrise across sheets, product centered, calm',tone:'sage'}
+];
+const HOOKS={
+ a:'I haven’t slept past 5am in 3 years. Then this.',
+ b:'My husband reads till 1am. I sleep anyway.',
+ c:'I tried 11 sleep masks. This is the only one I kept.',
+ d:'Shine a flashlight at it. Nothing gets through.'
+};
+const adf=(tone,hook,opts={})=>{const cap=opts.cap||'16px';return `<div class="adf tn-${tone}" style="--cap:${cap}"><div class="orb"></div><div class="pil"></div><div class="msk"></div>${hook?`<div class="cap"><span>${esc(hook)}</span></div>`:''}${opts.label?`<span class="lbl">${esc(opts.label)}</span>`:''}${opts.chips?`<div class="chips"><span>▶ ${opts.dur||'0:27'}</span><span>${opts.ratio||'9:16'}</span></div>`:''}</div>`};
+
+/* ---------- shell ---------- */
+function sidebar(active){
+ const it=(id,icon,label,extra='',go='')=>`<button class="nav" data-go="${go}" ${go?'':`data-toast="${label} exists today or is planned in F3; not part of this mockup."`} ${active===id?'aria-current="page"':''}>${ic(icon,20)}${label}${extra}</button>`;
+ return `<nav class="side" aria-label="Main">
+  <a class="brand" href="#map" data-go="map"><span class="brand-mark">HM</span><span class="brand-name">HookMill</span></a>
+  <button class="client" data-toast="Switch client: opens All clients (exists in the plan, F3)"><span class="client-av">M</span><span style="flex:1;min-width:0"><b style="font-weight:700">Mooncloth</b><small>Client workspace</small></span>${ic('updown',18,'#9AA1A9',1.75)}</button>
+  <div class="navgrp"><span class="navlab">WORKSPACE</span>
+   ${it('home','home','Home','', 'soon-home')}
+   ${it('campaigns','chart','Campaigns','<span class="soon-mini">SOON</span>','soon-section')}
+   ${it('eddy','chat','Eddy','<span class="soon-mini">SOON</span>','soon-section')}
+   ${it('brain','brain','Brain','','')}
+  </div>
+  <div class="navgrp"><span class="navlab">MAKE ADS</span>
+   ${it('iterate','iter','Iterate a winner','','soon-pick')}
+   ${it('concepts','bulb','New concepts','','face')}
+   ${it('review','review','Review','<span class="badge">3</span>','')}
+   ${it('library','lib','Library','','')}
+  </div>
+  <div class="side-foot">
+   ${it('clients','bld','All clients','','')}
+   <div class="me"><span class="me-av">T</span><span style="min-width:0"><b>Tordan</b><small>Agency admin</small></span>
+    <span class="lang" role="group" aria-label="Interface language"><button aria-pressed="true">EN</button><button aria-pressed="false" data-toast="PT-BR: every string has a key from day one (next-intl)">PT</button></span></div>
+  </div></nav>`;
+}
+function topm(){return `<div class="topm"><span class="brand-mark">HM</span><button class="client" data-toast="Switch client"><span class="client-av">M</span><span style="flex:1;min-width:0"><b>Mooncloth</b></span>${ic('updown',16,'#9AA1A9')}</button><button class="icobtn" data-act="menu" aria-label="Open menu" aria-expanded="${S.menu}">${ic('menu',20,'#F2F3EE')}</button></div>`}
+function shell(active,inner){return `<div class="app ${S.menu?'menu':''}">${sidebar(active)}<div style="min-width:0">${topm()}<main class="work"><div class="wrap">${inner}</div></main></div></div>`}
+
+/* ---------- flow bar ---------- */
+const FLOWS={
+ concepts:{name:'New concepts',phases:[
+  {id:'plan',l:'Plan',steps:[['know','What we know'],['concepts','Concepts','soon'],['scripts','Scripts']]},
+  {id:'make',l:'Make',steps:[['face','Face'],['engine','Engine'],['gen','Generate'],['edit','Edit']]},
+  {id:'ship',l:'Ship',steps:[['review','Review'],['send','Send']]}]},
+ iterate:{name:'Iterate a winner',phases:[
+  {id:'plan',l:'Plan',steps:[['pick','Pick a winner'],['breakdown','Breakdown'],['plan','Plan']]},
+  {id:'make',l:'Make',steps:[['batch','Generate']]},
+  {id:'ship',l:'Ship',steps:[['review','Review'],['send','Send']]}]}
+};
+const STEP_GO={face:'face',engine:'engine',gen:'gen',edit:'edit',send:'send',batch:'batch',pick:'soon-pick',plan:'soon-plan'};
+function flowbar(kind,cur,running){
+ const f=FLOWS[kind];const all=[];f.phases.forEach(p=>p.steps.forEach(s=>all.push({...{id:s[0],l:s[1],soon:!!s[2]},ph:p.id})));
+ const active=all.filter(s=>!s.soon);const ci=active.findIndex(s=>s.id===cur);const curPh=all.find(s=>s.id===cur).ph;
+ const phIdx=f.phases.findIndex(p=>p.id===curPh);
+ let num=0;const numOf={};all.forEach(s=>{if(!s.soon)numOf[s.id]=++num});
+ const stepBtn=s=>{
+  if(s.soon) return `<button class="st soonst" data-toast="Concepts is coming soon. Today the flow uses one concept: the offer you picked."><span class="circ dash">–</span>${s.l}<span class="soon" style="font-size:9px;padding:1px 6px">SOON</span></button>`;
+  const i=active.findIndex(a=>a.id===s.id);const done=i<ci;const isCur=i===ci;
+  const c=done?`<span class="circ on">${ic('check',12,'#15171A',3)}</span>`:`<span class="circ ${isCur?'on':''} ${isCur&&running?'run':''}">${numOf[s.id]}</span>`;
+  const go=STEP_GO[s.id]||'';
+  return `<button class="st ${done?'done':''}" ${isCur?'aria-current="step"':''} data-go="${go}" ${go?'':`data-toast="${s.l} exists today; only the skin changes (plan §1)."`}>${c}${s.l}</button>`;
+ };
+ const parts=f.phases.map((p,pi)=>{
+  if(pi<phIdx) return `<li><button class="ph" data-toast="${p.l}: ${p.steps.map(s=>s[1]).join(' · ')} done. Click to reopen any of them."><span class="circ on">${ic('check',12,'#15171A',3)}</span>${p.l}<small>${p.steps.filter(s=>!s[2]).length} done</small></button></li>`;
+  if(pi>phIdx) return `<li><span class="ph ph-next"><span class="circ">${pi+1}</span>${p.l}<small>${p.steps.map(s=>s[1]).join(' · ')}</small></span></li>`;
+  return `<li class="ph-cur"><span>${p.l.toUpperCase()}</span>${p.steps.map(stepBtn).join('')}</li>`;
+ });
+ const sepd=`<li aria-hidden="true">${ic('chev',16,'#9A9F96',2).replace('<svg','<svg class="chev"')}</li>`;
+ const segs=all.map(s=>{if(s.soon)return '<i class="z"></i>';const i=active.findIndex(a=>a.id===s.id);return `<i class="${i<ci?'d':i===ci?'c':''}"></i>`}).join('');
+ return `<nav class="flow" aria-label="${f.name} steps"><div class="flow-name"><span class="eyebrow">MOONCLOTH</span><b>${f.name}</b></div><ol class="flow-ph">${parts.join(sepd)}</ol><button class="btn btn-ghost flow-exit" data-go="soon-home">${ic('x',16)}Exit</button></nav>
+ <nav class="flow-m" aria-label="${f.name} steps"><div class="r1"><div class="t"><span class="eyebrow">${f.name} · ${f.phases[phIdx].l}</span><b>${all.find(s=>s.id===cur).l}</b></div><span class="num small muted">Step ${ci+1} of ${active.length}</span><button class="icobtn" style="border-color:var(--line);color:var(--fg)" aria-label="Exit" data-go="soon-home">${ic('x',18)}</button></div><div class="segs" style="grid-template-columns:repeat(${all.length},1fr)">${segs}</div></nav>`;
+}
+function actionbar(hint,back,primary){return `<div class="actionbar"><span class="hint">${hint}</span><div class="btns">${back}${primary}</div></div>`}
+const backBtn=(go,l='Back')=>`<button class="btn btn-out" data-go="${go}">${ic('left',16)}${l}</button>`;
+
+/* ================= screens ================= */
+const R={};
+
+R.map=()=>shell('concepts',`
+ <div class="head"><span class="eyebrow">PHASE 2 · F0 · DESIGN · 12 OCT</span><h1 class="h1">The screens the Ads Machine mockup doesn't have</h1>
+ <p class="lede">Face, Engine, Generate, Edit and the editor get the new skin. Both make-ads flows group their steps into Plan, Make and Ship, so nine steps still fit in one bar. Anything that needs Meta shows as Soon, with example data and the real way out of today.</p></div>
+ <div class="card"><h2 class="h2">Path 2 · New concepts</h2>
+  <div class="seq"><span class="s">What we know</span><span class="s z">Concepts · soon</span><span class="s">Scripts</span>›<span class="s n">Face</span><span class="s n">Engine</span><span class="s n">Generate</span><span class="s n">Edit</span>›<span class="s">Review</span><span class="s z">Send · Meta soon, download today</span></div>
+  ${flowbar('concepts','gen',true)}
+ </div>
+ <div class="card"><h2 class="h2">Path 1 · Iterate a winner</h2>
+  <div class="seq"><span class="s">Pick a winner</span><span class="s">Breakdown</span><span class="s">Plan</span>›<span class="s n">Generate (batch)</span>›<span class="s">Review</span><span class="s z">Send · Meta soon, download today</span></div>
+  ${flowbar('iterate','batch',true)}
+ </div>
+ <div class="legend"><span class="tag t-ok"><span class="dot"></span>New in this mockup</span><span class="soon">${ic('clock',12)}SOON</span><span class="example">EXAMPLE DATA</span></div>
+ <div class="maplist">
+  ${[['face','Face','Pick who talks. Waiting state with live tiles.'],['engine','Engine','Scenes or avatar + lipsync. The only place cost shows before the fact.'],['gen','Generate','Progress per scene, ETA, leave and come back.'],['edit','Edit','Template, captions, hook, CTA. Door to the editor.'],['editor','Edit in video','Editor v1 decisions, new skin.'],['batch','Batch generation','Path 1 batch grouped by type.'],['send','Send','Meta soon. Download + Library today.'],['soon-section','Soon · section','Campaigns faded, with a one-line promise.'],['soon-home','Soon · block','Results tiles on Home.'],['soon-pick','Soon · block','Pick from Meta.'],['soon-plan','Soon · block','New iteration types.']].map(([id,t,d])=>`<button class="mapitem" data-go="${id}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}
+ </div>`);
+
+/* ---- Face ---- */
+R.face=st=>{
+ const tones=[{bg:'#D9CFC2',hair:'#3B2A22',skin:'#C99A7A',cloth:'#1E2550'},{bg:'#C9D3D9',hair:'#1A1716',skin:'#8A5B42',cloth:'#E9DFC9'},{bg:'#E6DCCB',hair:'#A87444',skin:'#E8C4A6',cloth:'#50305B'},{bg:'#CFD6C6',hair:'#2B2420',skin:'#B98466',cloth:'#2C3570'}];
+ const tile=(t,i,faded)=>`<button class="face ${faded?'faded':''}" aria-pressed="${!faded&&S.face===i}" data-face="${i}" style="--fbg:${t.bg};--fhair:${t.hair};--fskin:${t.skin};--fcloth:${t.cloth}"><span class="fh"></span><span class="fs"></span><span class="fb"></span>${!faded&&S.face===i?`<span class="chk">${ic('check',14,'#15171A',3)}</span>`:''}<span class="fl">Face ${i+1}</span></button>`;
+ const gen=st==='generating';const blocked=st==='blocked';
+ const grid=gen?[0,1,2,3].map(i=>`<div class="face gen imggen" aria-label="Generating face ${i+1}"><span class="genlab"><span>Face ${i+1}</span><span class="num">0:${14+i*3}</span></span></div>`).join(''):tones.map((t,i)=>tile(t,i,blocked)).join('');
+ return shell('concepts',`${flowbar('concepts','face')}
+ <div class="head"><h1 class="h1">Who's on camera?</h1><p class="lede">Pick the face that says Script A. It stays the same in every scene. Placeholder art in this mockup; the product shows the generated photos.</p></div>
+ ${blocked?`<div class="alert al-bad" role="alert">${ic('alert',20)}<div class="a-body"><b>The safety filter blocked these 4 faces.</b><span>The description says "barely 18". Faces that read as young get blocked. Change the age to 28 or older and generate again. Your earlier faces are still below.</span></div></div>`:''}
+ <div class="cols"><div class="col-main">
+  <div class="card"><div class="fieldrow"><label class="lab" for="fdesc">Who appears</label><textarea id="fdesc" class="ta">${blocked?'Woman, barely 18, messy bun, oversized tee, bedroom at dawn':'Woman, early 30s, light sleeper, messy bun, oversized tee, bedroom at dawn. From the brief: women 28–40 who wake at 5am.'}</textarea></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn btn-out" data-state="generating">${ic('refresh',16)}Generate 4 new faces</button><span class="small muted">About 20 to 40 seconds. Free while you're on this step.</span></div></div>
+  ${gen?`<div class="small" style="display:flex;gap:8px;align-items:center"><span class="tag t-info"><span class="dot pulse"></span>Generating 4 faces · 0:17</span><span class="muted">You can leave. They'll be here when you come back.</span></div>`:''}
+  <div class="faces" role="${gen?'status':'group'}" aria-label="Faces">${grid}</div>
+ </div>
+ <aside class="col-side"><div class="ink"><span class="eyebrow">THIS AD</span>
+  <ul class="ink-list"><li><span>Offer</span><span>Mooncloth mask · English</span></li><li><span>Script</span><span>A · 0:27 · 5am problem</span></li><li><span>Face</span><span>${gen||blocked?'Not picked yet':'Face '+(S.face+1)}</span></li><li><span>Engine</span><span>Next step</span></li></ul>
+  <p class="small" style="margin:0;color:var(--ink-fg-2)">Progress saves on every click. You can close this and pick up from Home.</p></div></aside></div>
+ ${actionbar(gen?'Faces are still generating.':blocked?'Pick a face after you fix the description.':`Face ${S.face+1} selected · used in every scene`,backBtn('','Scripts').replace('data-go=""','data-toast="Scripts exists today; only the skin changes."'),`<button class="btn btn-accent" data-go="engine" ${gen||blocked?'disabled':''}>Continue to Engine${ic('right',16)}</button>`)}`);
+};
+
+/* ---- Engine ---- */
+R.engine=st=>{
+ const over=st==='over cap';const sc=S.eng==='scenes';
+ const cost=sc?(S.model==='kling'?'$4.20':'$3.10'):'$2.40';const mins=sc?(S.model==='kling'?'about 6 min':'about 5 min'):'about 4 min';
+ return shell('concepts',`${flowbar('concepts','engine')}
+ <div class="head"><h1 class="h1">How should it be made?</h1><p class="lede">Scenes look like b-roll with a voiceover. Avatar + lipsync puts Face ${S.face+1} on camera saying the script. Prices are placeholders; the API sends the real estimate.</p></div>
+ ${over?`<div class="alert al-bad" role="alert">${ic('alert',20)}<div class="a-body"><b>This ad would pass Mooncloth's monthly cap.</b><span>$4.20 estimated + $398.10 spent this month = $402.30, over the $400 cap. Pick a cheaper engine or raise the cap in Brain › Goals.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-out" data-eng="lipsync">Try avatar + lipsync · $2.40</button><button class="btn btn-sm btn-ghost" data-toast="Brain › Goals: monthly cap">Raise the cap</button></div></div></div>`:''}
+ <div class="cols"><div class="col-main">
+  <div class="grid-auto" role="radiogroup" aria-label="Engine">
+   <div class="eng ${sc?'on':''}" role="radio" aria-checked="${sc}" tabindex="0" data-eng="scenes">
+    <div style="display:flex;gap:10px;align-items:flex-start"><span class="radio ${sc?'on':''}"></span><div><b style="font-size:16px">Scenes</b><div class="small muted">Kling 3.0 / Seedance</div></div></div>
+    <p class="small" style="margin:0;color:var(--fg-2)">One clip per beat of the script, with a voiceover on top. Looks like a short film. Nobody talks to camera.</p>
+    ${sc?`<div class="toggle" role="group" aria-label="Model"><button aria-pressed="${S.model==='kling'}" data-model="kling">Kling 3.0</button><button aria-pressed="${S.model==='seed'}" data-model="seed">Seedance</button></div>`:''}
+    <div class="est"><span><span>est </span>${S.model==='kling'?'$4.20':'$3.10'}</span><span><span>time </span>${S.model==='kling'?'~6 min':'~5 min'}</span><span><span>scenes </span>5</span></div>
+   </div>
+   <div class="eng ${!sc?'on':''}" role="radio" aria-checked="${!sc}" tabindex="0" data-eng="lipsync">
+    <div style="display:flex;gap:10px;align-items:flex-start"><span class="radio ${!sc?'on':''}"></span><div><b style="font-size:16px">Avatar + voice + lipsync</b><div class="small muted">Face ${S.face+1} · TTS · lipsync</div></div></div>
+    <p class="small" style="margin:0;color:var(--fg-2)">Face ${S.face+1} says the script to camera. Reads like a creator video. One clip per block of the script.</p>
+    ${!sc?`<div class="fieldrow"><label class="lab" for="voice">Voice</label><div style="display:flex;gap:8px"><select id="voice" class="sel" style="flex:1;min-width:0"><option>Maya · calm, US</option><option>Jess · bright, US</option></select><button class="btn btn-out btn-sm" style="min-height:44px" data-toast="Playing Maya's sample">${ic('vol',16)}Hear</button></div></div>`:''}
+    <div class="est"><span><span>est </span>$2.40</span><span><span>time </span>~4 min</span><span><span>clips </span>4</span></div>
+   </div>
+  </div>
+  <div class="fieldrow"><span class="lab">Format</span><div><div class="toggle" role="group" aria-label="Format">${['9:16','4:5','1:1'].map(f=>`<button aria-pressed="${S.fmt===f}" data-fmt="${f}">${f}</button>`).join('')}</div></div></div>
+ </div>
+ <aside class="col-side"><div class="ink"><span class="eyebrow">THIS AD</span>
+  <div style="display:flex;align-items:baseline;gap:10px"><span class="big">${cost}</span><span style="color:#fff;font-weight:600">estimated</span></div>
+  <ul class="ink-list"><li><span>Script</span><span>A · 0:27</span></li><li><span>Face</span><span>Face ${S.face+1}</span></li><li><span>Engine</span><span>${sc?(S.model==='kling'?'Kling 3.0':'Seedance'):'Avatar + lipsync'}</span></li><li><span>Format</span><span>${S.fmt}</span></li><li><span>Ready in</span><span>${mins}</span></li></ul>
+  <div style="display:flex;flex-direction:column;gap:6px"><div class="bar"><i style="width:${over?'100':'53'}%"></i></div><span class="tiny" style="color:var(--ink-fg-2)">${over?'$398.10':'$212.40'} of the $400 monthly cap spent</span></div>
+  <p class="small" style="margin:0;color:var(--ink-fg-2)">Cost shows here once. After this it only shows as a fact on Review.</p>
+  <button class="btn btn-accent btn-lg" data-go="gen" ${over&&sc?'disabled':''}>Generate ad${ic('right',16)}</button>
+ </div></aside></div>
+ ${actionbar(over&&sc?'Over the monthly cap. Pick a cheaper engine or raise the cap.':`Generating takes ${mins}. You can leave while it runs.`,backBtn('face','Face'),`<button class="btn btn-accent" data-go="gen" ${over&&sc?'disabled':''}>Generate ad${ic('right',16)}</button>`)}`);
+};
+
+/* ---- Generate ---- */
+R.gen=st=>{
+ const failed=st==='scene failed', all=st==='all ready';
+ const status=i=>{ if(all) return 'ready'; if(i<2) return 'ready'; if(i===2) return failed?'failed':'generating'; if(i===3) return failed?'generating':'queued'; return 'queued'; };
+ const ready=SCENES.filter((s,i)=>status(i)==='ready').length;
+ const pct=all?100:failed?52:46;
+ const row=(s,i)=>{const stt=status(i);
+  const chip={ready:'<span class="tag t-ok"><span class="dot"></span>Ready</span>',generating:`<span class="tag t-info"><span class="dot pulse"></span>Generating · ${i===2?'64':'18'}%</span>`,queued:'<span class="tag t-neutral">Queued</span>',failed:'<span class="tag t-bad">Failed</span>'}[stt];
+  const thumb=stt==='ready'?adf(s.tone,'',{}):stt==='generating'?'<div class="imggen"></div>':`<div class="qthumb"></div>`;
+  const act=stt==='ready'?`<button class="btn btn-sm btn-ghost" data-toast="Regenerate scene ${s.n}: only this scene runs again">${ic('refresh',14)}Regenerate</button>`:stt==='failed'?`<button class="btn btn-sm btn-ink" data-toast="Scene 3 queued again">${ic('refresh',14)}Regenerate scene</button><button class="btn btn-sm btn-out" data-toast="Opens the prompt inline, with Regenerate with this prompt / Cancel below it">${ic('pen',14)}Edit prompt</button>`:stt==='generating'?`<div class="bar minibar"><i style="width:${i===2?64:18}%"></i></div>`:'';
+  return `<div class="srow ${stt==='generating'?'beam':''} ${stt==='failed'?'failed':''}"><div class="thumb">${thumb}</div><div class="meta"><div class="line1"><b>Scene ${s.n} · ${s.lab}</b><span class="num tiny muted">${s.tc}</span>${chip}</div>${stt==='failed'?`<span class="reason">The model refused: "hands too close to face" tripped its filter. Regenerate usually works; if it fails twice, edit the prompt.</span>`:''}<span>“${s.say}”</span><span class="prompt">${s.pr}</span></div><div class="act">${act}</div></div>`;};
+ return shell('concepts',`${flowbar('concepts','gen',!all)}
+ <div class="cols"><div class="col-main">
+  <div class="head"><span class="eyebrow">${all?'DONE · 6 MIN 12 S':'STARTED 2 MIN AGO · KLING 3.0'}</span><h1 class="h1">${all?'All 5 scenes are ready':`Generating · ${ready} of 5 scenes ready`}</h1></div>
+  ${failed?`<div class="alert al-bad" role="alert">${ic('alert',20)}<div class="a-body"><b>Scene 3 failed. The other scenes keep going.</b><span>Only scene 3 runs again. Nothing else is lost or charged twice.</span></div></div>`:''}
+  ${all?`<div class="alert al-ok" role="status">${ic('check',20,'#0B6B43',2.5)}<div class="a-body"><b>5 of 5 ready in 6 min 12 s · $4.18 spent</b><span>Next you choose the captions, hook text and CTA.</span></div></div>`:''}
+  <div class="rows" aria-live="polite">${SCENES.map(row).join('')}</div>
+ </div>
+ <aside class="col-side"><div class="ink ${all?'':'beam'}" role="status"><span class="eyebrow">${all?'READY':'GENERATING'}</span>
+  <div style="display:flex;align-items:baseline;gap:10px"><span class="big">${ready}/5</span><span style="color:#fff;font-weight:600">scenes</span></div>
+  <div class="bar"><i style="width:${pct}%"></i></div>
+  <ul class="ink-list"><li><span>Now</span><span>${all?'Finished':failed?'Scene 4 of 5':'Scene 3 of 5'}</span></li><li><span>Time left</span><span>${all?'—':'about 4 min'}</span></li><li><span>Engine</span><span>Kling 3.0 · 9:16</span></li></ul>
+  ${all?'':`<p class="small" style="margin:0;color:var(--ink-fg-2)">You can close this page. The ad keeps generating and shows up in Home › Waiting for you when it's ready.</p><button class="btn btn-on-ink" data-go="soon-home">${ic('left',16)}Back to Home</button>`}
+ </div></aside></div>
+ ${actionbar(all?'All scenes ready.':failed?'Continue unlocks when scene 3 is ready.':'Continue unlocks when all 5 scenes are ready.',backBtn('engine','Engine'),`<button class="btn btn-accent" data-go="edit" ${all?'':'disabled'}>Continue to Edit${ic('right',16)}</button>`)}`);
+};
+
+/* ---- Edit ---- */
+R.edit=st=>{
+ const dirty=st==='changed', rendering=st==='rendering', fail=st==='render failed', after=st==='after editor';
+ const overlay=rendering?`<div class="overlay" role="status"><span class="eyebrow">RENDERING</span><span class="num" style="font-size:40px;font-weight:600;color:var(--accent)">46%</span><span class="num small">frame 372 of 810 · about 1 min left</span><ul class="check"><li>${ic('check',14,'#C8F03C',2.5)}Prepared scenes and fonts</li><li><span class="dot pulse" style="color:var(--accent)"></span>Drawing frames</li><li class="todo">○ Encoding MP4</li><li class="todo">○ Saving the file</li></ul></div>`:fail?`<div class="overlay" role="alert"><span class="tag t-bad" style="align-self:flex-start">Render failed</span><b style="color:#fff">Stopped at frame 388.</b><span class="small">The file came out incomplete. Nothing you set is lost.</span><button class="btn btn-accent btn-sm" data-state="rendering" style="align-self:flex-start">${ic('refresh',14)}Render again</button></div>`:'';
+ return shell('concepts',`${flowbar('concepts','edit')}
+ <div class="head"><h1 class="h1">Captions, hook and CTA</h1><p class="lede">Choose a template, then tune the text. For anything more precise, open the editor.</p></div>
+ ${dirty?`<div class="alert al-warn">${ic('alert',20)}<div class="a-body"><b>Changes not in the preview yet.</b><span>Render to see them. It takes about 2 minutes and costs nothing.</span></div></div>`:''}
+ ${after?`<div class="alert al-warn">${ic('alert',20)}<div class="a-body"><b>3 editor changes aren't exported yet.</b><span>Export in the editor before you continue, so Review shows what you changed.</span><div><button class="btn btn-sm btn-ink" data-go="editor">Open the editor</button></div></div></div>`:''}
+ <div class="cols" style="align-items:stretch"><div class="col-main" style="flex-basis:420px">
+  <div class="stagecard ${rendering?'beam':''}"><div class="player">${adf('dawn',HOOKS.a,{cap:'17px',chips:false})}${overlay}</div>
+   <div class="scrub"><button class="playbtn" aria-label="Play">${ic('play',14,'#15171A')}</button><div class="bar"><i style="width:30%"></i></div><span>0:08 / 0:27</span></div></div>
+ </div>
+ <aside class="col-side" style="flex-basis:340px">
+  <div class="entry"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Edit in video</b>${after?'<span class="tag t-ink">with editor changes</span>':''}</div><span class="small" style="color:var(--fg-2)">Move text, change when it shows, fix a word the transcript got wrong, trim or delete scenes.</span><button class="btn btn-ink btn-sm" style="align-self:flex-start" data-go="editor">${ic('pen',14)}Edit in video</button></div>
+  <div class="card" style="gap:14px">
+   <div class="fieldrow"><span class="lab">Template</span><div class="tpls">${[['clean','Clean','<i style="bottom:18%"></i>'],['bold','Bold captions','<i style="top:30%;height:14%"></i><i style="bottom:18%"></i>'],['head','Headline + captions','<i style="top:8%;height:12%;background:#C8F03C"></i><i style="bottom:18%"></i>']].map(([k,l,m])=>`<button class="tpl" aria-pressed="${S.tpl===k}" data-tpl="${k}"><span class="mini">${m}</span>${l}</button>`).join('')}</div></div>
+   <div class="fieldrow"><span class="lab">Caption style</span><div class="toggle">${[['word','Word by word'],['line','Full line'],['off','Off']].map(([k,l])=>`<button aria-pressed="${S.cap===k}" data-cap="${k}">${l}</button>`).join('')}</div></div>
+   <div class="fieldrow"><span class="lab">Caption position</span><div class="toggle">${['top','middle','bottom'].map(k=>`<button aria-pressed="${S.pos===k}" data-pos="${k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>${after?'<span class="tiny" style="color:var(--warn)">Set in the editor. Picking here replaces the editor position.</span>':''}</div>
+   <div class="fieldrow"><label class="lab" for="hk">Hook text on screen</label><input id="hk" class="inp" value="${HOOKS.a}"></div>
+   <div class="fieldrow"><label class="lab" for="cta">CTA text</label><input id="cta" class="inp" value="60 nights to try it. Link below."></div>
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span><b class="small">End card</b><span class="tiny muted" style="display:block">Shows the CTA for 2 s after the last scene</span></span><button class="switch" role="switch" aria-checked="${S.endcard}" aria-label="End card" data-act="endcard"></button></div>
+   ${dirty?`<button class="btn btn-accent" data-state="rendering">Render preview</button>`:''}
+  </div>
+ </aside></div>
+ ${actionbar(dirty?'Render first so Review shows the latest version.':rendering?'Rendering. You can leave; it keeps going.':after?'Continue is locked until the editor changes are exported.':'Rendered 1 min ago · Bold captions',backBtn('gen','Generate'),`<button class="btn btn-accent" ${dirty||rendering||fail||after?'disabled':''} data-toast="Review is the Ad preview screen from the mockup, with the closed 4-path Request a change">Continue to Review${ic('right',16)}</button>`)}`);
+};
+
+/* ---- Send ---- */
+R.send=st=>{
+ const done=st==='done';
+ return shell('concepts',`${flowbar('concepts','send')}
+ <div class="head"><h1 class="h1">Take it out of HookMill</h1><p class="lede">Publishing to Meta comes later. Today you download the MP4 and it goes to the Library, where you can mark it as a winner.</p></div>
+ ${done?`<div class="alert al-ok" role="status">${ic('check',20,'#0B6B43',2.5)}<div class="a-body"><b>Saved to the Library and downloaded.</b><span class="num small">MC_NEW_1012_A_F2_9x16.mp4</span><div><button class="btn btn-sm btn-ink" data-toast="Library: the new ad has a green ring and a New badge">Open the Library</button></div></div></div>`:''}
+ <div class="srcs">
+  <div class="card" style="gap:14px"><span class="eyebrow">READY TODAY</span>
+   <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:84px;flex:none">${adf('dawn','',{})}</div><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><b style="font-size:16px">The 5am problem</b><span class="small muted">Script A · Face 2 · Kling 3.0</span><span class="num tiny muted">0:27 · 9:16 · 1080×1920 · MP4 · 14.2 MB</span><span class="tag t-ok" style="align-self:flex-start"><span class="dot"></span>Approved by Tordan</span></div></div>
+   <div class="fieldrow"><span class="lab">File name</span><div class="ninp" style="justify-content:space-between"><span style="color:var(--fg)">MC_NEW_1012_A_F2_9x16.mp4</span><button class="btn btn-sm btn-ghost" data-copy="MC_NEW_1012_A_F2_9x16.mp4" aria-label="Copy file name">${ic('copy',14)}</button></div><span class="tiny muted">Client · path · date · script · face · format. Keep it when you upload, so results can be matched back later.</span></div>
+   <button class="kv" style="border:0;background:none;padding:0;cursor:pointer;align-items:center;justify-content:flex-start;gap:10px" data-act="lib"><span class="chk-box ${S.lib?'on':''}">${S.lib?ic('check',13,'#15171A',3):''}</span><span style="color:var(--fg)">Save to the Library</span></button>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-accent" data-state="done">${ic('dl',16)}Download MP4</button><button class="btn btn-out" data-copy="I tried 11 sleep masks before this one. It's weighted, so it stays put, and it blocks every bit of light. 60 nights to try it.">${ic('copy',16)}Copy ad text</button></div>
+  </div>
+  <div class="soon-block"><div class="soon-head"><span class="soon">${ic('clock',12)}SOON</span><span class="what"><b>Send to Meta.</b> Creates a paused test campaign in Mooncloth's ad account with this name. Needs the Meta connection.</span></div>
+   <div class="soon-body" inert aria-hidden="true" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b>Where it goes</b><span class="example">EXAMPLE</span></div>
+    <div class="opt on" style="cursor:default"><div class="top"><b>New test campaign</b><span class="radio on"></span></div><span class="small muted">Recommended. Its own budget, so the result is clean.</span></div>
+    <div class="opt" style="cursor:default"><div class="top"><b>Existing ad set</b><span class="radio"></span></div></div>
+    <div class="two"><div class="ninp"><span>$/day</span>40</div><div class="ninp"><span>days</span>5</div></div>
+    <div class="kv"><span>Starts</span><span>Paused</span></div>
+    <button class="btn btn-ink" disabled>Send to Meta</button>
+   </div>
+  </div>
+ </div>
+ ${actionbar('Download works today. Send to Meta comes with the Meta connection.',backBtn('','Review').replace('data-go=""','data-toast="Review exists today; only the skin changes."'),`<button class="btn btn-accent" data-state="done">${ic('dl',16)}Download and save</button>`)}`);
+};
+
+/* ---- Batch ---- */
+R.batch=st=>{
+ const failed=st==='one failed', all=st==='all ready';
+ const G=[
+  {t:'Control',d:'The original, rendered again as the baseline.',items:[{n:'Control · original',ch:'Nothing changed. Lets you compare fairly.',tone:'night',h:HOOKS.c,s:'ready'}]},
+  {t:'New faces',d:'Same script and timing, another person on camera.',items:[{n:'Face 1',ch:'Warm, early 30s',tone:'sand',s:'ready'},{n:'Face 2',ch:'Short hair, late 30s',tone:'sage',s:'ready'},{n:'Face 3',ch:'Curly hair, 28',tone:'plum',s:'generating',p:64},{n:'Face 4',ch:'Glasses, 40',tone:'dawn',s:'queued'}]},
+  {t:'New hooks',d:'New first 3 seconds, original body and CTA.',items:[{n:'Hook 1: the 5am problem',ch:'“'+HOOKS.a+'”',tone:'dawn',h:HOOKS.a,s:'ready'},{n:'Hook 2: the partner angle',ch:'“'+HOOKS.b+'”',tone:'plum',h:HOOKS.b,s:'ready'},{n:'Hook 3: the flashlight test',ch:'“'+HOOKS.d+'”',tone:'ink',h:HOOKS.d,s:'ready'},{n:'Hook 4: the drawer of masks',ch:'“There are 10 masks in this drawer I never use.”',tone:'sand',h:'',s:failed?'failed':'generating',p:30}]},
+  {t:'New layout',d:'Same footage, new caption and headline layout. No AI generation.',items:[{n:'Caption bar on top',ch:'Hook bar moved up, bigger captions',tone:'night',h:HOOKS.c,s:'ready'},{n:'Headline + captions',ch:'Lime headline, word-by-word captions',tone:'night',h:HOOKS.c,s:'queued'}]}
+ ];
+ let total=0,ready=0;G.forEach(g=>g.items.forEach(it=>{if(all)it.s='ready';total++;if(it.s==='ready')ready++;}));
+ const chip=it=>({ready:'<span class="tag t-ok"><span class="dot"></span>Ready</span>',generating:`<span class="tag t-info"><span class="dot pulse"></span>Generating · ${it.p}%</span>`,queued:'<span class="tag t-neutral">Queued</span>',failed:'<span class="tag t-bad">Failed</span>'}[it.s]);
+ const row=it=>`<div class="srow ${it.s==='generating'?'beam':''} ${it.s==='failed'?'failed':''}"><div class="thumb">${it.s==='ready'?adf(it.tone,'',{}):it.s==='generating'?'<div class="imggen"></div>':'<div class="qthumb"></div>'}</div><div class="meta"><div class="line1"><b>${it.n}</b>${chip(it)}</div>${it.s==='failed'?'<span class="reason">Lipsync drifted 0.3 s on the new line. Retrying usually fixes it; the other 10 are not affected.</span>':''}<span class="small" style="color:var(--fg-2)">${it.ch}</span></div><div class="act">${it.s==='ready'?`<button class="btn btn-sm btn-out" data-toast="Opens Ad preview for this iteration">Review${ic('right',14)}</button>`:it.s==='failed'?`<button class="btn btn-sm btn-ink" data-toast="Hook 4 queued again">${ic('refresh',14)}Retry</button>`:it.s==='generating'?`<div class="bar minibar"><i style="width:${it.p}%"></i></div>`:''}</div></div>`;
+ return shell('iterate',`${flowbar('iterate','batch',!all)}
+ <div class="cols"><div class="col-main">
+  <div class="head"><span class="eyebrow">FROM “I TRIED 11 SLEEP MASKS” · ${all?'DONE IN 9 MIN':'STARTED 4 MIN AGO'}</span><h1 class="h1">${all?`All ${total} iterations are ready`:`Making ${total} iterations · ${ready} ready`}</h1></div>
+  ${failed?`<div class="alert al-bad" role="alert">${ic('alert',20)}<div class="a-body"><b>Hook 4 failed. Everything else keeps going.</b><span>Retry runs only Hook 4.</span></div></div>`:''}
+  ${all?`<div class="alert al-ok" role="status">${ic('check',20,'#0B6B43',2.5)}<div class="a-body"><b>${total} of ${total} ready in 9 min · $11.20 spent</b><span>Pick which ones to keep in Review.</span></div></div>`:''}
+  ${G.map(g=>`<section class="grp"><div class="grp-h"><h3>${g.t} <span class="num muted" style="font-weight:500">· ${g.items.length}</span></h3><span class="tiny muted">${g.d}</span></div><div class="rows">${g.items.map(row).join('')}</div></section>`).join('')}
+  <div class="soon-block" style="padding:12px"><div class="soon-head"><span class="soon">${ic('clock',12)}SOON</span><span class="what"><b>New copy</b> isn't in this batch. It arrives with the copy iteration type.</span></div></div>
+ </div>
+ <aside class="col-side"><div class="ink ${all?'':'beam'}" role="status"><span class="eyebrow">THIS BATCH</span>
+  <div style="display:flex;align-items:baseline;gap:10px"><span class="big">${ready}/${total}</span><span style="color:#fff;font-weight:600">ready</span></div>
+  <div class="bar"><i style="width:${Math.round(ready/total*100)}%"></i></div>
+  <ul class="ink-list"><li><span>Time left</span><span>${all?'—':'about 5 min'}</span></li><li><span>Estimate</span><span class="num">$11.60</span></li><li><span>Kept from original</span><span>Body, voice, CTA</span></li></ul>
+  ${all?'':`<p class="small" style="margin:0;color:var(--ink-fg-2)">You can close this page. Ready iterations show up in Review and in Home › Waiting for you as they finish.</p>`}
+  <button class="btn ${all?'btn-accent':'btn-on-ink'}" data-toast="Review & select: grid of the ready iterations">${all?`Review ${total} iterations`:`Review the ${ready} ready`}${ic('right',16)}</button>
+ </div></aside></div>`);
+};
+
+/* ---- Editor ---- */
+R.editor=st=>{
+ const exp=st==='exporting';
+ const sec=[0,4,10,17,22,27];const cols=['#F2C29A','#3A2142','#1E2550','#E5D8C3','#BFCFB8'];
+ const pxs=S.dev==='phone'?24:40;
+ const scenes=SCENES.map((s,i)=>`<div class="clip scene" style="--ccol:${cols[i]};left:${sec[i]*pxs}px;width:${(sec[i+1]-sec[i])*pxs-3}px">${S.dev==='phone'?'':s.lab}</div>`).join('');
+ const ruler=Array.from({length:28},(_,i)=>i%(S.dev==='phone'?5:3)===0?`<span style="left:${i*pxs}px">${i}s</span>`:'').join('');
+ return `<div class="ed">
+  <div class="ed-top"><button class="icobtn" data-go="edit" aria-label="Back to Edit">${ic('left',18)}</button><span class="title">The 5am problem</span><span class="ed-chip hide-m">${exp?'Saved':'Saved · 3 changes not exported'}</span><span class="sp"></span>
+   <button class="icobtn hide-m" aria-label="Undo: move hook" title="Undo: move hook">${ic('undo',16)}</button><button class="icobtn hide-m" aria-label="Redo">${ic('redo',16)}</button>
+   <button class="btn btn-sm hide-m" style="color:var(--ink-fg-2);background:transparent" data-toast="Shortcuts: Space play · ⌥+arrows move · Q/W trim · ⌘E export">?</button>
+   <button class="btn btn-sm ${exp?'btn-on-ink':'btn-accent'}" data-state="${exp?'hook selected':'exporting'}">${exp?'Exporting 46%':'Export'}</button></div>
+  <div class="ed-stage">
+   ${exp?`<div class="exportcard beam" role="status"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:#fff">Exporting · 46%</b><button class="btn btn-sm btn-on-ink" data-state="hook selected">Cancel</button></div><div class="bar"><i style="width:46%"></i></div><span class="num tiny" style="color:var(--ink-fg-2)">frame 372 of 810 · about 1 min left</span><ul class="check"><li>${ic('check',14,'#C8F03C',2.5)}Saved your changes</li><li>${ic('check',14,'#C8F03C',2.5)}Prepared scenes and fonts</li><li><span class="dot pulse" style="color:var(--accent)"></span>Drawing frames</li><li class="todo">○ Encoding and saving</li></ul><span class="tiny" style="color:var(--ink-fg-3)">Keep editing or close the editor. New changes go into the next export.</span></div>`:''}
+   <div class="ed-toolbar"><span class="ed-chip">Safe zones: <b style="color:var(--ink-fg)">Reels</b> | TikTok</span>${exp?'':'<span class="ed-chip warn">Hook sits under the Reels UI by 38 px</span>'}<span class="ed-chip">Fit</span></div>
+   <div class="vid">${adf('dawn',HOOKS.a,{cap:S.dev==='phone'?'15px':'17px'})}<div class="safe t"></div><div class="safe b"></div><div class="safe r"></div>${exp?'':'<div class="guide"></div><div class="selbox"><span class="rot"></span><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="f"></i><span class="tagxy">X 540 · Y 512</span></div>'}</div>
+  </div>
+  <aside class="ed-panel" aria-label="Hook properties">
+   <div class="ed-sec"><div style="display:flex;justify-content:space-between;align-items:center"><b>Hook</b><span class="tag t-neutral">0:00–0:02.8</span></div></div>
+   <div class="ed-sec"><h4>TEXT</h4><textarea class="ta" id="edtxt" style="min-height:60px">${HOOKS.a}</textarea></div>
+   <div class="ed-sec"><h4>STYLE <button class="btn btn-sm btn-ghost" style="min-height:28px;padding:0 6px" data-toast="Hook style back to the template default">Reset</button></h4>
+    <select class="sel" aria-label="Font" id="edfont"><option>Archivo Black</option><option>Inter Tight</option><option>Bebas Neue</option></select>
+    <div class="range"><span class="tiny muted" style="width:34px">Size</span><div class="track"><i style="width:40%"></i><b style="left:calc(40% - 8px)"></b></div><div class="ninp" style="width:76px;min-height:32px">120<span>%</span></div></div>
+    <div><span class="tiny muted">Text color</span><div class="sw" style="margin-top:6px">${['#FFFFFF','#15171A','#C8F03C','#F2C29A','#1E2550'].map((c,i)=>`<button style="--c:${c}" aria-pressed="${i===0}" aria-label="${c}"></button>`).join('')}</div></div>
+    <div><span class="tiny muted">Background</span><div class="toggle" style="margin-top:6px">${['None','Box','Pill'].map((k,i)=>`<button aria-pressed="${i===1}">${k}</button>`).join('')}</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="small">Outline</span><button class="switch" role="switch" aria-checked="false" aria-label="Outline"></button></div>
+   </div>
+   <div class="ed-sec"><h4>POSITION</h4><div class="two"><div class="ninp"><span>X</span>540</div><div class="ninp"><span>Y</span>512</div><div class="ninp"><span>Box</span>860</div><div class="ninp"><span>Rot</span>0°</div></div></div>
+   <div class="ed-sec"><h4>TIMING <span class="tag t-neutral">automatic</span></h4><div class="two"><div class="ninp"><span>In</span>0.0 s</div><div class="ninp"><span>Out</span>2.8 s</div></div><span class="tiny muted">Follows the first line of speech. Drag the clip to set it by hand.</span></div>
+  </aside>
+  <div class="ed-tl">
+   <div class="tl-bar"><button class="playbtn" aria-label="Play" style="width:30px;height:30px">${ic('play',12,'#15171A')}</button><span class="num">0:01.2 / 0:27.0</span><span style="flex:1"></span><span class="hide-m">Magnet on · 40 px/s</span>${S.dev==='phone'?'<span>Timing and scenes: on a computer</span>':''}</div>
+   <div class="tl-scroll"><div class="tl-in">
+    <div class="ruler">${ruler}</div>
+    <div class="trk"><span class="tn">Scenes</span><div class="lane">${scenes}</div></div>
+    <div class="trk"><span class="tn">Hook</span><div class="lane"><div class="clip ${exp?'':'selc'}" style="left:0;width:${2.8*pxs}px">${S.dev==='phone'?'':'Hook'}</div></div></div>
+    <div class="trk"><span class="tn">Captions</span><div class="lane"><div class="clip" style="left:${0.4*pxs}px;width:${25.6*pxs}px">${S.dev==='phone'?'':'Captions · window'}<span class="ticks">${Array.from({length:22},(_,i)=>`<i class="${i===9?'w':''}"></i>`).join('')}</span></div></div></div>
+    <div class="trk"><span class="tn">CTA</span><div class="lane"><div class="clip" style="left:${22*pxs}px;width:${5*pxs-3}px">CTA</div></div></div>
+    <div class="trk"><span class="tn">End card</span><div class="lane"><div class="clip dashc" style="left:${27*pxs}px;width:${2*pxs}px">End</div></div></div>
+    <div class="playhead" style="left:calc(${S.dev==='phone'?70:96}px + ${1.2*pxs}px)"></div>
+   </div></div>
+  </div>
+  <div class="ed-dock"><div class="dk">${['Hook','Captions','CTA','End card'].map(k=>`<button aria-pressed="${S.dock===k.toLowerCase()}" data-dock="${k.toLowerCase()}">${k}</button>`).join('')}</div><span class="tiny" style="color:var(--ink-fg-3)">On the phone: text, style and word fixes. Position, timing and scenes stay on the computer (editor v1, decision 3).</span></div>
+ </div>`;
+};
+
+/* ---- Soon: section ---- */
+R['soon-section']=()=>shell('campaigns',`
+ <div class="headrow"><div class="head"><span class="eyebrow">MOONCLOTH · LAST 30 DAYS</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1 class="h1">Campaigns</h1><span class="soon">${ic('clock',12)}SOON</span></div></div></div>
+ <div class="soon-hero"><div class="txt"><h2>Campaigns reads Mooncloth's Meta results every day.</h2><span class="muted">It shows cost per purchase against the target and ranks hooks, bodies and CTAs by real numbers. It needs the Meta connection, which isn't built yet.</span></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-accent" data-go="soon-pick">Iterate a winner</button><button class="btn btn-out" data-toast="Library: every approved ad, with winners marked">Open the Library</button></div></div>
+ <div class="soon-preview"><div class="soon-strip"><span class="eyebrow">PREVIEW OF WHAT COMES</span><span class="example">EXAMPLE DATA · NOT MOONCLOTH'S</span></div>
+  <div class="soon-body" inert aria-hidden="true" style="display:flex;flex-direction:column;gap:14px">
+   <div class="card"><b>Cost per purchase, each day</b><span class="num" style="font-size:24px;font-weight:600">$26.13 <span class="small" style="color:var(--ok)">7% under the $28 target</span></span>
+    <svg viewBox="0 0 760 180" width="100%" style="display:block"><line x1="30" y1="60" x2="740" y2="60" stroke="#5A6068" stroke-dasharray="5 5"/><line x1="30" y1="160" x2="740" y2="160" stroke="#CFD1CB"/><polyline fill="none" stroke="#15171A" stroke-width="2" points="30,95 80,102 130,86 180,110 230,99 280,118 330,108 380,92 430,128 480,120 530,130 580,104 630,80 680,70 730,74"/></svg></div>
+   <div class="card scrollx"><table class="tbl"><thead><tr><th>Campaign / ad</th><th>Status</th><th style="text-align:right">Spent</th><th style="text-align:right">CPA</th><th>Eddy</th></tr></thead><tbody>
+    <tr><td>MC_TEST · I tried 11 masks</td><td>Live</td><td class="n">$2,410</td><td class="n">$26.80</td><td><span class="tag t-warn">Tiring</span></td></tr>
+    <tr><td>MC_RT · Retargeting</td><td>Live</td><td class="n">$1,120</td><td class="n">$20.87</td><td><span class="tag t-ok">Winner</span></td></tr>
+    <tr><td>MC_ITER_1012 · 5am hook</td><td>Live</td><td class="n">$184</td><td class="n">—</td><td><span class="tag t-info">Reads after $300</span></td></tr></tbody></table></div>
+  </div></div>`);
+
+/* ---- Soon: Home block ---- */
+R['soon-home']=()=>shell('home',`
+ <div class="headrow"><div class="head"><span class="eyebrow">MONDAY, OCT 12</span><h1 class="h1">Mooncloth this week</h1></div></div>
+ <div class="soon-block"><div class="soon-head"><span class="soon">${ic('clock',12)}SOON</span><span class="what"><b>Results from Meta.</b> Spend, purchases, cost per purchase and ROAS show here once Meta is connected.</span><span class="example">EXAMPLE DATA</span></div>
+  <div class="soon-body kpis" inert aria-hidden="true">${[['Spent','$8,912','of $12,000'],['Purchases','341','$21,483 in sales'],['Cost per purchase','$26.13','7% under target'],['Return on ad spend','2.41x','$2.41 per $1']].map(k=>`<div class="kpi"><span class="small muted">${k[0]}</span><span class="v">${k[1]}</span><span class="tiny muted">${k[2]}</span></div>`).join('')}</div></div>
+ <div class="cols"><div class="col-main">
+  <section style="display:flex;flex-direction:column;gap:12px"><h2 class="h2">Make new ads</h2><div class="grid-auto">
+   <button class="opt" style="background:var(--ink);color:var(--ink-fg);border-color:var(--ink)" data-go="soon-pick">${ic('iter',22,'#C8F03C')}<b style="font-size:18px;font-weight:800;font-stretch:125%">Iterate a winner</b><span class="small" style="color:var(--ink-fg-2)">Upload an ad that works. Get fresh versions of it.</span></button>
+   <button class="opt" data-go="face">${ic('bulb',22)}<b style="font-size:18px;font-weight:800;font-stretch:125%">New concepts</b><span class="small muted">From the offer to a finished video.</span></button></div></section>
+  <div class="soon-block"><div class="soon-head"><span class="soon">${ic('clock',12)}SOON</span><span class="what"><b>Eddy's read.</b> Three plain-language notes on what's tiring, what's missing and what works, from Meta results.</span></div>
+   <div class="soon-body" inert aria-hidden="true" style="display:flex;gap:10px;align-items:flex-start"><span class="tag t-warn">TIRING</span><span class="small">Your best ad went from $19.40 to $26.80 per purchase as people saw it 3.4 times.</span><span class="example">EXAMPLE</span></div></div>
+ </div>
+ <aside class="col-side"><section class="card" style="gap:8px"><h2 class="h2">Waiting for you</h2>
+  <button class="opt" style="flex-direction:row;align-items:center;background:var(--accent-soft);border-color:#DCEB9F;padding:10px 12px" data-go="batch"><span class="num" style="font-size:20px;font-weight:600;min-width:30px">7</span><span style="flex:1"><b>Iterations to review</b><span class="tiny muted" style="display:block">From “I tried 11 sleep masks”</span></span>${ic('chev',16)}</button>
+  <button class="opt" style="flex-direction:row;align-items:center;padding:10px 12px" data-go="gen"><span class="num" style="font-size:20px;font-weight:600;min-width:30px">1</span><span style="flex:1"><b>Ad generating</b><span class="tiny muted" style="display:block">The 5am problem · 2 of 5 scenes</span></span><span class="tag t-info"><span class="dot pulse"></span>46%</span></button>
+  <button class="opt" style="flex-direction:row;align-items:center;padding:10px 12px;border-color:var(--bad-edge)" data-go="gen" data-state-after="scene failed"><span class="num" style="font-size:20px;font-weight:600;min-width:30px;color:var(--bad)">1</span><span style="flex:1"><b>Scene failed</b><span class="tiny muted" style="display:block">Night routine · scene 3</span></span>${ic('chev',16)}</button>
+ </section></aside></div>`);
+
+/* ---- Soon: Pick a winner ---- */
+R['soon-pick']=()=>shell('iterate',`${flowbar('iterate','pick')}
+ <div class="head"><h1 class="h1">Which ad is working?</h1><p class="lede">Upload it, paste its Ad Library link or pick it from the Library. HookMill breaks it down before it changes anything.</p></div>
+ <div class="srcs">
+  <div style="display:flex;flex-direction:column;gap:12px">
+   <div class="drop">${ic('up',26)}<b>Drop the video here</b><span class="small muted">MP4 or MOV, up to 500 MB and 3 minutes. Works with ads from other accounts and raw creator files.</span><button class="btn btn-ink btn-sm" data-toast="Opens the file picker (the phone opens the gallery)">Choose a file</button></div>
+   <div class="card"><label class="lab" for="adl">Or paste an Ad Library link</label><div style="display:flex;gap:8px"><input id="adl" class="inp" placeholder="facebook.com/ads/library/?id=…"><button class="btn btn-out">Read</button></div></div>
+   <div class="card"><b>From your Library</b><div style="display:flex;gap:10px;align-items:center"><div style="width:44px">${adf('night','',{})}</div><span style="flex:1;min-width:0"><b class="small">I tried 11 sleep masks</b><span class="tiny muted" style="display:block">Winner · 0:32 · marked Sep 28</span></span><button class="btn btn-sm btn-out" data-toast="Winner picked; Breakdown starts">Use this</button></div></div>
+  </div>
+  <div class="soon-block"><div class="soon-head"><span class="soon">${ic('clock',12)}SOON</span><span class="what"><b>Pick from Meta.</b> Your best ads by cost per purchase in the last 90 days, with spend and hook rate.</span><span class="example">EXAMPLE</span></div>
+   <div class="soon-body" inert aria-hidden="true" style="display:flex;flex-direction:column;gap:8px">${[['I tried 11 sleep masks','$2,410 · $26.80 CPA','Tiring','t-warn','night'],['Flashlight test','$1,380 · $22.10 CPA','Winner','t-ok','ink'],['Partner reads till 1am','$640 · $24.90 CPA','Winner','t-ok','plum']].map(a=>`<div class="opt" style="flex-direction:row;align-items:center;cursor:default;padding:10px"><div style="width:40px">${adf(a[4],'',{})}</div><span style="flex:1;min-width:0"><b class="small">${a[0]}</b><span class="num tiny muted" style="display:block">${a[1]}</span></span><span class="tag ${a[3]}">${a[2]}</span></div>`).join('')}</div></div>
+ </div>
+ ${actionbar('Pick one source to continue.','',`<button class="btn btn-accent" disabled>Break it down${ic('right',16)}</button>`)}`);
+
+/* ---- Soon: Plan ---- */
+R['soon-plan']=()=>{
+ const live=[['faces','New faces',4,'Same script, another person on camera.',['Face 1','Face 2','Face 3','Face 4']],['hooks','New hooks',4,'New spoken and on-screen hook on the original body.',['5am problem','Partner angle']],['layout','New layout',2,'Same footage, new caption layout. No AI generation.',['Caption bar top','Headline + captions']]];
+ const soon=[['New copy','New body copy modeled on the winner.'],['New openers','New first 3 seconds of footage, same words.'],['Shorter cuts','15 and 20 second versions.'],['Feed and square','4:5 and 1:1 versions, captions re-laid out.'],['New CTAs','Test a new offer line at the end.'],['New voice','Same script, another voice. Needs the creator’s written OK.']];
+ let total=0;live.forEach(l=>{if(S.plan[l[0]])total+=l[2]});total+=1;
+ return shell('iterate',`${flowbar('iterate','plan')}
+ <div class="head"><h1 class="h1">What should change?</h1><p class="lede">Turn on the kinds of iterations you want. The body and CTA that work stay as they are. A control version is always included.</p></div>
+ <div class="cols"><div class="col-main">
+  <div class="grid-auto">${live.map(l=>{const on=!!S.plan[l[0]];return `<button class="opt ${on?'on':''}" aria-pressed="${on}" data-plan="${l[0]}"><span class="top"><b style="font-size:16px">${l[1]}</b><span class="chk-box ${on?'on':''}">${on?ic('check',13,'#15171A',3):''}</span></span><span class="small" style="color:var(--fg-2)">${l[3]}</span><span style="display:flex;flex-wrap:wrap;gap:6px">${l[4].map(x=>`<span class="pill">${x}</span>`).join('')}</span><span class="foot"><span class="tiny muted">Pick in the next step</span><span class="num" style="font-weight:600;font-size:15px">${on?'+'+l[2]:'0'}</span></span></button>`}).join('')}</div>
+  <div class="soon-block"><div class="soon-head"><span class="soon">${ic('clock',12)}SOON</span><span class="what"><b>More kinds of iteration.</b> These show what's coming. They aren't counted in the batch or the cost.</span></div>
+   <div class="grid-auto">${soon.map(s=>`<div class="opt soonopt" aria-disabled="true"><span class="top"><b class="soft">${s[0]}</b><span class="soon" style="font-size:9px;padding:1px 6px">SOON</span></span><span class="small soft">${s[1]}</span></div>`).join('')}</div></div>
+ </div>
+ <aside class="col-side"><div class="ink"><span class="eyebrow">THIS BATCH</span><div style="display:flex;align-items:baseline;gap:10px"><span class="big">${total}</span><span style="color:#fff;font-weight:600">iterations</span></div>
+  <ul class="ink-list"><li><span>Ready in</span><span>about ${Math.max(5,Math.round(total*.8))} min</span></li><li><span>Generation cost</span><span class="num">~$${(total*1.05).toFixed(2)}</span></li><li><span>This month</span><span class="num">$212 of $400</span></li><li><span>Kept from original</span><span>Body, voice, CTA</span></li></ul>
+  <button class="btn btn-accent btn-lg" data-go="batch">Generate ${total} iterations${ic('right',16)}</button></div></aside></div>`);
+};
+
+/* ================= render ================= */
+const frame=document.getElementById('frame');
+const selEl=document.getElementById('scr');
+const groups=[...new Set(SCREENS.map(s=>s.g))];
+selEl.innerHTML=groups.map(g=>`<optgroup label="${g}">${SCREENS.filter(s=>s.g===g).map(s=>`<option value="${s.id}">${s.l}</option>`).join('')}</optgroup>`).join('');
+function cur(){const s=byId(S.screen);return S.st[s.id]||s.states[0]}
+function render(){
+ const s=byId(S.screen);selEl.value=s.id;
+ document.getElementById('states').innerHTML=s.states.map(x=>`<button data-st="${x}" aria-pressed="${cur()===x}">${x}</button>`).join('');
+ document.querySelectorAll('#dev button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.dev===S.dev));
+ frame.className='frame'+(S.dev==='phone'?' phone':'');
+ frame.innerHTML=R[s.id](cur());
+}
+let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)}
+function go(id,state){if(!R[id])return;S.screen=id;S.menu=false;if(state)S.st[id]=state;try{history.replaceState(null,'','#'+id)}catch(e){}render();window.scrollTo({top:0})}
+selEl.addEventListener('change',e=>go(e.target.value));
+document.addEventListener('click',e=>{
+ if(e.target.closest('select,input,textarea'))return;
+ const b=e.target.closest('button,a,[data-eng]');if(!b)return;
+ const d=b.dataset;
+ if(d.st){S.st[S.screen]=d.st;render();return}
+ if(d.dev){S.dev=d.dev;render();return}
+ if(b.tagName==='A'&&d.go){e.preventDefault()}
+ if(d.go){go(d.go,d.stateAfter);return}
+ if(d.state){S.st[S.screen]=d.state;render();if(d.state==='done')toast('Downloaded MC_NEW_1012_A_F2_9x16.mp4 · saved to Library');return}
+ if(d.face){S.face=+d.face;render();return}
+ if(d.eng){S.eng=d.eng;if(S.screen==='engine'&&cur()==='over cap'&&d.eng==='lipsync'){S.st.engine='ready'} render();return}
+ if(d.model){e.stopPropagation();S.model=d.model;render();return}
+ if(d.fmt){S.fmt=d.fmt;render();return}
+ if(d.tpl){S.tpl=d.tpl;S.st.edit='changed';render();return}
+ if(d.cap){S.cap=d.cap;S.st.edit='changed';render();return}
+ if(d.pos){S.pos=d.pos;S.st.edit='changed';render();return}
+ if(d.plan){S.plan[d.plan]=!S.plan[d.plan];render();return}
+ if(d.dock){S.dock=d.dock;render();return}
+ if(d.act==='menu'){S.menu=!S.menu;render();return}
+ if(d.act==='endcard'){S.endcard=!S.endcard;S.st.edit='changed';render();return}
+ if(d.act==='lib'){S.lib=!S.lib;render();return}
+ if(d.copy){try{navigator.clipboard.writeText(d.copy).then(()=>toast('Copied'),()=>toast('Select the text to copy it'))}catch(err){toast('Select the text to copy it')}return}
+ if(d.toast){toast(d.toast);return}
+});
+document.addEventListener('keydown',e=>{const el=e.target.closest&&e.target.closest('[data-eng]');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();S.eng=el.dataset.eng;render()}});
+render();
+})();
+</script>

@@ -1,0 +1,50 @@
+{
+  "name": "maquina-anuncios",
+  "private": true,
+  "description": "HookMill: monorepo (web, api, video, testes). Contratos em docs/contratos/.",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "contratos",
+    "web",
+    "api",
+    "video",
+    "testes"
+  ],
+  "scripts": {
+    "infra:up": "node scripts/infra.mjs up",
+    "infra:down": "node scripts/infra.mjs down",
+    "infra:status": "node scripts/infra.mjs status",
+    "infra:reset": "node scripts/infra.mjs reset",
+    "infra:cors": "node scripts/infra.mjs cors",
+    "db:migrate": "node scripts/guard-db.mjs && node scripts/db-backup.mjs && npm run prisma:migrate -w api",
+    "db:seed": "node scripts/guard-db.mjs && npm run seed -w api",
+    "db:diff": "node scripts/db-diff.mjs",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:restore": "node scripts/db-restore.mjs",
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build -w video --if-present && npm run build -w api --if-present && npm run build -w web --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check:remotion": "node scripts/check-remotion.mjs",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run e2e -w testes"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "3.1146.0",
+    "embedded-postgres": "17.10.0-beta.17",
+    "pg": "8.23.1"
+  },
+  "allowScripts": {
+    "@embedded-postgres/darwin-arm64@17.10.0-beta.17": true,
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.2": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.28.1": true,
+    "@swc/core@1.16.13": true,
+    "unrs-resolver@1.12.2": true,
+    "@scarf/scarf": false,
+    "@parcel/watcher": false,
+    "fsevents": false
+  }
+}

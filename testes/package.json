@@ -1,0 +1,33 @@
+{
+  "name": "@maquina/testes",
+  "private": true,
+  "description": "QA da HookMill: harness de contrato da API + e2e Playwright. Banco maquina_test, nunca dev/produção. Dono: maquina-qa.",
+  "type": "module",
+  "scripts": {
+    "fumaca": "E2E_NO_API=1 playwright test --project=fumaca",
+    "contrato": "playwright test --project=contrato --project=isolamento --project=estados",
+    "e2e": "playwright test",
+    "e2e:navegador": "E2E_COM_WEB=1 playwright test --project=fluxo-1440 --project=fluxo-390",
+    "fixtures": "node fixtures/campeoes/gerar.mjs",
+    "feature2": "E2E_F2=1 playwright test --project=feature2",
+    "typecheck": "tsc --noEmit",
+    "relatorio": "playwright show-report",
+    "fixtures:paineis": "node fixtures/campeoes/gerar-paineis.mjs",
+    "keep": "E2E_F2=1 E2E_F2_KEEP=1 playwright test --project=feature2 specs/feature2/keep-edit.spec.ts",
+    "editor": "E2E_API_PORT=3111 playwright test --project=editor",
+    "editor:navegador": "E2E_API_PORT=3111 E2E_COM_WEB=1 playwright test --project=editor-1440 --project=editor-390",
+    "editor:render": "E2E_API_PORT=3111 E2E_COM_WEB=1 E2E_RENDER_REAL=1 playwright test --project=editor-render",
+    "iterate": "E2E_API_PORT=3121 E2E_WEB_PORT=3216 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 playwright test --project=iterate",
+    "iterate:navegador": "E2E_API_PORT=3121 E2E_WEB_PORT=3216 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 E2E_COM_WEB=1 playwright test --project=iterate-1440 --project=iterate-390",
+    "iterate:tempo": "E2E_API_PORT=3122 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 E2E_RENDER_REAL=1 playwright test --project=iterate-render",
+    "api:build": "node harness/api-qa.mjs --so-build"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.19.1",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "prisma": "^6.19.3",
+    "typescript": "^5.9.3"
+  }
+}

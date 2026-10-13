@@ -1,0 +1,1127 @@
+<title>HookMill Variar Campeão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same shell as wizard v1 (Vercel dashboard). Header + tabs; flow = left step rail + work area + sticky action bar. Single dark theme by decision (briefing). */
+:root{
+  --bg:#0a0a0a; --surface:#111111; --surface-2:#171717; --hover:#1f1f1f;
+  --line:#262626; --line-2:#3a3a3a;
+  --fg:#ededed; --fg-2:#a1a1a1; --fg-3:#878787;
+  --btn:#ededed; --btn-fg:#0a0a0a;
+  --blue:#52a8ff; --blue-bg:rgba(82,168,255,.12);
+  --green:#62c073; --green-bg:rgba(98,192,115,.12);
+  --amber:#f2a33a; --amber-bg:rgba(242,163,58,.12);
+  --red:#ff6166; --red-bg:rgba(255,97,102,.12);
+  --stage:#000000;
+  --font:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r-sm:6px; --r:8px; --r-lg:12px;
+  --gut:clamp(16px,3vw,24px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg);margin:0;overflow-x:clip}
+.page,.wz-body,.sec,.panel,.field,.prog,.stack,.vts,.hooks,.vrows,.final,.changes{grid-template-columns:minmax(0,1fr)}
+body{font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ic{width:16px;height:16px;flex:none}
+.mono{font-family:var(--mono)}
+.muted{color:var(--fg-2)}
+.faint{color:var(--fg-3)}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+h1{font-size:24px;letter-spacing:-.02em}
+h2{font-size:16px}
+h3{font-size:14px}
+p{margin:0}
+
+/* prototype bar (not product chrome) */
+.proto{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;white-space:nowrap;padding:6px var(--gut);border-bottom:1px dashed var(--line-2);background:var(--bg);font-size:12px;color:var(--fg-3)}
+.proto::-webkit-scrollbar{display:none}
+.proto-tag{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;font-size:11px;border:1px dashed var(--line-2);padding:1px 6px;border-radius:4px}
+.proto .seg{flex:none;overflow:visible;max-width:none}
+.proto .seg button{font-size:12px;padding:2px 8px}
+.proto-spacer{flex:1}
+
+/* header */
+.hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.hdr-top{display:flex;align-items:center;gap:10px;padding:12px var(--gut) 4px}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--fg);display:grid;place-items:center;flex:none;border:0;padding:0}
+.logo span{width:10px;height:10px;border:2px solid var(--bg);border-radius:2px}
+.crumb{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500}
+.crumb .sep{color:var(--line-2);font-size:20px;font-weight:300}
+.crumb .ws{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.crumb .cur{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ws-av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#3a3a3a,#1a1a1a);border:1px solid var(--line-2)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.me{width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--fg-2)}
+.tabs{display:flex;gap:4px;padding:0 calc(var(--gut) - 8px);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:none;border:0;padding:10px 8px 11px;color:var(--fg-2);position:relative;white-space:nowrap;font-size:14px;border-radius:6px}
+.tab:hover{color:var(--fg)}
+.tab[aria-current="page"]{color:var(--fg)}
+.tab[aria-current="page"]::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--fg)}
+
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);color:var(--fg);font-weight:500;font-size:14px;white-space:nowrap;transition:background .15s,border-color .15s;min-width:0}
+.btn:hover{background:var(--hover);border-color:var(--line-2)}
+.btn.primary{background:var(--btn);color:var(--btn-fg);border-color:var(--btn)}
+.btn.primary:hover{background:#ffffff}
+.btn.ghost{background:none;border-color:transparent;color:var(--fg-2)}
+.btn.ghost:hover{color:var(--fg);background:var(--hover)}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn.lg{height:40px;padding:0 16px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.seg{max-width:100%;overflow-x:auto;scrollbar-width:none;display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);padding:2px;background:var(--surface);gap:2px;min-width:0}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:none;color:var(--fg-2);padding:4px 10px;border-radius:4px;font-size:13px;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--hover);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line-2)}
+.input,.textarea,.select{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;color:var(--fg);font-size:14px}
+.input:focus,.textarea:focus,.select:focus{outline:none;border-color:var(--fg-3);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+.textarea{resize:vertical;min-height:64px;line-height:1.5}
+.field{display:grid;gap:6px;min-width:0}
+.field>label,.field>.lbl{font-size:13px;color:var(--fg-2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.linkrow{display:flex;gap:8px}
+.linkrow .input{flex:1;min-width:0}
+
+/* status */
+.st{display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;min-width:0}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--fg-3)}
+.st-progress .dot{background:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);animation:pulse 1.6s ease-in-out infinite}
+.st-waiting .dot{background:var(--amber)}
+.st-failed .dot{background:var(--red)}
+.st-approved .dot{background:var(--green)}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(82,168,255,0)}}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--fg-2);white-space:nowrap}
+.tag .ic{width:12px;height:12px}
+.tag.ai{border-style:dashed}
+.tag.amber{color:var(--amber);border-color:transparent;background:var(--amber-bg)}
+.tag.solid{background:var(--surface-2)}
+.step-lbl{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3)}
+.row-sub{font-size:13px;color:var(--fg-2)}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+/* pages */
+.page{padding:28px var(--gut) 64px;max-width:1200px;margin:0 auto;display:grid;gap:28px}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-head>div:first-child{min-width:0}
+.page-head .sub{color:var(--fg-2);margin-top:4px;max-width:65ch}
+.page-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sec{display:grid;gap:12px}
+.sec-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.count{font-family:var(--mono);font-size:12px;color:var(--fg-3);margin-left:6px;font-weight:400}
+.panel{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:16px;display:grid;gap:14px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.stack{display:grid;gap:16px;min-width:0}
+
+/* banners */
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);flex-wrap:wrap}
+.banner.err{border-color:rgba(255,97,102,.35);background:var(--red-bg)}
+.banner.err>.ic{color:var(--red)}
+.banner.warn{border-color:rgba(242,163,58,.35);background:var(--amber-bg)}
+.banner.warn>.ic{color:var(--amber)}
+.banner.info>.ic{color:var(--blue)}
+.banner .b-body{flex:1;min-width:200px;display:grid;gap:2px}
+.banner .b-act{display:flex;gap:8px;flex-wrap:wrap}
+.memo{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--fg-2)}
+.memo .ic{margin-top:2px}
+.memo b{color:var(--fg);font-weight:500}
+
+/* checklist + progress */
+.checklist{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.checklist li{display:flex;gap:8px;align-items:center;color:var(--fg-2);min-width:0}
+.checklist li.done{color:var(--fg)}
+.checklist li.done .ic{color:var(--green)}
+.checklist li.now{color:var(--fg)}
+.checklist li .faint{margin-left:auto;font-family:var(--mono);font-size:12px;white-space:nowrap}
+.checklist .sp{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--blue);border-top-color:transparent;animation:spin 1s linear infinite;flex:none;margin:1px}
+.checklist .q{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line-2);flex:none;margin:1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog{display:grid;gap:8px}
+.prog-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.prog-bar b{display:block;height:100%;background:var(--blue);transition:width .6s ease}
+.prog-bar.ok b{background:var(--green)}
+.sk{display:block;background:linear-gradient(90deg,var(--surface-2) 0%,var(--hover) 50%,var(--surface-2) 100%);background-size:200% 100%;animation:sk 1.4s linear infinite;border-radius:4px}
+@keyframes sk{to{background-position:-200% 0}}
+.think{display:flex;gap:20px;align-items:center;padding:20px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);flex-wrap:wrap}
+.think>div{flex:1;min-width:200px}
+.orb{width:56px;height:56px;position:relative;flex:none;filter:blur(.5px)}
+.orb i{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;animation:orb 3.2s ease-in-out infinite}
+.orb i:nth-child(1){background:radial-gradient(circle at 35% 35%,#ffffff 0,#8a8a8a 30%,transparent 62%)}
+.orb i:nth-child(2){background:radial-gradient(circle at 65% 45%,var(--blue) 0,rgba(82,168,255,.3) 30%,transparent 60%);animation-delay:-1s;animation-duration:2.6s}
+.orb i:nth-child(3){background:radial-gradient(circle at 45% 70%,#cfcfcf 0,#444 30%,transparent 60%);animation-delay:-2s;animation-duration:3.8s}
+@keyframes orb{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.86)}}
+@property --a{syntax:"<angle>";initial-value:0deg;inherits:false}
+.beam{position:relative}
+.beam::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:conic-gradient(from var(--a),transparent 0 72%,var(--blue) 88%,#ffffff 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:beam 2.4s linear infinite;pointer-events:none}
+@keyframes beam{to{--a:360deg}}
+
+/* wizard shell (same as v1) */
+.wz{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - 110px)}
+.rail{border-right:1px solid var(--line);padding:20px 16px;display:grid;gap:18px;align-content:start;position:sticky;top:96px;align-self:start}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.steps li button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border-radius:var(--r-sm);border:0;background:none;color:var(--fg-2);text-align:left;font-size:14px}
+.steps li button:hover{background:var(--hover);color:var(--fg)}
+.steps li button[aria-current="step"]{background:var(--surface-2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+.steps li button .skip{margin-left:auto;font-size:12px;color:var(--fg-3)}
+.sicon{width:18px;height:18px;border-radius:50%;border:1px solid var(--line-2);display:grid;place-items:center;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-3)}
+.sicon.done{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.sicon.done .ic{width:12px;height:12px}
+.sicon.cur{border-color:var(--fg);color:var(--fg)}
+.sicon.run{border-color:var(--blue);border-top-color:transparent;animation:spin 1s linear infinite}
+.sicon.fail{border-color:var(--red);color:var(--red)}
+.sicon.skip{border-style:dashed}
+.rail-meta{display:grid;gap:6px;font-size:13px;color:var(--fg-2);border-top:1px solid var(--line);padding-top:14px}
+.rail-meta div{display:flex;justify-content:space-between;gap:8px}
+.rail-meta div span:last-child{text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wz-main{display:flex;flex-direction:column;min-width:0}
+.wz-body{padding:24px var(--gut) 32px;display:grid;gap:20px;align-content:start;flex:1;max-width:1180px;width:100%}
+.wz-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.wz-head>div{min-width:0}
+.wz-head .sub{color:var(--fg-2);margin-top:4px;max-width:68ch}
+.actionbar{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--line);padding:12px var(--gut);padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:12px}
+.actionbar .hint{color:var(--fg-3);font-size:13px;margin-right:auto;min-width:0}
+.mstep{display:none}
+
+/* source step */
+.opt-list{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);text-align:left;width:100%;min-width:0}
+.opt:hover{border-color:var(--line-2)}
+.opt[aria-checked="true"]{border-color:var(--fg)}
+.radio{width:16px;height:16px;border-radius:50%;border:1px solid var(--line-2);flex:none;margin-top:2px;display:grid;place-items:center}
+[aria-checked="true"]>.radio{border-color:var(--fg)}
+[aria-checked="true"]>.radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--fg)}
+.opt-body{flex:1;min-width:0;display:grid;gap:2px}
+.own{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.drop{border:1px dashed var(--line-2);border-radius:var(--r-lg);padding:28px 16px;display:grid;justify-items:center;gap:8px;text-align:center;background:var(--surface)}
+.drop.hot{border-color:var(--fg);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+.drop .big{width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);display:grid;place-items:center;color:var(--fg-2)}
+.or{display:flex;align-items:center;gap:10px;color:var(--fg-3);font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.file{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
+.file .thumb{width:48px}
+.src-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+
+/* thumbs + player */
+.thumb{aspect-ratio:9/16;border-radius:6px;overflow:hidden;border:1px solid var(--line);max-width:100%;position:relative;background:var(--stage)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb .play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;opacity:.85}
+.stage{background:var(--stage);border:1px solid var(--line);border-radius:var(--r-lg);display:grid;place-items:center;padding:16px;min-width:0}
+.player{position:relative;width:min(100%,calc(min(64vh,600px) * 9 / 16));aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:#0d0d0d}
+.player.lg{width:min(100%,calc(min(72vh,720px) * 9 / 16))}
+.player svg.frame{position:absolute;inset:0;width:100%;height:100%}
+.ov-head{position:absolute;left:7%;right:7%;top:8%;text-align:center;font-weight:700;font-size:clamp(13px,2vw,18px);line-height:1.15;color:#fff}
+.ov-head span{background:#fff;color:#000;padding:2px 6px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.cap{position:absolute;left:6%;right:6%;bottom:24%;text-align:center;font-weight:700;color:#fff;font-size:clamp(15px,2.2vw,22px);line-height:1.15;text-shadow:0 2px 10px rgba(0,0,0,.8);text-transform:uppercase;letter-spacing:-.01em}
+.ov-split{position:absolute;left:0;right:0;bottom:0;height:42%;background:#141414;border-top:2px solid #000;display:grid;place-items:center}
+.ov-split i{width:56%;height:78%;border-radius:8px;background:#e9e9e9;opacity:.9;display:grid;gap:6%;padding:8%;align-content:start}
+.ov-split i b{display:block;height:9%;background:#bdbdbd;border-radius:2px}
+.pctrl{position:absolute;left:0;right:0;bottom:0;padding:24px 12px 10px;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;align-items:center;gap:10px;color:#fff}
+.pctrl button{background:none;border:0;color:#fff;padding:4px;display:grid;place-items:center}
+.scrub{flex:1;height:3px;background:rgba(255,255,255,.25);border-radius:2px;position:relative}
+.scrub b{position:absolute;left:0;top:0;bottom:0;background:#fff;border-radius:2px}
+.ptime{font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums}
+.an-ov{position:absolute;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:end start;padding:12px}
+.an-ov span{font-family:var(--mono);font-size:11px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);padding:2px 6px;border-radius:4px;color:#fff}
+
+/* teardown */
+.td-grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
+.td-left{position:sticky;top:110px;display:grid;gap:12px;min-width:0}
+.td-left .stage{padding:12px}
+.tl-wrap{display:grid;gap:6px;min-width:0}
+.tl{position:relative;display:flex;gap:2px;min-width:0}
+.tl-b{min-width:0;height:44px;border:1px solid var(--line);border-radius:4px;background:var(--surface-2);display:grid;align-content:center;justify-items:start;padding:0 6px;gap:0;text-align:left;overflow:hidden}
+.tl-b:hover{border-color:var(--line-2)}
+.tl-b.on{border-color:var(--fg);background:var(--hover)}
+.tl-b .step-lbl{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:var(--fg-2)}
+.tl-b.on .step-lbl{color:var(--fg)}
+.tl-b .tl-t{font-size:11px;color:var(--fg-3)}
+.tl-ph{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);border-radius:1px;pointer-events:none;transition:left .1s linear}
+.tl-cuts{position:relative;height:8px}
+.tl-cuts i{position:absolute;top:0;width:1px;height:8px;background:var(--fg-3)}
+.tl-legend{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--fg-3);font-family:var(--mono);flex-wrap:wrap}
+.blk{display:grid;gap:8px;font-size:13px}
+.blk dl{margin:0;display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px}
+.blk dt{color:var(--fg-3);font-size:12px}
+.blk dd{margin:0;min-width:0}
+.facts{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:13px;color:var(--fg-2)}
+.verdict{border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface);padding:16px;display:grid;gap:12px}
+.verdict ol{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:v}
+.verdict li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;counter-increment:v}
+.verdict li::before{content:counter(v);font-family:var(--mono);font-size:12px;color:var(--fg-3);border:1px solid var(--line-2);border-radius:4px;height:20px;display:grid;place-items:center}
+.verdict li b{font-weight:600}
+.secs{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.sect{border-top:1px solid var(--line)}
+.sect:first-child{border-top:0}
+.sect-h{display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr) auto 16px;gap:12px;align-items:center;width:100%;padding:11px 14px;background:none;border:0;text-align:left;color:inherit}
+.sect-h:hover{background:var(--hover)}
+.sect-h b{font-weight:500}
+.sect-h .ic.chev{color:var(--fg-3);transition:transform .15s}
+.sect-h[aria-expanded="true"] .ic.chev{transform:rotate(90deg)}
+.sect-b{padding:4px 14px 14px;display:grid;gap:10px;font-size:13px;color:var(--fg);min-width:0}
+.sect-b p{max-width:72ch}
+.sect-actions{display:flex;gap:8px;flex-wrap:wrap}
+.layers{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 12px;font-size:13px}
+.layers dt{color:var(--fg-3);font-size:12px}
+.layers dd{margin:0;min-width:0}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.sw{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--fg-2)}
+.sw i{width:18px;height:18px;border-radius:4px;border:1px solid var(--line-2)}
+.tr{display:grid;grid-template-columns:86px minmax(0,1fr);gap:4px 10px;font-size:13px}
+.tr span:nth-child(odd){font-family:var(--mono);font-size:12px;color:var(--fg-3)}
+.kv{display:flex;gap:6px 16px;flex-wrap:wrap}
+
+/* variation types */
+.eng-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.vts{display:grid;gap:10px}
+.vt{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px 16px;display:grid;gap:12px;min-width:0}
+.vt.on{border-color:var(--fg)}
+.vt.soon{background:var(--bg);border-style:dashed}
+.vt.soon .vt-title b,.vt.soon .vt-title>.row-sub{color:var(--fg-2)}
+.vt-top{display:flex;gap:12px;align-items:flex-start}
+.cbx{width:18px;height:18px;border-radius:4px;border:1px solid var(--line-2);background:var(--surface-2);flex:none;display:grid;place-items:center;padding:0;margin-top:1px;color:var(--bg)}
+.cbx[aria-checked="true"]{background:var(--fg);border-color:var(--fg)}
+.cbx .ic{width:12px;height:12px}
+.cbx[disabled]{opacity:.5;cursor:not-allowed}
+.vt-title{flex:1;min-width:0;display:grid;gap:2px}
+.vt-title b{font-weight:600}
+.vt-title .row-sub{max-width:62ch}
+.keep{display:flex;gap:6px;flex-wrap:wrap}
+.keep .tag.new{color:var(--fg);border-color:var(--line-2)}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);flex:none}
+.stepper button{width:28px;height:28px;border:0;background:none;color:var(--fg-2);display:grid;place-items:center}
+.stepper button:hover{color:var(--fg)}
+.stepper button[disabled]{opacity:.35;cursor:not-allowed}
+.stepper output{min-width:24px;text-align:center;font-family:var(--mono);font-size:13px}
+.vt-cfg{display:grid;gap:8px;padding-left:30px;min-width:0}
+.mfaces{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:440px}
+.mface{position:relative;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;padding:0;background:var(--surface);aspect-ratio:4/5;max-width:100%}
+.mface svg{width:100%;height:100%;display:block}
+.mface[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.mface .pick{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--fg);color:var(--bg);display:none;place-items:center}
+.mface .pick .ic{width:12px;height:12px}
+.mface[aria-pressed="true"] .pick{display:grid}
+.mface.orig{opacity:.5;cursor:not-allowed}
+.mface.orig::after{content:attr(data-l);position:absolute;left:0;right:0;bottom:0;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.7);color:#fff;text-align:center;padding:2px 0}
+.lays{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.lay{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);padding:6px;display:grid;gap:6px;text-align:left;font-size:12px;color:var(--fg-2);min-width:0;position:relative}
+.lay[aria-pressed="true"]{border-color:var(--fg);color:var(--fg)}
+.lay.cur{opacity:.5;cursor:not-allowed}
+.lay .lf{aspect-ratio:9/16;max-width:100%;border-radius:4px;background:#2a2622;position:relative;overflow:hidden}
+.lay .lf i{position:absolute;display:block}
+.lay .lf .hd{background:#5d544b}
+.lay .lf .cp{left:18%;right:18%;height:4%;background:#e9e9e9;border-radius:2px}
+.lay .lf .bd{left:0;right:0;background:#ededed}
+.lay .lf .sc{background:#8d8d8d}
+.lay .lf .br{background:#3d4a44}
+.lay .lf .cd{background:#ededed;border-radius:3px}
+.sum{list-style:none;margin:0;padding:0;display:grid;font-size:13px}
+.sum li{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line)}
+.sum li:first-child{border-top:0}
+.sum li span:first-child{color:var(--fg-2)}
+.sum li.total{font-weight:600;font-size:14px}
+.sum li.total span:first-child{color:var(--fg)}
+.sum li.off span{color:var(--fg-3);text-decoration:line-through}
+
+/* hooks */
+.hooks{display:grid;gap:10px}
+.hk{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:grid;min-width:0}
+.hk.orig{background:var(--bg);border-style:dashed}
+.hk-top{display:flex;align-items:center;gap:8px;padding:12px 14px 0;flex-wrap:wrap}
+.hk-top .sp-r{margin-left:auto}
+.hk-main{margin:10px 14px 0;padding:12px;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--line)}
+.hk-main p{font-size:17px;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+.hk.orig .hk-main p{color:var(--fg-2);font-weight:500}
+.hk-main .step-lbl{display:block;margin-bottom:4px}
+.hk dl{margin:0;padding:10px 14px 4px;display:grid;grid-template-columns:120px minmax(0,1fr);gap:0 12px;font-size:13px}
+.hk dt,.hk dd{padding:7px 0;border-top:1px solid var(--line)}
+.hk dt{color:var(--fg-3);font-size:12px}
+.hk dd{margin:0;min-width:0}
+.hk dt:first-of-type,.hk dd:first-of-type{border-top:0}
+.hk-foot{display:flex;gap:8px;padding:8px 14px 14px;align-items:center;flex-wrap:wrap}
+.hk-foot .sp-r{margin-left:auto}
+.stream::after{content:"";display:inline-block;width:7px;height:14px;background:var(--fg);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* estimate */
+.tbl{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.tr-row{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(0,.6fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--line);align-items:center;font-size:13px}
+.tr-row:first-child{border-top:0}
+.tr-row.th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3);padding-block:9px;background:var(--bg)}
+.tr-row.tot{font-weight:600;font-size:14px;background:var(--surface-2)}
+.tr-row .r{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tr-row .note{grid-column:1/-1;color:var(--fg-2);font-size:12px;margin-top:-4px}
+.tr-row .cell-name{display:grid;gap:2px;min-width:0}
+.cap-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;display:flex}
+.cap-bar b{display:block;height:100%;background:var(--fg-3)}
+.cap-bar b.add{background:var(--fg)}
+.cap-bar b.over{background:var(--red)}
+
+/* batch */
+.vgroup{display:grid;gap:8px}
+.vrows{display:grid;gap:8px}
+.vrow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:14px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);align-items:center;position:relative}
+.vrow.fail{border-color:rgba(255,97,102,.35)}
+.vrow .thumb,.vrow .gen-thumb{width:48px}
+.vrow-body{display:grid;gap:4px;min-width:0}
+.vrow-side{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.gen-thumb{aspect-ratio:9/16;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;max-width:100%;overflow:hidden;position:relative}
+.gen-thumb canvas{width:100%;height:100%;display:block}
+.gen-thumb .pct{position:absolute;font-family:var(--mono);font-size:10px;color:var(--fg);background:rgba(0,0,0,.6);padding:1px 4px;border-radius:4px}
+
+/* home + library */
+.wait-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.wcard{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);text-align:left;align-items:stretch;min-width:0}
+.wcard:hover{border-color:var(--line-2)}
+.wcard .thumb{width:54px;flex:none}
+.wcard-body{display:grid;gap:4px;min-width:0;align-content:start;flex:1}
+.list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.row{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1fr) 20px;gap:16px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;color:inherit}
+.row:first-child{border-top:0}
+.row:hover{background:var(--hover)}
+.row-col{display:grid;gap:2px;min-width:0}
+.row .chev{color:var(--fg-3)}
+.vline{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--fg-2);min-width:0}
+.vline .ic{width:12px;height:12px;flex:none;color:var(--fg-3)}
+.vline span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.lcard{display:grid;gap:8px;min-width:0;align-content:start}
+.lcard .thumb{border-radius:var(--r)}
+.lcard.new .thumb{box-shadow:0 0 0 2px var(--green)}
+.lcard-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.lcard-acts{display:flex;gap:6px;flex:none}
+.star{background:none;border:1px solid var(--line);border-radius:var(--r-sm);padding:5px;color:var(--fg-3);display:grid;place-items:center;flex:none}
+.star[aria-pressed="true"]{color:var(--amber);border-color:transparent;background:var(--amber-bg)}
+.star[aria-pressed="true"] .ic{fill:currentColor}
+.win{position:absolute;top:8px;left:8px;font-size:11px;font-weight:600;background:var(--amber);color:#000;border-radius:4px;padding:1px 6px}
+.win.new{background:var(--green);left:auto;right:8px}
+.win.var{background:rgba(0,0,0,.72);color:#fff;border:1px solid rgba(255,255,255,.2);top:auto;bottom:8px;font-weight:500}
+
+/* review */
+.final{display:grid;gap:16px}
+.final-meta{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.final-actions{display:flex;gap:8px}
+.chg{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);text-align:left;cursor:pointer;min-width:0}
+.chg[aria-checked="true"]{border-color:var(--fg)}
+.chg-top{display:flex;gap:10px;align-items:flex-start}
+.changes{display:grid;gap:10px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:var(--r);font-weight:500;font-size:13px;z-index:50;display:flex;gap:8px;align-items:center;width:max-content;max-width:calc(100% - 32px)}
+
+@media (max-width:1080px){
+  .td-grid{grid-template-columns:minmax(0,320px) minmax(0,1fr)}
+  .sect-h{grid-template-columns:minmax(0,150px) minmax(0,1fr) auto 16px}
+}
+@media (max-width:900px){
+  .wait-grid{grid-template-columns:minmax(0,1fr)}
+  .eng-grid,.src-grid,.td-grid{grid-template-columns:minmax(0,1fr)}
+  .td-left{position:static}
+  .lays{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  h1{font-size:20px}
+  .page{padding-top:20px;gap:22px}
+  .hdr-top{padding-top:10px;gap:8px}
+  .crumb .ws-name,.crumb .flow{display:none}
+  .hdr-right .seg button{padding:3px 7px}
+  .page-actions{flex-basis:100%}
+  .page-actions .btn{flex:1 1 0}
+  .wz{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .mstep{display:grid;gap:8px;position:sticky;top:94px;z-index:9;background:var(--bg);border-bottom:1px solid var(--line);padding:10px var(--gut)}
+  .mstep-btn{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;text-align:left;width:100%}
+  .mstep-btn>.ic{margin-left:auto;color:var(--fg-3)}
+  .segs{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+  .segs i{height:3px;border-radius:2px;background:var(--line)}
+  .segs i.done{background:var(--fg)}
+  .segs i.cur{background:var(--fg-2)}
+  .segs i.run{background:var(--blue)}
+  .segs i.skip{background:repeating-linear-gradient(90deg,var(--line) 0 3px,transparent 3px 6px)}
+  .mstep-list{list-style:none;margin:0;padding:4px 0 0;display:grid;gap:2px}
+  .mstep-list button{display:flex;gap:10px;align-items:center;width:100%;padding:9px 6px;background:none;border:0;border-radius:6px;color:var(--fg-2);text-align:left}
+  .mstep-list button[aria-current="step"]{color:var(--fg);background:var(--surface-2)}
+  .mstep-list button .skip{margin-left:auto;font-size:12px;color:var(--fg-3)}
+  .wz-body{padding-top:18px}
+  .actionbar{position:fixed;left:0;right:0;bottom:0;gap:8px}
+  .actionbar .hint{display:none}
+  .actionbar .btn{flex:1 1 0;overflow:hidden;text-overflow:ellipsis}
+  .actionbar .btn.back{flex:0 0 auto}
+  .wz-main{padding-bottom:72px}
+  .own{grid-template-columns:minmax(0,1fr)}
+  .stage{padding:0;border:0;background:none}
+  .td-left .stage{padding:0}
+  .player,.player.lg{width:min(100%,calc(58vh * 9 / 16))}
+  .sect-h{grid-template-columns:minmax(0,1fr) auto 16px;gap:4px 10px}
+  .sect-h .sum-t{grid-column:1/-1;grid-row:2}
+  .layers,.hk dl{grid-template-columns:minmax(0,1fr)}
+  .hk dd{border-top:0;padding-top:0}
+  .layers dd{margin-bottom:6px}
+  .blk dl{grid-template-columns:76px minmax(0,1fr)}
+  .vt-cfg{padding-left:0}
+  .mfaces{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .tr-row{grid-template-columns:minmax(0,1fr) auto;gap:2px 12px}
+  .tr-row.th{display:none}
+  .tr-row .c-qty,.tr-row .c-each{display:none}
+  .tr-row .c-time{grid-column:1;grid-row:2;text-align:left;color:var(--fg-3);font-size:12px}
+  .tr-row .c-sub{grid-column:2;grid-row:1}
+  .tr-row .note{grid-row:3}
+  .vrow{grid-template-columns:44px minmax(0,1fr)}
+  .vrow .thumb,.vrow .gen-thumb{width:44px}
+  .vrow-side{grid-column:1/-1;justify-content:space-between}
+  .row{grid-template-columns:minmax(0,1fr) 16px;gap:4px 12px;padding:12px 14px}
+  .row .row-col{grid-column:1}
+  .row .chev{grid-column:2;grid-row:1/span 3;align-self:center}
+  .lib-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .lcard-row{flex-direction:column}
+  .final-meta>div{width:100%}
+  .final-actions .btn{flex:1 1 0}
+  .proto .proto-hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0s!important;animation-iteration-count:1!important;transition:none!important}
+}
+</style>
+
+<div id="proto" class="proto"></div>
+<header class="hdr" id="hdr"></header>
+<main id="main"></main>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- state (mockup opens in PT, like v1; product default stays EN) ---------- */
+var S={screen:'v-source',lang:'pt',st:{},owner:'mine',offer:'orbit',
+ on:{avatar:true,hooks:true,copy:false,layout:true},qty:{hooks:3,copy:2},
+ faces:[1,2],lays:['band','split'],openSec:{},editSec:null,edited:{},block:0,t:0,playing:false,
+ stepsOpen:false,hookEdit:null,hookGone:{},review:'h1',cmp:'var',chg:'regen',libNew:false,libFilter:'all',
+ upPct:64,anPct:58,fromLib:false};
+function t(en,pt){return S.lang==='pt'?pt:en;}
+
+/* ---------- icons ---------- */
+var I={
+ plus:'<path d="M8 3v10M3 8h10"/>',minus:'<path d="M3 8h10"/>',
+ check:'<path d="M3.5 8.5l3 3 6-7"/>',x:'<path d="M4 4l8 8M12 4l-8 8"/>',
+ chev:'<path d="M6 4l4 4-4 4"/>',chevd:'<path d="M4 6l4 4 4-4"/>',left:'<path d="M10 4L6 8l4 4"/>',
+ refresh:'<path d="M13 8a5 5 0 1 1-1.5-3.6"/><path d="M13 3v3h-3"/>',
+ pencil:'<path d="M10.5 3.5l2 2L6 12H4v-2z"/>',
+ play:'<path d="M5 3.5v9l7.5-4.5z" fill="currentColor" stroke="none"/>',pause:'<path d="M5.5 3.5v9M10.5 3.5v9"/>',
+ star:'<path d="M8 2.5l1.7 3.5 3.8.5-2.8 2.6.7 3.8L8 11.1 4.6 12.9l.7-3.8L2.5 6.5l3.8-.5z"/>',
+ link:'<path d="M7 9a2.5 2.5 0 0 0 3.5 0l2-2A2.5 2.5 0 0 0 9 3.5l-.7.7"/><path d="M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l.7-.7"/>',
+ alert:'<path d="M8 2.5l6 10.5H2z"/><path d="M8 6.5v3"/><path d="M8 11.3v.1"/>',
+ info:'<circle cx="8" cy="8" r="5.5"/><path d="M8 7.5v3.5"/><path d="M8 5.2v.1"/>',
+ vol:'<path d="M3 6.5h2l3-2.5v8l-3-2.5H3z"/><path d="M10.5 6a3 3 0 0 1 0 4"/>',
+ arrowr:'<path d="M3 8h10M9 4l4 4-4 4"/>',
+ upload:'<path d="M8 11V3M4.5 6.5L8 3l3.5 3.5"/><path d="M3 13h10"/>',
+ lock:'<rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
+ branch:'<circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><path d="M4.5 5v6M11.5 7c0 3-7 2-7 4"/>',
+ trash:'<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/>',
+ clock:'<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/>',
+ film:'<rect x="2.5" y="3" width="11" height="10" rx="1"/><path d="M5 3v10M11 3v10M2.5 6h2.5M2.5 10h2.5M11 6h2.5M11 10h2.5"/>'
+};
+function ic(n,c){return '<svg class="ic '+(c||'')+'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+I[n]+'</svg>';}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function money(v){return S.lang==='pt'?'US$ '+v.toFixed(2).replace('.',','):'$'+v.toFixed(2);}
+function fmt(x){x=Math.floor(x);return '0:'+(x<10?'0':'')+x;}
+
+/* ---------- art (same stand-in as v1) ---------- */
+var TONES=[['#3b3631','#16130f','#c9b79a'],['#2f3438','#121517','#a9b8c4'],['#38322e','#171412','#d2b49b'],['#2c312d','#121412','#b5c2ad']];
+var FACES=[{skin:'#c99f84',hair:'#2a1f18',top:'#4a4f57',style:0},{skin:'#a87a5e',hair:'#16110e',top:'#6b5b4b',style:1},{skin:'#e0bea4',hair:'#7a5a3a',top:'#3d4a44',style:2},{skin:'#7d5640',hair:'#0f0c0a',top:'#5a4f5f',style:3},{skin:'#b98b6c',hair:'#3a2a1e',top:'#4f4a3f',style:2}];
+function art(tone,face,crop){
+ var tn=TONES[tone%4],f=FACES[face%5],id='g'+tone+face+(crop||'');
+ var hair=[
+  '<path d="M29 74c0-14 8-24 16-24s16 10 16 24c-2-8-6-13-16-13s-14 5-16 13z" fill="'+f.hair+'"/><path d="M29 74c-2 14 0 30 4 36l2-30z M61 74c2 14 0 30-4 36l-2-30z" fill="'+f.hair+'"/>',
+  '<path d="M30 72c0-13 7-21 15-21s15 8 15 21c-3-6-7-9-15-9s-12 3-15 9z" fill="'+f.hair+'"/>',
+  '<path d="M29 76c-1-16 7-26 16-26s17 10 16 26c-2-9-8-13-16-13s-14 4-16 13z" fill="'+f.hair+'"/><path d="M29 76c-3 10-2 22 2 28l3-24z M61 76c3 10 2 22-2 28l-3-24z" fill="'+f.hair+'"/>',
+  '<path d="M31 70c1-12 7-18 14-18s13 6 14 18c-4-4-8-6-14-6s-10 2-14 6z" fill="'+f.hair+'"/>'
+ ][f.style];
+ var vb=crop==='f'?'22 40 46 58':'0 0 90 160';
+ return '<svg class="frame" viewBox="'+vb+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+
+ '<defs><linearGradient id="'+id+'" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="'+tn[0]+'"/><stop offset="1" stop-color="'+tn[1]+'"/></linearGradient>'+
+ '<radialGradient id="'+id+'w" cx=".8" cy=".25" r=".6"><stop offset="0" stop-color="'+tn[2]+'" stop-opacity=".45"/><stop offset="1" stop-color="'+tn[2]+'" stop-opacity="0"/></radialGradient></defs>'+
+ '<rect width="90" height="160" fill="url(#'+id+')"/><rect width="90" height="160" fill="url(#'+id+'w)"/>'+
+ '<rect x="58" y="18" width="26" height="40" rx="1" fill="'+tn[2]+'" opacity=".16"/>'+
+ '<rect x="0" y="118" width="90" height="42" fill="#000" opacity=".25"/>'+
+ '<path d="M14 160c0-28 12-44 31-46 19 2 31 18 31 46z" fill="'+f.top+'"/>'+
+ '<rect x="40" y="98" width="10" height="14" fill="'+f.skin+'" opacity=".92"/>'+
+ '<ellipse cx="45" cy="80" rx="14" ry="18" fill="'+f.skin+'"/>'+hair+
+ '<ellipse cx="45" cy="80" rx="14" ry="18" fill="#000" opacity=".08"/></svg>';
+}
+function thumb(tone,face,play,extra){return '<div class="thumb">'+art(tone,face)+(play?'<span class="play">'+ic('play')+'</span>':'')+(extra||'')+'</div>';}
+
+/* ---------- example data (fictional) ---------- */
+function third(){return S.owner==='third';}
+function champ(){
+ if(third()) return {name:'Penny Pilot · ad 1209847733',short:'Penny Pilot',tone:1,face:3,dur:31,
+  src:t('Ad Library link','Link da Ad Library'),file:'facebook.com/ads/library/?id=1209847733'};
+ return {name:t('Orbit — the $9 question','Orbit — a pergunta dos R$ 29'),short:t('Orbit — the $9 question','Orbit — a pergunta dos R$ 29'),tone:0,face:1,dur:29,
+  src:S.fromLib?t('From Library','Da Biblioteca'):t('Upload','Upload'),file:'orbit-pergunta-29.mp4'};
+}
+function brand(){return third()?'Penny Pilot':'Orbit';}
+function BLOCKS(){
+ var b=brand();
+ return [
+  {fn:'hook',s:0,e:3,line:t('I pay $9 a month for an app that gives me back $212.','Eu pago R$ 29 por mês num app que me devolve R$ 850.'),screen:t('$9 → $212','R$ 29 → R$ 850'),shows:t('Close-up, phone held toward the camera','Close no rosto, celular virado pra câmera')},
+  {fn:'problem',s:3,e:11,line:t('I thought I spent very little. Then I saw the full statement: 11 subscriptions I forgot about.','Eu achava que gastava pouco. Aí vi a fatura inteira: 11 assinaturas que eu nem lembrava.'),screen:t('11 subscriptions','11 assinaturas'),shows:t('Head, kitchen, two jump cuts','Talking head na cozinha, dois cortes secos')},
+  {fn:'mechanism',s:11,e:19,line:t(b+' reads your bank feed and puts every recurring charge in one list.','O '+b+' lê a sua conta e junta toda cobrança recorrente numa lista só.'),screen:'—',shows:t('Phone insert: list of charges','Insert do celular: lista de cobranças')},
+  {fn:'proof',s:19,e:24,line:t('I cancelled 6 on the same screen. 18,000 people rate it 4.7.','Cancelei 6 na mesma tela. 18 mil pessoas dão nota 4,7.'),screen:'4.7 ★ · 18k',shows:t('Head + rating card','Talking head + card da nota')},
+  {fn:'cta',s:24,e:29,line:t('Try it free for 14 days. Link below.','Teste grátis por 14 dias. Link aqui embaixo.'),screen:t('Free for 14 days','14 dias grátis'),shows:t('Head, points down','Talking head apontando pra baixo')}
+ ];
+}
+var CUTS=[2.1,3,6.4,11,15.2,19,24];
+function fnName(f){return {hook:t('Hook','Gancho'),problem:t('Problem','Problema'),mechanism:t('Mechanism','Mecanismo'),proof:t('Proof','Prova'),cta:'CTA'}[f];}
+
+function SECS(){
+ var B=BLOCKS();
+ return [
+  {id:'aud',title:t('Audience and awareness','Público e consciência'),sum:t('Problem-aware adults who feel the money leak','Gente consciente do problema que sente o dinheiro vazar'),
+   text:t('Adults 25 to 45 with a steady income who feel the money is gone before the month ends. Problem-aware: they know money leaks, not where. The ad names the leak (forgotten subscriptions) and moves them to solution-aware in 11 seconds.','Adultos de 25 a 45 anos com renda fixa que sentem o dinheiro acabar antes do fim do mês. Consciência de problema: sabem que vaza, não sabem onde. O anúncio dá nome ao vazamento (assinaturas esquecidas) e leva a pessoa pra consciência de solução em 11 segundos.')},
+  {id:'hook',title:t('Hook','Gancho'),sum:t('A sum that does not add up: pay 9, get 212','Uma conta que não fecha: paga 29, recebe 850'),
+   text:t('The contradiction in the numbers opens the loop. The viewer has to stay to learn how paying gives money back.','A contradição nos números abre o loop. A pessoa precisa ficar pra entender como pagar devolve dinheiro.'),
+   extra:'<dl class="layers"><dt>'+t('Visual (frame 1)','Visual (frame 1)')+'</dt><dd>'+B[0].shows+'</dd><dt>'+t('On-screen text','Texto na tela')+'</dt><dd>'+B[0].screen+' · '+t('white band, top','faixa branca, topo')+'</dd><dt>'+t('Spoken','Falado')+'</dt><dd>“'+esc(B[0].line)+'”</dd></dl>'},
+  {id:'struct',title:t('Structure and cuts','Estrutura e cortes'),sum:t('5 blocks · 7 cuts · 2.4 cuts per 10 s','5 blocos · 7 cortes · 2,4 cortes a cada 10 s'),
+   text:t('Hook → problem → mechanism → proof → CTA. Block edges measured from the video, shown on the timeline. The longest block is the mechanism (8 s), carried by the phone insert.','Gancho → problema → mecanismo → prova → CTA. As fronteiras dos blocos foram medidas no vídeo e estão na linha do tempo. O bloco mais longo é o mecanismo (8 s), sustentado pelo insert do celular.')},
+  {id:'tr',title:t('Transcript','Transcrição'),sum:t('84 words · Portuguese (BR)','84 palavras · português (BR)'),text:'',
+   extra:'<div class="tr">'+B.map(function(b){return '<span>'+fmt(b.s)+'–'+fmt(b.e)+'</span><span>'+esc(b.line)+'</span>';}).join('')+'</div>'},
+  {id:'copy',title:t('Ad copy','Copy do anúncio'),sum:t('Primary text, headline and button','Texto principal, título e botão'),
+   text:t('Primary text: “I pay $9 and got $212 back. Here is how.” Headline: “Find your forgotten charges.” Button: Learn more.','Texto principal: “Pago R$ 29 e recebi R$ 850 de volta. Te mostro como.” Título: “Ache suas cobranças esquecidas.” Botão: Saiba mais.')},
+  {id:'layout',title:t('Layout','Layout'),sum:t('Full-frame head + captions + phone insert','Talking head em tela cheia + legenda + insert do celular'),
+   text:t('Head fills the frame. Word-by-word captions at 68% height. In block 3 a phone insert covers the lower 42% for 8 s.','O rosto ocupa a tela toda. Legenda palavra a palavra a 68% da altura. No bloco 3 um insert do celular cobre os 42% de baixo por 8 s.')},
+  {id:'color',title:t('Colors','Cores'),sum:t('Warm kitchen, white band, yellow keyword','Cozinha quente, faixa branca, palavra-chave amarela'),
+   text:t('Measured from frames 1, 220 and 610.','Medido nos frames 1, 220 e 610.'),
+   extra:'<div class="swatches"><span class="sw"><i style="background:#f5f5f0"></i>#F5F5F0</span><span class="sw"><i style="background:#ffd84a"></i>#FFD84A</span><span class="sw"><i style="background:#3b3631"></i>#3B3631</span><span class="sw"><i style="background:#16130f"></i>#16130F</span></div>'},
+  {id:'type',title:t('Typography and captions','Tipografia e legenda'),sum:t('Heavy sans, all caps, 3 words at a time','Sans pesada, caixa alta, 3 palavras por vez'),
+   text:t('Closest family: Montserrat ExtraBold. All caps, black outline, about 8% of the frame width. Keyword in #FFD84A.','Família mais próxima: Montserrat ExtraBold. Caixa alta, contorno preto, cerca de 8% da largura. Palavra-chave em #FFD84A.')},
+  {id:'audio',title:t('Audio','Áudio'),sum:t('Human female voice, no music','Voz feminina humana, sem música'),
+   text:t('Recorded voice, not TTS. No music, no sound effects. Speech fills 93% of the runtime.','Voz gravada, não sintetizada. Sem música e sem efeito sonoro. A fala ocupa 93% do tempo.')},
+  {id:'offer',title:t('Offer, proof and CTA','Oferta, prova e CTA'),sum:t('14-day free trial · 4.7 from 18k reviews','14 dias grátis · nota 4,7 com 18 mil avaliações'),
+   text:t('Promise: find the money you already lose. Mechanism: one list of every recurring charge. Proof: on-screen list + rating. CTA spoken and on screen: free for 14 days.','Promessa: achar o dinheiro que você já perde. Mecanismo: uma lista com toda cobrança recorrente. Prova: a lista na tela + a nota. CTA falado e na tela: 14 dias grátis.')},
+  {id:'keep',title:t('Keep and vary','Manter e variar'),sum:t('Keep the structure; test the hook first','Manter a estrutura; testar o gancho primeiro'),
+   text:t('Keep: numeric hook, problem → mechanism → proof → CTA order, phone insert in block 3. Vary: the hook (strongest lever), the face, the layout. One lever per batch.','Manter: gancho com número, a ordem problema → mecanismo → prova → CTA, o insert do celular no bloco 3. Variar: o gancho (alavanca mais forte), o rosto, o layout. Uma alavanca por lote.')}
+ ];
+}
+function VERDICT(){return [
+ [t('The hook is a sum that does not add up.','O gancho é uma conta que não fecha.'),t('Paying 9 to get 212 back opens a loop the viewer must close.','Pagar 29 pra receber 850 abre um loop que a pessoa precisa fechar.')],
+ [t('The proof is on screen, not claimed.','A prova aparece na tela, não é só dita.'),t('The list of charges in block 3 shows the mechanism working.','A lista de cobranças no bloco 3 mostra o mecanismo funcionando.')],
+ [t('It names an invisible pain.','Dá nome a uma dor invisível.'),t('“Subscriptions I forgot about” turns a vague feeling into a thing you can fix.','“Assinaturas que eu nem lembrava” transforma uma sensação vaga em algo que dá pra resolver.')],
+ [t('A cut every 4 seconds.','Um corte a cada 4 segundos.'),t('Nothing on screen lasts long enough to scroll away from.','Nada fica tempo suficiente na tela pra pessoa rolar pra frente.')]
+];}
+
+function HOOKS(){return [
+ {id:'h1',angle:t('Authority swap','Troca de autoridade'),spoken:t('My bank never showed me this. A $9 app did.','Meu banco nunca me mostrou isso. Um app de R$ 29 mostrou.'),screen:t('My bank never showed me this','Meu banco nunca me mostrou isso'),visual:t('Bank app open on the phone, held to camera','App do banco aberto no celular, virado pra câmera')},
+ {id:'h2',angle:t('Direct question','Pergunta direta'),spoken:t('How much do you pay every month for things you never use? I found $212.','Quanto você paga por mês em coisa que nem usa? Eu achei R$ 850.'),screen:t('How much do you pay for nothing?','Quanto você paga por nada?'),visual:t('Close-up, eyebrows raised, no phone','Close no rosto, sobrancelha levantada, sem celular')},
+ {id:'h3',angle:t('Speed','Velocidade'),spoken:t('I cancelled 6 subscriptions in 2 minutes without calling anyone.','Cancelei 6 assinaturas em 2 minutos sem ligar pra ninguém.'),screen:t('6 cancelled · 2 min','6 canceladas · 2 min'),visual:t('Thumb tapping “Cancel” on the phone screen','Dedo tocando “Cancelar” na tela do celular')},
+ {id:'h4',angle:t('Confession','Confissão'),spoken:t('I was paying for a gym I quit in March.','Eu tava pagando uma academia que larguei em março.'),screen:t('Still paying since March','Pagando desde março'),visual:t('Gym card on the kitchen table','Carteirinha da academia na mesa da cozinha')}
+];}
+
+var LAYS=[
+ ['full',t('Full frame','Tela cheia'),'<i class="hd" style="inset:0"></i><i class="cp" style="bottom:24%"></i>'],
+ ['band',t('Hook band','Faixa de gancho'),'<i class="hd" style="inset:0"></i><i class="bd" style="top:6%;height:10%"></i><i class="cp" style="bottom:24%"></i>'],
+ ['split',t('Head + screen','Rosto + tela'),'<i class="hd" style="left:0;right:0;top:0;height:56%"></i><i class="sc" style="left:0;right:0;bottom:0;height:44%"></i><i class="cp" style="top:50%"></i>'],
+ ['broll',t('B-roll on top','B-roll em cima'),'<i class="br" style="left:0;right:0;top:0;height:45%"></i><i class="bd" style="top:45%;height:9%"></i><i class="hd" style="left:0;right:0;bottom:0;height:46%"></i>'],
+ ['card',t('Floating card','Card flutuante'),'<i class="hd" style="inset:0"></i><i class="cd" style="left:12%;right:12%;top:58%;height:22%"></i><i class="bd" style="top:6%;height:10%"></i>']
+];
+function layName(id){for(var i=0;i<LAYS.length;i++){if(LAYS[i][0]===id)return LAYS[i][1];}return id;}
+
+var PRICE={avatar:0.80,hooks:0.15,copy:0.03,layout:0};
+function TYPES(){return [
+ {k:'avatar',n:1,title:t('Swap the avatar','Trocar o avatar'),desc:t('Same copy and same audio. A new face, lip-synced to the original voice.','Mesma copy e mesmo áudio. Um rosto novo, com lipsync na voz original.'),
+  keep:[t('Copy','Copy'),t('Audio','Áudio'),t('Edit','Edição')],nw:[t('Face','Rosto')],time:t('≈ 6 min each','≈ 6 min cada')},
+ {k:'hooks',n:2,title:t('New hooks','Ganchos novos'),desc:t('Same body and CTA from 0:03 on. New first 3 seconds: spoken line, on-screen text and first frame.','Mesmo corpo e mesmo CTA a partir de 0:03. Os 3 primeiros segundos mudam: fala, texto na tela e primeiro frame.'),
+  keep:[t('Body','Corpo'),'CTA',t('Face','Rosto')],nw:[t('First 3 s','3 primeiros s')],time:t('≈ 3 min each','≈ 3 min cada')},
+ {k:'copy',n:3,title:t('New copy, same structure','Copy nova, mesma estrutura'),desc:t('A new script modeled on this format: same blocks, timing and angle. Each one opens in the creative wizard at Scripts.','Um roteiro novo modelado neste formato: mesmos blocos, tempos e ângulo. Cada um abre no wizard do criativo, na etapa Roteiros.'),
+  keep:[t('Structure','Estrutura'),t('Timing','Tempos')],nw:[t('Script','Roteiro'),t('Face','Rosto'),t('Engine','Motor')],time:t('Scripts in ≈ 40 s','Roteiros em ≈ 40 s')},
+ {k:'layout',n:4,title:t('Re-edit the layout','Remontar a edição'),desc:t('Same footage and audio in another layout. Nothing is generated, only rendered.','Mesmas imagens e mesmo áudio em outro layout. Nada é gerado, só renderizado.'),
+  keep:[t('Footage','Imagens'),t('Audio','Áudio')],nw:[t('Layout','Layout')],time:t('≈ 1 min render each','≈ 1 min de render cada')}
+];}
+var SOON={copy:true}; /* type 3 ships after Oct 10 */
+var ANALYZE_PRICE=0.12; /* placeholder: transcription + frames + diagnosis */
+function active(k){return S.on[k]&&!SOON[k];}
+function qtyOf(k){
+ if(k==='avatar')return S.faces.length;
+ if(k==='layout')return S.lays.length;
+ if(k==='hooks'){var n=0;HOOKS().slice(0,S.qty.hooks).forEach(function(h){if(!S.hookGone[h.id])n++;});return n;}
+ return S.qty[k];
+}
+function totalVars(){var n=0;['avatar','hooks','copy','layout'].forEach(function(k){if(active(k))n+=qtyOf(k);});return n;}
+function totalCost(){var c=0;['avatar','hooks','copy','layout'].forEach(function(k){if(active(k))c+=qtyOf(k)*PRICE[k];});return c;}
+function typeTitle(k){var x=TYPES().filter(function(y){return y.k===k;})[0];return x?x.title:k;}
+
+/* batch rows: [id,type,label,change,status per state] */
+function VARS(){
+ var H=HOOKS();
+ return [
+  {id:'a1',k:'avatar',name:t('Face 2','Rosto 2'),change:t('Same voice, new face','Mesma voz, rosto novo'),face:1,tone:0,s:{loading:'ready',error:'ready',ready:'ready'}},
+  {id:'a2',k:'avatar',name:t('Face 3','Rosto 3'),change:t('Same voice, new face','Mesma voz, rosto novo'),face:2,tone:0,s:{loading:'gen',error:'gen',ready:'ready'},step:t('Lipsync · 62%','Lipsync · 62%')},
+  {id:'h1',k:'hooks',name:t('Hook 1','Gancho 1'),change:'“'+H[0].spoken+'”',face:4,tone:0,s:{loading:'ready',error:'ready',ready:'ready'}},
+  {id:'h2',k:'hooks',name:t('Hook 2','Gancho 2'),change:'“'+H[1].spoken+'”',face:4,tone:0,s:{loading:'gen',error:'gen',ready:'ready'},step:t('Rendering · 40%','Renderizando · 40%')},
+  {id:'h3',k:'hooks',name:t('Hook 3','Gancho 3'),change:'“'+H[2].spoken+'”',face:4,tone:0,s:{loading:'queued',error:'fail',ready:'ready'}},
+  {id:'c1',k:'copy',name:t('New copy 1','Copy nova 1'),change:t('3 scripts modeled on the winner, waiting for you','3 roteiros modelados no campeão esperando você'),face:0,tone:2,s:{loading:'waiting',error:'waiting',ready:'waiting'}},
+  {id:'c2',k:'copy',name:t('New copy 2','Copy nova 2'),change:t('Writing scripts','Escrevendo roteiros'),face:0,tone:2,s:{loading:'gen',error:'waiting',ready:'waiting'},step:t('Writing · 2 of 3','Escrevendo · 2 de 3')},
+  {id:'l1',k:'layout',name:layName('band'),change:t('Hook band on top','Faixa de gancho em cima'),face:4,tone:0,s:{loading:'ready',error:'ready',ready:'ready'}},
+  {id:'l2',k:'layout',name:layName('split'),change:t('Head on top, phone screen below','Rosto em cima, tela do celular embaixo'),face:4,tone:0,s:{loading:'gen',error:'ready',ready:'ready'},step:t('Rendering · 80%','Renderizando · 80%')}
+ ];
+}
+
+/* ---------- flow ---------- */
+var VSTEPS=[['source','Winner','Campeão'],['teardown','Teardown','Diagnóstico'],['types','Variations','Variações'],['hooks','Hooks','Ganchos'],['estimate','Estimate','Estimativa'],['batch','Batch','Lote']];
+var STATES={
+ 'v-source':[['empty','Empty','Vazio'],['uploading','Uploading','Enviando'],['linkload','Reading link','Lendo link'],['linkerr','Link failed','Link falhou'],['ready','Ready','Pronto'],['library','From Library','Da Biblioteca']],
+ 'v-teardown':[['loading','Analyzing','Analisando'],['ready','Ready','Pronto'],['error','Error','Erro']],
+ 'v-types':[['ready','Ready','Pronto']],
+ 'v-hooks':[['loading','Writing','Escrevendo'],['ready','Ready','Pronto']],
+ 'v-estimate':[['ready','Ready','Pronto'],['cap','Over monthly cap','Passa do teto']],
+ 'v-batch':[['loading','In progress','Em andamento'],['error','One failed','Uma falhou'],['ready','All done','Tudo pronto']],
+ review:[['ready','Review','Revisão'],['changes','Request changes','Pedir ajustes']],
+ library:[['ready','Ready','Pronto']],
+ home:[['ready','Ready','Pronto']]
+};
+function stOf(k){k=k||S.screen;return S.st[k]||STATES[k][0][0];}
+function inFlow(){return S.screen.indexOf('v-')===0;}
+function cur(){return S.screen.slice(2);}
+function stepIdx(id){for(var i=0;i<VSTEPS.length;i++){if(VSTEPS[i][0]===id)return i;}return 0;}
+function stepName(id){var i=stepIdx(id);return t(VSTEPS[i][1],VSTEPS[i][2]);}
+function hooksSkipped(){return !active('hooks');}
+function stepKind(id){
+ if(id==='hooks'&&hooksSkipped())return 'skip';
+ var ci=stepIdx(cur()),i=stepIdx(id);
+ if(id===cur()){
+  var st=stOf();
+  if((id==='teardown'||id==='batch'||id==='hooks')&&st==='loading')return 'run';
+  if((id==='teardown'&&st==='error')||(id==='batch'&&st==='error')||(id==='source'&&st==='linkerr'))return 'fail';
+  return 'cur';
+ }
+ return i<ci?'done':'todo';
+}
+function sicon(id,i){
+ var k=stepKind(id);
+ if(k==='done')return '<span class="sicon done">'+ic('check')+'</span>';
+ if(k==='run')return '<span class="sicon run"></span>';
+ if(k==='fail')return '<span class="sicon fail">!</span>';
+ if(k==='skip')return '<span class="sicon skip">–</span>';
+ return '<span class="sicon '+(k==='cur'?'cur':'')+'">'+(i+1)+'</span>';
+}
+function stepList(){return VSTEPS.map(function(s,i){var sk=stepKind(s[0])==='skip';return '<li><button data-go="v-'+s[0]+'"'+(s[0]===cur()?' aria-current="step"':'')+(sk?' disabled':'')+'>'+sicon(s[0],i)+t(s[1],s[2])+(sk?'<span class="skip">'+t('skipped','pulada')+'</span>':'')+'</button></li>';}).join('');}
+function rail(){
+ var ci=stepIdx(cur()),c=champ();
+ return '<aside class="rail" aria-label="'+t('Steps','Etapas')+'"><div style="display:grid;gap:4px"><span class="step-lbl">'+t('Vary a winner','Variar campeão')+'</span><b style="font-size:15px" class="ell">'+(ci>0||stOf('v-source')==='ready'||stOf('v-source')==='library'?esc(c.name):t('New batch','Lote novo'))+'</b><span class="row-sub">Orbit Budget · '+t('Portuguese (BR)','Português (BR)')+'</span></div>'+
+ '<ol class="steps">'+stepList()+'</ol>'+
+ '<div class="rail-meta">'+(ci>0?'<div><span>'+t('Source','Origem')+'</span><span>'+c.src+'</span></div><div><span>'+t('Owner','Dono')+'</span><span>'+(third()?t('Someone else','Terceiro'):t('You','Você'))+'</span></div>':'')+(ci>2?'<div><span>'+t('Variations','Variações')+'</span><span class="mono">'+totalVars()+'</span></div>':'')+'<div><span class="faint">'+t('Saved','Salvo')+'</span><span class="faint">'+t('just now','agora')+'</span></div></div></aside>';
+}
+function mobileSteps(){
+ var ci=stepIdx(cur());
+ return '<div class="mstep"><button class="mstep-btn" data-mtoggle aria-expanded="'+S.stepsOpen+'">'+sicon(cur(),ci)+'<span><span class="step-lbl">'+t('Step','Etapa')+' '+(ci+1)+' '+t('of','de')+' 6</span><br><b>'+stepName(cur())+'</b></span>'+ic(S.stepsOpen?'x':'chevd')+'</button>'+
+ '<div class="segs" aria-hidden="true">'+VSTEPS.map(function(s){var k=stepKind(s[0]);return '<i class="'+(k==='done'?'done':k==='run'?'run':k==='skip'?'skip':(k==='cur'||k==='fail')?'cur':'')+'"></i>';}).join('')+'</div>'+
+ (S.stepsOpen?'<ol class="mstep-list">'+stepList()+'</ol>':'')+'</div>';
+}
+function actionbar(hint,back,primary){return '<div class="actionbar"><span class="hint">'+hint+'</span>'+(back?'<button class="btn back" data-go="v-'+back+'">'+ic('left')+t('Back','Voltar')+'</button>':'')+primary+'</div>';}
+
+/* ---------- shared bits ---------- */
+function chip(status,label){return '<span class="st st-'+status+'"><i class="dot"></i>'+esc(label)+'</span>';}
+function seg(name,opts,cur0,aria){return '<div class="seg" role="group"'+(aria?' aria-label="'+aria+'"':'')+'>'+opts.map(function(o){return '<button type="button" data-set="'+name+'" data-val="'+o[0]+'" aria-pressed="'+(o[0]===cur0)+'">'+o[1]+'</button>';}).join('')+'</div>';}
+function banner(kind,iconName,title,body,actions){return '<div class="banner '+kind+'" role="'+(kind==='err'?'alert':'status')+'">'+ic(iconName)+'<div class="b-body"><b>'+title+'</b>'+(body?'<span class="muted">'+body+'</span>':'')+'</div>'+(actions?'<div class="b-act">'+actions+'</div>':'')+'</div>';}
+function capAt(tt){
+ var B=BLOCKS();
+ for(var i=0;i<B.length;i++){var b=B[i];if(tt>=b.s&&tt<b.e){var w=b.line.split(' '),g=[];for(var j=0;j<w.length;j+=3)g.push(w.slice(j,j+3).join(' '));return esc(g[Math.min(g.length-1,Math.floor((tt-b.s)/(b.e-b.s)*g.length))]);}}
+ return '';
+}
+function player(o){
+ var c=champ(),dur=c.dur;
+ return '<div class="player'+(o.lg?' lg':'')+'">'+art(o.tone!=null?o.tone:c.tone,o.face!=null?o.face:c.face)+(o.split?'<div class="ov-split"><i><b></b><b></b><b></b><b></b></i></div>':'')+(o.band?'<div class="ov-head"><span>'+esc(o.band)+'</span></div>':'')+
+  '<div class="cap" id="cap">'+capAt(S.t)+'</div>'+(o.overlay||'')+
+  (o.overlay?'':'<div class="pctrl"><button data-play aria-label="'+t('Play','Reproduzir')+'">'+ic(S.playing?'pause':'play')+'</button><div class="scrub"><b id="scrub" style="width:'+(S.t/dur*100)+'%"></b></div><span class="ptime" id="ptime">'+fmt(S.t)+' / '+fmt(dur)+'</span><button aria-label="'+t('Sound','Som')+'">'+ic('vol')+'</button></div>')+'</div>';
+}
+
+/* ---------- proto + header ---------- */
+function renderProto(){
+ var k=S.screen,opts=STATES[k];
+ document.getElementById('proto').innerHTML='<span class="proto-tag">'+t('Prototype','Protótipo')+'</span><span>'+t('State','Estado')+'</span>'+
+  '<div class="seg" role="group" aria-label="'+t('Screen state','Estado da tela')+'">'+opts.map(function(o){return '<button type="button" data-proto="'+o[0]+'" aria-pressed="'+(stOf(k)===o[0])+'">'+t(o[1],o[2])+'</button>';}).join('')+'</div>'+
+  '<span class="proto-spacer"></span><span class="proto-hint">'+t('Example data. Prices are placeholders.','Dados de exemplo. Preços são placeholders.')+'</span>';
+}
+function renderHeader(){
+ var tab=S.screen==='library'?'library':'home';
+ var crumb='';
+ if(inFlow())crumb='<span class="sep flow">/</span><span class="cur">'+t('Vary a winner','Variar campeão')+'</span>';
+ if(S.screen==='review')crumb='<span class="sep">/</span><span class="cur">'+esc(champ().short)+' · '+esc(curVar().name)+'</span>';
+ document.getElementById('hdr').innerHTML='<div class="hdr-top">'+
+  '<button class="logo" data-go="home" aria-label="HookMill"><span></span></button>'+
+  '<div class="crumb"><span class="sep">/</span><span class="ws"><i class="ws-av"></i><span class="ws-name">Gusta &amp; Tordan</span></span>'+crumb+'</div>'+
+  '<div class="hdr-right">'+seg('lang',[['en','EN'],['pt','PT']],S.lang,t('Interface language','Idioma da interface'))+'<span class="me" aria-label="Gusta">GU</span></div></div>'+
+  '<nav class="tabs" aria-label="'+t('Main','Principal')+'">'+[['home','Home','Início'],['offers','Offers','Ofertas'],['library','Library','Biblioteca'],['settings','Settings','Configurações']].map(function(x){return '<button class="tab" data-go="'+x[0]+'"'+(tab===x[0]?' aria-current="page"':'')+'>'+t(x[1],x[2])+'</button>';}).join('')+'</nav>';
+}
+
+/* ---------- HOME (entry point) ---------- */
+function renderHome(){
+ var head='<div class="page-head"><div><h1>'+t('Creatives','Criativos')+'</h1><p class="sub">'+t('Start from scratch, or take a creative that already sells and make variations of it.','Comece do zero ou pegue um criativo que já vende e faça variações dele.')+'</p></div>'+
+  '<div class="page-actions"><button class="btn" data-go="v-source" data-st="empty" data-fresh>'+ic('branch')+t('Vary a winner','Variar campeão')+'</button><button class="btn primary" data-toast="'+t('Opens the wizard from v1','Abre o wizard da v1')+'">'+ic('plus')+t('New creative','Novo criativo')+'</button></div></div>';
+ var c=t('Orbit — the $9 question','Orbit — a pergunta dos R$ 29');
+ var wait='<section class="sec"><h2>'+t('Waiting on you','Esperando você')+'<span class="count">3</span></h2><div class="wait-grid">'+
+  '<button class="wcard" data-go="v-batch" data-st="error">'+thumb(0,1,false)+'<div class="wcard-body"><span class="ell" style="font-weight:500">'+t('Batch','Lote')+' · '+esc(c)+'</span><span class="row-sub">'+t('7 variations · 4 ready to review','7 variações · 4 prontas pra revisar')+'</span>'+chip('failed',t('Hook 3 failed','Gancho 3 falhou'))+'<span style="margin-top:6px"><span class="btn sm">'+t('Open batch','Abrir lote')+ic('arrowr')+'</span></span></div></button>'+
+  '<button class="wcard" data-review="h1">'+thumb(0,4,true)+'<div class="wcard-body"><span class="ell" style="font-weight:500">'+esc(c)+' · '+t('Hook 1','Gancho 1')+'</span><span class="vline">'+ic('branch')+'<span>'+t('Variation · New hook','Variação · Gancho novo')+'</span></span>'+chip('waiting',t('Ready for review','Pronto pra revisar'))+'<span style="margin-top:6px"><span class="btn sm">'+t('Review video','Revisar vídeo')+ic('arrowr')+'</span></span></div></button>'+
+  '<button class="wcard" data-review="l1">'+thumb(0,4,true)+'<div class="wcard-body"><span class="ell" style="font-weight:500">'+esc(c)+' · '+layName('band')+'</span><span class="vline">'+ic('branch')+'<span>'+t('Variation · Layout','Variação · Layout')+'</span></span>'+chip('waiting',t('Ready for review','Pronto pra revisar'))+'<span style="margin-top:6px"><span class="btn sm">'+t('Review video','Revisar vídeo')+ic('arrowr')+'</span></span></div></button>'+
+  '</div></section>';
+ function row(name,vl,stp,status,label,time,tone,face,go){
+  return '<button class="row" '+go+'><div class="row-col"><span class="ell" style="font-weight:500">'+esc(name)+'</span>'+(vl?'<span class="vline">'+ic('branch')+'<span>'+vl+'</span></span>':'<span class="row-sub">Orbit Budget</span>')+'</div><div class="row-col"><span class="step-lbl">'+stp+'</span>'+chip(status,label)+'</div><div class="row-col"><span class="row-sub num">'+time+'</span></div>'+ic('chev','chev')+'</button>';
+ }
+ var vof=t('Variation of ','Variação de ')+esc(c);
+ var list='<section class="sec"><div class="sec-row"><h2>'+t('All creatives','Todos os criativos')+'</h2>'+seg('hf',[['all',t('All','Todos')],['progress',t('In progress','Em andamento')],['you',t('Needs you','Precisa de você')],['approved',t('Approved','Aprovados')]],'all')+'</div><div class="list">'+
+  row(c+' · '+t('Face 3','Rosto 3'),vof+' · '+t('Avatar','Avatar'),t('Generation','Geração'),'progress',t('Lipsync 62%','Lipsync 62%'),t('1m ago','há 1 min'),0,2,'data-go="v-batch" data-st="loading"')+
+  row(c+' · '+t('Hook 1','Gancho 1'),vof+' · '+t('Hook','Gancho'),t('Final OK','OK final'),'waiting',t('Ready for review','Pronto pra revisar'),t('3m ago','há 3 min'),0,4,'data-review="h1"')+
+  row(c+' · '+layName('band'),vof+' · '+t('Layout','Layout'),t('Final OK','OK final'),'waiting',t('Ready for review','Pronto pra revisar'),t('4m ago','há 4 min'),0,4,'data-review="l1"')+
+  row(t('Quiet Mind — 3am thoughts','Quiet Mind — pensamentos das 3h'),'',t('Scripts','Roteiros'),'waiting',t('Pick a script','Escolher roteiro'),t('18m ago','há 18 min'),1,0,'data-toast="v1"')+
+  row(c,'',t('Library','Biblioteca'),'approved',t('Approved · Winner','Aprovado · Vencedor'),'2 '+t('Oct','out'),0,1,'data-go="library"')+
+  '</div></section>';
+ return '<div class="page">'+head+wait+list+'</div>';
+}
+
+/* ---------- STEP 1 · SOURCE ---------- */
+function vSource(){
+ var st=stOf(),c=champ();
+ var offer='<div class="field"><label for="offer">'+t('Offer the variations are for','Oferta das variações')+'</label><div class="linkrow"><select class="select" id="offer"><option>Orbit Budget · '+t('Portuguese (BR)','Português (BR)')+'</option><option>Quiet Mind 21</option><option>Brightside Kit</option></select><button class="btn" data-toast="'+t('Opens New offer (same as v1)','Abre Nova oferta (igual à v1)')+'">'+ic('plus')+t('New offer','Nova oferta')+'</button></div><span class="row-sub">'+t('New scripts and voices follow this offer’s brief and language.','Roteiros e vozes novos seguem o briefing e o idioma desta oferta.')+'</span></div>';
+ var src='';
+ if(st==='library'){
+  src='<div class="panel"><div class="panel-head"><h2>'+t('The winner','O campeão')+'</h2><span class="tag amber">'+ic('star')+t('Winner','Vencedor')+'</span></div><div class="file">'+thumb(0,1,true)+'<div class="row-col"><b class="ell">'+esc(champ().name)+'</b><span class="row-sub">'+t('From Library · approved Oct 2 · 0:29 · 9:16','Da Biblioteca · aprovado em 2 out · 0:29 · 9:16')+'</span></div><button class="btn sm ghost" data-proto="empty">'+t('Change','Trocar')+'</button></div><div class="memo">'+ic('info')+'<span>'+t('Made in HookMill, so it is yours. The script, face and scenes are already known; the teardown takes about 20 seconds.','Feito no HookMill, então é seu. Roteiro, rosto e cenas já são conhecidos; o diagnóstico leva uns 20 segundos.')+'</span></div></div>';
+ } else {
+  var hot=st==='linkerr';
+  var drop;
+  if(st==='uploading'){
+   drop='<div class="file">'+thumb(c.tone,c.face,false)+'<div class="prog" style="min-width:0"><div class="panel-head"><b class="ell">orbit-pergunta-29.mp4</b><span class="row-sub mono" id="uppct">'+S.upPct+'%</span></div><div class="prog-bar"><b id="upbar" style="width:'+S.upPct+'%"></b></div><span class="row-sub mono">38 MB · '+t('about 12 s left','faltam uns 12 s')+'</span></div><button class="btn sm ghost" data-proto="empty">'+t('Cancel','Cancelar')+'</button></div>';
+  } else if(st==='ready'){
+   drop='<div class="file">'+thumb(c.tone,c.face,true)+'<div class="row-col"><b class="ell">'+(third()?'penny-pilot-1209847733.mp4':'orbit-pergunta-29.mp4')+'</b><span class="row-sub mono">'+fmt(c.dur)+' · 9:16 · 1080×1920 · 38 MB</span></div><button class="btn sm ghost" data-proto="empty">'+t('Replace','Trocar')+'</button></div>';
+  } else {
+   drop='<div class="drop'+(hot?' hot':'')+'" id="drop"><span class="big">'+ic('upload')+'</span><b>'+t('Drop the video here','Solte o vídeo aqui')+'</b><span class="row-sub">'+t('MP4 or MOV · up to 500 MB · up to 3 min','MP4 ou MOV · até 500 MB · até 3 min')+'</span><button class="btn sm'+(hot?' primary':'')+'" data-proto="uploading">'+t('Choose file','Escolher arquivo')+'</button></div>';
+  }
+  var link='<div class="field"><label for="adlink">'+ic('link')+t('Meta Ad Library link','Link da Ad Library da Meta')+'</label><div class="linkrow"><input class="input" id="adlink" placeholder="https://www.facebook.com/ads/library/?id=…" value="'+(st==='linkload'||st==='linkerr'?'https://www.facebook.com/ads/library/?id=1209847733':'')+'"><button class="btn" data-proto="linkload"'+(st==='linkload'?' disabled':'')+'>'+t('Fetch video','Buscar vídeo')+'</button></div></div>';
+  if(st==='linkload')link+='<ul class="checklist"><li class="done">'+ic('check')+t('Opened the ad (Penny Pilot, live 23 days)','Abriu o anúncio (Penny Pilot, no ar há 23 dias)')+'</li><li class="now"><span class="sp"></span>'+t('Downloading the video file','Baixando o arquivo de vídeo')+'</li><li><span class="q"></span>'+t('Copying primary text and headline','Copiando texto principal e título')+'</li></ul>';
+  if(st==='linkerr')link+=banner('err','alert',t('We couldn’t fetch this ad','Não deu pra buscar esse anúncio'),t('Our Ad Library reader hit its monthly limit and is back on Oct 19. Upload the file instead: open the ad in the Ad Library, download the video, and drop it above. The link stays saved as the source.','Nosso leitor da Ad Library bateu o limite do mês e volta em 19/10. Envie o arquivo: abra o anúncio na Ad Library, baixe o vídeo e solte aqui em cima. O link fica salvo como origem.'),'<button class="btn sm" data-proto="uploading">'+ic('upload')+t('Upload the file instead','Enviar o arquivo')+'</button>');
+  src='<div class="panel"><h2>'+t('The winner','O campeão')+'</h2>'+drop+(st==='uploading'||st==='ready'?'':'<div class="or">'+t('or','ou')+'</div>'+link)+'</div>';
+ }
+ var own=st==='library'?'':'<div class="panel"><div class="vt-top"><button class="cbx" role="checkbox" aria-checked="'+(S.owner==='mine')+'" data-mine aria-labelledby="mine-l">'+(S.owner==='mine'?ic('check'):'')+'</button><div class="vt-title"><b id="mine-l">'+t('This creative is mine','Este criativo é meu')+'</b><span class="row-sub">'+t('Leave it unchecked if it is a reference from another advertiser. It is only a label on the batch; every kind of variation works either way.','Deixe desmarcado se for referência de outro anunciante. É só uma marcação no lote; todos os tipos de variação funcionam igual.')+'</span></div></div></div>';
+ var ready=st==='ready'||st==='library';
+ var side='<div class="panel"><h2>'+t('What happens next','O que acontece depois')+'</h2><ul class="checklist"><li>'+ic('film')+t('We take the video apart: speech, frames, blocks and cuts.','A gente desmonta o vídeo: fala, frames, blocos e cortes.')+'</li><li>'+ic('pencil')+t('You read why it sells and fix what we got wrong.','Você lê por que ele vende e corrige o que errarmos.')+'</li><li>'+ic('branch')+t('You pick which variations to make and see the cost first.','Você escolhe quais variações fazer e vê o custo antes.')+'</li></ul></div>';
+ return '<div class="wz-body"><div class="wz-head"><div><h1>'+t('Vary a winner','Variar campeão')+'</h1><p class="sub">'+t('Bring a creative that already sells. We work out why, then make variations that keep what works.','Traga um criativo que já vende. A gente descobre por quê e faz variações que mantêm o que funciona.')+'</p></div></div>'+
+  '<div class="src-grid"><div class="stack">'+'<div class="panel">'+offer+'</div>'+src+own+'</div>'+side+'</div></div>'+
+  actionbar(ready?t('Starts right away and takes about 1 minute. You can leave.','Começa na hora e leva cerca de 1 minuto. Pode sair.'):t('Add the video to continue','Envie o vídeo pra seguir'),null,'<button class="btn primary" data-go="v-teardown" data-st="loading"'+(ready?'':' disabled')+'>'+t('Analyze','Analisar')+' · <span class="mono">'+money(ANALYZE_PRICE)+'</span></button>');
+}
+
+/* ---------- STEP 2 · TEARDOWN ---------- */
+function timeline(){
+ var B=BLOCKS(),dur=champ().dur;
+ return '<div class="tl-wrap"><div class="tl" role="group" aria-label="'+t('Blocks','Blocos')+'">'+B.map(function(b,i){
+  return '<button class="tl-b'+(i===S.block?' on':'')+'" style="flex:'+(b.e-b.s)+' 1 0" data-block="'+i+'" aria-pressed="'+(i===S.block)+'"><span class="step-lbl">'+fnName(b.fn)+'</span><span class="mono tl-t">'+fmt(b.s)+'</span></button>';
+ }).join('')+'<i class="tl-ph" id="ph" style="left:'+(S.t/dur*100)+'%"></i></div>'+
+ '<div class="tl-cuts" aria-hidden="true">'+CUTS.map(function(c){return '<i style="left:'+(c/dur*100)+'%"></i>';}).join('')+'</div>'+
+ '<div class="tl-legend"><span>'+t('5 blocks · 7 cuts','5 blocos · 7 cortes')+'</span><span>'+t('ticks = cuts','tracinhos = cortes')+'</span></div></div>';
+}
+function blockPanel(){
+ var b=BLOCKS()[S.block];
+ var fnOpts=['hook','problem','mechanism','proof','cta'].map(function(f){return '<option'+(f===b.fn?' selected':'')+'>'+fnName(f)+'</option>';}).join('');
+ return '<div class="panel blk"><div class="panel-head"><span class="step-lbl">'+t('Block','Bloco')+' '+(S.block+1)+' · '+fmt(b.s)+'–'+fmt(b.e)+'</span><select class="select" id="blkfn" style="width:auto" aria-label="'+t('Block function','Função do bloco')+'">'+fnOpts+'</select></div><dl><dt>'+t('Spoken','Falado')+'</dt><dd>“'+esc(b.line)+'”</dd><dt>'+t('On screen','Na tela')+'</dt><dd>'+esc(b.screen)+'</dd><dt>'+t('Shows','Mostra')+'</dt><dd>'+esc(b.shows)+'</dd></dl></div>';
+}
+function vTeardown(){
+ var st=stOf(),c=champ();
+ var facts=third()?
+  '<div class="facts"><span>'+t('Ad Library','Ad Library')+' · Penny Pilot</span><span>'+t('Live 23 days','No ar há 23 dias')+'</span><span>'+t('3 ads on the same angle','3 anúncios no mesmo ângulo')+'</span><span class="mono">0:31 · 9:16</span></div><p class="row-sub" style="max-width:72ch">'+t('Days live and ad count come from the Ad Library. They hint at scale; they are not results.','Dias no ar e número de anúncios vêm da Ad Library. Sugerem escala; não são resultado.')+'</p>':
+  '<div class="facts"><span>'+c.src+'</span><span>'+t('Winner since Oct 2','Vencedor desde 2 out')+'</span><span>Kling 3.0</span><span class="mono">0:29 · 9:16</span><span>'+t('Portuguese (BR)','Português (BR)')+'</span></div>';
+ var head='<div class="wz-head"><div><h1>'+t('Teardown','Diagnóstico')+'</h1><p class="sub">'+t('Why this creative sells, taken apart. Correct anything we got wrong: every variation is built from this page.','Por que este criativo vende, desmontado. Corrija o que estiver errado: toda variação sai desta página.')+'</p></div>'+(st==='ready'?'<button class="btn" data-proto="loading">'+ic('refresh')+t('Analyze again','Analisar de novo')+'</button>':'')+'</div>';
+ var left,right;
+ if(st==='loading'){
+  left='<div class="td-left"><div class="stage">'+player({overlay:'<div class="an-ov"><span id="anfr">'+t('Reading frame ','Lendo frame ')+Math.round(870*S.anPct/100)+' / 870</span></div>'})+'</div><div class="tl-wrap"><span class="sk" style="height:44px"></span><span class="sk" style="height:8px;width:60%"></span></div></div>';
+  right='<div class="stack"><div class="think" role="status"><div class="orb" aria-hidden="true"><i></i><i></i><i></i></div><div style="display:grid;gap:10px"><div class="prog"><div class="panel-head"><b>'+t('Analyzing · step 3 of 5','Analisando · etapa 3 de 5')+'</b><span class="row-sub mono">'+t('about 40 s left','faltam uns 40 s')+'</span></div><div class="prog-bar"><b id="anbar" style="width:'+S.anPct+'%"></b></div></div>'+
+   '<ul class="checklist"><li class="done">'+ic('check')+t('Video received','Vídeo recebido')+'<span class="faint">38 MB</span></li><li class="done">'+ic('check')+t('Speech transcribed','Fala transcrita')+'<span class="faint">'+t('84 words · PT-BR','84 palavras · PT-BR')+'</span></li><li class="now"><span class="sp"></span>'+t('Pulling key frames','Tirando os frames-chave')+'<span class="faint" id="anfr2">'+Math.round(870*S.anPct/100)+' / 870</span></li><li><span class="q"></span>'+t('Measuring blocks, layout and cuts','Medindo blocos, layout e cortes')+'</li><li><span class="q"></span>'+t('Writing why it sells','Escrevendo por que vende')+'</li></ul>'+
+   '<span class="row-sub">'+t('You can leave. The teardown will be here, and this batch shows up on Home.','Pode sair. O diagnóstico fica aqui, e este lote aparece no Início.')+'</span></div></div>'+
+   '<div class="secs">'+SECS().map(function(s,i){return '<div class="sect"><div class="sect-h"><b>'+s.title+'</b>'+(s.id==='tr'?'<span class="row-sub ell sum-t">'+s.sum+'</span>':'<span class="sk sum-t" style="height:10px;width:'+(40+(i*13)%45)+'%"></span>')+'<span></span><span></span></div></div>';}).join('')+'</div></div>';
+ } else if(st==='error'){
+  left='<div class="td-left"><div class="stage">'+player({})+'</div></div>';
+  right='<div class="stack">'+banner('err','alert',t('We couldn’t read the audio','Não deu pra ler o áudio'),t('The file has a video track but no sound, so there is nothing to transcribe. This usually happens when the video is exported without audio. Upload the version with sound.','O arquivo tem imagem mas não tem som, então não há fala pra transcrever. Costuma acontecer quando o vídeo é exportado sem áudio. Envie a versão com som.'),'<button class="btn sm" data-go="v-source" data-st="empty">'+ic('upload')+t('Upload another file','Enviar outro arquivo')+'</button><button class="btn sm ghost" data-proto="loading">'+ic('refresh')+t('Try again','Tentar de novo')+'</button>')+
+   '<ul class="checklist"><li class="done">'+ic('check')+t('Video received','Vídeo recebido')+'</li><li style="color:var(--red)">'+ic('x')+t('Speech transcribed: no audio track','Fala transcrita: sem faixa de áudio')+'</li><li><span class="q"></span>'+t('Frames, blocks and diagnosis were not started','Frames, blocos e diagnóstico não começaram')+'</li></ul></div>';
+ } else {
+  left='<div class="td-left"><div class="stage">'+player({})+'</div>'+timeline()+blockPanel()+'</div>';
+  var V=VERDICT();
+  var verdict='<div class="verdict"><div class="panel-head"><h2>'+t('Why it sells','Por que vende')+'</h2>'+(S.edited.verdict?'<span class="tag solid">'+t('Edited by you','Editado por você')+'</span>':'<span class="tag ai">'+t('Ordered by weight','Em ordem de peso')+'</span>')+'</div>'+
+   (S.editSec==='verdict'?'<textarea class="textarea" id="ed-verdict" rows="6">'+esc(V.map(function(v,i){return (i+1)+'. '+v[0]+' '+v[1];}).join('\n'))+'</textarea><div class="sect-actions"><button class="btn sm" data-editsec="">'+t('Cancel','Cancelar')+'</button><button class="btn sm primary" data-savesec="verdict">'+t('Save','Salvar')+'</button></div>':
+   '<ol>'+V.map(function(v){return '<li><span><b>'+v[0]+'</b> <span class="muted">'+v[1]+'</span></span></li>';}).join('')+'</ol><div class="sect-actions"><button class="btn sm ghost" data-editsec="verdict">'+ic('pencil')+t('Edit','Editar')+'</button></div>')+'</div>';
+  var secs='<div class="secs">'+SECS().map(function(s){
+   var open=!!S.openSec[s.id],ed=S.editSec===s.id;
+   var body='';
+   if(open){
+    body='<div class="sect-b">'+(ed?'<textarea class="textarea" id="ed-'+s.id+'" rows="4">'+esc(s.text||BLOCKS().map(function(b){return fmt(b.s)+' '+b.line;}).join('\n'))+'</textarea><div class="sect-actions"><button class="btn sm" data-editsec="">'+t('Cancel','Cancelar')+'</button><button class="btn sm primary" data-savesec="'+s.id+'">'+t('Save','Salvar')+'</button></div>':
+     (s.text?'<p>'+esc(s.text)+'</p>':'')+(s.extra||'')+'<div class="sect-actions"><button class="btn sm ghost" data-editsec="'+s.id+'">'+ic('pencil')+t('Edit','Editar')+'</button></div>')+'</div>';
+   }
+   return '<div class="sect"><button class="sect-h" data-sec="'+s.id+'" aria-expanded="'+open+'"><b>'+s.title+'</b><span class="row-sub ell sum-t">'+s.sum+'</span>'+(S.edited[s.id]?'<span class="tag solid">'+t('Edited','Editado')+'</span>':'<span></span>')+ic('chev','chev')+'</button>'+body+'</div>';
+  }).join('')+'</div>';
+  right='<div class="stack">'+facts+verdict+secs+'</div>';
+ }
+ return '<div class="wz-body">'+head+'<div class="td-grid">'+left+right+'</div></div>'+
+  actionbar(st==='ready'?(Object.keys(S.edited).length?t('Your corrections are used in every variation.','Suas correções valem pra todas as variações.'):t('Analyzed in 52 s','Analisado em 52 s')):'','source','<button class="btn primary" data-go="v-types"'+(st==='ready'?'':' disabled')+'>'+t('Continue to Variations','Próximo: Variações')+'</button>');
+}
+
+/* ---------- STEP 3 · VARIATION TYPES ---------- */
+function stepper(k,min,max){var q=S.qty[k];return '<span class="stepper"><button data-qty="'+k+'" data-d="-1" aria-label="'+t('Fewer','Menos')+'"'+(q<=min?' disabled':'')+'>'+ic('minus')+'</button><output>'+q+'</output><button data-qty="'+k+'" data-d="1" aria-label="'+t('More','Mais')+'"'+(q>=max?' disabled':'')+'>'+ic('plus')+'</button></span>';}
+function vTypes(){
+ var c=champ();
+ var cards=TYPES().map(function(x){
+  var soon=!!SOON[x.k],on=active(x.k);
+  var right=soon?'<span class="tag solid">'+t('Coming soon','Em breve')+'</span>':'';
+  if(on){
+   if(x.k==='hooks')right=stepper('hooks',1,4);
+   else if(x.k==='copy')right=stepper('copy',1,5);
+   else right='<span class="mono row-sub">'+qtyOf(x.k)+' '+t('selected','escolhidos')+'</span>';
+  }
+  var cfg='';
+  if(soon)cfg='<div class="vt-cfg"><span class="row-sub">'+t('When it ships, each variation becomes a creative under Waiting on you, with 3 scripts modeled on this one. Face, engine and video cost are chosen there.','Quando sair, cada variação vira um criativo em Esperando você, com 3 roteiros modelados neste. Rosto, motor e custo do vídeo são escolhidos lá.')+'</span></div>';
+  if(on){
+   if(x.k==='avatar'){
+    cfg='<div class="vt-cfg"><span class="row-sub">'+t('Pick the faces. One variation per face.','Escolha os rostos. Uma variação por rosto.')+'</span><div class="mfaces">'+
+     '<span class="mface orig" data-l="'+t('Original','Original')+'">'+art(c.tone,c.face,'f')+'</span>'+
+     [0,2,3,4].map(function(i){var p=S.faces.indexOf(i===0?0:i===2?1:i===3?2:3)>-1;var fi=i===0?0:i===2?1:i===3?2:3;return '<button class="mface" data-pickface="'+fi+'" aria-pressed="'+p+'" aria-label="'+t('Face','Rosto')+' '+(fi+1)+'">'+art(0,i,'f')+'<span class="pick">'+ic('check')+'</span></button>';}).join('')+
+     '</div><div><button class="btn sm ghost" data-toast="'+t('Generating 4 more faces (≈ 30 s)','Gerando mais 4 rostos (≈ 30 s)')+'">'+ic('refresh')+t('4 more faces','Mais 4 rostos')+'</button></div></div>';
+   }
+   if(x.k==='hooks')cfg='<div class="vt-cfg"><span class="row-sub">'+t('You read and edit the hooks in the next step, before anything is generated.','Você lê e edita os ganchos na próxima etapa, antes de qualquer geração.')+'</span></div>';
+   if(x.k==='copy')cfg='<div class="vt-cfg"><span class="row-sub">'+t('Each variation becomes a creative under Waiting on you, with 3 scripts modeled on this one. Face and engine are chosen there, and so is the video cost.','Cada variação vira um criativo em Esperando você, com 3 roteiros modelados neste. Rosto e motor são escolhidos lá, junto com o custo do vídeo.')+'</span></div>';
+   if(x.k==='layout')cfg='<div class="vt-cfg"><span class="row-sub">'+t('One variation per layout. Layouts that need a screen use the phone insert from block 3.','Uma variação por layout. Os layouts com tela usam o insert do celular do bloco 3.')+'</span><div class="lays">'+LAYS.map(function(l){
+     var curL=l[0]==='full';var p=S.lays.indexOf(l[0])>-1;
+     return '<button class="lay'+(curL?' cur':'')+'" '+(curL?'disabled':'data-picklay="'+l[0]+'"')+' aria-pressed="'+p+'"><span class="lf">'+l[2]+'</span>'+l[1]+(curL?' · '+t('current','atual'):'')+'</button>';
+    }).join('')+'</div></div>';
+  }
+  return '<div class="vt'+(on?' on':'')+(soon?' soon':'')+'"><div class="vt-top"><button class="cbx" role="checkbox" aria-checked="'+on+'" data-type="'+x.k+'"'+(soon?' disabled':'')+' aria-label="'+esc(x.title)+'">'+(on?ic('check'):'')+'</button><div class="vt-title"><b>'+x.title+'</b><span class="row-sub">'+x.desc+'</span><span class="keep" style="margin-top:6px">'+x.keep.map(function(k){return '<span class="tag">'+t('Keeps','Mantém')+' · '+k+'</span>';}).join('')+x.nw.map(function(k){return '<span class="tag new">'+t('New','Novo')+' · '+k+'</span>';}).join('')+'</span></div>'+right+'</div>'+cfg+'</div>';
+ }).join('');
+ var tv=totalVars();
+ var sum='<div class="panel"><h2>'+t('This batch','Este lote')+'</h2><ul class="sum">'+TYPES().map(function(x){
+  var a=active(x.k);return '<li class="'+(a?'':'off')+'"><span>'+x.title+'</span><span class="mono">'+(a?qtyOf(x.k):SOON[x.k]?t('soon','em breve'):'—')+'</span></li>';}).join('')+
+  '<li class="total"><span>'+t('Variations','Variações')+'</span><span class="mono">'+tv+'</span></li></ul><p class="row-sub">'+t('Cost comes next, before anything runs.','O custo vem na próxima etapa, antes de rodar qualquer coisa.')+'</p></div>';
+ var next=active('hooks')?'hooks':'estimate';
+ return '<div class="wz-body"><div class="wz-head"><div><h1>'+t('Variations','Variações')+'</h1><p class="sub">'+t('Pick one or more kinds and how many of each. One lever per variation, so you can tell what moved the result.','Escolha um ou mais tipos e quantas de cada. Uma alavanca por variação, pra saber o que mexeu no resultado.')+'</p></div></div>'+
+  '<div class="eng-grid"><div class="vts">'+cards+'</div>'+sum+'</div></div>'+
+  actionbar(tv+' '+t('variations','variações'),'teardown','<button class="btn primary" data-go="v-'+next+'"'+(next==='hooks'?' data-st="loading"':'')+(tv?'':' disabled')+'>'+t('Continue to '+stepName(next),'Próximo: '+stepName(next))+'</button>');
+}
+
+/* ---------- STEP 4 · HOOKS ---------- */
+function hookCard(h,i){
+ var ed=S.hookEdit===h.id;
+ var main=ed?'<textarea class="textarea" id="hk-'+h.id+'" rows="2" style="font-size:16px;font-weight:600">'+esc(h.spoken)+'</textarea>':'<p>'+esc(h.spoken)+'</p>';
+ var dl=ed?'<dl><dt>'+t('On-screen text','Texto na tela')+'</dt><dd><input class="input" id="hks-'+h.id+'" value="'+esc(h.screen)+'"></dd><dt>'+t('First frame','Primeiro frame')+'</dt><dd><input class="input" id="hkv-'+h.id+'" value="'+esc(h.visual)+'"></dd></dl>':
+  '<dl><dt>'+t('On-screen text','Texto na tela')+'</dt><dd>'+esc(h.screen)+'</dd><dt>'+t('First frame','Primeiro frame')+'</dt><dd>'+esc(h.visual)+'</dd><dt>'+t('Then','Depois')+'</dt><dd class="muted">'+t('Original body and CTA from 0:03','Corpo e CTA originais a partir de 0:03')+'</dd></dl>';
+ var foot=ed?'<button class="btn sm" data-hookedit="">'+t('Cancel','Cancelar')+'</button><span class="sp-r"></span><button class="btn sm primary" data-hookedit="" data-toast="'+t('Hook saved','Gancho salvo')+'">'+t('Save','Salvar')+'</button>':
+  '<button class="btn sm ghost" data-hookedit="'+h.id+'">'+ic('pencil')+t('Edit','Editar')+'</button><button class="btn sm ghost" data-toast="'+t('Rewriting hook '+(i+1)+'…','Reescrevendo o gancho '+(i+1)+'…')+'">'+ic('refresh')+t('Rewrite','Reescrever')+'</button><span class="sp-r"></span><button class="btn sm ghost" data-hookdel="'+h.id+'">'+ic('trash')+t('Remove','Remover')+'</button>';
+ return '<article class="hk"><div class="hk-top"><span class="mono" style="font-weight:500">'+t('Hook','Gancho')+' '+(i+1)+'</span><span class="tag">'+h.angle+'</span><span class="sp-r mono row-sub">0:00–0:03</span></div><div class="hk-main"><span class="step-lbl">'+t('Spoken','Falado')+'</span>'+main+'</div>'+dl+'<div class="hk-foot">'+foot+'</div></article>';
+}
+function vHooks(){
+ var st=stOf(),B=BLOCKS(),H=HOOKS().slice(0,S.qty.hooks).filter(function(h){return !S.hookGone[h.id];});
+ var orig='<article class="hk orig"><div class="hk-top"><span class="mono" style="font-weight:500">'+t('Original','Original')+'</span><span class="tag">'+t('Numeric contradiction','Contradição numérica')+'</span><span class="sp-r mono row-sub">0:00–0:03</span></div><div class="hk-main"><span class="step-lbl">'+t('Spoken','Falado')+'</span><p>'+esc(B[0].line)+'</p></div><dl><dt>'+t('On-screen text','Texto na tela')+'</dt><dd>'+esc(B[0].screen)+'</dd><dt>'+t('First frame','Primeiro frame')+'</dt><dd>'+esc(B[0].shows)+'</dd></dl><div style="height:10px"></div></article>';
+ var body;
+ if(st==='loading'){
+  body='<div class="think" role="status"><div class="orb" aria-hidden="true"><i></i><i></i><i></i></div><div style="display:grid;gap:10px"><b>'+t('Writing hooks · 1 of 3 done','Escrevendo ganchos · 1 de 3 pronto')+'</b><ul class="checklist"><li class="done">'+ic('check')+t('Read the teardown and your corrections','Leu o diagnóstico e suas correções')+'</li><li class="done">'+ic('check')+t('Hook 1 (authority swap)','Gancho 1 (troca de autoridade)')+'</li><li class="now"><span class="sp"></span>'+t('Hook 2 (direct question)','Gancho 2 (pergunta direta)')+'</li><li><span class="q"></span>'+t('Hook 3','Gancho 3')+'</li></ul><span class="row-sub">'+t('Usually under 30 seconds.','Costuma levar menos de 30 segundos.')+'</span></div></div>'+
+   '<div class="hooks">'+orig+hookCard(HOOKS()[0],0)+'<article class="hk"><div class="hk-top"><span class="mono" style="font-weight:500">'+t('Hook','Gancho')+' 2</span><span class="tag">'+HOOKS()[1].angle+'</span></div><div class="hk-main"><span class="step-lbl">'+t('Spoken','Falado')+'</span><p class="stream">'+esc(HOOKS()[1].spoken.slice(0,34))+'</p></div><div style="padding:14px;display:grid;gap:8px"><span class="sk" style="height:10px;width:70%"></span><span class="sk" style="height:10px;width:55%"></span></div></article></div>';
+ } else {
+  body='<div class="hooks">'+orig+H.map(hookCard).join('')+'</div>'+(H.length<4?'<div><button class="btn" data-hookadd>'+ic('plus')+t('Write one more hook','Escrever mais um gancho')+'</button></div>':'');
+ }
+ return '<div class="wz-body"><div class="wz-head"><div><h1>'+t('Hooks','Ganchos')+'</h1><p class="sub">'+t('New first 3 seconds, same body and CTA. Each hook has three layers: what is said, what is written and the first frame. Nothing is generated until the Estimate.','Novos 3 primeiros segundos, mesmo corpo e CTA. Cada gancho tem três camadas: o que se fala, o que se lê e o primeiro frame. Nada é gerado antes da Estimativa.')+'</p></div>'+(st==='ready'?'<button class="btn" data-proto="loading">'+ic('refresh')+t('Rewrite all','Reescrever todos')+'</button>':'')+'</div>'+body+'</div>'+
+  actionbar(st==='ready'?H.length+' '+t('hooks approved','ganchos aprovados'):'','types','<button class="btn primary" data-go="v-estimate"'+(st==='ready'&&H.length?'':' disabled')+'>'+t('Continue to Estimate','Próximo: Estimativa')+'</button>');
+}
+
+/* ---------- STEP 5 · ESTIMATE ---------- */
+function vEstimate(){
+ var st=stOf(),cap=300,spent=st==='cap'?298.4:48.2,tot=totalCost(),over=spent+tot>cap;
+ var rows=TYPES().filter(function(x){return active(x.k);}).map(function(x){
+  var q=qtyOf(x.k),each=PRICE[x.k];
+  var note='';
+  if(x.k==='copy')note='<span class="note">'+t('Scripts only. The video is priced in each creative’s Engine step (Kling, Seedance or lipsync), with its own OK.','Só os roteiros. O vídeo é cobrado na etapa Motor de cada criativo (Kling, Seedance ou lipsync), com OK próprio.')+'</span>';
+  if(x.k==='avatar')note='<span class="note">'+t('Face image + lipsync on 29 s of the original voice.','Imagem do rosto + lipsync em 29 s da voz original.')+'</span>';
+  if(x.k==='hooks')note='<span class="note">'+t('3 s of new footage + voice on the same face; the rest is reused.','3 s de imagem nova + voz no mesmo rosto; o resto é reaproveitado.')+'</span>';
+  if(x.k==='layout')note='<span class="note">'+t('Render only. Nothing is generated.','Só render. Nada é gerado.')+'</span>';
+  return '<div class="tr-row"><span class="cell-name"><b style="font-weight:500">'+x.title+'</b></span><span class="r c-qty">×'+q+'</span><span class="r c-each">'+money(each)+'</span><span class="r c-time">'+x.time+'</span><span class="r c-sub">'+money(q*each)+'</span>'+note+'</div>';
+ }).join('');
+ var tbl='<div class="tbl"><div class="tr-row th"><span>'+t('Variation','Variação')+'</span><span class="r">'+t('Qty','Qtd')+'</span><span class="r">'+t('Each','Cada')+'</span><span class="r">'+t('Time','Tempo')+'</span><span class="r">'+t('Subtotal','Subtotal')+'</span></div>'+rows+
+  '<div class="tr-row tot"><span>'+t('Total now','Total agora')+' · '+totalVars()+' '+t('variations','variações')+'</span><span class="c-qty"></span><span class="c-each"></span><span class="r c-time">'+t('≈ 12 min, in parallel','≈ 12 min, em paralelo')+'</span><span class="r c-sub">'+money(tot)+'</span></div></div>';
+ var pctS=Math.min(100,spent/cap*100),pctA=Math.min(100-pctS,tot/cap*100);
+ var spend='<div class="panel"><h2>'+t('Monthly spend','Gasto do mês')+'</h2><div class="cap-bar" aria-hidden="true"><b style="width:'+pctS+'%"></b><b class="'+(over?'over':'add')+'" style="width:'+Math.max(pctA,over?100-pctS:0)+'%"></b></div><ul class="sum"><li><span>'+t('Spent so far','Gasto até agora')+'</span><span class="mono">'+money(spent)+'</span></li><li><span>'+t('This batch','Este lote')+'</span><span class="mono">'+money(tot)+'</span></li><li class="total"><span>'+t('After the batch','Depois do lote')+'</span><span class="mono" style="'+(over?'color:var(--red)':'')+'">'+money(spent+tot)+' / '+money(cap)+'</span></li></ul></div>';
+ var warn=over?banner('err','alert',t('This batch goes past the monthly cap','Este lote passa do teto do mês'),t('You have '+money(cap-spent)+' left of '+money(cap)+'. Remove a few variations, or raise the cap in Settings.','Sobram '+money(cap-spent)+' de '+money(cap)+'. Tire algumas variações ou aumente o teto em Configurações.'),'<button class="btn sm" data-go="v-types">'+t('Change variations','Mudar variações')+'</button><button class="btn sm ghost" data-toast="'+t('Opens Settings · Spend','Abre Configurações · Gastos')+'">'+t('Raise the cap','Aumentar o teto')+'</button>'):'';
+ return '<div class="wz-body"><div class="wz-head"><div><h1>'+t('Estimate','Estimativa')+'</h1><p class="sub">'+t('What this batch costs and how long it takes, before anything runs. Prices come from the providers; the final cost of each variation is shown on its review.','Quanto este lote custa e quanto demora, antes de rodar qualquer coisa. Os preços vêm dos fornecedores; o custo final de cada variação aparece na revisão dela.')+'</p></div></div>'+warn+
+  '<div class="eng-grid"><div class="stack">'+tbl+'<div class="memo">'+ic('info')+'<span>'+t('Runs in the background. Each variation becomes its own creative and goes through the Final OK before it reaches the Library.','Roda em segundo plano. Cada variação vira um criativo próprio e passa pelo OK final antes de ir pra Biblioteca.')+'</span></div></div>'+spend+'</div></div>'+
+  actionbar(over?'':t('Total now','Total agora')+' '+money(tot)+' · '+totalVars()+' '+t('variations','variações'),active('hooks')?'hooks':'types','<button class="btn primary" data-start'+(over?' disabled':'')+'>'+t('Approve and start batch','Aprovar e rodar o lote')+'</button>');
+}
+
+/* ---------- STEP 6 · BATCH ---------- */
+function vBatch(){
+ var st=stOf(),V=VARS().filter(function(v){return active(v.k)&&(v.k!=='hooks'||!S.hookGone[v.id]);});
+ var counts={ready:0,fail:0,gen:0};
+ V.forEach(function(v){var s=v.s[st];if(s==='ready')counts.ready++;else if(s==='fail')counts.fail++;else if(s==='gen'||s==='queued')counts.gen++;});
+ var done=st==='ready';
+ var title=done?t('All variations finished','Todas as variações terminaram'):t(counts.ready+' of '+V.length+' ready','Prontas: '+counts.ready+' de '+V.length)+(counts.fail?' · '+t(counts.fail+' failed',counts.fail+' falhou'):'');
+ var pct=Math.round((counts.ready+(done?0:counts.gen*0.45))/V.length*100);
+ var top='<div class="panel"><div class="prog"><div class="panel-head"><b>'+title+'</b><span class="row-sub mono">'+(done?t('Took 11 min · ','Levou 11 min · ')+money(totalCost())+t(' spent',' gastos'):t('About 6 min left · started 6 min ago','Faltam uns 6 min · começou há 6 min'))+'</span></div><div class="prog-bar'+(done?' ok':'')+'"><b style="width:'+(done?100:pct)+'%"></b></div></div>'+
+  (done?'':'<div class="memo">'+ic('info')+'<span>'+t('You can close this page. Each variation shows up under <b>Waiting on you</b> as soon as it is ready.','Pode fechar esta página. Cada variação aparece em <b>Esperando você</b> assim que fica pronta.')+'</span></div>')+'</div>';
+ var groups=['avatar','hooks','copy','layout'].filter(active).map(function(k){
+  var rows=V.filter(function(v){return v.k===k;}).map(function(v){
+   var s=v.s[st],th,side,extra='';
+   if(s==='ready'){th=thumb(v.tone,v.face,true,k==='layout'?'':'');side=chip('waiting',t('Ready for review','Pronta pra revisar'))+'<button class="btn sm" data-review="'+v.id+'">'+t('Review','Revisar')+ic('arrowr')+'</button>';}
+   else if(s==='gen'){th='<div class="gen-thumb"><canvas class="genfx" data-seed="'+v.id.charCodeAt(1)+'" width="48" height="86"></canvas></div>';side=chip('progress',v.step||t('Generating','Gerando'));}
+   else if(s==='queued'){th='<div class="gen-thumb"><span class="faint mono" style="font-size:11px">'+v.id.slice(1)+'</span></div>';side=chip('draft',t('Queued','Na fila'))+'<span class="row-sub">'+t('Starts after Hook 2','Começa depois do Gancho 2')+'</span>';}
+   else if(s==='waiting'){th=thumb(v.tone,v.face,false);side=chip('waiting',t('Pick a script','Escolher roteiro'))+'<button class="btn sm" data-toast="'+t('Opens the creative wizard at Scripts (v1)','Abre o wizard do criativo em Roteiros (v1)')+'">'+t('Open in wizard','Abrir no wizard')+ic('arrowr')+'</button>';}
+   else {th='<div class="gen-thumb" style="border-color:rgba(255,97,102,.35)"><span style="color:var(--red)">'+ic('alert')+'</span></div>';side=chip('failed',t('Failed','Falhou'))+'<button class="btn sm" data-proto="ready">'+ic('refresh')+t('Regenerate','Refazer')+'</button>';
+    extra='<span class="row-sub" style="color:var(--red)">'+t('Lipsync lost the face between 0:01 and 0:02 (the thumb covers the mouth in the first frame). Regenerate, or edit the first frame in Hooks.','O lipsync perdeu o rosto entre 0:01 e 0:02 (o dedo cobre a boca no primeiro frame). Refaça ou edite o primeiro frame em Ganchos.')+'</span>';}
+   return '<div class="vrow'+(s==='gen'?' beam':'')+(s==='fail'?' fail':'')+'">'+th+'<div class="vrow-body"><b class="ell" style="font-weight:500">'+esc(v.name)+'</b><span class="row-sub ell">'+esc(v.change)+'</span>'+extra+'</div><div class="vrow-side">'+side+'</div></div>';
+  }).join('');
+  return '<section class="vgroup"><div class="sec-row"><h2 style="font-size:14px">'+typeTitle(k)+'<span class="count">'+V.filter(function(v){return v.k===k;}).length+'</span></h2></div><div class="vrows">'+rows+'</div></section>';
+ }).join('');
+ return '<div class="wz-body"><div class="wz-head"><div><h1>'+t('Batch','Lote')+'</h1><p class="sub">'+t('Variations of ','Variações de ')+esc(champ().name)+'. '+t('Each one is a normal creative: review it, approve it, and it lands in the Library marked as a variation.','Cada uma é um criativo normal: revise, aprove, e ela cai na Biblioteca marcada como variação.')+'</p></div><button class="btn" data-go="home">'+ic('left')+t('Back to Home','Voltar pro Início')+'</button></div>'+top+groups+'</div>'+
+  actionbar(done?t('Approved variations go to the Library','Variações aprovadas vão pra Biblioteca'):'',null,'<button class="btn primary" data-review="h1"'+(counts.ready?'':' disabled')+'>'+t('Review the first ready one','Revisar a primeira pronta')+'</button>');
+}
+
+/* ---------- REVIEW (the variation's Final OK, same as v1) ---------- */
+function curVar(){return VARS().filter(function(v){return v.id===S.review;})[0]||VARS()[2];}
+function vReview(){
+ var st=stOf('review'),v=curVar(),c=champ(),orig=S.cmp==='orig';
+ var o=orig?{lg:true}:{lg:true,tone:v.tone,face:v.face,band:v.k==='layout'&&v.id==='l1'?BLOCKS()[0].screen:(v.k==='hooks'?HOOKS()[+v.id.slice(1)-1].screen:null),split:v.id==='l2'};
+ var cmp='<div style="display:flex;justify-content:center">'+seg('cmp',[['var',t('Variation','Variação')],['orig',t('Original','Original')]],S.cmp,t('Compare','Comparar'))+'</div>';
+ var meta='<div class="final-meta"><div style="display:grid;gap:4px;min-width:0"><h2>'+esc(c.short)+' · '+esc(v.name)+'</h2><span class="vline">'+ic('branch')+'<span>'+t('Variation of ','Variação de ')+esc(c.short)+' · '+typeTitle(v.k)+'</span></span><div class="facts"><span>Orbit Budget</span><span>'+esc(v.change)+'</span><span class="mono">0:29 · 9:16</span><span class="mono">'+money(PRICE[v.k])+'</span></div></div>'+
+  '<div class="final-actions"><button class="btn lg" data-proto="changes">'+t('Request changes','Pedir ajustes')+'</button><button class="btn lg primary" data-approve>'+ic('check')+t('Approve','Aprovar')+'</button></div></div>';
+ var ch='';
+ if(st==='changes'){
+  var L=[['regen',t('Regenerate this variation','Refazer esta variação'),t('Same settings, new take. About '+money(PRICE[v.k])+' · 3 min.','Mesmas configurações, nova tentativa. Cerca de '+money(PRICE[v.k])+' · 3 min.')],
+   ['text',t('Change the hook text','Mudar o texto do gancho'),t('Edit the spoken line or the on-screen text, then only the first 3 s regenerate.','Edite a fala ou o texto na tela; só os 3 primeiros segundos são refeitos.')],
+   ['edit',t('Change captions or CTA','Mudar legenda ou CTA'),t('Goes to Edit. No new generation.','Vai pra Edição. Sem geração nova.')]];
+  ch='<div class="panel"><div class="panel-head"><h2>'+t('What should change?','O que precisa mudar?')+'</h2><button class="btn sm ghost" data-proto="ready">'+ic('x')+t('Close','Fechar')+'</button></div><div class="changes" role="radiogroup">'+L.map(function(x){return '<div class="chg" role="radio" tabindex="0" aria-checked="'+(S.chg===x[0])+'" data-chg="'+x[0]+'"><div class="chg-top"><span class="radio"></span><span class="opt-body"><b>'+x[1]+'</b><span class="row-sub">'+x[2]+'</span></span></div></div>';}).join('')+'</div><div style="display:flex;justify-content:flex-end"><button class="btn primary" data-go="v-batch" data-st="loading">'+t('Send back','Mandar de volta')+'</button></div></div>';
+ }
+ return '<div class="page" style="max-width:1000px"><div><button class="btn ghost sm" data-go="v-batch">'+ic('left')+t('Back to batch','Voltar pro lote')+'</button></div><div class="final">'+cmp+'<div class="stage">'+player(o)+'</div>'+meta+ch+'</div></div>';
+}
+
+/* ---------- LIBRARY ---------- */
+function renderLibrary(){
+ var c=t('Orbit — the $9 question','Orbit — a pergunta dos R$ 29');
+ var items=[
+  {name:c,offer:'Orbit Budget',sub:'Kling 3.0 · 0:29',w:true,tone:0,face:1,nv:3},
+  {name:c+' · '+layName('band'),offer:'Orbit Budget',sub:t('Re-edit · 0:29','Remontagem · 0:29'),vt:t('Layout','Layout'),tone:0,face:1,band:true},
+  {name:t('Quiet Mind — commute','Quiet Mind — no trânsito'),offer:'Quiet Mind 21',sub:'Lipsync · 0:26',tone:2,face:0},
+  {name:t('Orbit — bank alert','Orbit — alerta do banco'),offer:'Orbit Budget',sub:'Seedance · 0:22',w:true,tone:3,face:2,nv:0},
+  {name:t('Quiet Mind — sunday dread','Quiet Mind — angústia de domingo'),offer:'Quiet Mind 21',sub:'Kling 3.0 · 0:31',w:true,tone:1,face:3}
+ ];
+ if(S.libNew){var v=curVar();items.unshift({name:c+' · '+v.name,offer:'Orbit Budget',sub:typeTitle(v.k)+' · 0:29',vt:typeTitle(v.k),tone:v.tone,face:v.face,isNew:true});}
+ var f=S.libFilter;
+ items=items.filter(function(i){return f==='all'||(f==='var'&&i.vt)||(f==='orig'&&!i.vt);});
+ var head='<div class="page-head"><div><h1>'+t('Library','Biblioteca')+'</h1><p class="sub">'+t('Approved creatives. Mark winners, and vary any of them: the variations come back here tied to the original.','Criativos aprovados. Marque os vencedores e varie qualquer um: as variações voltam pra cá ligadas ao original.')+'</p></div></div>';
+ var filters='<div class="sec-row">'+seg('libFilter',[['all',t('All','Todos')],['orig',t('Originals','Originais')],['var',t('Variations','Variações')]],f)+'<span class="row-sub">'+t('All offers','Todas as ofertas')+'</span></div>';
+ var grid='<div class="lib-grid">'+items.map(function(i){
+  var badges=(i.w?'<span class="win">'+t('Winner','Vencedor')+'</span>':'')+(i.isNew?'<span class="win new">'+t('New','Novo')+'</span>':'')+(i.vt?'<span class="win var">'+t('Variation','Variação')+'</span>':'');
+  return '<div class="lcard'+(i.isNew?' new':'')+'">'+thumb(i.tone,i.face,true,badges)+'<div class="lcard-row"><div class="row-col"><span class="ell" style="font-weight:500">'+esc(i.name)+'</span><span class="row-sub">'+i.offer+' · <span class="num">'+i.sub+'</span></span>'+
+   (i.vt?'<span class="vline">'+ic('branch')+'<span>'+t('Variation of ','Variação de ')+esc(c)+' · '+i.vt+'</span></span>':(i.nv?'<span class="vline">'+ic('branch')+'<span>'+i.nv+' '+t('variations','variações')+'</span></span>':''))+
+   '</div><div class="lcard-acts"><button class="btn sm" data-vary aria-label="'+t('Vary','Variar')+'">'+ic('branch')+t('Vary','Variar')+'</button><button class="star" aria-pressed="'+!!i.w+'" aria-label="'+t('Mark as winner','Marcar como vencedor')+'">'+ic('star')+'</button></div></div></div>';
+ }).join('')+'</div>';
+ return '<div class="page">'+head+filters+grid+'</div>';
+}
+
+/* ---------- render + routing ---------- */
+var timers=[];
+function renderFlow(){
+ var m={source:vSource,teardown:vTeardown,types:vTypes,hooks:vHooks,estimate:vEstimate,batch:vBatch}[cur()];
+ return '<div class="wz">'+rail()+'<div class="wz-main">'+mobileSteps()+m()+'</div></div>';
+}
+function render(){
+ timers.forEach(clearInterval);timers=[];stopFx();
+ document.documentElement.lang=S.lang==='pt'?'pt-BR':'en';
+ renderProto();renderHeader();
+ var main=document.getElementById('main');
+ main.innerHTML=S.screen==='home'?renderHome():S.screen==='library'?renderLibrary():S.screen==='review'?vReview():renderFlow();
+ startFx();
+ var st=stOf();
+ if(S.screen==='v-source'&&st==='uploading')timers.push(setInterval(function(){S.upPct+=3;if(S.upPct>=100){S.upPct=64;S.st['v-source']='ready';render();return;}var b=document.getElementById('upbar'),p=document.getElementById('uppct');if(b)b.style.width=S.upPct+'%';if(p)p.textContent=S.upPct+'%';},300));
+ if(S.screen==='v-source'&&st==='linkload')timers.push(setInterval(function(){S.st['v-source']='linkerr';render();},2600));
+ if(S.screen==='v-teardown'&&st==='loading')timers.push(setInterval(function(){S.anPct+=1;if(S.anPct>=100){S.anPct=58;S.st['v-teardown']='ready';S.openSec={hook:true};toast(t('Teardown ready','Diagnóstico pronto'));render();return;}var b=document.getElementById('anbar'),f=document.getElementById('anfr'),f2=document.getElementById('anfr2');if(b)b.style.width=S.anPct+'%';if(f)f.textContent=t('Reading frame ','Lendo frame ')+Math.round(870*S.anPct/100)+' / 870';if(f2)f2.textContent=Math.round(870*S.anPct/100)+' / 870';},350));
+ if(S.screen==='v-hooks'&&st==='loading')timers.push(setInterval(function(){S.st['v-hooks']='ready';render();},3200));
+ if(S.playing)startPlay();
+}
+function go(h,st){
+ S.screen=h;
+ if(st)S.st[h]=st;
+ S.stepsOpen=false;S.editSec=null;S.hookEdit=null;S.playing=false;S.t=0;
+ try{if(location.hash.slice(1)!==h)history.replaceState(null,'','#'+h);}catch(e){}
+ render();window.scrollTo(0,0);
+}
+function startPlay(){
+ timers.push(setInterval(function(){
+  var dur=champ().dur;S.t+=0.1;if(S.t>=dur)S.t=0;
+  var b=document.getElementById('scrub'),p=document.getElementById('ptime'),c=document.getElementById('cap'),ph=document.getElementById('ph');
+  if(b)b.style.width=(S.t/dur*100)+'%';if(p)p.textContent=fmt(S.t)+' / '+fmt(dur);if(c)c.innerHTML=capAt(S.t);if(ph)ph.style.left=(S.t/dur*100)+'%';
+  var B=BLOCKS();for(var i=0;i<B.length;i++){if(S.t>=B[i].s&&S.t<B[i].e&&S.block!==i&&S.screen==='v-teardown'){S.block=i;var keepT=S.t;render();S.t=keepT;return;}}
+ },100));
+}
+/* image-generation stand-in (libraries.dev), only in waiting states */
+var fxRaf=null;
+function stopFx(){if(fxRaf)cancelAnimationFrame(fxRaf);fxRaf=null;}
+function startFx(){
+ var cs=[].slice.call(document.querySelectorAll('canvas.genfx'));if(!cs.length)return;
+ var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ var t0=performance.now();
+ function draw(now){
+  var tt=(now-t0)/1000;
+  cs.forEach(function(c){
+   var x=c.getContext('2d'),w=c.width,h=c.height,seed=+c.dataset.seed;
+   var phase=((tt*0.35+seed*0.21)%1);var bs=Math.max(3,Math.round(14-phase*11));
+   for(var yy=0;yy<h;yy+=bs){for(var xx=0;xx<w;xx+=bs){
+    var dx=(xx-w/2)/(w*0.28),dy=(yy-h*0.45)/(h*0.24);var face=Math.max(0,1-(dx*dx+dy*dy));
+    var body=yy>h*0.68?Math.max(0,1-Math.abs(xx-w/2)/(w*0.42)):0;
+    var n=Math.sin(xx*12.9898+yy*78.233+seed*37+Math.floor(tt*6))*43758.5453;n=n-Math.floor(n);
+    var v=Math.round(18+n*28*(1-phase)+face*120*phase+body*60*phase);
+    x.fillStyle='rgb('+v+','+v+','+Math.min(255,v+6)+')';x.fillRect(xx,yy,bs,bs);
+   }}
+  });
+  if(!reduce)fxRaf=requestAnimationFrame(draw);
+ }
+ fxRaf=requestAnimationFrame(draw);
+}
+function toast(msg){var el=document.getElementById('toast');el.innerHTML=ic('check')+'<span>'+esc(msg)+'</span>';el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){el.hidden=true;},2400);}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(ev){
+ if(ev.target.closest('input,textarea,select'))return;
+ var el=ev.target.closest('button,[data-chg]');if(!el||el.disabled)return;
+ var d=el.dataset;
+ if(d.proto){
+  if(S.screen==='v-source'){S.fromLib=d.proto==='library';if(S.fromLib)S.owner='mine';}
+  if(S.screen==='v-teardown'&&d.proto==='ready')S.openSec={hook:true};
+  S.st[S.screen]=d.proto;render();return;
+ }
+ if(d.fresh!==undefined){S.st={};S.owner='mine';S.fromLib=false;S.edited={};S.hookGone={};}
+ if(d.go){
+  if(['offers','settings'].indexOf(d.go)>-1){toast(t('Same as the wizard v1 mockup','Igual ao mockup do wizard v1'));return;}
+  if(d.go==='v-teardown'&&d.st==='ready')S.openSec={hook:true};
+  go(d.go,d.st);return;
+ }
+ if(d.vary!==undefined){S.st={};S.owner='mine';S.fromLib=true;S.edited={};S.hookGone={};go('v-source','library');return;}
+ if(d.review){S.review=d.review;S.cmp='var';go('review','ready');return;}
+ if(d.mtoggle!==undefined){S.stepsOpen=!S.stepsOpen;render();return;}
+ if(d.set){S[d.set]=d.val;render();return;}
+ if(d.mine!==undefined){S.owner=S.owner==='mine'?'third':'mine';render();return;}
+ if(d.block){S.block=+d.block;S.t=BLOCKS()[S.block].s+0.01;render();return;}
+ if(d.play!==undefined){S.playing=!S.playing;render();return;}
+ if(d.sec){S.openSec[d.sec]=!S.openSec[d.sec];if(!S.openSec[d.sec]&&S.editSec===d.sec)S.editSec=null;render();return;}
+ if(d.editsec!==undefined){S.editSec=d.editsec||null;render();return;}
+ if(d.savesec){S.edited[d.savesec]=true;S.editSec=null;toast(t('Saved. Variations will use your version.','Salvo. As variações usam a sua versão.'));render();return;}
+ if(d.type){S.on[d.type]=!S.on[d.type];render();return;}
+ if(d.qty){var k=d.qty,n=S.qty[k]+(+d.d);S.qty[k]=Math.max(1,Math.min(k==='hooks'?4:5,n));if(k==='hooks')S.hookGone={};render();return;}
+ if(d.pickface){var fi=+d.pickface,ix=S.faces.indexOf(fi);if(ix>-1){if(S.faces.length>1)S.faces.splice(ix,1);}else S.faces.push(fi);render();return;}
+ if(d.picklay){var li=S.lays.indexOf(d.picklay);if(li>-1){if(S.lays.length>1)S.lays.splice(li,1);}else S.lays.push(d.picklay);render();return;}
+ if(d.hookedit!==undefined){S.hookEdit=d.hookedit||null;if(d.toast)toast(d.toast);render();return;}
+ if(d.hookdel){S.hookGone[d.hookdel]=true;render();return;}
+ if(d.hookadd!==undefined){if(S.qty.hooks<4)S.qty.hooks++;toast(t('Hook '+S.qty.hooks+' written','Gancho '+S.qty.hooks+' escrito'));render();return;}
+ if(d.start!==undefined){S.st['v-batch']='loading';go('v-batch');toast(t('Batch started. You can leave this page.','Lote iniciado. Pode sair desta página.'));return;}
+ if(d.chg){S.chg=d.chg;render();return;}
+ if(d.approve!==undefined){S.libNew=true;S.libFilter='all';go('library');toast(t('Approved. Saved to Library as a variation.','Aprovado. Salvo na Biblioteca como variação.'));return;}
+ if(d.toast){toast(d.toast);return;}
+});
+document.addEventListener('keydown',function(ev){
+ if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('[data-chg]')){ev.preventDefault();ev.target.click();}
+});
+
+var valid=['home','library','review'].concat(VSTEPS.map(function(s){return 'v-'+s[0];}));
+var h=(location.hash||'').slice(1);
+go(valid.indexOf(h)>-1?h:'v-source');
+})();
+</script>

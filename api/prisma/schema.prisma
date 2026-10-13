@@ -1,0 +1,1069 @@
+// HookMill: schema do banco (contrato v1, 2026-10-05; feature 2 "variar campeão", 2026-10-06; variação automática v1, 2026-10-13)
+// Dono: maquina-arquiteto. Mudou algo aqui? Atualize docs/contratos/modelo-de-dados.md e avise os afetados.
+// Prisma 6.x (mesmo do modelhub). Supabase: DATABASE_URL = pooler transação 6543 (?pgbouncer=true),
+// DIRECT_URL = pooler sessão 5432 (usada pelo prisma migrate). Local: Postgres 17 do scripts/infra.mjs.
+// Convenções: id cuid; tabelas e colunas em snake_case via @map; dinheiro em USD Decimal(12,4);
+// tempo de mídia em segundos Decimal(8,3); todo registro de negócio carrega workspace_id.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ───────────────────────────── enums ─────────────────────────────
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  CLIENT // fase 2 (fase2-agencia.md §4): cliente final da agência. Lê, aprova, baixa; não gasta nem configura
+}
+
+// fase 2: define o resultado padrão (derivado, não salvo): ONLINE_STORE → PURCHASES, LOCAL_BUSINESS → LEADS, APP → INSTALLS
+enum BusinessType {
+  ONLINE_STORE
+  LOCAL_BUSINESS
+  APP
+}
+
+enum UiLocale {
+  EN
+  PT_BR
+}
+
+// Estado único do criativo. Etapa (step) e chip de status são DERIVADOS dele
+// (tabela em modelo-de-dados.md). Só o CreativeStateMachine do backend escreve aqui.
+enum CreativeState {
+  SCRIPTS_WRITING
+  SCRIPTS_READY
+  SCRIPTS_FAILED
+  AVATAR_PENDING
+  FACES_GENERATING
+  FACES_READY
+  FACES_FAILED
+  ENGINE_PENDING
+  SCENES_GENERATING
+  SCENES_FAILED
+  EDIT_PENDING
+  RENDERING
+  RENDER_FAILED
+  RENDER_READY
+  APPROVED
+}
+
+enum Engine {
+  SCENES // Kling 3.0 / Seedance, áudio nativo, image-to-video a partir do rosto
+  LIPSYNC // rosto + TTS + lipsync (Pruna)
+}
+
+enum VideoFormat {
+  VERTICAL_9_16
+  PORTRAIT_4_5
+  SQUARE_1_1
+}
+
+enum ScriptStatus {
+  WRITING
+  READY
+  FAILED
+}
+
+enum AssetStatus {
+  QUEUED
+  GENERATING
+  READY
+  FAILED
+}
+
+enum JobType {
+  OFFER_EXTRACT
+  SCRIPTS_GENERATE
+  SCRIPT_REGENERATE
+  CHAMPION_RESOLVE // feature 2: link da Ad Library → metadados + vídeo
+  CHAMPION_ANALYZE // feature 2: áudio → transcrição → medição → teardown (Claude)
+  VARIATIONS_PLAN // feature 2: Claude planeja os itens do lote
+  VARIATION_ITEM_REGENERATE // feature 2: regera um item do plano
+  AUTO_PLAN // variacao-auto-v1 §3.1: captura da página → Claude (planAutoBatch) → validação/reparo
+  ZIP_BUILD // variacao-auto-v1 §5.1: zip do lote AUTO (2 pastas + README)
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  PARTIAL // terminou com parte do resultado (ex.: 2 de 4 roteiros)
+  FAILED
+}
+
+enum Provider {
+  ANTHROPIC
+  WAVESPEED
+  HIGGSFIELD // rosto (Soul V2), desde 06/10
+  APIFY // feature 2: link da Ad Library (actor do ad-radar)
+}
+
+enum ProviderTaskKind {
+  FACE_IMAGE
+  SCENE_VIDEO // Kling/Seedance com áudio nativo
+  TTS
+  LIPSYNC
+  TRANSCRIBE // tempos por palavra pra legenda
+  LIPSYNC_VIDEO // §13.15: lipsync vídeo-a-vídeo (boca do clipe no áudio do campeão; ex. sync/lipsync-2)
+}
+
+enum ProviderTaskStatus {
+  SUBMITTED
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum RenderStatus {
+  QUEUED
+  RENDERING
+  READY
+  FAILED
+}
+
+enum FileKind {
+  FACE_IMAGE
+  SCENE_CLIP
+  SCENE_AUDIO
+  RENDER_VIDEO
+  THUMBNAIL
+  CHAMPION_VIDEO // feature 2: vídeo do campeão (upload ou baixado da Ad Library)
+  CHAMPION_AUDIO // feature 2: áudio extraído do campeão (m4a mono 44,1 kHz)
+  CHAMPION_FRAME // feature 2: frame-chave do teardown
+  RENDER_IMAGE // variacao-auto-v1: PNG do STATIC
+  PAGE_CAPTURE // variacao-auto-v1 §7.5: print da página (SPLIT-LP)
+  ZIP_ARCHIVE // variacao-auto-v1 §8: zip do lote AUTO (apagado em 72 h)
+  PRODUCT_IMAGE // variacao-auto-v1 D4: foto opcional do produto na oferta (reserva do SPLIT-LP)
+}
+
+enum CostKind {
+  LLM // Claude
+  IMAGE
+  VIDEO
+  TTS
+  LIPSYNC
+  TRANSCRIBE
+  SCRAPE // feature 2: Apify
+}
+
+enum ChangeType {
+  SCENE // refazer uma cena
+  TEXT // legenda, headline ou CTA (volta pro Edit, sem custo)
+  LINE // reescrever uma fala (regera a cena da fala)
+  FACE // outro rosto (regera tudo)
+}
+
+// ── feature 2: variar campeão (docs/contratos/feature-2-variar-campeao.md) ──
+
+enum ChampionStatus {
+  RESOLVING // buscando o anúncio pelo link da Ad Library
+  ANALYZING // teardown em andamento
+  READY
+  FAILED
+}
+
+// Declaração do usuário sobre o anúncio. Só registro: NÃO trava nenhum tipo de variação (decisão do Gusta, 06/10).
+enum ChampionRights {
+  OWN
+  THIRD_PARTY
+}
+
+enum VariationKind {
+  SWAP_AVATAR // mesma copy (e áudio original, se escolhido), rosto novo
+  NEW_HOOKS // só os ~3 s do gancho mudam; corpo e CTA literais
+  COPY_NEW // roteiro novo na estrutura do campeão (pós-10/10)
+  REMIX_EDIT // mesmo conteúdo, outro layout (pós-10/10)
+  AUTO_EDIT // variacao-auto-v1: peça do lote automático (tipo/código em VariationItem.autoType/code e Creative.variationCode)
+}
+
+// §13.13 (07/10): elenco das variações. DIVERSE = cada elenco bem diferente dos outros e do original; MATCH_ORIGINAL = perfil do original.
+enum CastingStyle {
+  DIVERSE
+  MATCH_ORIGINAL
+}
+
+enum VariationBatchStatus {
+  PLANNING
+  PLAN_READY
+  PLAN_FAILED
+  LAUNCHED // final: os criativos existem; progresso é derivado deles
+  ANALYZING // variacao-auto-v1 §3.1 (só AUTO): campeão em análise
+  ANALYSIS_FAILED // variacao-auto-v1 §3.1 (só AUTO): leitura, Brain ou plano falharam (failStage)
+}
+
+// ── variação automática v1 (docs/contratos/variacao-auto-v1.md) ──
+
+enum BatchMode {
+  MANUAL // feature 2 (lote com plano revisável)
+  AUTO // variacao-auto-v1: a IA decide o lote
+}
+
+enum AutoVariationType {
+  CUT
+  COLD_OPEN
+  HOOK_TEXT
+  ENDCARD
+  SPLIT_LP
+  STORY
+  REVIEW
+  NATIVE_SEARCH
+  STATIC
+}
+
+// Fixo por tipo (§6.1): ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo"
+enum VariationAxis {
+  ITERATION
+  DIVERSITY
+}
+
+enum CreativeOrigin {
+  SCRATCH
+  VARIATION
+}
+
+enum VoiceSource {
+  CATALOG // voz do catálogo (TTS)
+  CHAMPION_AUDIO // trecho do áudio original do campeão vai pro lipsync
+  ENGINE_VOICE // §13.15 (08/10): Kling/Seedance falam a copy com voz própria; áudio final montado
+}
+
+enum ScenePipeline {
+  SCENE_VIDEO // Kling/Seedance com áudio nativo → TRANSCRIBE
+  TTS_LIPSYNC // TTS → LIPSYNC → TRANSCRIBE
+  AUDIO_LIPSYNC // trecho do áudio do campeão → LIPSYNC (words do teardown, sem TRANSCRIBE)
+  SOURCE_CUT // corte do vídeo do campeão, sem provedor (pós-10/10)
+  REUSE // copia o clipe da cena reuseOfScene (mesmo lote), sem custo
+  TAKE_SLICE // §13.5: fatia de um Take contínuo (lipsync novo nasce sempre assim)
+  SWAP_VIDEO // §13.15 (08/10): 1 trecho main do Trocar avatar no Kling/Seedance (janelas ≤15 s → lipsync v2v ou voz do motor)
+}
+
+// §13.5 (06/10 noite): lipsync manda o áudio COMPLETO numa chamada só
+enum TakeKind {
+  TTS_LIPSYNC // TTS do texto inteiro → LIPSYNC → TRANSCRIBE
+  AUDIO_LIPSYNC // janela contínua do áudio do campeão → LIPSYNC (words do teardown)
+}
+
+enum UploadStatus {
+  PENDING
+  READY
+  FAILED
+  EXPIRED
+}
+
+// ───────────────────────────── identidade ─────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique // sempre minúsculo
+  passwordHash String    @map("password_hash")
+  name         String
+  uiLocale     UiLocale  @default(EN) @map("ui_locale")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  memberships       Membership[]
+  refreshTokens     RefreshToken[]
+  invitesSent       Invite[]         @relation("InviteCreatedBy")
+  offersCreated     Offer[]          @relation("OfferCreatedBy")
+  creativesCreated  Creative[]       @relation("CreativeCreatedBy")
+  creativesApproved Creative[]       @relation("CreativeApprovedBy")
+  changeRequests    ChangeRequest[]
+  uploads           Upload[]
+  championsCreated  Champion[]       @relation("ChampionCreatedBy")
+  rightsDeclared    Champion[]       @relation("ChampionRightsDeclaredBy")
+  batchesCreated    VariationBatch[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  workspaceId String    @map("workspace_id") // workspace ativo da sessão
+  tokenHash   String    @unique @map("token_hash") // sha256 do token; o token em si nunca é salvo
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Workspace {
+  id                 String   @id @default(cuid())
+  name               String
+  uiLocale           UiLocale @default(EN) @map("ui_locale") // idioma padrão da interface
+  monthlySpendCapUsd Decimal? @map("monthly_spend_cap_usd") @db.Decimal(12, 4) // null = sem teto
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // fase 2 (fase2-agencia.md §1): cliente = workspace. Status SETUP/LIVE/PAUSED é DERIVADO (clientStatusOf), não salvo.
+  shortCode             String        @map("short_code") // 2-6 [A-Z0-9]; prefixo do nome do arquivo ("MC"). Não é único
+  industry              String? // texto livre ≤ 80
+  market                String? // mercado principal, texto livre ≤ 80
+  businessType          BusinessType? @map("business_type")
+  websiteUrl            String?       @map("website_url") // http(s), ≤ 2048
+  onboardingStep        Int           @default(1) @map("onboarding_step") // 1..6, onde retomar o onboarding
+  onboardingCompletedAt DateTime?     @map("onboarding_completed_at") // null = em setup
+  pausedAt              DateTime?     @map("paused_at") // não null = pausado
+
+  memberships      Membership[]
+  invites          Invite[]
+  offers           Offer[]
+  creatives        Creative[]
+  scripts          Script[]
+  faces            Face[]
+  scenes           Scene[]
+  takes            Take[]
+  renders          Render[]
+  files            File[]
+  jobs             Job[]
+  providerTasks    ProviderTask[]
+  costEntries      CostEntry[]
+  changeRequests   ChangeRequest[]
+  uploads          Upload[]
+  champions        Champion[]
+  teardowns        Teardown[]
+  variationBatches VariationBatch[]
+  castings         VariationCasting[]
+  variationItems   VariationItem[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String     @id @default(cuid())
+  workspaceId String     @map("workspace_id")
+  userId      String     @map("user_id")
+  role        MemberRole @default(MEMBER)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+model Invite {
+  id          String     @id @default(cuid())
+  workspaceId String     @map("workspace_id")
+  email       String
+  role        MemberRole @default(MEMBER)
+  tokenHash   String     @unique @map("token_hash")
+  expiresAt   DateTime   @map("expires_at")
+  acceptedAt  DateTime?  @map("accepted_at")
+  revokedAt   DateTime?  @map("revoked_at")
+  createdById String     @map("created_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("InviteCreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId])
+  @@map("invites")
+}
+
+// ───────────────────────────── oferta (briefing) ─────────────────────────────
+
+model Offer {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  name          String
+  language      String // BCP 47 do CONTEÚDO gerado (roteiro, voz): "en", "pt-BR", "es"...
+  sourceUrl     String?   @map("source_url")
+  // Briefing: campos livres, agnósticos de nicho (os mesmos do mockup)
+  kind          String? // tipo de produto ("Subscription app", "Online course"...)
+  what          String? // o que é
+  audience      String? // pra quem é
+  promise       String? // promessa principal
+  pains         String? // dores
+  proof         String? // provas
+  offerAndPrice String?   @map("offer_and_price") // oferta e preço
+  cta           String? // chamada pra ação
+  notes         String? // o que evitar, tom, restrições: texto livre
+  // { "<campo>": "page" | "user" } : origem de cada campo (tag "From page" na UI)
+  fieldSources  Json      @default("{}") @map("field_sources")
+  productImageFileId String? @map("product_image_file_id") // variacao-auto-v1 D4: foto opcional do produto (PRODUCT_IMAGE)
+  createdById   String    @map("created_by_id")
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("OfferCreatedBy", fields: [createdById], references: [id])
+  productImage File?         @relation("OfferProductImage", fields: [productImageFileId], references: [id])
+  creatives Creative[]
+  jobs      Job[]
+  champions Champion[]
+  batches   VariationBatch[]
+
+  @@index([workspaceId, archivedAt])
+  @@map("offers")
+}
+
+// ───────────────────────────── criativo ─────────────────────────────
+
+model Creative {
+  id             String        @id @default(cuid())
+  workspaceId    String        @map("workspace_id")
+  offerId        String        @map("offer_id") // travado depois de criado
+  name           String
+  language       String // copiado da oferta na criação
+  state          CreativeState @default(SCRIPTS_WRITING)
+  stateChangedAt DateTime      @default(now()) @map("state_changed_at")
+
+  selectedScriptId String? @unique @map("selected_script_id")
+  selectedFaceId   String? @map("selected_face_id")
+  faceDescription  String? @map("face_description") // "quem aparece no vídeo" (editável)
+
+  engine           Engine? // escolhido na etapa Engine (autosave)
+  engineModel      String?     @map("engine_model") // id do catálogo de motores (ex.: "kling-3.0")
+  voiceId          String?     @map("voice_id") // id do catálogo de vozes (só LIPSYNC)
+  format           VideoFormat @default(VERTICAL_9_16)
+  estimatedCostUsd Decimal?    @map("estimated_cost_usd") @db.Decimal(12, 4) // estimativa aceita no Generate
+  generatedAt      DateTime?   @map("generated_at")
+
+  // Etapa Edit: { templateId, captionStyle, captionPosition, headline, ctaText, endCard } (ver modelo-de-dados.md)
+  editSettings Json    @default("{}") @map("edit_settings")
+  editDirty    Boolean @default(false) @map("edit_dirty") // settings mudaram desde o último render READY
+  // Editor v1 (docs/contratos/editor-v1.md §4): ajuste fino por cima do editSettings. null = só o template.
+  editDoc      Json?   @map("edit_doc")
+  editRevision Int     @default(0) @map("edit_revision") // +1 a cada PATCH /edit e PUT /editor (concorrência otimista)
+  remixBase    Json?   @map("remix_base") // cache do RemixKeepRenderInput (fileIds no lugar de URLs); F3, interno do backend
+
+  finalRenderId   String?   @unique @map("final_render_id") // render aprovado
+  thumbnailFileId String?   @map("thumbnail_file_id")
+  approvedAt      DateTime? @map("approved_at")
+  approvedById    String?   @map("approved_by_id")
+
+  isWinner       Boolean   @default(false) @map("is_winner")
+  winnerMarkedAt DateTime? @map("winner_marked_at")
+
+  adName String? @map("ad_name") // fase 2 §6: nome padronizado do arquivo SEM ".mp4", congelado no OK final
+
+  // Feature 2: variação de um campeão. Escolhas (roteiro, rosto, motor, voz, edição) vêm do lote; a alavanca é do item.
+  origin           CreativeOrigin @default(SCRATCH)
+  championId       String?        @map("champion_id")
+  variationBatchId String?        @map("variation_batch_id")
+  variationItemId  String?        @unique @map("variation_item_id")
+  variationKind    VariationKind? @map("variation_kind")
+  voiceSource      VoiceSource    @default(CATALOG) @map("voice_source")
+  variationCode    String?        @map("variation_code") // variacao-auto-v1: = VariationItem.code ("CUT-15S"); filtro da Library e adName
+
+  createdById String    @map("created_by_id")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  offer          Offer           @relation(fields: [offerId], references: [id])
+  createdBy      User            @relation("CreativeCreatedBy", fields: [createdById], references: [id])
+  approvedBy     User?           @relation("CreativeApprovedBy", fields: [approvedById], references: [id])
+  selectedScript Script?         @relation("SelectedScript", fields: [selectedScriptId], references: [id])
+  selectedFace   Face?           @relation("SelectedFace", fields: [selectedFaceId], references: [id])
+  finalRender    Render?         @relation("FinalRender", fields: [finalRenderId], references: [id])
+  thumbnail      File?           @relation("CreativeThumbnail", fields: [thumbnailFileId], references: [id])
+  scripts        Script[]        @relation("CreativeScripts")
+  faces          Face[]          @relation("CreativeFaces")
+  scenes         Scene[]
+  takes          Take[]
+  renders        Render[]        @relation("CreativeRenders")
+  jobs           Job[]
+  costEntries    CostEntry[]
+  changeRequests ChangeRequest[]
+  champion       Champion?       @relation(fields: [championId], references: [id])
+  variationBatch VariationBatch? @relation(fields: [variationBatchId], references: [id])
+  variationItem  VariationItem?  @relation(fields: [variationItemId], references: [id])
+
+  @@index([workspaceId, archivedAt, updatedAt])
+  @@index([workspaceId, state])
+  @@index([offerId, isWinner])
+  @@index([championId])
+  @@index([variationBatchId])
+  @@unique([workspaceId, adName]) // fase 2 §6 (null não colide no Postgres)
+  @@map("creatives")
+}
+
+model Script {
+  id                    String       @id @default(cuid())
+  workspaceId           String       @map("workspace_id")
+  creativeId            String       @map("creative_id")
+  letter                String // "A".."E", estável no criativo (não reaproveita letra de roteiro descartado)
+  status                ScriptStatus @default(WRITING)
+  angle                 String? // "Found money", "Contrarian"...
+  rationale             String? // "por quê" deste ângulo (curto)
+  durationSec           Decimal?     @map("duration_sec") @db.Decimal(8, 3)
+  // [{ label: "hook"|"problem"|"product"|"proof"|"cta"|string, startSec, endSec, speech, visualPrompt }]
+  // blocks[0] é sempre o gancho (label "hook").
+  blocks                Json         @default("[]")
+  // ids de criativos vencedores usados como referência na escrita ("Informed by 2 winners")
+  informedByCreativeIds String[]     @default([]) @map("informed_by_creative_ids")
+  editedByUser          Boolean      @default(false) @map("edited_by_user")
+  failReason            String?      @map("fail_reason")
+  jobId                 String?      @map("job_id")
+  discardedAt           DateTime?    @map("discarded_at") // "Regenerate all" descarta os anteriores
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative   Creative  @relation("CreativeScripts", fields: [creativeId], references: [id], onDelete: Cascade)
+  job        Job?      @relation(fields: [jobId], references: [id])
+  selectedBy Creative? @relation("SelectedScript")
+
+  @@index([creativeId, discardedAt])
+  @@map("scripts")
+}
+
+// Rosto candidato. Nasce num lote de 4 de um criativo; o escolhido vira a imagem-base das cenas.
+// Feature 2: o rosto pertence a um criativo OU a um elenco de lote (exatamente um; CHECK na migração).
+model Face {
+  id          String      @id @default(cuid())
+  workspaceId String      @map("workspace_id")
+  creativeId  String?     @map("creative_id")
+  castingId   String?     @map("casting_id")
+  batch       Int // 1, 2, 3... cada "Generate 4 new faces" abre um lote
+  position    Int // 0..3 dentro do lote
+  description String // prompt do usuário naquele lote
+  status      AssetStatus @default(QUEUED)
+  fileId      String?     @unique @map("file_id")
+  failReason  String?     @map("fail_reason")
+  errorCode   String?     @map("error_code") // AsyncErrorCode (SAFETY_BLOCK, PROVIDER_ERROR...); failReason é o texto humano
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative          Creative?          @relation("CreativeFaces", fields: [creativeId], references: [id], onDelete: Cascade)
+  casting           VariationCasting?  @relation("CastingFaces", fields: [castingId], references: [id], onDelete: Cascade)
+  file              File?              @relation("FaceFile", fields: [fileId], references: [id])
+  selectedBy        Creative[]         @relation("SelectedFace")
+  selectedByCasting VariationCasting[] @relation("CastingSelectedFace")
+  providerTasks     ProviderTask[]
+
+  @@unique([creativeId, batch, position])
+  @@unique([castingId, batch, position])
+  @@map("faces")
+}
+
+// Cena gerada. Criada no Generate a partir dos blocos do roteiro escolhido.
+model Scene {
+  id              String        @id @default(cuid())
+  workspaceId     String        @map("workspace_id")
+  creativeId      String        @map("creative_id")
+  generation      Int // incrementa a cada Generate completo; cenas de gerações antigas ficam stale
+  index           Int // 0..n-1 na ordem do vídeo
+  label           String // "Hook", "Problem"...
+  startSec        Decimal       @map("start_sec") @db.Decimal(8, 3)
+  endSec          Decimal       @map("end_sec") @db.Decimal(8, 3)
+  speech          String // fala da cena
+  visualPrompt    String        @map("visual_prompt")
+  status          AssetStatus   @default(QUEUED)
+  progress        Int           @default(0) // 0..100 (estimado por tempo quando o provedor não informa)
+  attempt         Int           @default(1)
+  failReason      String?       @map("fail_reason")
+  errorCode       String?       @map("error_code") // AsyncErrorCode; failReason é o texto humano
+  clipFileId      String?       @map("clip_file_id") // vídeo final da cena (com áudio)
+  audioFileId     String?       @map("audio_file_id") // TTS (só LIPSYNC)
+  thumbnailFileId String?       @map("thumbnail_file_id") // frame do clipe (~1 s, nunca o frame 0) extraído pelo backend na ingestão
+  // [{ word, startSec, endSec }] relativos ao início da cena; vem do TRANSCRIBE
+  words           Json?
+  stale           Boolean       @default(false) // mudou roteiro/rosto/motor: não entra mais no render
+  // Feature 2. pipeline: backfill pelo engine do criativo (SCENES → SCENE_VIDEO, LIPSYNC → TTS_LIPSYNC)
+  pipeline        ScenePipeline @default(TTS_LIPSYNC)
+  sourceStartSec  Decimal?      @map("source_start_sec") @db.Decimal(8, 3) // trecho do campeão (AUDIO_LIPSYNC, SOURCE_CUT)
+  sourceEndSec    Decimal?      @map("source_end_sec") @db.Decimal(8, 3)
+  reuseOfSceneId  String?       @map("reuse_of_scene_id") // REUSE: cena dona do clipe
+  takeId          String?       @map("take_id") // TAKE_SLICE (§13.5)
+  takeStartSec    Decimal?      @map("take_start_sec") @db.Decimal(8, 3) // fatia do clipe do take
+  takeEndSec      Decimal?      @map("take_end_sec") @db.Decimal(8, 3)
+  // §13.15 (SWAP_VIDEO): trecho main na grade do campeão [startFrame, endFrame); janelas geradas em ordem (SwapWindow[],
+  // sequenciais: a k+1 parte do último frame da k, então não há corrida); clipe cru = janelas emendadas e cortadas no
+  // nº exato de frames, sem som; fit = reencaixe da voz do motor (ENGINE_VOICE), null no CHAMPION_AUDIO.
+  startFrame      Int?          @map("start_frame")
+  endFrame        Int?          @map("end_frame")
+  windows         Json?
+  rawClipFileId   String?       @map("raw_clip_file_id")
+  fit             Json?
+  identityScore   Decimal?      @map("identity_score") @db.Decimal(5, 4) // SFace: mediana do cosseno clipe × rosto escolhido
+  startedAt       DateTime?     @map("started_at")
+  readyAt         DateTime?     @map("ready_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative      Creative       @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  clipFile      File?          @relation("SceneClip", fields: [clipFileId], references: [id])
+  audioFile     File?          @relation("SceneAudio", fields: [audioFileId], references: [id])
+  thumbnailFile File?          @relation("SceneThumbnail", fields: [thumbnailFileId], references: [id])
+  rawClipFile   File?          @relation("SceneRawClip", fields: [rawClipFileId], references: [id])
+  providerTasks ProviderTask[]
+  reuseOf       Scene?         @relation("SceneReuse", fields: [reuseOfSceneId], references: [id], onDelete: SetNull)
+  reusedBy      Scene[]        @relation("SceneReuse")
+  take          Take?          @relation(fields: [takeId], references: [id], onDelete: SetNull)
+
+  @@unique([creativeId, generation, index])
+  @@index([reuseOfSceneId])
+  @@index([takeId])
+  @@index([creativeId, stale])
+  @@map("scenes")
+}
+
+model Render {
+  id           String       @id @default(cuid())
+  workspaceId  String       @map("workspace_id")
+  creativeId   String       @map("creative_id")
+  status       RenderStatus @default(QUEUED)
+  stage        String? // "bundling" | "rendering" | "encoding" | "uploading"
+  progress     Int          @default(0) // 0..100
+  frame        Int? // frame atual
+  totalFrames  Int?         @map("total_frames")
+  settings     Json // cópia de creative.editSettings no momento do render
+  input        Json // RenderInput completo (ver estrutura.md) pra reproduzir o render
+  doc          Json?        @map("doc") // cópia do EditDoc usado (editor-v1.md §3.4)
+  editRevision Int?         @map("edit_revision") // revisão do criativo renderizada; o dirty compara com creative.editRevision
+  failReason   String?      @map("fail_reason")
+  failedFrame  Int?         @map("failed_frame")
+  fileId       String?      @unique @map("file_id")
+  durationSec  Decimal?     @map("duration_sec") @db.Decimal(8, 3)
+  stale        Boolean      @default(false) // cenas mudaram depois deste render
+  format       VideoFormat? // variacao-auto-v1: null = creative.format (renders de hoje); peça AUTO = um render por formato
+  startedAt    DateTime?    @map("started_at")
+  finishedAt   DateTime?    @map("finished_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative  Creative  @relation("CreativeRenders", fields: [creativeId], references: [id], onDelete: Cascade)
+  file      File?     @relation("RenderFile", fields: [fileId], references: [id])
+  finalOf   Creative? @relation("FinalRender")
+
+  @@index([creativeId, createdAt])
+  @@index([status, createdAt]) // fila: QUEUED mais antigo primeiro
+  @@index([creativeId, format])
+  @@map("renders")
+}
+
+// ───────────────────────────── arquivos ─────────────────────────────
+
+// Todo binário mora no storage (Supabase Storage via API S3; local = versitygw). O banco guarda só a chave.
+// URL pra o web = assinada na hora da resposta (nunca salva no banco).
+model File {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  kind        FileKind
+  storageKey  String   @unique @map("storage_key") // ws/<workspaceId>/<kind>/<cuid>.<ext>
+  mimeType    String   @map("mime_type")
+  sizeBytes   Int      @map("size_bytes")
+  durationSec Decimal? @map("duration_sec") @db.Decimal(8, 3)
+  width       Int?
+  height      Int?
+  sha256      String?
+  sourceUrl   String?  @map("source_url") // URL de origem no provedor (auditoria)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace       Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  face            Face?      @relation("FaceFile")
+  sceneClips      Scene[]    @relation("SceneClip")
+  sceneAudios     Scene[]    @relation("SceneAudio")
+  sceneThumbnails Scene[]    @relation("SceneThumbnail")
+  sceneRawClips   Scene[]    @relation("SceneRawClip")
+  takeClips       Take[]     @relation("TakeClip")
+  takeAudios      Take[]     @relation("TakeAudio")
+  takeThumbnails  Take[]     @relation("TakeThumbnail")
+  render          Render?    @relation("RenderFile")
+  thumbnailOf     Creative[] @relation("CreativeThumbnail")
+  upload          Upload?
+  championVideos  Champion[] @relation("ChampionVideo")
+  championAudios  Champion[] @relation("ChampionAudio")
+  championThumbs  Champion[] @relation("ChampionThumbnail")
+  productImageOf  Offer[]    @relation("OfferProductImage")
+  pageCaptureOf   VariationBatch[] @relation("BatchPageCapture")
+  zipOf           VariationBatch[] @relation("BatchZip")
+
+  @@index([workspaceId, kind])
+  @@map("files")
+}
+
+// ───────────────────────────── trabalho assíncrono ─────────────────────────────
+
+// Trabalho do Claude que roda dentro da API (extração de briefing, roteiros).
+model Job {
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  type             JobType
+  status           JobStatus @default(QUEUED)
+  stage            String? // chave legível da etapa atual: "fetching_page" | "extracting" | "detecting_language" | "reading_brief" | "studying_winners" | "writing"
+  progress         Int       @default(0)
+  etaSec           Int?      @map("eta_sec")
+  input            Json // ex.: { url } | { pageText } | { count, replace }
+  output           Json? // ex.: briefing extraído | { scriptIds }
+  errorCode        String?   @map("error_code") // ex.: PAGE_FORBIDDEN, RATE_LIMITED
+  failReason       String?   @map("fail_reason") // frase humana
+  offerId          String?   @map("offer_id")
+  creativeId       String?   @map("creative_id")
+  championId       String?   @map("champion_id") // feature 2
+  variationBatchId String?   @map("variation_batch_id") // feature 2
+  createdById      String    @map("created_by_id")
+  startedAt        DateTime? @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  offer          Offer?          @relation(fields: [offerId], references: [id])
+  creative       Creative?       @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  scripts        Script[]
+  champion       Champion?       @relation(fields: [championId], references: [id], onDelete: Cascade)
+  variationBatch VariationBatch? @relation(fields: [variationBatchId], references: [id], onDelete: Cascade)
+  variationItems VariationItem[]
+
+  @@index([workspaceId, createdAt])
+  @@index([status])
+  @@map("jobs")
+}
+
+// Uma chamada assíncrona num provedor de mídia (WaveSpeed; rosto na Higgsfield desde 06/10). Escrita SÓ por api/src/integracoes (maquina-ia).
+model ProviderTask {
+  id           String             @id @default(cuid())
+  workspaceId  String             @map("workspace_id")
+  provider     Provider           @default(WAVESPEED)
+  kind         ProviderTaskKind
+  model        String // id do modelo no provedor
+  externalId   String             @unique @map("external_id") // id da task no provedor (prediction da WaveSpeed / request_id da Higgsfield)
+  status       ProviderTaskStatus @default(SUBMITTED)
+  input        Json // parâmetros enviados (sem segredo)
+  outputUrls   String[]           @default([]) @map("output_urls")
+  output       Json? // payload bruto do webhook/poll (debug)
+  errorCode    String?            @map("error_code") // normalizado: SAFETY_BLOCK, PROVIDER_TIMEOUT, PROVIDER_ERROR...
+  errorRaw     String?            @map("error_raw")
+  estimatedUsd Decimal?           @map("estimated_usd") @db.Decimal(12, 4)
+  faceId       String?            @map("face_id")
+  sceneId      String?            @map("scene_id")
+  championId   String?            @map("champion_id") // feature 2: TRANSCRIBE do campeão
+  takeId       String?            @map("take_id") // §13.5: TTS/LIPSYNC/TRANSCRIBE do take
+  windowIndex  Int?               @map("window_index") // §13.15: janela da cena SWAP_VIDEO (SCENE_VIDEO e TRANSCRIBE da janela)
+  submittedAt  DateTime           @default(now()) @map("submitted_at")
+  completedAt  DateTime?          @map("completed_at")
+  handledAt    DateTime?          @map("handled_at") // backend já aplicou o resultado (idempotência)
+  lastPolledAt DateTime?          @map("last_polled_at")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  face      Face?      @relation(fields: [faceId], references: [id], onDelete: SetNull)
+  scene     Scene?     @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  take      Take?      @relation(fields: [takeId], references: [id], onDelete: SetNull)
+  champion  Champion?  @relation(fields: [championId], references: [id], onDelete: SetNull)
+  costEntry CostEntry?
+
+  @@index([status, submittedAt]) // reconciliador: SUBMITTED antigos
+  @@map("provider_tasks")
+}
+
+// ───────────────────────────── custos ─────────────────────────────
+
+// Custo REAL por chamada. Gasto do mês = soma de amount_usd no mês (UTC).
+model CostEntry {
+  id               String   @id @default(cuid())
+  workspaceId      String   @map("workspace_id")
+  creativeId       String?  @map("creative_id")
+  championId       String?  @map("champion_id") // feature 2: custo da análise
+  variationBatchId String?  @map("variation_batch_id") // feature 2: plano do lote e rostos do elenco
+  provider         Provider
+  kind             CostKind
+  model            String
+  units            Decimal  @db.Decimal(14, 4) // segundos, imagens, tokens(milhares)...
+  unit             String // "second" | "image" | "ktoken_in" | "ktoken_out" | "call"
+  amountUsd        Decimal  @map("amount_usd") @db.Decimal(12, 4)
+  providerTaskId   String?  @unique @map("provider_task_id")
+  jobId            String?  @map("job_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative       Creative?       @relation(fields: [creativeId], references: [id], onDelete: SetNull)
+  providerTask   ProviderTask?   @relation(fields: [providerTaskId], references: [id])
+  champion       Champion?       @relation(fields: [championId], references: [id], onDelete: SetNull)
+  variationBatch VariationBatch? @relation(fields: [variationBatchId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([creativeId])
+  @@index([championId])
+  @@index([variationBatchId])
+  @@map("cost_entries")
+}
+
+// ───────────────────────────── revisão ─────────────────────────────
+
+model ChangeRequest {
+  id          String        @id @default(cuid())
+  workspaceId String        @map("workspace_id")
+  creativeId  String        @map("creative_id")
+  type        ChangeType
+  sceneIndex  Int?          @map("scene_index") // SCENE e LINE
+  newSpeech   String?       @map("new_speech") // LINE
+  note        String? // comentário opcional (não é conversa)
+  returnedTo  CreativeState @map("returned_to") // estado em que o criativo ficou
+  createdById String        @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative  Creative  @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@index([creativeId])
+  @@map("change_requests")
+}
+
+// ───────────────────────────── feature 2: variar campeão ─────────────────────────────
+
+// Upload do navegador (PUT direto no storage ou pela API, conforme UPLOAD_MODE). Vira File no complete.
+model Upload {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  purpose     String // "CHAMPION_VIDEO" (único na v1)
+  status      UploadStatus @default(PENDING)
+  filename    String
+  mimeType    String       @map("mime_type")
+  sizeBytes   Int          @map("size_bytes") // declarado; conferido no complete
+  storageKey  String       @unique @map("storage_key")
+  fileId      String?      @unique @map("file_id")
+  errorCode   String?      @map("error_code")
+  expiresAt   DateTime     @map("expires_at") // 30 min; cron marca EXPIRED e apaga o objeto
+  completedAt DateTime?    @map("completed_at")
+  createdById String       @map("created_by_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file      File?     @relation(fields: [fileId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([status, expiresAt])
+  @@map("uploads")
+}
+
+// Criativo de referência importado (upload e/ou link da Ad Library). Só o backend escreve `status`.
+model Champion {
+  id                 String         @id @default(cuid())
+  workspaceId        String         @map("workspace_id")
+  offerId            String         @map("offer_id")
+  name               String
+  status             ChampionStatus
+  rights             ChampionRights @default(THIRD_PARTY) // só registro, não trava nada
+  rightsDeclaredById String?        @map("rights_declared_by_id")
+  rightsDeclaredAt   DateTime?      @map("rights_declared_at")
+  adLibraryUrl       String?        @map("ad_library_url")
+  adArchiveId        String?        @map("ad_archive_id")
+  adMeta             Json?          @map("ad_meta") // AdLibraryMeta (@maquina/contratos)
+  videoFileId        String?        @map("video_file_id")
+  audioFileId        String?        @map("audio_file_id")
+  thumbnailFileId    String?        @map("thumbnail_file_id")
+  durationSec        Decimal?       @map("duration_sec") @db.Decimal(8, 3)
+  language           String? // BCP 47 detectado na transcrição
+  hasSpeech          Boolean        @default(false) @map("has_speech") // >= 5 palavras transcritas
+  notes              String?
+  sourceCreativeId   String?        @map("source_creative_id") // pós-10/10: "Variar" a partir da Biblioteca
+  errorCode          String?        @map("error_code")
+  failReason         String?        @map("fail_reason")
+  createdById        String         @map("created_by_id")
+  archivedAt         DateTime?      @map("archived_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  offer            Offer            @relation(fields: [offerId], references: [id])
+  createdBy        User             @relation("ChampionCreatedBy", fields: [createdById], references: [id])
+  rightsDeclaredBy User?            @relation("ChampionRightsDeclaredBy", fields: [rightsDeclaredById], references: [id])
+  videoFile        File?            @relation("ChampionVideo", fields: [videoFileId], references: [id])
+  audioFile        File?            @relation("ChampionAudio", fields: [audioFileId], references: [id])
+  thumbnailFile    File?            @relation("ChampionThumbnail", fields: [thumbnailFileId], references: [id])
+  teardown         Teardown?
+  batches          VariationBatch[]
+  creatives        Creative[]
+  jobs             Job[]
+  providerTasks    ProviderTask[]
+  costEntries      CostEntry[]
+
+  @@index([workspaceId, archivedAt, updatedAt])
+  @@index([offerId])
+  @@map("champions")
+}
+
+// Dissecação do campeão: transcrição, medições e as 12 seções. 1 por campeão; reanalisar substitui.
+model Teardown {
+  id             String    @id @default(cuid())
+  workspaceId    String    @map("workspace_id")
+  championId     String    @unique @map("champion_id")
+  transcript     Json      @default("{}") // { language, text, words: [{ word, startSec, endSec }], wpm, wordsSource }
+  measurements   Json      @default("{}") // Measurements (cortes, faixas, paleta, silêncios, frames-chave com fileId)
+  sections       Json      @default("{}") // TeardownSections (12 seções)
+  editMap        Json?     @map("edit_map") // §13: EditMap (trilha do rosto, camadas de texto, perfil); null = analisado antes do mapping_edit
+  editedSections String[]  @default([]) @map("edited_sections")
+  model          String? // modelo do Claude que escreveu
+  analyzedAt     DateTime? @map("analyzed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  champion  Champion  @relation(fields: [championId], references: [id], onDelete: Cascade)
+
+  @@map("teardowns")
+}
+
+// Lote de variações sobre um campeão: plano revisável + OK único que cria os criativos.
+model VariationBatch {
+  id               String               @id @default(cuid())
+  workspaceId      String               @map("workspace_id")
+  championId       String               @map("champion_id")
+  offerId          String               @map("offer_id") // = champion.offerId
+  status           VariationBatchStatus @default(PLANNING)
+  language         String // idioma das falas (campeão em SWAP/NEW_HOOKS/REMIX; oferta em COPY_NEW)
+  requests         Json // [{ kind, count }]
+  settings         Json                 @default("{}") // BatchSettings
+  castingStyle     CastingStyle         @default(DIVERSE) @map("casting_style") // §13.13; lido pelo planVariations
+  teardownSnapshot Json?                @map("teardown_snapshot")
+  notes            String?
+  estimatedCostUsd Decimal?             @map("estimated_cost_usd") @db.Decimal(12, 4)
+  launchedAt       DateTime?            @map("launched_at")
+  // variacao-auto-v1 §2 (lotes AUTO; nos MANUAL ficam nulos/padrão)
+  mode              BatchMode @default(MANUAL)
+  insight           Json? // AutoInsight: blocos com função, porquê (HOOK/PROOF/CTA), kept, flags, swaps
+  errorCode         String?   @map("error_code") // ANALYSIS_FAILED: código assíncrono
+  failReason        String?   @map("fail_reason") // frase humana (fallback EN)
+  failDetail        String?   @map("fail_detail") // detalhe técnico
+  failStage         String?   @map("fail_stage") // 'reading' | 'brain' | 'planning'
+  pageCaptureFileId String?   @map("page_capture_file_id") // PAGE_CAPTURE tirado na análise
+  zipFileId         String?   @map("zip_file_id") // último zip gerado (ZIP_ARCHIVE)
+  zipKey            String?   @map("zip_key") // sha1 dos (pieceId, fileIds) incluídos; igual = reaproveita
+  downloadedAt      DateTime? @map("downloaded_at") // 1º download do zip; tira o lote do "Waiting for you"
+  createdById      String               @map("created_by_id")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  champion    Champion           @relation(fields: [championId], references: [id], onDelete: Cascade)
+  pageCapture File?              @relation("BatchPageCapture", fields: [pageCaptureFileId], references: [id])
+  zipFile     File?              @relation("BatchZip", fields: [zipFileId], references: [id])
+  offer       Offer              @relation(fields: [offerId], references: [id])
+  createdBy   User               @relation(fields: [createdById], references: [id])
+  castings    VariationCasting[]
+  items       VariationItem[]
+  creatives   Creative[]
+  jobs        Job[]
+  costEntries CostEntry[]
+
+  @@index([championId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, mode, status])
+  @@map("variation_batches")
+}
+
+// Elenco: "quem aparece" + rostos (Face.castingId) + o escolhido.
+model VariationCasting {
+  id             String   @id @default(cuid())
+  workspaceId    String   @map("workspace_id")
+  batchId        String   @map("batch_id")
+  scope          String // "SHARED" (NEW_HOOKS/COPY_NEW do lote) | "ITEM" (um por item SWAP_AVATAR)
+  description    String
+  selectedFaceId String?  @map("selected_face_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  batch        VariationBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  selectedFace Face?           @relation("CastingSelectedFace", fields: [selectedFaceId], references: [id])
+  faces        Face[]          @relation("CastingFaces")
+  items        VariationItem[]
+
+  @@index([batchId])
+  @@map("variation_castings")
+}
+
+// Uma variação planejada; vira exatamente 1 Creative no launch.
+model VariationItem {
+  id          String        @id @default(cuid())
+  workspaceId String        @map("workspace_id")
+  batchId     String        @map("batch_id")
+  kind        VariationKind
+  index       Int // 0..n-1 dentro do tipo; controle do NEW_HOOKS = -1
+  isControl   Boolean       @default(false) @map("is_control")
+  included    Boolean       @default(true)
+  status      ScriptStatus  @default(WRITING) // WRITING | READY | FAILED
+  lever       String?
+  rationale   String?
+  payload     Json          @default("{}") // NEW_HOOKS { hook, blocks } · SWAP_AVATAR { blocks } · COPY_NEW { blocks } · REMIX_EDIT { layoutTemplateId }
+  castingId   String?       @map("casting_id")
+  errorCode   String?       @map("error_code")
+  failReason  String?       @map("fail_reason")
+  jobId       String?       @map("job_id")
+  // variacao-auto-v1 §2 (itens AUTO_EDIT: index = ordem no plano, status READY, payload = { params })
+  autoType    AutoVariationType? @map("auto_type")
+  code        String? // "CUT-15S" / "CORTE-15S"; único no lote
+  axis        VariationAxis?
+  change      String? // "a única coisa que muda", idioma da interface, ≤ 90
+  inZip       Boolean       @default(true) @map("in_zip")
+  leftOutAt   DateTime?     @map("left_out_at") // "Leave out" numa peça falha; Retry limpa
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  batch     VariationBatch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  casting   VariationCasting? @relation(fields: [castingId], references: [id], onDelete: SetNull)
+  job       Job?              @relation(fields: [jobId], references: [id])
+  creative  Creative?
+
+  @@unique([batchId, kind, index])
+  @@unique([batchId, code])
+  @@map("variation_items")
+}
+
+// §13.5: clipe contínuo de lipsync do criativo. 1 por geração; as cenas de lipsync são fatias (TAKE_SLICE).
+model Take {
+  id              String      @id @default(cuid())
+  workspaceId     String      @map("workspace_id")
+  creativeId      String      @map("creative_id")
+  generation      Int // = scenes.generation da mesma rodada
+  kind            TakeKind
+  status          AssetStatus @default(QUEUED)
+  progress        Int         @default(0)
+  attempt         Int         @default(1)
+  seed            Int         @default(7) // Pruna: 7 na 1ª tentativa, 7 + attempt ao regerar
+  speech          String? // TTS_LIPSYNC: texto inteiro (falas dos blocos unidas, em ordem)
+  sourceStartSec  Decimal?    @map("source_start_sec") @db.Decimal(8, 3) // AUDIO_LIPSYNC: janela do campeão
+  sourceEndSec    Decimal?    @map("source_end_sec") @db.Decimal(8, 3)
+  durationSec     Decimal?    @map("duration_sec") @db.Decimal(8, 3) // do áudio enviado; > 600 = LIPSYNC_AUDIO_TOO_LONG
+  audioFileId     String?     @map("audio_file_id")
+  clipFileId      String?     @map("clip_file_id")
+  thumbnailFileId String?     @map("thumbnail_file_id")
+  words           Json? // [{ word, startSec, endSec }] relativos ao início do take
+  errorCode       String?     @map("error_code")
+  failReason      String?     @map("fail_reason")
+  stale           Boolean     @default(false)
+  startedAt       DateTime?   @map("started_at")
+  readyAt         DateTime?   @map("ready_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative      Creative       @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  audioFile     File?          @relation("TakeAudio", fields: [audioFileId], references: [id])
+  clipFile      File?          @relation("TakeClip", fields: [clipFileId], references: [id])
+  thumbnailFile File?          @relation("TakeThumbnail", fields: [thumbnailFileId], references: [id])
+  scenes        Scene[]
+  providerTasks ProviderTask[]
+
+  @@unique([creativeId, generation])
+  @@index([workspaceId])
+  @@map("takes")
+}

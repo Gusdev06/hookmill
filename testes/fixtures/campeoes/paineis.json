@@ -1,0 +1,390 @@
+{
+  "geradoEm": "2026-10-06T11:55:51.124Z",
+  "gerador": "testes/fixtures/campeoes/gerar-paineis.mjs",
+  "grade": {
+    "width": 720,
+    "height": 960,
+    "fps": 30,
+    "frames": 450,
+    "audioSec": 15.133333333333333
+  },
+  "caixas": {
+    "rosto": {
+      "x": 0,
+      "y": 119,
+      "w": 336,
+      "h": 324
+    },
+    "topo": {
+      "x": 0,
+      "y": 0,
+      "w": 720,
+      "h": 119
+    },
+    "camera": {
+      "x": 0,
+      "y": 443,
+      "w": 336,
+      "h": 397
+    },
+    "app": {
+      "x": 336,
+      "y": 119,
+      "w": 384,
+      "h": 721
+    },
+    "rodape": {
+      "x": 0,
+      "y": 840,
+      "w": 720,
+      "h": 120
+    }
+  },
+  "fixtures": [
+    {
+      "file": "paineis-caixa-15s.mp4",
+      "prova": "caso de referência: rosto numa caixa (x 0-336 y 119-443) o vídeo todo + câmera + app + headline em faixa chapada + karaokê fora da região + rodapé; áudio 4 frames mais longo que o vídeo",
+      "esperado": {
+        "faceTrack": [
+          {
+            "startFrame": 0,
+            "endFrame": 450,
+            "region": {
+              "x": 0,
+              "y": 119,
+              "w": 336,
+              "h": 324
+            },
+            "fullFrame": false
+          }
+        ],
+        "blockers": {
+          "SWAP_AVATAR": [],
+          "NEW_HOOKS": []
+        },
+        "headline": {
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 720,
+            "h": 119
+          },
+          "background": "solid",
+          "color": "#d40f0f",
+          "text": "I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH."
+        },
+        "captionDentroDaRegiao": false
+      },
+      "sanidade": {
+        "regiao": {
+          "x": 0,
+          "y": 119,
+          "w": 336,
+          "h": 324
+        },
+        "umRostoPct": 100
+      },
+      "mimeType": "video/mp4",
+      "sizeBytes": 1293723,
+      "md5": "77a396869e95a7aeb018fe0abc514e09",
+      "audioMd5": "c0b464fda4d799affe79b9d60a67904e",
+      "probe": {
+        "durationSec": 15.133,
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "audioSec": 15.133,
+        "hasAudio": true
+      },
+      "yunet": {
+        "video": "paineis-caixa-15s.mp4",
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "amostras": 75,
+        "passoFrames": 6,
+        "limiar": 0.8,
+        "zeroRostos": 0,
+        "umRosto": 75,
+        "doisOuMais": 0,
+        "pctDoisOuMais": 0,
+        "pctAbaixoDoLimiar": 0,
+        "scoreMin": 0.94,
+        "melhorCruMediana": 0.941
+      }
+    },
+    {
+      "file": "paineis-cheia-caixa-15s.mp4",
+      "prova": "0-5 s rosto em tela cheia com a legenda dentro da região (redesenhada), corte de layout no frame 150, depois a caixa",
+      "esperado": {
+        "faceTrack": [
+          {
+            "startFrame": 0,
+            "endFrame": 150,
+            "region": {
+              "x": 0,
+              "y": 0,
+              "w": 720,
+              "h": 960
+            },
+            "fullFrame": true
+          },
+          {
+            "startFrame": 150,
+            "endFrame": 450,
+            "region": {
+              "x": 0,
+              "y": 119,
+              "w": 336,
+              "h": 324
+            },
+            "fullFrame": false
+          }
+        ],
+        "blockers": {
+          "SWAP_AVATAR": [],
+          "NEW_HOOKS": []
+        },
+        "captionDentroDaRegiao": true
+      },
+      "sanidade": {
+        "regiao": null,
+        "umRostoPct": 100
+      },
+      "mimeType": "video/mp4",
+      "sizeBytes": 1069082,
+      "md5": "7ee3e1b07e550c648c725f0c1a2cf0c3",
+      "audioMd5": "c0b464fda4d799affe79b9d60a67904e",
+      "probe": {
+        "durationSec": 15.133,
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "audioSec": 15.133,
+        "hasAudio": true
+      },
+      "yunet": {
+        "video": "paineis-cheia-caixa-15s.mp4",
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "amostras": 75,
+        "passoFrames": 6,
+        "limiar": 0.8,
+        "zeroRostos": 0,
+        "umRosto": 75,
+        "doisOuMais": 0,
+        "pctDoisOuMais": 0,
+        "pctAbaixoDoLimiar": 0,
+        "scoreMin": 0.938,
+        "melhorCruMediana": 0.941
+      }
+    },
+    {
+      "file": "paineis-2-rostos-15s.mp4",
+      "prova": "duas pessoas na caixa do rosto o vídeo todo → bloqueio multiple_faces (> 10 % das amostras com 2+ rostos >= 0,8)",
+      "esperado": {
+        "blockers": {
+          "SWAP_AVATAR": [
+            "multiple_faces"
+          ]
+        }
+      },
+      "sanidade": {
+        "regiao": {
+          "x": 0,
+          "y": 119,
+          "w": 336,
+          "h": 324
+        },
+        "doisOuMaisPctMin": 90
+      },
+      "mimeType": "video/mp4",
+      "sizeBytes": 1323611,
+      "md5": "c95f33d01fe26e2fb450b241de9d1af6",
+      "audioMd5": "c0b464fda4d799affe79b9d60a67904e",
+      "probe": {
+        "durationSec": 15.133,
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "audioSec": 15.133,
+        "hasAudio": true
+      },
+      "yunet": {
+        "video": "paineis-2-rostos-15s.mp4",
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "amostras": 75,
+        "passoFrames": 6,
+        "limiar": 0.8,
+        "zeroRostos": 0,
+        "umRosto": 0,
+        "doisOuMais": 75,
+        "pctDoisOuMais": 100,
+        "pctAbaixoDoLimiar": 0,
+        "scoreMin": 0.932,
+        "melhorCruMediana": 0.936
+      }
+    },
+    {
+      "file": "paineis-legenda-cruza-15s.mp4",
+      "prova": "karaokê metade dentro, metade fora da caixa do rosto → bloqueio caption_straddles_face (vem da visão: em mock depende de gatilho)",
+      "esperado": {
+        "blockers": {
+          "SWAP_AVATAR": [
+            "caption_straddles_face"
+          ]
+        }
+      },
+      "sanidade": {
+        "regiao": {
+          "x": 0,
+          "y": 119,
+          "w": 336,
+          "h": 324
+        },
+        "umRostoPct": 90
+      },
+      "mimeType": "video/mp4",
+      "sizeBytes": 1364636,
+      "md5": "cf74197f3c0eeac3b7cd061084e9fb36",
+      "audioMd5": "c0b464fda4d799affe79b9d60a67904e",
+      "probe": {
+        "durationSec": 15.133,
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "audioSec": 15.133,
+        "hasAudio": true
+      },
+      "yunet": {
+        "video": "paineis-legenda-cruza-15s.mp4",
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "amostras": 75,
+        "passoFrames": 6,
+        "limiar": 0.8,
+        "zeroRostos": 0,
+        "umRosto": 75,
+        "doisOuMais": 0,
+        "pctDoisOuMais": 0,
+        "pctAbaixoDoLimiar": 0,
+        "scoreMin": 0.94,
+        "melhorCruMediana": 0.942
+      }
+    },
+    {
+      "file": "paineis-gancho-sem-fundo-15s.mp4",
+      "prova": "headline do gancho escrita DIRETO sobre o vídeo (sem faixa) nos 3 s → NEW_HOOKS TEXT bloqueado com hook_text_over_video; Trocar avatar segue disponível",
+      "esperado": {
+        "blockers": {
+          "SWAP_AVATAR": [],
+          "NEW_HOOKS": [
+            "hook_text_over_video"
+          ]
+        }
+      },
+      "sanidade": {
+        "regiao": {
+          "x": 0,
+          "y": 119,
+          "w": 336,
+          "h": 324
+        },
+        "umRostoPct": 100
+      },
+      "mimeType": "video/mp4",
+      "sizeBytes": 1893004,
+      "md5": "4afae9d8a1030689880e745a12c415b1",
+      "audioMd5": "c0b464fda4d799affe79b9d60a67904e",
+      "probe": {
+        "durationSec": 15.133,
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "audioSec": 15.133,
+        "hasAudio": true
+      },
+      "yunet": {
+        "video": "paineis-gancho-sem-fundo-15s.mp4",
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "amostras": 75,
+        "passoFrames": 6,
+        "limiar": 0.8,
+        "zeroRostos": 0,
+        "umRosto": 75,
+        "doisOuMais": 0,
+        "pctDoisOuMais": 0,
+        "pctAbaixoDoLimiar": 0,
+        "scoreMin": 0.94,
+        "melhorCruMediana": 0.942
+      }
+    },
+    {
+      "file": "paineis-rosto-borrado-15s.mp4",
+      "prova": "rosto borrado na caixa: YuNet abaixo de 0,8 em > 20 % das amostras → low_confidence (ou no_face se o borrão apagar o rosto: a sanidade mede)",
+      "esperado": {
+        "blockers": {
+          "SWAP_AVATAR": [
+            "low_confidence"
+          ]
+        }
+      },
+      "sanidade": {
+        "regiao": {
+          "x": 0,
+          "y": 119,
+          "w": 336,
+          "h": 324
+        },
+        "abaixoDoLimiarPctMin": 20,
+        "melhorCruMin": 0.5
+      },
+      "mimeType": "video/mp4",
+      "sizeBytes": 1272662,
+      "md5": "950464d1ef094748a39660da4fc66bc3",
+      "audioMd5": "c0b464fda4d799affe79b9d60a67904e",
+      "probe": {
+        "durationSec": 15.133,
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "audioSec": 15.133,
+        "hasAudio": true
+      },
+      "yunet": {
+        "video": "paineis-rosto-borrado-15s.mp4",
+        "width": 720,
+        "height": 960,
+        "fps": 30,
+        "frames": 450,
+        "amostras": 75,
+        "passoFrames": 6,
+        "limiar": 0.8,
+        "zeroRostos": 75,
+        "umRosto": 0,
+        "doisOuMais": 0,
+        "pctDoisOuMais": 0,
+        "pctAbaixoDoLimiar": 100,
+        "scoreMin": null,
+        "melhorCruMediana": 0.606
+      }
+    }
+  ]
+}

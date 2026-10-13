@@ -1,0 +1,74 @@
+{
+  "geradoEm": "2026-10-07T14:13:57.493Z",
+  "origem": "/Users/gustagoat/Downloads/8e982d56-fd78-4e40-8a67-5d259e7f0e4a.mp4 (campeão real do Gusta, formato podcast; cópia local fora do git)",
+  "fixtures": [
+    {
+      "file": "podcast-aceite.mp4",
+      "mimeType": "video/mp4",
+      "sizeBytes": 9834941,
+      "md5": "d8151be01924ac71f4412179af63d016",
+      "audioMd5": "ce22fb0b0f02f5b6b36f81fb558c957f",
+      "probe": {
+        "durationSec": 49,
+        "width": 720,
+        "height": 1280,
+        "fps": 30,
+        "frames": 1470,
+        "hasAudio": true
+      },
+      "prova": "apresentadora (principal) intercalada com convidada e inserts até 0:33; b-roll escuro com CTA de 0:33 a 0:49",
+      "planos": [
+        {
+          "de": 0,
+          "ate": 133,
+          "tipo": "principal"
+        },
+        {
+          "de": 133,
+          "ate": 228,
+          "tipo": "insert"
+        },
+        {
+          "de": 228,
+          "ate": 352,
+          "tipo": "principal"
+        },
+        {
+          "de": 352,
+          "ate": 406,
+          "tipo": "convidada"
+        },
+        {
+          "de": 406,
+          "ate": 606,
+          "tipo": "principal"
+        },
+        {
+          "de": 606,
+          "ate": 670,
+          "tipo": "convidada"
+        },
+        {
+          "de": 670,
+          "ate": 811,
+          "tipo": "insert"
+        },
+        {
+          "de": 811,
+          "ate": 853,
+          "tipo": "insert"
+        },
+        {
+          "de": 853,
+          "ate": 1008,
+          "tipo": "principal"
+        },
+        {
+          "de": 1008,
+          "ate": 1470,
+          "tipo": "broll"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Planner: plan your week in 5 minutes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #14171f; background: #fff; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; }
+  .logo { font-weight: 800; font-size: 20px; color: #2b59ff; }
+  .menu { width: 26px; height: 3px; background: #14171f; box-shadow: 0 8px 0 #14171f, 0 -8px 0 #14171f; }
+  .hero { padding: 36px 22px 30px; background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%); }
+  .tag { display: inline-block; background: #ffe36e; font-weight: 700; font-size: 13px; padding: 6px 10px; border-radius: 99px; }
+  h1 { font-size: 34px; line-height: 1.1; margin: 16px 0 12px; letter-spacing: -0.02em; }
+  .sub { font-size: 17px; line-height: 1.45; color: #4a5160; }
+  .cta { display: block; text-align: center; margin: 24px 0 10px; background: #2b59ff; color: #fff; font-weight: 800; font-size: 18px; padding: 18px; border-radius: 14px; text-decoration: none; }
+  .mini { text-align: center; font-size: 13px; color: #6b7280; }
+  .shot { margin: 26px 0 0; height: 300px; border-radius: 18px; background: linear-gradient(135deg, #2b59ff, #8b5cf6); position: relative; overflow: hidden; }
+  .shot::after { content: ''; position: absolute; left: 20px; right: 20px; top: 24px; bottom: -40px; background: #fff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  section { padding: 30px 22px; }
+  h2 { font-size: 24px; margin-bottom: 16px; }
+  .item { display: flex; gap: 12px; margin-bottom: 16px; font-size: 16px; line-height: 1.4; }
+  .item b { color: #2b59ff; font-size: 20px; }
+  .quote { background: #f7f7fb; border-radius: 16px; padding: 18px; margin-bottom: 14px; font-size: 15px; line-height: 1.5; }
+  .stars { color: #f5b301; font-size: 18px; margin-bottom: 6px; }
+  .price { text-align: center; border: 2px solid #2b59ff; border-radius: 18px; padding: 24px; }
+  .price .v { font-size: 44px; font-weight: 800; }
+  footer { padding: 30px 22px 60px; color: #6b7280; font-size: 13px; }
+</style>
+</head>
+<body>
+  <header><div class="logo">Northwind</div><div class="menu"></div></header>
+  <div class="hero">
+    <span class="tag">New: weekly autopilot</span>
+    <h1>Plan your whole week in 5 minutes</h1>
+    <p class="sub">Drop your tasks in, and Northwind builds a realistic schedule around your meetings. No more Sunday-night spreadsheets.</p>
+    <a class="cta" href="#">Start free for 14 days</a>
+    <p class="mini">No card needed. Cancel anytime.</p>
+    <div class="shot"></div>
+  </div>
+  <section>
+    <h2>Why people switch</h2>
+    <div class="item"><b>1</b><span>Auto-schedules tasks into the gaps between meetings.</span></div>
+    <div class="item"><b>2</b><span>Moves things for you when a day runs over.</span></div>
+    <div class="item"><b>3</b><span>One weekly review instead of ten daily ones.</span></div>
+  </section>
+  <section>
+    <h2>What users say</h2>
+    <div class="quote"><div class="stars">★★★★★</div>I stopped dreading Mondays. The plan is just there.<br><small>— Dana, product manager</small></div>
+    <div class="quote"><div class="stars">★★★★★</div>Took me one evening to set up and I have not opened my old to-do app since.<br><small>— Leo, freelancer</small></div>
+  </section>
+  <section>
+    <div class="price"><div>Pro plan</div><div class="v">$9/mo</div><a class="cta" href="#">Try it free</a></div>
+  </section>
+  <footer>Northwind Planner · Fixture page for local tests only.</footer>
+</body>
+</html>

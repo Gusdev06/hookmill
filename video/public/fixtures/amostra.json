@@ -1,0 +1,384 @@
+{
+ "scenes": [
+  {
+   "clipUrl": "fixtures/cena-1.mp4",
+   "durationSec": 3.925,
+   "words": [
+    {
+     "word": "There's",
+     "startSec": 0.0,
+     "endSec": 0.52
+    },
+    {
+     "word": "a",
+     "startSec": 0.52,
+     "endSec": 0.6
+    },
+    {
+     "word": "detail",
+     "startSec": 0.6,
+     "endSec": 0.96
+    },
+    {
+     "word": "on",
+     "startSec": 0.96,
+     "endSec": 1.2
+    },
+    {
+     "word": "Instagram",
+     "startSec": 1.2,
+     "endSec": 1.58
+    },
+    {
+     "word": "that",
+     "startSec": 1.58,
+     "endSec": 1.94
+    },
+    {
+     "word": "gives",
+     "startSec": 1.94,
+     "endSec": 2.16
+    },
+    {
+     "word": "almost",
+     "startSec": 2.16,
+     "endSec": 2.54
+    },
+    {
+     "word": "everyone",
+     "startSec": 2.54,
+     "endSec": 3.14
+    },
+    {
+     "word": "away.",
+     "startSec": 3.14,
+     "endSec": 3.48
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/cena-2.mp4",
+   "durationSec": 7.628,
+   "words": [
+    {
+     "word": "Yeah.",
+     "startSec": 0.0,
+     "endSec": 0.48
+    },
+    {
+     "word": "I",
+     "startSec": 0.86,
+     "endSec": 1.38
+    },
+    {
+     "word": "found",
+     "startSec": 1.38,
+     "endSec": 1.64
+    },
+    {
+     "word": "something",
+     "startSec": 1.64,
+     "endSec": 1.98
+    },
+    {
+     "word": "I",
+     "startSec": 1.98,
+     "endSec": 2.18
+    },
+    {
+     "word": "wasn't",
+     "startSec": 2.18,
+     "endSec": 2.52
+    },
+    {
+     "word": "even",
+     "startSec": 2.52,
+     "endSec": 2.7
+    },
+    {
+     "word": "looking",
+     "startSec": 2.7,
+     "endSec": 2.94
+    },
+    {
+     "word": "for.",
+     "startSec": 2.94,
+     "endSec": 3.34
+    },
+    {
+     "word": "I",
+     "startSec": 3.68,
+     "endSec": 4.14
+    },
+    {
+     "word": "didn't",
+     "startSec": 4.14,
+     "endSec": 4.42
+    },
+    {
+     "word": "touch",
+     "startSec": 4.42,
+     "endSec": 4.68
+    },
+    {
+     "word": "their",
+     "startSec": 4.68,
+     "endSec": 4.88
+    },
+    {
+     "word": "phone.",
+     "startSec": 4.88,
+     "endSec": 5.26
+    },
+    {
+     "word": "I",
+     "startSec": 5.56,
+     "endSec": 5.98
+    },
+    {
+     "word": "just",
+     "startSec": 5.98,
+     "endSec": 6.22
+    },
+    {
+     "word": "typed",
+     "startSec": 6.22,
+     "endSec": 6.52
+    },
+    {
+     "word": "the",
+     "startSec": 6.52,
+     "endSec": 6.74
+    },
+    {
+     "word": "username.",
+     "startSec": 6.74,
+     "endSec": 7.14
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/cena-3.mp4",
+   "durationSec": 8.87,
+   "words": [
+    {
+     "word": "Whoever",
+     "startSec": 0.0,
+     "endSec": 0.56
+    },
+    {
+     "word": "hides",
+     "startSec": 0.56,
+     "endSec": 0.98
+    },
+    {
+     "word": "something",
+     "startSec": 0.98,
+     "endSec": 1.4
+    },
+    {
+     "word": "leaves",
+     "startSec": 1.4,
+     "endSec": 1.84
+    },
+    {
+     "word": "small",
+     "startSec": 1.84,
+     "endSec": 2.18
+    },
+    {
+     "word": "traces.",
+     "startSec": 2.18,
+     "endSec": 2.66
+    },
+    {
+     "word": "Messages,",
+     "startSec": 3.14,
+     "endSec": 3.98
+    },
+    {
+     "word": "contacts,",
+     "startSec": 4.32,
+     "endSec": 4.94
+    },
+    {
+     "word": "strange",
+     "startSec": 5.52,
+     "endSec": 5.9
+    },
+    {
+     "word": "behavior,",
+     "startSec": 5.9,
+     "endSec": 6.4
+    },
+    {
+     "word": "even",
+     "startSec": 6.9,
+     "endSec": 7.26
+    },
+    {
+     "word": "what",
+     "startSec": 7.26,
+     "endSec": 7.46
+    },
+    {
+     "word": "they",
+     "startSec": 7.46,
+     "endSec": 7.62
+    },
+    {
+     "word": "think",
+     "startSec": 7.62,
+     "endSec": 7.9
+    },
+    {
+     "word": "they",
+     "startSec": 7.9,
+     "endSec": 8.12
+    },
+    {
+     "word": "deleted.",
+     "startSec": 8.12,
+     "endSec": 8.48
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/cena-4.mp4",
+   "durationSec": 5.584,
+   "words": [
+    {
+     "word": "You",
+     "startSec": 0.0,
+     "endSec": 0.3
+    },
+    {
+     "word": "don't",
+     "startSec": 0.3,
+     "endSec": 0.68
+    },
+    {
+     "word": "need",
+     "startSec": 0.68,
+     "endSec": 0.78
+    },
+    {
+     "word": "to",
+     "startSec": 0.78,
+     "endSec": 0.96
+    },
+    {
+     "word": "guess.",
+     "startSec": 0.96,
+     "endSec": 1.32
+    },
+    {
+     "word": "You",
+     "startSec": 1.58,
+     "endSec": 2.02
+    },
+    {
+     "word": "don't",
+     "startSec": 2.02,
+     "endSec": 2.34
+    },
+    {
+     "word": "need",
+     "startSec": 2.34,
+     "endSec": 2.44
+    },
+    {
+     "word": "to",
+     "startSec": 2.44,
+     "endSec": 2.6
+    },
+    {
+     "word": "argue.",
+     "startSec": 2.6,
+     "endSec": 2.96
+    },
+    {
+     "word": "You",
+     "startSec": 3.28,
+     "endSec": 3.54
+    },
+    {
+     "word": "don't",
+     "startSec": 3.54,
+     "endSec": 3.94
+    },
+    {
+     "word": "need",
+     "startSec": 3.94,
+     "endSec": 4.06
+    },
+    {
+     "word": "to",
+     "startSec": 4.06,
+     "endSec": 4.24
+    },
+    {
+     "word": "grab",
+     "startSec": 4.24,
+     "endSec": 4.56
+    },
+    {
+     "word": "their",
+     "startSec": 4.56,
+     "endSec": 4.76
+    },
+    {
+     "word": "phone.",
+     "startSec": 4.76,
+     "endSec": 5.14
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/cena-5.mp4",
+   "durationSec": 3.5,
+   "words": [
+    {
+     "word": "You",
+     "startSec": 0.0,
+     "endSec": 0.3
+    },
+    {
+     "word": "just",
+     "startSec": 0.3,
+     "endSec": 0.64
+    },
+    {
+     "word": "need",
+     "startSec": 0.64,
+     "endSec": 0.86
+    },
+    {
+     "word": "to",
+     "startSec": 0.86,
+     "endSec": 1.04
+    },
+    {
+     "word": "know",
+     "startSec": 1.04,
+     "endSec": 1.26
+    },
+    {
+     "word": "where",
+     "startSec": 1.26,
+     "endSec": 1.54
+    },
+    {
+     "word": "to",
+     "startSec": 1.54,
+     "endSec": 1.74
+    },
+    {
+     "word": "look.",
+     "startSec": 1.74,
+     "endSec": 2.02
+    }
+   ]
+  }
+ ]
+}

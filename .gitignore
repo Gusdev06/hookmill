@@ -1,0 +1,33 @@
+# dependências e build
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# segredos: só .env.example vai pro git
+.env
+.env.*
+!.env.example
+
+# infra local (Postgres embutido, MinIO, dados, logs)
+.infra/
+
+# testes
+testes/playwright-report/
+testes/test-results/
+
+# mídia pesada e temporários de render
+video/fixtures/*.mp4
+video/fixtures/*.mov
+*.log
+.DS_Store
+
+# modelos ONNX da medição: o SFace (37 MB) é baixado com sha256 por api/src/medicao/modelos/baixar.sh (prebuild da api).
+# O YuNet (230 KB, detecção de rosto) fica versionado: sem ele a medição não roda e não vale depender de download.
+api/src/medicao/modelos/*.onnx
+!api/src/medicao/modelos/face_detection_yunet_2023mar.onnx
+
+# rascunhos soltos
+tmp-*

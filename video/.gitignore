@@ -1,0 +1,6 @@
+# mídia de teste pesada (fica local; ver public/fixtures/LEIAME.md)
+public/fixtures/*.mp4
+public/fixtures/*.mov
+public/fixtures/*.wav
+out/
+dist/

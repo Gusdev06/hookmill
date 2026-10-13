@@ -1,0 +1,337 @@
+# Integrações: modelos, preços, limites e o que foi validado
+Dono: maquina-ia · Código: `api/src/integracoes/` · Última atualização: 2026-10-08 (**§13.15 I6: Trocar avatar com Kling/Seedance + sondas S1/S2**; §13.13 elenco diverso; rosto → Higgsfield Soul V2; **prompts V2 = padrão**; feature 2: I4a + I4b; **§13: I5 manter a edição + take contínuo**)
+
+## Estado
+| parte | estado | validado como |
+|---|---|---|
+| **§13.15 I6 (08/10): Trocar avatar com Kling/Seedance** | **pronto em código**; ver "§13.15" no fim | Jest `troca-motor.spec.ts` (28 testes) + sondas reais S1/S2 (US$ 3,927): v2v = `sync/lipsync-2`; voz do motor consistente no Seedance, não no Kling |
+| `contrato.ts` | cópia de `estrutura.md` §2.1 + §2.5.1 (feature 2) com as mudanças aplicadas dentro das interfaces v1 | `tsc --noEmit` da api limpo |
+| **§13 I5 (06/10 noite): `describeEdit`, take contínuo, gancho escrito** | **pronto em código**; ver "§13" no fim | Jest `manter-edicao.spec.ts` (23 testes) + sonda real `describeEdit` + 1 gancho escrito no `zap-working-late-v2-latino` (US$ 0,083) |
+| **Feature 2 (I4a + I4b, 06/10)** | **pronto em código**; ver "Feature 2" abaixo | Jest `feature2.spec.ts` (29 testes) + sonda real do `analyzeChampion` e do `planVariations` (US$ 0,31 no total) |
+| Modo mock (`INTEGRACOES_MODE=mock`) | **pronto (I1)** | Jest: 42 testes em `src/integracoes/**/*.spec.ts`; mídia sintética gerada com ffmpeg e conferida com ffprobe e decodificação completa |
+| `CatalogService` (motores, vozes, `splitScenes`, `estimate`) | **pronto (I1)**, igual nos dois modos | Jest com valores fechados (ver "Exemplos de estimativa") |
+| Claude real (I2) | **pronto em código**, `INTEGRACOES_MODE=live` | Jest com transporte falso e SDK falso (16 testes) + sonda real de 05/10 (US$ 0,011, OK) |
+| WaveSpeed real + webhook + reconciliador (I3) | **pronto em código** | Jest com `fetch` falso (19 testes) + webhook assinado por HTTP com corpo cru (teste do módulo) + sondas reais de 05/10 em todos os modelos; áudio nativo de Kling/Seedance ainda não testado |
+| Rosto na Higgsfield Soul V2 (06/10) | **pronto em código + sonda real OK** | Jest com `fetch` falso (`higgsfield/higgsfield.spec.ts`: submit, polling completed/failed/nsfw/timeout/404, custo, sem chave) + 1 sonda real `--only=soul` em 06/10 (US$ 0,006; png 1152×2048 decodificado inteiro, ~20 s) |
+| Sondas G3 | **rodadas 05/10 pelo coordenador** com as chaves do Gusta: US$ 0,94 no total, todas OK (ver "Sondas G3") | Kling e Seedance só foram sondados **sem áudio**: falta a re-sonda com fala (~US$ 0,98, precisa de ok) |
+
+Live sem chave sobe a API e cada chamada falha com `NOT_CONFIGURED` (nunca cai no mock em silêncio).
+
+**Gasto até agora: US$ 0,94 (sondas G3 de 05/10) + US$ 0,006 (Soul, 06/10) + US$ 0,31 (sondas da feature 2, 06/10) + US$ 0,083 (sonda §13, 06/10 noite) + US$ 0,035 (sonda §13.13 elenco diverso, 07/10) + US$ 3,927 (sondas S1/S2 §13.15, 08/10).** Nenhum teste automatizado chama a rede. Os preços abaixo saíram das páginas públicas dos modelos (wavespeed.ai/models/…) e do catálogo da CLI, consultados em 05/10/2026. Ainda **não** foram confirmados no billing: isso é a sonda G3 (I2/I3).
+
+## Modelos e preços (preço por UNIDADE, nunca por chamada)
+| uso | id no catálogo (web vê) | modelo na WaveSpeed | preço usado na estimativa | limites | fonte |
+|---|---|---|---|---|---|
+| Cena com áudio nativo | `kling-3.0` | `kwaivgi/kling-v3.0-pro/image-to-video` | **US$ 0,168/s** (US$ 0,56 por 5 s = 0,112/s, × 1,5 com `sound=true`) | 3-15 s, inteiros; imagem jpg/png ≤ 10 MB, lado ≥ 300 px, proporção 1:2,5 a 2,5:1 | página do modelo |
+| Cena com áudio nativo | `seedance-2.0` | `bytedance/seedance-2.0/image-to-video` | **US$ 0,24/s** (US$ 0,60 por 5 s em 480p, × 2 em 720p) | 4-15 s; 9:16, 1:1, 3:4 e outros; áudio nativo ligado por padrão | página do modelo |
+| Lipsync (rosto + áudio) | `pruna-lipsync` | `pruna-ai/p-video/avatar` | **US$ 0,025/s** de áudio (720p), arredondado pra cima | até 600 s por chamada; **desde 06/10 (§13.5): 1 take por criativo com o áudio inteiro** (acima de 600 s = `LIPSYNC_AUDIO_TOO_LONG`); `seed` inteiro opcional; imagem em qualquer aspecto; áudio < ~1 s falha → piso de 2 s | página + operação (memória do Gusta) |
+| Rosto (desde 06/10) | — | **Higgsfield** `higgsfield-ai/soul/v2/standard` | **US$ 0,006/imagem** (1080p 9:16; 720p = 0,004) | aspect 1:1, 9:16, 16:9, 4:3, 3:4, 2:3, 3:2; 720p/1080p; saída png 1152×2048; failed/nsfw não cobram | rota grátis `POST /estimate` da Higgsfield (06/10) |
+| Rosto (até 05/10, fora de uso) | — | WaveSpeed `openai/gpt-image-2/text-to-image` | US$ 0,22/imagem (high, 1k; billing 0,209) | — | tabela da página + billing 06/10 |
+| Voz (TTS) | 17 vozes prontas | `minimax/speech-2.6-turbo` | **US$ 0,06 por mil caracteres** | 40+ idiomas (`language_boost`); **até 10 mil caracteres** por chamada (schema, 06/10) | página do modelo |
+| Tempos por palavra | — | `wavespeed-ai/openai-whisper-with-video` | **US$ 0,002/s** (com `enable_timestamps`; sem = 0,001) | aceita vídeo ou áudio por URL pública; até 10 min | página do modelo |
+| Roteiro e briefing | — | Anthropic `claude-opus-5-5` (`ANTHROPIC_MODEL`) | US$ 4 / US$ 20 por milhão de tokens (entrada/saída) | — | `estrutura.md` (aprovado 05/10) |
+
+Decisão do Gusta (06/10): rosto sai do gpt-image-2 e vai pro **Higgsfield Soul V2** (A/B de 4 × 4 com o mesmo prompt; Soul escolhido; rosto Soul animado no Pruna 7,3 s manteve a identidade). Lote de 4 rostos: US$ 0,88 → **US$ 0,024**. Vídeo, TTS, lipsync e transcrição continuam na WaveSpeed.
+
+Armadilhas que o I3 tem que respeitar (memória da operação): Pruna cobra por segundo de áudio e já cobrou 30 s por 28,97 s; avatar no gênero da voz; Pruna inventa segunda pessoa/mão/celular/moldura e troca de pessoa depois do frame 0 → prompt "SOLO SHOT", pose em positivo, sem citar o objeto proibido, identidade travada, recorte centrado no rosto; `gpt-image-2/edit` custa ~3x o base (US$ 0,22-0,24); download da WaveSpeed pode vir truncado sem erro (validação é do backend no `ingestFromUrl`).
+
+## Como a estimativa conta
+`estimate({ engine, model, scenes, format, faceCount? })` devolve `{ costUsd, etaSec, lines[], warnings[] }`. Linhas (`kind`): `VIDEO`, `TTS`, `LIPSYNC`, `TRANSCRIBE` e `IMAGE` (só com `faceCount`).
+- **SCENES:** por cena, segundos cobrados = `ceil(fim − início)` limitado ao mínimo/máximo do modelo. `VIDEO` = soma × preço/s; `TRANSCRIBE` = mesmos segundos × 0,002.
+- **LIPSYNC (desde 06/10, §13.5): 1 take** com as falas unidas. Duração = palavras / 2,6 por s (ou `take.wordsPerSec` medido do campeão), arredondada pra cima **uma vez**, piso de 2 s. `TTS` = caracteres do texto inteiro × 0,00006; `LIPSYNC` = s × 0,025; `TRANSCRIBE` = s × 0,002. `AUDIO_LIPSYNC` (áudio do campeão): só `LIPSYNC` de `ceil(take.audioSec)`.
+- `etaSec`: as cenas rodam em paralelo, então é a cena mais lenta (base + s × fator do modelo) + TTS + transcrição. Números de chute até a sonda G3 medir.
+- `warnings` (sempre presente; contrato 05/10): só `voice_gender_mismatch`, e só com motor LIPSYNC + `voiceId` + gênero **inequívoco** na `faceDescription` (palavras de um gênero só, en/pt/es, `catalogo/genero.ts`; "a woman and her husband" = ambíguo = sem aviso). Voz `neutral` nunca avisa. Nunca bloqueia. Saíram `scene_padded`, `speech_too_long` e `empty_speech` (fora do tipo do contrato); o padding continua visível nas linhas (ex.: gancho de 3 s no Seedance cobra 4 s).
+- `estimateFaces(n)` = n × 0,006 (Soul V2 1080p).
+
+`splitScenes(blocks, engine, model)`: um bloco acima do `maxSceneSec` vira N cenas de tempo igual, com a fala dividida em palavras inteiras e o mesmo prompt visual. Determinístico. `maxSceneSec`: Kling e Seedance 15 s; **Pruna 30 s** (decisão F3, 05/10): no lipsync sai 1 clipe por bloco (3-5 clipes num roteiro de 25-30 s), e só bloco acima de 30 s é dividido. O custo é o mesmo de um clipe único (cobra por segundo), e cada clipe recomeça da foto do rosto, o que corta a troca de pessoa que o Pruna faz depois do 2º-4º s. O mock gera mídia de 1 a 30 s.
+
+### Exemplos de estimativa (os mesmos números dos testes)
+Roteiro de 29 s (gancho 3 s, problema 8 s, produto 18 s → 9 + 9):
+| motor | linhas | total |
+|---|---|---|
+| Kling 3.0 | VIDEO 29 s × 0,168 = 4,872 · TRANSCRIBE 29 s × 0,002 = 0,058 | **US$ 4,93** |
+| Seedance 2.0 | VIDEO 30 s (gancho sobe pra 4 s) × 0,24 = 7,20 · TRANSCRIBE | **US$ 7,26** |
+| Lipsync + 4 rostos | 1 take (74 palavras → 29 s; por cena dava 30) · TTS ~0,02 · LIPSYNC 29 s × 0,025 = 0,725 · TRANSCRIBE 0,058 · IMAGE 4 × 0,006 = 0,024 | **≈ US$ 0,82** |
+
+## Claude real (I2)
+- **Modelo** `ANTHROPIC_MODEL` (padrão `claude-opus-5-5`, US$ 4 / 20 por milhão), **effort** `ANTHROPIC_EFFORT` (padrão `medium`; no Opus 5.5 o thinking é sempre ligado, não se manda `thinking`). SDK `@anthropic-ai/sdk` 0.131, `client.beta.messages.stream`, `maxRetries: 2`.
+- **Recusa do classificador:** `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`) re-roda em outro modelo dentro da mesma chamada; `ANTHROPIC_FALLBACKS=off` desliga. Se o fallback acontecer no meio do streaming, o parser recomeça (o web pode ver texto repetido até o `script.updated` final). Recusa sem fallback → `SAFETY_BLOCK`.
+- **Saída estruturada** (`output_config.format` JSON Schema) + validação em código (`claude/validacao.ts`): o roteiro volta como `{ angle, rationale, blocks[{ label, durationSec, speech, visualPrompt }] }` e a API monta início/fim contínuos a partir de 0; bloco 0 vira `hook`; prompt visual sempre começa com `SOLO SHOT`; total 10-90 s, bloco 1-30 s.
+- **extractOffer:** lê a página na API (`claude/pagina.ts`): só http(s), bloqueia rede interna (SSRF, inclusive em redirect), 5 redirects, 3 MB, HTML → texto (sem script/style), até 60 mil caracteres (passou disso, corta e avisa o modelo). 401/403/451 ou desafio de bot (Cloudflare) → `PAGE_FORBIDDEN`; 429 → `RATE_LIMITED`; resto, ou menos de 200 caracteres (página montada por JS) → `PAGE_UNREADABLE`. Texto colado pula o fetch. Briefing em JSON validado, idioma normalizado (`pt` → `pt-BR`), campo ausente = `null` ("nunca invente").
+- **generateScripts:** N chamadas em paralelo, cada uma com uma **família de ângulo** diferente (dor, curiosidade, prova, contrário, demonstração, objeção, história; gira pelo nº de `avoidAngles`) pra não saírem iguais. Streaming: um leitor de JSON incremental (`claude/json-stream.ts`) solta `onDelta` de `angle`, `rationale` e `blocks[i].speech`. Falha de um slot não derruba os outros (`onScriptFailed` com `RATE_LIMITED` / `SAFETY_BLOCK` / `PROVIDER_TIMEOUT` / `PROVIDER_ERROR`); JSON fora da regra ganha **1** nova tentativa. Sistema + briefing com `cache_control` (só cacheia se passar do mínimo do modelo).
+- **Vencedores:** da mesma oferta entram ângulo + falas; de **outra** oferta entram só tipo de bloco, duração e nº de palavras (a fala, o ângulo e o prompt nem chegam ao Claude; teste garante).
+- **suggestFaceDescription:** 1-2 frases no idioma da oferta, com o **gênero escrito** (alimenta o aviso de voz), idade, roupa, cenário, olhando pra câmera, do peito pra cima; sem objeto na mão. Cortada em 600 caracteres.
+- **Custo:** cada chamada grava 2 `cost_entries` (`LLM`, `ktoken_in` e `ktoken_out`) com o preço do modelo que de fato rodou (`usage.iterations`; fallback cobra pelos dois). Cache: escrita 1,25× entrada, leitura US$ 0,20/M no Opus 5.5. Resposta recusada ou cortada também grava (foi cobrada).
+
+## WaveSpeed real (I3)
+API HTTP v3 (`wavespeed/cliente.ts`): `POST https://api.wavespeed.ai/api/v3/<modelo>?webhook=<PUBLIC_API_URL>/api/v1/webhooks/wavespeed`, `GET …/predictions/<id>/result`, Bearer `WAVESPEED_API_KEY`. A `provider_tasks` é gravada antes de responder ao backend. **A submissão nunca é repetida sozinha** ("fetch failed" não prova que a task não existe; repetir já pagou em dobro em 27/09).
+
+| tarefa | modelo | parâmetros que mandamos | custo real gravado |
+|---|---|---|---|
+| cena Kling | `kwaivgi/kling-v3.0-pro/image-to-video` | `image` = rosto, `duration` inteiro 3-15, `sound: true` (padrão do modelo: desligado), `cfg_scale 0.5`, `negative_prompt` (2ª pessoa, legenda, texto…); sem parâmetro de resolução nem de proporção: saiu 1080×1920 na proporção do rosto (9:16), 4:5 e 1:1 por recorte no render | s cobrados × 0,168 |
+| cena Seedance | `bytedance/seedance-2.0/image-to-video` | `duration` 4-15, `resolution 720p`, `aspect_ratio` 9:16 / 3:4 (4:5 não existe) / 1:1, `generate_audio: true` | s × 0,24 |
+| voz | `minimax/speech-2.6-turbo` | `voice_id`, `language_boost` pelo BCP 47, `english_normalization` no inglês, mp3 44,1 kHz | caracteres × 0,00006 |
+| lipsync | `pruna-ai/p-video/avatar` | `image`, `audio`, `resolution 720p`, **`seed 7`**, `video_prompt` montado em positivo (abaixo) | ceil(s de áudio, ffprobe na URL; piso 2) × 0,025 |
+| transcrição | `wavespeed-ai/openai-whisper-with-video` | `video` = URL do clipe/áudio, `language` ISO 639-1, `enable_timestamps: true` | ceil(s de mídia) × 0,002 |
+
+Prompt da cena (Kling/Seedance): prompt visual do roteiro + "a pessoa da imagem continua exatamente a mesma do primeiro ao último frame, única pessoa no plano" + ação âncora ("olha pra lente e começa a falar, lábios em sincronia") + `[Speaker, warm natural voice, speaking <idioma>]: "<fala>"` + "só essa voz, perto do microfone, sem música". Formato de diálogo da skill `kling-3-prompt`; prompt em inglês, fala no idioma da oferta.
+
+**Armadilhas do Pruna, no código** (`wavespeed/prompts-midia.ts`): `video_prompt` = "SOLO SHOT: one continuous full-frame shot… stays exactly the same person from the first frame to the last: same face, same hairstyle, same clothes, same framing" + "Both arms hang relaxed at the sides, completely out of frame… nothing is held in front of the person" + "fills the whole frame edge to edge, background stays still". Tudo positivo, sem citar celular/mão/2ª pessoa. Do prompt visual do roteiro só passam cláusulas de **expressão** (sorriso, sobrancelha, aceno…); cláusula com mão, celular, produto, câmera, cenário ou outra pessoa é descartada (o Pruna reimagina a cena se pedir pose diferente da imagem). Rosto nasce centrado e enquadrado do peito pra cima pra o recorte 4:5/1:1 ficar centrado no rosto. Avatar no gênero da voz = aviso `voice_gender_mismatch` na estimativa.
+
+**Entrada de mídia precisa ser pública** (bug do live local, 05/10): a WaveSpeed recusa URL local/privada ("Invalid image/audio URL: private or local network URLs are not allowed"). Rosto, áudio e clipe que estão em URL local ou privada (localhost, 127.x, 10.x, 172.16-31.x, 192.168.x, host sem ponto, `*.local`…), ou tudo com `PUBLIC_MEDIA=off`, são baixados do storage pela API e sobem pelo upload de mídia da WaveSpeed (`POST /api/v3/media/uploads {filename,size}` → `PUT` em `data.upload.url` → `data.download_url`, o mesmo fluxo do SDK oficial que a CLI usa). Cache por objeto: o mesmo rosto em 3-5 cenas sobe 1 vez. Em produção (Supabase, URL pública) vai direto. Upload não tem custo de geração.
+
+**Só recusa de conteúdo vira `SAFETY_BLOCK`** (`isContentRefusal` em `wavespeed/cliente.ts`): precisa citar moderação, política, NSFW, conteúdo sensível etc. **e** não citar URL, inválido, parâmetro, formato, tamanho, download, rede, privado ou timeout. "Invalid … URL … not allowed" era classificado como SAFETY_BLOCK por causa de "not allowed" e a tela culpou a descrição; agora vira `PROVIDER_ERROR`.
+
+**Download truncado:** a ia nunca baixa saída de mídia; o backend (`ingestFromUrl`) baixa e decodifica inteiro, 3 tentativas, depois `DOWNLOAD_INVALID`. A única coisa que a ia baixa é o texto do Whisper quando ele vem como URL (até 2 MB).
+
+**Fim da task** (webhook e reconciliador usam a mesma função, idempotente por compare-and-set):
+- `completed` com saída → `COMPLETED` + `cost_entry` + evento. `completed` sem saída → `FAILED`/`PROVIDER_ERROR`. `failed` com texto de moderação → `SAFETY_BLOCK`, senão `PROVIDER_ERROR`; `timeout` → `TIMEOUT`/`PROVIDER_TIMEOUT`; `cancelled`/`deleted` → `CANCELLED`. Falha não grava custo (a WaveSpeed estorna falha; confirmar na sonda).
+- Recusa de conteúdo **na submissão** (400 com texto de moderação) vira task `FAILED`/`SAFETY_BLOCK` com `externalId` `rejected_…` e o mesmo evento: o backend trata igual a uma falha normal. Outras recusas na submissão: `PROVIDER_UNAVAILABLE` (→ 503) ou `PROVIDER_ERROR` (400 de parâmetro = bug nosso).
+- Transcrição: `output.words` normalizado na hora (`parseWords` só lê); `outputUrls` vazio (nada pro storage). Com `enable_timestamps` a saída vem em `text_details[].words` (confirmado na sonda de 05/10): o parser junta as palavras de todos os segmentos, tira duplicata e ordena. Também aceita segmentos sem palavras (espalha as palavras no segmento) ou só texto (espalha na duração); `wordsSource` fica gravado.
+
+**Webhook** `POST /api/v1/webhooks/wavespeed` (público, sem throttle; só registrado em live): HMAC-SHA256 hex de `"{webhook-id}.{webhook-timestamp}.{corpo cru}"` com o segredo sem `whsec_` (sem base64), header `v3,<hex>` segundo a doc (aceita hex puro e lista separada por espaço), 300 s de tolerância, comparação em tempo constante. Inválido → 401 sem tocar no banco. Válido → `200 { received: true }` e processa fora da requisição; webhook que chega antes do insert (TTS é rápido) procura a task 3× com 1 s. Prefixo `v3` confirmado só pela doc: **falta ver um webhook real** (precisa de túnel + chave).
+
+**Reconciliador** (`wavespeed/reconciliador.ts`, liga no boot em live): webhook ligado = a cada 2 min, tasks SUBMITTED com mais de 10 min; `WAVESPEED_WEBHOOKS=off` = a cada 15 s, com mais de 10 s. Mais de 30 min → `TIMEOUT`. Sem rodadas sobrepostas; roda uma vez no boot.
+
+## Higgsfield (rosto, desde 06/10)
+Cliente `higgsfield/cliente.ts`. Auth `Authorization: Key ${HF_API_KEY_ID}:${HF_API_KEY_SECRET}` (as duas no `api/.env`; vazias no live → `submitFace` falha `NOT_CONFIGURED`, nunca mock).
+- Envio: `POST https://api.higgsfield.ai/higgsfield-ai/soul/v2/standard` `{ prompt, aspect_ratio: "9:16", resolution: "1080p", batch_size: 1 }` + `Idempotency-Key` (uuid novo por submissão; a submissão nunca é repetida sozinha) → `{ status: "queued", request_id, status_url, cancel_url }`.
+- Status: `GET /requests/{request_id}/status` → `queued | in_progress | completed | failed | nsfw | canceled`; `completed` traz `images: [{ url }]` (CDN cloudfront, ≥ 7 dias; o backend baixa pro storage pelo `ingestFromUrl`, igual à WaveSpeed).
+- Normalização: `nsfw` → `FAILED`/`SAFETY_BLOCK`; `failed` → `PROVIDER_ERROR` (ou `SAFETY_BLOCK` se o texto for de moderação); `canceled` → `CANCELLED`; `completed` sem imagem → `PROVIDER_ERROR`; 10 min sem terminar → `TIMEOUT`/`PROVIDER_TIMEOUT`; 404 depois do prazo → `PROVIDER_ERROR`. Submissão: 400/422 com texto de moderação → task `rejected_…` `FAILED`/`SAFETY_BLOCK` (mesmo caminho da WaveSpeed); 400/422 comum → `PROVIDER_ERROR`; 401/402/403/429/5xx/rede → `PROVIDER_UNAVAILABLE`.
+- Banco: `provider_tasks.provider = HIGGSFIELD` (migração `20261006000000_provider_higgsfield`: `ALTER TYPE "Provider" ADD VALUE 'HIGGSFIELD'`), `model = higgsfield-ai/soul/v2/standard`, `externalId = request_id`. `cost_entries`: `provider HIGGSFIELD`, `kind IMAGE`, 1 `image` × 0,006, só em `COMPLETED`.
+- Fim da task: **só polling**. O `GenerationService` live consulta cada task no provedor dela; além do reconciliador geral, um laço rápido só de tasks HIGGSFIELD roda a cada 5 s (task com mais de 5 s), timeout 10 min. Webhook da Higgsfield existe (docs.higgsfield.ai/docs/how-to/webhooks.md) mas **não foi ligado**: o rosto leva ~20 s, o polling basta e não depende de URL pública nem de outro segredo de assinatura.
+- Mock: o fake de rosto segue igual (PNG sintético, custo zero), gravando `provider HIGGSFIELD` e o modelo Soul.
+
+## Prompts de mídia V2 (06/10; **padrão** desde a aprovação do Gusta)
+Chave: `MEDIA_PROMPTS` no `api/.env`: sem a env (ou qualquer valor) = **`v2`**; só `MEDIA_PROMPTS=v1` volta pra V1; `mediaPrompts(versão)` em `wavespeed/prompts-midia.ts` escolhe `face`/`scene`/`lipsync`, e a versão fica gravada em `provider_tasks.input.promptVersion` (rosto, cena e lipsync) pra comparar no A/B. Regras (skill OSideMedia/higgsfield-ai-prompt-skill, MIT):
+- **a. Realismo lisonjeiro** (`facePromptV2`): "fine, even, matte skin texture… healthy, rested complexion" em positivo. Motivo: no teste de 06/10, 2 de 4 rostos Soul saíram abatidos/pele áspera e a sonda saiu com testa brilhante.
+- **b. Rosto longo, cena/lipsync enxutos** (`scenePromptV2`, `lipsyncPromptV2`): não re-descrevem rosto/cabelo/roupa (cláusulas de aparência do visualPrompt são descartadas); só enquadramento, pose, expressão, ação + trava curta "The same person from the image, the only person in the shot."
+- **c. Lipsync**: `static camera` (ou `slow dolly in` se o roteiro pediu aproximação), sem "head movement" nem aceno/inclinação. Clipes de fala de 3-8 s rendem melhor no lipsync: **só registrado**, a divisão de cenas (1 clipe por bloco, até 30 s) não mudou.
+- **d. Anti-slop**: `scrubSlop` tira beautiful/stunning/cinematic/high quality/4K/natural light… da entrada; luz nomeada ("soft window light from the left, late afternoon"); emoção abstrata vira comportamento físico (`physicalExpressions`: "confident" → "steady eye contact, chin level", "excited" → "eyebrows lift, open smile").
+- **e. Sem marca**: garantido na origem, no prompt do Claude que escreve o `visualPrompt` (`claude/prompts.ts`, vale pras duas versões): nunca nome de marca/produto/app, descrever pela aparência. O `FACE_SYSTEM` já proibia marca na descrição do rosto.
+- **f. Braços**: "Both arms rest down along the body, below the bottom edge of the frame" (pose em positivo, sem citar o objeto proibido).
+
+## Sondas G3
+**Soul (06/10):** `sonda.ts --only=soul --yes` → OK em 20 s, request `b96063d6-95a1-420b-851e-6d239872282c`, png 1152×2048 baixado e decodificado inteiro, **US$ 0,006** (estimativa da rota `/estimate`; conferir no billing da Higgsfield). Prompt V1. A sonda `face` (gpt-image-2) virou opt-in; o plano padrão usa `soul` e o Pruna anima o rosto dela.
+
+### Resultado (05/10/2026, rodadas pelo coordenador com as chaves do Gusta; script `sonda.ts --yes` + `--only=seedance`)
+| sonda | modelo | parâmetros | custo real | o que voltou |
+|---|---|---|---|---|
+| claude | `claude-opus-5-5` | briefing de texto curto, `effort: low`, saída estruturada, `fallbacks: "default"` | US$ 0,011 | OK: JSON válido do schema, modelo aceito com o beta de fallback |
+| face | `openai/gpt-image-2/text-to-image` | `quality: low`, 1k, 9:16 | US$ 0,0095 por imagem (rodou 2×: 0,019) | OK: png. O produto usa `high` (US$ 0,22 pela página, não sondado) |
+| tts | `minimax/speech-2.6-turbo` | `Calm_Woman`, inglês, mp3 | US$ 0,004 | OK: mp3. Bate com 0,06 por mil caracteres |
+| whisper | `wavespeed-ai/openai-whisper-with-video` | áudio do TTS, `enable_timestamps: true` | US$ 0,01 | OK. **Formato: `text_details[].words`** (um segmento por item, com a lista de palavras e tempos dentro). Parser corrigido pra juntar as palavras de TODOS os segmentos (antes pegava só o 1º) |
+| pruna | `pruna-ai/p-video/avatar` | rosto + mp3 da sonda, `seed 7`, prompt SOLO SHOT | US$ 0,125 (5 s) | OK: 704×1280 com áudio, a mesma pessoa no clipe todo |
+| kling | `kwaivgi/kling-v3.0-pro/image-to-video` | 3 s, **`sound: false`, sem fala** (de propósito, pra economizar) | US$ 0,336 (= 0,112/s, igual à página) | 1080×1920, **sem faixa de áudio**, como pedido. Não prova o áudio nativo |
+| seedance | `bytedance/seedance-2.0/image-to-video` | 4 s, 480p, **`generate_audio: false`, sem fala** (idem) | US$ 0,432 (= 0,108/s; a página diz 0,12/s) | 496×864, **sem áudio e boca parada**, como pedido. Não prova o áudio nativo |
+| **total** | | | **US$ 0,94** | |
+
+**Áudio nativo: o adapter estava certo, a sonda não testou.** O adapter já manda `sound: true` (Kling; o padrão do modelo é desligado) e `generate_audio: true` (Seedance) com a fala no prompt. A sonda usou sem som e sem fala pra caber no teto. Pela documentação (conferida 05/10): o `sound` do Kling custa 1,5× (3 s = US$ 0,504), e a página só fala de "efeitos sincronizados", nada de diálogo; o Seedance inclui o áudio no preço e diz "native audio-visual synchronization", também sem falar de diálogo. A skill `kling-3-prompt` (guia do fal.ai) diz que o Kling 3.0 gera fala com lip sync quando o diálogo vem no formato `[Personagem, tom]: "fala"` depois de uma ação âncora. **O prompt da cena passou a usar esse formato** (`prompts-midia.ts`). Se a re-sonda vier muda ou sem lip sync em algum dos dois, esse modelo não serve pro motor de cenas com fala, e o caminho é o motor LIPSYNC.
+
+**Re-sonda com fala (06/10/2026, ok do Gusta pro ~US$ 1):** rosto novo `quality: low` (US$ 0,0095) + `--only=kling,seedance`. Kling 3 s com `sound: true`: US$ 0,504, 1080×1916, faixa de áudio, fala "I found $300 a month." transcrita certinha, boca mexendo a partir de ~1 s. Seedance 4 s 480p com `generate_audio: true`: US$ 0,432, 496×864, mesma fala transcrita certinha, boca mexendo desde o início. **Os dois servem pro motor de cenas com fala.** Total do dia US$ 0,96 (inclui 2 transcrições repetidas por engano, US$ 0,009). Clipes: kling `predictions/7732ee5529b54a5dbed6fe3bf4666723/1.mp4`, seedance `output/e58209b0-4024-43db-87df-946fe57e7fff.mp4` (CDN da WaveSpeed, some em ~7 dias).
+
+**Higgsfield API (06/10, página https://higgsfield.ai/higgsfield-api):** pay-per-generation; Kling 3.0 US$ 0,042/s (com 50% de desconto; cheio 0,084), Seedance 2.0 US$ 0,0985/s (30% off; cheio 0,1407). A página não diz resolução, modo nem se o áudio está incluso; confirmar com a rota `/estimate` (precisa de chave). Não tem gpt-image-2, TTS, lipsync nem Whisper: só substituiria as cenas.
+
+**Higgsfield pela rota `/estimate` (06/10, chave `HF_API_KEY_ID`/`HF_API_KEY_SECRET` no `api/.env`, sem desconto aplicado na conta):** Soul V2 9:16 = US$ 0,004 (720p) / 0,006 (1080p) por imagem. Kling 3.0 Turbo i2v 5 s = US$ 0,56 (720p) / 0,70 (1080p), **sem campo de som**. Kling 3.0 4K i2v 5 s = US$ 2,10 com ou sem som. Seedance 2.0 i2v = tokens (s × L × A × 24/1024) × US$ 0,014/mil → 720p 9:16 ≈ US$ 0,30/s, 480p ≈ 0,14/s. **Vídeo: WaveSpeed é mais barata ou igual. Rosto: Soul V2 é ~50× mais barato que gpt-image-2 high.**
+Teste de rosto (mesmo `facePrompt`, 4 cada): Soul V2 1080p batch 4 (1152×2048) vs gpt-image-2 high 1k (864×1536, US$ 0,209 cada no billing = 0,836). Soul: cara de foto de celular crua, pele real, sem sorriso, mais variedade; 1 de 4 com braço no quadro. GPT: polido, sorriso igual nos 4, cara de banco de imagem. Folha em scratchpad da sessão (`comparacao-soul-cima-gpt-baixo.png`). Falta: animar um rosto Soul no Kling/Seedance/Pruna e ver se mantém a identidade.
+
+**Re-sonda pendente (precisa de ok do Gusta):** Kling 3 s com som + fala = **US$ 0,504**; Seedance 4 s em 480p com áudio + fala = **~US$ 0,43-0,48** (720p, o de produção, custa o dobro e o lip sync não muda com a resolução). **Total ~US$ 0,94-0,98**, reaproveitando o rosto da 1ª sonda:
+```
+cd api && npx ts-node --transpile-only src/integracoes/sondas/sonda.ts --only=kling,seedance --face=<url do rosto> --yes
+```
+Conferir: faixa de áudio (ffprobe), fala inteligível e lip sync numa folha de frames do clipe todo.
+
+### Script e plano original
+```
+cd api && npx ts-node --transpile-only src/integracoes/sondas/sonda.ts          # plano + custo, nada roda
+cd api && npx ts-node --transpile-only src/integracoes/sondas/sonda.ts --yes    # roda o padrão (~US$ 0,18: claude, face, tts, whisper, pruna)
+```
+| sonda | o que valida | estimado |
+|---|---|---|
+| claude | chave, modelo, saída estruturada, `fallbacks`, custo por token | ~0,02 |
+| face | API, formato de saída, tempo (em `quality: low`, a mais barata; preço do high fica o da página) | ~0,02 |
+| tts | voz, URL do mp3 | ~0,005 |
+| whisper | **formato das palavras com tempo** (pendência do parser) | ~0,01 |
+| pruna | lipsync com o rosto + voz da sonda, prompt SOLO SHOT | ~0,125 |
+| kling | 3 s **com som e fala** (re-sonda; opt-in) | ~0,504 |
+| seedance | 4 s em 480p **com áudio e fala** (re-sonda; opt-in) | ~0,43-0,48 |
+
+Ainda depois das sondas: conferir no billing da WaveSpeed se o Pruna arredonda (em 18/09 cobrou US$ 0,75 por 28,97 s, o que dá 30 s, não 29), se falha é estornada e o preço real do `quality: high`; receber 1 webhook real pelo túnel pra confirmar o `v3,`. Amostras de voz no live (`sampleUrl` hoje vazio): 17 vozes × 3 idiomas ≈ 5 mil caracteres ≈ US$ 0,31, só com ok.
+
+## Modo mock (`INTEGRACOES_MODE=mock`, padrão)
+- `GenerationService` falso grava `provider_tasks` de verdade (externalId `mock_…`, `estimatedUsd = 0`), termina sozinho em **2-5 s** (atraso estável pela entrada), grava `cost_entries` com **US$ 0** e emite `provider.task.finished` com o payload de `eventos.md` §5. Idempotente (só termina task `SUBMITTED`). No boot, retoma tasks mock que ficaram pendentes.
+- Saídas apontam pra mídia sintética servida pela própria API: `GET /api/v1/mock-media/{face|video|audio}/<semente>.{png|mp4|wav}?format=&sec=` e `GET /api/v1/mock-media/voice/<id>.wav` (amostra de voz). Gerada com ffmpeg na 1ª vez (H.264 + AAC, 30 fps; 360×640, 432×540 ou 480×480) e guardada em `$TMPDIR/maquina-mock-media` (`INTEGRACOES_MOCK_MEDIA_DIR` muda). Rota pública, só registrada em mock, parâmetros travados.
+- Duração da saída: cena = segundos cobrados do modelo; TTS = fala a 2,6 palavras/s; lipsync = duração do TTS da cena; transcrição = palavras da fala espalhadas por igual na duração (`parseWords`).
+- `ClaudeService` falso: briefing derivado da URL/texto (detecta pt-BR/es/en), N roteiros determinísticos no idioma da oferta (gancho primeiro, blocos contínuos, "SOLO SHOT" no prompt visual), streaming por `onDelta`, respeita `avoidAngles`, cost_entry LLM de US$ 0.
+
+### Gatilhos de erro pro QA
+| onde | escreva | resultado |
+|---|---|---|
+| descrição do rosto, fala ou prompt visual | `[mock:SAFETY_BLOCK]` / `[mock:PROVIDER_ERROR]` / `[mock:PROVIDER_TIMEOUT]` / `[mock:CANCELLED]` | task termina `FAILED`/`TIMEOUT`/`CANCELLED` com esse `errorCode` |
+| URL da oferta | `mock-403` / `mock-unreadable` / `mock-429` | `PAGE_FORBIDDEN` / `PAGE_UNREADABLE` / `RATE_LIMITED` |
+| `notes` da oferta | `[mock:fail-slot:N]` (N a partir de 0) / `[mock:fail-all]` | roteiro N falha (parcial) / todos falham |
+
+## Como o backend usa
+`app.module.ts`: `IntegracoesModule.register()` (lê `INTEGRACOES_MODE`), mais `EventEmitterModule.forRoot()`. Injeção por token, tipo pelo contrato:
+```ts
+import { CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, PROVIDER_TASK_FINISHED, IntegracaoError } from '../integracoes';
+constructor(@Inject(GENERATION_SERVICE) private gen: GenerationService) {}
+@OnEvent(PROVIDER_TASK_FINISHED) onFinished(e: ProviderTaskFinishedEvent) { … }
+```
+Erros saem como `IntegracaoError` com `code` (lista em `erros.ts`). Na submissão (live): `PROVIDER_UNAVAILABLE` → responder `503 PROVIDER_UNAVAILABLE`; `NOT_CONFIGURED` = chave vazia no `.env` (também 503). `estimate` recebe `voiceId` e `faceDescription` (a descrição do rosto escolhido) pro aviso de voz. A `cost_entry` da WaveSpeed acha o `creativeId` pela cena/rosto da task.
+
+## Arquivos
+`contrato.ts` · `erros.ts` (+ `PROVIDER_UNAVAILABLE`, `NOT_CONFIGURED`) · `portas.ts` (stores e evento) · `catalogo/precos.ts` (tabela acima) · `catalogo/catalog.service.ts` · `catalogo/genero.ts` · `store/prisma.store.ts` / `store/memoria.store.ts` · `mock/*` · `higgsfield/cliente.ts` · `claude/` (`transporte.ts` = único arquivo que conhece o SDK, `claude.service.ts`, `prompts.ts`, `validacao.ts`, `pagina.ts`, `json-stream.ts`, `custo.ts`) · `wavespeed/` (`cliente.ts`, `generation.service.ts`, `prompts-midia.ts`, `normalizar.ts`, `assinatura.ts`, `duracao.ts`, `webhook.controller.ts`, `reconciliador.ts`) · `sondas/sonda.ts` · `integracoes.module.ts` · `index.ts`.
+
+Variáveis novas (opcionais): `ANTHROPIC_FALLBACKS=off` desliga o fallback de recusa; `FFPROBE_PATH` (mesma do backend); `HF_API_KEY_ID`/`HF_API_KEY_SECRET` (rosto, obrigatórias no live); `MEDIA_PROMPTS=v1|v2` (padrão v2); feature 2: `APIFY_TOKEN`, `APIFY_AD_LIBRARY_ACTOR`, `AD_LIBRARY_MODE=mock|live|off` (sem a env, segue o `INTEGRACOES_MODE`).
+
+Feature 2: `adlibrary/` (`ad-library.service.ts` = Apify live + off, `fake-ad-library.service.ts` = mock) · `claude/prompts-campeao.ts` · `claude/validacao-campeao.ts` · `catalogo/fatiar.ts` (`splitSourceScenes`) · `wavespeed/idioma.ts` (idioma da transcrição) · `sondas/sonda-campeao.ts` · `feature2.spec.ts`.
+
+## Feature 2: variar campeão (I4a + I4b, 06/10)
+Contrato: `feature-2-variar-campeao.md` §6.1 = `estrutura.md` §2.5.1. Token novo `AD_LIBRARY_SERVICE` (exportado no `index.ts`).
+
+### Claude: `analyzeChampion` (teardown em 12 seções)
+- **Duas chamadas**, não uma: o esquema com as 11 seções do modelo deu `400 "The compiled grammar is too large"` (sonda 06/10, mesmo sem descrições e sem o envelope por seção). Partido em **fatos** (identification, transcript, hook, structure, layout, visual, audio; recebe os frames) e **diagnóstico** (offerProofCta, whySells, stealVsVary, replicationPlan; recebe os fatos em JSON, sem frames). As duas têm o mesmo prefixo (sistema + medições/transcrição/Ad Library/oferta, com `cache_control`), então a 2ª lê do cache.
+- Esquemas **sem union** (`anyOf`/`null`): o limite da saída estruturada é 16 unions por pedido. "Sem valor" = `""` e a validação converte (`onScreenText: ""` → `null`, seção `na` → `data: null` + motivo).
+- Frames: o serviço baixa cada URL (assinada) e manda em base64 com a legenda `Frame at <t> s (<motivo>)`; até 16 espalhados por igual; frame que falha é pulado e o prompt diz quantos faltaram. Tipo pela assinatura do arquivo (storage manda `octet-stream`).
+- Garantias que **não dependem do modelo** (`validacao-campeao.ts`): `metaCopy` vem literal da Ad Library (sem link = `na`); fala do gancho e de cada bloco = transcrição literal do trecho; blocos contínuos de 0 ao fim, o 1º termina no `hook.endSec`, toda fronteira no **silêncio mais longo a até 1 s** do ponto pedido (nunca no meio de palavra); sem fala = `transcript` e `hook` `na`; paleta só hex válido; veredito até 5 causas; `replicationPlan.kind` só dos 4 tipos.
+- Regras no prompt: diagnóstico no `uiLocale`, citações no idioma original; pessoa só genérica (nunca nome, @, tatuagem, traço marcante); nada de número de performance (Ad Library = proxy, dito toda vez); seção sem dado = `na` + motivo.
+- Falhas: JSON inválido repete 1 vez (cobra as duas); recusa (`SAFETY_BLOCK`), provedor fora e corte por `max_tokens` **não** repetem. Custo: 2 `cost_entries` por chamada com `championId` + `jobId`.
+
+### Claude: `planVariations`
+- 1 chamada por slot, em paralelo, + 1 de elenco compartilhado quando há `NEW_HOOKS`/`COPY_NEW`. Contexto comum cacheado: oferta, gancho original (fala literal, texto na tela, frame 1), **corpo literal**, estrutura, layout e voz, por que vende, roubar/variar, notas do lote. **Não leva `visual.person`** (o elenco nunca parte da pessoa do campeão).
+- `NEW_HOOKS`: cada slot recebe uma alavanca diferente (curiosidade, dor, prova, contrário, demonstração, objeção, história; gira com `avoidLevers`); fala no idioma do campeão, ~a duração e o nº de palavras do gancho original, tem que emendar na 1ª frase do corpo. `durationSec` = palavras ÷ ritmo medido do campeão. Gancho com mais de 2,5× as palavras-alvo é recusado e refeito.
+- `SWAP_AVATAR`: cada item muda a pessoa por um eixo (idade, etnia/cabelo, cenário/roupa, presença mais polida). Elenco sempre no **mesmo gênero da voz** do campeão (lição do Pruna). Elenco compartilhado que falha duas vezes cai numa descrição neutra no gênero da voz (o usuário edita no elenco).
+- `COPY_NEW` / `REMIX_EDIT`: `onItemFailed(kind, i, 'KIND_NOT_ENABLED')` (live e mock) até a vez deles.
+- Custo: `cost_entries` com `variationBatchId` + `jobId`.
+
+### Catálogo
+- `estimate` com `pipelines`: `REUSE`/`SOURCE_CUT` = 0; `AUDIO_LIPSYNC` = só `LIPSYNC` dos segundos reais (`audioSecByScene`, piso 2 s), sem TTS nem TRANSCRIBE; `TTS_LIPSYNC`/`SCENE_VIDEO` = linhas do v1 por cena. Sem `pipelines` = v1 idêntico. Aviso de gênero só conta cena com voz do catálogo.
+- `estimateAnalysis(s, frames)` = Whisper `ceil(s) × 0,002` + Claude (14 mil tokens fixos + 25/s + 1.600/frame, até 16; 6.500 de saída). 30 s com 12 frames ≈ US$ 0,33; a sonda de 21,5 s/8 frames custou US$ 0,229 de Claude contra 0,239 estimados.
+- `splitSourceScenes(words, blocks, max)`: fronteiras dos blocos e cortes de bloco > `max` no silêncio (mais longo a até 1 s do ideal); **`words` de cada cena vêm relativas ao `sourceStartSec`** (prontas pra legenda); `speech` = palavras da cena.
+
+### WaveSpeed: transcrição do campeão
+- `submitTranscribe({ championId, mediaUrl, language? })`: exatamente um de `sceneId`/`championId`; sem `language` = `language: "auto"` (aceito pelo Whisper, conferido na página do modelo em 06/10). Task e `provider.task.finished` com `championId`; custo do TRANSCRIBE vai pro campeão (`PrismaCostStore` acha pelo `championId` da task).
+- `parseTranscript(id)` → `{ language, words }`. A página do modelo **não diz** se a saída traz o idioma detectado: procura `detected_language`/`language`/`lang` na saída crua; sem isso, o idioma pedido; sem isso, palpite por palavras funcionais (en/pt/es/fr/de/it); sem isso, `en`. **Não validado com áudio real em `auto`** (a sonda de 06/10 usou a transcrição que já tínhamos, sem Whisper).
+- Rosto de elenco (`faces.casting_id`): o custo vai pro `variationBatchId` do elenco.
+
+### Ad Library (Apify) — **não validado live** (conta no teto até 19/10)
+- `status()`: `GET /v2/users/me/limits` cacheado 10 min (falha de rede = disponível, cache 1 min). Uso ≥ teto → `{ available: false, reason: 'quota', retryAfter: <dia seguinte ao fim do ciclo> }`; sem `APIFY_TOKEN` → `not_configured`.
+- `resolve()`: `POST /v2/acts/curious_coder~facebook-ads-library-scraper/runs?memory=512&waitForFinish=60` com `{ urls: [{ url: …/ads/library/?id=<id> }], count: 1, scrapeAdDetails: true }`; espera até 180 s (`GET /actor-runs/:id?waitForFinish`), passou disso aborta. Lê `GET /datasets/:id/items?clean=true`, acha o item pelo `ad_archive_id` e mapeia com os **mesmos campos que o ad-radar lê em produção** (`snapshot.videos[0].video_hd_url|video_sd_url`, `cards[]` com vídeo, `start_date`, `collation_count`, `aaa_info.eu_total_reach`…). `cost_entry` APIFY/SCRAPE, 1 `call` × `usageTotalUsd` do run (mesmo quando falha).
+- Erros: sem chave / teto (402, ou 403 com texto de limite) / run falhou ou estourou o tempo → `AD_LIBRARY_UNAVAILABLE` com `details: { reason: 'not_configured'|'quota'|'provider_error', retryAfter }`; item ausente → `AD_NOT_FOUND`; sem vídeo → `AD_HAS_NO_VIDEO` (com `details.meta`).
+- **Pendências do live (depois de 19/10):** confirmar que o actor aceita a URL de anúncio único (`?id=`) com `count: 1`; o custo real por run; o formato do 402/403 no teto.
+
+### Mock (feature 2)
+| onde | gatilho | resultado |
+|---|---|---|
+| URL da Ad Library | `mock-ad-unavailable` | `AD_LIBRARY_UNAVAILABLE` `{ reason: 'quota', retryAfter: '2026-10-19' }` na hora |
+| URL da Ad Library | `mock-ad-notfound` / `mock-ad-novideo` | `AD_NOT_FOUND` / `AD_HAS_NO_VIDEO` |
+| URL da Ad Library | qualquer outro `?id=` | metadados fixos + vídeo sintético de 20 s (9:16, com áudio) |
+| `offer.notes` passada ao `analyzeChampion` | `[mock:analysis-fail]` | `PROVIDER_ERROR` (o contrato põe o gatilho nas notes do **campeão**, que não entram no `analyzeChampion`: o backend repassa ou checa) |
+| `notes` do lote | `[mock:fail-item:<KIND>:<N>]` / `[mock:fail-all]` | item falha / todos falham (`PROVIDER_ERROR`) |
+- TRANSCRIBE do campeão no mock: lê duração e trilha de áudio da própria mídia (ffprobe); **sem áudio = 0 palavras**; com áudio = frases genéricas a 2,6 palavras/s com respiro de 0,45 s entre frases, no idioma pedido (en/pt/es).
+- `analyzeChampion`/`planVariations` falsos: determinísticos, 12 seções a partir da transcrição e das medições, custo US$ 0 gravado.
+
+### Sondas da feature 2 (06/10, coordenador autorizou ≤ US$ 0,35)
+Script: `cd api && npx ts-node --transpile-only src/integracoes/sondas/sonda-campeao.ts <video> <palavras.json> [saida.json] [--yes] [--plan-only]` (sem `--yes` só mede, conta tokens pelo `count_tokens` grátis e mostra o custo). Vídeo NOSSO: `mentoria-spy/centerpag-detect/criativos/formatos-flora-2026-09-28/f3-red-flags/f3-red-flags.mp4` (21,5 s, 720×1280) com as palavras de `voz-apertada.palavras.json` (sem Whisper). Medição pelo `MediaAnalysisService` real do maquina-video: 3 cortes, 4 segmentos, 8 frames de 768 px, paleta de 5.
+| sonda | resultado | custo real |
+|---|---|---|
+| esquema inteiro (11 seções) | **400 "compiled grammar is too large"** (com e sem descrições, com e sem envelope por seção) → análise partida em 2 chamadas | US$ 0 (400 não cobra) |
+| 4 esquemas partidos, `max_tokens: 16` | compilam (fatos 7 seções ≈ 3,5 mil tokens de entrada só de esquema; diagnóstico ≈ 2,2 mil) | ~US$ 0,039 |
+| `analyzeChampion` (2 chamadas, effort medium, PT_BR) | OK em 71 s; **12 seções: 11 `ok` + `metaCopy` `na`** (sem link, como esperado); saída 5,6 mil tokens | **US$ 0,229** (estimado antes: 0,257) |
+| `planVariations` (1 gancho + elenco compartilhado; teardown determinístico do mock com a transcrição/medições reais, pra não pagar a análise de novo) | OK em 8 s; gancho em inglês no ritmo do campeão (3,6 s), alavanca/racional em PT; elenco mulher ~30, peito pra cima, olhando pra câmera | **US$ 0,041** |
+Total: **US$ 0,31**. O texto do teardown real não foi salvo (o script só gravava no fim; agora grava logo depois da análise). Não sondados: `SWAP_AVATAR` live (mesmo caminho do elenco compartilhado), Whisper em `auto` com áudio real, Apify.
+
+## §13: manter a edição + take contínuo (I5, 06/10 noite)
+Desenho em `docs/contratos/feature-2-variar-campeao.md` §13. O doc só lista os nomes das interfaces (§13.7); as **assinaturas** abaixo são da maquina-ia e estão em `api/src/integracoes/contrato.ts` (marcadas "§13"). D6 decidida pelo Gusta (06/10): **Novos ganchos = (a) gancho escrito, definitivo**; voice clone (b) e avatar novo (c) não existem.
+
+### Claude: `describeEdit(DescribeEditInput)` → `EditMapDraft & Usage`
+- Entrada: `video` (grade do campeão: largura, altura, fps, nº de frames, duração), `keyframes` (até 16, 768 px), `textCrops` (até 6 recortes de faixa em resolução cheia, com `box` em px), `faceTrack` (da medicao), `transcript`.
+- Saída já na grade do campeão: `layers[]` (`EditLayer` com caixa em px, frames `[start, end)`, fundo `solid`/`pill`/`none` com cor, `TextStyle` com `fontId` do catálogo fechado de 9 fontes, `source: 'vision'`), `overlaysOverFace[]` (frames + descrição), `profile` (`PersonProfile` genérico ou null), e os informativos `mainSpeaker` (quem fala pra câmera + caixa) e `otherFaces` (rostos de b-roll/CCTV/tela/painel vizinho; nunca bloqueiam). **Bug real 06/10 (campeão `cmuwsqw79000922x2t8gz86v3`):** a visão pôs "split screen with security cam footage" em `overlaysOverFace` e bloqueou o Trocar avatar. Correção: prompt e schema separam avatar principal × outros rostos, e o código só aceita overlay com caixa que cai EM CIMA da região do rosto (trilha da medição no intervalo; sem trilha, caixa do `mainSpeaker`): ≥ 30 % do overlay dentro e cobrindo ≥ 5 % da região; descrição de painel de layout (split screen, security/CCTV, b-roll, app/phone screen, next to…) cai sempre. Uma chamada, saída estruturada sem union, validada em código (`claude/edicao.ts`): camada sem caixa/tempo/texto cai (nunca inventada); legenda = intervalo da 1ª à última palavra; cor fora de hex vira padrão; fonte fora do catálogo vira `montserrat-800`; campo do perfil com tatuagem/cicatriz/@ é apagado. Custo no campeão (`cost_entries`, LLM).
+- **Sonda real (06/10 noite, `sondas/sonda-edicao.ts`, `zap-working-late-v2-latino.mp4` 720×960, 12 frames + 4 recortes, sem transcrição): US$ 0,063, 14 s.** Achou as 3 camadas certas: headline na faixa vermelha de cima (`solid #D0080C`, texto literal), faixa de baixo como `text` (`solid`), karaokê (`none`, branco com destaque amarelo, contorno preto, 3 palavras). Perfil genérico correto (homem 20-30, latino, degradê, camiseta preta, quarto, sentado, olhando pra lente). Caixas e intervalos ainda vêm da visão (o refino por pixel é do `layerPresence`, maquina-video).
+- `estimateAnalysis` passou a somar o describeEdit (pra cima: ~US$ 0,12 com 12 frames + 6 recortes): 30 s / 12 frames ≈ **US$ 0,45** (era 0,30).
+
+### Claude: `planVariations` com `editMap` e `hookMode`
+- `editMap.profile` presente → SWAP_AVATAR escreve o elenco **parecido com o original** (mesmo gênero, faixa de idade, etnia ampla, cabelo geral, roupa, cenário, luz, enquadramento, pose) e **outra pessoa** por traço individual (formato do rosto, olhos, sorriso…), um eixo por item. Sem perfil = eixos v1 (formato da oferta).
+- `hookMode: 'TEXT'` (gancho escrito): o item devolve `hook = { speech: <fala literal do gancho>, onScreenText, durationSec: <fim do gancho> }`. O texto é limitado pela camada do gancho (`hookTextSlot`: headline/texto visível no início; limite = texto original +20 % ou pela caixa/fonte, entre 12 e 120; sem camada = 40) e sai em caixa alta se o original é. Acima do limite (+15 %) = 1 nova tentativa e depois falha do item (nunca corte silencioso). **Não pede elenco compartilhado** (`onSharedCasting` não é chamado quando só há ganchos escritos: não há rosto).
+- Regra no prompt depois da sonda: o texto novo mantém a mesma história e ponto de vista (narrador, quem desconfia de quem, gêneros). Na sonda (sem transcrição) o modelo trocou "SHE was working late" por "HE said…"; corrigido no prompt, não re-sondado.
+- Sonda real do gancho escrito: US$ 0,0195.
+
+### Take contínuo (§13.5)
+- `CatalogService.sliceTake({ blocks, words, durationSec })`: alinhamento global (Needleman-Wunsch) dos tokens do roteiro com as palavras do take (minúsculas, sem acento/pontuação; prefixo ≥ 3 letras conta meio ponto), fronteira no meio do silêncio entre a última palavra de um bloco e a 1ª do seguinte; 1ª fatia em 0, última no fim do clipe; bloco sem palavra casada = proporcional aos caracteres sem invadir palavra casada (`matched: false`). Puro, determinístico.
+- `estimate` por take (acima). `TAKE_MAX_SEC = 600`; helpers `takeText`, `takeSecondsFor(text, wps)`, `assertTakeDuration(sec)` (lança `LIPSYNC_AUDIO_TOO_LONG { durationSec, maxSec: 600 }`) em `catalogo/take.ts`.
+- `GenerationService`: `submitTts`/`submitLipsync`/`submitTranscribe` aceitam **`takeId`** (exatamente um alvo por task). `submitLipsync` mede o áudio **antes** de subir/pagar (> 600 s = erro, nenhuma task gravada) e aceita `seed` (padrão 7; o backend manda 7 + attempt). TTS > 10 mil caracteres = `INVALID_SCRIPT`. `provider_tasks.take_id` gravado; evento `provider.task.finished` ganha `takeId`; custo do take vai pro criativo (via `takes.creative_id`).
+- `CatalogService.faceAspectFor(w, h)` + `submitFace({ aspectRatio })`: Soul V2 no aspecto mais perto da região do rosto (caixa 336×324 → `1:1`); o prompt troca "Vertical" por "Square"/"Horizontal". Preço por aspecto ≠ 9:16 **não conferido** no `/estimate` (assumido igual, US$ 0,006).
+
+### Mock (§13)
+- `describeEdit` (alinhado à fixture de painéis do QA, proporcional à grade): headline `solid #D40F0F` na faixa do topo (0-119 em 720×960, o vídeo todo) + rodapé `text` `solid` (840-960) + karaokê fora do rosto (y ~775, 1ª → última palavra); sem fala, sem karaokê. Perfil genérico com gênero null. Gatilhos em `DescribeEditInput.notes` (= notes do campeão; mesmos nomes do mock do web): `[mock:keep-straddle]` legenda metade dentro/metade fora da região do rosto · `[mock:keep-overlay]` painel sobre o rosto no terço do meio · `[mock:hook-over-video]` headline sem fundo. Os outros (`keep-two-faces`, `not-mapped`, `take-fail`) não passam pela visão: são da medicao/backend/geração.
+- `planVariations` TEXT e perfil, como no live.
+- **Lipsync do mock = a imagem do rosto enviada, em loop pela duração do áudio + 0,2 s de cauda, 24 fps, com o próprio áudio** (`/mock-media/lipsync/<seed>.mp4`, gerado com ffmpeg quando o backend baixa). Rosto inalcançável = padrão de teste. **Rosto do mock = foto real por padrão** (`mock/assets/rosto-mock.jpg`, cópia de `testes/fixtures/rostos/rosto-a.jpg`); `INTEGRACOES_MOCK_FACES_DIR` troca por uma pasta de rostos nossos. Rosto enviado inalcançável no lipsync = o rosto padrão. Conferido no Jest com o YuNet da medição: 1 rosto ≥ 0,8 em todo frame do clipe (24 fps). Rodando de `dist/`, o .jpg é lido de `src/` (não está nos `assets` do `nest-cli.json`).
+
+## §13.13: elenco diverso (07/10)
+
+- **Contrato:** `planVariations` recebe `castingStyle?: 'DIVERSE'|'MATCH_ORIGINAL'` (ausente = `DIVERSE`) e `castingGender?: 'female'|'male'|null` (opcionais no `contrato.ts` só pra pasta compilar até o backend repassar; o backend deve sempre mandar).
+- **Determinístico, não só prompt** (`claude/elenco.ts`): os eixos são sorteados no código com semente = `batchId`. Posição 0 = elenco compartilhado, SWAP `k` = posição `k+1`. Cada eixo tem permutação própria por lote, então os ≤ 5 elencos de um lote nunca repetem etnia, idade, cabelo, olhos, piercing, cenário nem barba/maquiagem; a roupa só não se repete dentro do mesmo grupo (com ou sem braço à mostra). A etnia do original (`profile.ethnicity`) e as que aparecem nos `avoidLevers` (elencos prontos) saem do sorteio. As etnias alternam tom de pele (claro/médio/escuro): 3 elencos já cobrem os 3 tons. Cabelo crespo/tranças só em etnia que comporta; olho claro só em branco/latino/médio-oriental. Tatuagem de braço puxa roupa sem manga. **Gênero nunca é sorteado:** `castingGender` > voz do teardown > `profile.gender` > mulher.
+- **Prompt:** `<casting_constraints>` (o Claude redige, não escolhe) + `<keep_from_original>` (luz, enquadramento e pose do `profile`) + `<other_people_in_this_batch>`. Esquema próprio (200-550 caracteres). Descrição com "looks like / parecido com / famoso" = `INVALID_SCRIPT` → 1 nova tentativa → item `PROVIDER_ERROR`. Fallback do elenco compartilhado em DIVERSE = descrição montada dos mesmos eixos (pt/en).
+- **MATCH_ORIGINAL:** igual a 06/10 (§13.3.1), com `castingGender` sobrescrevendo `profile.gender`.
+- **`facePromptV2`:** quando a descrição tem tatuagem/piercing (negações tipo "no visible tattoos"/"sem piercing" não contam), entra cláusula de tinta curada na pele / joia de metal real; "plain clothing" virou "clothing without letters or logos" (estampa floral passa).
+- **Mock:** mesmos eixos do serviço real, descrição montada (`describeCasting`, pt/en; es cai em en).
+- **Testes:** `manter-edicao.spec.ts` › "elenco diverso (§13.13)" (100 lotes × 5 posições: sem repetir eixo, plausibilidade, tons; restrições no prompt; lookalike; MATCH_ORIGINAL + gênero; mock; facePromptV2). Testes antigos de perfil passaram a mandar `MATCH_ORIGINAL`.
+- **Sonda real 07/10** (`sondas/sonda-elenco.ts`, teto US$ 0,05): Opus 5.5 effort low, original simulado = homem branco ~30 camisa navy. 1 elenco = US$ 0,0150 (1,8k tok entrada, 288 saída) → só cabiam 2 elencos + 2 rostos: **plano US$ 0,0231 + Soul 2 × 0,006 = US$ 0,035**. Saiu andino ~35 grisalho, bigode, estrela atrás da orelha, nose stud, camisa linho azul, cozinha; e sul-asiático ~42 loiro tingido, piercing na sobrancelha, bomber verde, home office. Soul renderizou tatuagem e os dois piercings de forma crível (estrela foi pra têmpora, não atrás da orelha). PNGs decodificados inteiros. Achados que viraram correção: os dois saíram morenos e parecidos (→ alternância de tom); Claude escreveu "fictional man" e "hands empty" (→ regra proíbe as duas coisas). Braço apareceu no quadro nos dois (já conhecido do Soul, não é desta mudança). Custo por elenco no Opus ≈ US$ 0,015: lote de 4 SWAP + compartilhado ≈ US$ 0,075 de plano.
+
+
+## §13.15: Trocar avatar com motor Kling 3.0 / Seedance 2.0 (I6, 08/10)
+Desenho em `docs/contratos/feature-2-variar-campeao.md` §13.15. Assinaturas em `api/src/integracoes/contrato.ts` (marcadas §13.15); funções puras em `catalogo/troca-motor.ts`; preços em `catalogo/precos.ts` (`SWAP_ENGINES`, `SWAP_LIMITS`, `SWAP_V2V_MODEL`); testes em `troca-motor.spec.ts`; sondas em `sondas/troca-motor/`.
+
+### O que a ia entrega
+- **`CatalogService` (puras):** `planSwapWindows` (≤ 14,5 s (A) / 12,5 s (B) de fonte por janela; corte no meio do maior silêncio ≥ 0,15 s em [0,5 × limite, limite], senão na fronteira de palavra mais perto do limite; genSec (A) `ceil(len + 0,2)`, (B) `ceil(len × 1,15 + 0,3)`, mín. Kling 3 / Seedance 4, máx. 15), `fitEngineVoice` (EXACT ≤ 2 %, STRETCH ≤ 8 %, senão `VOICE_FIT_OUT_OF_RANGE`; o `sourceSec` de **entrada** é a duração do trecho, o de **saída** é a fala), `swapResolutionFor` (480p se a região em `cover` pede ≤ 110 % dos pixels do quadro 480p; podcast 108 com região ~720×590 dá **720p**, split ~336×324 dá 480p), `estimateSwap` (1 linha do `swapQuotes`; avisos `voice_may_vary` e `short_segment_padded`; `music_bed_drops` e bloqueios ficam com o backend).
+- **`submitSceneVideo` com `windowIndex`** = janela do Trocar avatar: `sound` (A false / B true), `voiceDescriptor` (B: `[Speaker, <descritor>]: "<fala>"`), `resolution` (Seedance 480p/720p; Kling sai 1080p), `aspectRatio` (Seedance: aspecto suportado mais perto, 2:3 → 3:4, 3:2 → 4:3; Kling segue a imagem), `notes` (só o mock lê). Prompt `swapScenePrompt`: câmera travada no tripé, mesma pessoa do 1º ao último frame, braços fora do quadro, sem re-descrever aparência; (A) sem diálogo. `seed` **não existe no schema** do Kling nem do Seedance na WaveSpeed (fica só gravado). Preço por combinação gravado na task (`input.usdPerSecond`) e cobrado no fim. `provider_tasks.window_index` gravado; `provider.task.finished` ganha `windowIndex`. Sem `windowIndex` = cena v1 sem mudança.
+- **`submitLipsyncVideo`** (kind `LIPSYNC_VIDEO`, custo `LIPSYNC`): `sync/lipsync-2` com `sync_mode: cut_off`; custo = `ceil(s do vídeo de entrada) × 0,05`.
+- `ProviderTaskStore.listForScene` (novo; o mock monta a fala das janelas).
+- **Mock:** janela = rosto enviado (ou último frame) parado pela genSec, 24 fps, sem trilha (A) ou com tom (B); `LIPSYNC_VIDEO` = vídeo de entrada remuxado com o áudio (o mais curto); TRANSCRIBE da cena = falas das janelas (última tentativa de cada `windowIndex`), 0,3 s depois do início de cada janela, 2,6 palavras/s, deslocadas pela soma das genSec. Gatilhos em `submitSceneVideo.notes` (= notas do campeão): `[mock:voice-fit-out]` fala 15 % mais lenta (dá ratio ~1,15 → `VOICE_FIT_OUT_OF_RANGE`), `[mock:speech-mismatch]` troca metade das palavras. `[mock:identity-drift]` é da medicao (`identityScore`).
+
+### Achados da S1 que o backend/video precisam saber
+- **O v2v devolve 1 frame a menos:** entrada 123 frames (4,100 s, 30 fps) → saída 122 frames (4,067 s) no `lipsync-2` e no `lipsync-1.9-beta`; áudio 4,100 s. O backend tem que repor o último frame (`trimToFrames` com pad) antes do render, senão o trecho fica 1 frame curto.
+- Kling 3.0 i2v com rosto 4:3 (Soul 2048×1536) sai **1660×1244, 24 fps**, 121 frames em 5 s; o v2v mantém a resolução e a fps da entrada.
+- Cobrança do v2v é **por segundo inteiro, arredondado pra cima** (4,1 s cobrou 5 s nos três modelos).
+
+### Sondas S1/S2 (08/10, autorizadas pelo Gusta, teto US$ 4,00) — **gasto real US$ 3,927**
+Rosto Soul V2 4:3 novo (mulher ~32, cabelo castanho liso, suéter navy, estúdio de podcast; US$ 0,006, Higgsfield). Áudio de um criativo NOSSO: `mentoria-spy/criativos/cp108-headlines-textos-2026-10-08/pecas/190-ZAP-podcast-wpp-digitei-o-numero-vi-tudo.mp4` (transcrição 0-14 s pelo Whisper da WaveSpeed, US$ 0,028), fala da apresentadora 7,2-11,3 s: "You just need his number. 60 seconds and it's all on your screen." Custo = Δ do saldo da conta (`/api/v3/balance`) por chamada; chamadas paralelas aparecem com o Δ somado e foram separadas pelo total do bloco. Mídia de revisão (não versionada): `api/src/integracoes/sondas/troca-motor/out/` (`s1-lado-a-lado-…mp4` = lipsync-2 | 1.9-beta | infinitetalk; `s2-kling-3-janelas.mp4`; `s2-seedance-3-janelas.mp4`; `custos.jsonl`). Julgamento: folha de frames + recorte da boca a 8 fps contra os tempos das palavras, SFace contra o rosto, Whisper local (small), embedding de locutor (Resemblyzer) e F0 (Praat).
+
+**S1 (A) — lipsync vídeo-a-vídeo sobre Kling mudo.** Kling 3.0 5 s `sound: false`: **US$ 0,560** (= 5 × 0,112, igual à página). Clipe cortado em 123 frames (4,1 s a 30 fps) + fatia do áudio. Os 3 v2v em paralelo: **US$ 0,525 juntos = 0,25 + 0,15 + 0,125**, ou seja, cada um cobrou **5 s** pelos 4,1 s (segundo inteiro pra cima).
+| v2v | preço real | saída | identidade (SFace, mediana/mín) | boca × fala |
+|---|---|---|---|---|
+| **`sync/lipsync-2`** | **US$ 0,05/s, ceil(s)** (4,1 s → 0,25) | 1660×1244, 30 fps, **122 frames** (1 a menos), áudio 4,1 s | 0,865 / 0,773 | boca acompanha; fecha no "m/b" de "number"; abre pouco na pausa de 0,4 s |
+| `sync/lipsync-1.9.0-beta` | 0,025/s, ceil(s) (→ 0,125) | idem, 122 frames | 0,873 / 0,743 | parecido; fecha certinho na pausa; correlação boca × energia um pouco maior (0,31 vs 0,19) |
+| `wavespeed-ai/infinitetalk/video-to-video` 480p | 0,03/s, mín. 3 s, ceil(s) (→ 0,15) | **720×544, 25 fps, 99 frames** | 0,859 / 0,798 | perto do clipe mudo (sem sincronia mensurável); regera cabeça |
+Mesma pessoa e 1 rosto em todos os frames dos três. **Escolha: `sync/lipsync-2`** (US$ 0,05/s real). Infinitetalk sai por baixar resolução e mudar a fps (quebra o nº exato de frames do trecho). O 1.9-beta empatou em qualidade pelos números e custa metade, mas é beta; 4 s não separam os dois: **o Gusta deve olhar o lado a lado**; se preferir o 1.9-beta, a troca é 1 constante (`SWAP_V2V_MODEL`). Os dois perdem 1 frame: repor no backend.
+
+**S2 (B) — voz do motor em 3 janelas seguidas, mesmo rosto, mesmo descritor de voz** ("woman in her early thirties, warm medium-low voice, calm confident pace, General American accent"). w0 do rosto; w1 do último frame da w0 (mesmo trecho); w2 do rosto de novo (trecho novo). Kling 3 × 3 s com som: **US$ 1,512** (0,504 cada = 0,168/s). Seedance 480p 3 × 4 s com áudio: **US$ 1,296** (0,432 cada = **0,108/s**, de novo abaixo dos 0,12 da página). Total do bloco 2,808 = Δ do saldo.
+- Fala: as 6 falas saíram **exatas** no Whisper; 1 pessoa, câmera parada, identidade 0,89-0,94 (mín. 0,80). Kling 1660×1244 24 fps; Seedance 480p 4:3 = 752×560 24 fps.
+- **Voz (cosseno do embedding; escala do campeão: mesma falante 0,78-0,91, falantes diferentes 0,68-0,72):**
+| par | Kling | Seedance |
+|---|---|---|
+| w0 × w1 (encadeada) | 0,877 | 0,919 |
+| w1 × w2 (trecho novo) | **0,684** | 0,916 |
+| w0 × w2 (trecho novo) | 0,797 | 0,880 |
+| F0 mediana | 182 / 195 / 186 Hz | 166 / 176 / 179 Hz |
+- **Resultado: Seedance mantém a voz (sim); Kling não (a w2 cai na faixa de "outra pessoa").** Codificado em `SWAP_ENGINE_VOICE_CONSISTENT` (`KLING: false`, `SEEDANCE: true`); `estimateSwap` só avisa `voice_may_vary` no Kling (B). Recomendação: liberar (B) só no **Seedance**; Kling (B) fica `notEnabled` (ou com o aviso) até haver voz de referência. Amostra pequena (3 janelas, 1 voz): o Gusta ouve `s2-*-3-janelas.mp4` antes do Q10.
+- Voz de referência: nenhum dos dois aceita na WaveSpeed. O Kling tem `element_list` e o `kwaivgi/kling-elements` aceita `voice_id` de "tone library" (US$ 0,01 o elemento), mas a WaveSpeed não expõe a lista de vozes nem clonagem; não testado.
+
+### Preços do §13.15 conferidos
+| item | preço usado | status |
+|---|---|---|
+| Kling 3.0 i2v 1080p sem som / com som | 0,112 / 0,168 por s | **cobrado** (S1, S2) |
+| Seedance 2.0 i2v 480p (com ou sem áudio) | 0,108 por s | **cobrado** (05/10, 06/10, S2) |
+| Seedance 2.0 i2v 720p | 0,24 por s | página; não cobrado ainda |
+| `sync/lipsync-2` | 0,05 por s do vídeo, ceil | **cobrado** (S1) |
+| Whisper (TRANSCRIBE) | 0,002 por s | cobrado (0,028 por 14 s) |
+
+## Variação automática v1: `planAutoBatch` + `estimateAutoAnalysis` (I1, 13/10)
+Contrato: `docs/contratos/variacao-auto-v1.md` §6-§7.1, §9, §10. Porta recopiada em `api/src/integracoes/contrato.ts` (`AutoPlanInput`, `AutoPlanDraft`, `WhyDraft`, `AutoItemDraft`, `AutoParamsDraft`).
+- **Modelo:** o mesmo do resto (`ANTHROPIC_MODEL`, padrão `claude-opus-5-5`, effort de `ANTHROPIC_EFFORT`, fallbacks "default"). Saída estruturada por JSON Schema (`claude/auto-plano.ts`), sem union (limite de 16): parâmetros num objeto plano com valores vazios (`""`, `0`, `'none'`) lidos por tipo.
+- **Uma chamada**, sem imagens: sistema estável (o mesmo pra todo lote, cacheado) + contexto do lote (Brain com chave de campo, workspace, página ≤ 4 mil caracteres, mídia, gancho, blocos indexados, oferta/prova/CTA, porquê, transcrição com tempo, frames-chave como texto; cacheado) + pedido (idiomas, `allowed`, contagem, `violations`). O reparo com `violations` reaproveita sistema + contexto (lê do cache). Resposta inútil (JSON fora, sem peça, porquê vazio) = 1 nova tentativa; recusa e corte por `max_tokens` não repetem. `cost_entry` LLM com `variationBatchId` em cada chamada.
+- **Garantias no parser** (o resto das regras é do backend, `iteracao/regras.ts`): `why` só cita o Brain com campo preenchido (`page` só com captura), senão `source: 'video'` e `ref` = "From the video"/"Do vídeo"; um bloco por bloco do teardown (faltou = `other`, o 0 = `hook`); `kept` sem duplicata, ≤ 4; textos de interface e de tela cortados em fronteira de palavra nos limites do contrato; citação do REVIEW nunca é mexida (só apara as pontas); tempos presos ao vídeo.
+- **Mock** (`mock/fake-auto-plan.ts`): determinístico a partir do teardown + Brain; respeita `allowed`, alvo 10 peças (dentro de min/max), diversidade ≥ 40 %, nunca põe dígito na tela, REVIEW = 1ª frase literal do proof. Gatilhos nas notes da oferta: `[mock:auto-fail:reading]` (no `analyzeChampion`), `[mock:auto-fail:planning]` (PROVIDER_ERROR), `[mock:auto-plan-invalid]` (12 HOOK_TEXT com número inventado nas duas chamadas → nem o reparo salva → PLAN_INVALID), `[mock:page-403]` (sem SPLIT_LP).
+- **Custo (`estimateAutoAnalysis`)**: = `estimateAnalysis(dur, 12)` + plano (7 mil tokens de entrada + 25/s, 6 mil de saída, Opus 5.5). Vídeo de 30 s: **US$ 0,596** (análise do campeão 0,445 + plano 0,151); campeão da Library já analisado (`planOnly`) = US$ 0,151; 60 s = 0,662. É estimativa pra cima: a sonda real do describeEdit (06/10) saiu US$ 0,063 contra 0,12 estimado, então o real deve ficar perto de US$ 0,40-0,45 por 30 s. Bem acima dos US$ 0,06 do mockup (§9).
+- **Validado de verdade:** só com mocks e transporte falso (`api/src/integracoes/auto-plano.spec.ts`, 12 testes; suíte da integracoes 206/206). **Nenhuma chamada real ao Claude** pro plano: o custo do plano e a qualidade do prompt saem da 1ª análise de teste do Gusta (cost_entries reais; pedir antes).

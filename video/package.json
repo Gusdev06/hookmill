@@ -1,0 +1,81 @@
+{
+  "name": "@maquina/video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Templates Remotion da HookMill (clean, bold, headline). Contrato em docs/contratos/estrutura.md §2.2.",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "default": "./dist/lib/index.js"
+    },
+    "./player": "./src/player.ts",
+    "./entry": "./src/index.ts",
+    "./public/fonts/*": "./public/fonts/*",
+    "./package.json": "./package.json",
+    "./scripts/editor-f1/player-fixtures.json": "./scripts/editor-f1/player-fixtures.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "public/fonts",
+    "public/thumbnails"
+  ],
+  "scripts": {
+    "dev": "remotion studio --no-open --port 3010",
+    "studio": "remotion studio --port 3010",
+    "build": "npm run build:lib && npm run build:bundle",
+    "build:lib": "tsc -p tsconfig.lib.json",
+    "build:bundle": "node scripts/bundle.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "amostra": "bash scripts/medir-render.sh",
+    "thumbnails": "bash scripts/thumbnails.sh",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@fontsource/anton": "5.2.5",
+    "@fontsource/archivo-black": "5.3.0",
+    "@fontsource/bebas-neue": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/montserrat": "5.3.0",
+    "@fontsource/oswald": "5.3.0",
+    "@fontsource/poppins": "5.3.0",
+    "@fontsource/roboto-condensed": "5.3.0",
+    "@remotion/fonts": "4.0.533",
+    "@remotion/layout-utils": "4.0.533",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.533",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "4.0.533",
+    "@remotion/cli": "4.0.533",
+    "@remotion/renderer": "4.0.533",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/test"
+    ],
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "module": "commonjs",
+            "target": "ES2022",
+            "strict": true,
+            "esModuleInterop": true,
+            "skipLibCheck": true,
+            "resolveJsonModule": true
+          }
+        }
+      ]
+    }
+  }
+}

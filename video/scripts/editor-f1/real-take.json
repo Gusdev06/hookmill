@@ -1,0 +1,545 @@
+{
+ "language": "en",
+ "captionStyle": "word",
+ "ctaText": "Tap the link below",
+ "endCard": true,
+ "format": "VERTICAL_9_16",
+ "templateId": "bold",
+ "captionPosition": "bottom",
+ "headline": null,
+ "scenes": [
+  {
+   "clipUrl": "fixtures/real-take.mp4",
+   "durationSec": 7.5,
+   "clipStartSec": 0,
+   "words": [
+    {
+     "word": "Hey",
+     "startSec": 0,
+     "endSec": 0.14
+    },
+    {
+     "word": "man,",
+     "startSec": 0.14,
+     "endSec": 0.42
+    },
+    {
+     "word": "this",
+     "startSec": 0.66,
+     "endSec": 0.84
+    },
+    {
+     "word": "is",
+     "startSec": 0.84,
+     "endSec": 1
+    },
+    {
+     "word": "really",
+     "startSec": 1,
+     "endSec": 1.26
+    },
+    {
+     "word": "hard",
+     "startSec": 1.26,
+     "endSec": 1.52
+    },
+    {
+     "word": "to",
+     "startSec": 1.52,
+     "endSec": 1.7
+    },
+    {
+     "word": "talk",
+     "startSec": 1.7,
+     "endSec": 1.98
+    },
+    {
+     "word": "about,",
+     "startSec": 1.98,
+     "endSec": 2.32
+    },
+    {
+     "word": "but",
+     "startSec": 2.52,
+     "endSec": 2.64
+    },
+    {
+     "word": "I",
+     "startSec": 2.64,
+     "endSec": 2.8
+    },
+    {
+     "word": "decided",
+     "startSec": 2.8,
+     "endSec": 3.26
+    },
+    {
+     "word": "to",
+     "startSec": 3.26,
+     "endSec": 3.48
+    },
+    {
+     "word": "tell",
+     "startSec": 3.48,
+     "endSec": 3.68
+    },
+    {
+     "word": "you",
+     "startSec": 3.68,
+     "endSec": 3.84
+    },
+    {
+     "word": "guys",
+     "startSec": 3.84,
+     "endSec": 4.1
+    },
+    {
+     "word": "how",
+     "startSec": 4.1,
+     "endSec": 4.34
+    },
+    {
+     "word": "I",
+     "startSec": 4.34,
+     "endSec": 4.5
+    },
+    {
+     "word": "found",
+     "startSec": 4.5,
+     "endSec": 4.78
+    },
+    {
+     "word": "out",
+     "startSec": 4.78,
+     "endSec": 4.98
+    },
+    {
+     "word": "my",
+     "startSec": 4.98,
+     "endSec": 5.18
+    },
+    {
+     "word": "wife",
+     "startSec": 5.18,
+     "endSec": 5.48
+    },
+    {
+     "word": "was",
+     "startSec": 5.48,
+     "endSec": 5.72
+    },
+    {
+     "word": "cheating",
+     "startSec": 5.72,
+     "endSec": 6.04
+    },
+    {
+     "word": "on",
+     "startSec": 6.04,
+     "endSec": 6.3
+    },
+    {
+     "word": "me.",
+     "startSec": 6.3,
+     "endSec": 6.58
+    },
+    {
+     "word": "Yes,",
+     "startSec": 6.84,
+     "endSec": 7.18
+    },
+    {
+     "word": "that's",
+     "startSec": 7.36,
+     "endSec": 7.58
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/real-take.mp4",
+   "durationSec": 7.5,
+   "clipStartSec": 7.5,
+   "words": [
+    {
+     "word": "her",
+     "startSec": 0.08,
+     "endSec": 0.24
+    },
+    {
+     "word": "in",
+     "startSec": 0.24,
+     "endSec": 0.4
+    },
+    {
+     "word": "the",
+     "startSec": 0.4,
+     "endSec": 0.5
+    },
+    {
+     "word": "video",
+     "startSec": 0.5,
+     "endSec": 0.78
+    },
+    {
+     "word": "recording.",
+     "startSec": 0.78,
+     "endSec": 1.34
+    },
+    {
+     "word": "I",
+     "startSec": 1.58,
+     "endSec": 1.86
+    },
+    {
+     "word": "suspected",
+     "startSec": 1.86,
+     "endSec": 2.4
+    },
+    {
+     "word": "she",
+     "startSec": 2.4,
+     "endSec": 2.72
+    },
+    {
+     "word": "was",
+     "startSec": 2.72,
+     "endSec": 2.9
+    },
+    {
+     "word": "seeing",
+     "startSec": 2.9,
+     "endSec": 3.18
+    },
+    {
+     "word": "someone",
+     "startSec": 3.18,
+     "endSec": 3.58
+    },
+    {
+     "word": "else",
+     "startSec": 3.58,
+     "endSec": 3.86
+    },
+    {
+     "word": "when",
+     "startSec": 3.86,
+     "endSec": 4.08
+    },
+    {
+     "word": "I",
+     "startSec": 4.08,
+     "endSec": 4.2
+    },
+    {
+     "word": "wasn't",
+     "startSec": 4.2,
+     "endSec": 4.54
+    },
+    {
+     "word": "home,",
+     "startSec": 4.54,
+     "endSec": 4.82
+    },
+    {
+     "word": "but",
+     "startSec": 5,
+     "endSec": 5.12
+    },
+    {
+     "word": "I",
+     "startSec": 5.12,
+     "endSec": 5.32
+    },
+    {
+     "word": "couldn't",
+     "startSec": 5.32,
+     "endSec": 5.68
+    },
+    {
+     "word": "prove",
+     "startSec": 5.68,
+     "endSec": 5.92
+    },
+    {
+     "word": "it",
+     "startSec": 5.92,
+     "endSec": 6.12
+    },
+    {
+     "word": "until",
+     "startSec": 6.12,
+     "endSec": 6.42
+    },
+    {
+     "word": "I",
+     "startSec": 6.42,
+     "endSec": 6.66
+    },
+    {
+     "word": "discovered",
+     "startSec": 6.66,
+     "endSec": 7.1
+    },
+    {
+     "word": "a",
+     "startSec": 7.1,
+     "endSec": 7.32
+    },
+    {
+     "word": "system",
+     "startSec": 7.32,
+     "endSec": 7.68
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/real-take.mp4",
+   "durationSec": 8,
+   "clipStartSec": 15,
+   "words": [
+    {
+     "word": "that",
+     "startSec": 0.18,
+     "endSec": 0.46
+    },
+    {
+     "word": "showed",
+     "startSec": 0.46,
+     "endSec": 0.78
+    },
+    {
+     "word": "everything,",
+     "startSec": 0.78,
+     "endSec": 1.36
+    },
+    {
+     "word": "absolutely",
+     "startSec": 1.58,
+     "endSec": 2.18
+    },
+    {
+     "word": "everything,",
+     "startSec": 2.18,
+     "endSec": 2.74
+    },
+    {
+     "word": "everything",
+     "startSec": 2.96,
+     "endSec": 3.4
+    },
+    {
+     "word": "she",
+     "startSec": 3.4,
+     "endSec": 3.8
+    },
+    {
+     "word": "did",
+     "startSec": 3.8,
+     "endSec": 4.08
+    },
+    {
+     "word": "secretly",
+     "startSec": 4.08,
+     "endSec": 4.66
+    },
+    {
+     "word": "on",
+     "startSec": 4.66,
+     "endSec": 5
+    },
+    {
+     "word": "her",
+     "startSec": 5,
+     "endSec": 5.2
+    },
+    {
+     "word": "phone.",
+     "startSec": 5.2,
+     "endSec": 5.56
+    },
+    {
+     "word": "I'll",
+     "startSec": 5.92,
+     "endSec": 6.16
+    },
+    {
+     "word": "leave",
+     "startSec": 6.16,
+     "endSec": 6.34
+    },
+    {
+     "word": "a",
+     "startSec": 6.34,
+     "endSec": 6.48
+    },
+    {
+     "word": "link",
+     "startSec": 6.48,
+     "endSec": 6.7
+    },
+    {
+     "word": "below",
+     "startSec": 6.7,
+     "endSec": 7.04
+    },
+    {
+     "word": "so",
+     "startSec": 7.04,
+     "endSec": 7.32
+    },
+    {
+     "word": "you",
+     "startSec": 7.32,
+     "endSec": 7.46
+    },
+    {
+     "word": "can",
+     "startSec": 7.46,
+     "endSec": 7.6
+    },
+    {
+     "word": "see",
+     "startSec": 7.6,
+     "endSec": 7.84
+    },
+    {
+     "word": "how",
+     "startSec": 7.84,
+     "endSec": 8.06
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/real-take.mp4",
+   "durationSec": 7.188,
+   "clipStartSec": 23,
+   "words": [
+    {
+     "word": "it",
+     "startSec": 0.06,
+     "endSec": 0.2
+    },
+    {
+     "word": "went.",
+     "startSec": 0.2,
+     "endSec": 0.42
+    },
+    {
+     "word": "Don't",
+     "startSec": 0.6,
+     "endSec": 0.76
+    },
+    {
+     "word": "worry,",
+     "startSec": 0.76,
+     "endSec": 1
+    },
+    {
+     "word": "the",
+     "startSec": 1.14,
+     "endSec": 1.2
+    },
+    {
+     "word": "other",
+     "startSec": 1.2,
+     "endSec": 1.42
+    },
+    {
+     "word": "person",
+     "startSec": 1.42,
+     "endSec": 1.82
+    },
+    {
+     "word": "won't",
+     "startSec": 1.82,
+     "endSec": 2.14
+    },
+    {
+     "word": "be",
+     "startSec": 2.14,
+     "endSec": 2.26
+    },
+    {
+     "word": "able",
+     "startSec": 2.26,
+     "endSec": 2.48
+    },
+    {
+     "word": "to",
+     "startSec": 2.48,
+     "endSec": 2.68
+    },
+    {
+     "word": "find",
+     "startSec": 2.68,
+     "endSec": 2.96
+    },
+    {
+     "word": "out.",
+     "startSec": 2.96,
+     "endSec": 3.26
+    },
+    {
+     "word": "I",
+     "startSec": 3.44,
+     "endSec": 3.62
+    },
+    {
+     "word": "hope",
+     "startSec": 3.62,
+     "endSec": 3.86
+    },
+    {
+     "word": "this",
+     "startSec": 3.86,
+     "endSec": 4.14
+    },
+    {
+     "word": "helps",
+     "startSec": 4.14,
+     "endSec": 4.44
+    },
+    {
+     "word": "you",
+     "startSec": 4.44,
+     "endSec": 4.66
+    },
+    {
+     "word": "all",
+     "startSec": 4.66,
+     "endSec": 4.96
+    },
+    {
+     "word": "avoid",
+     "startSec": 4.96,
+     "endSec": 5.32
+    },
+    {
+     "word": "going",
+     "startSec": 5.32,
+     "endSec": 5.6
+    },
+    {
+     "word": "through",
+     "startSec": 5.6,
+     "endSec": 5.86
+    },
+    {
+     "word": "the",
+     "startSec": 5.86,
+     "endSec": 6.06
+    },
+    {
+     "word": "same",
+     "startSec": 6.06,
+     "endSec": 6.34
+    },
+    {
+     "word": "thing.",
+     "startSec": 6.34,
+     "endSec": 6.76
+    }
+   ]
+  }
+ ]
+}

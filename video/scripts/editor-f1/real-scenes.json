@@ -1,0 +1,460 @@
+{
+ "language": "en",
+ "captionStyle": "word",
+ "ctaText": "Tap the link below",
+ "endCard": true,
+ "format": "VERTICAL_9_16",
+ "templateId": "headline",
+ "captionPosition": "top",
+ "headline": "There is one detail on Instagram that gives everyone away",
+ "scenes": [
+  {
+   "clipUrl": "fixtures/real-kling-1.mp4",
+   "durationSec": 8.034,
+   "words": [
+    {
+     "word": "There's",
+     "startSec": 0,
+     "endSec": 1.08
+    },
+    {
+     "word": "one",
+     "startSec": 1.08,
+     "endSec": 1.28
+    },
+    {
+     "word": "detail",
+     "startSec": 1.28,
+     "endSec": 1.64
+    },
+    {
+     "word": "on",
+     "startSec": 1.64,
+     "endSec": 1.88
+    },
+    {
+     "word": "Instagram",
+     "startSec": 1.88,
+     "endSec": 2.26
+    },
+    {
+     "word": "that",
+     "startSec": 2.26,
+     "endSec": 2.54
+    },
+    {
+     "word": "gives",
+     "startSec": 2.54,
+     "endSec": 2.76
+    },
+    {
+     "word": "almost",
+     "startSec": 2.76,
+     "endSec": 3.06
+    },
+    {
+     "word": "everyone",
+     "startSec": 3.06,
+     "endSec": 3.48
+    },
+    {
+     "word": "away.",
+     "startSec": 3.48,
+     "endSec": 3.82
+    },
+    {
+     "word": "The",
+     "startSec": 4.12,
+     "endSec": 4.58
+    },
+    {
+     "word": "problem",
+     "startSec": 4.58,
+     "endSec": 4.94
+    },
+    {
+     "word": "is",
+     "startSec": 4.94,
+     "endSec": 5.3
+    },
+    {
+     "word": "hardly",
+     "startSec": 5.3,
+     "endSec": 5.7
+    },
+    {
+     "word": "anyone",
+     "startSec": 5.7,
+     "endSec": 5.96
+    },
+    {
+     "word": "knows",
+     "startSec": 5.96,
+     "endSec": 6.16
+    },
+    {
+     "word": "where",
+     "startSec": 6.16,
+     "endSec": 6.32
+    },
+    {
+     "word": "to",
+     "startSec": 6.32,
+     "endSec": 6.42
+    },
+    {
+     "word": "look.",
+     "startSec": 6.42,
+     "endSec": 6.72
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/real-kling-2.mp4",
+   "durationSec": 11.042,
+   "words": [
+    {
+     "word": "You",
+     "startSec": 0,
+     "endSec": 0.72
+    },
+    {
+     "word": "don't",
+     "startSec": 0.72,
+     "endSec": 0.9
+    },
+    {
+     "word": "need",
+     "startSec": 0.9,
+     "endSec": 1.02
+    },
+    {
+     "word": "to",
+     "startSec": 1.02,
+     "endSec": 1.16
+    },
+    {
+     "word": "guess",
+     "startSec": 1.16,
+     "endSec": 1.58
+    },
+    {
+     "word": "or",
+     "startSec": 1.58,
+     "endSec": 2.2
+    },
+    {
+     "word": "argue",
+     "startSec": 2.2,
+     "endSec": 2.72
+    },
+    {
+     "word": "or",
+     "startSec": 2.72,
+     "endSec": 3.3
+    },
+    {
+     "word": "secretly",
+     "startSec": 3.3,
+     "endSec": 3.72
+    },
+    {
+     "word": "check",
+     "startSec": 3.72,
+     "endSec": 4.04
+    },
+    {
+     "word": "someone's",
+     "startSec": 4.04,
+     "endSec": 4.48
+    },
+    {
+     "word": "phone,",
+     "startSec": 4.48,
+     "endSec": 4.84
+    },
+    {
+     "word": "because",
+     "startSec": 4.86,
+     "endSec": 5.8
+    },
+    {
+     "word": "when",
+     "startSec": 5.8,
+     "endSec": 5.98
+    },
+    {
+     "word": "people",
+     "startSec": 5.98,
+     "endSec": 6.22
+    },
+    {
+     "word": "try",
+     "startSec": 6.22,
+     "endSec": 6.42
+    },
+    {
+     "word": "to",
+     "startSec": 6.42,
+     "endSec": 6.54
+    },
+    {
+     "word": "hide",
+     "startSec": 6.54,
+     "endSec": 6.78
+    },
+    {
+     "word": "something,",
+     "startSec": 6.78,
+     "endSec": 7.16
+    },
+    {
+     "word": "they",
+     "startSec": 7.38,
+     "endSec": 7.66
+    },
+    {
+     "word": "usually",
+     "startSec": 7.66,
+     "endSec": 8.04
+    },
+    {
+     "word": "leave",
+     "startSec": 8.04,
+     "endSec": 8.34
+    },
+    {
+     "word": "small",
+     "startSec": 8.34,
+     "endSec": 8.66
+    },
+    {
+     "word": "traces",
+     "startSec": 8.66,
+     "endSec": 9.06
+    },
+    {
+     "word": "behind",
+     "startSec": 9.06,
+     "endSec": 9.46
+    },
+    {
+     "word": "without",
+     "startSec": 9.46,
+     "endSec": 9.74
+    },
+    {
+     "word": "realizing",
+     "startSec": 9.74,
+     "endSec": 10.24
+    },
+    {
+     "word": "it.",
+     "startSec": 10.24,
+     "endSec": 10.52
+    }
+   ]
+  },
+  {
+   "clipUrl": "fixtures/real-kling-3.mp4",
+   "durationSec": 15.042,
+   "words": [
+    {
+     "word": "That's",
+     "startSec": 0,
+     "endSec": 0.72
+    },
+    {
+     "word": "why",
+     "startSec": 0.72,
+     "endSec": 0.82
+    },
+    {
+     "word": "so",
+     "startSec": 0.82,
+     "endSec": 1
+    },
+    {
+     "word": "many",
+     "startSec": 1,
+     "endSec": 1.16
+    },
+    {
+     "word": "people",
+     "startSec": 1.16,
+     "endSec": 1.44
+    },
+    {
+     "word": "uncover",
+     "startSec": 1.44,
+     "endSec": 1.88
+    },
+    {
+     "word": "messages,",
+     "startSec": 1.88,
+     "endSec": 2.48
+    },
+    {
+     "word": "contacts,",
+     "startSec": 2.86,
+     "endSec": 3.46
+    },
+    {
+     "word": "and",
+     "startSec": 3.66,
+     "endSec": 3.72
+    },
+    {
+     "word": "suspicious",
+     "startSec": 3.72,
+     "endSec": 4.12
+    },
+    {
+     "word": "behavior.",
+     "startSec": 4.12,
+     "endSec": 4.62
+    },
+    {
+     "word": "Even",
+     "startSec": 4.98,
+     "endSec": 5.48
+    },
+    {
+     "word": "when",
+     "startSec": 5.48,
+     "endSec": 5.62
+    },
+    {
+     "word": "the",
+     "startSec": 5.62,
+     "endSec": 5.72
+    },
+    {
+     "word": "other",
+     "startSec": 5.72,
+     "endSec": 5.86
+    },
+    {
+     "word": "person",
+     "startSec": 5.86,
+     "endSec": 6.2
+    },
+    {
+     "word": "thinks",
+     "startSec": 6.2,
+     "endSec": 6.42
+    },
+    {
+     "word": "they",
+     "startSec": 6.42,
+     "endSec": 6.62
+    },
+    {
+     "word": "deleted",
+     "startSec": 6.62,
+     "endSec": 6.96
+    },
+    {
+     "word": "everything,",
+     "startSec": 6.96,
+     "endSec": 7.42
+    },
+    {
+     "word": "you",
+     "startSec": 7.76,
+     "endSec": 8.2
+    },
+    {
+     "word": "just",
+     "startSec": 8.2,
+     "endSec": 8.42
+    },
+    {
+     "word": "need",
+     "startSec": 8.42,
+     "endSec": 8.54
+    },
+    {
+     "word": "to",
+     "startSec": 8.54,
+     "endSec": 8.66
+    },
+    {
+     "word": "know",
+     "startSec": 8.66,
+     "endSec": 8.78
+    },
+    {
+     "word": "where",
+     "startSec": 8.78,
+     "endSec": 8.9
+    },
+    {
+     "word": "to",
+     "startSec": 8.9,
+     "endSec": 9
+    },
+    {
+     "word": "look.",
+     "startSec": 9,
+     "endSec": 9.28
+    },
+    {
+     "word": "How",
+     "startSec": 9.28,
+     "endSec": 10.34
+    },
+    {
+     "word": "access",
+     "startSec": 10.34,
+     "endSec": 10.82
+    },
+    {
+     "word": "is",
+     "startSec": 10.82,
+     "endSec": 11.84
+    },
+    {
+     "word": "right",
+     "startSec": 11.84,
+     "endSec": 12.08
+    },
+    {
+     "word": "below",
+     "startSec": 12.08,
+     "endSec": 12.46
+    },
+    {
+     "word": "while",
+     "startSec": 12.46,
+     "endSec": 13.04
+    },
+    {
+     "word": "this",
+     "startSec": 13.04,
+     "endSec": 13.3
+    },
+    {
+     "word": "tool",
+     "startSec": 13.3,
+     "endSec": 13.54
+    },
+    {
+     "word": "is",
+     "startSec": 13.54,
+     "endSec": 13.76
+    },
+    {
+     "word": "still",
+     "startSec": 13.76,
+     "endSec": 13.94
+    },
+    {
+     "word": "available.",
+     "startSec": 13.94,
+     "endSec": 14.32
+    }
+   ]
+  }
+ ]
+}
