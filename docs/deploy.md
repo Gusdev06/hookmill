@@ -1,5 +1,7 @@
 # Deploy da HookMill (runbook)
 Data: 2026-10-13 · Dono: maquina-arquiteto · Desenho fechado em [`contratos/estrutura.md` §6](contratos/estrutura.md) (não reabrir).
+**14/10: Supabase Pro, projeto COMPARTILHADO com o Social Hub (`grbwshqevyahuukfdpfx`), schema `hookmill` (`?schema=hookmill` em DATABASE_URL e DIRECT_URL). NÃO desligar a Data API (o Social Hub pode usar); só não exponha o schema `hookmill`.** Pro: O §8 (limite de 50 MB) não vale mais: no bucket e em Storage → Settings, ponha o limite global em ≥ 1 GB.
+
 Decisões do Gusta em 13/10: VPS = Hostinger `srv1798762.hstgr.cloud` (a MESMA da API do AI Model Lab), Supabase **Free**,
 domínio provisório (web em `*.vercel.app`, API no domínio HTTPS do EasyPanel). O 1º commit e o repo GitHub são do loop principal.
 
@@ -91,8 +93,8 @@ Segredo só no painel (EasyPanel / Vercel). Nada disto vai pro git.
 | `APIFY_AD_LIBRARY_ACTOR` | `curious_coder~facebook-ads-library-scraper` |
 | `AD_LIBRARY_MODE` | `live` (ou `off` se o Gusta não quiser link da Ad Library na estreia) |
 | `UPLOAD_MODE` | `proxy`, ou `direct` só se o §3 aprovar o PUT |
-| `UPLOAD_MAX_BYTES` | **`48000000`** (48 MB decimais, abaixo dos 50 MB do Free em qualquer unidade) |
-| `CHAMPION_MIN_SEC` / `CHAMPION_MAX_SEC` | `5` / **`60`** (ver §8: peça longa estoura 50 MB) |
+| `UPLOAD_MAX_BYTES` | **`524288000`** (500 MB; Supabase Pro desde 14/10) |
+| `CHAMPION_MIN_SEC` / `CHAMPION_MAX_SEC` | `5` / `180` |
 | `RENDER_CONCURRENCY` / `RENDER_FRAMES_CONCURRENCY` | **`1` / `1`** (VPS compartilhada, 4 GB) |
 | `RENDER_TMP_DIR`, `TMPDIR` | `/data/render`, `/data/tmp` (imagem; ficam no volume) |
 | `REMOTION_BUNDLE_DIR` | `/app/video/dist/bundle` (imagem) |
