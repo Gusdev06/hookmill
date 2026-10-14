@@ -31,3 +31,5 @@ api/src/medicao/modelos/*.onnx
 
 # rascunhos soltos
 tmp-*
+.vercel
+.env*
