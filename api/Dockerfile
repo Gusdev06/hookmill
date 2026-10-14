@@ -81,7 +81,8 @@ ENV NODE_ENV=production \
 # Prisma Client do runtime (engine debian-openssl-3.0.x) + Chrome headless shell baixado AGORA, não na 1ª renderização
 # (o ensureBrowser em produção travou e derrubou o Node na VPS). Depois, prova no build que nada nativo está quebrado:
 # ldd sem "not found" no Chrome, no compositor do Remotion e no onnxruntime; onnxruntime carrega; ffmpeg responde.
-RUN node_modules/.bin/prisma generate --schema api/prisma/schema.prisma \
+RUN mkdir -p /data/render /data/tmp \
+ && node_modules/.bin/prisma generate --schema api/prisma/schema.prisma \
  && node -e "require('@remotion/renderer').ensureBrowser().then((s) => console.log(JSON.stringify(s)))" \
  && test -x "$REMOTION_BROWSER_EXECUTABLE" \
  && if ldd "$REMOTION_BROWSER_EXECUTABLE" | grep 'not found'; then echo 'Chrome: lib de sistema faltando' >&2; exit 1; fi \
@@ -91,7 +92,6 @@ RUN node_modules/.bin/prisma generate --schema api/prisma/schema.prisma \
     done \
  && node -e "require('onnxruntime-node'); console.log('onnxruntime ok')" \
  && ffmpeg -hide_banner -version | head -1 && ffprobe -hide_banner -version | head -1 \
- && mkdir -p /data/render /data/tmp \
  && chown -R node:node /data
 
 # /data = volume do EasyPanel (renders e downloads temporários; o storage é o Supabase). Precisa ser do uid 1000.
