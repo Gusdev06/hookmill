@@ -88,7 +88,7 @@ RUN mkdir -p /data/render /data/tmp \
  && if ldd "$REMOTION_BROWSER_EXECUTABLE" | grep 'not found'; then echo 'Chrome: lib de sistema faltando' >&2; exit 1; fi \
  && test -d node_modules/@remotion/compositor-linux-x64-gnu \
  && for f in $(find node_modules/@remotion/compositor-linux-x64-gnu -type f -perm -u+x) node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node; do \
-      if ldd "$f" 2>/dev/null | grep 'not found'; then echo "lib faltando: $f" >&2; exit 1; fi; \
+      if LD_LIBRARY_PATH=/app/node_modules/@remotion/compositor-linux-x64-gnu ldd "$f" 2>/dev/null | grep 'not found'; then echo "lib faltando: $f" >&2; exit 1; fi; \
     done \
  && node -e "require('onnxruntime-node'); console.log('onnxruntime ok')" \
  && ffmpeg -hide_banner -version | head -1 && ffprobe -hide_banner -version | head -1 \
