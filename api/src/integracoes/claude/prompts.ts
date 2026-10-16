@@ -35,16 +35,22 @@ Rules:
 - Write every field in the page's own language (the same language you report in "language").
 - Keep fields short and concrete: an ad writer should be able to scan the whole brief in 20 seconds.
 - "language" is a BCP 47 tag. Use region subtags only when the page makes the region clear (Brazilian Portuguese = pt-BR).
-- The page text was extracted automatically and may include navigation, cookie banners or repeated footer text: ignore those.`;
+- The page text was extracted automatically and may include navigation, cookie banners or repeated footer text: ignore those.
+- Related pages, when present, are other subdomains of the same offer (checkout, members area, app, upsell). The main page leads: use related pages to fill gaps or add specifics (price, plans, guarantee, bonuses, what the buyer gets). If they contradict the main page, keep the main page. Ignore related pages that are clearly about something else (a blog post, a login wall, a different product). "language" comes from the main page.`;
 
-export function briefUserMessage(page: { url?: string; title?: string | null; description?: string | null; text: string; truncated?: boolean }): string {
+export function briefUserMessage(page: {
+  url?: string; title?: string | null; description?: string | null; text: string; truncated?: boolean;
+  related?: { url: string; title: string | null; text: string; truncated: boolean }[];
+}): string {
   const head = [
     page.url ? `URL: ${page.url}` : 'Source: text pasted by the user',
     page.title ? `Title: ${page.title}` : null,
     page.description ? `Meta description: ${page.description}` : null,
     page.truncated ? 'Note: the page was long and the text below was cut at the end.' : null,
   ].filter(Boolean);
-  return `${head.join('\n')}\n\n<page_text>\n${page.text}\n</page_text>\n\nFill the brief.`;
+  const related = (page.related ?? []).map((r) =>
+    `<related_page url="${r.url}"${r.title ? ` title="${r.title.replace(/"/g, "'")}"` : ''}${r.truncated ? ' cut="true"' : ''}>\n${r.text}\n</related_page>`);
+  return `${head.join('\n')}\n\n<page_text>\n${page.text}\n</page_text>${related.length ? `\n\n${related.join('\n\n')}` : ''}\n\nFill the brief.`;
 }
 
 // ---------------------------------------------------------------- roteiros

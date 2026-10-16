@@ -8,6 +8,7 @@ import type {
   CastingStyle,
   ClaudeService,
   DescribeEditInput,
+  ExtractSources,
   EditMap,
   EditMapDraft,
   HookMode,
@@ -74,7 +75,8 @@ import {
   type DiverseCasting,
 } from './elenco';
 import { JsonStringStream } from './json-stream';
-import { fetchPage, type FetchPageOptions, type PageText } from './pagina';
+import type { PageText } from './pagina';
+import { fetchOfferPages, type RelatedOptions } from './subdominios';
 import {
   BRIEF_SCHEMA,
   BRIEF_SYSTEM,
@@ -95,7 +97,7 @@ export interface ClaudeLiveOptions {
   model: string;
   /** só pros testes: troca o leitor de página */
   fetchPage?: (url: string) => Promise<PageText>;
-  pageOptions?: FetchPageOptions;
+  pageOptions?: RelatedOptions;
   /** baixa os frames-chave (URL assinada do storage); testes trocam */
   fetchImpl?: typeof fetch;
 }
@@ -122,7 +124,7 @@ export class ClaudeLiveService implements ClaudeService {
   async extractOffer(
     input: { url?: string; pageText?: string; workspaceId: string; jobId: string },
     onStage: (stage: 'fetching_page' | 'extracting' | 'detecting_language') => void,
-  ): Promise<OfferBriefDraft & Usage> {
+  ): Promise<OfferBriefDraft & Usage & ExtractSources> {
     let page: PageText;
     if (input.pageText?.trim()) {
       // texto colado (fallback do 403): não busca a página de novo
@@ -130,7 +132,8 @@ export class ClaudeLiveService implements ClaudeService {
       page = { url: input.url ?? '', title: null, description: null, text: text.slice(0, 60_000), truncated: text.length > 60_000 };
     } else if (input.url) {
       onStage('fetching_page');
-      page = await (this.opts.fetchPage ?? ((u: string) => fetchPage(u, this.opts.pageOptions)))(input.url);
+      // página principal + subdomínios da mesma oferta (checkout., app., members.…); subdomínio que falha fica de fora
+      page = await (this.opts.fetchPage ?? ((u: string) => fetchOfferPages(u, this.opts.pageOptions)))(input.url);
     } else {
       throw new IntegracaoError('PAGE_UNREADABLE', 'no url and no page text');
     }
@@ -141,7 +144,7 @@ export class ClaudeLiveService implements ClaudeService {
     this.assertFinished(res);
     onStage('detecting_language'); // o idioma sai na mesma resposta; a etapa existe pro checklist do web
     const brief = parseBrief(res.text);
-    return { ...brief, costUsd };
+    return { ...brief, costUsd, relatedUrls: (page.related ?? []).map((r) => r.url) };
   }
 
   async generateScripts(

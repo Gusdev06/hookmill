@@ -213,6 +213,7 @@ export class OfertasService {
         sourceUrl: input.url ?? null,
         brief: briefOf(brief),
         fieldSources,
+        relatedUrls: brief.relatedUrls ?? [],
       };
       await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: output as unknown as Prisma.InputJsonValue });
     } catch (e) {

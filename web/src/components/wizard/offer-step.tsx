@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { BriefFields, EMPTY_DRAFT, fromExtract, type Draft, type DraftKey } from "@/components/brief-form"
-import { ExtractChecklist, useOfferExtract } from "@/components/offer-extract"
+import { AlsoRead, ExtractChecklist, useOfferExtract } from "@/components/offer-extract"
 import { Icon } from "@/components/icon"
 import { Panel, PanelHead, Tag } from "@/components/page"
 import { useErrorMessage } from "@/hooks/use-error-message"
@@ -289,6 +289,7 @@ export function OfferStep({ creative }: { creative: CreativeDetail | null }) {
               <span className="row-sub whitespace-normal">
                 {mode === "reading" ? t("offer.reading") : mode === "filled" ? t("offer.filled") : t("offer.manual")}
               </span>
+              {mode === "filled" ? <AlsoRead urls={ex.result?.relatedUrls} /> : null}
             </PanelHead>
             <BriefFields draft={draft} onChange={changeField} fromPage={fromPage} loading={mode === "reading"} />
           </Panel>

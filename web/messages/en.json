@@ -261,6 +261,7 @@
       "fillByHand": "Fill by hand",
       "reading": "Reading…",
       "filled": "Filled from the page. Check it before you continue.",
+      "alsoRead": "Also read: {hosts}",
       "manual": "Fill in the brief. “What it is” and “Main promise” are required.",
       "pageText": "Page text",
       "pageTextPlaceholder": "Paste the sales page copy here",

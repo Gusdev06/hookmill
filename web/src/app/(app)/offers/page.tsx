@@ -17,6 +17,7 @@ import { EmptyState, Page, PageHead, Panel, PanelHead, Tag } from "@/components/
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { useLanguageName } from "@/hooks/use-language-name"
 import { BriefFields, FIELDS, toDraft, type Draft, type DraftKey } from "@/components/brief-form"
+import { AlsoRead } from "@/components/offer-extract"
 import { cn } from "@/lib/utils"
 
 const TERMINAL: Job["status"][] = ["SUCCEEDED", "PARTIAL", "FAILED"]
@@ -144,6 +145,7 @@ function BriefPanel({ offer }: { offer: Offer }) {
   const [fromPage, setFromPage] = useState<Set<DraftKey>>(new Set())
   const [jobId, setJobId] = useState<string | null>(null)
   const [rereadNote, setRereadNote] = useState<"done" | null>(null)
+  const [alsoRead, setAlsoRead] = useState<string[]>([])
 
   const save = useMutation({
     mutationFn: () => {
@@ -200,6 +202,7 @@ function BriefPanel({ offer }: { offer: Offer }) {
       setDraft((d) => ({ ...d, ...next }))
       setFromPage(new Set(Object.entries(out.fieldSources).filter(([, v]) => v === "page").map(([k]) => k as DraftKey)))
       setRereadNote("done")
+      setAlsoRead(out.relatedUrls ?? [])
       setJobId(null)
     }
   }
@@ -259,6 +262,7 @@ function BriefPanel({ offer }: { offer: Offer }) {
           <Icon name="info" />
           <AlertBody>
             <AlertDescription>{t("offers.rereadDone")}</AlertDescription>
+            <AlsoRead urls={alsoRead} />
           </AlertBody>
         </Alert>
       ) : null}

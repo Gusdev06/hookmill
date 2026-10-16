@@ -671,6 +671,8 @@ function extractOutput(j: MJob) {
       proof: "Customer reviews on the sales page.", offerAndPrice: "One-time payment.", cta: "Get started", notes: null,
     },
     fieldSources: fromPage,
+    // link read (not pasted text): pretend the API also read the checkout subdomain
+    relatedUrls: host && !j.pageText ? [`https://checkout.${host.replace(/^www\./, "")}/`] : [],
   }
 }
 

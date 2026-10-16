@@ -151,7 +151,7 @@ interface Job extends Progress {
   status: 'QUEUED'|'RUNNING'|'SUCCEEDED'|'PARTIAL'|'FAILED';
   checklist: { key: string; done: boolean }[];   // ex. fetching_page, extracting, detecting_language
   errorCode: string|null; failReason: string|null; action: Action|null;
-  output: unknown | null;              // OFFER_EXTRACT → { name, language, sourceUrl, brief: OfferBrief, fieldSources }
+  output: unknown | null;              // OFFER_EXTRACT → { name, language, sourceUrl, brief: OfferBrief, fieldSources, relatedUrls? }
 }
 
 interface ScriptBlock { label: string; startSec: number; endSec: number; speech: string; visualPrompt: string }

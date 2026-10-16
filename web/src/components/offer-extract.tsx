@@ -86,3 +86,10 @@ export function ExtractChecklist({ job, url }: { job: Job | null; url: string })
     </div>
   )
 }
+
+/** Subdomains of the same offer the API read with the main page (checkout., app., members.…); nothing when none. */
+export function AlsoRead({ urls }: { urls?: string[] | null }) {
+  const t = useTranslations("wizard.offer")
+  if (!urls?.length) return null
+  return <span className="row-sub whitespace-normal">{t("alsoRead", { hosts: urls.map(hostOf).join(", ") })}</span>
+}

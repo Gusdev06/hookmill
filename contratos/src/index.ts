@@ -100,6 +100,8 @@ export interface Job extends Progress {
 }
 export interface OfferExtractOutput {
   name: string; language: string; sourceUrl: string | null; brief: OfferBrief; fieldSources: FieldSources;
+  /** subdomínios da mesma oferta lidos junto (checkout., app., members.…); ausente/[] = só a página principal */
+  relatedUrls?: string[];
 }
 
 export interface ScriptBlock { label: string; startSec: number; endSec: number; speech: string; visualPrompt: string }

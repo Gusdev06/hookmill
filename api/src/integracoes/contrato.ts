@@ -31,11 +31,13 @@ export interface ScriptBlockDraft { label: string; startSec: number; endSec: num
 export interface ScriptDraft { angle: string; rationale: string; durationSec: number; blocks: ScriptBlockDraft[] }
 export interface SceneDraft { index: number; label: string; startSec: number; endSec: number; speech: string; visualPrompt: string }
 export interface Usage { costUsd: number }                  // a ia já gravou a cost_entry
+/** Subdomínios da oferta lidos junto com a página principal (checkout., app.…); [] = só a principal. */
+export interface ExtractSources { relatedUrls?: string[] }
 
 export interface ClaudeService {
-  /** Lê a página (fetch na própria API) ou usa o texto colado e devolve o briefing. Erros: PAGE_FORBIDDEN, PAGE_UNREADABLE, RATE_LIMITED. */
+  /** Lê a página (fetch na própria API) + subdomínios da oferta, ou usa o texto colado, e devolve o briefing. Erros: PAGE_FORBIDDEN, PAGE_UNREADABLE, RATE_LIMITED. */
   extractOffer(input: { url?: string; pageText?: string; workspaceId: string; jobId: string },
-               onStage: (stage: 'fetching_page'|'extracting'|'detecting_language') => void): Promise<OfferBriefDraft & Usage>;
+               onStage: (stage: 'fetching_page'|'extracting'|'detecting_language') => void): Promise<OfferBriefDraft & Usage & ExtractSources>;
 
   /** Escreve N roteiros, em paralelo, com streaming. Falha parcial não derruba os outros. */
   generateScripts(input: {

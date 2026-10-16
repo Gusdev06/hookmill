@@ -13,7 +13,13 @@ export interface PageText {
   text: string;
   /** o texto passou do limite e foi cortado (avisamos o Claude) */
   truncated: boolean;
+  /** hrefs/actions absolutos (http/s) da página: de onde saem os subdomínios linkados (subdominios.ts) */
+  links?: string[];
+  /** subdomínios da mesma oferta lidos junto (checkout., app., members.…): complementam a página principal */
+  related?: RelatedPage[];
 }
+
+export interface RelatedPage { url: string; title: string | null; text: string; truncated: boolean }
 
 export interface FetchPageOptions {
   fetchImpl?: typeof fetch;
@@ -71,11 +77,25 @@ export async function fetchPage(rawUrl: string, opts: FetchPageOptions = {}): Pr
     body = new TextDecoder('utf-8').decode(bytes);
   }
   const page = type.includes('text/plain') ? { title: null, description: null, text: tidy(body) } : htmlToText(body);
+  const links = type.includes('text/plain') ? [] : extractLinks(body, url);
   if (/just a moment|attention required|enable javascript and cookies/i.test(page.title ?? '') && page.text.length < 2000)
     throw new IntegracaoError('PAGE_FORBIDDEN', 'bot challenge page');
   if (page.text.length < MIN_TEXT_CHARS) throw new IntegracaoError('PAGE_UNREADABLE', 'no readable text (page rendered by JavaScript?)');
   const truncated = page.text.length > MAX_PAGE_CHARS;
-  return { url: url.toString(), ...page, text: truncated ? page.text.slice(0, MAX_PAGE_CHARS) : page.text, truncated };
+  return { url: url.toString(), ...page, text: truncated ? page.text.slice(0, MAX_PAGE_CHARS) : page.text, truncated, links };
+}
+
+/** href de <a>/<area>/<link> e action de <form>, absolutos e http(s), sem repetir. */
+export function extractLinks(html: string, base: URL): string[] {
+  const out = new Set<string>();
+  for (const m of html.matchAll(/<(?:a|area|form)\b[^>]*?\b(?:href|action)\s*=\s*["']([^"'#][^"']*)["']/gi)) {
+    try {
+      const u = new URL(decodeEntities(m[1].trim()), base);
+      if (u.protocol === 'http:' || u.protocol === 'https:') out.add(u.toString());
+    } catch { /* href quebrado */ }
+    if (out.size >= 500) break;
+  }
+  return [...out];
 }
 
 function parseUrl(raw: string): URL {

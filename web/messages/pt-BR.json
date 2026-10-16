@@ -261,6 +261,7 @@
       "fillByHand": "Preencher à mão",
       "reading": "Lendo…",
       "filled": "Preenchido a partir da página. Confira antes de seguir.",
+      "alsoRead": "Também lido: {hosts}",
       "manual": "Preencha o briefing. “O que é” e “Promessa principal” são obrigatórios.",
       "pageText": "Texto da página",
       "pageTextPlaceholder": "Cole aqui a copy da página de vendas",
