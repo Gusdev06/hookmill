@@ -1,6 +1,6 @@
 // Fase 2 (fase2-agencia.md §1-§2): cliente = workspace. Funções puras: status derivado, resultado padrão, código curto
 // e a forma `Workspace` do contrato. Nenhuma outra parte do backend decide status do cliente por conta própria.
-import type { BusinessType, ClientStatus, DefaultResult, OnboardingStep, Workspace as WorkspaceView } from '@maquina/contratos';
+import type { BusinessType, ClientStatus, DefaultResult, Onboarding, OnboardingStep, Workspace as WorkspaceView } from '@maquina/contratos';
 import type { Workspace } from '@prisma/client';
 import { num } from '../common/util/format';
 
@@ -17,7 +17,8 @@ export function defaultResultOf(t: BusinessType | null): DefaultResult | null {
   return t ? DEFAULT_RESULT[t] : null;
 }
 
-export function onboardingOf(ws: Pick<Workspace, 'onboardingStep' | 'onboardingCompletedAt'>) {
+/** Só a parte posicional do `Onboarding`; percent/steps/updatedBy vêm do `onboarding.ts` (onboardingFull). */
+export function onboardingOf(ws: Pick<Workspace, 'onboardingStep' | 'onboardingCompletedAt'>): Pick<Onboarding, 'step' | 'totalSteps' | 'completedAt'> {
   const step = Math.min(ONBOARDING_STEPS, Math.max(1, ws.onboardingStep)) as OnboardingStep;
   return { step, totalSteps: ONBOARDING_STEPS, completedAt: ws.onboardingCompletedAt?.toISOString() ?? null };
 }
@@ -34,7 +35,10 @@ export function shortCodeFromName(name: string): string {
   return chars.length >= 2 ? chars.slice(0, 2) : 'WS';
 }
 
-export function presentWorkspace(ws: Workspace): WorkspaceView {
+/** `Workspace` do contrato menos o `onboarding` completo (percent/steps/updatedBy): quem chama junta o `onboardingFull`. */
+export type WorkspaceBase = Omit<WorkspaceView, 'onboarding'> & { onboarding: ReturnType<typeof onboardingOf> };
+
+export function presentWorkspace(ws: Workspace): WorkspaceBase {
   return {
     id: ws.id,
     name: ws.name,
@@ -46,6 +50,7 @@ export function presentWorkspace(ws: Workspace): WorkspaceView {
     businessType: ws.businessType,
     defaultResult: defaultResultOf(ws.businessType),
     websiteUrl: ws.websiteUrl,
+    brandColor: ws.brandColor ?? null, // 25/10 D3
     status: clientStatusOf(ws),
     onboarding: onboardingOf(ws),
   };

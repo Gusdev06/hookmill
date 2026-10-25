@@ -68,6 +68,27 @@ export default defineConfig({
       timeout: 420_000,
       use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
     },
+    // Estático montado (A) + molduras (B1) — estatico-montado-e-molduras-v1 (25/10). Pendente até as entregas da §C.1:
+    // os projetos só existem com E2E_EM=1, então `contrato`/`e2e`/`iterate` não mudam. Cada spec ainda pula sozinho
+    // (motivo no relatório) enquanto a API do QA não tiver a entrega (harness/estatico-molduras.ts › entrega()).
+    ...(process.env.E2E_EM === '1'
+      ? [
+          { name: 'estatico', testDir: './specs/estatico', timeout: 300_000 },
+          { name: 'molduras', testDir: './specs/molduras', timeout: 300_000 },
+          {
+            name: 'em-1440',
+            testDir: './specs/estatico-molduras-ui',
+            timeout: 600_000,
+            use: { baseURL: ENV.webUrl, browserName: 'chromium' as const, channel: CHROME, viewport: { width: 1440, height: 900 } },
+          },
+          {
+            name: 'em-390',
+            testDir: './specs/estatico-molduras-ui',
+            timeout: 600_000,
+            use: { baseURL: ENV.webUrl, browserName: 'chromium' as const, channel: CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+          },
+        ]
+      : []),
     ...(ENV.renderReal ? [{ name: 'iterate-render', testDir: './specs/iterate-render', timeout: 14_400_000 }] : []),
     ...(ENV.renderReal
       ? [{ name: 'editor-render', testDir: './specs/editor-render', timeout: 900_000, use: { baseURL: ENV.webUrl, browserName: 'chromium' as const, channel: CHROME, viewport: { width: 1440, height: 900 } } }]

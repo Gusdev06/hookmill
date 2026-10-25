@@ -21,6 +21,8 @@ export const CHAMPION_TRANSITIONS = {
   ATTACH_VIDEO: { from: ['FAILED'], to: ['ANALYZING'] },
   /** POST /champions/:id/analyze */
   ANALYZE_AGAIN: { from: ['FAILED', 'READY'], to: ['ANALYZING'] },
+  /** meta-v1 D13: campeão da Meta que falhou no download (sem vídeo) volta a baixar (retry do lote) */
+  IMPORT_AGAIN: { from: ['FAILED'], to: ['RESOLVING'] },
 } as const satisfies Record<string, { from: readonly ChampionStatus[]; to: readonly ChampionStatus[] }>;
 
 export type ChampionEvent = keyof typeof CHAMPION_TRANSITIONS;

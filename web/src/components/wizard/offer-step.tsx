@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { BriefFields, EMPTY_DRAFT, fromExtract, type Draft, type DraftKey } from "@/components/brief-form"
-import { AlsoRead, ExtractChecklist, useOfferExtract } from "@/components/offer-extract"
+import { ExtractChecklist, originsOf, ReadFrom, useOfferExtract } from "@/components/offer-extract"
 import { Icon } from "@/components/icon"
 import { Panel, PanelHead, Tag } from "@/components/page"
 import { useErrorMessage } from "@/hooks/use-error-message"
@@ -176,6 +176,8 @@ export function OfferStep({ creative }: { creative: CreativeDetail | null }) {
           what: draft.what || null, audience: draft.audience || null, promise: draft.promise || null, pains: draft.pains || null,
           proof: draft.proof || null, offerAndPrice: draft.offerAndPrice || null, cta: draft.cta || null,
           fieldSources: Object.fromEntries([...fromPage].map((k) => [k, "page" as const])),
+          // briefing-leitura-v2 D5: a new offer keeps the "read from" of the reading (absent before v2)
+          readMeta: ex.result?.readMeta,
         })
         offerId = o.id
         qc.invalidateQueries({ queryKey: ["offers"] })
@@ -289,9 +291,9 @@ export function OfferStep({ creative }: { creative: CreativeDetail | null }) {
               <span className="row-sub whitespace-normal">
                 {mode === "reading" ? t("offer.reading") : mode === "filled" ? t("offer.filled") : t("offer.manual")}
               </span>
-              {mode === "filled" ? <AlsoRead urls={ex.result?.relatedUrls} /> : null}
+              {mode === "filled" ? <ReadFrom source={ex.result} /> : null}
             </PanelHead>
-            <BriefFields draft={draft} onChange={changeField} fromPage={fromPage} loading={mode === "reading"} />
+            <BriefFields draft={draft} onChange={changeField} fromPage={fromPage} origins={mode === "filled" ? originsOf(ex.result) : undefined} loading={mode === "reading"} />
           </Panel>
         ) : null}
       </>
@@ -333,7 +335,7 @@ export function OfferStep({ creative }: { creative: CreativeDetail | null }) {
       {createError && !(mode === "error" && tab === "new") ? (
         <Banner kind="error" title={errorMessage(createError)} />
       ) : null}
-      <div className={cn("grid grid-cols-[minmax(0,1fr)] gap-5")}>{body}</div>
+      <div id="t-concepts" className={cn("grid grid-cols-[minmax(0,1fr)] gap-5")}>{body}</div>
     </WizardFrame>
   )
 }

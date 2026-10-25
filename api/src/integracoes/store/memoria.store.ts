@@ -35,6 +35,7 @@ export class MemoryTaskStore implements ProviderTaskStore {
       championId: t.championId ?? null,
       takeId: t.takeId ?? null,
       windowIndex: t.windowIndex ?? null,
+      renderId: t.renderId ?? null,
       // seq garante ordem estável mesmo com o relógio parado (fake timers)
       submittedAt: new Date(Date.now() + this.seq++),
     };
@@ -84,9 +85,9 @@ export class MemoryTaskStore implements ProviderTaskStore {
     return t ? { ...t } : null;
   }
 
-  async listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider) {
+  async listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider, kinds?: ProviderTaskKind[]) {
     return [...this.tasks.values()]
-      .filter((t) => t.status === 'SUBMITTED' && !t.externalId.startsWith(excludePrefix) && t.submittedAt < before && (!provider || t.provider === provider))
+      .filter((t) => t.status === 'SUBMITTED' && !t.externalId.startsWith(excludePrefix) && t.submittedAt < before && (!provider || t.provider === provider) && (!kinds?.length || kinds.includes(t.kind)))
       .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
       .slice(0, limit)
       .map((t) => ({ ...t }));

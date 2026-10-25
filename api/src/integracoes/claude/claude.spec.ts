@@ -5,7 +5,8 @@ import { MemoryCostStore } from '../store/memoria.store';
 import { ClaudeLiveService } from './claude.service';
 import { costOf } from './custo';
 import { JsonStringStream } from './json-stream';
-import { fetchPage, htmlToText, isPrivateIp } from './pagina';
+import { fetchPage, htmlToText, isPrivateIp, looksLikeSpa } from './pagina';
+import type { RenderedPage } from './render-pagina';
 import { winnersBlock } from './prompts';
 import { SdkClaudeTransport, type ClaudeCall, type ClaudeResult, type ClaudeTransport, type OnText } from './transporte';
 import { normalizeLanguage, parseScript } from './validacao';
@@ -99,6 +100,53 @@ describe('página da oferta', () => {
     expect(['10.1.1.1', '192.168.0.1', '172.20.0.1', '::1', 'fd00::1', '::ffff:127.0.0.1'].every(isPrivateIp)).toBe(true);
     expect(['8.8.8.8', '172.32.0.1', '2606:4700::1'].some(isPrivateIp)).toBe(false);
   });
+
+  describe('página montada por JavaScript (bug live 22/10: quiz 100% JS)', () => {
+    const spa = html('<div id="root"></div><noscript>You need to enable JavaScript to run this app.</noscript>');
+    const renderedText = 'Discover the kingdom of love. '.repeat(20);
+    const rendered: RenderedPage = {
+      url: 'https://x.com/', title: 'Kingdom quiz', description: 'A quiz', text: renderedText,
+      links: [{ href: 'https://x.com/quiz', text: 'Start' }, { href: 'https://checkout.x.com/pay', text: 'Buy' }],
+      images: [], bigImgs: 0, video: { firstScreen: false, poster: null, ogImage: null }, passwordVisible: false,
+    };
+
+    it('texto curto + render devolve texto longo → sucesso com o texto, links e flag do render', async () => {
+      const seen: string[] = [];
+      const render = async (u: string) => { seen.push(u); return rendered; };
+      const ok = await fetchPage('https://x.com', { ...opts(res(200, spa)), render });
+      expect(seen).toEqual(['https://x.com/']);
+      expect(ok.text).toContain('kingdom of love');
+      expect(ok.title).toBe('Kingdom quiz');
+      expect(ok.rendered).toBe(true);
+      expect(ok.links).toEqual(expect.arrayContaining(['https://x.com/quiz', 'https://checkout.x.com/pay']));
+      expect(ok.internalLinks).toEqual(rendered.links);
+    });
+
+    it('texto curto + sem binário (render → null) → PAGE_UNREADABLE com o failDetail de hoje', async () => {
+      await expect(fetchPage('https://x.com', { ...opts(res(200, spa)), render: async () => null })).rejects.toMatchObject({
+        code: 'PAGE_UNREADABLE', message: 'no readable text (page rendered by JavaScript?)',
+      });
+    });
+
+    it('render que também não acha texto → PAGE_UNREADABLE; render que lança (timeout) propaga o código', async () => {
+      await expect(fetchPage('https://x.com', { ...opts(res(200, spa)), render: async () => ({ ...rendered, text: 'nada' }) })).rejects.toMatchObject({ code: 'PAGE_UNREADABLE', details: { reason: 'empty_after_render' } });
+      await expect(fetchPage('https://x.com', { ...opts(res(200, spa)), render: async () => { throw new IntegracaoError('PAGE_FORBIDDEN', 'bot challenge page'); } })).rejects.toMatchObject({ code: 'PAGE_FORBIDDEN' });
+    });
+
+    it('esqueleto de SPA com pouco texto renderiza mesmo passando dos 200 caracteres; página normal não renderiza', async () => {
+      let calls = 0;
+      const render = async () => { calls++; return rendered; };
+      const skeleton = html('<div id="__next"><p>' + 'Loading your experience. '.repeat(12) + '</p></div>');
+      const r1 = await fetchPage('https://x.com', { ...opts(res(200, skeleton)), render });
+      expect(calls).toBe(1);
+      expect(r1.rendered).toBe(true);
+      const r2 = await fetchPage('https://x.com', { ...opts(res(200, html(long))), render });
+      expect(calls).toBe(1);
+      expect(r2.rendered).toBeUndefined();
+      expect(looksLikeSpa(spa)).toBe(true);
+      expect(looksLikeSpa(html(long))).toBe(false);
+    });
+  });
 });
 
 describe('validação e custo', () => {
@@ -141,16 +189,26 @@ describe('validação e custo', () => {
 });
 
 describe('ClaudeLiveService', () => {
-  const page = async () => ({ url: 'https://orbit.app', title: 'Orbit', description: null, text: 'Orbit finds subscriptions...', truncated: false });
+  const READ_STAGES = ['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images'] as const;
+  /** leitura falsa (leitura.ts): emite os 4 stages de leitura e devolve só a principal por HTTP */
+  const reading = async (_u: string, onStage: (s: (typeof READ_STAGES)[number]) => void) => {
+    for (const st of READ_STAGES) onStage(st);
+    const text = 'Orbit finds subscriptions...';
+    return {
+      page: { url: 'https://orbit.app', title: 'Orbit', description: null, text, truncated: false, pages: [{ url: 'https://orbit.app', role: 'main' as const, title: 'Orbit', text, truncated: false, via: 'http' as const, images: [] }], readMode: 'http' as const },
+      images: [], imageReason: null, readMs: 1,
+    };
+  };
 
   it('extractOffer: etapas na ordem, briefing validado e custo gravado', async () => {
     const costs = new MemoryCostStore();
     const t = new FakeTransport(() => ({ text: JSON.stringify({ ...offer, language: 'pt', notes: '  ' }), stopReason: 'end_turn', usage: usage() }));
-    const svc = new ClaudeLiveService(t, costs, { model: 'claude-opus-5-5', fetchPage: page });
+    const svc = new ClaudeLiveService(t, costs, { model: 'claude-opus-5-5', readOffer: reading });
     const stages: string[] = [];
     const r = await svc.extractOffer({ url: 'https://orbit.app', workspaceId: 'w', jobId: 'j' }, (s) => stages.push(s));
-    expect(stages).toEqual(['fetching_page', 'extracting', 'detecting_language']);
-    expect(r).toMatchObject({ name: 'Orbit Budget', language: 'pt-BR', notes: null });
+    expect(stages).toEqual([...READ_STAGES, 'extracting', 'detecting_language']);
+    expect(r).toMatchObject({ name: 'Orbit Budget', language: 'pt-BR', notes: null, readMode: 'http', relatedUrls: [], imagesRead: [] });
+    expect(r.pages).toEqual([{ url: 'https://orbit.app', role: 'main', via: 'http', chars: 'Orbit finds subscriptions...'.length }]);
     expect(r.costUsd).toBeCloseTo(0.004 + 0.01, 6);
     expect(costs.entries.map((e) => [e.provider, e.kind, e.unit, e.units, e.jobId])).toEqual([
       ['ANTHROPIC', 'LLM', 'ktoken_in', 1, 'j'],
@@ -161,13 +219,15 @@ describe('ClaudeLiveService', () => {
 
   it('extractOffer: texto colado não busca a página; erro da página propaga o código', async () => {
     const t = new FakeTransport(() => ({ text: JSON.stringify(offer), stopReason: 'end_turn', usage: usage() }));
-    const fetchSpy = jest.fn(page);
-    const svc = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'm', fetchPage: fetchSpy });
+    const fetchSpy = jest.fn(reading);
+    const svc = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'm', readOffer: fetchSpy });
     const stages: string[] = [];
-    await svc.extractOffer({ pageText: 'Pasted sales copy', url: 'https://x', workspaceId: 'w', jobId: 'j' }, (s) => stages.push(s));
+    const r = await svc.extractOffer({ pageText: 'Pasted sales copy', url: 'https://x', workspaceId: 'w', jobId: 'j' }, (s) => stages.push(s));
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(stages[0]).toBe('extracting');
-    const forbidden = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'm', fetchPage: async () => { throw new IntegracaoError('PAGE_FORBIDDEN'); } });
+    expect(stages).toEqual(['extracting', 'detecting_language']);
+    expect(r.readMode).toBe('pasted');
+    expect(t.calls[0].user).toContain('<page role="main" url="https://x" via="pasted">');
+    const forbidden = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'm', readOffer: async () => { throw new IntegracaoError('PAGE_FORBIDDEN'); } });
     await expect(forbidden.extractOffer({ url: 'https://x', workspaceId: 'w', jobId: 'j' }, () => undefined)).rejects.toMatchObject({ code: 'PAGE_FORBIDDEN' });
   });
 
@@ -242,6 +302,16 @@ describe('SdkClaudeTransport (SDK falso)', () => {
       },
     } as unknown as ConstructorParameters<typeof SdkClaudeTransport>[0];
   }
+
+  it('erro 400 do provedor vira PROVIDER_ERROR com status + tipo + mensagem em details.providerDetail (bug live 22/10)', async () => {
+    const body = { type: 'error', error: { type: 'invalid_request_error', message: 'Schemas contains too many parameters with union types (19 parameters with type arrays or anyOf).' } };
+    const client = { beta: { messages: { stream: () => { throw new Anthropic.BadRequestError(400, body, '400 bad', new Headers({ 'request-id': 'req_1' })); } } } } as unknown as ConstructorParameters<typeof SdkClaudeTransport>[0];
+    const t = new SdkClaudeTransport(client, { model: 'claude-opus-5-5', effort: 'medium', fallbacks: true });
+    await expect(t.run({ system: 'S', user: 'U', schema: { type: 'object' }, maxTokens: 100 })).rejects.toMatchObject({
+      code: 'PROVIDER_ERROR',
+      details: { providerDetail: expect.stringMatching(/^400 invalid_request_error: Schemas contains too many parameters with union types .*\(req_1\)$/) },
+    });
+  });
 
   it('manda modelo, effort, schema, cache e fallbacks "default"; streama texto; uso por modelo', async () => {
     const cap: { params?: Record<string, unknown> } = {};

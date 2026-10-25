@@ -2,8 +2,7 @@ import { delay, http, HttpResponse } from "msw"
 import { API_URL } from "@/lib/api/client"
 import type {
   ChangeRequestBody, ChangeType, CreativeEvent, CreativeFilter, CreativeRow, EditSettings, Engine, GenerateBody, Offer, RegenerateSceneBody, RegenerateTakeBody, Step,
-  UpdateEngineBody, UpdateScriptBody, VideoFormat,
-} from "@/lib/api/types"
+  UpdateEngineBody, UpdateScriptBody, VideoFormat, OfferReadMeta } from "@/lib/api/types"
 import { ENGINES, ME, SERVICES, SPEND, WORKSPACES } from "./fixtures"
 import { mockSetupCard, mockWorkspaceOf } from "./auth"
 import { f2 } from "./variar"
@@ -17,6 +16,11 @@ import { variarHandlers } from "./handlers-variar"
 import { iterateHandlers } from "./handlers-iterate"
 import { autoWaiting, touchAllIter } from "./iterate"
 import { editorAvailable, editorEntry, editorHandlers, reposition } from "./handlers-editor"
+import { metaHandlers } from "./handlers-meta"
+import { campaignHandlers } from "./campaigns"
+import { brainHandlers } from "./handlers-brain"
+import { metaFlag, newWs, onboardingPercent, onboardingSteps, type WsState } from "./v2"
+import { NEW_CLIENT_NAME } from "./auth"
 import { FACE_DESCRIPTION } from "./content"
 
 const u = (p: string) => API_URL + p
@@ -95,6 +99,43 @@ function dropDownstream(c: MCreative) {
   c.editDirty = false
 }
 
+// ───── onboarding-v2: the workspace of the token (ws_1 = db.workspace; the others live in db.v2.ws)
+const GUSTA_REF = { id: ME.id, name: ME.name, initials: "G" }
+function wsStateOf(token: string | null) {
+  const ref = mockWorkspaceOf(token)
+  if (ref.id === db.workspace.id) return null
+  db.v2.ws[ref.id] ??= newWs(ref.id, ref.id.startsWith("ws_new_") ? NEW_CLIENT_NAME : ref.name)
+  return db.v2.ws[ref.id]
+}
+/** Workspace + onboarding.percent/steps/updatedBy (contract §2) for the token's workspace. */
+function workspaceView(token: string | null) {
+  const ref = mockWorkspaceOf(token)
+  const st = wsStateOf(token)
+  const base = st ?? db.workspace
+  const meta = db.v2.meta[ref.id] ?? null
+  const steps = onboardingSteps(base, db.offers, meta, metaFlag() === "off")
+  const onboarding = { ...base.onboarding, percent: onboardingPercent(steps, base.onboarding.completedAt), steps, updatedBy: st ? st.updatedBy : null, updatedAt: st ? st.updatedAt : null }
+  if (st) {
+    const { updatedBy: _u, updatedAt: _a, ...rest } = st
+    void _u; void _a
+    return { ...rest, onboarding }
+  }
+  return { ...db.workspace, onboarding }
+}
+function onboardingSummaryOf(id: string) {
+  const st = id === db.workspace.id ? null : (db.v2.ws[id] ?? null)
+  const base = st ?? (id === db.workspace.id ? db.workspace : newWs(id, NEW_CLIENT_NAME))
+  const steps = onboardingSteps(base, db.offers, db.v2.meta[id] ?? null, metaFlag() === "off")
+  return { status: base.status, onboarding: { step: base.onboarding.step, percent: onboardingPercent(steps, base.onboarding.completedAt), completedAt: base.onboarding.completedAt } }
+}
+const accountModeOf = (id: string) => (id.startsWith("ws_new_") ? db.v2.newAccountMode : db.v2.accountMode)
+function touchSetup(st: WsState | null) {
+  if (st) {
+    st.updatedBy = GUSTA_REF
+    st.updatedAt = new Date().toISOString()
+  }
+}
+
 export const handlers = [
   http.all(u("/*"), ({ request }) => {
     const path = new URL(request.url).pathname
@@ -104,14 +145,29 @@ export const handlers = [
   }),
 
   // ───── §2 auth
-  http.get(u("/auth/me"), ({ request }) =>
-    ok({ user: { id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale }, workspace: mockWorkspaceOf(request.headers.get("Authorization")), workspaces: WORKSPACES })
-  ),
+  http.get(u("/auth/me"), ({ request }) => {
+    const token = request.headers.get("Authorization")
+    const active = mockWorkspaceOf(token)
+    wsStateOf(token)
+    const refs = WORKSPACES.some((w) => w.id === active.id) ? WORKSPACES : [...WORKSPACES, active]
+    return ok({
+      user: { id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale, accountMode: accountModeOf(active.id) },
+      workspace: { ...active, name: workspaceView(token).name, ...onboardingSummaryOf(active.id), tourCompletedAt: db.v2.tour[active.id] ?? null },
+      workspaces: refs.map((w) => ({ ...w, name: w.id === db.workspace.id ? db.workspace.name : (db.v2.ws[w.id]?.name ?? w.name), ...onboardingSummaryOf(w.id) })),
+    })
+  }),
   http.patch(u("/auth/me"), async ({ request }) => {
-    const b = await body<{ uiLocale?: "EN" | "PT_BR" }>(request)
+    const b = await body<{ uiLocale?: "EN" | "PT_BR"; accountMode?: "AGENCY" | "OWN" }>(request)
     if (b.uiLocale) db.uiLocale = b.uiLocale
+    if (b.accountMode !== undefined) {
+      if (b.accountMode !== "AGENCY" && b.accountMode !== "OWN") return fail("VALIDATION_ERROR", 400, "accountMode must be AGENCY or OWN.", { fields: [{ field: "accountMode", rule: "isEnum" }] })
+      const id = mockWorkspaceOf(request.headers.get("Authorization")).id
+      if (id.startsWith("ws_new_")) db.v2.newAccountMode = b.accountMode
+      else db.v2.accountMode = b.accountMode
+    }
     save()
-    return ok({ id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale })
+    await delay(200)
+    return ok({ id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale, accountMode: accountModeOf(mockWorkspaceOf(request.headers.get("Authorization")).id) })
   }),
   http.get(u("/auth/invites/:token"), ({ params }) => {
     const inv = db.members.invites.find((i) => i.id === params.token)
@@ -174,9 +230,11 @@ export const handlers = [
     return ok(strip(newExtractJob(b)), undefined, 202)
   }),
   http.post(u("/offers"), async ({ request }) => {
-    const b = await body<Partial<Offer>>(request)
+    const b = await body<Partial<Offer> & { readMeta?: OfferReadMeta }>(request)
     if (!b.name || !b.language) return fail("VALIDATION_ERROR", 400, "name and language are required.", { fields: [{ field: "name", rule: "isNotEmpty" }] })
     const o: Offer = {
+      // briefing-leitura-v2 D5: a new offer keeps `output.readMeta` as sent; returned by GET /offers and /offers/:id
+      readMeta: b.readMeta ?? null,
       id: `of_${Math.random().toString(36).slice(2, 8)}`, name: b.name, language: b.language, sourceUrl: b.sourceUrl ?? null,
       kind: b.kind ?? null, what: b.what ?? null, audience: b.audience ?? null, promise: b.promise ?? null, pains: b.pains ?? null, proof: b.proof ?? null,
       offerAndPrice: b.offerAndPrice ?? null, cta: b.cta ?? null, notes: b.notes ?? null, fieldSources: b.fieldSources ?? {},
@@ -192,9 +250,12 @@ export const handlers = [
     if (!o) return notFound()
     const b = await body<Partial<Offer>>(request)
     for (const [k, v] of Object.entries(b)) {
+      if (k === "fieldSources") continue // applied after: what the web sends wins over the automatic "user" (QA bug 14)
       ;(o as unknown as Record<string, unknown>)[k] = v
-      if (k !== "sourceUrl" && k !== "notes") o.fieldSources[k as keyof Offer["fieldSources"]] = "user"
+      // D6: `readMeta` rides along with the apply of a reread; it is not a brief field
+      if (k !== "sourceUrl" && k !== "notes" && k !== "readMeta") o.fieldSources[k as keyof Offer["fieldSources"]] = "user"
     }
+    if (b.fieldSources) Object.assign(o.fieldSources, b.fieldSources)
     o.updatedAt = new Date().toISOString()
     save()
     await delay(200)
@@ -612,33 +673,47 @@ export const handlers = [
   // ───── §14 settings
   http.get(u("/workspace"), async ({ request }) => {
     await listScenario(request.url)
-    const ws = mockWorkspaceOf(request.headers.get("Authorization"))
-    return ok(ws.id === db.workspace.id ? db.workspace : { ...db.workspace, id: ws.id, name: ws.name, shortCode: ws.name.slice(0, 2).toUpperCase() })
+    return ok(workspaceView(request.headers.get("Authorization")))
   }),
   http.patch(u("/workspace"), async ({ request }) => {
+    const token = request.headers.get("Authorization")
+    const st = wsStateOf(token)
+    const target = st ?? db.workspace
     const b = await body<Record<string, unknown>>(request)
-    const { onboardingStep, paused, ...rest } = b as { onboardingStep?: number; paused?: boolean; businessType?: unknown }
-    if (onboardingStep && db.workspace.onboarding.completedAt) return fail("INVALID_STATE", 409, "Onboarding already completed.", { reason: "onboarding_completed" })
-    Object.assign(db.workspace, rest)
-    if (onboardingStep) db.workspace.onboarding = { ...db.workspace.onboarding, step: onboardingStep as 1 }
-    if (typeof rest.businessType !== "undefined") {
-      const bt = db.workspace.businessType
-      db.workspace.defaultResult = bt === "ONLINE_STORE" ? "PURCHASES" : bt === "LOCAL_BUSINESS" ? "LEADS" : bt === "APP" ? "INSTALLS" : null
+    const { onboardingStep, paused, ...rest } = b as { onboardingStep?: number; paused?: boolean; businessType?: unknown; brandColor?: unknown }
+    // estatico-montado D3: `#RGB` / `#RRGGBB` → 6 uppercase digits; null clears; anything else = 400
+    if ("brandColor" in rest && rest.brandColor !== null) {
+      const m = typeof rest.brandColor === "string" ? /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(rest.brandColor.trim()) : null
+      if (!m) return fail("VALIDATION_ERROR", 400, "brandColor must be #RGB or #RRGGBB.", { fields: [{ field: "brandColor", rule: "isHexColor" }] })
+      const h = m[1].length === 3 ? m[1].split("").map((c) => c + c).join("") : m[1]
+      rest.brandColor = `#${h.toUpperCase()}`
     }
-    if (typeof paused === "boolean") db.workspace.status = paused ? "PAUSED" : db.workspace.onboarding.completedAt ? "LIVE" : "SETUP"
+    if (onboardingStep && target.onboarding.completedAt) return fail("INVALID_STATE", 409, "Onboarding already completed.", { reason: "onboarding_completed" })
+    Object.assign(target, rest)
+    if (onboardingStep) target.onboarding = { ...target.onboarding, step: onboardingStep as 1 }
+    if (typeof rest.businessType !== "undefined") {
+      const bt = target.businessType
+      target.defaultResult = bt === "ONLINE_STORE" ? "PURCHASES" : bt === "LOCAL_BUSINESS" ? "LEADS" : bt === "APP" ? "INSTALLS" : null
+    }
+    if (typeof paused === "boolean") target.status = paused ? "PAUSED" : target.onboarding.completedAt ? "LIVE" : "SETUP"
+    if (target.status === "SETUP") touchSetup(st)
     save()
-    return ok(db.workspace)
+    return ok(workspaceView(token))
   }),
   // fase2-agencia §3.3: idempotent; 422 without business type or an offer
-  http.post(u("/workspace/onboarding/complete"), () => {
-    if (!db.workspace.onboarding.completedAt) {
-      const missing = [db.workspace.businessType ? null : "businessType", db.offers.length ? null : "offer"].filter(Boolean)
+  http.post(u("/workspace/onboarding/complete"), ({ request }) => {
+    const token = request.headers.get("Authorization")
+    const st = wsStateOf(token)
+    const target = st ?? db.workspace
+    if (!target.onboarding.completedAt) {
+      const missing = [target.businessType ? null : "businessType", db.offers.length ? null : "offer"].filter(Boolean)
       if (missing.length) return fail("ONBOARDING_INCOMPLETE", 422, "Onboarding incomplete.", { missing })
-      db.workspace.onboarding = { step: 6, totalSteps: 6, completedAt: new Date().toISOString() }
-      if (db.workspace.status === "SETUP") db.workspace.status = "LIVE"
+      target.onboarding = { step: 6, totalSteps: 6, completedAt: new Date().toISOString() }
+      if (target.status === "SETUP") target.status = "LIVE"
+      touchSetup(st)
       save()
     }
-    return ok(db.workspace)
+    return ok(workspaceView(token))
   }),
   // fase2-agencia §3.1: every workspace of the user (example data); the active one carries the live db state
   http.get(u("/workspaces"), async ({ request }) => {
@@ -650,11 +725,16 @@ export const handlers = [
         const needs = db.creatives.map(toRow).filter(NEEDS_YOU).length
         return {
           id: w.id, name: db.workspace.name, shortCode: db.workspace.shortCode, role: w.role, isActive: w.id === active.id,
-          status: db.workspace.status, onboarding: db.workspace.onboarding, industry: db.workspace.industry, businessType: db.workspace.businessType,
+          status: db.workspace.status, onboarding: { ...db.workspace.onboarding, percent: onboardingSummaryOf(w.id).onboarding.percent }, industry: db.workspace.industry, businessType: db.workspace.businessType,
           websiteUrl: db.workspace.websiteUrl, waitingOnYou: { creatives: needs, batches: 0, total: needs }, updatedAt: new Date().toISOString(),
         }
       }
-      return { ...mockSetupCard(w, {}, w.id === "ws_mooncloth" ? 3 : 1), isActive: w.id === active.id }
+      const st = db.v2.ws[w.id] ?? newWs(w.id, w.name)
+      const sum = onboardingSummaryOf(w.id)
+      return {
+        ...mockSetupCard({ ...w, name: st.name }, { businessType: st.businessType ?? undefined, industry: st.industry ?? undefined, websiteUrl: st.websiteUrl ?? undefined, shortCode: st.shortCode }, st.onboarding.step),
+        status: st.status, onboarding: { ...st.onboarding, percent: sum.onboarding.percent }, isActive: w.id === active.id,
+      }
     })
     const summary = {
       live: cards.filter((c) => c.status === "LIVE").length, setup: cards.filter((c) => c.status === "SETUP").length,
@@ -695,4 +775,8 @@ export const handlers = [
   ...editorHandlers,
   // ───── variação automática (variacao-auto-v1 §5)
   ...iterateHandlers,
+  // ───── meta-v1 + tour (onboarding-v2 §3.4)
+  ...campaignHandlers,
+  ...metaHandlers,
+  ...brainHandlers, // brain-3d-v1
 ]

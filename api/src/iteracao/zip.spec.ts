@@ -1,4 +1,5 @@
 import { folderFor, readmeFor, slugOf, zipFileName, zipFolders, zipKeyOf } from './zip';
+import { creditoDoBroll } from './zip';
 
 describe('zip do lote AUTO (variacao-auto-v1 §8)', () => {
   it('nome: <CLIENTE>_<MMDD>_<SLUG>_variations.zip (PT _variacoes), slug ASCII maiúsculo ≤ 24', () => {
@@ -23,5 +24,14 @@ describe('zip do lote AUTO (variacao-auto-v1 §8)', () => {
     const a = zipKeyOf([{ pieceId: 'a', fileIds: ['1', '2'] }, { pieceId: 'b', fileIds: ['3'] }]);
     expect(zipKeyOf([{ pieceId: 'b', fileIds: ['3'] }, { pieceId: 'a', fileIds: ['2', '1'] }])).toBe(a);
     expect(zipKeyOf([{ pieceId: 'a', fileIds: ['1', '2'] }])).not.toBe(a);
+  });
+
+  it('§B3.1: crédito do b-roll no README (licença desconhecida não vira domínio público; sem permissão comercial = aviso)', () => {
+    const prov = { provider: 'pexels', sourceUrl: 'https://pexels.com/v/1', creator: 'Ana', license: 'Pexels License', licenseCommercialOk: true, startSec: 0, endSec: 6 };
+    expect(creditoDoBroll(prov, 'EN')).toBe('pexels · Ana · Pexels License · https://pexels.com/v/1 · 0.0-6.0 s');
+    expect(creditoDoBroll({ ...prov, provider: 'youtube', license: null, creator: null, licenseCommercialOk: false }, 'PT_BR'))
+      .toBe('youtube · autor desconhecido · licença desconhecida · https://pexels.com/v/1 · 0.0-6.0 s · LICENÇA NÃO VERIFICADA pra uso comercial');
+    expect(creditoDoBroll(null, 'EN')).toBeNull();
+    expect(readmeFor('DIVERSITY', [{ file: 'a.mp4', change: 'x', credit: 'pexels · Ana' }], 'EN')).toContain('    B-roll: pexels · Ana');
   });
 });

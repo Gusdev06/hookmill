@@ -5,6 +5,15 @@ import { hashPassword, sha256 } from '../common/util/crypto';
 import { AuthService } from './auth.service';
 
 const config = { refreshTtlDays: 30, jwtAccessTtlSec: 900 } as any;
+/** OnboardingService falso: o cálculo real é testado em workspaces/onboarding.spec.ts. */
+const onboarding = {
+  calcOne: jest.fn().mockResolvedValue({ steps: [], percent: 0 }),
+  calcMany: jest.fn().mockImplementation(async (ws: { id: string }[]) => new Map(ws.map((w) => [w.id, { steps: [], percent: 0 }]))),
+} as any;
+/** Linha de workspace como o banco devolve (a sessão lê status/onboarding dela). */
+const wsRow = (id: string, name: string, over: Record<string, unknown> = {}) => ({
+  id, name, onboardingStep: 1, onboardingCompletedAt: null, pausedAt: null, businessType: null, monthlySpendCapUsd: null, onboardingUpdatedAt: null, ...over,
+});
 const jwt = new JwtService({ secret: 'test-secret-test-secret-test-secret', signOptions: { expiresIn: 900 } });
 
 const user = (over: Partial<Record<string, unknown>> = {}) => ({
@@ -14,6 +23,7 @@ const user = (over: Partial<Record<string, unknown>> = {}) => ({
 function makePrisma() {
   return {
     user: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}), create: jest.fn(), findUniqueOrThrow: jest.fn() },
+    workspace: { findUniqueOrThrow: jest.fn().mockImplementation(({ where }: any) => Promise.resolve(wsRow(where.id, 'WS'))), create: jest.fn() },
     membership: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
     refreshToken: { create: jest.fn().mockResolvedValue({}), findUnique: jest.fn(), updateMany: jest.fn() },
     invite: { findUnique: jest.fn(), updateMany: jest.fn() },
@@ -41,19 +51,20 @@ describe('AuthService', () => {
   beforeEach(() => {
     prisma = makePrisma();
     prisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(prisma));
-    svc = new AuthService(prisma, jwt, config);
+    svc = new AuthService(prisma, jwt, config, onboarding);
   });
 
   describe('login', () => {
     it('e-mail normalizado, senha certa: access com sub/wid/role + refresh salvo só como hash', async () => {
       prisma.user.findUnique.mockResolvedValue(user({ passwordHash: pwHash }));
-      prisma.membership.findFirst.mockResolvedValue({ role: 'OWNER', workspace: { id: 'w1', name: 'WS' } });
+      prisma.membership.findFirst.mockResolvedValue({ role: 'OWNER', workspaceId: 'w1' });
       const s = await svc.login('  GUSTA@Exemplo.com ', 'senha-certa-123');
       expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'gusta@exemplo.com' } });
       const payload = await jwt.verifyAsync(s.accessToken);
       expect(payload).toMatchObject({ sub: 'u1', wid: 'w1', role: 'OWNER' });
       expect(s.expiresIn).toBe(900);
-      expect(s.workspace).toEqual({ id: 'w1', name: 'WS', role: 'OWNER' });
+      expect(s.workspace).toEqual({ id: 'w1', name: 'WS', role: 'OWNER', status: 'SETUP', onboarding: { step: 1, percent: 0, completedAt: null }, tourCompletedAt: null });
+      expect(s.user.accountMode).toBeNull();
       const saved = prisma.refreshToken.create.mock.calls[0][0].data;
       expect(saved.tokenHash).toBe(sha256(s.refreshToken));
       expect(JSON.stringify(saved)).not.toContain(s.refreshToken);
@@ -76,18 +87,19 @@ describe('AuthService', () => {
     it('gira: revoga o antigo com compare-and-set e devolve um par novo', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(row());
       prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
-      prisma.membership.findUnique.mockResolvedValue({ role: 'ADMIN', workspace: { id: 'w1', name: 'WS' }, user: user() });
+      prisma.membership.findUnique.mockResolvedValue({ role: 'ADMIN', workspaceId: 'w1', user: user(), tourCompletedAt: new Date('2026-10-01T00:00:00Z') });
       const s = await svc.refresh('token-antigo-xxxxxxxxxxxxxxxx');
       expect(prisma.refreshToken.findUnique).toHaveBeenCalledWith({ where: { tokenHash: sha256('token-antigo-xxxxxxxxxxxxxxxx') } });
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({ where: { id: 'r1', revokedAt: null }, data: { revokedAt: expect.any(Date) } });
       expect(s.refreshToken).not.toBe('token-antigo-xxxxxxxxxxxxxxxx');
       expect(s.workspace.role).toBe('ADMIN');
+      expect(s.workspace.tourCompletedAt).toBe('2026-10-01T00:00:00.000Z');
     });
 
     it('duas requisições com o mesmo token: só uma ganha (a outra REFRESH_INVALID)', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(row());
       prisma.refreshToken.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
-      prisma.membership.findUnique.mockResolvedValue({ role: 'OWNER', workspace: { id: 'w1', name: 'WS' }, user: user() });
+      prisma.membership.findUnique.mockResolvedValue({ role: 'OWNER', workspaceId: 'w1', user: user() });
       const [a, b] = await Promise.all([code(svc.refresh('t'.repeat(30))), code(svc.refresh('t'.repeat(30)))]);
       expect([a, b].sort()).toEqual(['OK', 'REFRESH_INVALID']);
     });
@@ -133,7 +145,7 @@ describe('AuthService', () => {
       prisma.invite.updateMany.mockResolvedValue({ count: 1 });
       prisma.membership.upsert.mockResolvedValue({ role: 'MEMBER' });
       const s = await svc.acceptInvite('tok', { name: 'Novo', password: 'senha-nova-123' });
-      expect(s.workspace).toEqual({ id: 'w1', name: 'WS', role: 'MEMBER' });
+      expect(s.workspace).toMatchObject({ id: 'w1', name: 'WS', role: 'MEMBER', status: 'SETUP' });
       expect(prisma.user.create.mock.calls[0][0].data.passwordHash).toMatch(/^scrypt\$/);
     });
 
@@ -161,9 +173,10 @@ describe('AuthService', () => {
   describe('signup (fase2-cadastro.md)', () => {
     const body = { name: ' Ana ', email: ' Ana@Agencia.com ', password: 'senha-nova-1234', agencyName: 'Mattress Company' };
     const make = (over: Record<string, unknown> = {}) =>
-      new AuthService(prisma, jwt, { ...config, signupEnabled: true, signupDefaultSpendCapUsd: 10, ...over });
+      new AuthService(prisma, jwt, { ...config, signupEnabled: true, signupDefaultSpendCapUsd: 10, ...over }, onboarding);
     beforeEach(() => {
-      prisma.workspace = { create: jest.fn().mockResolvedValue({ id: 'w9', name: 'Mattress Company' }) };
+      prisma.workspace.create = jest.fn().mockResolvedValue({ id: 'w9', name: 'Mattress Company' });
+      prisma.workspace.findUniqueOrThrow.mockImplementation(({ where }: any) => Promise.resolve(wsRow(where.id, 'Mattress Company')));
       prisma.membership.create = jest.fn().mockResolvedValue({});
       prisma.user.create.mockImplementation(({ data }: any) => Promise.resolve(user({ id: 'u9', ...data })));
     });
@@ -177,7 +190,8 @@ describe('AuthService', () => {
         name: 'Mattress Company', shortCode: 'MC', onboardingStep: 1, onboardingCompletedAt: null, pausedAt: null, monthlySpendCapUsd: 10,
       });
       expect(prisma.membership.create.mock.calls[0][0].data).toEqual({ workspaceId: 'w9', userId: 'u9', role: 'OWNER' });
-      expect(s.workspace).toEqual({ id: 'w9', name: 'Mattress Company', role: 'OWNER' });
+      expect(s.workspace).toMatchObject({ id: 'w9', name: 'Mattress Company', role: 'OWNER', status: 'SETUP', onboarding: { step: 1, percent: 0, completedAt: null }, tourCompletedAt: null });
+      expect(prisma.user.create.mock.calls[0][0].data.accountMode).toBeNull(); // conta nova nasce sem resposta (D2)
       expect(await jwt.verifyAsync(s.accessToken)).toMatchObject({ sub: 'u9', wid: 'w9', role: 'OWNER' });
     });
 

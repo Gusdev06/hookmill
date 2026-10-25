@@ -3,9 +3,15 @@ import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { RenderInput, RenderProgress, RenderResult, RenderService, ScratchRenderInput } from '../render/contrato';
-import { RenderError, isAutoEdit, isRemixKeep, type AutoEditRenderInput } from '../render/contrato';
+import { RenderError, isAutoEdit, isFrame, isRemixKeep, type AutoEditRenderInput } from '../render/contrato';
 
 const run = promisify(execFile);
+
+/** Forma mínima do input da moldura que o fake lê (TRANSIÇÃO: o tipo real `FrameRenderInput` é do video). */
+interface FakeFrameInput {
+  kind: 'frame'; renderId: string; format: ScratchRenderInput['format'];
+  frame?: { texts?: unknown }; video?: { timeline?: { startSec: number; endSec: number }[] };
+}
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
 /** Mesmos 3 templates do registro do video/ (V1). */
@@ -46,6 +52,7 @@ export class FakeRenderService implements RenderService {
 
   private async doRender(input: RenderInput, onProgress: (p: RenderProgress) => void): Promise<RenderResult> {
     if (isAutoEdit(input)) return this.doAutoEdit(input, onProgress);
+    if (isFrame(input)) return this.doFrame(input as unknown as FakeFrameInput, onProgress);
     // remix-keep: duração/fps/tamanho do campeão (1/4 da resolução); scratch: soma das cenas
     const remix = isRemixKeep(input);
     const fps = remix ? input.canvas.fps : input.fps;
@@ -86,6 +93,43 @@ export class FakeRenderService implements RenderService {
     }
     const { size } = await stat(outputPath);
     return { outputPath, posterPath, durationSec, width: w, height: h, sizeBytes: size };
+  }
+
+  /**
+   * 25/10 (molduras §B2): input `kind 'frame'` (fake). Duração = soma do `video.timeline`; MP4 sintético no formato.
+   * Gatilho de falha: "[mock:RENDER_ERROR]" em algum texto da moldura.
+   */
+  private async doFrame(input: FakeFrameInput, onProgress: (p: RenderProgress) => void): Promise<RenderResult> {
+    const fps = 30;
+    const durationSec = Math.max(0.5, (input.video?.timeline ?? []).reduce((a, t) => a + Math.max(0, t.endSec - t.startSec), 0));
+    const totalFrames = Math.round(durationSec * fps);
+    const wait = Math.max(0, (this.opts.minMs ?? 1500) / 3);
+    onProgress({ stage: 'bundling', progress: 5, frame: 0, totalFrames });
+    for (let i = 1; i <= 3; i++) {
+      await new Promise((r) => setTimeout(r, wait));
+      if (JSON.stringify(input.frame?.texts ?? {}).includes('[mock:RENDER_ERROR]') && i === 2) throw new RenderError('RENDER_ERROR', Math.round(totalFrames / 2), 'mock render error');
+      onProgress({ stage: 'rendering', progress: 5 + 28 * i, frame: Math.round((totalFrames * i) / 3), totalFrames });
+    }
+    onProgress({ stage: 'encoding', progress: 95, frame: totalFrames, totalFrames });
+    const dir = join(this.opts.tmpDir, input.renderId);
+    await mkdir(dir, { recursive: true });
+    const [w, h] = DIMS[input.format];
+    const outputPath = join(dir, 'video.mp4');
+    const posterPath = join(dir, 'poster.png');
+    try {
+      await run(FFMPEG, [
+        '-hide_banner', '-v', 'error', '-y',
+        '-f', 'lavfi', '-i', `color=c=0x2b2b1d:s=${w}x${h}:r=${fps}:d=${durationSec}`,
+        '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+        '-t', String(durationSec), '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest',
+        '-movflags', '+faststart', outputPath,
+      ]);
+      await run(FFMPEG, ['-hide_banner', '-v', 'error', '-y', '-i', outputPath, '-frames:v', '1', posterPath]);
+    } catch (e) {
+      throw new RenderError('RENDER_ERROR', null, (e as Error).message.split('\n')[0]);
+    }
+    const { size } = await stat(outputPath);
+    return { outputPath, posterPath, durationSec, width: w, height: h, sizeBytes: size, mimeType: 'video/mp4' };
   }
 
   /**

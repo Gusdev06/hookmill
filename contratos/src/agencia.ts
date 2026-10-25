@@ -1,6 +1,7 @@
 // Fase 2 · agência multi-cliente (docs/contratos/fase2-agencia.md, APROVADO 12/10). Dono: maquina-arquiteto. SÓ TIPOS.
 // Cliente = Workspace. Papel CLIENT, status derivado, onboarding de 6 passos, "waiting on you" (Home e Clients), download com nome padronizado.
-import type { AuthSession, Role } from './index';
+import type { AuthSession, Role, UserRef } from './index';
+import type { OnboardingStepInfo } from './onboarding-v2';
 
 // ───────────────────────── cliente (workspace) ─────────────────────────
 export type BusinessType = 'ONLINE_STORE' | 'LOCAL_BUSINESS' | 'APP';
@@ -9,7 +10,17 @@ export type DefaultResult = 'PURCHASES' | 'LEADS' | 'INSTALLS';
 /** Derivado: pausedAt → PAUSED; senão onboardingCompletedAt → LIVE; senão SETUP. */
 export type ClientStatus = 'SETUP' | 'LIVE' | 'PAUSED';
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
-export interface Onboarding { step: OnboardingStep; totalSteps: 6; completedAt: string | null }
+export interface Onboarding {
+  step: OnboardingStep; totalSteps: 6; completedAt: string | null;
+  // onboarding-v2 (21/10)
+  /** §2 + D10: 0-100; passo conta se `state = done` E já foi alcançado (`step < onboardingStep`); 100 = concluído */
+  percent: number;
+  /** §2: 6 itens (5 com META_MODE=off, sem o meta) */
+  steps: OnboardingStepInfo[];
+  /** §3.2: quem mexeu por último no setup (tela "Setup in progress"); null = ninguém ainda */
+  updatedBy: UserRef | null;
+  updatedAt: string | null;
+}
 
 // ───────────────────────── "waiting on you" (mesma regra na Home e no Clients) ─────────────────────────
 export interface WaitingOnYou {

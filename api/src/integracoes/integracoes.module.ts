@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogServiceImpl } from './catalogo/catalog.service';
-import type { AdLibraryService, ClaudeService, GenerationService } from './contrato';
+import type { AdLibraryService, ClaudeService, GenerationService, MetaService } from './contrato';
+import { buildMetaService, metaMode } from './meta/modo';
 import { ApifyAdLibraryService, OffAdLibraryService } from './adlibrary/ad-library.service';
 import { FakeAdLibraryService } from './adlibrary/fake-ad-library.service';
 import { IntegracaoError } from './erros';
@@ -16,6 +17,8 @@ import { PrismaCostStore, PrismaTaskStore } from './store/prisma.store';
 import Anthropic from '@anthropic-ai/sdk';
 import { ClaudeLiveService } from './claude/claude.service';
 import { SdkClaudeTransport, type SdkTransportOptions } from './claude/transporte';
+import { makePageRenderer } from './claude/render-pagina';
+import { ffmpegRunner } from './claude/checagem-texto';
 import { HiggsfieldClient } from './higgsfield/cliente';
 import { WaveSpeedClient } from './wavespeed/cliente';
 import { mediaPromptVersion } from './wavespeed/prompts-midia';
@@ -29,6 +32,8 @@ export const GENERATION_SERVICE = Symbol('GENERATION_SERVICE');
 export const CATALOG_SERVICE = Symbol('CATALOG_SERVICE');
 /** feature 2: link da Ad Library (Apify). Modo em AD_LIBRARY_MODE (mock | live | off); sem a env, segue o INTEGRACOES_MODE. */
 export const AD_LIBRARY_SERVICE = Symbol('AD_LIBRARY_SERVICE');
+/** meta-v1 (21/10): MetaService. Modo em META_MODE (mock padrão | live | off), independente do INTEGRACOES_MODE. */
+export const META_SERVICE = Symbol('META_SERVICE');
 const TASK_STORE = Symbol('INTEGRACOES_TASK_STORE');
 const COST_STORE = Symbol('INTEGRACOES_COST_STORE');
 
@@ -90,13 +95,26 @@ export class IntegracoesModule {
           const model = cfg.get<string>('ANTHROPIC_MODEL') || 'claude-opus-5-5';
           if (mode === 'mock') return new FakeClaudeService(costs, { model });
           const apiKey = cfg.get<string>('ANTHROPIC_API_KEY');
-          if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch']);
+          if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText']);
           const transport = new SdkClaudeTransport(new Anthropic({ apiKey, maxRetries: 2 }), {
             model,
             effort: effortOf(cfg.get<string>('ANTHROPIC_EFFORT')),
             fallbacks: (cfg.get<string>('ANTHROPIC_FALLBACKS') ?? 'on').toLowerCase() !== 'off',
           });
-          return new ClaudeLiveService(transport, costs, { model });
+          // leitura v2 (22/10): página JS (quiz, SPA) → chrome-headless-shell do Remotion (custo zero); subpáginas com render
+          // curto; imagens com visão na mesma chamada. Sem binário, a cascata segue como antes (só HTTP).
+          const browser = { browserExecutable: cfg.get<string>('REMOTION_BROWSER_EXECUTABLE') || null };
+          return new ClaudeLiveService(transport, costs, {
+            model,
+            // §A6: checagem de texto do STATIC (Haiku por padrão; ffmpeg recorta a imagem 2k em 2 metades)
+            textCheckModel: cfg.get<string>('ANTHROPIC_TEXT_CHECK_MODEL') || undefined,
+            runFfmpeg: ffmpegRunner(cfg.get<string>('FFMPEG_PATH') || 'ffmpeg'),
+            pageOptions: {
+              renderMain: makePageRenderer(browser),
+              render: makePageRenderer({ ...browser, timeoutMs: 8_000, scrollTimeoutMs: 5_000 }),
+              browser,
+            },
+          });
         },
         inject: [COST_STORE, ConfigService],
       },
@@ -128,7 +146,7 @@ export class IntegracoesModule {
         provide: GENERATION_SERVICE,
         useFactory: (tasks: ProviderTaskStore, costs: CostStore, bus: EventEmitter2, cfg: ConfigService, live: WaveSpeedGenerationService | null): GenerationService => {
           if (mode === 'mock') return new FakeGenerationService(tasks, costs, bus, { publicApiUrl: publicApiUrl(cfg) });
-          return live ?? notConfigured<GenerationService>('GenerationService', 'WAVESPEED_API_KEY', ['submitFace', 'submitSceneVideo', 'submitTts', 'submitLipsync', 'submitTranscribe', 'parseWords', 'parseTranscript']);
+          return live ?? notConfigured<GenerationService>('GenerationService', 'WAVESPEED_API_KEY', ['submitFace', 'submitSceneVideo', 'submitTts', 'submitLipsync', 'submitTranscribe', 'parseWords', 'parseTranscript', 'submitLipsyncVideo', 'submitStaticImage']);
         },
         inject: [TASK_STORE, COST_STORE, EventEmitter2, ConfigService, WAVESPEED_LIVE],
       },
@@ -143,13 +161,26 @@ export class IntegracoesModule {
         },
         inject: [COST_STORE, ConfigService],
       },
+      {
+        provide: META_SERVICE,
+        useFactory: (cfg: ConfigService): MetaService => {
+          const env = { ...process.env } as NodeJS.ProcessEnv;
+          for (const k of ['META_MODE', 'META_APP_ID', 'META_APP_SECRET', 'META_CONFIG_ID', 'META_TOKEN_KEY', 'META_GRAPH_VERSION', 'JWT_ACCESS_SECRET', 'META_WINNER_MIN_SPEND_USD', 'META_WINNER_MIN_RESULTS', 'META_TREND_BETTER', 'META_TREND_WORSE', 'META_TREND_FREQ', 'META_USD_RATES']) {
+            const v = cfg.get<string>(k);
+            if (v !== undefined) env[k] = v;
+          }
+          // live sem app id/secret/config/chave: toda rota falha META_NOT_CONFIGURED (nunca cai no mock)
+          return buildMetaService(env, { publicApiUrl: publicApiUrl(cfg) });
+        },
+        inject: [ConfigService],
+      },
       IntegracoesLifecycle,
     ];
     return {
       module: IntegracoesModule,
       controllers: mode === 'mock' ? [MockMediaController] : [WaveSpeedWebhookController],
       providers,
-      exports: [CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, AD_LIBRARY_SERVICE],
+      exports: [CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, AD_LIBRARY_SERVICE, META_SERVICE],
     };
   }
 }
@@ -160,6 +191,8 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly log = new Logger('Integracoes');
   private reconciler: Reconciliador | null = null;
   private faceReconciler: Reconciliador | null = null;
+  /** §14.3.5: imagem do STATIC consultada a partir de 2 min (só com webhook ligado; sem webhook o laço de 15 s cobre) */
+  private staticReconciler: Reconciliador | null = null;
   constructor(
     @Inject(GENERATION_SERVICE) private readonly gen: GenerationService,
     @Inject(WAVESPEED_LIVE) private readonly live: WaveSpeedGenerationService | null,
@@ -169,7 +202,7 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
   async onApplicationBootstrap() {
     if (this.gen instanceof FakeGenerationService) {
       const n = await this.gen.resumePending();
-      this.log.log(`INTEGRACOES_MODE=mock (custo zero)${n ? `; ${n} task(s) mock retomada(s)` : ''}`);
+      this.log.log(`INTEGRACOES_MODE=mock (custo zero)${n ? `; ${n} task(s) mock retomada(s)` : ''}; META_MODE=${metaMode(this.cfg.get<string>('META_MODE'))}`);
       return;
     }
     const missing = ['ANTHROPIC_API_KEY', 'WAVESPEED_API_KEY', 'HF_API_KEY_ID', 'HF_API_KEY_SECRET'].filter((k) => !this.cfg.get<string>(k));
@@ -181,6 +214,10 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
       this.reconciler.start();
       this.faceReconciler = new Reconciliador(this.live, on, 'HIGGSFIELD');
       this.faceReconciler.start();
+      if (on) {
+        this.staticReconciler = new Reconciliador(this.live, on, 'STATIC_IMAGE');
+        this.staticReconciler.start();
+      }
       this.log.log(`INTEGRACOES_MODE=live (WaveSpeed: ${on ? 'webhook + reconciliador 2 min' : 'só polling 15 s'}; rosto Higgsfield: polling 5 s; prompts ${mediaPromptVersion(this.cfg.get<string>('MEDIA_PROMPTS'))})`);
     }
   }
@@ -189,5 +226,6 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
     if (this.gen instanceof FakeGenerationService) this.gen.dispose();
     this.reconciler?.stop();
     this.faceReconciler?.stop();
+    this.staticReconciler?.stop();
   }
 }

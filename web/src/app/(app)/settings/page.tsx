@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query"
 import { useFormatter, useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { api } from "@/lib/api/client"
 import type { Workspace } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icon } from "@/components/icon"
@@ -16,6 +18,11 @@ import { LanguageToggle } from "@/components/shell/language-toggle"
 import { StatusChip } from "@/components/status-chip"
 import { InviteDialog } from "@/components/team"
 import { useErrorMessage } from "@/hooks/use-error-message"
+import { isMetaOff, metaReady, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
+import { AccountModeCard } from "@/components/settings/account-mode-card"
+import { BrandColorField } from "@/components/brand-color-field"
+import { percentOf } from "@/components/onboarding/shared"
+import { startReplay } from "@/components/tour/tour-state"
 
 /** mockup .set-row */
 function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
@@ -49,6 +56,19 @@ export default function SettingsPage() {
     ],
   })
   const usd = (v: number) => format.number(v, { style: "currency", currency: "USD" })
+  const router = useRouter()
+  // the Meta callback returns to /settings (meta-v1 §3.1 returnTo); the card that reads ?meta= lives in Connections
+  const sp = useSearchParams()
+  const metaBack = sp.get("meta")
+  useEffect(() => {
+    if (metaBack) router.replace(`/settings/connections?${sp.toString()}`)
+  }, [metaBack, sp, router])
+  const conn = useMetaConnection()
+  const rel = useRelativeTime()
+  const metaOff = conn.isError && isMetaOff(conn.error)
+  const metaIsReady = metaReady(conn.data)
+  const metaStatus = conn.data?.status ?? null
+  const metaSyncedAt = conn.data?.lastSyncAt ?? null
   const failed = [ws, members, services, spend].find((q) => q.isError && !q.data)
 
   return (
@@ -73,6 +93,7 @@ export default function SettingsPage() {
         <Panel>
           <h2>{t("settings.workspace")}</h2>
           {ws.data ? <WorkspaceName ws={ws.data} /> : <PanelSkeleton rows={1} />}
+          {ws.data ? <BrandColor ws={ws.data} /> : <PanelSkeleton rows={1} />}
           <div className="grid gap-1.5">
             <Label>{t("common.interfaceLanguage")}</Label>
             <div>
@@ -80,6 +101,62 @@ export default function SettingsPage() {
             </div>
           </div>
         </Panel>
+
+        <Panel>
+          <PanelHead>
+            <h2>{t("settings.clientSetup")}</h2>
+            <Link href="/onboarding" className={buttonVariants({ size: "sm" })}>
+              {t("settings.editSetup")}
+            </Link>
+          </PanelHead>
+          {ws.data ? (
+            <div>
+              <Row label={t("settings.setupProgress")}>
+                <span className="font-mono num">{t("onboarding.setupPct", { pct: percentOf(ws.data) })}</span>
+              </Row>
+              <Row label={t("settings.tour")}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    startReplay()
+                    router.push("/brain")
+                  }}
+                >
+                  {t("tour.replay")}
+                </Button>
+              </Row>
+            </div>
+          ) : (
+            <PanelSkeleton rows={2} />
+          )}
+        </Panel>
+
+        {metaOff ? null : (
+          <Panel>
+            <PanelHead>
+              <h2>{t("settings.connections")}</h2>
+              <Link href="/settings/connections" className={buttonVariants({ size: "sm" })}>
+                {t("settings.manage")}
+              </Link>
+            </PanelHead>
+            {conn.isPending ? (
+              <PanelSkeleton rows={1} />
+            ) : (
+              <Row label={t("settings.service.META")}>
+                <StatusChip status={metaIsReady ? "approved" : metaStatus === "TOKEN_INVALID" ? "failed" : "draft"}>
+                  {metaIsReady
+                    ? `${t("settings.connected")}${metaSyncedAt ? ` · ${t("meta.settings.synced", { ago: rel(metaSyncedAt) })}` : ""}`
+                    : metaStatus === "TOKEN_INVALID"
+                      ? t("meta.expiredTitle")
+                      : t("settings.notConnected")}
+                </StatusChip>
+              </Row>
+            )}
+          </Panel>
+        )}
+
+        <AccountModeCard />
 
         <Panel>
           <PanelHead>
@@ -149,6 +226,40 @@ function PanelSkeleton({ rows }: { rows: number }) {
         <span key={i} className="sk h-[34px]" />
       ))}
     </div>
+  )
+}
+
+/** estatico-montado D3: Workspace.brandColor, autosaved like the name (PATCH /workspace { brandColor }). */
+function BrandColor({ ws }: { ws: Workspace }) {
+  const t = useTranslations("brandColor")
+  const errorMessage = useErrorMessage()
+  const qc = useQueryClient()
+  const [value, setValue] = useState(ws.brandColor ?? "")
+  const save = useMutation({
+    mutationFn: (v: string | null) => api.workspace.update({ brandColor: v }),
+    onSuccess: (w, v) => {
+      qc.setQueryData(["workspace"], w)
+      setValue(w.brandColor ?? "")
+      toast(
+        <>
+          <Icon name="check" />
+          {v ? t("saved") : t("cleared")}
+        </>
+      )
+    },
+    onError: (e) => {
+      setValue(ws.brandColor ?? "")
+      toast(errorMessage(e))
+    },
+  })
+  return (
+    <BrandColorField
+      id="ws-brand-color"
+      value={value}
+      onChange={setValue}
+      disabled={save.isPending}
+      onCommit={(v) => v !== (ws.brandColor ?? null) && save.mutate(v)}
+    />
   )
 }
 

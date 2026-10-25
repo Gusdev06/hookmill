@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
@@ -15,6 +16,9 @@ import { Icon } from "@/components/icon"
 import { SoonBlock } from "@/components/soon"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { BRAIN_SECTIONS, brainCompleteness } from "@/lib/brain"
+import { ME_KEY } from "@/hooks/use-me"
+import { metaReady, mk, useMetaConnection, useMoney } from "@/hooks/use-meta"
+import { TOUR_STEP_KEY } from "@/components/tour/tour-state"
 import { cn } from "@/lib/utils"
 import { BackLink, BRAIN_ITEM_STEP, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
 
@@ -39,7 +43,7 @@ export function GoalsStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       sub={t("goals.sub")}
       error={move.error}
       saving={move.isPending}
-      onSaveExit={() => go(5, "/clients")}
+      onSaveExit={() => go(5, ctx.exitTo)}
       hint={t("savedAsYouGo")}
       back={<BackLink href={onboardingHref(4)}>{t("back")}</BackLink>}
       primary={
@@ -129,8 +133,11 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
     onSuccess: (w) => {
       qc.setQueryData(["workspace"], w)
       qc.invalidateQueries({ queryKey: ["clients"] })
+      // the session's tourCompletedAt / status come from GET /auth/me (onboarding-v2 §3.2)
+      qc.invalidateQueries({ queryKey: ME_KEY })
     },
   })
+  const router = useRouter()
   const tried = useRef(false)
   const completeMutate = complete.mutate
   const live = !!ws.onboarding.completedAt
@@ -150,14 +157,24 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       title={live ? tb("titleLive", { name: ws.name }) : tb("title", { name: ws.name })}
       sub={tb("sub")}
       saving={complete.isPending}
-      onSaveExit={() => ctx.move.mutate({ step: 6, to: "/clients" })}
+      onSaveExit={() => ctx.move.mutate({ step: 6, to: ctx.exitTo })}
       error={ctx.move.error}
       hint={live ? tb("liveHint") : null}
       back={<BackLink href={onboardingHref(5)}>{t("back")}</BackLink>}
       primary={
-        <Link href="/" className={buttonVariants({ variant: live ? "outline" : "brand", size: "lg" })}>
-          {tb("home")}
-        </Link>
+        <Button
+          variant="brand"
+          size="lg"
+          disabled={!live}
+          onClick={() => {
+            // the tour starts on the Brain (stop 1); a stale position from an earlier visit is cleared
+            try { sessionStorage.setItem(TOUR_STEP_KEY, "0") } catch {}
+            router.push("/brain")
+          }}
+        >
+          {tb("startTour")}
+          <Icon name="arrowr" />
+        </Button>
       }
     >
       {complete.isPending ? (
@@ -172,7 +189,7 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
           <Icon name="check" />
           <AlertBody>
             <AlertTitle>{tb("liveTitle", { name: ws.name })}</AlertTitle>
-            <AlertDescription>{tb("liveBody")}</AlertDescription>
+            <AlertDescription>{tb("liveBodyTour")}</AlertDescription>
           </AlertBody>
         </Alert>
       ) : missingGate ? (
@@ -274,14 +291,7 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
           </div>
         </Card>
 
-        <SoonBlock what={tb.rich("soonRead", { b: (c) => <b>{c}</b> })} example>
-          <div className="flex flex-col gap-2.5 rounded-xl bg-ink p-4 text-ink-fg-2">
-            <span className="font-mono text-[11px] tracking-[0.08em] text-brand uppercase">Best ad</span>
-            <span className="text-[13px]">&ldquo;I tried 11 sleep masks&rdquo; costs $19.40 per purchase, 31% under the $28 target.</span>
-            <span className="font-mono text-[11px] tracking-[0.08em] text-brand uppercase">Gap</span>
-            <span className="text-[13px]">No comparison ad or founder story has ever run.</span>
-          </div>
-        </SoonBlock>
+        <FromMeta />
       </div>
 
       <Card title={tb("start")}>
@@ -304,5 +314,47 @@ function PathCard({ href, eyebrow, title, body }: { href: string; eyebrow: strin
       </strong>
       <span className="text-[13px] text-fg-3">{body}</span>
     </Link>
+  )
+}
+
+/** The dark panel on the right of step 6: what Meta already read (bridge to the tour). Without a ready connection, the Soon block. */
+function FromMeta() {
+  const tb = useTranslations("onboarding.brain")
+  const conn = useMetaConnection()
+  const ready = metaReady(conn.data)
+  const summary = useQuery({ queryKey: mk.summary("30d"), queryFn: ({ signal }) => api.meta.summary({ period: "30d" }, { signal }), enabled: ready })
+  const winner = useQuery({ queryKey: mk.ads({ verdict: "WINNER", limit: 1 }), queryFn: ({ signal }) => api.meta.ads({ verdict: "WINNER", limit: 1 }, { signal }), enabled: ready })
+  const money = useMoney(summary.data?.currency)
+  if (!ready) {
+    return (
+      <SoonBlock what={tb.rich("soonRead", { b: (c) => <b>{c}</b> })} example>
+        <div className="flex flex-col gap-2.5 rounded-xl bg-ink p-4 text-ink-fg-2">
+          <span className="font-mono text-[11px] tracking-[0.08em] text-brand uppercase">Best ad</span>
+          <span className="text-[13px]">&ldquo;I tried 11 sleep masks&rdquo; costs $19.40 per purchase, 31% under the $28 target.</span>
+        </div>
+      </SoonBlock>
+    )
+  }
+  const s = summary.data
+  const w = winner.data?.data[0] ?? null
+  const rows: [string, React.ReactNode][] = [
+    [tb("meta.adsRead"), s ? tb("meta.adsReadValue", { total: s.adsCount, active: s.activeAds }) : "…"],
+    [tb("meta.bestAd"), w?.metrics.cpa != null ? tb("meta.cpa", { v: money(w.metrics.cpa) }) : "—"],
+    [tb("meta.accountAvg"), s?.medianCpa != null ? tb("meta.cpa", { v: money(s.medianCpa) }) : "—"],
+  ]
+  return (
+    <div className="on-ink flex min-w-0 flex-col gap-3.5 rounded-xl bg-ink p-[22px] text-ink-body" aria-busy={summary.isPending}>
+      <span className="eyebrow text-ink-fg-2">{tb("meta.eyebrow")}</span>
+      <span className="font-mono text-[42px] leading-none font-semibold text-brand tabular-nums tablet:text-[54px]">{s ? s.adsCount : <span className="sk inline-block h-10 w-20" />}</span>
+      <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+        {rows.map(([k, v]) => (
+          <li key={k} className="flex justify-between gap-2.5 border-b border-ink-line pb-2.5 last:border-b-0 last:pb-0">
+            <span className="text-ink-fg-2">{k}</span>
+            <span className="text-right font-semibold text-white">{v}</span>
+          </li>
+        ))}
+      </ul>
+      <span className="text-[13px] text-ink-fg-2">{w ? tb("meta.tourStartsWinner") : tb("meta.tourStarts")}</span>
+    </div>
   )
 }

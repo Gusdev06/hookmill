@@ -1,6 +1,6 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import type { EditResponse, EditSettings, Render, Template } from '@maquina/contratos';
-import type { Creative, Prisma } from '@prisma/client';
+import type { Creative, Prisma, VideoFormat } from '@prisma/client';
 import { rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { StorageService } from '../arquivos/storage.service';
@@ -24,7 +24,13 @@ import { join } from 'node:path';
 
 /** §13.6: template que reaproveita o vídeo do campeão (manter a edição). */
 export const REMIX_KEEP_TEMPLATE = 'remix-keep';
-import { RenderError, type RenderInput, type RenderProgress, type RenderService, type ScratchRenderInput } from '../render/contrato';
+import {
+  RenderError, RenderThrottledError, type RenderImpl, type RenderInput, type RenderKind, type RenderPort, type RenderResult, type RenderSnapshot,
+  type RenderSubmission, type ScratchRenderInput,
+} from '../render/contrato';
+import { RENDER_PORTS } from '../render/render.module';
+import type { RenderPorts } from '../render/portas';
+import { decidirWebhook, lambdaConfig, prazoEstourado, type LambdaConfig } from '../render/lambda';
 import { UpdateEditDto } from './edicao.dto';
 import { normalizarDoc, resolverProps } from '@maquina/video';
 import { EDITABLE, aplicarMudancaDeSettings, definidos, cenaPronta, docJson, editDocOf, montarScratchSource } from './editor-doc';
@@ -32,25 +38,52 @@ import { EditorSaves, anunciarEdicao } from './editor-saves';
 import { integracoesMode } from '../integracoes';
 import { computeAdName, isAdNameConflict } from '../biblioteca/ad-names';
 import { AUTO_EDIT_BUILDER, type AutoEditBuilder, type AutoEditContext } from './auto-edit-input';
-import { AUTO_EDIT_TEMPLATE, mockRenderFail, pieceOutcome } from './pecas';
+import { AUTO_EDIT_TEMPLATE, frameTemplateOf, mockRenderFail, pieceOutcome } from './pecas';
+import { FRAME_BUILDER, frameSpecOf, type FrameBuilder } from './frame-input';
+import { capturaValida } from './captura-valida';
+import { SegundaFonteService, precisaSegundaFonte } from './segunda-fonte';
+import { blocksOf } from '../iteracao/contexto';
 import type { AutoVariationType } from '@maquina/contratos';
 
-/** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do item (variacao-auto-v1 §5.3). */
+/** Código de falha de um formato da peça AUTO (variacao-auto-v1 §5.3; rev. 23/10 §14.3: os da imagem do STATIC). */
+export type AutoFailCode =
+  | 'SOURCE_UNAVAILABLE' | 'RENDER_ERROR' | 'PAGE_FORBIDDEN' | 'PAGE_UNREADABLE' | 'PAGE_TIMEOUT'
+  | 'SAFETY_BLOCK' | 'PROVIDER_TIMEOUT' | 'PROVIDER_ERROR' | 'DOWNLOAD_INVALID'
+  /** 25/10 (molduras §B2/§B3.1) */
+  | 'FRAME_TEXT_OVERFLOW' | 'BROLL_UNAVAILABLE'
+  /** render-lambda-v1 §2.8: timeout depois das tentativas */
+  | 'RENDER_TIMEOUT';
+
+/** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do formato (e da peça, no 9:16). */
 class AutoPieceError extends Error {
-  constructor(readonly code: 'SOURCE_UNAVAILABLE' | 'RENDER_ERROR' | 'PAGE_FORBIDDEN' | 'PAGE_UNREADABLE' | 'PAGE_TIMEOUT', message: string) {
+  constructor(readonly code: AutoFailCode, message: string) {
     super(message);
   }
 }
-const AUTO_FAIL_REASON: Record<AutoPieceError['code'], string> = {
+export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   SOURCE_UNAVAILABLE: 'The original video is no longer available.',
   RENDER_ERROR: 'The render failed. Retry.',
   PAGE_FORBIDDEN: 'The page blocked our reader.',
   PAGE_UNREADABLE: 'We could not read the page.',
   PAGE_TIMEOUT: 'The page took too long to load.',
+  SAFETY_BLOCK: 'The image model refused this concept. Retry tries again; Leave out removes it.',
+  PROVIDER_TIMEOUT: 'The image took too long to come back. Retry.',
+  PROVIDER_ERROR: 'The image provider failed. Retry.',
+  DOWNLOAD_INVALID: 'The image came back broken. Retry.',
+  FRAME_TEXT_OVERFLOW: 'The frame text does not fit. Leave it out.',
+  BROLL_UNAVAILABLE: 'The b-roll clip is no longer available. Retry picks the next one.',
+  RENDER_TIMEOUT: 'The render took too long. Render again.',
 };
 const AD_NAME_ATTEMPTS = 5;
+/** render-lambda-v1 §2.7: 1 tentativa nova no timeout/retryable; finalize até 3x; submit sem externalId há 2 min = fila. */
+const RENDER_MAX_ATTEMPTS = 2;
+const FINALIZE_MAX_TRIES = 3;
+const FINALIZE_STALE_MS = 10 * 60_000;
+const STUCK_SUBMIT_MS = 2 * 60_000;
+const POLL_PARALLEL = 20;
 
-export const RENDER_PORT = Symbol('RENDER_PORT');
+type RenderRow = Prisma.RenderGetPayload<{ include: { creative: true } }>;
+
 
 
 export function defaultEditSettings(offerCta: string | null): EditSettings {
@@ -60,7 +93,7 @@ export function defaultEditSettings(offerCta: string | null): EditSettings {
 type Db = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
-export class EdicaoService implements OnModuleDestroy {
+export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('Edicao');
   private running = false;
   private stopped = false;
@@ -73,18 +106,21 @@ export class EdicaoService implements OnModuleDestroy {
     private readonly eventos: EventosService,
     private readonly locks: KeyedMutex,
     private readonly config: AppConfig,
-    @Inject(RENDER_PORT) private readonly renderer: RenderService,
+    @Inject(RENDER_PORTS) private readonly ports: RenderPorts,
     @Inject(MEDIA_ANALYSIS_SERVICE) private readonly media: MediaAnalysisService,
     private readonly saves: EditorSaves,
     @Inject(AUTO_EDIT_BUILDER) private readonly buildAutoInput: AutoEditBuilder,
+    @Inject(FRAME_BUILDER) private readonly buildFrameInput: FrameBuilder,
+    private readonly segundas: SegundaFonteService,
   ) {}
 
   onModuleDestroy() {
     this.stopped = true;
+    if (this.pollTimer) clearInterval(this.pollTimer);
   }
 
   templates(): Template[] {
-    return this.renderer.templates().map((t) => ({
+    return this.ports.templates().map((t) => ({
       id: t.id as Template['id'],
       kind: t.kind, // §13.6: remix-keep vem com kind 'remix' (fora da escolha do criativo do zero)
       labelKey: t.labelKey,
@@ -94,7 +130,7 @@ export class EdicaoService implements OnModuleDestroy {
   }
 
   templateThumbnail(id: string): string | null {
-    return this.renderer.templates().find((t) => t.id === id)?.thumbnailPath || null;
+    return this.ports.templates().find((t) => t.id === id)?.thumbnailPath || null;
   }
 
   private async creative(auth: AuthContext, id: string): Promise<Creative> {
@@ -293,7 +329,57 @@ export class EdicaoService implements OnModuleDestroy {
     return { renderId, fps: 30, ...resolverProps(fonte, s, doc) } as ScratchRenderInput;
   }
 
-  // ───────── fila de render (no banco, um por vez, mais antigo primeiro) ─────────
+  // ───────── fila de render (render-lambda-v1 §2, §6.1.1: despachante + RenderPort assíncrona) ─────────
+  // Despachante: claim do QUEUED (priority DESC, createdAt ASC, notBefore vencido, só engine REMOTION) → monta o input →
+  // `ports.para(input).submit` sem esperar. Teto: local/fake = RENDER_CONCURRENCY no ar (a ordem da fila continua valendo);
+  // lambda = RENDER_LAMBDA_MAX_INFLIGHT e …_PER_WORKSPACE (§10). Fim: local/fake pelo `onEvent`; lambda pelo poller
+  // (`snapshot` a cada RENDER_LAMBDA_POLL_MS) e pelo webhook. Os dois caem no `settle` (claim por finalizingAt).
+
+  private lambdaCfg(): LambdaConfig {
+    return lambdaConfig((k) => this.config.optional(k) ?? undefined);
+  }
+
+  private hasLambda(): boolean {
+    return this.ports.todos().some((p) => p.impl === 'lambda');
+  }
+
+  /** `kind` de roteamento de um render que ainda não tem input (RENDER_LAMBDA_KINDS). */
+  private kindOf(r: { settings: Prisma.JsonValue; creative: { variationItem: { autoType: string | null } | null } }): RenderKind {
+    const t = (r.settings as { templateId?: string } | null)?.templateId;
+    if (t === AUTO_EDIT_TEMPLATE) return r.creative.variationItem?.autoType === 'FRAME' ? 'frame' : 'auto-edit';
+    if (t === REMIX_KEEP_TEMPLATE) return 'remix-keep';
+    return 'scratch';
+  }
+
+  /**
+   * Adaptador pra um render novo. §13.6 (regra de antes, agora por porta): com o `fake`, o remix-keep usa o Remotion local
+   * de verdade fora do Jest (só se confere com a peça real); RENDER_REMIX_IMPL força.
+   */
+  private portFor(kind: RenderKind): RenderPort {
+    const p = this.ports.para({ kind });
+    if (p.impl === 'fake' && kind === 'remix-keep') {
+      const remix = process.env.RENDER_REMIX_IMPL ?? (process.env.JEST_WORKER_ID ? 'fake' : 'remotion');
+      if (remix !== 'fake') return this.ports.porImpl('local');
+    }
+    return p;
+  }
+
+  /** §10: cabe mais um render neste adaptador? */
+  private async hasRoom(impl: RenderImpl, workspaceId: string): Promise<boolean> {
+    if (impl === 'lambda') {
+      const cfg = this.lambdaCfg();
+      const where = { status: 'RENDERING' as const, engine: 'REMOTION' as const, impl: 'lambda' };
+      const [all, mine] = await Promise.all([this.prisma.render.count({ where }), this.prisma.render.count({ where: { ...where, workspaceId } })]);
+      return all < cfg.maxInflight && mine < cfg.maxInflightPerWorkspace;
+    }
+    const busy = await this.prisma.render.count({ where: { status: 'RENDERING', engine: 'REMOTION', impl: { in: ['local', 'fake'] } } });
+    return busy < this.localConcurrency;
+  }
+
+  private get localConcurrency(): number {
+    const n = Number(this.config.optional('RENDER_CONCURRENCY'));
+    return Number.isInteger(n) && n > 0 ? n : 1;
+  }
 
   /** Acorda a fila. Idempotente: se já está rodando, o laço pega o novo render. */
   kick(): void {
@@ -308,115 +394,382 @@ export class EdicaoService implements OnModuleDestroy {
 
   private async drain() {
     while (!this.stopped) {
-      const next = await this.prisma.render.findFirst({
-        where: { status: 'QUEUED', creative: { archivedAt: null } },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true },
+      const now = new Date();
+      const cands = await this.prisma.render.findMany({
+        // §14.2: formato pedido sob demanda (priority 10) passa na frente do lote (0); o STATIC (IMAGE_GEN) não entra aqui
+        where: { status: 'QUEUED', engine: 'REMOTION', creative: { archivedAt: null }, OR: [{ notBefore: null }, { notBefore: { lte: now } }] },
+        orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+        take: 50,
+        select: { id: true, workspaceId: true, settings: true, creative: { select: { variationItem: { select: { autoType: true } } } } },
       });
-      if (!next) return;
-      const claimed = await this.prisma.render.updateMany({
-        where: { id: next.id, status: 'QUEUED' },
-        data: { status: 'RENDERING', stage: 'bundling', startedAt: new Date() },
-      });
-      if (claimed.count === 1) await this.process(next.id).catch((e) => this.log.error(`render ${next.id}: ${(e as Error).stack ?? e}`));
+      let claimedOne = false;
+      for (const c of cands) {
+        const port = this.portFor(this.kindOf(c));
+        if (!(await this.hasRoom(port.impl, c.workspaceId))) continue; // adaptador cheio: o próximo da fila pode ir pro outro
+        const claimed = await this.prisma.render.updateMany({
+          where: { id: c.id, status: 'QUEUED' },
+          data: {
+            status: 'RENDERING', stage: 'bundling', progress: 0, startedAt: new Date(), impl: port.impl,
+            externalId: null, externalBucket: null, submittedAt: null, finalizingAt: null, notBefore: null,
+          },
+        });
+        if (claimed.count !== 1) continue;
+        claimedOne = true;
+        await this.process(c.id, port).catch((e) => this.log.error(`render ${c.id}: ${(e as Error).stack ?? e}`));
+        break; // de novo do topo: a prioridade vale a cada render
+      }
+      if (!claimedOne) return;
     }
   }
 
-  private async publish(renderId: string) {
+  /** `render.updated` no SSE do criativo (a fila, o STATIC e o pedido de formato usam). */
+  async publish(renderId: string) {
     const r = await this.prisma.render.findUnique({ where: { id: renderId }, include: { file: true } });
     if (r) this.eventos.publish(r.creativeId, 'render.updated', await this.views.render(r));
   }
 
-  private async process(renderId: string) {
+  /** Claim feito: monta o input (URLs assinadas agora, §2.4) e submete. */
+  private async process(renderId: string, port: RenderPort) {
     const r = await this.prisma.render.findUniqueOrThrow({ where: { id: renderId }, include: { creative: true } });
-    const rs = r.settings as unknown as EditSettings;
-    if ((rs as { templateId?: string }).templateId === AUTO_EDIT_TEMPLATE) return this.processAuto(r);
-    let input: RenderInput;
+    const auto = (r.settings as { templateId?: string } | null)?.templateId === AUTO_EDIT_TEMPLATE;
+    const input = auto ? await this.buildAuto(r) : await this.buildScratch(r);
+    if (!input) return; // falhou ao montar: já gravado
+    await this.prisma.render.update({ where: { id: r.id }, data: { input: input as unknown as Prisma.InputJsonValue } });
+    await this.publish(r.id);
+    if (auto && (await this.mockFails(r, input))) {
+      await this.failRender(r.id, 'RENDER_ERROR', 0, 'mock render-fail');
+      return;
+    }
+    const attempt = r.attempt + 1;
     try {
-      input = rs.templateId === REMIX_KEEP_TEMPLATE
+      const sub = await port.submit(input, { attempt, webhookUrl: this.webhookUrl() });
+      await this.prisma.render.updateMany({
+        where: { id: r.id, status: 'RENDERING' },
+        data: { impl: sub.impl, externalId: sub.externalId, externalBucket: sub.bucket, serveUrl: sub.serveUrl, attempt: sub.attempt, submittedAt: new Date() },
+      });
+    } catch (e) {
+      if (e instanceof RenderThrottledError) {
+        // §2.7: cota da AWS / rede = não é falha: volta pra fila, MESMO attempt, espera retryAfterMs
+        this.log.warn(`render ${r.id}: ${e.reason} (${e.message}); de volta pra fila em ${e.retryAfterMs} ms`);
+        await this.prisma.render.updateMany({
+          where: { id: r.id, status: 'RENDERING' },
+          data: { status: 'QUEUED', stage: null, progress: 0, startedAt: null, impl: null, notBefore: new Date(Date.now() + e.retryAfterMs) },
+        });
+        await this.publish(r.id);
+        setTimeout(() => this.kick(), e.retryAfterMs + 50).unref?.();
+        return;
+      }
+      this.log.warn(`render ${r.id}: submit falhou: ${(e as Error).message}`);
+      await this.failRender(r.id, 'RENDER_ERROR', e instanceof RenderError ? e.failedFrame : null, (e as Error).message);
+    }
+  }
+
+  private webhookUrl(): string | null {
+    if (!this.hasLambda() || !this.lambdaCfg().webhook) return null;
+    return `${this.config.publicApiUrl}/api/v1/webhooks/render`;
+  }
+
+  /** Input do criativo do zero / remix-keep. Sem o que montar = falha explícita do render (nunca peça inventada). */
+  private async buildScratch(r: RenderRow): Promise<RenderInput | null> {
+    const rs = r.settings as unknown as EditSettings;
+    try {
+      return rs.templateId === REMIX_KEEP_TEMPLATE
         ? await this.buildRemixInput(r.id, r.creative)
         : this.inputDe(r.id, await this.fonteDoRender(this.prisma, r.creative), rs, editDocOf(r.doc));
     } catch (e) {
-      // sem o que montar (mapa/clipe/rosto): falha explícita do render, nunca peça inventada
-      this.log.warn(`render ${r.id}: input remix-keep falhou: ${(e as Error).message}`);
-      input = { renderId: r.id, templateId: REMIX_KEEP_TEMPLATE, kind: 'remix-keep', canvas: { width: 0, height: 0, fps: 0, frameCount: 0 }, baseVideoUrl: '', audioPassthroughUrl: '', overlays: [], textLayers: [] };
-      await this.prisma.render.updateMany({ where: { id: r.id }, data: { status: 'FAILED', stage: null, failReason: `Could not prepare the edit: ${(e as Error).message}`.slice(0, 300), finishedAt: new Date() } });
-      await this.locks.run(r.creativeId, async () => {
-        const c = await this.prisma.creative.findUnique({ where: { id: r.creativeId } });
-        if (c?.state === 'RENDERING') await this.sm.transition({ creativeId: c.id, event: 'RENDER_FINISHED', from: 'RENDERING', to: 'RENDER_FAILED' });
-      });
-      await this.publish(r.id);
+      this.log.warn(`render ${r.id}: input falhou: ${(e as Error).message}`);
+      await this.prisma.render.update({ where: { id: r.id }, data: { input: { renderId: r.id, failed: true } as Prisma.InputJsonValue } });
+      await this.failRender(r.id, 'RENDER_ERROR', null, `Could not prepare the edit: ${(e as Error).message}`);
+      return null;
+    }
+  }
+
+  // ───────── fim do render (local/fake por evento; lambda por poller/webhook) ─────────
+
+  private readonly lastWrite = new Map<string, number>();
+  private readonly finalizeTries = new Map<string, number>();
+  private pollTimer: NodeJS.Timeout | null = null;
+  private polling = false;
+
+  onModuleInit() {
+    for (const p of this.ports.todos()) {
+      p.onEvent?.((renderId, snap) => void this.onPortEvent(renderId, snap).catch((e) => this.log.error(`evento do render ${renderId}: ${(e as Error).stack ?? e}`)));
+    }
+    if (this.hasLambda() && process.env.RENDER_LAMBDA_POLLER !== 'off') {
+      this.pollTimer = setInterval(() => void this.pollLambda(), this.lambdaCfg().pollMs);
+      this.pollTimer.unref?.();
+    }
+  }
+
+  /** local/fake: o `onEvent` substitui o onProgress de antes (máx. 2 gravações/s); done → settle; falha → regra do §2.7. */
+  private async onPortEvent(renderId: string, snap: RenderSnapshot) {
+    if (snap.state === 'running') return this.writeProgress(renderId, snap);
+    if (snap.state === 'done') return this.settle(renderId);
+    return this.handleFailed(renderId, snap);
+  }
+
+  private async writeProgress(renderId: string, snap: RenderSnapshot, force = false) {
+    const now = Date.now();
+    if (!force && now - (this.lastWrite.get(renderId) ?? 0) < 500) return;
+    this.lastWrite.set(renderId, now);
+    const p = snap.progress;
+    const r = await this.prisma.render.updateMany({
+      where: { id: renderId, status: 'RENDERING', finalizingAt: null },
+      data: {
+        stage: p.stage, progress: Math.min(99, Math.round(p.progress)), frame: p.frame, totalFrames: p.totalFrames || null,
+        ...(snap.costUsd != null && { costUsd: snap.costUsd }),
+      },
+    });
+    if (r.count) await this.publish(renderId);
+  }
+
+  private subOf(r: { id: string; impl: string | null; externalId: string | null; externalBucket: string | null; serveUrl: string | null; attempt: number }): RenderSubmission {
+    return { impl: (r.impl ?? 'local') as RenderImpl, externalId: r.externalId ?? r.id, bucket: r.externalBucket, serveUrl: r.serveUrl, attempt: r.attempt };
+  }
+
+  /**
+   * §6.1.1 passo 5: claim por finalizingAt (webhook × poller × evento) → `uploading` → `finalize` → `storage.put` → READY
+   * (e a transição do criativo, igual antes) → `release` → apaga a pasta → CostEntry AWS_LAMBDA/RENDER (1 por tentativa).
+   * Falha no finalize/upload: lambda tenta de novo no próximo ciclo (até 3x); depois FAILED.
+   */
+  async settle(renderId: string): Promise<void> {
+    const r = await this.prisma.render.findUnique({ where: { id: renderId }, include: { creative: true } });
+    if (!r || r.status !== 'RENDERING' || r.stale) return;
+    const claimed = await this.prisma.render.updateMany({
+      where: { id: r.id, status: 'RENDERING', finalizingAt: null },
+      data: { finalizingAt: new Date(), stage: 'uploading', progress: 99 },
+    });
+    if (claimed.count !== 1) return;
+    await this.publish(r.id);
+    const port = this.ports.porImpl(r.impl);
+    const input = r.input as unknown as RenderInput;
+    const sub = this.subOf(r);
+    let res: RenderResult & { costUsd?: number | null };
+    try {
+      res = await port.finalize(input, sub);
+      const auto = (r.settings as { templateId?: string } | null)?.templateId === AUTO_EDIT_TEMPLATE;
+      if (auto) await this.completeAuto(r, res);
+      else await this.completeScratch(r, res);
+    } catch (e) {
+      if (await this.retryFinalize(r, e)) return;
+      this.log.warn(`render ${r.id}: finalize falhou: ${(e as Error).message}`);
+      await this.failRender(r.id, 'RENDER_ERROR', e instanceof RenderError ? e.failedFrame : null, (e as Error).message, true);
       return;
     }
-    await this.prisma.render.update({ where: { id: r.id }, data: { input: input as unknown as Prisma.InputJsonValue } });
-    await this.publish(r.id);
+    this.finalizeTries.delete(r.id);
+    this.lastWrite.delete(r.id);
+    await port.release(input, sub);
+    await rm(dirname(res.outputPath), { recursive: true, force: true }).catch(() => undefined);
+    await this.recordCost(r, res.costUsd ?? null);
+    this.kick();
+  }
 
-    let lastWrite = 0;
-    const onProgress = (p: RenderProgress) => {
-      const now = Date.now();
-      if (now - lastWrite < 500 && p.progress < 100) return;
-      lastWrite = now;
-      void this.prisma.render
-        .updateMany({ where: { id: r.id, status: 'RENDERING' }, data: { stage: p.stage, progress: Math.min(99, Math.round(p.progress)), frame: p.frame, totalFrames: p.totalFrames } })
-        .then(() => this.publish(r.id))
-        .catch(() => undefined);
-    };
-
-    let outcome: { ok: true; fileId: string; posterId: string; durationSec: number } | { ok: false; failedFrame: number | null; message: string };
-    try {
-      const res = await this.renderer.render(input, onProgress);
-      await this.prisma.render.updateMany({ where: { id: r.id }, data: { stage: 'uploading', progress: 99 } });
-      const [video, poster] = await Promise.all([
-        this.storage.put(res.outputPath, {
-          workspaceId: r.workspaceId, kind: 'RENDER_VIDEO', mimeType: 'video/mp4',
-          meta: { durationSec: res.durationSec, width: res.width, height: res.height },
-        }),
-        this.storage.put(res.posterPath, {
-          workspaceId: r.workspaceId, kind: 'THUMBNAIL', mimeType: res.posterPath.endsWith('.png') ? 'image/png' : 'image/jpeg',
-          meta: { width: res.width, height: res.height },
-        }),
-      ]);
-      await rm(dirname(res.outputPath), { recursive: true, force: true }).catch(() => undefined);
-      outcome = { ok: true, fileId: video.id, posterId: poster.id, durationSec: res.durationSec };
-    } catch (e) {
-      const failedFrame = e instanceof RenderError ? e.failedFrame : null;
-      this.log.warn(`render ${r.id} falhou: ${(e as Error).message}`);
-      outcome = { ok: false, failedFrame, message: (e as Error).message };
+  /** Lambda: throttling ou falha de rede/upload = solta o claim pro próximo ciclo do poller (até 3 tentativas, §2.7). */
+  private async retryFinalize(r: { id: string; impl: string | null }, e: unknown): Promise<boolean> {
+    const n = (this.finalizeTries.get(r.id) ?? 0) + 1;
+    const throttled = e instanceof RenderThrottledError;
+    if (r.impl !== 'lambda' || (!throttled && n >= FINALIZE_MAX_TRIES)) {
+      this.finalizeTries.delete(r.id);
+      return false;
     }
+    if (!throttled) this.finalizeTries.set(r.id, n);
+    await this.prisma.render.updateMany({ where: { id: r.id, status: 'RENDERING' }, data: { finalizingAt: null } });
+    return true;
+  }
 
+  /** Criativo do zero / remix: vídeo + pôster no storage → READY → transição do criativo (editor-v1 §4: dirty). */
+  private async completeScratch(r: RenderRow, res: RenderResult) {
+    const [video, poster] = await Promise.all([
+      this.storage.put(res.outputPath, { workspaceId: r.workspaceId, kind: 'RENDER_VIDEO', mimeType: 'video/mp4', meta: { durationSec: res.durationSec, width: res.width, height: res.height } }),
+      this.storage.put(res.posterPath, {
+        workspaceId: r.workspaceId, kind: 'THUMBNAIL', mimeType: res.posterPath.endsWith('.png') ? 'image/png' : 'image/jpeg', meta: { width: res.width, height: res.height },
+      }),
+    ]);
     await this.locks.run(r.creativeId, async () => {
-      if (outcome.ok) {
-        await this.prisma.render.update({
-          where: { id: r.id },
-          data: { status: 'READY', stage: null, progress: 100, fileId: outcome.fileId, durationSec: outcome.durationSec, finishedAt: new Date() },
-        });
-      } else {
-        const reason = outcome.failedFrame != null ? `The render failed at frame ${outcome.failedFrame}. Render again.` : failReasonFor('RENDER_ERROR');
-        await this.prisma.render.update({
-          where: { id: r.id },
-          data: { status: 'FAILED', stage: null, failReason: reason, failedFrame: outcome.failedFrame, finishedAt: new Date() },
-        });
-      }
-      const [c, fresh] = await Promise.all([
-        this.prisma.creative.findUnique({ where: { id: r.creativeId } }),
-        this.prisma.render.findUniqueOrThrow({ where: { id: r.id } }),
-      ]);
+      await this.prisma.render.update({
+        where: { id: r.id },
+        data: { status: 'READY', stage: null, progress: 100, fileId: video.id, durationSec: res.durationSec, finishedAt: new Date(), finalizingAt: null },
+      });
+      const [c, fresh] = await Promise.all([this.prisma.creative.findUnique({ where: { id: r.creativeId } }), this.prisma.render.findUniqueOrThrow({ where: { id: r.id } })]);
       if (!c || c.state !== 'RENDERING' || fresh.stale) return;
-      if (outcome.ok) {
-        // editor-v1 §4: revisão do criativo ≠ revisão renderizada = edição não exportada; render antigo (sem revisão) = regra de antes
-        const dirty = fresh.editRevision != null ? c.editRevision !== fresh.editRevision : JSON.stringify(c.editSettings) !== JSON.stringify(fresh.settings);
-        await this.sm.transition({
-          creativeId: c.id, event: 'RENDER_FINISHED', from: 'RENDERING', to: dirty ? 'EDIT_PENDING' : 'RENDER_READY',
-          data: { editDirty: dirty, thumbnailFileId: outcome.posterId },
-        });
-      } else {
-        await this.sm.transition({ creativeId: c.id, event: 'RENDER_FINISHED', from: 'RENDERING', to: 'RENDER_FAILED' });
-      }
+      // editor-v1 §4: revisão do criativo ≠ revisão renderizada = edição não exportada; render antigo (sem revisão) = regra de antes
+      const dirty = fresh.editRevision != null ? c.editRevision !== fresh.editRevision : JSON.stringify(c.editSettings) !== JSON.stringify(fresh.settings);
+      await this.sm.transition({
+        creativeId: c.id, event: 'RENDER_FINISHED', from: 'RENDERING', to: dirty ? 'EDIT_PENDING' : 'RENDER_READY',
+        data: { editDirty: dirty, thumbnailFileId: poster.id },
+      });
     });
     await this.publish(r.id);
   }
 
-  // ───────── peças AUTO (variacao-auto-v1 §3.3 e §5.1): 1 criativo, 3 renders (um por formato) ─────────
+  /** Peça AUTO: arquivo (+ pôster) no storage → READY → assenta a peça pelo 9:16 (§14.2). */
+  private async completeAuto(r: RenderRow, res: RenderResult) {
+    const format = r.format ?? 'VERTICAL_9_16';
+    const still = res.mimeType === 'image/png' || res.outputPath.endsWith('.png');
+    const out = await this.storage.put(res.outputPath, {
+      workspaceId: r.workspaceId, kind: still ? 'RENDER_IMAGE' : 'RENDER_VIDEO', mimeType: still ? 'image/png' : 'video/mp4',
+      meta: { durationSec: still ? undefined : res.durationSec, width: res.width, height: res.height },
+    });
+    const poster = still ? out : await this.storage.put(res.posterPath, {
+      workspaceId: r.workspaceId, kind: 'THUMBNAIL', mimeType: res.posterPath.endsWith('.png') ? 'image/png' : 'image/jpeg', meta: { width: res.width, height: res.height },
+    });
+    await this.prisma.render.update({
+      where: { id: r.id },
+      data: { status: 'READY', stage: null, progress: 100, fileId: out.id, durationSec: res.durationSec, finishedAt: new Date(), finalizingAt: null },
+    });
+    // pôster da peça = frame do 9:16 (o único formato do Gerar, §14.2)
+    if (format === 'VERTICAL_9_16') await this.prisma.creative.update({ where: { id: r.creativeId }, data: { thumbnailFileId: poster.id } });
+    await this.publish(r.id);
+    await this.settleAuto(r.creativeId);
+  }
+
+  /** §10: CostEntry AWS_LAMBDA/RENDER por tentativa (externalRef = externalId, único) + `renders.cost_usd`. Só lambda. */
+  private async recordCost(r: { id: string; workspaceId: string; creativeId: string; impl: string | null; externalId: string | null; creative: { variationBatchId: string | null } }, costUsd: number | null) {
+    if (r.impl !== 'lambda' || !r.externalId || costUsd == null) return;
+    const amountUsd = Math.round(costUsd * 10_000) / 10_000;
+    await this.prisma.render.update({ where: { id: r.id }, data: { costUsd: amountUsd } }).catch(() => undefined);
+    await this.prisma.costEntry.upsert({
+      where: { externalRef: r.externalId },
+      create: {
+        workspaceId: r.workspaceId, creativeId: r.creativeId, variationBatchId: r.creative.variationBatchId, provider: 'AWS_LAMBDA', kind: 'RENDER',
+        model: this.lambdaCfg().functionName || 'remotion-lambda', units: 1, unit: 'render', amountUsd, externalRef: r.externalId,
+      },
+      update: { amountUsd },
+    });
+  }
+
+  /**
+   * §2.7: `timeout` ou erro retryable (pedaço morto por throttling, render local perdido no restart) = 1 tentativa nova
+   * (volta pra fila, attempt+1 no próximo submit, URLs assinadas de novo); na 2ª falha FAILED (`RENDER_TIMEOUT` pro
+   * timeout, `RENDER_ERROR` pro resto). Não retryable = FAILED RENDER_ERROR com failedFrame.
+   */
+  private async handleFailed(renderId: string, snap: RenderSnapshot) {
+    const r = await this.prisma.render.findUnique({ where: { id: renderId }, include: { creative: true } });
+    if (!r || r.status !== 'RENDERING' || r.finalizingAt) return;
+    this.lastWrite.delete(r.id);
+    await this.recordCost(r, snap.costUsd);
+    const timeout = snap.state === 'timeout';
+    if ((timeout || snap.error?.retryable) && r.attempt < RENDER_MAX_ATTEMPTS) {
+      const back = await this.prisma.render.updateMany({
+        where: { id: r.id, status: 'RENDERING', externalId: r.externalId },
+        data: { status: 'QUEUED', stage: null, progress: 0, startedAt: null, impl: null, externalId: null, externalBucket: null, submittedAt: null, finalizingAt: null },
+      });
+      if (back.count) {
+        this.log.warn(`render ${r.id}: ${timeout ? 'timeout' : snap.error?.message}; tentativa nova`);
+        await this.publish(r.id);
+        this.kick();
+      }
+      return;
+    }
+    await this.failRender(r.id, timeout ? 'RENDER_TIMEOUT' : 'RENDER_ERROR', snap.error?.failedFrame ?? null, snap.error?.message ?? 'render failed');
+  }
+
+  /**
+   * FAILED com o código. Peça AUTO = `failAuto` (código no formato/peça, a peça assenta); criativo do zero = render FAILED
+   * + RENDER_FINISHED → RENDER_FAILED (igual antes). `claimed` = já está com finalizingAt (vindo do settle).
+   */
+  private async failRender(renderId: string, code: 'RENDER_ERROR' | 'RENDER_TIMEOUT', failedFrame: number | null, message: string, claimed = false) {
+    const r = await this.prisma.render.findUnique({ where: { id: renderId }, include: { creative: true } });
+    if (!r || r.status !== 'RENDERING' || (r.finalizingAt && !claimed)) return;
+    this.lastWrite.delete(r.id);
+    const auto = (r.settings as { templateId?: string } | null)?.templateId === AUTO_EDIT_TEMPLATE;
+    if (auto) {
+      await this.failAuto(r, code, failedFrame);
+    } else {
+      const reason = code === 'RENDER_TIMEOUT' ? AUTO_FAIL_REASON.RENDER_TIMEOUT
+        : failedFrame != null ? `The render failed at frame ${failedFrame}. Render again.`
+          : message.startsWith('Could not prepare') ? message.slice(0, 300) : failReasonFor('RENDER_ERROR');
+      await this.locks.run(r.creativeId, async () => {
+        await this.prisma.render.update({
+          where: { id: r.id }, data: { status: 'FAILED', stage: null, errorCode: code, failReason: reason, failedFrame, finishedAt: new Date(), finalizingAt: null },
+        });
+        const c = await this.prisma.creative.findUnique({ where: { id: r.creativeId } });
+        if (c?.state === 'RENDERING' && !r.stale) await this.sm.transition({ creativeId: c.id, event: 'RENDER_FINISHED', from: 'RENDERING', to: 'RENDER_FAILED' });
+      });
+      await this.publish(r.id);
+    }
+    this.kick();
+  }
+
+  // ───────── lambda: poller e webhook (§2.3, §6.1.1 passos 3-4) ─────────
+
+  /**
+   * Linhas `impl='lambda'` em RENDERING (seja qual for o RENDER_IMPL atual: segura o rollback). Com externalId: snapshot →
+   * progresso/custo; done → settle; failed/timeout → §2.7; snapshot sem notícia e prazo estourado = timeout. Sem
+   * externalId há mais de 2 min (caiu entre invocar e gravar) → QUEUED. finalizingAt com mais de 10 min = solto de novo.
+   */
+  async pollLambda(now = Date.now()): Promise<void> {
+    if (this.polling || this.stopped) return;
+    this.polling = true;
+    try {
+      const port = this.ports.porImpl('lambda');
+      const cfg = this.lambdaCfg();
+      const rows = await this.prisma.render.findMany({ where: { status: 'RENDERING', engine: 'REMOTION', impl: 'lambda' }, take: 500 });
+      const live: typeof rows = [];
+      for (const r of rows) {
+        if (!r.externalId) {
+          if (r.startedAt && now - r.startedAt.getTime() > STUCK_SUBMIT_MS) {
+            await this.prisma.render.updateMany({ where: { id: r.id, status: 'RENDERING', externalId: null }, data: { status: 'QUEUED', stage: null, progress: 0, impl: null, startedAt: null } });
+          }
+          continue;
+        }
+        if (r.finalizingAt) {
+          if (now - r.finalizingAt.getTime() > FINALIZE_STALE_MS) {
+            await this.prisma.render.updateMany({ where: { id: r.id, finalizingAt: r.finalizingAt }, data: { finalizingAt: null } });
+            void this.settle(r.id);
+          }
+          continue;
+        }
+        live.push(r);
+      }
+      for (let i = 0; i < live.length; i += POLL_PARALLEL) {
+        await Promise.all(live.slice(i, i + POLL_PARALLEL).map((r) => this.pollOne(port, r, cfg.functionTimeoutSec, now)));
+      }
+      this.kick(); // o que terminou liberou vaga
+    } catch (e) {
+      this.log.warn(`poller do lambda: ${(e as Error).message}`);
+    } finally {
+      this.polling = false;
+    }
+  }
+
+  private async pollOne(port: RenderPort, r: { id: string; impl: string | null; externalId: string | null; externalBucket: string | null; serveUrl: string | null; attempt: number; submittedAt: Date | null }, timeoutSec: number, now: number) {
+    let snap: RenderSnapshot;
+    try {
+      snap = await port.snapshot(this.subOf(r));
+    } catch (e) {
+      // sem notícia neste ciclo (throttling, rede, render sem metadados ainda): só vira timeout depois do prazo
+      if (r.submittedAt && prazoEstourado(r.submittedAt, now, timeoutSec)) {
+        await this.handleFailed(r.id, { state: 'timeout', progress: { stage: 'rendering', progress: 0, frame: 0, totalFrames: 0 }, costUsd: null, error: { message: (e as Error).message, failedFrame: null, retryable: true } });
+      }
+      return;
+    }
+    if (snap.state === 'running') return this.writeProgress(r.id, snap, true);
+    if (snap.state === 'done') return this.settle(r.id);
+    return this.handleFailed(r.id, snap);
+  }
+
+  /**
+   * `POST /api/v1/webhooks/render` (corpo cru). false = assinatura inválida (ou lambda desligado): 401, nada gravado.
+   * Válido: `decidirWebhook` descarta duplicado/atrasado/outra impl; success → settle; error/timeout → mesma regra do poller.
+   */
+  async renderWebhook(raw: Buffer, headers: Record<string, string | string[] | undefined>): Promise<boolean> {
+    if (!this.hasLambda()) return false;
+    const port = this.ports.porImpl('lambda');
+    const ev = port.parseWebhook?.(raw, headers) ?? null;
+    if (!ev) return false;
+    const row = await this.prisma.render.findUnique({ where: { id: ev.renderId } });
+    const d = decidirWebhook(ev, row ? { id: row.id, status: row.status, impl: row.impl, externalId: row.externalId, attempt: row.attempt, finalizingAt: row.finalizingAt } : null);
+    if (d.acao === 'ignorar') {
+      this.log.log(`webhook do render ${ev.renderId} ignorado: ${d.motivo}`);
+      return true;
+    }
+    if (ev.status === 'success') void this.settle(row!.id).catch((e) => this.log.error(`settle ${row!.id}: ${(e as Error).message}`));
+    else void this.pollOne(port, row!, this.lambdaCfg().functionTimeoutSec, Date.now()).catch(() => undefined);
+    return true;
+  }
+
+  // ───────── peças AUTO (variacao-auto-v1 §3.3, §5.1; rev. 23/10 §14.2): 1 criativo, 1 render por formato (9:16 no Gerar) ─────────
 
   /** Contexto plano do builder do video (§7.3). Sem vídeo do campeão = SOURCE_UNAVAILABLE. */
   private async autoContext(renderId: string, c: Creative): Promise<AutoEditContext> {
@@ -442,7 +795,8 @@ export class EdicaoService implements OnModuleDestroy {
     const photo = payload.useProductPhoto && batch.offer.productImage ? batch.offer.productImage : null;
     const page = photo
       ? { imageUrl: await this.storage.signedUrl(photo), kind: 'product_photo' as const }
-      : batch.pageCapture ? { imageUrl: await this.storage.signedUrl(batch.pageCapture), kind: 'page' as const } : null;
+      : batch.pageCapture && (item.autoType !== 'SPLIT_LP' || (await capturaValida(this.storage, batch.pageCapture, `SPLIT-LP ${renderId}`)))
+        ? { imageUrl: await this.storage.signedUrl(batch.pageCapture), kind: 'page' as const } : null; // bug 25/10: captura quebrada = sem página
     // §5.3: SPLIT-LP sem captura que sirva (nem foto) = PAGE_UNREADABLE na peça; o retry sugere a foto do produto (D4)
     if (item.autoType === 'SPLIT_LP' && !page) throw new AutoPieceError('PAGE_UNREADABLE', 'SPLIT-LP sem captura da página nem foto do produto');
     return {
@@ -461,68 +815,77 @@ export class EdicaoService implements OnModuleDestroy {
     };
   }
 
-  private async processAuto(r: Prisma.RenderGetPayload<{ include: { creative: true } }>) {
+  /** Input da peça AUTO (auto-edit ou moldura). Falhou ao montar = peça/formato `failed` com o código; null. */
+  private async buildAuto(r: RenderRow): Promise<RenderInput | null> {
     const format = r.format ?? 'VERTICAL_9_16';
-    let input: RenderInput;
     try {
-      input = this.buildAutoInput(await this.autoContext(r.id, r.creative), format);
-      await this.prisma.render.update({ where: { id: r.id }, data: { input: input as unknown as Prisma.InputJsonValue } });
+      const ctx = await this.autoContext(r.id, r.creative);
+      if ((ctx.type as string) === 'FRAME') {
+        // 25/10 §B2: moldura = composição `Moldura` do video (`kind 'frame'`), montada pelo buildFrameInput dele
+        let params = ctx.params as unknown as Record<string, unknown>;
+        if (precisaSegundaFonte(frameTemplateOf(params)) && !params.second) params = await this.segundaFonte(r, ctx, params);
+        return this.buildFrameInput(frameSpecOf(params), ctx, format);
+      }
+      return this.buildAutoInput(ctx, format);
     } catch (e) {
-      const code = e instanceof AutoPieceError ? e.code : 'RENDER_ERROR';
+      const code: AutoFailCode = e instanceof AutoPieceError ? e.code : (e as { code?: string })?.code === 'FRAME_TEXT_OVERFLOW' ? 'FRAME_TEXT_OVERFLOW' : 'RENDER_ERROR';
       this.log.warn(`render AUTO ${r.id}: input falhou: ${(e as Error).message}`);
       await this.failAuto(r, code, null);
-      return;
-    }
-    await this.publish(r.id);
-
-    let lastWrite = 0;
-    const onProgress = (p: RenderProgress) => {
-      const now = Date.now();
-      if (now - lastWrite < 500 && p.progress < 100) return;
-      lastWrite = now;
-      void this.prisma.render
-        .updateMany({ where: { id: r.id, status: 'RENDERING' }, data: { stage: p.stage, progress: Math.min(99, Math.round(p.progress)), frame: p.frame, totalFrames: p.totalFrames } })
-        .catch(() => undefined);
-    };
-    try {
-      // §10: gatilho de mock por oferta (só INTEGRACOES_MODE=mock): a 1ª tentativa do 4:5 do tipo falha
-      if (integracoesMode() === 'mock') {
-        const [offer, attempt] = await Promise.all([
-          this.prisma.offer.findUnique({ where: { id: r.creative.offerId }, select: { notes: true } }),
-          this.prisma.render.count({ where: { creativeId: r.creativeId, format } }),
-        ]);
-        if (mockRenderFail(offer?.notes ?? null, (input as { type?: string }).type ?? null, format, attempt)) throw new RenderError('RENDER_ERROR', 0, 'mock render-fail');
-      }
-      const res = await this.renderer.render(input, onProgress);
-      await this.prisma.render.updateMany({ where: { id: r.id }, data: { stage: 'uploading', progress: 99 } });
-      const still = res.mimeType === 'image/png' || res.outputPath.endsWith('.png');
-      const out = await this.storage.put(res.outputPath, {
-        workspaceId: r.workspaceId, kind: still ? 'RENDER_IMAGE' : 'RENDER_VIDEO', mimeType: still ? 'image/png' : 'video/mp4',
-        meta: { durationSec: still ? undefined : res.durationSec, width: res.width, height: res.height },
-      });
-      const poster = still ? out : await this.storage.put(res.posterPath, {
-        workspaceId: r.workspaceId, kind: 'THUMBNAIL', mimeType: res.posterPath.endsWith('.png') ? 'image/png' : 'image/jpeg', meta: { width: res.width, height: res.height },
-      });
-      await rm(dirname(res.outputPath), { recursive: true, force: true }).catch(() => undefined);
-      await this.prisma.render.update({
-        where: { id: r.id },
-        data: { status: 'READY', stage: null, progress: 100, fileId: out.id, durationSec: res.durationSec, finishedAt: new Date() },
-      });
-      // pôster da peça = frame do 9:16 (o preview libera antes dos outros formatos, §3.2)
-      if (format === 'VERTICAL_9_16') await this.prisma.creative.update({ where: { id: r.creativeId }, data: { thumbnailFileId: poster.id } });
-      await this.publish(r.id);
-      await this.settleAuto(r.creativeId);
-    } catch (e) {
-      this.log.warn(`render AUTO ${r.id} falhou: ${(e as Error).message}`);
-      await this.failAuto(r, 'RENDER_ERROR', e instanceof RenderError ? e.failedFrame : null);
+      this.kick();
+      return null;
     }
   }
 
-  /** Render da peça FAILED + código no item (a falha de uma peça não para as outras: a fila segue). */
-  private async failAuto(r: { id: string; creativeId: string; creative: Creative }, code: AutoPieceError['code'], failedFrame: number | null) {
+  /**
+   * §B3/§B3.1 (Gusta 25/10): 2ª fonte da moldura de 2 fontes, resolvida 1x por peça e gravada no item (o Retry e os
+   * formatos sob demanda reusam; a proveniência do b-roll vai na peça e no README do zip).
+   */
+  private async segundaFonte(r: RenderRow, ctx: AutoEditContext, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const c = r.creative;
+    const [td, offer] = await Promise.all([
+      c.championId ? this.prisma.teardown.findUnique({ where: { championId: c.championId } }) : null,
+      this.prisma.offer.findUnique({ where: { id: c.offerId }, select: { name: true, kind: true, what: true, audience: true, notes: true } }),
+    ]);
+    const res = await this.segundas.resolver({
+      workspaceId: r.workspaceId, variationBatchId: c.variationBatchId ?? '', template: frameTemplateOf(params)!, language: ctx.language,
+      durationSec: ctx.source.durationSec, blocks: blocksOf(td, ctx.source.durationSec), words: ctx.words, editMap: ctx.editMap,
+      offer: offer ? { name: offer.name, kind: offer.kind, what: offer.what, audience: offer.audience } : null, notes: offer?.notes ?? null,
+    });
+    if (!res) throw new AutoPieceError('RENDER_ERROR', 'moldura de 2 fontes sem 2ª fonte (sem b-roll e sem trecho de prova ≥ 3 s)');
+    const next: Record<string, unknown> = { ...params, second: res.second, secondNote: res.nota };
+    if (c.variationItemId) {
+      const item = await this.prisma.variationItem.findUnique({ where: { id: c.variationItemId }, select: { payload: true } });
+      const payload = (item?.payload ?? {}) as Record<string, unknown>;
+      const saved = { ...((payload.params as Record<string, unknown>) ?? {}), second: res.second, secondNote: res.nota };
+      await this.prisma.variationItem.update({ where: { id: c.variationItemId }, data: { payload: { ...payload, params: saved } as unknown as Prisma.InputJsonValue } });
+    }
+    this.log.log(`moldura ${r.id}: 2ª fonte = ${res.nota}`);
+    return next;
+  }
+
+  /** §14.7 / §B6: gatilhos de mock por oferta (só INTEGRACOES_MODE=mock), valem com qualquer adaptador (antes do submit). */
+  private async mockFails(r: RenderRow, input: RenderInput): Promise<boolean> {
+    if (integracoesMode() !== 'mock') return false;
+    const format = r.format ?? 'VERTICAL_9_16';
+    const [offer, attempt, item] = await Promise.all([
+      this.prisma.offer.findUnique({ where: { id: r.creative.offerId }, select: { notes: true } }),
+      this.prisma.render.count({ where: { creativeId: r.creativeId, format } }),
+      r.creative.variationItemId ? this.prisma.variationItem.findUnique({ where: { id: r.creative.variationItemId }, select: { autoType: true, payload: true } }) : null,
+    ]);
+    const type = item?.autoType ?? (input as { type?: string }).type ?? null;
+    const params = ((item?.payload ?? {}) as { params?: Record<string, unknown> }).params ?? null;
+    return mockRenderFail(offer?.notes ?? null, type, format, attempt, frameTemplateOf(params));
+  }
+
+  /**
+   * Formato da peça FAILED com o código no render (§14.2: `Render.errorCode` → `PieceFormat.errorCode`). 9:16 = o código
+   * vai também pro item (peça `failed`) e a peça assenta; 4:5/1:1 sob demanda = só aquele formato (a peça segue `ready`).
+   * A falha de uma peça não para as outras: a fila segue.
+   */
+  async failAuto(r: { id: string; creativeId: string; format: VideoFormat | null; creative: Pick<Creative, 'variationItemId'> }, code: AutoFailCode, failedFrame: number | null) {
     const reason = AUTO_FAIL_REASON[code];
-    await this.prisma.render.updateMany({ where: { id: r.id }, data: { status: 'FAILED', stage: null, failReason: reason, failedFrame, finishedAt: new Date() } });
-    if (r.creative.variationItemId) {
+    await this.prisma.render.updateMany({ where: { id: r.id }, data: { status: 'FAILED', stage: null, errorCode: code, failReason: reason, failedFrame, finishedAt: new Date() } });
+    if ((r.format ?? 'VERTICAL_9_16') === 'VERTICAL_9_16' && r.creative.variationItemId) {
       await this.prisma.variationItem.update({ where: { id: r.creative.variationItemId }, data: { errorCode: code, failReason: reason } });
     }
     await this.publish(r.id);
@@ -530,9 +893,9 @@ export class EdicaoService implements OnModuleDestroy {
   }
 
   /**
-   * Peça assentada (nenhum formato na fila): 3 READY → RENDER_FINISHED (RENDER_READY) + AUTO_APPROVE (APPROVED) na mesma
-   * transação, com adName congelado (CLIENTE_MMDD_CODIGO + `_2` em colisão) e finalRender = 9:16; algum FAILED →
-   * RENDER_FAILED. Ainda falta formato = nada.
+   * Peça assentada (§14.2: o 9:16 saiu da fila): 9:16 READY → RENDER_FINISHED (RENDER_READY) + AUTO_APPROVE (APPROVED) na
+   * mesma transação, com adName congelado (CLIENTE_MMDD_CODIGO + `_2` em colisão) e finalRender = 9:16; 9:16 FAILED →
+   * RENDER_FAILED. 9:16 na fila = nada. Formato sob demanda nunca mexe no criativo (ele já está APPROVED).
    */
   async settleAuto(creativeId: string): Promise<void> {
     await this.locks.run(creativeId, async () => {

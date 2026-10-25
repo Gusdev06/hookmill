@@ -1,6 +1,12 @@
 # Estrutura do monorepo, interfaces internas e ambiente (contrato v1)
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**, com banco e arquivos no Supabase
 
+## Mudanças 21/10 (meta-v1 + onboarding-v2; detalhe em [`meta-v1.md`](meta-v1.md) e [`onboarding-v2.md`](onboarding-v2.md)) · **aprovado pelo Gusta 21/10**
+- **Módulos novos na API:** `api/src/integracoes/meta/` (maquina-ia: cliente Graph, OAuth, leitura, publicação, `vencedor.ts`, mock; expõe `MetaService` pelo token `META_SERVICE`, no padrão do `AD_LIBRARY_SERVICE`) e `api/src/meta/` (maquina-backend: conexão/cifra, sync + cron, import, publish, controllers). Interface entre os dois: `integracoes/contrato.ts` ganha `MetaService` (a ia escreve a assinatura a partir do §3 do meta-v1 e o arquiteto revisa).
+- **Envs novas** no `api/.env.example`: `META_MODE`, `META_APP_ID`, `META_APP_SECRET`, `META_CONFIG_ID`, `META_GRAPH_VERSION`, `META_TOKEN_KEY`, `META_WINNER_MIN_SPEND_USD`, `META_WINNER_MIN_RESULTS`, `META_TREND_BETTER`, `META_TREND_WORSE`, `META_TREND_FREQ`, `META_USD_RATES`, `META_SYNC_EVERY_HOURS`. `PUBLIC_API_URL` passa a ser também a base do callback do OAuth (`/api/v1/meta/callback`), que precisa de HTTPS: dev live = túnel.
+- **Web:** rotas novas `/start` (pergunta agência/próprio), `/onboarding` (sem passo → redirect), `/meta/done` (fim do popup do OAuth); shell mínimo em `SETUP`; tela "Setup in progress".
+- Migrações `20261021000000_meta_v1` e `20261021000100_onboarding_v2` (aditivas, com backfill), aplicadas em `maquina` e `maquina_test`.
+
 ## Mudanças 13/10 (deploy)
 - Runbook em [`../deploy.md`](../deploy.md): `api/Dockerfile` (contexto = raiz), `.dockerignore`, `scripts/api-start.sh` (migrate deploy + start), `scripts/storage-cors-check.mjs` (CORS do storage com URL assinada real).
 - Gusta 13/10: VPS = Hostinger `srv1798762` (compartilhada com a API do Lab), Supabase **Free** (arquivo ≤ 50 MB, pausa com 7 dias parado), domínio provisório (`*.vercel.app` + domínio do EasyPanel). Em produção `UPLOAD_MAX_BYTES=48000000` e `CHAMPION_MAX_SEC=60`; o que estoura 50 MB está em `deploy.md` §8 (substitui o "≥ 200 MB" do §6 enquanto for Free).
@@ -337,6 +343,21 @@ APIFY_AD_LIBRARY_ACTOR=curious_coder~facebook-ads-library-scraper
 AD_LIBRARY_MODE=mock                          # mock | live | off
 UPLOAD_MODE=proxy                             # proxy (dev) | direct (prod com CORS no bucket)
 UPLOAD_MAX_BYTES=209715200
+
+# Meta v1 (meta-v1.md, 21/10)
+META_MODE=mock                                # mock | live | off
+META_APP_ID=
+META_APP_SECRET=
+META_CONFIG_ID=                               # Facebook Login for Business → Configuration ID
+META_GRAPH_VERSION=v25.0
+META_TOKEN_KEY=                               # openssl rand -base64 32 (AES-256-GCM do token)
+META_WINNER_MIN_SPEND_USD=50
+META_WINNER_MIN_RESULTS=3
+META_TREND_BETTER=0.85
+META_TREND_WORSE=1.25
+META_TREND_FREQ=3
+META_USD_RATES=                               # opcional: BRL=5.5,EUR=0.92
+META_SYNC_EVERY_HOURS=6
 CHAMPION_MIN_SEC=5
 CHAMPION_MAX_SEC=120
 

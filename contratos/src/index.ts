@@ -22,7 +22,9 @@ export type VideoFormat = 'VERTICAL_9_16' | 'PORTRAIT_4_5' | 'SQUARE_1_1';
 export type AssetStatus = 'QUEUED' | 'GENERATING' | 'READY' | 'FAILED';
 export type Action =
   | 'retry' | 'regenerate' | 'paste_page_text' | 'fill_manually' | 'change_description' | 'render_again' | 'contact_support'
-  | 'upload_video' | 'analyze_again';   // feature 2
+  | 'upload_video' | 'analyze_again'   // feature 2
+  | 'reconnect_meta' | 'choose_account' | 'fix_payment' | 'edit_ad_text' | 'raise_budget'   // meta-v1 (21/10)
+  | 'refresh';   // campanhas-v1 (22/10): recarregar o objeto depois de META_OBJECT_CHANGED
 export type Role = 'OWNER' | 'ADMIN' | 'MEMBER' | 'CLIENT';   // CLIENT: fase2-agencia.md §4
 export type UiLocale = 'EN' | 'PT_BR';
 export type VoiceGender = 'female' | 'male' | 'neutral';
@@ -86,11 +88,36 @@ export interface Offer extends OfferBrief {
   creativesCount: number; winnersCount: number; updatedAt: string;
   /** variacao-auto-v1 D4: foto opcional do produto (reserva do SPLIT-LP). Opcional até o backend preencher (ausente = null). */
   productImage?: FileRef | null;
+  /** briefing-leitura-v2 D5 (22/10): "lido de" persistido (`offers.read_meta`); null = oferta criada à mão ou antes da v2. Opcional no pacote até o web mandar/ler; o backend devolve sempre. */
+  readMeta?: OfferReadMeta | null;
+}
+
+// ───────── briefing-leitura-v2 (22/10, §4): leitura em camadas ─────────
+/** O mais "fundo" que precisou rodar: texto colado, HTTP puro, render headless, subpáginas, imagens com visão. */
+export type ReadMode = 'pasted' | 'http' | 'rendered' | 'crawled' | 'vision';
+export type PageRole = 'main' | 'checkout' | 'pricing' | 'about' | 'faq' | 'testimonials' | 'terms' | 'thankyou' | 'other';
+/** Imagem que entrou na chamada do briefing (sem base64: só referência + o que o modelo leu). */
+export interface PageImageRef {
+  index: number; src: string; alt: string | null; kind: 'screenshot' | 'img' | 'poster'; widthPx: number; heightPx: number;
+  /** o que o Claude viu (imageNotes, ≤ 40 palavras); ausente = não leu */
+  read?: string;
+}
+export interface ReadPageRef { url: string; role: PageRole; via: 'http' | 'rendered'; chars: number }
+/** De onde saiu um campo do briefing; `imageIndex` presente = veio de imagem. */
+export interface FieldOrigin { role: PageRole; url: string; imageIndex?: number }
+export type FieldOrigins = Partial<Record<OfferBriefField | 'name', FieldOrigin[]>>;
+/** D5: `offers.read_meta` = o "lido de" que sobrevive ao wizard. */
+export interface OfferReadMeta {
+  readMode: ReadMode; pages: ReadPageRef[]; imagesRead: PageImageRef[]; fieldOrigins: FieldOrigins;
+  /** custo real da chamada (texto + visão), US$ */
+  costUsd: number;
+  readAt: string;
 }
 
 export type JobType = 'OFFER_EXTRACT' | 'SCRIPTS_GENERATE' | 'SCRIPT_REGENERATE'
   | 'CHAMPION_RESOLVE' | 'CHAMPION_ANALYZE' | 'VARIATIONS_PLAN' | 'VARIATION_ITEM_REGENERATE'   // feature 2
-  | 'AUTO_PLAN' | 'ZIP_BUILD';   // variacao-auto-v1
+  | 'AUTO_PLAN' | 'ZIP_BUILD'   // variacao-auto-v1
+  | 'META_SYNC' | 'META_IMPORT' | 'META_PUBLISH';   // meta-v1 (21/10)
 export type JobStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED';
 export interface Job extends Progress {
   id: string; type: JobType; status: JobStatus;
@@ -100,7 +127,21 @@ export interface Job extends Progress {
 }
 export interface OfferExtractOutput {
   name: string; language: string; sourceUrl: string | null; brief: OfferBrief; fieldSources: FieldSources;
-  /** subdomínios da mesma oferta lidos junto (checkout., app., members.…); ausente/[] = só a página principal */
+  // briefing-leitura-v2 §4.2 (22/10): o backend preenche SEMPRE; opcionais no pacote até o web ler (convenção dos aditivos)
+  /** camada mais funda que rodou (`pasted` com texto colado) */
+  readMode?: ReadMode;
+  /** páginas lidas na ordem de prioridade; pages[0].role === 'main' */
+  pages?: ReadPageRef[];
+  /** só as imagens que entraram na chamada, com `read` */
+  imagesRead?: PageImageRef[];
+  /** detalhe por campo pro tooltip "lido de"; `fieldSources` continua `page|user` (é o que a Offer persiste) */
+  fieldOrigins?: FieldOrigins;
+  /** custo real da chamada (texto + visão), US$ */
+  costUsd?: number;
+  /** D5/D6: o mesmo `readMode/pages/imagesRead/fieldOrigins/costUsd` + `readAt`, pronto pra gravar. O web repassa
+   *  no "apply": `CreateOfferBody.readMeta` (oferta nova) ou `UpdateOfferBody.readMeta` (reread/onboarding). */
+  readMeta?: OfferReadMeta;
+  /** @deprecated = pages.filter(p => p.role !== 'main').map(p => p.url); mantido 1 versão pro web atual */
   relatedUrls?: string[];
 }
 
@@ -184,6 +225,15 @@ export type ApiErrorCode =
   | 'EDIT_CONFLICT' | 'EDIT_NOT_SUPPORTED'
   // fase2-agencia.md §7
   | 'ONBOARDING_INCOMPLETE'
+  // meta-v1.md §3.4 (21/10): síncronos da Meta (os de OAuth voltam na query do redirect, não aqui)
+  | 'META_NOT_CONFIGURED' | 'META_NOT_CONNECTED' | 'META_SELECTION_MISSING' | 'META_TOKEN_INVALID' | 'META_PERMISSION'
+  | 'META_PIXEL_REQUIRED' | 'META_ACCOUNT_UNUSABLE' | 'META_BUDGET_TOO_LOW' | 'META_UNAVAILABLE'
+  // campanhas-v1.md §4.1 (22/10): escritas na tela Campaigns
+  | 'META_OBJECT_CHANGED' | 'META_OBJECT_GONE' | 'META_PARENT_PAUSED' | 'META_BUDGET_NOT_EDITABLE' | 'META_BUDGET_STEP_TOO_LARGE'
+  // molduras §B3.1 (25/10): URL colada na troca de b-roll de fonte desligada/fora da v1 (D15)
+  | 'BROLL_SOURCE_NOT_SUPPORTED'
+  // campanhas-v1 §4.1 (22/10): 422 síncrono ao ativar anúncio DISAPPROVED/WITH_ISSUES (homônimo do assíncrono do publish)
+  | 'META_POLICY'
   // variacao-auto-v1 §5.3
   | 'OFFER_REQUIRED' | 'PLAN_CHANGED' | 'NO_PRODUCT_PHOTO';
 export interface ErrorDetails {
@@ -221,7 +271,8 @@ export type AsyncErrorCode =
   | 'CANCELLED' | 'DOWNLOAD_INVALID' | 'INTERRUPTED' | 'RENDER_ERROR'
   | 'AD_LIBRARY_UNAVAILABLE' | 'AD_NOT_FOUND' | 'AD_HAS_NO_VIDEO' | 'MEDIA_INVALID'   // feature 2
   | 'LIPSYNC_AUDIO_TOO_LONG'
-  | SwapAsyncErrorCode;                                                             // §13.15                                                       // §13.5: TTS real passou de 600 s
+  | SwapAsyncErrorCode
+  | MetaAsyncErrorCode;   // meta-v1 (21/10)                                                             // §13.15                                                       // §13.5: TTS real passou de 600 s
 
 // ───────────────────────── §2 auth ─────────────────────────
 export interface LoginBody { email: string; password: string }
@@ -229,9 +280,24 @@ export interface RefreshBody { refreshToken: string }
 export interface LogoutBody { refreshToken: string }
 export interface SwitchWorkspaceBody { workspaceId: string }
 export interface AcceptInviteBody { name?: string; password?: string }
-export interface UpdateMeBody { name?: string; uiLocale?: UiLocale; password?: { current: string; next: string } }
-export interface AuthUser { id: string; name: string; email: string; uiLocale: UiLocale }
-export interface WorkspaceRef { id: string; name: string; role: Role }
+export interface UpdateMeBody {
+  name?: string; uiLocale?: UiLocale; password?: { current: string; next: string };
+  /** onboarding-v2 §3.1: AGENCY | OWN. AGENCY → OWN nunca dá 409 (D9) */
+  accountMode?: AccountMode;
+}
+export interface AuthUser {
+  id: string; name: string; email: string; uiLocale: UiLocale;
+  /** onboarding-v2: null = ainda não respondeu (o shell trata como AGENCY) */
+  accountMode: AccountMode | null;
+}
+export interface WorkspaceRef {
+  id: string; name: string; role: Role;
+  /** onboarding-v2 §3.5: no workspace ativo e em cada item de MeResponse.workspaces[] (seletor "Setup 33 %") */
+  status: ClientStatus;
+  onboarding: OnboardingSummary;
+  /** onboarding-v2 §3.4: só no workspace ATIVO (membership do usuário nele); ausente nos itens de workspaces[] */
+  tourCompletedAt?: string | null;
+}
 export interface AuthSession { accessToken: string; refreshToken: string; expiresIn: number; user: AuthUser; workspace: WorkspaceRef }
 export interface MeResponse { user: AuthUser; workspace: WorkspaceRef; workspaces: WorkspaceRef[] }
 export interface InviteInfo { workspaceName: string; email: string; role: Role }
@@ -252,8 +318,14 @@ export interface CreativesMeta extends PageMeta {
 
 // ───────────────────────── §4 ofertas ─────────────────────────
 export type ExtractOfferBody = { url: string } | { pageText: string; url?: string };
-export interface CreateOfferBody extends Partial<OfferBrief> { name: string; language: string; sourceUrl?: string; fieldSources?: FieldSources }
-export type UpdateOfferBody = Partial<OfferBrief & { name: string; language: string; sourceUrl: string | null }>;
+export interface CreateOfferBody extends Partial<OfferBrief> {
+  name: string; language: string; sourceUrl?: string; fieldSources?: FieldSources;
+  /** briefing-leitura-v2 D5: oferta nova — o web repassa `output.readMeta` do OFFER_EXTRACT. */
+  readMeta?: OfferReadMeta;
+}
+/** D6: no apply do reread (wizard ou onboarding com oferta existente) o web manda `output.readMeta` junto com os campos; `null` limpa. */
+/** `fieldSources` (QA bug 14, 22/10): origem que o apply manda por campo (`page` ao aplicar leitura); sem ele, todo campo enviado vira `user`. */
+export type UpdateOfferBody = Partial<OfferBrief & { name: string; language: string; sourceUrl: string | null; readMeta: OfferReadMeta | null; fieldSources: FieldSources }>;
 export type RereadOfferBody = Record<string, never> | { pageText: string };
 
 // ───────────────────────── §6 criativo ─────────────────────────
@@ -359,6 +431,8 @@ export interface Workspace {
   shortCode: string; industry: string | null; market: string | null;
   businessType: BusinessType | null; defaultResult: DefaultResult | null;
   websiteUrl: string | null;
+  /** 25/10 (estatico-montado-e-molduras-v1 D3, TRANSIÇÃO): cor da marca `#RRGGBB` (maiúsculas); null = derivada (§A3.3) */
+  brandColor?: string | null;
   status: ClientStatus; onboarding: Onboarding;
 }
 /** OWNER/ADMIN. `onboardingStep` com onboarding concluído = 409 INVALID_STATE reason 'onboarding_completed'. */
@@ -366,6 +440,8 @@ export type UpdateWorkspaceBody = Partial<{
   name: string; uiLocale: UiLocale; monthlySpendCapUsd: number | null;
   shortCode: string; industry: string | null; market: string | null;
   businessType: BusinessType | null; websiteUrl: string | null;
+  /** 25/10 (D3): `#RRGGBB` ou `#RGB` (o backend normaliza pra 6 dígitos maiúsculos); null limpa. Inválido = 400 VALIDATION_ERROR */
+  brandColor: string | null;
   onboardingStep: OnboardingStep;
   paused: boolean;
 }>;
@@ -377,7 +453,8 @@ export interface CreateInviteBody { email: string; role: 'ADMIN' | 'MEMBER' | 'C
 export interface CreateInviteResponse { id: string; inviteUrl: string; expiresAt: string }
 export interface UpdateMemberBody { role: Role }
 /** HIGGSFIELD = rosto (Soul V2, desde 06/10); APIFY = link da Ad Library (feature 2). */
-export interface ServiceStatus { provider: 'ANTHROPIC' | 'WAVESPEED' | 'HIGGSFIELD' | 'APIFY' | 'STORAGE'; connected: boolean; keyMasked: string | null }
+/** META (meta-v1): connected = META_APP_ID + META_APP_SECRET + META_TOKEN_KEY no .env (META_MODE=live) ou mock; keyMasked = app id mascarado. */
+export interface ServiceStatus { provider: 'ANTHROPIC' | 'WAVESPEED' | 'HIGGSFIELD' | 'APIFY' | 'STORAGE' | 'META'; connected: boolean; keyMasked: string | null }
 export type SpendProvider = 'ANTHROPIC' | 'WAVESPEED' | 'HIGGSFIELD' | 'APIFY';
 export type SpendKind = 'LLM' | 'IMAGE' | 'VIDEO' | 'TTS' | 'LIPSYNC' | 'TRANSCRIBE' | 'SCRAPE';
 export interface Spend {
@@ -444,7 +521,7 @@ export interface AdLibraryMeta {
 }
 export interface ChampionRow {
   id: string; name: string; offer: { id: string; name: string };
-  status: ChampionStatus; rights: ChampionRights; sources: ('UPLOAD' | 'AD_LIBRARY')[];
+  status: ChampionStatus; rights: ChampionRights; sources: ('UPLOAD' | 'AD_LIBRARY' | 'META')[];   // META: meta-v1 D13 (Pick from Meta)
   thumbnail: FileRef | null; durationSec: number | null; language: string | null;
   batchesCount: number; variationsCount: number; winnersCount: number;
   createdBy: UserRef; updatedAt: string;
@@ -460,6 +537,8 @@ export interface ChampionDetail extends ChampionRow {
   /** §13.15: Trocar avatar com a voz do motor (ENGINE_VOICE). Calculado do editMap. */
   engineVoice: KeepEditAvailability;
   costUsd: number;
+  /** meta-v1 D13: campeão criado a partir de um anúncio da Meta (POST /iterate { metaAdId }); null nos outros */
+  metaAd: { adId: string; adAccountId: string } | null;
 }
 export interface ListChampionsQuery { offerId?: string; limit?: number; cursor?: string }
 export interface CreateChampionBody {
@@ -676,3 +755,14 @@ export * from './cadastro';
 export * from './iteracao';
 import type { FormatCode, VariationAxis } from './iteracao';
 import type { BusinessType, ClientStatus, DefaultResult, Onboarding, OnboardingStep, WaitingBatchRef, WaitingOnYou } from './agencia';
+
+// meta-v1 (docs/contratos/meta-v1.md, aprovado 21/10): conexão, leitura de anúncios/vencedor, publicação
+export * from './meta';
+import type { MetaAsyncErrorCode } from './meta';
+// onboarding-v2 (docs/contratos/onboarding-v2.md, aprovado 21/10): accountMode, percent/steps/updatedBy, tour
+export * from './onboarding-v2';
+// campanhas-v1 (docs/contratos/campanhas-v1.md, aprovado 22/10): tela Campaigns (snapshots por nível, escritas, MetaChange)
+export * from './campanhas';
+// brain-3d-v1 (docs/contratos/brain-3d-v1.md, aprovado 22/10): GET /brain/graph e /brain/node/:id
+export * from './brain';
+import type { AccountMode, OnboardingSummary } from './onboarding-v2';

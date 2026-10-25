@@ -58,6 +58,12 @@
   --info: #2b4bc8;
   --info-edge: #c3cef6;
   --info-on-ink: #8fa6ff;
+  /* campanhas-v1 spec §3: tree rows (over --card) */
+  --row-l1: #fafaf7;
+  --row-l2: #f6f6f2;
+  --row-hover: #f6f7f2;
+  /* onboarding-v2 §3: Meta blue, only the "Continue with Facebook" button and the "f" square of the connection card */
+  --meta: #1877f2;
   /* radius + size */
   --r-chip: 8px;
   --r-ctl: 10px;
@@ -256,6 +262,9 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
   --color-info-on-ink: var(--info-on-ink);
+  --color-meta: var(--meta);
+  --color-warn-dot: var(--warn-dot);
+  --color-ok-edge: var(--ok-edge);
 
   /* status (in progress = blue · waiting = amber · failed = red · ready = green) */
   --color-status-progress: var(--info);
@@ -631,5 +640,18 @@
   }
   .beam::before {
     background: linear-gradient(90deg, var(--brand), var(--info));
+  }
+}
+
+/* campanhas-v1: a row/card that just changed (after a write or "Update row") blinks lime-soft once */
+@keyframes row-flash {
+  0% {
+    background-color: var(--brand-soft);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-flash],
+  [data-flash] > td {
+    animation: none !important;
   }
 }

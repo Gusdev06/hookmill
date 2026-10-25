@@ -11,6 +11,26 @@ export function captureScenarioFromUrl() {
   if (v === "off") sessionStorage.removeItem(KEY)
   else if (v === "empty" || v === "loading" || v === "error") sessionStorage.setItem(KEY, v)
   // feature 2: ?adlib=off simulates the Ad Library reader at its limit (GET /champions/config); ?adlib=on clears it
+  // meta-v1 mock states: ?metamock=stale|failed|expired|off (sessionStorage mock:meta); ?metamock=on clears it
+  const mm = new URLSearchParams(window.location.search).get("metamock")
+  if (mm === "on") sessionStorage.removeItem("mock:meta")
+  // campanhas-v1: + unusable (account disabled) · trunc (500+ per level) · nocamp (no campaigns in the account)
+  else if (mm && ["stale", "failed", "expired", "off", "unusable", "trunc", "nocamp"].includes(mm)) sessionStorage.setItem("mock:meta", mm)
+  // campanhas-v1 QA: ?mockrole=member|client shows the Campaigns screen (and the write handlers) as that role; =off clears
+  const mp = new URLSearchParams(window.location.search).get("mockpage")
+  if (mp === "off") sessionStorage.removeItem("mock:page")
+  else if (mp && Number(mp) > 0) sessionStorage.setItem("mock:page", mp)
+  const mr = new URLSearchParams(window.location.search).get("mockrole")
+  if (mr === "off") sessionStorage.removeItem("mock:role")
+  else if (mr === "member" || mr === "client") sessionStorage.setItem("mock:role", mr.toUpperCase())
+  // estatico-montado-e-molduras-v1 (web-mock only): ?mocktext=ok|minor|critical|extra|retake|skipped|cap forces the STATIC text check of
+  // the batch's 9:16 (cap = minor + Retry answers SPEND_CAP_EXCEEDED); ?mocktext=off clears. ?mockframes=all plans all 18 frames; =off clears
+  const mt = new URLSearchParams(window.location.search).get("mocktext")
+  if (mt === "off") sessionStorage.removeItem("mock:text")
+  else if (mt && ["ok", "minor", "critical", "extra", "retake", "skipped", "cap"].includes(mt)) sessionStorage.setItem("mock:text", mt)
+  const mf = new URLSearchParams(window.location.search).get("mockframes")
+  if (mf === "off") sessionStorage.removeItem("mock:frames")
+  else if (mf === "all") sessionStorage.setItem("mock:frames", "all")
   const a = new URLSearchParams(window.location.search).get("adlib")
   if (a === "off") sessionStorage.setItem("mock:adlib", "off")
   else if (a === "on") sessionStorage.removeItem("mock:adlib")

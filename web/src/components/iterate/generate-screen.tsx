@@ -10,11 +10,16 @@ import { Alert, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/
 import { Button, buttonVariants } from "@/components/ui/button"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { cn } from "@/lib/utils"
-import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, Tag, TypeThumb, useIterFormat } from "./parts"
-import { usePieceActions } from "./piece-actions"
+import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
+import { PieceTextAlert, TextCheckChip, useStaticStage } from "./text-check"
+import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
 
-/** Generate (spec §4.2): status per piece, grouped Stretch / New audience. A failed piece never stops the others. */
+/**
+ * Generate (spec §4.2): status per piece, grouped Stretch / New audience. A failed piece never stops the others.
+ * Rev. 23/10 (§14.2): the batch renders only the 9:16, so the progress counts the 9:16; 4:5 / 1:1 asked from the preview
+ * show up as chips on the ready piece and in "Now" while they render. STATIC = a new image with a price (`imagesUsd`).
+ */
 export function GenerateScreen({ batch }: { batch: IterateBatch }) {
   const t = useTranslations("iterate.generate")
   const ta = useTranslations("iterate.analyze")
@@ -28,9 +33,12 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
   const settled = batch.phase === "download"
   const allReady = settled && s.ready === total
   const failed = batch.pieces.filter((p) => p.status === "failed")
-  const rendering = batch.pieces.filter((p) => p.status === "rendering")
+  const rendering = batch.pieces.filter((p) => p.render)
   const canContinue = settled || failed.length > 0
-  const filesDone = batch.pieces.reduce((a, p) => a + p.formatsReady, 0)
+  const filesDone = batch.pieces.reduce((a, p) => a + pieceFormats(p).filter((f) => f.state === "ready").length, 0)
+  const imagesUsd = batch.cost.imagesUsd ?? 0
+  const hasImages = imagesUsd > 0 || batch.pieces.some((p) => isImagePiece(p) && p.status !== "left_out")
+  const paidRetry = failed.some((p) => (p.retryUsd ?? 0) > 0)
   const eta = fmt.eta(s.renderEtaSec)
   const preview = batch.pieces.find((p) => p.id === previewId) ?? null
   const started = batch.launchedAt ? format.relativeTime(new Date(batch.launchedAt), now) : ""
@@ -52,7 +60,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
                   <AlertTitle>
                     {failed.length === 1 ? t("failedTitle", { code: failed[0].code, n: total - 1 }) : t("failedManyTitle", { count: failed.length })}
                   </AlertTitle>
-                  <AlertDescription>{t("failedBody")}</AlertDescription>
+                  <AlertDescription>{paidRetry ? t("failedBodyImage") : t("failedBody")}</AlertDescription>
                 </AlertBody>
               </Alert>
             ) : null}
@@ -75,10 +83,18 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
             <Bar value={total ? (s.ready / total) * 100 : 0} ink label={t("panelRendering")} />
             <InkList
               rows={[
-                [t("now"), settled ? t("finished") : rendering.length ? <span key="n" className="font-mono text-xs">{rendering.map((p) => p.code).join(", ")}</span> : t("waiting")],
+                [
+                  t("now"),
+                  rendering.length ? (
+                    <span key="n" className="font-mono text-xs">
+                      {rendering.map((p) => (p.render && p.render.format !== "9x16" ? `${p.code} ${FORMAT_LABEL[p.render.format]}` : p.code)).join(", ")}
+                    </span>
+                  ) : settled ? t("finished") : t("waiting"),
+                ],
                 ...(settled ? [] : eta ? ([[ta("timeLeft"), eta]] as [string, string][]) : []),
                 [ta("files"), t("filesOf", { done: filesDone, total: s.files })],
                 [ta("videoCredits"), ta("noneUsed")],
+                ...(hasImages ? ([[ta("images"), <span key="i" className="font-mono">{fmt.usd(imagesUsd)}</span>]] as [string, React.ReactNode][]) : []),
               ]}
             />
             {!settled ? (
@@ -128,7 +144,17 @@ function Group({ axis, pieces, batchId, onPreview }: { axis: "ITERATION" | "DIVE
 /** SceneRow of the fase 2 with the code (spec §7): thumb, code + status, reason before the action, what changes, frame line. */
 function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string; onPreview: (id: string) => void }) {
   const t = useTranslations("iterate.generate")
-  const { retry, leaveOut } = usePieceActions(batchId)
+  const { retry, leaveOut, makeFormat } = usePieceActions(batchId)
+  const canAct = useCanMakeFormats()
+  const canMake = canAct && !!p.formats
+  const price = usePriceLabel()
+  const stageLine = useStaticStage()
+  const stage = stageLine(p)
+  const retryCost = price(p.retryUsd)
+  // 25/10: FRAME_TEXT_OVERFLOW → retrying won't change it; only Leave out
+  const noRetry = p.retryHint === "leave_out"
+  const formats = pieceFormats(p)
+  const asked = p.status === "ready" && formats.some((f) => f.format !== "9x16" && f.state !== "none")
   const running = p.status === "rendering"
   const failed = p.status === "failed"
   const pct = p.render?.progress ?? 0
@@ -147,7 +173,7 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
   const reason = failed ? (
     <span className="text-[13px] font-semibold text-status-failed">
       {p.failReason ?? (p.errorCode ? t(`err.${p.errorCode}` as never) : null)}{" "}
-      {p.retryHint === "use_product_photo" ? t("err.photoHint") : p.retryHint ? t("err.retryHint") : null}
+      {p.failReason && !noRetry ? null : p.retryHint === "use_product_photo" ? t("err.photoHint") : noRetry ? t("err.leaveOutHint") : p.retryHint ? t("err.retryHint") : null}
     </span>
   ) : null
   return (
@@ -159,7 +185,7 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
       )}
     >
       {p.status === "ready" || (p.previewReady && p.status !== "failed") ? (
-        <TypeThumb type={p.type} poster={p.poster} className="rounded-sm" />
+        <TypeThumb type={pieceType(p)} poster={p.poster} className="rounded-sm" />
       ) : running ? (
         <GenThumb />
       ) : (
@@ -169,36 +195,59 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <Code>{p.code}</Code>
           {chip}
+          <TextCheckChip p={p} />
         </div>
+        <PieceKind p={p} className="text-xs text-fg-3" />
         {reason}
+        <PieceTextAlert batchId={batchId} p={p} />
         <span className="text-[13px] text-fg-2">{p.change}</span>
-        {running && p.render ? (
+        {running && stage ? (
+          <span className="text-xs text-fg-3" role="status">{stage}</span>
+        ) : running && p.render ? (
           <span className="font-mono text-xs text-fg-3 tabular-nums">
             {p.render.frame !== null && p.render.frames !== null
               ? t("renderLine", { format: FORMAT_LABEL[p.render.format], frame: p.render.frame, frames: p.render.frames })
               : t("renderLineStill", { format: FORMAT_LABEL[p.render.format] })}
           </span>
         ) : null}
+        {asked ? (
+          <div className="flex flex-wrap gap-1" role="group" aria-label={t("formatsAria", { code: p.code })}>
+            {formats.map((f) => (
+              <FormatChip
+                key={f.format}
+                f={f}
+                canMake={canMake}
+                busy={makeFormat.isPending && makeFormat.variables?.format === f.format}
+                priceLabel={price(f.requestUsd)}
+                onMake={() => makeFormat.mutate({ piece: p, format: f.format as "4x5" | "1x1" })}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="col-span-2 flex flex-wrap items-center justify-end gap-1.5 tablet:col-span-1 tablet:flex-col tablet:items-end">
-        {p.status === "ready" || (p.previewReady && p.status !== "failed") ? (
+        {p.status === "ready" || (p.previewReady && p.status !== "failed") || (running && isImagePiece(p)) ? (
           <Button size="sm" onClick={() => onPreview(p.id)}>
             {t("preview")}
           </Button>
-        ) : failed ? (
+        ) : failed && canAct ? (
           <>
-            <Button size="sm" variant="default" disabled={retry.isPending} onClick={() => retry.mutate({ piece: p, photo: p.retryHint === "use_product_photo" })}>
-              <NavIcon name="refresh" size={14} />
-              {p.retryHint === "use_product_photo" ? t("retryPhoto") : t("retry")}
-            </Button>
+            {noRetry ? null : (
+              <Button size="sm" variant="default" disabled={retry.isPending} onClick={() => retry.mutate({ piece: p, photo: p.retryHint === "use_product_photo" })}>
+                <NavIcon name="refresh" size={14} />
+                {p.retryHint === "use_product_photo" ? t("retryPhoto") : t("retry")}
+                {retryCost ? <span className="font-mono font-medium opacity-80">· {retryCost}</span> : null}
+              </Button>
+            )}
             <Button size="sm" variant="ghost" disabled={leaveOut.isPending} onClick={() => leaveOut.mutate(p)}>
               {t("leaveOut")}
             </Button>
           </>
-        ) : p.status === "left_out" ? (
+        ) : p.status === "left_out" && canAct ? (
           <Button size="sm" variant="ghost" disabled={retry.isPending} onClick={() => retry.mutate({ piece: p })}>
             <NavIcon name="refresh" size={14} />
             {t("retry")}
+            {retryCost ? <span className="font-mono font-medium opacity-80">· {retryCost}</span> : null}
           </Button>
         ) : running ? (
           <Bar value={pct} className="h-1.5 w-[120px]" label={p.code} />

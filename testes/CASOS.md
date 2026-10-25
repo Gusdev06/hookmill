@@ -221,3 +221,151 @@ Fixtures novas: `fixtures/campeoes/curto-6s.mp4` (recorte de 6 s do fala-split-2
 4. [ia (mock) + backend, baixa] CUT nunca sai no mock: com o teardown mock de 4 blocos, todo CUT proposto estoura o alvo e o reparo tira (`cut_too_long`); `allowedFor` libera CUT sem checar se algum conjunto de blocos inteiros cabe em 20 s, e a peça some sem entrar em `insight.swaps`. O mock também repete NATIVE_SEARCH com a mesma busca (o reparo tira como `duplicate`) e gera buscas sem sentido ("how to nobody tells you this about the").
 5. [video, baixa] LAYOUT-REVIEW em 9:16: uma faixa do gancho escrito do original aparece embaixo do card de review (contact sheet do IT-TEMPO).
 6. [backend, nota] O 1º GET /iterate/:id com zip pronto já grava `downloadedAt`, mesmo sem ninguém baixar.
+
+## Meta v1 (Q1) + Onboarding v2 (Q2) · 21/10 · parcial (itens 1 e 2)
+Fonte: `docs/contratos/meta-v1.md`, `docs/contratos/onboarding-v2.md`, `design/onboarding-v2-2026-10-21.md`. Relatório: `qa-meta-onboarding-v2-2026-10-21.md`. **Contra o dev** (API :3001 `INTEGRACOES_MODE=mock META_MODE=mock`, web :3000 sem MSW, banco `maquina`; pedido do coordenador), contas novas pelo signup, sem reset. Config própria `playwright.dev.config.ts` (projetos `dev-1440`, `dev-390`, Chrome); specs em `specs/dev-meta-onboarding/`.
+| id | arquivo | o quê | estado |
+|---|---|---|---|
+| OB-01 | `01-onboarding.spec.ts` | signup pela tela → `/start` AGENCY (nome do 1º cliente) → wizard sem sidebar, "Step 1 of 6", %, gate de 5 rotas, passo 1 → %, Save and exit → `/onboarding/saved` → Continue setup; relogar cai no passo; `/start` não volta | passa 1440/390 |
+| OB-02 | idem | `/start` OWN: "Log out" no topo, sem Save and exit; relogar → wizard; `/clients` → wizard | passa |
+| OB-03 | idem | MEMBER e CLIENT convidados (API) num SETUP: "X is setting Y up · Step 2 of 6 · 33%", sem `/start`, wizard só leitura | passa |
+| OB-04 | idem | Clients → Continue setup (troca de cliente); Brain → Revisit setup ("Client setup", Save and exit → Brain); `/onboarding`; Settings → Edit setup | passa |
+| OB-05 | idem | PT-BR: `/start`, "Passo 1 de 6", "Salvar e sair", "Continuar configuração" | passa |
+| OB-06 | idem | API: signup `accountMode null`/`tourCompletedAt null`; percent por conteúdo; 400; AGENCY→OWN com 2 ws = 200 | passa |
+| ME-01 | `02-meta.spec.ts` | fluxo feliz do passo 2: callback mock → 3 contas (read-only desabilitada) → página/pixel → saúde warn → Continue; 1º sync (8 ads, 2 WINNER); conexão sem token; Check again | passa |
+| ME-02 | idem | `mock-denied`/`mock-scopes`/`mock-failed`/state inválido → alerta por código + Try again; redirect da API com `code=` | passa |
+| ME-03 | idem | `act_mock_2` → Blocked, Continue desabilitado, Choose another; `act_mock_3` → 422 META_PERMISSION | passa (bug 3 de texto) |
+| ME-04 | idem | Skip for now → passo 3, `meta: skipped` | passa |
+| ME-05 | idem | Settings › Connections: conectar, Disconnect (DISCONNECTED, ads 422), reconectar mantém seleção | passa |
+| ME-06 | idem | PT-BR do passo 2 | passa |
+| OFF-01 | `03-off.spec.ts` (`QA_META_OFF=1`) | `META_MODE=off`: 5 passos, 1 → 3, tour sem iterate, Home/Settings/Iterate sem Meta, `/meta/*` 503 off | **falha** (bug 1: só `/meta/connect` dá 503) |
+Int specs (item 7, uma vez): `meta.int.spec.ts` + `onboarding-v2.int.spec.ts` em série no `maquina_test`: **24/24**.
+Bugs abertos: 1 [backend] `META_MODE=off` não desliga `GET /meta/connection` (web mostra Meta); 2 [arquiteto] conta nova nasce com 17 % (teto padrão = goals done; New client nasce 0 %); 3 [frontend] conta suspensa com texto de permissão; 4 [frontend/backend] "Ads found 0 · 0" até Check again; 5 [frontend] nome cortado no cartão do Clients. Itens 3-6 e 8 ainda não testados.
+### Rodada 2 (itens 3, 4, 5, 8) · 21/10 20:10
+| id | arquivo | o quê | estado |
+|---|---|---|---|
+| TO-01 | `04-tour.spec.ts` | 5 paradas com vencedor: Esc não fecha, Back, recarregar mantém a parada, Finish grava, recarregar não reabre | passa 1440/390 |
+| TO-02 | idem | sem Meta: 4 paradas (`stops` sem iterate), 2ª = New concepts | passa |
+| TO-03 | idem | Replay em Settings: `completedAt` não muda; Esc fecha no replay | passa |
+| TO-04 | idem | CLIENT convidado completa o tour | **falha** (bug 7: parada 2 pulada, 1 → 3 → 4 → 5) |
+| TO-05 | idem | PT-BR ("Tour · 1 de 4", "Avançar") | passa |
+| HO-01 | `05-home.spec.ts` | Synced, 4 KPIs, prev no 7d, lima só na 1ª linha (2 WINNER na regra), trend, Iterate → `?metaAdId=`, sem skeleton | passa |
+| HO-02 | idem | sem Meta: "No results here yet" → Connections; conectado sem conta = "Choose an ad account" | passa |
+| HO-03 | idem | first_sync (mock termina em 2 s: não visto) → Synced | passa |
+| HO-04 | idem | stale 13 h (SQL) → "Meta needs attention" + "stopped answering 13 hours ago" + Sync now | passa (bug 9: sync manual sem 5 min) |
+| HO-05 | idem | failed (SQL) → alerta "no fresh data" + Sync now | passa |
+| HO-06 | idem | TOKEN_INVALID → Reconnect → Settings → Reconnect with Facebook → ACTIVE | **falha** (bug 8 na Home; bug 6 no Settings) |
+| HO-07 | idem | PT-BR da Home | passa |
+| PK-01 | `06-pick.spec.ts` | lista → Iterate it → campeão OWN/META → plano → 9 peças; Iterate again reaproveita (1 campeão, 1 META_IMPORT) | passa |
+| PK-02 | idem | novideo → ANALYSIS_FAILED com frase legível; 404; 400 exactlyOneOf; OFFER_REQUIRED + seletor | passa |
+| PK-03 | idem | CLIENT: 403 em iterate/sync, lê ads; `/iterate/new` sem o cartão (bug 7) | passa (anotado) |
+| PK-04 | idem | PT-BR ("De Mock Store (USD)", "Iterar este") | passa |
+| RG-01 | `07-regressao.spec.ts` | login pela tela, wizard por link → 4 roteiros, /variations/new, Library, Clients, Settings | passa |
+| RG-02 | idem | Iterate por upload → plano | passa |
+| RG-03 | idem | CLIENT num LIVE: Home/Library/Settings; escrita 403 | passa |
+| ME-05 (re-teste 20:08) | `02-meta.spec.ts` | Settings › Connections conectar | **falha agora** (bug 6: `returnTo /settings/connections` = 400) |
+Bugs novos: 6 [frontend, regressão] Connections manda `returnTo: '/settings/connections'` (400); 7 [frontend] CLIENT pula a parada 2 do tour (`/iterate/new` sem o cartão); 8 [frontend] Home com TOKEN_INVALID mostra "No results here yet" em vez do alerta de login vencido; 9 [backend, baixa] sem 5 min entre syncs manuais; 10 [ia, nota] mock sem prev de 30 d e first_sync rápido demais pra ver.
+### Rodada final (parcial) · 21/10 20:45 — interrompida: API :3001 virou `META_MODE=live`
+| id | arquivo | o quê | estado |
+|---|---|---|---|
+| PB-01 | `08-publish.spec.ts` | Final OK → Publish to Meta → defaults → 6 etapas → PAUSED + Ads Manager → Activate (confirmação) → ACTIVE → Pause; Library "Send to Meta" | **não concluído** (defaults e tela ok; seletor "Sales" corrigido; falta rodar) |
+| PB-02 | idem | 5 gatilhos do §8 com a ação certa; retry (error) retoma sem duplicar; policy → Edit ad text → republicar vai pro histórico | **parcial**: policy ok (FAILED em creating_creative, ids gravados, botão Edit ad text); payment/token/rate/error não rodados |
+| PB-03 | idem | 422 budget (API + tela), 422 pixel + Switch to Traffic, 409 em andamento ([mock:meta-slow]) + progresso, 409 não aprovado, papéis (MEMBER 403 activate/pause, CLIENT 403 tudo, tela sem botões), retry só em FAILED | não rodado (API live) |
+| PB-04 | idem | sem conexão → "Connect Meta first"; desconectar mantém publicação + Ads Manager | não rodado |
+| PB-05 | idem | PT-BR | não rodado |
+| OB-01/06, ME-01/03, OB-04, OFF-01, TO-04, HO-04/06 | (endurecidos) | re-teste dos bugs 1-9 (0 % → 17 %, 8 · 6 sozinho, texto conta suspensa, nome inteiro, off em tudo + publish off, CLIENT 5 paradas, 429 + toast, login vencido + KPIs) | **não rodados** |
+Int specs (final, série, `maquina_test`): **23/24** — `meta.int.spec.ts:236` falha: 2 jobs META_SYNC depois do 429 (regressão da correção do bug 9, backend).
+
+### Rodada final · 22/10 (par do QA :3002/:3010 + :3003/:3011 off; contas `qa-final-*`)
+Specs novos: `08-publish.spec.ts` (PB-01..05), `09-remote.spec.ts` (RM-01..03), `10-briefing.spec.ts` (BR-01..05); `dev.ts` ganhou `criativoAprovado`, `atePublicacao`, `QA_DEV_API/QA_DEV_WEB/QA_DEV_DB`. Rodar: `QA_DEV_API=http://localhost:3002/api/v1 QA_DEV_WEB=http://localhost:3010 npx playwright test -c playwright.dev.config.ts --project=dev-1440 --project=dev-390` (OFF-01 com `QA_META_OFF=1` e o par off). **Nunca subir a API mock no `maquina` sem `META_SYNC_EVERY_HOURS=100000`** (incidente 22/10, item 15).
+| bloco | 1440 | 390 |
+|---|---|---|
+| OB, ME, TO, HO, PK, RG, PB, OFF | 38/38 | 38/38 |
+| RM-01..03 | 2/3 (RM-02, bug 13) | 2/3 (RM-02, bug 13) |
+| BR-01..05 | 4/5 (BR-04, bug 14) | 4/5 (BR-04, bug 14) |
+Int 24/24 · unitária API 1103/1103 · web tsc limpo, lint 0 erros. Bugs 1-12 corrigidos e re-testados. Abertos: 13 [frontend] New link depois do erro; 14 [frontend] passo 3 sem origem (fieldSources `user` no PATCH); 15 [arquiteto/backend] cron Meta em API mock/off no banco compartilhado + DATABASE_URL ignorado.
+Cascata real sem Claude: thekingdomoflove 9,6 s `vision` (render 423 car. + 1 print); remotion.dev 7,5 s `crawled` (principal + pricing). Pago com Claude: não rodado (aguarda ok).
+### Briefing v2 pago · 22/10 (`11-briefing-pago.spec.ts`, `QA_PAGO=1`, API isolada no `maquina_test`)
+| BP-1 basecamp.com crawled 18 s US$ 0,14 | BP-2 thekingdomoflove vision 26 s US$ 0,03 | BP-3 material-dra-giovana vision 8 imgs 49 s US$ 0,21 | BP-4 followcatch vision 5 imgs 53 s US$ 0,10 | BP-5 github login_wall US$ 0 |
+Total US$ 0,4746. Todos passam (o BP-5 falhou só por regex minha, corrigida). Sem prova real do checkout externo (§2.3).
+
+### Campaigns v1 + Brain 3D · 23/10 (`12-campanhas-api`, `13-campanhas-ui`, `14-brain-loadmore`; par isolado :3002/:3012 mock + :3003/:3013 off, `maquina_test`, sob `caffeinate -i`)
+| caso | o quê | 1440 | 390 |
+|---|---|---|---|
+| CA-01 | leitura: 3 campanhas, totais, CBO/ABO/vitalício, aprendizado, ordem + `dir`, filtros = `meta.counts`, busca com `matchedIn`, 404/400 | ✅ | (API) |
+| CA-02 | `/meta/ads` vídeo padrão (8, 2 WINNER), `format=all` 10, `dir`, counts, Iterate imagem 409 `not_a_video` | ✅ | (API) |
+| CA-03 | status: pausar/ligar, `META_OBJECT_CHANGED`, `META_PARENT_PAUSED` + `includeParents` + `alsoChangedRefs`, `META_POLICY`, `[mock:stale]`, History | ✅ | (API) |
+| CA-04 | orçamento: onde mora, NOT_EDITABLE ×3, mínimo, 2×, `expected`, rate/token FAILED no History | ✅ | (API) |
+| CA-05 | throttle: 20 × 200, 21ª = 429 `retryAfterSec` | ✅ | (API) |
+| CA-06 | conta inutilizável: `canToggle false` + 422 `META_ACCOUNT_UNUSABLE` | ✅ | (API) |
+| CA-07 | MEMBER/CLIENT leem, 403 nas escritas; MEMBER sincroniza | ✅ | (API) |
+| CA-08 | sem Meta 422, stale/failed, off 503 | ✅ | (API) |
+| CA-09 | sync 5 etapas + snapshots; Send activate/pause = `MetaChange PUBLISH`; selo HookMill da publicação | ✅ menos o selo (Achado E, mock) | (API) |
+| CU-01..05 | árvore, filtros/Issues/busca/7 d, diálogos (pausar, ligar com pais, POLICY), orçamento (mín/2×/+20 %/aprendizado), conflito + Update row, rate, History | ✅ 5/5 | desktop |
+| CU-06 | MEMBER (faixa, sem switch/lápis) e CLIENT (View only) | ✅ | ✅ |
+| CU-07 | sem Meta, stale, failed, "All ads" → `/campaigns?view=ads`, Pick só vídeo, 390 drill | ✅ | ✅ |
+| CU-08 | PT-BR + off na :3013 = "em breve" | ✅ | ✅ |
+| CU-09 | 390: folha de baixo (orçamento, ligar com 1 pai, pausar), History, Ads only + busca | celular | ✅ |
+| BA-01..03 | grafo: cliente novo, cheio (arestas, drawer `videoUrl` por tipo, 400/404, CLIENT, outro ws), teto 800 | ✅ | ✅ |
+| BU-01 | palco 3D (WebGL ok headless), categorias, Winners, busca → drawer com player, galeria G, Grow, Cinema, List; 390 abre em List | ✅ | ✅ |
+| BU-02 | sem WebGL → List com aviso; reduced-motion | ✅ | desktop |
+| BU-03 | CLIENT View only sem ações; cliente novo; PT | ✅ | ✅ |
+| BU-04 | tour parada 1 no `#t-brain` | ✅ | ✅ |
+| LM-01 | Load more (`limit=100`, cursor, nenhum 400) | ❌ linha Total soma só a página (Achado D) | desktop |
+
+## Estático montado (A) + molduras (B1) · 25/10 · PREPARADO, não rodado
+Fonte: `docs/contratos/estatico-montado-e-molduras-v1.md` §A9 e §B6 (aprovado 25/10). Projetos `estatico`, `molduras`, `em-1440`, `em-390` só existem com `E2E_EM=1` (o `contrato`/`e2e`/`iterate` não mudam). Cada spec **pula sozinho com o motivo** enquanto a API do QA não tiver a entrega (`harness/estatico-molduras.ts › entrega()`: preço 2k = 0,40 no config pro A; `'FRAME'` em `config.types` pro B1, que só entra na fusão do §C.0). `E2E_EM_FORCAR=1` roda mesmo assim. Oráculo próprio do QA (léxico de afirmações, limites, contraste WCAG, fonte por bloco), sem importar `api/`.
+| comando (de `testes/`) | o quê |
+|---|---|
+| `npm run em` | EA-01..17 + MO-01..13 contra a API do QA na 3131 (mock, render fake) |
+| `npm run em:navegador` | EAU-01/02 + MOU-01/02 em 1440 e 390, EN e PT-BR (web do QA na 3226) |
+| `node ferramentas/roteiro-estatico.mjs <pasta> \| --batch <id>` | folha de revisão visual (parte automática + checklist pra ler o PNG). Roteiro: `roteiros/revisao-visual-estatico-molduras.md` |
+
+| id | arquivo | o quê | depende de |
+|---|---|---|---|
+| EA-01 | `estatico/contrato.spec.ts` | 2k: `staticImageUsd` 0,40, estimativa = nº STATIC × 0,40, ESTIMATE_CHANGED, `requestUsd` do 4:5 | A-I, A-B |
+| EA-02 | idem | plano novo `assembled`: copy por bloco com fonte aceita (§A3.1), limites §A2, soma ≤ 420, ícone/emoção do enum, visual v2 sem aspas/marca, nada inventado (número + 7 famílias de afirmação), 2 STATIC = emoções e headlines diferentes, emoção × `whyKey` | A-I, A-B |
+| EA-03 | idem | Brain sem oferta/prova/CTA: nenhum grátis/garantia/desconto/plataforma; `cta.sub` null; trust sem `offerAndPrice`/`proof` | A-I (fake omite), A-B |
+| EA-04 | idem | Brain vazio: `brandLine` null, `benefits []`, `trust []`, headline da fala, CTA sem promessa | A-I, A-B |
+| EA-05 | idem | `PATCH /workspace brandColor` (#RGB/#RRGGBB, maiúsculo, 400, MEMBER/CLIENT 403, null) → accent do spec; fundo no mesmo matiz, L 6-14 %, branco ≥ 7:1; render escreve o copy salvo | A-B |
+| EA-06 | idem | sem `brandColor`: accent hex válido pela cadeia, contraste ≥ 7:1 | A-B |
+| EA-07 | idem | prompt por aspecto (§A4): 9:16 todos os blocos + TEXT CHECKLIST + 2k; 4:5 sem fechamento, ≤ 3 cards; 1:1 sem tagline/manuscrito/confiança/fechamento, card só título | A-I, A-B |
+| EA-08 | idem | `textCheck` ok (1 task), vídeo `textCheck` null | A-I, A-B |
+| EA-09 | idem | `[mock:static-text-mismatch]` → 2 tasks → ok | A-I, A-B |
+| EA-10 | idem | `[mock:static-text-mismatch-all]` → ready + `mismatch` (esperado × visto, crítico), no zip, nunca 3ª task | A-I, A-B |
+| EA-11 | idem | teto baixado logo depois do start → refação barrada (1 task) | A-B |
+| EA-12 | idem | `[mock:static-reject]` + mismatch dividem o limite de 2 tasks | A-I, A-B |
+| EA-13 (fixme) | idem | Claude fora → `skipped` | gatilho de mock novo (pedido à ia) |
+| EA-14 (fixme) | idem | Retry/Leave out em peça `ready` com mismatch | resposta do arquiteto (ver perguntas) |
+| EA-15 | idem | legado: visual v1 → `photo_headline` (sem TEXT CHECKLIST, `textCheck` null); sem visual → `poster` | A-B |
+| EA-16 | idem | isolamento: cor de B nunca no spec de A, PATCH de B não muda A, `duplo` (MEMBER) 403, peça STATIC de A com token de B = 404, banco de A intacto | A-B |
+| EA-17 | idem | nada pago: só tasks do fake, custo 0 | A-I |
+| MO-01..03 | `molduras/contrato.spec.ts` | FRAME no config; ≤ 2 FRAME de templates distintos, só os 12 do B1, DIVERSITY, `FRAME-<ID>`/`MOLDURA-<ID-PT>`, limites §B2, asteriscos, fonte por texto (ranking/call), nada inventado, texto fixo de interface fora da IA, `live` sem texto | fusão B1, B1-I, B1-B |
+| MO-04..06 | idem | sem preço com moeda (3 Brains) nunca `direct_offer`; preço literal e `from` só com 2 valores (§B5); 5 Brains, cada lote ≤ 2 distintos | B1-I, B1-B |
+| MO-07 | idem | gerar: 9:16 REMOTION `kind frame`, textos = plano, marca do workspace (nome, handle, cor), rosto em question_box/live, sem 2ª fonte, `joinFadeMs` 40, 0 provider_tasks, `…_FRAME-<ID>_9x16.mp4` no zip | B1-B, B1-V |
+| MO-08 | idem | 4:5/1:1 sob demanda grátis; `supported:false` = 409 `format_not_supported`; CLIENT 403 | B1-B, B1-V |
+| MO-09 | idem | `[mock:frame-fail:<id>]` → failed + retry grátis com teto 0 | B1-B |
+| MO-10 | idem | texto forçado > fitText → `FRAME_TEXT_OVERFLOW`, `retryHint leave_out`, Leave out | B1-B, B1-V |
+| MO-11 | idem | `read_caption`: `suggestedPrimaryText` = `primaryText`, no README do zip | B1-B |
+| MO-12 | idem | isolamento: marca vem do workspace do lote (A e B), rotas da peça FRAME de A com token de B = 404, banco intacto | B1-B |
+| MO-13 | idem | criativo FRAME travado (409) e APPROVED; vídeo de 6 s | B1-B |
+| MO-B2-01..04 (fixme) | idem | 2 fontes, b-roll (rotas, `[mock:broll-none]`/`[mock:broll-fail]`, proveniência, licença) | fase B2 |
+| EAU-01/02 | `estatico-molduras-ui/em.spec.ts` | aviso "esperado × visto" com Retry/Leave out; Settings › Cor da marca (inválido, salva, recarrega, MEMBER só lê) | A-F |
+| MOU-01/02 | idem | peça FRAME com nome da moldura (sem chave i18n crua), formatos; falha com motivo traduzido + Retry | B1-F |
+| VIS-A | `roteiros/…` + `ferramentas/roteiro-estatico.mjs` | revisão visual S2 (3 briefings) e S3 (4:5, 1:1) contra a tabela §A3.1 | sondas da ia com ok do Gusta |
+| VIS-B | idem | contact sheet das molduras contra o protótipo + render real de 2 molduras | B1-V; lote real com ok do Gusta |
+
+Prova de que o preparo roda (25/10): `npx tsc --noEmit` limpo; `E2E_EM=1 npx playwright test --list …` lista 50 testes nos 4 projetos; sem `E2E_EM` os 4 projetos novos não aparecem na lista (280 testes). O oráculo pegou, num spec sintético igual ao experimento de 25/10, "Plano de 21 dias", "7 dias grátis" e "iOS e Android" sem fonte. **Nada rodado contra API: não há entrega ainda.**
+
+### Correção da pendência de 23/10: `iterate/contrato.spec.ts` (IT-08..12) e preço 2k
+IT-08 esperava 3 renders por peça, ordem 9:16→4:5→1:1, `files` com 3 formatos e zip com 3× arquivos. Agora: 1 render 9:16 por peça, `[mock:render-fail:<TYPE>]` falha o 9:16 (`formatsReady` 0, `formats` `failed/none/none`), retry re-enfileira só o 9:16, ordem do Remotion = ordem do plano sem o STATIC, Library `formats` = só os prontos, `?format=4x5` antes do pedido = 409 `format_not_ready`, 4:5/1:1 pedidos pela rota de formatos e depois baixados. Todo `start` manda `expectedCostUsd` (§14.9 item 6). IT-11 confere o 9:16 do retry com foto. "Nada pago" aceita a task `STATIC_IMAGE` do fake. `rev-2310` (API e UI): preço da imagem lido do config / 0,40 (D1 = 2k) em vez de 0,22 fixo (`E2E_STATIC_USD` sobrescreve enquanto a API do QA rodar o código de 23/10). **Não rodado nesta rodada.**
+
+### Perguntas ao arquiteto (antes da rodada final)
+1. **Retry/Leave out com texto errado (§A6):** a peça com `textCheck mismatch` é `ready`, e retry/leave-out de peça `ready` dá 409 (IT-08). Que rota o botão chama, e o Retry cobra 0,40 e passa pelo teto? (EA-14)
+2. **Total de molduras do B1:** o §B6 e a D13 falam em "10 × 3 = 30 quadros"; o §B2 lista 12 de 1 fonte; a §C.1 pede 18 × 3. O "pronto B1" é com 12 ou com 10?
+3. **Códigos PT** (`MOLDURA-<ID-PT>`): só `MOLDURA-NOTICIA` está no contrato. Qual é a tabela dos outros 11?
+4. Onde o render guarda o spec V2 (`renders.input.spec` com `layout` ou `input.specV2` durante a transição)? Os specs aceitam os dois.
+### Pedidos à maquina-ia (mock), sem eles 3 casos ficam sem exercitar
+1. `[mock:static-text-check-fail]` (Claude fora na checagem → `skipped`), EA-13.
+2. Gatilho pra forçar o template no fake, ex. `[mock:frame-pick:direct_offer,read_caption]`: hoje MO-05/MO-11 dependem do fake cair nesses templates.
+3. Sondas S2/S3 gravando `<nome>.json` ao lado do PNG (spec, brief, transcript, textCheck, prompt, custo) — formato no cabeçalho de `ferramentas/roteiro-estatico.mjs`.

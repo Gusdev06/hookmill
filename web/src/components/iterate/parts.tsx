@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useFormatter, useTranslations } from "next-intl"
-import type { AutoVariationType, FileRef, IterateBatch, VariationAxis } from "@/lib/api/types"
+import type { AutoVariationTypeWithFrame, FileRef, FormatCode, FrameTemplateId, IterateBatch, IteratePiece, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
 import { FlowBar } from "@/components/flow-bar"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useSession } from "@/components/providers/session-provider"
@@ -11,6 +11,11 @@ import { cn } from "@/lib/utils"
 import "./iterate.css"
 
 /* Building blocks of the automatic variation screens (design/variacao-auto-v1-2026-10-12.md §7, skin fase2 §3-4). */
+
+/** 25/10 (estatico-montado-e-molduras-v1 §C.0, TRANSIÇÃO): the API sends `type: 'FRAME'` before the architect merges it into
+ *  `AutoVariationType`; the web reads the superset so nothing breaks on either side of the merge. */
+export type PieceType = AutoVariationTypeWithFrame
+export const pieceType = (p: Pick<IteratePiece, "type">) => p.type as PieceType
 
 // ───────────── layout ─────────────
 /** mockup .wrap: one column of 1160 px; extra bottom room for the sticky / fixed action bar. */
@@ -174,7 +179,7 @@ function V({ tone = "night", style }: { tone?: string; style?: React.CSSProperti
     </div>
   )
 }
-function Art({ type, tone }: { type: AutoVariationType | "orig"; tone: string }) {
+function Art({ type, tone }: { type: PieceType | "orig"; tone: string }) {
   switch (type) {
     case "CUT":
       return (
@@ -258,6 +263,17 @@ function Art({ type, tone }: { type: AutoVariationType | "orig"; tone: string })
           <span className="chipf" style={{ bottom: "5%", right: "6%" }}>PNG</span>
         </>
       )
+    case "FRAME":
+      return (
+        <>
+          <div className="v" style={{ background: "#F3EEE4" }} />
+          <div className="capt" style={{ top: "6%" }}>
+            <i style={{ width: "90%", background: "#1e2550" }} />
+            <i style={{ width: "60%", background: "#1e2550" }} />
+          </div>
+          <V tone={tone} style={{ top: "26%", left: "8%", right: "8%", bottom: "16%", borderRadius: "3cqw" }} />
+        </>
+      )
     default:
       return <V tone={tone} />
   }
@@ -269,7 +285,7 @@ function Art({ type, tone }: { type: AutoVariationType | "orig"; tone: string })
  */
 export function TypeThumb({
   type, poster, tone = 0, play, label, className,
-}: { type: AutoVariationType | "orig"; poster?: FileRef | null; tone?: number; play?: boolean; label?: string; className?: string }) {
+}: { type: PieceType | "orig"; poster?: FileRef | null; tone?: number; play?: boolean; label?: string; className?: string }) {
   return (
     <div className={cn("tf", className)} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
       {poster ? (
@@ -299,6 +315,103 @@ export function GenThumb({ queued, className }: { queued?: boolean; className?: 
 // ───────────── formatting ─────────────
 export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`
 export const FORMAT_LABEL = { "9x16": "9:16", "4x5": "4:5", "1x1": "1:1" } as const
+export const FORMAT_CODES: readonly FormatCode[] = ["9x16", "4x5", "1x1"]
+export const FORMAT_ASPECT: Record<FormatCode, string> = { "9x16": "aspect-[9/16]", "4x5": "aspect-[4/5]", "1x1": "aspect-square" }
+export const FORMAT_PX: Record<FormatCode, [number, number]> = { "9x16": [1080, 1920], "4x5": [1080, 1350], "1x1": [1080, 1080] }
+
+// ───────────── formats per piece (variacao-auto-v1 §14.2) ─────────────
+/** STATIC = an image created from scratch (GPT Image 2), not a frame of the video. */
+export const isImagePiece = (p: Pick<IteratePiece, "media" | "type">) => (p.media ?? (p.type === "STATIC" ? "image" : "video")) === "image"
+
+/**
+ * The piece's 3 formats in the order 9:16, 4:5, 1:1. `formats[]` comes from the API (rev. 23/10); while an API without it
+ * answers (TRANSIÇÃO), it is derived from `files` (ready) and the current render, and nothing can be requested.
+ */
+export function pieceFormats(p: IteratePiece): PieceFormat[] {
+  if (p.formats?.length) return FORMAT_CODES.map((c) => p.formats!.find((f) => f.format === c) ?? { format: c, state: "none", progress: null, errorCode: null, failReason: null, requestUsd: null })
+  return FORMAT_CODES.map((format) => {
+    const ready = p.files.some((f) => f.format === format)
+    const running = p.render?.format === format
+    const lead = format === "9x16"
+    const state: PieceFormatState = ready ? "ready" : running ? "rendering"
+      : lead && p.status === "failed" ? "failed" : lead && (p.status === "queued" || p.status === "rendering") ? "queued" : "none"
+    return {
+      format, state, progress: running ? p.render!.progress : null,
+      errorCode: state === "failed" ? p.errorCode : null, failReason: state === "failed" ? p.failReason : null, requestUsd: null,
+    }
+  })
+}
+/** §B4 (25/10): false = the frame template has no such format; the web hides its button. Absent = true. */
+export const isSupported = (f: PieceFormat) => f.supported !== false
+/** Formats the user can still ask for (4:5 / 1:1 not made, or failed; never one the template doesn't have). */
+export const canAsk = (f: PieceFormat) => isSupported(f) && f.format !== "9x16" && (f.state === "none" || f.state === "failed")
+
+/**
+ * Format chip of the Download card (and the preview tabs): state per format. Ready = green check; queued/rendering =
+ * progress; failed = red, press to try again; not made = dashed "+ 4:5", press to make it. CLIENT sees the state only.
+ */
+export function FormatChip({ f, canMake, busy, priceLabel, onMake }: { f: PieceFormat; canMake: boolean; busy?: boolean; priceLabel?: string | null; onMake?: () => void }) {
+  const t = useTranslations("iterate.formats")
+  const tt = useTranslations("iterate.textCheck")
+  if (!isSupported(f)) return null
+  const label = FORMAT_LABEL[f.format]
+  const base = "inline-flex min-h-7 items-center gap-[3px] rounded-full px-[6px] text-[11px] font-bold whitespace-nowrap tabular-nums"
+  const ask = canMake && canAsk(f) && !!onMake
+  const title = f.state === "failed" ? t("retryAria", { format: label }) : t("makeAria", { format: label })
+  const aria = priceLabel ? `${title} · ${priceLabel}` : title
+  // §A10: a ready STATIC format whose own text check found an error (PieceFormat.textCheck)
+  const tcBad = f.state === "ready" && f.textCheck?.status === "mismatch"
+  if (tcBad) {
+    const crit = (f.textCheck!.extraText?.length ?? 0) > 0 || f.textCheck!.items.some((i) => i.critical && i.match === false)
+    return (
+      <span className={cn(base, crit ? "bg-status-failed-bg text-status-failed" : "bg-status-waiting-bg text-status-waiting")} aria-label={tt("chip.formatError", { format: label })} title={tt("chip.formatError", { format: label })}>
+        <NavIcon name="alert" size={11} strokeWidth={2.6} />
+        {label}
+      </span>
+    )
+  }
+  if (f.state === "ready")
+    return (
+      <span className={cn(base, "bg-status-approved-bg text-status-approved")} aria-label={t("readyAria", { format: label })}>
+        <NavIcon name="check" size={11} strokeWidth={3} />
+        {label}
+      </span>
+    )
+  if (f.state === "queued" || f.state === "rendering")
+    return (
+      <span className={cn(base, "bg-status-progress-bg text-status-progress")} aria-label={f.state === "queued" ? t("queuedAria", { format: label }) : t("renderingAria", { format: label, p: f.progress ?? 0 })}>
+        <Dot pulse={f.state === "rendering"} />
+        {label}
+        {f.state === "rendering" && f.progress !== null ? <span className="font-mono font-medium">{f.progress}%</span> : null}
+      </span>
+    )
+  if (!ask)
+    return (
+      <span
+        className={cn(base, f.state === "failed" ? "bg-status-failed-bg text-status-failed" : "border border-dashed border-control text-fg-3")}
+        aria-label={f.state === "failed" ? t("failedAria", { format: label }) : t("noneAria", { format: label })}
+      >
+        {label}
+      </span>
+    )
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onMake}
+      title={aria}
+      aria-label={aria}
+      className={cn(
+        base,
+        "cursor-pointer transition-colors disabled:cursor-wait disabled:opacity-60",
+        f.state === "failed" ? "bg-status-failed-bg text-status-failed hover:brightness-95" : "border border-dashed border-control bg-transparent text-fg-2 hover:border-fg hover:text-fg"
+      )}
+    >
+      {f.state === "failed" ? <NavIcon name="refresh" size={11} strokeWidth={2.5} /> : <span aria-hidden="true">+</span>}
+      {label}
+    </button>
+  )
+}
 
 export function useIterFormat() {
   const format = useFormatter()
@@ -313,7 +426,55 @@ export function useIterFormat() {
 /** Name of the type in the interface language. */
 export function useTypeName() {
   const t = useTranslations("iterate.analyze.type")
-  return (type: AutoVariationType) => t(type)
+  return (type: PieceType) => t(type)
+}
+
+/** Name of the piece: the type, or "Frame · News" for a FRAME (template name by i18n, §B2). */
+export function usePieceName() {
+  const t = useTranslations("iterate")
+  const typeName = useTypeName()
+  return (p: Pick<IteratePiece, "type" | "frame">) =>
+    pieceType(p) === "FRAME" && p.frame ? t("frame.named", { name: t(`frame.name.${p.frame.template}`) }) : typeName(pieceType(p))
+}
+
+/** Type line of a piece: the template icon for a FRAME, then its name. */
+export function PieceKind({ p, className }: { p: Pick<IteratePiece, "type" | "frame">; className?: string }) {
+  const name = usePieceName()
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
+      {pieceType(p) === "FRAME" && p.frame ? <FrameIcon id={p.frame.template} className="flex-none" /> : null}
+      <span className="min-w-0">{name(p)}</span>
+    </span>
+  )
+}
+
+/* One quiet line glyph per frame template (own SVG, no third-party logos — contract D12). */
+const FRAME_GLYPH: Record<FrameTemplateId, React.ReactNode> = {
+  question_box: <><path d="M4 5h16v11H10l-4 3.5V16H4z" /><path d="M10.2 9.2a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.7.5-.7 1v.3" /><path d="M12 14.2v.1" /></>,
+  meme: <><circle cx="12" cy="12" r="8" /><path d="M8.5 13.5c.9 1.4 2.1 2 3.5 2s2.6-.6 3.5-2" /><path d="M9.5 9.5v.5M14.5 9.5v.5" /></>,
+  cinema: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18M3 15h18M7.5 5v4M12 5v4M16.5 5v4M7.5 15v4M12 15v4M16.5 15v4" /></>,
+  news: <><rect x="3" y="4" width="14" height="16" rx="1.5" /><path d="M17 8h3v10a2 2 0 0 1-2 2H5" /><path d="M6.5 8h7M6.5 12h7M6.5 16h4" /></>,
+  ranking: <><path d="M3 20h18M5 20v-6h4v6M10 20V8h4v12M15 20v-4h4v4" /><path d="M12 3.5l.7 1.4 1.5.2-1.1 1 .3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1 1.5-.2z" /></>,
+  post_card: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="7.5" cy="9.5" r="1.8" /><path d="M11 9h6M7 13.5h10M7 16h7" /></>,
+  direct_offer: <><path d="M3 12V4h8l10 10-7 7z" /><circle cx="7.5" cy="8" r="1.4" /></>,
+  story: <><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M8.5 5.5h3M12.5 5.5h3" /><rect x="8.5" y="10" width="7" height="5" rx="1" /></>,
+  read_caption: <><path d="M4 5h16M4 9h16M4 13h10" /><path d="M17 13v7M14.5 17.5 17 20l2.5-2.5" /></>,
+  pov_testimonial: <><path d="M6 10.5a3 3 0 1 1 3 3v3c-3 0-5-2.5-5-6" /><path d="M14 10.5a3 3 0 1 1 3 3v3c-3 0-5-2.5-5-6" /></>,
+  live: <><circle cx="12" cy="12" r="2.2" /><path d="M8 8a5.5 5.5 0 0 0 0 8M16 8a5.5 5.5 0 0 1 0 8M5 5a9.8 9.8 0 0 0 0 14M19 5a9.8 9.8 0 0 1 0 14" /></>,
+  call: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10.5 21 7.5v9l-5-3" /></>,
+  call_dialog: <><rect x="4" y="3" width="16" height="8" rx="2" /><rect x="4" y="13" width="16" height="8" rx="2" /><circle cx="12" cy="7" r="1.5" /><circle cx="12" cy="17" r="1.5" /></>,
+  split_stack: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M4 12h16" /></>,
+  split_torn: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M4 12l3-1.5 3 1.5 4-1.5 3 1.5 3-1.5" /></>,
+  gossip_page: <><path d="M4 10v4h3l7 4V6L7 10z" /><path d="M17 9.5a3.5 3.5 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10" /></>,
+  gossip_white: <><path d="M4 5h16v11H10l-4 3.5V16H4z" /><path d="M12 8v4M12 14.2v.1" /></>,
+  gossip_pink: <><path d="M4 5h16v11H10l-4 3.5V16H4z" /><path d="M12 13.2c-2.6-1.6-3.4-2.7-3.4-3.7a1.7 1.7 0 0 1 3.4-.4 1.7 1.7 0 0 1 3.4.4c0 1-.8 2.1-3.4 3.7z" /></>,
+}
+export function FrameIcon({ id, size = 14, className }: { id: FrameTemplateId; size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+      {FRAME_GLYPH[id]}
+    </svg>
+  )
 }
 
 export const ITERATION_FIRST = (b: Pick<IterateBatch, "pieces">) => ({

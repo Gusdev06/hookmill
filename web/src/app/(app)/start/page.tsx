@@ -1,0 +1,130 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
+import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
+import { api } from "@/lib/api/client"
+import type { AccountMode } from "@/lib/api/types"
+import { Alert, AlertBody, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Icon } from "@/components/icon"
+import { NavIcon } from "@/components/shell/nav-icon"
+import { MinimalShell } from "@/components/shell/minimal-shell"
+import { ActionBar } from "@/components/onboarding/action-bar"
+import { onboardingHref } from "@/components/onboarding/shared"
+import { useSession } from "@/components/providers/session-provider"
+import { useErrorMessage } from "@/hooks/use-error-message"
+import { ME_KEY, useMe } from "@/hooks/use-me"
+import { getSession, setSession } from "@/lib/session/token"
+import { cn } from "@/lib/utils"
+
+/*
+ * /start · "How will you use HookMill?" (onboarding-v2 §3.1, D8; spec decision 1). Shown once, right after the signup,
+ * when `user.accountMode == null` and the person is OWNER of the active workspace (the gate in the shell sends here).
+ * Continue = PATCH /auth/me { accountMode }; AGENCY may also name the first client (PATCH /workspace { name }, never
+ * POST /workspaces: the workspace of the signup already is the first client). Then the setup, step 1.
+ */
+const MODES: { id: AccountMode; icon: "bld" | "user"; items: 3 }[] = [
+  { id: "AGENCY", icon: "bld", items: 3 },
+  { id: "OWN", icon: "user", items: 3 },
+]
+
+export default function StartPage() {
+  const t = useTranslations("welcome")
+  const errorMessage = useErrorMessage()
+  const router = useRouter()
+  const qc = useQueryClient()
+  const { session } = useSession()
+  const me = useMe()
+  const [pick, setPick] = useState<AccountMode | null>(null)
+  const [client, setClient] = useState("")
+  const workspace = me.data?.workspace ?? session.workspace
+
+  const save = useMutation({
+    mutationFn: async (mode: AccountMode) => {
+      const user = await api.auth.updateMe({ accountMode: mode })
+      const name = client.trim()
+      if (mode === "AGENCY" && name && name !== workspace.name) await api.workspace.update({ name })
+      return user
+    },
+    onSuccess: async (user) => {
+      const s = getSession()
+      if (s) setSession({ ...s, user: { ...s.user, accountMode: user.accountMode ?? pick } })
+      await qc.invalidateQueries({ queryKey: ME_KEY })
+      await qc.invalidateQueries({ queryKey: ["workspace"] })
+      router.replace(onboardingHref(workspace.onboarding?.step ?? 1))
+    },
+  })
+
+  const hint = pick === "AGENCY" ? t("hintAgency") : pick === "OWN" ? t("hintOwn") : t("pick")
+
+  return (
+    <MinimalShell>
+      <div className="flex flex-col gap-2">
+        <span className="eyebrow">{t("eyebrow", { name: session.user.name.split(" ")[0] })}</span>
+        <h1 className="text-pretty">{t("title")}</h1>
+        <p className="m-0 max-w-[640px] text-fg-3 text-pretty">{t("sub")}</p>
+      </div>
+      {save.isError ? (
+        <Alert variant="destructive">
+          <Icon name="alert" />
+          <AlertBody>
+            <AlertTitle>{errorMessage(save.error)}</AlertTitle>
+          </AlertBody>
+        </Alert>
+      ) : null}
+      <RadioGroupPrimitive.Root value={pick ?? ""} onValueChange={(v) => setPick(v as AccountMode)} aria-label={t("ariaMode")} className="grid grid-cols-[minmax(0,1fr)] gap-3.5 tablet:grid-cols-2">
+        {MODES.map((m) => {
+          const on = pick === m.id
+          const k = m.id === "AGENCY" ? "agency" : "own"
+          return (
+            <RadioGroupPrimitive.Item
+              key={m.id}
+              value={m.id}
+              className={cn(
+                "relative flex min-h-11 flex-col gap-3 rounded-xl border-[1.5px] bg-card p-[22px] text-left outline-none hover:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring tablet:min-h-[230px]",
+                on ? "border-fg shadow-[0_0_0_1px_var(--fg)]" : "border-line"
+              )}
+            >
+              <span aria-hidden="true" className={cn("absolute top-4 right-4 inline-grid size-5 place-items-center rounded-full border-[1.5px]", on ? "border-fg" : "border-control")}>
+                {on ? <span className="size-2.5 rounded-full bg-fg" /> : null}
+              </span>
+              <span aria-hidden="true" className={cn("inline-grid size-11 place-items-center rounded-btn", on ? "bg-brand text-[#15171a]" : "bg-card-2 text-fg")}>
+                <NavIcon name={m.icon} size={22} />
+              </span>
+              <span className="wide text-[19px]">{t(`${k}.title`)}</span>
+              <span className="text-fg-2">{t(`${k}.sub`)}</span>
+              <ul className="m-0 grid gap-1 pl-[18px] text-[13px] text-fg-3">
+                <li>{t(`${k}.i1`)}</li>
+                <li>{t(`${k}.i2`)}</li>
+                <li>{t(`${k}.i3`)}</li>
+              </ul>
+            </RadioGroupPrimitive.Item>
+          )
+        })}
+      </RadioGroupPrimitive.Root>
+      {pick === "AGENCY" ? (
+        <div className="grid gap-1.5 rounded-xl border border-line bg-card p-4 tablet:p-5">
+          <Label htmlFor="start-client">
+            {t("firstClient")} <span className="font-normal text-fg-3">{t("optional")}</span>
+          </Label>
+          <Input id="start-client" maxLength={80} value={client} onChange={(e) => setClient(e.target.value)} placeholder={workspace.name} />
+          <span className="text-xs text-fg-3">{t("firstClientHint")}</span>
+        </div>
+      ) : null}
+      <ActionBar
+        hint={hint}
+        primary={
+          <Button variant="brand" size="lg" disabled={!pick || save.isPending} aria-busy={save.isPending} onClick={() => pick && save.mutate(pick)}>
+            {t("continue")}
+            <Icon name="arrowr" />
+          </Button>
+        }
+      />
+    </MinimalShell>
+  )
+}

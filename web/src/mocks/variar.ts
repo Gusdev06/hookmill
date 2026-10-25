@@ -481,6 +481,7 @@ export function championDetail(c: MChampion): ChampionDetail {
     job: c.job ? jobView(c.job, c) : null,
     errorCode: c.status === "FAILED" ? c.errorCode : null, failReason: c.status === "FAILED" ? c.failReason : null, action: c.status === "FAILED" ? c.action : null,
     teardown: teardownOf(c), availableKinds: availableKinds(c), keepEdit: keepEditOf(c), engineVoice: engineVoiceOf(c), costUsd: c.costUsd,
+    metaAd: null,
   }
 }
 

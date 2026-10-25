@@ -4,7 +4,14 @@ import amostra from '../public/fixtures/amostra.json';
 import { Criativo } from './Criativo';
 import { RemixKeep } from './RemixKeep';
 import { AutoEdit } from './AutoEdit';
-import { AUTO_EDIT_COMPOSITION_ID, AUTO_EDIT_STILL_COMPOSITION_ID, autoEditSchema, duracaoAutoEdit, SAFE_AREA, type AutoEditProps, COMPOSITION_ID, criativoSchema, duracaoEmFrames, FORMATOS, FPS, REMIX_COMPOSITION_ID, remixKeepSchema, type CriativoProps, type RemixKeepProps } from './lib';
+import { calcularMoldura, MolduraPrototipo } from './prototipos/molduras/Moldura';
+import { DEMO_MOLDURAS } from './prototipos/molduras/demo';
+import { calcularMoldura as calcularMolduraProd, Moldura } from './molduras/Moldura';
+import { DEMO_ORDEM, demoProps } from './molduras/demo';
+import { CASOS } from './molduras/casos';
+import { casosZhTw } from './molduras/casos-cjk';
+import { FRAME_COMPOSITION_ID, molduraSchema } from './lib/molduras';
+import { AUTO_EDIT_COMPOSITION_ID, autoEditSchema, duracaoAutoEdit, SAFE_AREA, type AutoEditProps, COMPOSITION_ID, criativoSchema, duracaoEmFrames, FORMATOS, FPS, REMIX_COMPOSITION_ID, remixKeepSchema, type CriativoProps, type RemixKeepProps } from './lib';
 
 // Tamanho e duração saem das props (formato + soma das cenas + end card).
 const calcular: CalculateMetadataFunction<CriativoProps> = async ({ props }) => ({
@@ -55,7 +62,7 @@ const remixExemplo: RemixKeepProps = {
   }],
 };
 
-// auto-edit (variacao-auto-v1 §7.2): tamanho do formato, duração = soma do timeline (+2 s no ENDCARD); still = 1 frame.
+// auto-edit (variacao-auto-v1 §7.2): tamanho do formato, duração = soma do timeline (+2 s no ENDCARD).
 const calcularAuto: CalculateMetadataFunction<AutoEditProps> = async ({ props }) => ({
   durationInFrames: duracaoAutoEdit(props, FPS),
   fps: FPS,
@@ -64,17 +71,13 @@ const calcularAuto: CalculateMetadataFunction<AutoEditProps> = async ({ props })
 
 // Exemplo pro Studio com a mídia de teste local: take de 31 s (real-take.mp4, 960x960 24 fps), gancho + CTA.
 const autoExemplo: AutoEditProps = {
-  output: 'video', format: 'VERTICAL_9_16', language: 'en',
+  format: 'VERTICAL_9_16', language: 'en',
   source: { videoUrl: 'fixtures/real-take.mp4', width: 960, height: 960, fps: 24, durationSec: 31.04, hasAudio: true },
   reframe: { mode: 'cover', focus: { x: 0.5, y: 0.42 } },
   timeline: [{ startSec: 0, endSec: 6.71 }, { startSec: 20.74, endSec: 26.35 }],
   joinFadeMs: 40, safeArea: SAFE_AREA.VERTICAL_9_16, palette: ['#1b1b1b', '#c8a27a', '#d21f1f'], brandName: 'Acme',
   type: 'HOOK_TEXT',
   params: { type: 'HOOK_TEXT', text: 'I found out without touching her phone', endSec: 3, box: { x: 90, y: 300, w: 900, h: 300 }, cover: null },
-};
-const stillExemplo: AutoEditProps = {
-  ...autoExemplo, output: 'still', type: 'STATIC',
-  params: { type: 'STATIC', atSec: 16, headline: 'It showed absolutely everything', box: { x: 90, y: 300, w: 900, h: 300 } },
 };
 
 export const RemotionRoot: React.FC = () => (
@@ -86,17 +89,6 @@ export const RemotionRoot: React.FC = () => (
       defaultProps={autoExemplo}
       calculateMetadata={calcularAuto}
       durationInFrames={300}
-      fps={30}
-      width={1080}
-      height={1920}
-    />
-    <Composition
-      id={AUTO_EDIT_STILL_COMPOSITION_ID}
-      component={AutoEdit}
-      schema={autoEditSchema}
-      defaultProps={stillExemplo}
-      calculateMetadata={calcularAuto}
-      durationInFrames={1}
       fps={30}
       width={1080}
       height={1920}
@@ -133,6 +125,63 @@ export const RemotionRoot: React.FC = () => (
           defaultProps={a.props}
           calculateMetadata={calcular}
           durationInFrames={900}
+          fps={30}
+          width={1080}
+          height={1920}
+        />
+      ))}
+    </Folder>
+    {/* Molduras (contrato estatico-montado-e-molduras-v1 §B2). A do produto (com schema) + exemplos com mídia local. */}
+    <Composition
+      id={FRAME_COMPOSITION_ID}
+      component={Moldura}
+      schema={molduraSchema}
+      defaultProps={demoProps('news')}
+      calculateMetadata={calcularMolduraProd}
+      durationInFrames={240}
+      fps={30}
+      width={1080}
+      height={1920}
+    />
+    {/* prova: mesmo enquadramento do protótipo, pra comparar stills (sem schema: 2 textos do protótipo passam do limite) */}
+    <Folder name="Molduras-Prova">
+      {DEMO_ORDEM.map((d) => (
+        <Composition key={d.slug} id={`Prova-${d.slug}`} component={Moldura} defaultProps={demoProps(d.id, 'VERTICAL_9_16', { modo: 'prova' })}
+          calculateMetadata={calcularMolduraProd} durationInFrames={240} fps={30} width={1080} height={1920} />
+      ))}
+    </Folder>
+    {(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1'] as const).map((f) => (
+      <Folder key={f} name={`Molduras-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}`}>
+        {DEMO_ORDEM.map((d) => (
+          <Composition key={d.slug} id={`Moldura-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}-${d.slug}`} component={Moldura}
+            defaultProps={demoProps(d.id, f)} calculateMetadata={calcularMolduraProd} durationInFrames={240} fps={30} width={1080} height={1920} />
+        ))}
+      </Folder>
+    ))}
+    <Folder name="Molduras-Casos">
+      {CASOS.map((c) => (
+        <Composition key={c.nome} id={`Caso-${c.nome}`} component={Moldura} defaultProps={c.props} calculateMetadata={calcularMolduraProd}
+          durationInFrames={240} fps={30} width={1080} height={1920} />
+      ))}
+    </Folder>
+    {(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1'] as const).map((f) => (
+      <Folder key={`zh-${f}`} name={`Molduras-zhTW-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}`}>
+        {DEMO_ORDEM.map((d) => (
+          <Composition key={d.slug} id={`ZH-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}-${d.slug}`} component={Moldura}
+            defaultProps={casosZhTw(d.id, f)} calculateMetadata={calcularMolduraProd} durationInFrames={240} fps={30} width={1080} height={1920} />
+        ))}
+      </Folder>
+    ))}
+    {/* PROTÓTIPO 25/10 (fora do produto): as 18 molduras do pack em 9:16, com mídia local. */}
+    <Folder name="Prototipo-Molduras">
+      {DEMO_MOLDURAS.map((d) => (
+        <Composition
+          key={d.id}
+          id={`Moldura-${d.id}`}
+          component={MolduraPrototipo}
+          defaultProps={d.props}
+          calculateMetadata={calcularMoldura}
+          durationInFrames={240}
           fps={30}
           width={1080}
           height={1920}

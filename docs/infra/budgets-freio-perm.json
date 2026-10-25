@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:AttachUserPolicy","iam:DetachUserPolicy"],"Resource":"arn:aws:iam::903373620308:user/hookmill-remotion-*","Condition":{"ArnEquals":{"iam:PolicyARN":"arn:aws:iam::903373620308:policy/hookmill-freio-orcamento"}}}]}

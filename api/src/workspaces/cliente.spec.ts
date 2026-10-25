@@ -31,7 +31,7 @@ describe('cliente (fase2-agencia.md §1-§2)', () => {
     } as never);
     expect(v).toEqual({
       id: 'w', name: 'N', uiLocale: 'EN', monthlySpendCapUsd: null, shortCode: 'NN', industry: null, market: 'US',
-      businessType: 'APP', defaultResult: 'INSTALLS', websiteUrl: null, status: 'SETUP',
+      businessType: 'APP', defaultResult: 'INSTALLS', websiteUrl: null, brandColor: null, status: 'SETUP',
       onboarding: { step: 3, totalSteps: 6, completedAt: null },
     });
   });

@@ -99,7 +99,10 @@ export function SoonSection({
   actions,
   preview,
   exampleLabel,
+  id,
 }: {
+  /** stable id for a tour stop (e.g. "t-eddy") */
+  id?: string
   title: React.ReactNode
   eyebrow?: React.ReactNode
   heading: React.ReactNode
@@ -120,7 +123,7 @@ export function SoonSection({
           <SoonBadge />
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-xl border border-line bg-card p-4 tablet:p-[22px]">
+      <div id={id} className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-xl border border-line bg-card p-4 tablet:p-[22px]">
         <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-1.5">
           <h2 className="wide text-xl">{heading}</h2>
           <p className="m-0 text-fg-3 text-pretty">{promise}</p>

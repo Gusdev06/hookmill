@@ -1,6 +1,8 @@
 // Variação automática de campeão (Q1, 13/10): contrato + regras + estados + isolamento contra a API do QA em mock
 // (render fake, maquina_test, porta própria). Fonte: docs/contratos/variacao-auto-v1.md §3-§10. Nada pago.
 // Rodar (de testes/): E2E_API_PORT=3121 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 npx playwright test --project=iterate
+// 25/10 (pendência de 23/10): IT-08..12 seguem o §14 do variacao-auto (lote só 9:16, 4:5/1:1 sob demanda pela rota de
+// formatos, `start` exige `expectedCostUsd` quando o plano tem STATIC, STATIC = IMAGE_GEN fora da fila do Remotion).
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -18,6 +20,9 @@ test.afterEach(async () => { await esperarJobsQuietos(120_000); });
 
 const ITER = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD'];
 const DIV = ['SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
+/** rev. 23/10 §14.9(6): o `start` manda a estimativa que a tela mostrou (0 sem STATIC). */
+const custo = (b: any) => ({ expectedCostUsd: b.cost?.generateEstimateUsd ?? 0 });
+const fmtDe = (p: any, f: string) => p.formats?.find((x: any) => x.format === f);
 const numeros = (s: string) => (s.match(/\d+(?:[.,]\d+)*/g) ?? []).map((n) => n.replace(/[.,]/g, ''));
 
 /** §6.1/§6.2 sobre o plano que a API devolve. */
@@ -234,7 +239,7 @@ test('IT-07 gatilhos: auto-fail:reading → ANALYSIS_FAILED reading + retry; aut
 
 // ───────────────────────── gerar, falha, retry, leave-out, In zip, zip ─────────────────────────
 
-test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5→1:1, falha + retry, leave-out, In zip, zip com 2 pastas e README, Library, Home', async () => {
+test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem do plano, falha + retry, leave-out, In zip, zip com 2 pastas e README, 4:5/1:1 sob demanda na Library, Home', async () => {
   const o = await oferta('A', { notes: '[mock:render-fail:STORY] [mock:render-fail:REVIEW]' });
   const b = await lotePronto('donoA', PODCAST, o.id);
   expect(b.status).toBe('PLAN_READY');
@@ -243,21 +248,24 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
   const h1 = await as('donoA').get('/creatives?filter=needs_you');
   expect(h1.body.meta.waitingBatches.filter((w: any) => w.id === b.id).map((w: any) => w.status)).toEqual(['PLAN_READY']);
 
-  expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: n + 1 }), 409, 'PLAN_CHANGED');
-  expectErro(await as('clienteA').post(`/iterate/${b.id}/start`, { expectedPieces: n }), 403, 'FORBIDDEN');
-  expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: 0 }), 400, 'VALIDATION_ERROR');
+  expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: n + 1, ...custo(b) }), 409, 'PLAN_CHANGED');
+  expectErro(await as('clienteA').post(`/iterate/${b.id}/start`, { expectedPieces: n, ...custo(b) }), 403, 'FORBIDDEN');
+  expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: 0, ...custo(b) }), 400, 'VALIDATION_ERROR');
   // zip antes de LAUNCHED = 409
   expectErro(await as('donoA').post(`/iterate/${b.id}/zip`, {}), 409, 'INVALID_STATE');
 
   // clique duplo: um passa, o outro 409, criativos 1 por peça
-  const [s1, s2] = await Promise.all([as('membroA').post(`/iterate/${b.id}/start`, { expectedPieces: n }), as('membroA').post(`/iterate/${b.id}/start`, { expectedPieces: n })]);
+  const [s1, s2] = await Promise.all([as('membroA').post(`/iterate/${b.id}/start`, { expectedPieces: n, ...custo(b) }), as('membroA').post(`/iterate/${b.id}/start`, { expectedPieces: n, ...custo(b) })]);
   expect([s1.status, s2.status].sort()).toEqual([202, 409]);
   const st = (s1.status === 202 ? s1 : s2).data;
   expect(st.status).toBe('LAUNCHED');
   expect(st.phase).toBe('generate');
   expect(st.pieces.every((p: any) => ['queued', 'rendering'].includes(p.status) && p.creativeId)).toBe(true);
   expect((await q(`select count(*)::int n from creatives where variation_batch_id = $1`, [b.id]))[0].n).toBe(n);
-  expect((await q(`select count(*)::int n from renders r join creatives c on c.id = r.creative_id where c.variation_batch_id = $1`, [b.id]))[0].n).toBe(3 * n);
+  // rev. 23/10: 1 render por peça, só 9:16 (vídeo REMOTION, STATIC IMAGE_GEN)
+  const rs0 = await q(`select r.format from renders r join creatives c on c.id = r.creative_id where c.variation_batch_id = $1`, [b.id]);
+  expect(rs0.length, 'um render por peça').toBe(n);
+  expect(new Set(rs0.map((r) => r.format))).toEqual(new Set(['VERTICAL_9_16']));
   // criativo AUTO travado
   const cid0 = st.pieces[0].creativeId;
   for (const [m, path, body] of [
@@ -270,11 +278,12 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
     expect([path, r.status, r.body?.error?.details?.reason], JSON.stringify(r.body)).toEqual([path, 409, 'variation_locked']);
   }
   // start de novo = 409
-  expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: n }), 409, 'INVALID_STATE');
+  expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: n, ...custo(b) }), 409, 'INVALID_STATE');
 
-  // previewReady antes dos outros formatos (9:16 vem primeiro)
-  const comPreview = await ateLote('donoA', b.id, (x) => x.pieces.some((p: any) => p.previewReady && p.formatsReady < 3) || assentou(x), { oQue: 'previewReady cedo' });
-  test.info().annotations.push({ type: 'previewReady cedo', description: comPreview.pieces.filter((p: any) => p.previewReady).map((p: any) => `${p.code}:${p.formatsReady}`).join(' ') });
+  // previewReady = ready (o 9:16 é o único formato do lote): aparece peça a peça, antes do lote assentar
+  const comPreview = await ateLote('donoA', b.id, (x) => x.pieces.some((p: any) => p.previewReady) || assentou(x), { oQue: 'previewReady cedo' });
+  test.info().annotations.push({ type: 'previewReady cedo', description: comPreview.pieces.filter((p: any) => p.previewReady).map((p: any) => `${p.code}:${p.status}`).join(' ') });
+  for (const p of comPreview.pieces) expect(p.previewReady, `${p.code}: previewReady ⇔ ready`).toBe(p.status === 'ready');
 
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000, oQue: 'todas as peças assentadas' });
   const falhas = fim.pieces.filter((p: any) => p.status === 'failed');
@@ -282,16 +291,23 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
   for (const f of falhas) {
     expect(f.errorCode).toBe('RENDER_ERROR');
     expect(f.retryHint).toBe('retry');
-    expect(f.formatsReady).toBe(2); // só o 4:5 falhou
+    // rev. 23/10 §14.7: [mock:render-fail:<TYPE>] pega a 1ª tentativa do 9:16 → peça failed sem nenhum formato pronto
+    expect(f.formatsReady).toBe(0);
+    expect(f.formats.map((x: any) => x.state)).toEqual(['failed', 'none', 'none']);
   }
   expect(fim.pieces.filter((p: any) => p.status === 'ready').length).toBe(n - 2);
-  // ordem da fila: todos os 9:16 (na ordem do plano), depois 4:5, depois 1:1 (pelo startedAt dos renders vigentes)
-  const ordem = (await ordemDosRenders(b.id)).filter((r) => !r.stale && r.started_at).sort((a, z) => a.started_at!.localeCompare(z.started_at!));
-  const fmts = ordem.map((r) => r.format);
-  const iUlt916 = fmts.lastIndexOf('VERTICAL_9_16'), iPri45 = fmts.indexOf('PORTRAIT_4_5'), iUlt45 = fmts.lastIndexOf('PORTRAIT_4_5'), iPri11 = fmts.indexOf('SQUARE_1_1');
-  expect(iUlt916, `ordem: ${fmts.join(',')}`).toBeLessThan(iPri45);
-  expect(iUlt45).toBeLessThan(iPri11);
-  expect(ordem.filter((r) => r.format === 'VERTICAL_9_16').map((r) => r.idx)).toEqual([...Array(n).keys()]);
+  for (const p of fim.pieces.filter((x: any) => x.status === 'ready')) {
+    expect(p.formats.map((x: any) => x.format), `${p.code}: formats[] sempre os 3`).toEqual(['9x16', '4x5', '1x1']);
+    expect(p.formats.map((x: any) => x.state)).toEqual(['ready', 'none', 'none']);
+    expect(p.formatsReady).toBe(1);
+  }
+  // ordem da fila do Remotion: os 9:16 de vídeo na ordem do plano (o STATIC é IMAGE_GEN, fora da fila)
+  const tipoDe = new Map(fim.pieces.map((p: any) => [p.code, p.type]));
+  const ordem = (await ordemDosRenders(b.id)).filter((r) => !r.stale && r.started_at && tipoDe.get(r.code) !== 'STATIC')
+    .sort((a, z) => String(a.started_at).localeCompare(String(z.started_at)));
+  expect(new Set(ordem.map((r) => r.format)), 'só 9:16 no lote').toEqual(new Set(['VERTICAL_9_16']));
+  const idxs = ordem.map((r) => r.idx);
+  expect(idxs, `ordem: ${ordem.map((r) => r.code).join(',')}`).toEqual([...idxs].sort((a, z) => a - z));
 
   // Home: "N pieces ready" (lote AUTO conta 1 vez; criativos AUTO não entram no needs_you)
   const h2 = await as('donoA').get('/creatives?filter=needs_you');
@@ -312,7 +328,7 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
   const rt = expectOk(await as('donoA').post(`/iterate/pieces/${story.id}/retry`, {}), 202);
   expect(['queued', 'rendering']).toContain(rt.status);
   const novos = (await ordemDosRenders(b.id)).filter((r) => r.code === story.code && !r.stale);
-  expect(novos.filter((r) => r.status !== 'READY').map((r) => r.format), 'retry re-enfileira só o formato que falhou').toEqual(['PORTRAIT_4_5']);
+  expect(novos.map((r) => r.format), 'retry re-enfileira só o 9:16 (o falho vira stale)').toEqual(['VERTICAL_9_16']);
   const fim2 = await ateLote('donoA', b.id, (x) => assentou(x) && x.pieces.find((p: any) => p.id === story.id).status === 'ready', { oQue: 'retry da STORY' });
   expect(fim2.summary).toMatchObject({ ready: n - 1, failed: 0, leftOut: 1 });
 
@@ -325,7 +341,7 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
   // arquivos da peça: nomes CLIENTE_MMDD_CODIGO_FMT.ext
   const [{ launched_at }] = await q(`select to_char(launched_at, 'MMDD') launched_at from variation_batches where id = $1`, [b.id]);
   for (const p of fim2.pieces.filter((x: any) => x.status === 'ready')) {
-    expect(p.files.map((f: any) => f.format)).toEqual(['9x16', '4x5', '1x1']);
+    expect(p.files.map((f: any) => f.format), `${p.code}: files[] = só os prontos`).toEqual(['9x16']);
     for (const f of p.files) {
       const ext = p.type === 'STATIC' ? 'png' : 'mp4';
       expect(f.name).toBe(`QA_${launched_at}_${p.code}_${f.format}.${ext}`);
@@ -344,7 +360,7 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
   const pronto = await ateLote('clienteA', b.id, (x) => x.zip.status === 'ready' || x.zip.status === 'failed', { oQue: 'zip' });
   expect(pronto.zip.status).toBe('ready');
   const nZip = n - 2; // REVIEW fora (left_out), HOOK_TEXT fora (In zip)
-  expect(pronto.zip).toMatchObject({ pieces: nZip, files: nZip * 3, folders: { stretch: '1-stretch-its-life', newAudience: '2-new-audience' } });
+  expect(pronto.zip).toMatchObject({ pieces: nZip, files: nZip, folders: { stretch: '1-stretch-its-life', newAudience: '2-new-audience' } });
   expect(pronto.zip.fileName).toMatch(new RegExp(`^QA_${launched_at}_[A-Z0-9-]{1,24}_variations\\.zip$`));
   const z2 = await as('donoA').post(`/iterate/${b.id}/zip`, {});
   expect(z2.status, 'mesmo zipKey = 200 reaproveitado').toBe(200);
@@ -380,37 +396,46 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, ordem 9:16→4:5�
   const h3 = await as('donoA').get('/creatives?filter=needs_you');
   expect(h3.body.meta.waitingBatches.filter((w: any) => w.id === b.id)).toEqual([]);
 
-  // Library: peças entram como variação; filtro por código; formatos; download ?format
+  // Library: peças entram como variação; filtro por código; formatos = só os prontos; download ?format
   const cut = pronto.pieces.find((p: any) => p.status === 'ready' && p.axis === 'ITERATION' && p.type !== 'STATIC');
   const lib = expectOk(await as('clienteA').get(`/library?variationCode=${cut.code}`));
   const itens = lib.items ?? lib;
   expect(itens.map((i: any) => i.id)).toEqual([cut.creativeId]);
   expect(itens[0].media).toBe('video');
-  expect(itens[0].formats.map((f: any) => f.format)).toEqual(['9x16', '4x5', '1x1']);
+  expect(itens[0].formats.map((f: any) => f.format)).toEqual(['9x16']);
   expect(itens[0].variation).toMatchObject({ code: cut.code, axis: 'ITERATION' });
+  // 4:5 ainda não pedido = 409 format_not_ready; pedir (MEMBER, grátis no vídeo) → pronto → Library e download
+  expect(expectErro(await as('clienteA').get(`/creatives/${cut.creativeId}/download?format=4x5`), 409, 'INVALID_STATE')?.reason).toBe('format_not_ready');
+  const st1 = pronto.pieces.find((p: any) => p.type === 'STATIC');
+  expectOk(await as('membroA').post(`/iterate/pieces/${cut.id}/formats`, { format: '4x5' }), 202);
+  if (st1) expectOk(await as('membroA').post(`/iterate/pieces/${st1.id}/formats`, { format: '1x1' }), 202);
+  await ateLote('donoA', b.id, (x) => fmtDe(x.pieces.find((p: any) => p.id === cut.id), '4x5')?.state === 'ready'
+    && (!st1 || ['ready', 'failed'].includes(fmtDe(x.pieces.find((p: any) => p.id === st1.id), '1x1')?.state)), { oQue: '4:5 e 1:1 sob demanda' });
+  const lib45 = expectOk(await as('clienteA').get(`/library?variationCode=${cut.code}`));
+  expect((lib45.items ?? lib45)[0].formats.map((f: any) => f.format)).toEqual(['9x16', '4x5']);
   const d45 = expectOk(await as('clienteA').get(`/creatives/${cut.creativeId}/download?format=4x5`));
   expect(d45.fileName ?? d45.filename, JSON.stringify(d45)).toBe(`QA_${launched_at}_${cut.code}_4x5.mp4`);
-  const st1 = pronto.pieces.find((p: any) => p.type === 'STATIC');
+  expect(st1, 'plano do mock com STATIC').toBeTruthy();
   const libImg = expectOk(await as('donoA').get(`/library?variationCode=${st1.code}`));
   expect((libImg.items ?? libImg)[0].media).toBe('image');
   const dImg = expectOk(await as('donoA').get(`/creatives/${st1.creativeId}/download?format=1x1`));
   expect(dImg.fileName ?? dImg.filename).toBe(`QA_${launched_at}_${st1.code}_1x1.png`);
-  // nada pago
-  expect((await q(`select count(*)::int n from provider_tasks where kind <> 'TRANSCRIBE'`))[0].n).toBe(0);
+  // nada pago: além da transcrição, só as tasks STATIC_IMAGE do fake (mock), e nenhum centavo lançado
+  expect((await q(`select count(*)::int n from provider_tasks where kind not in ('TRANSCRIBE', 'STATIC_IMAGE')`))[0].n).toBe(0);
   expect(Number((await q(`select coalesce(sum(amount_usd),0) s from cost_entries`))[0].s)).toBe(0);
 });
 
 test('IT-09 zip: nothing_to_zip; colisão do adName no mesmo dia → _2', async () => {
   const o = await oferta('A');
   const b = await lotePronto('donoA', CURTO6, o.id);
-  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length }), 202);
+  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
   for (const p of fim.pieces) expectOk(await as('donoA').patch(`/iterate/pieces/${p.id}`, { inZip: false }));
   const z = expectErro(await as('donoA').post(`/iterate/${b.id}/zip`, {}), 409, 'INVALID_STATE');
   expect(z.reason).toBe('nothing_to_zip');
   // 2º lote no mesmo dia, mesmo código → sufixo _2
   const b2 = await lotePronto('donoA', CURTO6, o.id);
-  expectOk(await as('donoA').post(`/iterate/${b2.id}/start`, { expectedPieces: b2.pieces.length }), 202);
+  expectOk(await as('donoA').post(`/iterate/${b2.id}/start`, { expectedPieces: b2.pieces.length, ...custo(b2) }), 202);
   const fim2 = await ateLote('donoA', b2.id, assentou, { timeoutMs: 200_000 });
   const comum = fim2.pieces.find((p: any) => fim.pieces.some((x: any) => x.code === p.code));
   const [c1] = await q(`select ad_name from creatives where variation_batch_id = $1 and variation_code = $2`, [b.id, comum.code]);
@@ -422,7 +447,7 @@ test('IT-09 zip: nothing_to_zip; colisão do adName no mesmo dia → _2', async 
 test('IT-10 Library → Vary: 1ª vez cria campeão (OWN, sourceCreativeId) e analisa; 2ª vez reaproveita (nasce PLANNING, sem nova análise)', async () => {
   const o = await oferta('A');
   const b = await lotePronto('donoA', CURTO6, o.id);
-  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length }), 202);
+  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
   const peca = fim.pieces.find((p: any) => p.status === 'ready' && p.type !== 'STATIC');
   const img = fim.pieces.find((p: any) => p.status === 'ready' && p.type === 'STATIC');
@@ -454,7 +479,7 @@ test('IT-11 D4 foto do produto: retry {useProductPhoto} sem foto = 422 NO_PRODUC
   const b = await lotePronto('donoA', PODCAST, o.id);
   const split = b.pieces.find((p: any) => p.type === 'SPLIT_LP');
   expect(split, 'SPLIT_LP no plano (página capturada)').toBeTruthy();
-  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length }), 202);
+  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
   const f = fim.pieces.find((p: any) => p.id === split.id);
   expect(f.status).toBe('failed');
@@ -470,8 +495,8 @@ test('IT-11 D4 foto do produto: retry {useProductPhoto} sem foto = 422 NO_PRODUC
   expect(off.productImage).not.toBeNull();
   expectOk(await as('donoA').post(`/iterate/pieces/${split.id}/retry`, { useProductPhoto: true }), 202);
   const fim2 = await ateLote('donoA', b.id, (x) => assentou(x) && x.pieces.find((p: any) => p.id === split.id).status === 'ready', { oQue: 'SPLIT_LP com foto' });
-  expect(fim2.pieces.find((p: any) => p.id === split.id).files.length).toBe(3);
-  const [r] = await q(`select r.input from renders r join creatives c on c.id = r.creative_id where c.variation_item_id = $1 and not r.stale and r.format = 'PORTRAIT_4_5' order by r.created_at desc limit 1`, [split.id]);
+  expect(fim2.pieces.find((p: any) => p.id === split.id).files.map((f: any) => f.format), 'retry refaz só o 9:16').toEqual(['9x16']);
+  const [r] = await q(`select r.input from renders r join creatives c on c.id = r.creative_id where c.variation_item_id = $1 and not r.stale and r.format = 'VERTICAL_9_16' order by r.created_at desc limit 1`, [split.id]);
   expect(r.input?.params?.top?.kind, 'render do retry usa a foto').toBe('product_photo');
   expect(expectOk(await as('donoA').del(`/offers/${o.id}/product-image`)).productImage).toBeNull();
 });
@@ -481,7 +506,7 @@ test('IT-11 D4 foto do produto: retry {useProductPhoto} sem foto = 422 NO_PRODUC
 test('IT-12 isolamento: lote/peças/zip de A com token de B = 404; lote MANUAL em /iterate = 404; banco de A intacto', async () => {
   const o = await oferta('A', { notes: '[mock:render-fail:STORY]' });
   const b = await lotePronto('donoA', CURTO6, o.id);
-  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length }), 202);
+  expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
   const p = fim.pieces[0];
   const antes = JSON.stringify(await q(`select id, status, in_zip, left_out_at from variation_items where batch_id = $1 order by id`, [b.id]));

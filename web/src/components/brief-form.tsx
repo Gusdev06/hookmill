@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import type { Offer, OfferExtractOutput } from "@/lib/api/types"
+import type { FieldOrigin, FieldOrigins, Offer, OfferExtractOutput } from "@/lib/api/types"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -41,11 +41,25 @@ export function fromExtract(out: OfferExtractOutput): { draft: Draft; fromPage: 
   }
 }
 
+/** briefing-leitura-v2: "From checkout, image 3" on the field's tag, with the page URLs in the title. */
+function OriginTag({ origins }: { origins: FieldOrigin[] }) {
+  const t = useTranslations("offers")
+  const parts = [...new Set(origins.map((o) => (o.imageIndex !== undefined ? t("image", { n: o.imageIndex }) : t(`role.${o.role}`))))]
+  return (
+    <Tag dashed>
+      <span title={[...new Set(origins.map((o) => o.url))].join("\n") || undefined}>{t("fromOrigin", { list: parts.join(", ") })}</span>
+    </Tag>
+  )
+}
+
 /** Brief fields (Offers page + wizard Offer step). `loading` = skeletons while the page is read. */
 export function BriefFields({
-  draft, onChange, fromPage, loading, only, labels, disabled,
+  draft, onChange, fromPage, origins, loading, only, labels, disabled,
 }: {
-  draft: Draft; onChange: (k: DraftKey, v: string) => void; fromPage?: Set<DraftKey>; loading?: boolean
+  draft: Draft; onChange: (k: DraftKey, v: string) => void; fromPage?: Set<DraftKey>
+  /** v2 `fieldOrigins`: where each page-filled field came from (page role, image) */
+  origins?: FieldOrigins
+  loading?: boolean
   /** a subset of the fields, in this order (client onboarding splits the brief across steps 3 and 4) */
   only?: readonly DraftKey[]
   /** label overrides per field */
@@ -60,7 +74,7 @@ export function BriefFields({
         <div key={key} className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5", long && "tablet:col-span-2")}>
           <Label htmlFor={`f-${key}`}>
             {labels?.[key] ?? t(`fields.${key}`)}
-            {fromPage?.has(key) && !loading ? <Tag dashed>{t("fromPage")}</Tag> : null}
+            {fromPage?.has(key) && !loading ? (origins?.[key as keyof FieldOrigins]?.length ? <OriginTag origins={origins[key as keyof FieldOrigins]!} /> : <Tag dashed>{t("fromPage")}</Tag>) : null}
           </Label>
           {loading ? (
             <span className={cn("sk", long ? "h-16" : "h-[34px]")} />

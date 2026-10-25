@@ -14,6 +14,28 @@ Dono: maquina-video · Medido em 05/10/2026 (V1 pelo CLI, V2 pelo RenderService 
 | bold · 1:1 | 2 | 58 s | 2,2 GB | 1,6 GB | 0,27 GB | 0,32 GB | 107 |
 Saída conferida: H.264 1080x1920 30 fps + AAC, 32 s, 27 MB. O pôster é o frame de 1,5 s. Li a folha de frames: gancho, legenda, CTA e end card ok.
 
+## Molduras (composição `Moldura`, 25/10/2026)
+`node video/scripts/molduras.mjs video 05-noticia <formato>` medido com `video/scripts/medir-processo.sh`: Notícia, 30 s do take quadrado de 31 s (`real-take.mp4`, 960x960 24 fps), 1 aba, cache de 256 MB, jpeg 90. O node inclui o webpack do bundle (na API ele cai para cerca de 0,2 GB, como na tabela de cima).
+| formato | tempo do render | pico RSS (soma) | Chrome | node | compositor |
+|---|---|---|---|---|---|
+| 9:16 | 128 s | 1,9 GB | 1,0 GB | 0,7 GB | 0,2 GB |
+| 4:5 | 111 s | 1,6 GB | 1,1 GB | 0,2 GB | 0,3 GB |
+| 1:1 | 81 s | 2,4 GB (ffmpeg 0,4 GB no fim) | 1,2 GB | 0,5 GB | 0,3 GB |
+Saída conferida: H.264 1080x1920/1350/1080, 30 fps, AAC, 30,0 s; folha de frames a cada 5 s em `video/out/molduras-producao-2026-10-25/video/`. Mesma ordem de grandeza do Criativo: a regra de 4 GB de RAM na VPS continua valendo.
+
+## Remotion Lambda: sonda L1 (25/10/2026, arquiteto)
+Plano e tabela completa em `docs/contratos/render-lambda-v1.md` §5.0. Script: `scripts/sonda-lambda-l1.mjs` (deploy, mídia no Supabase, render local de referência, render no Lambda, bytes baixados pelo CloudWatch, PSNR, nb_frames e áudio). Saída em `video/out/sonda-lambda-l1/`. us-east-1, função `remotion-render-4-0-533-mem3008mb-disk4096mb-300sec`, site `hookmill-l1-f557563`.
+| peça | memória · fpl | parede | custo Lambda | mídia baixada |
+|---|---|---|---|---|
+| headline 9:16, 32 s | 3008 · 150 (7 pedaços) | 61-67 s | US$ 0,011 | 41,5 MB |
+| headline 9:16, 32 s | 2048 · 150 | 79-88 s | US$ 0,011 | 41,5 MB |
+| headline, 600 frames | 3008 · 75 (8 pedaços) | 41 s | US$ 0,008 | 41,1 MB |
+| headline, 160 frames | 3008 · 20 (8 pedaços) | 11 s | US$ 0,0025 | 27,8 MB |
+| Moldura Notícia 9:16, 30 s | 3008 · 150 (6 pedaços) | 50 s | US$ 0,010 | 45,7 MB |
+- **Regra:** 3008 MB, `framesPerLambda` 150 enquanto a cota for 10. 2048 não economiza nada.
+- **PSNR Mac × Lambda:** 31-32 dB no mínimo, só pela rasterização da fonte (CoreText × FreeType). Fora da borda dos glifos: 42,7-46,5 dB. Lambda × Lambda é determinístico (memória e frio/quente: idênticos). Comparação de render pra aceite tem que usar referência Linux.
+- nb_frames ok em todos. Áudio: Notícia idêntico; no scratch, o mesmo áudio deslocado < 1 ms por cena.
+
 ## Medição anterior pelo CLI (V1; o node do CLI inclui o webpack)
 | composição | formato | concurrency | tempo | pico RSS (soma) | Chrome | node (CLI) | compositor |
 |---|---|---|---|---|---|---|---|

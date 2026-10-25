@@ -22,6 +22,7 @@ import { setToastPosition } from "@/lib/toast-position"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { cn } from "@/lib/utils"
 import { useChampion } from "@/hooks/use-variar"
+import { isMetaOff, useMetaConnection } from "@/hooks/use-meta"
 import { VariationLine } from "@/components/variar/variation-line"
 import { EditedBadge, editorHref } from "@/components/editor/entry"
 import { EdIcon } from "@/components/editor/ed-icon"
@@ -51,6 +52,9 @@ export function ReviewStep({ creative, live }: { creative: CreativeDetail; live:
   const v = creative.variation
   const champ = useChampion(v?.championId ?? null)
   const [cmp, setCmp] = useState<"variation" | "original">("variation")
+  // meta-v1 §3.3: an approved video goes to Send → "Publish to Meta" (hidden when the server has no Meta)
+  const metaConn = useMetaConnection()
+  const metaOff = metaConn.isError && isMetaOff(metaConn.error)
   // QA bug 05/10: at 390 a bottom toast covered the name/facts; on the Final OK toasts go to the top
   useEffect(() => {
     setToastPosition("top")
@@ -181,7 +185,16 @@ export function ReviewStep({ creative, live }: { creative: CreativeDetail; live:
               <span className="font-mono">{money(f.costUsd)}</span>
             </div>
           </div>
-          {approved ? null : (
+          {approved ? (
+            metaOff ? null : (
+              <div className="flex w-full flex-wrap gap-2 tablet:w-auto">
+                <Link href={`/creatives/${encodeURIComponent(creative.id)}/send`} className={buttonVariants({ size: "lg", variant: "brand", className: "w-full tablet:w-auto" })}>
+                  {t("review.publishMeta")}
+                  <Icon name="arrowr" />
+                </Link>
+              </div>
+            )
+          ) : (
             <div className="flex w-full flex-wrap gap-2 tablet:w-auto [&>button]:flex-1 tablet:[&>button]:flex-none">
               {creative.editSettings?.templateId !== "remix-keep" ? (
                 <Link href={editorHref(creative.id)} className={buttonVariants({ size: "lg", variant: "ghost", className: "w-full tablet:w-auto" })}>

@@ -3,6 +3,7 @@ import * as medicao from '../medicao';
 import { CampeoesModule } from '../campeoes/campeoes.module';
 import { EdicaoModule } from '../edicao/edicao.module';
 import { JobsModule } from '../jobs/jobs.module';
+import { MetaModule } from '../meta/meta.module';
 import { UploadsModule } from '../uploads/uploads.module';
 import { BatchStateMachine } from '../variacoes/batch-state-machine';
 import { IteracaoController } from './iteracao.controller';
@@ -28,7 +29,7 @@ function mediaRules(): MediaRulesPort {
  * (portas.ts): troque a linha do provider quando o V1 entregar.
  */
 @Module({
-  imports: [JobsModule, CampeoesModule, UploadsModule, EdicaoModule, ZipModule],
+  imports: [JobsModule, CampeoesModule, UploadsModule, EdicaoModule, ZipModule, MetaModule], // meta-v1 D13: Pick from Meta
   controllers: [IteracaoController],
   providers: [
     IteracaoService, IteracaoViews, PlanoAutoService, BatchStateMachine,

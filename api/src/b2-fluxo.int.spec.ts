@@ -88,6 +88,46 @@ describe(isLocal ? 'B2 fluxo (integração local)' : 'B2 fluxo [pulado: DATABASE
     const fim2 = await until(() => call('GET', `/jobs/${ok.data.id}`), (r) => ['SUCCEEDED', 'FAILED'].includes(r.data?.status));
     expect(fim2.data.status).toBe('SUCCEEDED');
     expect(fim2.data.output.fieldSources.name).toBe('page');
+    // briefing-leitura-v2 §4.2/§4.3: texto colado = readMode pasted, 6 etapas todas feitas, readMeta pronto pro POST /offers
+    expect(fim2.data.checklist.map((c: any) => c.key)).toEqual(['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language']);
+    expect(fim2.data.checklist.every((c: any) => c.done)).toBe(true);
+    expect(fim2.data.output).toMatchObject({ readMode: 'pasted', imagesRead: [], fieldOrigins: {}, relatedUrls: [], costUsd: expect.any(Number) });
+    expect(fim2.data.output.pages.every((p: any) => p.role === 'main')).toBe(true); // texto colado: no máximo a "principal" sem URL, nunca subpágina
+    expect(fim2.data.output.readMeta).toMatchObject({ readMode: 'pasted', readAt: expect.any(String) });
+    expect(fim.data.checklist).toHaveLength(6);
+  });
+
+  it('briefing-leitura-v2 D5: POST /offers grava readMeta, GET devolve, PATCH readMeta null limpa; base64 em imagem = 400', async () => {
+    const readMeta = {
+      readMode: 'vision', pages: [{ url: 'https://orbit.example/', role: 'main', via: 'rendered', chars: 1200 }, { url: 'https://orbit.example/checkout', role: 'checkout', via: 'http', chars: 800 }],
+      imagesRead: [{ index: 1, src: 'screenshot:1', alt: null, kind: 'screenshot', widthPx: 780, heightPx: 1688, read: 'US$ 9/mo' }],
+      fieldOrigins: { offerAndPrice: [{ role: 'checkout', url: 'https://orbit.example/checkout' }, { role: 'main', url: 'https://orbit.example/', imageIndex: 1 }] }, costUsd: 0.08,
+    };
+    const created = await call('POST', '/offers', { name: 'Orbit Lido', language: 'en', what: 'App', readMeta });
+    expect(created.status).toBe(201);
+    expect(created.data.readMeta).toMatchObject({ ...readMeta, readAt: expect.any(String) });
+    const got = await call('GET', `/offers/${created.data.id}`);
+    expect(got.data.readMeta).toMatchObject({ readMode: 'vision', imagesRead: readMeta.imagesRead, fieldOrigins: readMeta.fieldOrigins });
+    const bad = await call('POST', '/offers', { name: 'X', language: 'en', readMeta: { ...readMeta, imagesRead: [{ index: 1, src: 's', base64: 'AAAA' }] } });
+    expect(bad.status).toBe(400);
+    expect((await call('PATCH', `/offers/${created.data.id}`, { readMeta: null })).data.readMeta).toBeNull();
+    expect((await call('POST', '/offers', { name: 'Manual', language: 'en' })).data.readMeta).toBeNull();
+    // D6 (reconciliado): o reread NÃO grava read_meta sozinho; o output traz readMeta e quem aplica manda no PATCH
+    const rr = await call('POST', `/offers/${created.data.id}/reread`, { pageText: 'Orbit Budget\nFind forgotten money. US$ 9/month.' });
+    expect(rr.status).toBe(202);
+    const rrDone = await until(() => call('GET', `/jobs/${rr.data.id}`), (r) => ['SUCCEEDED', 'FAILED'].includes(r.data?.status));
+    expect(rrDone.data.status).toBe('SUCCEEDED');
+    expect(rrDone.data.output.readMeta).toMatchObject({ readMode: 'pasted' });
+    expect((await call('GET', `/offers/${created.data.id}`)).data.readMeta).toBeNull(); // reread descartado não sobrescreve
+    // QA bug 14: o apply manda fieldSources e o backend grava o enviado (page), não `user`
+    const ap = await call('PATCH', `/offers/${created.data.id}`, { promise: 'Find forgotten money', fieldSources: { promise: 'page' } });
+    expect(ap.status).toBe(200);
+    expect(ap.data.fieldSources.promise).toBe('page');
+    expect((await call('PATCH', `/offers/${created.data.id}`, { cta: 'Start' })).data.fieldSources).toMatchObject({ promise: 'page', cta: 'user' });
+    expect((await call('PATCH', `/offers/${created.data.id}`, { fieldSources: { promise: 'other' } })).status).toBe(400);
+    const applied = await call('PATCH', `/offers/${created.data.id}`, { readMeta: rrDone.data.output.readMeta });
+    expect(applied.data.readMeta).toMatchObject({ readMode: 'pasted', readAt: expect.any(String) });
+    expect((await call('GET', '/offers')).data.find((o: any) => o.id === created.data.id).readMeta.readMode).toBe('pasted');
   });
 
   it('fluxo inteiro em mock até a Biblioteca, com falhas forçadas no caminho', async () => {

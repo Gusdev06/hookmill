@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Auth, AuthContext, Roles } from '../common/auth/auth-context';
+import { Auth, AuthContext, ClientAllowed, Roles } from '../common/auth/auth-context';
 import { Paginated } from '../common/http/envelope.interceptor';
 import { CreateClientDto, CreateInviteDto, SpendQueryDto, UpdateMemberDto, UpdateWorkspaceDto } from './dto/workspaces.dto';
 import { WorkspacesService } from './workspaces.service';
@@ -54,6 +54,17 @@ export class WorkspacesController {
   @Get('services')
   services() {
     return this.ws.services();
+  }
+
+  /** onboarding-v2 §3.4: estado do tour do usuário NESTE workspace (todos, inclusive CLIENT). */
+  @Get('tour')
+  tour(@Auth() auth: AuthContext) {
+    return this.ws.tour(auth);
+  }
+
+  @ClientAllowed() @HttpCode(200) @Post('tour/complete')
+  completeTour(@Auth() auth: AuthContext) {
+    return this.ws.completeTour(auth);
   }
 
   @Get('spend')

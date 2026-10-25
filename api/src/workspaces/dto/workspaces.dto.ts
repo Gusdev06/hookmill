@@ -8,6 +8,7 @@ import { SHORT_CODE_RE } from '../cliente';
 
 const BUSINESS_TYPES: BusinessType[] = ['ONLINE_STORE', 'LOCAL_BUSINESS', 'APP'];
 const URL_OPTS = { protocols: ['http', 'https'], require_protocol: true };
+export const BRAND_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 /** Campo que não aceita null: só valida quando veio (undefined = não mexe). */
 const Present = () => ValidateIf((_, v) => v !== undefined);
 
@@ -24,6 +25,8 @@ export class UpdateWorkspaceDto implements UpdateWorkspaceBody {
   @IsOptional() @IsString() @MaxLength(80) market?: string | null;
   @IsOptional() @IsIn(BUSINESS_TYPES) businessType?: BusinessType | null;
   @IsOptional() @IsUrl(URL_OPTS) @MaxLength(2048) websiteUrl?: string | null;
+  /** 25/10 (estatico-montado-e-molduras-v1 D3): `#RGB`/`#RRGGBB` (o service normaliza pra 6 dígitos maiúsculos); null limpa */
+  @IsOptional() @IsString() @Matches(BRAND_COLOR_RE, { message: 'brandColor must be #RGB or #RRGGBB' }) brandColor?: string | null;
   @Present() @IsInt() @Min(1) @Max(6) onboardingStep?: OnboardingStep;
   /** true grava pausedAt; false limpa */
   @Present() @IsBoolean() paused?: boolean;

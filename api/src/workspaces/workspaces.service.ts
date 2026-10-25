@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { ClientCard, ClientsMeta, CreateClientResponse, Workspace as WorkspaceView } from '@maquina/contratos';
-import type { MemberRole, Workspace } from '@prisma/client';
+import type { ClientCard, ClientsMeta, CreateClientResponse, TourCompleteResponse, TourState, TourStop, Workspace as WorkspaceView } from '@maquina/contratos';
+import type { MemberRole, Prisma, Workspace } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import { AppConfig } from '../config/app-config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,8 +9,13 @@ import { AppException } from '../common/errors/app-exception';
 import { randomToken, sha256 } from '../common/util/crypto';
 import { initials, normalizeEmail, num } from '../common/util/format';
 import { CreateClientDto, CreateInviteDto, UpdateWorkspaceDto } from './dto/workspaces.dto';
-import { clientStatusOf, onboardingOf, presentWorkspace, shortCodeFromName } from './cliente';
+import { clientStatusOf, presentWorkspace, shortCodeFromName } from './cliente';
+import { normalizeHex } from '../iteracao/paleta';
+import { NO_FACTS, OnboardingService, onboardingCalc, onboardingFull, type OnboardingCalc, type UpdatedByRow } from './onboarding';
 import { waitingOnYou, ZERO_WAITING } from './waiting';
+
+const WS_WITH_UPDATED_BY = { onboardingUpdatedBy: { select: { id: true, name: true } } } satisfies Prisma.WorkspaceInclude;
+type WsFull = Prisma.WorkspaceGetPayload<{ include: typeof WS_WITH_UPDATED_BY }>;
 
 /** GET /workspaces: teto sem paginação (fase2-agencia.md §3.1). */
 export const CLIENTS_LIMIT = 200;
@@ -23,11 +28,20 @@ export class WorkspacesService {
     private readonly prisma: PrismaService,
     private readonly config: AppConfig,
     private readonly authService: AuthService,
+    private readonly onboarding: OnboardingService,
   ) {}
 
+  /** `Workspace` do contrato com `onboarding.percent/steps/updatedBy/updatedAt` (onboarding-v2 §3.2). */
+  private async present(ws: WsFull): Promise<WorkspaceView> {
+    return { ...presentWorkspace(ws), onboarding: onboardingFull(ws, await this.onboarding.calcOne(ws), ws.onboardingUpdatedBy) };
+  }
+
+  private async load(workspaceId: string): Promise<WsFull> {
+    return this.prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId }, include: WS_WITH_UPDATED_BY });
+  }
+
   async get(auth: AuthContext): Promise<WorkspaceView> {
-    const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: auth.workspaceId } });
-    return presentWorkspace(ws);
+    return this.present(await this.load(auth.workspaceId));
   }
 
   /** PATCH /workspace (fase2-agencia.md §3.3): autosave do onboarding, dados do cliente e pausar. */
@@ -38,7 +52,11 @@ export class WorkspacesService {
     }
     const ws = await this.prisma.workspace.update({
       where: { id: auth.workspaceId },
+      include: WS_WITH_UPDATED_BY,
       data: {
+        // onboarding-v2 §1: qualquer campo do PATCH conta como "mexeu no setup" (tela "Setup in progress")
+        onboardingUpdatedById: auth.userId,
+        onboardingUpdatedAt: new Date(),
         ...(dto.name !== undefined && { name: dto.name.trim() }),
         ...(dto.uiLocale !== undefined && { uiLocale: dto.uiLocale }),
         ...(dto.monthlySpendCapUsd !== undefined && { monthlySpendCapUsd: dto.monthlySpendCapUsd }),
@@ -47,18 +65,20 @@ export class WorkspacesService {
         ...(dto.market !== undefined && { market: text(dto.market) }),
         ...(dto.businessType !== undefined && { businessType: dto.businessType }),
         ...(dto.websiteUrl !== undefined && { websiteUrl: text(dto.websiteUrl) }),
+        // D3: `#RRGGBB` maiúsculo; null limpa (a paleta volta a ser derivada, §A3.3)
+        ...(dto.brandColor !== undefined && { brandColor: dto.brandColor === null ? null : normalizeHex(dto.brandColor) }),
         ...(dto.onboardingStep !== undefined && { onboardingStep: dto.onboardingStep }),
         // pausar é só rótulo (D4): não mexe no onboarding nem bloqueia geração
         ...(dto.paused !== undefined && { pausedAt: dto.paused ? cur.pausedAt ?? new Date() : null }),
       },
     });
-    return presentWorkspace(ws);
+    return this.present(ws);
   }
 
   /** POST /workspace/onboarding/complete: idempotente; precisa do tipo de negócio e de >= 1 oferta não arquivada. */
   async completeOnboarding(auth: AuthContext): Promise<WorkspaceView> {
-    const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: auth.workspaceId } });
-    if (ws.onboardingCompletedAt) return presentWorkspace(ws);
+    const ws = await this.load(auth.workspaceId);
+    if (ws.onboardingCompletedAt) return this.present(ws);
     const offers = await this.prisma.offer.count({ where: { workspaceId: ws.id, archivedAt: null } });
     const missing: ('businessType' | 'offer')[] = [];
     if (!ws.businessType) missing.push('businessType');
@@ -66,9 +86,34 @@ export class WorkspacesService {
     if (missing.length) throw new AppException('ONBOARDING_INCOMPLETE', { missing });
     await this.prisma.workspace.updateMany({
       where: { id: ws.id, onboardingCompletedAt: null },
-      data: { onboardingCompletedAt: new Date(), onboardingStep: 6 },
+      data: { onboardingCompletedAt: new Date(), onboardingStep: 6, onboardingUpdatedById: auth.userId, onboardingUpdatedAt: new Date() },
     });
-    return presentWorkspace(await this.prisma.workspace.findUniqueOrThrow({ where: { id: ws.id } }));
+    return this.present(await this.load(ws.id));
+  }
+
+  // ───────── onboarding-v2 §3.4: tour ─────────
+
+  /**
+   * GET /workspace/tour: `completedAt` do membership do usuário neste workspace; `stops` sem `iterate` quando não há
+   * conexão Meta ativa com um anúncio WINNER no snapshot (D6: a parada só existe com vencedor real).
+   */
+  async tour(auth: AuthContext): Promise<TourState> {
+    const [m, winners] = await Promise.all([
+      this.prisma.membership.findUniqueOrThrow({ where: { workspaceId_userId: { workspaceId: auth.workspaceId, userId: auth.userId } }, select: { tourCompletedAt: true } }),
+      this.config.metaEnabled
+        ? this.prisma.metaAdSnapshot.count({ where: { workspaceId: auth.workspaceId, verdict: 'WINNER', connection: { status: 'ACTIVE', adAccountId: { not: null } } } })
+        : Promise.resolve(0),
+    ]);
+    const stops: TourStop[] = ['brain', ...(winners > 0 ? (['iterate'] as TourStop[]) : []), 'concepts', 'eddy', 'home'];
+    return { completedAt: m.tourCompletedAt?.toISOString() ?? null, stops };
+  }
+
+  /** POST /workspace/tour/complete: idempotente (já concluído devolve a data gravada). CLIENT também pode. */
+  async completeTour(auth: AuthContext): Promise<TourCompleteResponse> {
+    const where = { workspaceId: auth.workspaceId, userId: auth.userId };
+    await this.prisma.membership.updateMany({ where: { ...where, tourCompletedAt: null }, data: { tourCompletedAt: new Date() } });
+    const m = await this.prisma.membership.findUniqueOrThrow({ where: { workspaceId_userId: where }, select: { tourCompletedAt: true } });
+    return { tourCompletedAt: m.tourCompletedAt!.toISOString() };
   }
 
   /**
@@ -80,10 +125,13 @@ export class WorkspacesService {
       where: { userId: auth.userId },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: CLIENTS_LIMIT,
-      include: { workspace: true },
+      include: { workspace: { include: WS_WITH_UPDATED_BY } },
     });
-    const waiting = await waitingOnYou(this.prisma, memberships.map((m) => m.workspaceId));
-    const items = memberships.map((m) => card(m.workspace, m.role, m.workspaceId === auth.workspaceId, waiting.get(m.workspaceId)!));
+    const [waiting, calc] = await Promise.all([
+      waitingOnYou(this.prisma, memberships.map((m) => m.workspaceId)),
+      this.onboarding.calcMany(memberships.map((m) => m.workspace)),
+    ]);
+    const items = memberships.map((m) => card(m.workspace, m.role, m.workspaceId === auth.workspaceId, waiting.get(m.workspaceId)!, calc.get(m.workspaceId)!, m.workspace.onboardingUpdatedBy));
     items.sort((a, b) =>
       Number(a.status === 'PAUSED') - Number(b.status === 'PAUSED') ||
       b.waitingOnYou.total - a.waitingOnYou.total ||
@@ -130,7 +178,7 @@ export class WorkspacesService {
       return created;
     });
     const session = await this.authService.switchWorkspace(auth, ws.id);
-    return { ...session, client: card(ws, session.workspace.role, true, { ...ZERO_WAITING }) };
+    return { ...session, client: card(ws, session.workspace.role, true, { ...ZERO_WAITING }, onboardingCalc(ws, NO_FACTS, this.onboarding.metaEnabled), null) };
   }
 
   async members(auth: AuthContext) {
@@ -224,12 +272,16 @@ export class WorkspacesService {
     const apify = this.config.optional('APIFY_TOKEN');
     const storageKey = this.config.optional('STORAGE_ACCESS_KEY_ID');
     const storageOk = !!(storageKey && this.config.optional('STORAGE_SECRET_ACCESS_KEY') && this.config.optional('STORAGE_ENDPOINT'));
+    // meta-v1: mock = conectado (custo zero); live = app id + secret + chave do cofre; off = desligado
+    const metaMode = this.config.metaMode;
+    const metaOk = metaMode === 'mock' || (metaMode === 'live' && !!(this.config.metaAppId && this.config.metaAppSecret && this.config.metaTokenKey));
     return [
       { provider: 'ANTHROPIC' as const, connected: !!anthropic, keyMasked: mask(anthropic) },
       { provider: 'WAVESPEED' as const, connected: !!wavespeed, keyMasked: mask(wavespeed) },
       { provider: 'HIGGSFIELD' as const, connected: hfOk, keyMasked: mask(hfId) },
       { provider: 'APIFY' as const, connected: !!apify, keyMasked: mask(apify) },
       { provider: 'STORAGE' as const, connected: storageOk, keyMasked: mask(storageKey) },
+      { provider: 'META' as const, connected: metaOk, keyMasked: metaMode === 'live' ? mask(this.config.metaAppId) : metaMode === 'mock' ? 'mock' : null },
     ];
   }
 
@@ -262,10 +314,10 @@ async function assertNotLastOwner(tx: { membership: PrismaService['membership'] 
   if (owners <= 1) throw new AppException('LAST_OWNER');
 }
 
-function card(ws: Workspace, role: MemberRole, isActive: boolean, waiting: ClientCard['waitingOnYou']): ClientCard {
+function card(ws: Workspace, role: MemberRole, isActive: boolean, waiting: ClientCard['waitingOnYou'], calc: OnboardingCalc, updatedBy: UpdatedByRow): ClientCard {
   return {
     id: ws.id, name: ws.name, shortCode: ws.shortCode, role, isActive,
-    status: clientStatusOf(ws), onboarding: onboardingOf(ws),
+    status: clientStatusOf(ws), onboarding: onboardingFull(ws, calc, updatedBy),
     industry: ws.industry, businessType: ws.businessType, websiteUrl: ws.websiteUrl,
     waitingOnYou: waiting,
     updatedAt: ws.updatedAt.toISOString(),

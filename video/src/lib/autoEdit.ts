@@ -6,10 +6,10 @@ import { rectSchema } from './remix';
 // campeão recortado pelo `timeline`, reenquadrado pro formato. Props = AutoEditRenderInput sem renderId/kind/templateId.
 
 export const AUTO_EDIT_COMPOSITION_ID = 'AutoEdit';
-export const AUTO_EDIT_STILL_COMPOSITION_ID = 'AutoEditStill';
 export const AUTO_EDIT_TEMPLATE_ID = 'auto-edit';
 
-export const AUTO_TYPES = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'] as const;
+export const AUTO_TYPES = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH'] as const;
+// rev. 23/10 (variacao-auto-v1 §14.3/§14.6): o STATIC saiu do Remotion; vira imagem do GPT Image 2 (engine IMAGE_GEN).
 export type AutoType = (typeof AUTO_TYPES)[number];
 
 /** Margens livres da UI do app (px da saída 1080 de largura). 9:16 = Reels/Stories; 4:5 e 1:1 = feed (quase nada). */
@@ -43,11 +43,11 @@ const paramsSchema = z.discriminatedUnion('type', [
     stars: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).nullable(), ratio: z.literal(0.42),
   }),
   z.object({ type: z.literal('NATIVE_SEARCH'), query: z.string().min(1), introSec: z.number().min(1).max(4), typingCps: z.literal(14), placeholder: z.string() }),
-  z.object({ type: z.literal('STATIC'), atSec: z.number().min(0), headline: z.string(), box: rectSchema }),
 ]);
 
 export const autoEditSchema = z.object({
-  output: z.enum(['video', 'still']),
+  /** legado (transição do §14.5): só 'video'. 'still' (STATIC) foi aposentado e falha na validação. */
+  output: z.literal('video').optional(),
   format: z.enum(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1']),
   language: z.string(),
   source: z.object({
@@ -89,16 +89,15 @@ export const trechosEmFrames = (timeline: AutoEditProps["timeline"], fps: number
 /** Frames do end card (ENDCARD). */
 export const endCardFrames = (p: AutoEditProps, fps: number = FPS) => (p.params.type === 'ENDCARD' ? Math.round(p.params.durationSec * fps) : 0);
 
-/** Duração da peça em frames: soma do timeline (+2 s no ENDCARD). STILL = 1. */
+/** Duração da peça em frames: soma do timeline (+2 s no ENDCARD). */
 export const duracaoAutoEdit = (p: AutoEditProps, fps: number = FPS) =>
-  p.output === 'still' ? 1 : trechosEmFrames(p.timeline, fps).reduce((n, t) => n + t.frames, 0) + endCardFrames(p, fps);
+  trechosEmFrames(p.timeline, fps).reduce((n, t) => n + t.frames, 0) + endCardFrames(p, fps);
 
-/** Valida e confere: still só no STATIC, STATIC só still, timeline dentro do campeão. */
+/** Valida e confere: params do tipo certo, timeline dentro do campeão. */
 export const propsDeAutoEditInput = (input: AutoEditProps & Record<string, unknown>): AutoEditProps => {
   const { renderId: _r, kind: _k, templateId: _t, ...resto } = input as AutoEditProps & { renderId?: string; kind?: string; templateId?: string };
   const p = autoEditSchema.parse(resto);
   if (p.params.type !== p.type) throw new Error(`params.type ${p.params.type} != type ${p.type}`);
-  if ((p.output === 'still') !== (p.type === 'STATIC')) throw new Error(`output ${p.output} não serve pro tipo ${p.type}`);
   const dur = p.source.durationSec + 0.05;
   for (const [i, t] of p.timeline.entries()) {
     if (!(t.endSec > t.startSec) || t.endSec > dur) throw new Error(`timeline ${i}: ${t.startSec}-${t.endSec} fora de 0-${p.source.durationSec}`);

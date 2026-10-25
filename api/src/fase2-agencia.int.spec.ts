@@ -206,7 +206,7 @@ describe(isLocal ? 'Fase 2 agência (integração local)' : 'Fase 2 agência [pu
     expect(r.status).toBe(201);
     const s = r.body.data;
     created.push(s.client.id);
-    expect(s.workspace).toEqual({ id: s.client.id, name: 'Mattress Company', role: 'OWNER' });
+    expect(s.workspace).toMatchObject({ id: s.client.id, name: 'Mattress Company', role: 'OWNER', status: 'SETUP', onboarding: { step: 1 }, tourCompletedAt: null }); // onboarding-v2 §3.5
     expect(s.accessToken).toBeTruthy();
     expect(s.refreshToken).toBeTruthy();
     expect(s.client).toMatchObject({ shortCode: 'MC', status: 'SETUP', isActive: true, role: 'OWNER', onboarding: { step: 1, totalSteps: 6, completedAt: null }, waitingOnYou: { total: 0 } });

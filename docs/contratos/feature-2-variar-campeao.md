@@ -224,6 +224,7 @@ Por que `Creative.championId` e não `Creative.sourceCreativeId` (o nome reserva
 | `ANALYZING` | teardown pronto | `READY` |
 | `ANALYZING` | falha (transcrição, medição, Claude, `INTERRUPTED`) | `FAILED` (`action: analyze_again`; o que já ficou pronto, como transcrição e medições, é reaproveitado na nova tentativa) |
 | `FAILED` | `PUT /champions/:id/video` (anexa upload) | `ANALYZING` |
+| `FAILED` (campeão da Meta sem vídeo: download falhou) | `IMPORT_AGAIN` = retry do lote (`POST /iterate/:id/retry`) ou novo `POST /iterate { metaAdId }` do mesmo anúncio (meta-v1 D13, 21/10) | `RESOLVING` (job `META_IMPORT`; depois `ANALYZING` como hoje) |
 | `FAILED`, `READY` | `POST /champions/:id/analyze` | `ANALYZING` (com teardown editado: exige `confirm`) |
 Compare-and-set igual ao criativo. Só o backend escreve `status`.
 

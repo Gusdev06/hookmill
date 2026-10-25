@@ -115,8 +115,12 @@ describe(isLocal ? 'API (integração local)' : 'API (integração local) [pulad
 
   it('job: checklist derivado da etapa', async () => {
     const body = (await (await call('GET', `/jobs/${jobA}`, ws.A.token)).json()).data;
+    // briefing-leitura-v2 §4.3: 6 etapas; na etapa `extracting` as 4 de leitura aparecem feitas
     expect(body.checklist).toEqual([
       { key: 'fetching_page', done: true },
+      { key: 'rendering_page', done: true },
+      { key: 'reading_subpages', done: true },
+      { key: 'reading_images', done: true },
       { key: 'extracting', done: false },
       { key: 'detecting_language', done: false },
     ]);

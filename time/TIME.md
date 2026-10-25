@@ -32,7 +32,8 @@ Mexer na pasta de outro = pedir ao dono (ou ao arquiteto).
 > **⚠️ BANCO (incidente 07/10: um `prisma migrate diff` com shadow apontado pro `maquina` apagou os dados de teste do Gusta).**
 > - Comando Prisma que recebe shadow database **só via `npm run db:diff`** (URL literal do `maquina_shadow`). Nunca passe `--shadow-database-url` na mão, nunca derive a URL de outra.
 > - **Antes de qualquer migração no `maquina`: `npm run db:backup`** (o `npm run db:migrate` já faz; `.infra/backups/`, últimos 10; o `infra:up` faz um se o último tiver mais de 12 h). Restaurar: `npm run db:restore -- <arquivo> [--into <banco>]` (banco migrado e vazio; no `maquina` só com `--into maquina --yes-i-know`, que faz backup antes).
-> - Proibido nos bancos locais: `prisma migrate dev`, `migrate reset`, `db push`. O `scripts/guard-db.mjs` bloqueia shadow que não seja `maquina_shadow`.
+> - Proibido nos bancos locais: `prisma migrate dev`, `migrate reset`, `db push`.
+> - **2ª API pra teste (QA, frontend) nunca no banco `maquina` enquanto houver conexão Meta real nele:** use banco próprio e `META_CRON=off`. Incidente 22/10: uma API em mock no `maquina` rodou o cron da Meta e marcou a conexão real do Gusta como TOKEN_INVALID por ~1 min. O `scripts/guard-db.mjs` bloqueia shadow que não seja `maquina_shadow`.
 1. **Contrato primeiro.** Ninguém escreve código antes de `docs/contratos/` estar aprovado pelo Gusta (modelo de dados, API, eventos). Mudou o contrato? Só o arquiteto muda, e avisa os afetados.
 2. **Nenhum código sem permissão do Gusta** (regra dele, 05/10). Plano → ok → código.
 3. **Nada pago sem perguntar.** Chamada de geração (imagem, voz, vídeo, lipsync) custa dinheiro: estime antes, sonda de centavos pode, geração cara só com ok. Testes automatizados usam mocks.

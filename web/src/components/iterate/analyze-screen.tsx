@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useFormatter, useNow, useTranslations } from "next-intl"
@@ -13,11 +14,12 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { SoonBadge } from "@/components/soon"
 import { useErrorMessage } from "@/hooks/use-error-message"
-import { ik } from "@/hooks/use-iterate"
+import { ik, useIterateConfig } from "@/hooks/use-iterate"
 import { cn } from "@/lib/utils"
 import {
-  AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, mmss, Tag, TypeThumb, useIterFormat, useTypeName,
+  AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, isImagePiece, mmss, PieceKind, pieceType, Tag, TypeThumb, useIterFormat, useTypeName,
 } from "./parts"
+import { usePriceLabel } from "./piece-actions"
 
 const STAGES: AnalysisStage[] = ["reading", "brain", "planning"]
 const STAGE_KEYS: Record<AnalysisStage, string[]> = {
@@ -153,14 +155,19 @@ function WhyCard({ batch }: { batch: IterateBatch }) {
 
 // ───────────── the plan ─────────────
 function PlanRow({ p }: { p: IteratePiece }) {
-  const typeName = useTypeName()
+  const t = useTranslations("iterate.analyze")
+  const price = usePriceLabel()
+  const cfg = useIterateConfig()
+  // rev. 23/10 (§14.3): the STATIC is a new image with a price; the video pieces are edits and cost nothing
+  const cost = isImagePiece(p) ? price(cfg.data?.staticImageUsd) : null
   return (
     <div className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-3 border-t border-line-soft py-2">
-      <TypeThumb type={p.type} className="rounded-[6px]" />
+      <TypeThumb type={pieceType(p)} className="rounded-[6px]" />
       <div className="flex min-w-0 flex-col gap-[3px]">
         <div className="flex flex-wrap items-center gap-1.5">
           <Code>{p.code}</Code>
-          <span className="text-xs text-fg-3">{typeName(p.type)}</span>
+          <PieceKind p={p} className="text-xs text-fg-3" />
+          {cost ? <Tag tone="neutral" className="font-mono">{t("imageCost", { usd: cost })}</Tag> : null}
         </div>
         <span className="text-[13px] text-fg-2 text-pretty">{p.change}</span>
       </div>
@@ -207,6 +214,8 @@ function ThisBatch({ batch }: { batch: IterateBatch }) {
   const fmt = useIterFormat()
   const s = batch.summary
   const eta = fmt.eta(s.renderEtaSec)
+  const estimate = batch.cost.generateEstimateUsd ?? 0
+  const images = batch.pieces.filter(isImagePiece).length
   return (
     <InkPanel label={t("thisBatch")}>
       <InkBig value={s.pieces} unit={t("pieces", { n: s.pieces })} />
@@ -223,10 +232,13 @@ function ThisBatch({ batch }: { batch: IterateBatch }) {
         rows={[
           [t("analysis"), <span key="a" className="font-mono">{t("analysisDone", { usd: fmt.usd(batch.cost.analysisUsd) })}</span>],
           [t("rendering"), <span key="r" className="font-mono">{fmt.usd(batch.cost.renderUsd)}</span>],
+          ...(images
+            ? ([[t("images"), <span key="i" className="font-mono">{t("imagesOnGenerate", { usd: fmt.usd(estimate), n: images })}</span>]] as [string, React.ReactNode][])
+            : []),
           [t("videoCredits"), t("noneUsed")],
         ]}
       />
-      <InkNote>{t("nothingNew")}</InkNote>
+      <InkNote>{images ? t("nothingNewImages", { n: images }) : t("nothingNew")}</InkNote>
     </InkPanel>
   )
 }
@@ -404,8 +416,12 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
   const errorMessage = useErrorMessage()
   const n = batch.pieces.length
   const eta = fmt.eta(batch.summary.renderEtaSec)
+  // rev. 23/10 (§14.4): the button shows the estimate (STATIC images) and sends the same number as expectedCostUsd
+  const estimate = batch.cost.generateEstimateUsd
+  const paid = typeof estimate === "number" && estimate > 0
+  const [capErr, setCapErr] = useState<{ spentUsd: number; capUsd: number; estimateUsd: number } | null>(null)
   const start = useMutation({
-    mutationFn: () => api.iterate.start(batch.id, { expectedPieces: n }),
+    mutationFn: () => api.iterate.start(batch.id, typeof estimate === "number" ? { expectedPieces: n, expectedCostUsd: estimate } : { expectedPieces: n }),
     onSuccess: (b) => {
       qc.setQueryData(ik.batch(b.id), b)
       qc.invalidateQueries({ queryKey: ["creatives"] })
@@ -414,6 +430,13 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
       if (isApiError(e) && e.code === "PLAN_CHANGED") {
         toast(t("planChanged"))
         qc.invalidateQueries({ queryKey: ik.batch(batch.id) })
+      } else if (isApiError(e) && e.code === "ESTIMATE_CHANGED") {
+        const d = (e.details ?? {}) as { estimateUsd?: number }
+        toast(typeof d.estimateUsd === "number" ? t("estimateChanged", { usd: fmt.usd(d.estimateUsd) }) : errorMessage(e))
+        qc.invalidateQueries({ queryKey: ik.batch(batch.id) })
+      } else if (isApiError(e) && e.code === "SPEND_CAP_EXCEEDED") {
+        const d = (e.details ?? {}) as { spentUsd?: number; capUsd?: number; estimateUsd?: number }
+        setCapErr({ spentUsd: d.spentUsd ?? 0, capUsd: d.capUsd ?? 0, estimateUsd: d.estimateUsd ?? estimate ?? 0 })
       } else toast(errorMessage(e))
     },
   })
@@ -422,6 +445,20 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
       <IterFlow current="analyze" batchId={batch.id} />
       <Head eyebrow={t("readyEyebrow", { offer: batch.offer.name })} title={t("readyTitle", { n })} />
       <Notes batch={batch} />
+      {capErr ? (
+        <Alert variant="destructive">
+          <NavIcon name="alert" size={20} />
+          <AlertBody>
+            <AlertTitle>{t("capTitle")}</AlertTitle>
+            <AlertDescription>{t("capBody", { estimate: fmt.usd(capErr.estimateUsd), spent: fmt.usd(capErr.spentUsd), cap: fmt.usd(capErr.capUsd) })}</AlertDescription>
+          </AlertBody>
+          <AlertActions>
+            <Link href="/settings" className={buttonVariants({ size: "sm" })}>
+              {t("capAction")}
+            </Link>
+          </AlertActions>
+        </Alert>
+      ) : null}
       <Cols
         main={
           <>
@@ -432,10 +469,17 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
         }
         side={<ThisBatch batch={batch} />}
       />
-      <IterActionBar hint={eta ? t("barHintEta", { n, files: batch.summary.files, eta }) : t("barHint", { n, files: batch.summary.files })}>
+      <IterActionBar
+        hint={
+          paid
+            ? t("barHintCost", { n, files: batch.summary.files, eta: eta ?? "…", usd: fmt.usd(estimate) })
+            : eta ? t("barHintEta", { n, files: batch.summary.files, eta }) : t("barHint", { n, files: batch.summary.files })
+        }
+      >
         <Button variant="brand" size="lg" disabled={start.isPending || !n} onClick={() => start.mutate()}>
           {start.isPending ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : null}
           {t("generateN", { n })}
+          {paid ? <span className="font-mono font-medium opacity-80">· {fmt.usd(estimate)}</span> : null}
           <NavIcon name="right" size={16} />
         </Button>
       </IterActionBar>

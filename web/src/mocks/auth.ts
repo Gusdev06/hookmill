@@ -14,7 +14,7 @@ class Failure extends Error {
 export function mockWorkspaceOf(token: string | null | undefined): WorkspaceRef {
   const wid = /^(?:Bearer )?mock-(?:at|rt)-([^.]+)\./.exec(token ?? "")?.[1]
   // clients created with "New client" (POST /workspaces): ws_new_<code>, OWNER (fase2-agencia §3.2)
-  if (wid?.startsWith("ws_new_")) return { id: wid, name: NEW_CLIENT_NAME, role: "OWNER" }
+  if (wid?.startsWith("ws_new_")) return { id: wid, name: NEW_CLIENT_NAME, role: "OWNER", status: "SETUP", onboarding: { step: 1, percent: 0, completedAt: null } }
   return WORKSPACES.find((w) => w.id === wid) ?? WORKSPACES[0]
 }
 export const NEW_CLIENT_NAME = "New client"
@@ -24,7 +24,7 @@ export function mockSetupCard(ref: WorkspaceRef, b: Partial<CreateClientBody> = 
   const code = (b.shortCode ?? ref.name.split(/\s+/).map((w) => w[0]).join("")).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)
   return {
     id: ref.id, name: ref.name, shortCode: code.length >= 2 ? code : "WS", role: ref.role, isActive: true,
-    status: "SETUP", onboarding: { step: step as ClientCard["onboarding"]["step"], totalSteps: 6, completedAt: null },
+    status: "SETUP", onboarding: { step: step as ClientCard["onboarding"]["step"], totalSteps: 6, completedAt: null, percent: 0, steps: [], updatedBy: null, updatedAt: null },
     industry: b.industry ?? null, businessType: b.businessType ?? null, websiteUrl: b.websiteUrl ?? null,
     waitingOnYou: { creatives: 0, batches: 0, total: 0 }, updatedAt: new Date().toISOString(),
   }
@@ -37,7 +37,7 @@ function session(wid: string = WORKSPACE.id): AuthSession {
     accessToken: `mock-at-${ws.id}.${n}`,
     refreshToken: `mock-rt-${ws.id}.${n}`,
     expiresIn: 900,
-    user: { id: ME.id, name: ME.name, email: MOCK_LOGIN.email, uiLocale: "EN" },
+    user: { id: ME.id, name: ME.name, email: MOCK_LOGIN.email, uiLocale: "EN", accountMode: null },
     workspace: { ...ws },
   }
 }
@@ -75,7 +75,7 @@ export const mockAuth = {
     const s = session(`ws_new_${Math.random().toString(36).slice(2, 8)}`)
     return {
       ...s,
-      user: { id: `u_${Math.random().toString(36).slice(2, 8)}`, name, email, uiLocale: b.uiLocale ?? "EN" },
+      user: { id: `u_${Math.random().toString(36).slice(2, 8)}`, name, email, uiLocale: b.uiLocale ?? "EN", accountMode: null },
       workspace: { ...s.workspace, name: agency || NEW_CLIENT_NAME, role: "OWNER" },
     }
   },

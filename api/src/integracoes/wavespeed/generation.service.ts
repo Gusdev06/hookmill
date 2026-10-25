@@ -5,8 +5,8 @@
 import { Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { billedSceneSeconds } from '../catalogo/catalog.service';
-import { FACE_MODEL, SWAP_ENGINES, SWAP_V2V_MODEL, TRANSCRIBE_MODEL, TTS_MODEL, VOICES, findSceneModel, round4, speechSeconds } from '../catalogo/precos';
-import type { FaceAspect, GenerationService, Submitted, TranscriptWord, VideoFormat } from '../contrato';
+import { FACE_MODEL, STATIC_IMAGE_MODEL, staticImageUsd, SWAP_ENGINES, SWAP_V2V_MODEL, TRANSCRIBE_MODEL, TTS_MODEL, VOICES, findSceneModel, round4, speechSeconds } from '../catalogo/precos';
+import type { FaceAspect, GenerationService, SubmitStaticImageInput, Submitted, TranscriptWord, VideoFormat } from '../contrato';
 import { assertTakeDuration } from '../catalogo/take';
 import { IntegracaoError } from '../erros';
 import {
@@ -26,9 +26,11 @@ import { ffprobeSeconds, type ProbeSeconds } from './duracao';
 import { filenameFor, isPublicUrl, readInput } from './midia-publica';
 import { extractWords, finalStatus, type Final, type Word } from './normalizar';
 import { transcriptLanguage } from './idioma';
+import { staticImagePrompt } from './prompts-estatico';
 import {
   LIPSYNC_SEED,
   SCENE_NEGATIVE,
+
   SWAP_NEGATIVE,
   seedanceSwapAspect,
   swapScenePrompt,
@@ -81,6 +83,9 @@ function fromWs(p: WsPrediction): Outcome {
 function fromHf(r: HfRequest): Outcome {
   return { fin: hfFinalStatus(r), outputs: r.images, error: r.error, output: { request: r.raw }, lastStatus: r.status };
 }
+
+/** Alvo de uma task (exatamente um, fora o workspace). */
+interface TaskTarget { workspaceId: string; faceId?: string; sceneId?: string; championId?: string; takeId?: string; windowIndex?: number; renderId?: string }
 
 interface Cost {
   kind: CostKind;
@@ -166,6 +171,28 @@ export class WaveSpeedGenerationService implements GenerationService {
     return this.submit('SCENE_VIDEO', m.providerModel, body, { workspaceId: i.workspaceId, sceneId: i.sceneId, windowIndex: i.windowIndex, input: { ...rest, durationSec, sound, resolution, usdPerSecond, catalogModel: m.id, swap: true } }, durationSec * usdPerSecond);
   }
 
+  /**
+   * §14.3 + estatico-montado §A4/§A7: imagem do STATIC (GPT Image 2 high 2k png, aspecto do formato). `specV2` = anúncio
+   * montado (builder V2); com `screenRefUrl` (D4) vai pro `gpt-image-2/edit` com a referência em `images` (URL pública ou
+   * subida pela WaveSpeed, como as outras entradas). Sem `specV2` = spec legado (photo_headline / poster), text-to-image.
+   * 1 imagem por chamada; o custo (cost_entry IMAGE no criativo e no lote) só entra quando a task termina COMPLETED, pelo
+   * preço gravado na submissão. Recusa na submissão = task FAILED SAFETY_BLOCK + evento (o backend reenvia com `safe`).
+   */
+  async submitStaticImage(i: SubmitStaticImageInput): Promise<Submitted> {
+    const m = STATIC_IMAGE_MODEL;
+    const ref = i.specV2?.screenRefUrl?.trim() || null;
+    const prompt = staticImagePrompt(i, !!ref);
+    const base = { prompt, aspect_ratio: i.aspectRatio, resolution: m.resolution, quality: m.quality, output_format: m.outputFormat };
+    const usdPerImage = staticImageUsd(ref ? 1 : 0);
+    const { notes: _notes, ...rest } = i; // notas da oferta: só o mock lê
+    const input = { ...rest, prompt, resolution: m.resolution, usdPerImage, layout: i.specV2 ? 'assembled' : 'legacy' };
+    if (ref) {
+      const image = await this.reachable(ref, 'image');
+      return this.submit('STATIC_IMAGE', m.editProviderModel, { ...base, images: [image] }, { workspaceId: i.workspaceId, renderId: i.renderId, input: { ...input, model: m.editProviderModel } }, usdPerImage);
+    }
+    return this.submit('STATIC_IMAGE', m.providerModel, base, { workspaceId: i.workspaceId, renderId: i.renderId, input: { ...input, model: m.providerModel } }, usdPerImage);
+  }
+
   /** §13.15 (A): lipsync vídeo-a-vídeo do nosso clipe mudo com a fatia do áudio do campeão. Cobra por s do VÍDEO. */
   async submitLipsyncVideo(i: { workspaceId: string; sceneId: string; videoUrl: string; audioUrl: string; seed?: number }): Promise<Submitted> {
     const sec = await this.mediaSeconds(i.videoUrl, i.sceneId);
@@ -241,13 +268,15 @@ export class WaveSpeedGenerationService implements GenerationService {
    * Reconciliador: tasks SUBMITTED há mais de `minAgeMs` são consultadas; terminadas são processadas igual ao
    * webhook; passou de `timeoutMs` sem terminar → TIMEOUT (PROVIDER_TIMEOUT). Devolve quantas fechou.
    */
-  async reconcile(o: { minAgeMs: number; timeoutMs: number; limit?: number; provider?: TaskProvider }): Promise<number> {
+  async reconcile(o: { minAgeMs: number; timeoutMs: number; limit?: number; provider?: TaskProvider; kinds?: ProviderTaskKind[] }): Promise<number> {
     const now = this.now();
-    const stale = await this.tasks.listStale(new Date(now - o.minAgeMs), MOCK_PREFIX, o.limit ?? 50, o.provider);
+    const stale = await this.tasks.listStale(new Date(now - o.minAgeMs), MOCK_PREFIX, o.limit ?? 50, o.provider, o.kinds);
     let closed = 0;
     for (const t of stale) {
       if (t.externalId.startsWith(REJECTED_PREFIX)) continue;
-      const tooOld = now - t.submittedAt.getTime() > o.timeoutMs;
+      // §14.3.5: imagem do STATIC tem TIMEOUT próprio (10 min), em qualquer laço que a pegue
+      const timeoutMs = t.kind === 'STATIC_IMAGE' ? Math.min(o.timeoutMs, STATIC_IMAGE_MODEL.timeoutMs) : o.timeoutMs;
+      const tooOld = now - t.submittedAt.getTime() > timeoutMs;
       try {
         const out = await this.poll(t);
         if (!out) continue;
@@ -284,11 +313,11 @@ export class WaveSpeedGenerationService implements GenerationService {
     kind: ProviderTaskKind,
     provider: TaskProvider,
     model: string,
-    t: { workspaceId: string; faceId?: string; sceneId?: string; championId?: string; takeId?: string; windowIndex?: number },
+    t: TaskTarget,
     input: Record<string, unknown>,
     message: string,
   ): Promise<Submitted> {
-    const rec = await this.tasks.create({ workspaceId: t.workspaceId, provider, kind, model, externalId: REJECTED_PREFIX + randomUUID(), input, estimatedUsd: 0, faceId: t.faceId, sceneId: t.sceneId, championId: t.championId, takeId: t.takeId, windowIndex: t.windowIndex });
+    const rec = await this.tasks.create({ workspaceId: t.workspaceId, provider, kind, model, externalId: REJECTED_PREFIX + randomUUID(), input, estimatedUsd: 0, faceId: t.faceId, sceneId: t.sceneId, championId: t.championId, takeId: t.takeId, windowIndex: t.windowIndex, renderId: t.renderId });
     setImmediate(() => void this.close(rec, 'FAILED', 'SAFETY_BLOCK', [], null, message).catch((err) => this.log.error(err)));
     return { providerTaskId: rec.id, externalId: rec.externalId, estimatedUsd: 0 };
   }
@@ -313,7 +342,7 @@ export class WaveSpeedGenerationService implements GenerationService {
     kind: ProviderTaskKind,
     providerModel: string,
     body: Record<string, unknown>,
-    t: { workspaceId: string; faceId?: string; sceneId?: string; championId?: string; takeId?: string; windowIndex?: number; input: Record<string, unknown> },
+    t: TaskTarget & { input: Record<string, unknown> },
     estimatedUsd: number,
   ): Promise<Submitted> {
     const est = round4(estimatedUsd);
@@ -325,7 +354,7 @@ export class WaveSpeedGenerationService implements GenerationService {
       if (!(e instanceof WsContentRejected)) throw e;
       return this.rejected(kind, 'WAVESPEED', providerModel, t, input, e.message);
     }
-    const rec = await this.tasks.create({ workspaceId: t.workspaceId, kind, model: providerModel, externalId: p.id, input, estimatedUsd: est, faceId: t.faceId, sceneId: t.sceneId, championId: t.championId, takeId: t.takeId, windowIndex: t.windowIndex });
+    const rec = await this.tasks.create({ workspaceId: t.workspaceId, kind, model: providerModel, externalId: p.id, input, estimatedUsd: est, faceId: t.faceId, sceneId: t.sceneId, championId: t.championId, takeId: t.takeId, windowIndex: t.windowIndex, renderId: t.renderId });
     if (finalStatus(p)) setImmediate(() => void this.process(rec, fromWs(p)).catch((err) => this.log.error(err))); // modo síncrono / já terminou
     return { providerTaskId: rec.id, externalId: rec.externalId, estimatedUsd: est };
   }
@@ -362,6 +391,7 @@ export class WaveSpeedGenerationService implements GenerationService {
       await this.costs.record({
         workspaceId: t.workspaceId, provider: t.provider, kind: cost.kind, model: t.model,
         units: round4(cost.units), unit: cost.unit, amountUsd: round4(cost.units * cost.usdPerUnit), providerTaskId: t.id,
+        ...ownerOf(t),
       });
     }
     this.bus.emit(PROVIDER_TASK_FINISHED, {
@@ -371,6 +401,7 @@ export class WaveSpeedGenerationService implements GenerationService {
       ...(t.championId ? { championId: t.championId } : {}),
       ...(t.takeId ? { takeId: t.takeId } : {}),
       ...(t.windowIndex != null ? { windowIndex: t.windowIndex } : {}),
+      ...(t.renderId ? { renderId: t.renderId } : {}),
     });
     return true;
   }
@@ -380,6 +411,10 @@ export class WaveSpeedGenerationService implements GenerationService {
     switch (t.kind) {
       case 'FACE_IMAGE':
         return { kind: 'IMAGE', units: 1, unit: 'image', usdPerUnit: FACE_MODEL.usdPerImage };
+      case 'STATIC_IMAGE': { // 1 imagem GPT Image 2 high 2k (t2i 0,40 / edit 0,41, gravado na submissão). Só na task COMPLETED.
+        const known = Number(t.input.usdPerImage);
+        return { kind: 'IMAGE', units: 1, unit: 'image', usdPerUnit: known > 0 ? known : STATIC_IMAGE_MODEL.usdPerImage };
+      }
       case 'SCENE_VIDEO': {
         const m = findSceneModel(String(t.input.catalogModel)) ?? findSceneModel('kling-3.0')!;
         // §13.15: janela do Trocar avatar grava o preço/s da combinação (som, resolução) na submissão
@@ -431,6 +466,14 @@ export class WaveSpeedGenerationService implements GenerationService {
     }
     return p.outputs.length ? (p.outputs.length === 1 ? first : p.outputs) : p.raw;
   }
+}
+
+/** STATIC_IMAGE: o custo vai pro criativo e pro lote da peça (a task não tem cena/rosto pra deduzir). */
+function ownerOf(t: ProviderTaskRecord): { creativeId?: string; variationBatchId?: string } {
+  if (t.kind !== 'STATIC_IMAGE') return {};
+  const c = t.input.creativeId;
+  const b = t.input.variationBatchId;
+  return { ...(typeof c === 'string' && c ? { creativeId: c } : {}), ...(typeof b === 'string' && b ? { variationBatchId: b } : {}) };
 }
 
 function swapEngineOf(catalogModel: string): 'KLING' | 'SEEDANCE' {

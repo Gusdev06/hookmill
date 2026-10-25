@@ -9,6 +9,8 @@ export function proxy(req: NextRequest) {
   const has = req.cookies.has(SESSION_COOKIE)
   const { pathname, search } = req.nextUrl
   if (pathname.startsWith("/invite/")) return NextResponse.next()
+  // meta-v1 §3.1: end of the OAuth done in another browser (no session there); renders with or without one
+  if (pathname === "/meta/done") return NextResponse.next()
   if (!has) {
     // the landing is served at "/" (the URL stays "/")
     if (pathname === "/") return NextResponse.rewrite(new URL("/welcome", req.url))

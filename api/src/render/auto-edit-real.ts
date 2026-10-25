@@ -1,5 +1,5 @@
 /**
- * Render real do template auto-edit com mídia local (nada pago): os 9 tipos × 3 formatos, na ordem aprovada (D5: o 9:16
+ * Render real do template auto-edit com mídia local (nada pago): os 8 tipos de vídeo × 3 formatos (o STATIC saiu do Remotion na rev. 23/10), na ordem aprovada (D5: o 9:16
  * de todas as peças, depois 4:5, depois 1:1), pelo RemotionRenderService de verdade e com os arquivos servidos por HTTP
  * local (como as URLs assinadas). Monta o AutoEditContext como o backend vai montar (B2) e chama buildAutoEditInput.
  * Mede o rosto (YuNet), as pausas (silencedetect) e a paleta de verdade; captura a página de fixture com o Chromium do
@@ -110,7 +110,6 @@ async function main() {
     { code: 'LAYOUT-STORY', params: { type: 'STORY' } },
     { code: 'LAYOUT-REVIEW', params: { type: 'REVIEW', quote: 'I stopped dreading Mondays. The plan is just there.', author: 'Dana, product manager', stars: 5 } },
     { code: 'NATIVE-SEARCH', params: { type: 'NATIVE_SEARCH', query: 'how to know if my wife is cheating' } },
-    { code: 'STATIC-F1', params: { type: 'STATIC', atSec: 17.2, headline: 'It showed absolutely everything' } },
   ];
   const tipos = tiposArg ? tiposArg.split(',') : null;
   const formatos = (formatosArg ? formatosArg.split(',') : ['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1']) as AutoEditFormat[];

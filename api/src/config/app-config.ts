@@ -61,6 +61,53 @@ export class AppConfig {
     return Number.isFinite(v) && v > 0 ? v : null;
   }
 
+  // ───────── meta-v1 (meta-v1.md §11) ─────────
+  /** mock (padrão) | live | off. off = toda rota /meta responde 503 META_NOT_CONFIGURED { reason: 'off' } e o passo 2 do onboarding sai. */
+  get metaMode(): 'mock' | 'live' | 'off' {
+    const m = (this.env.get<string>('META_MODE') ?? '').trim().toLowerCase();
+    return m === 'live' || m === 'off' ? m : 'mock';
+  }
+  /** Onboarding-v2 §2: passo "meta" habilitado (META_MODE != off). */
+  get metaEnabled(): boolean { return this.metaMode !== 'off'; }
+  get metaAppId() { return this.optional('META_APP_ID'); }
+  get metaAppSecret() { return this.optional('META_APP_SECRET'); }
+  /** Facebook Login for Business → Configuration ID (contrato: META_LOGIN_CONFIG_ID; .env.example: META_CONFIG_ID). */
+  get metaLoginConfigId() { return this.optional('META_LOGIN_CONFIG_ID') ?? this.optional('META_CONFIG_ID'); }
+  get metaGraphVersion() { return this.str('META_GRAPH_VERSION', 'v25.0'); }
+  /** Chave AES-256-GCM do token (base64, 32 bytes). */
+  get metaTokenKey() { return this.optional('META_TOKEN_KEY'); }
+  /** §5: regra de vencedor e tendência (limites por env). */
+  get metaRule() {
+    const f = (k: string, d: number) => {
+      const v = Number(this.env.get<string>(k));
+      return Number.isFinite(v) && v > 0 ? v : d;
+    };
+    return {
+      minSpendUsd: f('META_WINNER_MIN_SPEND_USD', 50),
+      minResults: Math.round(f('META_WINNER_MIN_RESULTS', 3)),
+      trendBetter: f('META_TREND_BETTER', 0.85),
+      trendWorse: f('META_TREND_WORSE', 1.25),
+      trendFreq: f('META_TREND_FREQ', 3),
+      usdRates: parseUsdRates(this.env.get<string>('META_USD_RATES')),
+    };
+  }
+  get metaSyncEveryHours() { return this.int('META_SYNC_EVERY_HOURS', 6); }
+  /**
+   * Crons da Meta (sync a cada META_SYNC_EVERY_HOURS + health 1×/dia). Incidente 22/10: uma API mock no banco compartilhado
+   * sincronizou a conexão REAL e a deixou TOKEN_INVALID. Regra: só rodam com META_MODE=live, e META_CRON=off desliga em
+   * qualquer modo (2ª API no mesmo banco, QA, debug).
+   */
+  get metaCronEnabled(): boolean {
+    return this.metaMode === 'live' && (this.env.get<string>('META_CRON') ?? '').trim().toLowerCase() !== 'off';
+  }
+  // campanhas-v1 §4.1/§6 (22/10): travas das escritas da Campaigns
+  /** aumento máximo de orçamento diário numa ação (× atual; D7) */
+  get metaBudgetMaxStep(): number { const v = Number(this.env.get<string>('META_BUDGET_MAX_STEP')); return Number.isFinite(v) && v > 1 ? v : 2; }
+  /** escritas na Meta por workspace por minuto (D11) */
+  get metaWritesPerMin() { return this.int('META_WRITES_PER_MIN', 20); }
+  /** uso de cota da Meta (%) a partir do qual a escrita é recusada (D11; 90 pra sobrar pro sync) */
+  get metaWriteUsageCeiling() { return this.int('META_WRITE_USAGE_CEILING', 90); }
+
   // ───────── cadastro (fase2-cadastro.md) ─────────
   /** false = POST /auth/signup responde 403. Padrão true. */
   get signupEnabled(): boolean { return this.env.get<string>('SIGNUP_ENABLED')?.trim().toLowerCase() !== 'false'; }
@@ -78,4 +125,15 @@ export function parseDurationSec(v: string): number {
   if (!m) throw new Error(`Duração inválida: ${v}`);
   const n = Number(m[1]);
   return n * ({ '': 1, s: 1, m: 60, h: 3600, d: 86400 } as Record<string, number>)[m[2]];
+}
+
+/** "BRL=5.5,EUR=0.92" → { BRL: 5.5, EUR: 0.92 } (unidades da moeda por 1 USD). Vazio/ inválido = {} (1:1). */
+export function parseUsdRates(v: string | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const part of (v ?? '').split(',')) {
+    const [k, n] = part.split('=').map((x) => x?.trim());
+    const rate = Number(n);
+    if (k && Number.isFinite(rate) && rate > 0) out[k.toUpperCase()] = rate;
+  }
+  return out;
 }

@@ -150,6 +150,7 @@ export class ChampionViews {
       keepEdit: keepEditOf(c, editMapOf(c.teardown?.editMap)),
       engineVoice: engineVoiceOf(c, editMapOf(c.teardown?.editMap)),
       costUsd: Math.round((num(cost._sum.amountUsd) ?? 0) * 10_000) / 10_000,
+      metaAd: c.metaAdId ? { adId: c.metaAdId, adAccountId: c.metaAdAccountId ?? '' } : null, // meta-v1 D13
     };
   }
 
@@ -179,11 +180,12 @@ export class ChampionViews {
   }
 }
 
-/** UPLOAD quando o vídeo veio do navegador; AD_LIBRARY quando há link (os dois podem coexistir). */
+/** UPLOAD quando o vídeo veio do navegador; AD_LIBRARY quando há link; META quando veio do Pick from Meta (D13). */
 function sourcesOf(c: ChampionFull): ChampionRow['sources'] {
   const out: ChampionRow['sources'] = [];
   const videoFromLink = !!c.videoFile?.sourceUrl; // ingestFromUrl grava sourceUrl; upload do navegador não
   if (c.videoFileId && !videoFromLink) out.push('UPLOAD');
   if (c.adLibraryUrl) out.push('AD_LIBRARY');
+  if (c.metaAdId) out.push('META');
   return out;
 }

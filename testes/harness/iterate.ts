@@ -88,7 +88,7 @@ export async function iterarUpload(persona: Persona, path: string, offerId?: str
 export async function lotePronto(persona: Persona, path: string, offerId?: string): Promise<any> {
   const { res, batchId } = await iterarUpload(persona, path, offerId);
   if (!batchId) throw new Error(`[qa] POST /iterate: ${res.status} ${JSON.stringify(res.body)}`);
-  return ateLote(persona, batchId, (b) => b.status === 'PLAN_READY' || b.status === 'ANALYSIS_FAILED', { oQue: 'PLAN_READY' });
+  return ateLote(persona, batchId, (b) => b.status === 'PLAN_READY' || b.status === 'ANALYSIS_FAILED', { oQue: 'PLAN_READY', timeoutMs: Number(process.env.E2E_PLAN_TIMEOUT_MS ?? 120_000) });
 }
 
 export const assentou = (b: any) => b.status === 'LAUNCHED' && b.phase === 'download';

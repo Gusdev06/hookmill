@@ -1,6 +1,18 @@
 # Eventos: webhooks de entrada e tempo real (contrato v1)
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**
 
+## Mudanças 23/10 (variação AUTO rev. 23/10; detalhe em [`variacao-auto-v1.md` §14.2-14.3](variacao-auto-v1.md))
+- **Nenhum stream novo; segue polling.** Porquê: o formato sob demanda e a imagem do STATIC aparecem na mesma tela-resumo do lote, e o estado já está no banco. `GET /iterate/:id` a 1,5 s também enquanto algum `pieces[].formats[].state` estiver `queued`/`rendering`.
+- **Webhook WaveSpeed:** task nova `STATIC_IMAGE` (GPT Image 2), mesmo endpoint, assinatura e idempotência. `provider.task.finished` ganha `renderId?`. Quem ouve `STATIC_IMAGE` é o backend `edicao` (`ImagemEstaticaService`): baixa o PNG (`ingestFromUrl validate:'image'`), põe o render `READY` e assenta a peça; o `orquestrador` da `geracao` ignora task com `renderId`. Reenvio automático no máximo 1 (prompt seguro depois de `SAFETY_BLOCK`).
+- **Reconciliador:** `STATIC_IMAGE` consultada a partir de 2 min sem webhook e `TIMEOUT` com 10 min (as outras seguem 10/30 min).
+- **Fila de render:** só o 9:16 entra no Gerar; formato pedido depois entra com `priority 10` (na frente do lote, nunca interrompe o que está rodando). Ordem = `priority DESC, created_at ASC`, só `engine REMOTION`. Boot: `IMAGE_GEN` `QUEUED` é submetido; `RENDERING` com task aberta espera o reconciliador.
+
+## Mudanças 21/10 (meta-v1; detalhe em [`meta-v1.md`](meta-v1.md) §6) · **aprovado pelo Gusta 21/10**
+- **Nenhum SSE novo e nenhum webhook da Meta.** Porquê: publicar leva 20-90 s numa tela só, e os números mudam devagar; webhook de anúncio exigiria assinatura/verificação do app e dá pouco agora.
+- Polling: Send → Publish `GET /creatives/:id/meta` a cada **2 s** enquanto `publication.status = PUBLISHING`; Pick from Meta usa o `GET /iterate/:id` de 1,5 s que já existe (o `META_IMPORT` roda dentro do lote); "Sync now" `GET /jobs/:id` 1,5 s; Home/Campaigns v0 `GET /meta/summary` e `GET /meta/ads` ao abrir e no foco (React Query), **5 s só em `sync.state = first_sync`**; `GET /meta/options` 2 s enquanto o passo 2 está em `connecting` (até responder).
+- Cron (`@nestjs/schedule`): `META_SYNC` a cada `META_SYNC_EVERY_HOURS` (6) por conexão `ACTIVE` com conta escolhida, escalonado 30 s entre workspaces; health 1×/dia. Mudança feita no Ads Manager aparece no próximo sync (`effectiveStatus`; anúncio sumido → publicação `DELETED`).
+- Jobs novos: `META_SYNC` (`listing_ads` → `reading_insights` → `scoring`), `META_IMPORT` (`fetching_video` → `downloading_video`, depois o `CHAMPION_ANALYZE` de hoje), `META_PUBLISH` (`uploading_video` → `processing_video` → `creating_campaign` → `creating_adset` → `creating_creative` → `creating_ad`). Reinício no meio = `INTERRUPTED`; o `META_PUBLISH` retoma dos ids já gravados no `retry`.
+
 ## Mudanças 13/10 (variação automática v1; detalhe em [`variacao-auto-v1.md`](variacao-auto-v1.md) §10)
 - **Nenhum stream SSE novo.** Lote AUTO por polling de `GET /iterate/:id` a cada **1,5 s** enquanto `status ∈ {ANALYZING, PLANNING}`, `phase = generate` ou `zip.status = building`; para nos outros casos. Porquê: tela-resumo de um recurso só, estado no banco, 1,5 s basta pra barra de frame (a spec sugeria SSE por peça).
 - Análise: job `CHAMPION_ANALYZE` existente (etapa `reading`) → job novo `AUTO_PLAN` (etapas `checking_brain` → `planning`). Zip: job `ZIP_BUILD` (etapa `zipping`).
@@ -58,6 +70,9 @@ Formato: `event: <tipo>` + `data: <json>`. Tipos:
 | quem | rota | intervalo | para quando |
 |---|---|---|---|
 | Home | `GET /creatives?filter=…` | 5 s | não houver linha com `status = progress` (volta a 30 s) |
+| Home · blocos da Meta (21/10) | `GET /meta/summary`, `GET /meta/ads` | ao abrir e no foco; 5 s só em `sync.state = first_sync` | `sync.state ≠ first_sync` |
+| Send → Publish to Meta (21/10) | `GET /creatives/:id/meta` | 2 s | `publication.status ≠ PUBLISHING` |
+| Onboarding passo 2 em `connecting` (21/10) | `GET /meta/options` | 2 s | respondeu (ou erro) |
 | Extração de oferta (sem criativo ainda) | `GET /jobs/:id` | 1,5 s | `SUCCEEDED`/`PARTIAL`/`FAILED` |
 | Importar / campeão (feature 2) | `GET /champions/:id` | 2 s | `status` ∈ `READY`, `FAILED` |
 | Plano do lote (feature 2) | `GET /variation-batches/:id` | 1,5 s | `status` ≠ `PLANNING` |
@@ -114,7 +129,7 @@ O render roda **dentro da API** (decisão Q12), então não há webhook HTTP: o 
 ## 5. Eventos internos (contrato entre módulos)
 | evento | quem emite | quem ouve | payload |
 |---|---|---|---|
-| `provider.task.finished` | integracoes | backend (geracao; campeoes na feature 2) | `{ providerTaskId, kind, status, outputUrls, errorCode, faceId?, sceneId?, championId? }` |
+| `provider.task.finished` | integracoes | backend (geracao; campeoes na feature 2; edicao pro `STATIC_IMAGE`, 23/10) | `{ providerTaskId, kind, status, outputUrls, errorCode, faceId?, sceneId?, championId?, takeId?, windowIndex?, renderId? }` |
 | `job.progress` | backend (jobs) | backend (sse) | `Job` |
 | `script.delta` | integracoes (via callback do backend) | backend (sse) | ver acima |
 | `render.progress` | render (callback) | backend (renders) | `{ renderId, stage, progress, frame, totalFrames }` |

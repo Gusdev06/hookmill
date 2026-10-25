@@ -1,18 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, type MemberRole, type User, type UiLocale } from '@prisma/client';
+import type { AccountMode, AuthSession, AuthUser, ClientStatus, MeResponse, OnboardingSummary, Role } from '@maquina/contratos';
+import { Prisma, type AccountMode as AccountModeRow, type MemberRole, type User, type UiLocale, type Workspace } from '@prisma/client';
 import { AppConfig } from '../config/app-config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessTokenPayload, AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
 import { DUMMY_PASSWORD_HASH, hashPassword, randomToken, sha256, verifyPassword } from '../common/util/crypto';
 import { normalizeEmail } from '../common/util/format';
-import { shortCodeFromName } from '../workspaces/cliente';
+import { clientStatusOf, shortCodeFromName } from '../workspaces/cliente';
+import { OnboardingService, onboardingSummaryOf } from '../workspaces/onboarding';
 import { AcceptInviteDto, SignupDto, UpdateMeDto } from './dto/auth.dto';
 
-export interface PublicUser { id: string; name: string; email: string; uiLocale: UiLocale }
-export interface WorkspaceRef { id: string; name: string; role: MemberRole }
-export interface Session {
+/** AuthUser do contrato (accountMode sempre presente; null = ainda não respondeu). */
+export interface PublicUser extends AuthUser { id: string; name: string; email: string; uiLocale: UiLocale; accountMode: AccountMode | null }
+/**
+ * WorkspaceRef do contrato (onboarding-v2 §3.5): `status` e `onboarding` sempre; `tourCompletedAt` só no workspace ATIVO
+ * (membership do usuário nele), nunca nos itens de MeResponse.workspaces[].
+ */
+export interface WorkspaceRef { id: string; name: string; role: Role; status: ClientStatus; onboarding: OnboardingSummary; tourCompletedAt?: string | null }
+export interface Session extends AuthSession {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
@@ -30,6 +37,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: AppConfig,
+    private readonly onboarding: OnboardingService,
   ) {}
 
   async login(emailRaw: string, password: string): Promise<Session> {
@@ -42,12 +50,12 @@ export class AuthService {
     const membership = await this.prisma.membership.findFirst({
       where: { userId: user.id },
       orderBy: { createdAt: 'asc' },
-      include: { workspace: { select: { id: true, name: true } } },
+      select: { workspaceId: true, role: true },
     });
     if (!membership) throw new AppException('INVALID_CREDENTIALS');
 
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    return this.issue(user, { id: membership.workspace.id, name: membership.workspace.name, role: membership.role });
+    return this.issue(user, membership.workspaceId, membership.role);
   }
 
   /**
@@ -68,7 +76,7 @@ export class AuthService {
     try {
       created = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
-          data: { email, name: dto.name.trim(), passwordHash, uiLocale, isActive: true },
+          data: { email, name: dto.name.trim(), passwordHash, uiLocale, isActive: true, accountMode: dto.accountMode ?? null },
         });
         const workspace = await tx.workspace.create({
           data: {
@@ -89,7 +97,7 @@ export class AuthService {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw taken();
       throw e;
     }
-    return this.issue(created.user, { id: created.workspace.id, name: created.workspace.name, role: 'OWNER' });
+    return this.issue(created.user, created.workspace.id, 'OWNER');
   }
 
   /** Refresh rotativo: o token apresentado é revogado (compare-and-set) e um novo par sai. */
@@ -105,10 +113,10 @@ export class AuthService {
 
     const membership = await this.prisma.membership.findUnique({
       where: { workspaceId_userId: { workspaceId: row.workspaceId, userId: row.userId } },
-      include: { workspace: { select: { id: true, name: true } }, user: true },
+      include: { user: true },
     });
     if (!membership || !membership.user.isActive) throw new AppException('REFRESH_INVALID');
-    return this.issue(membership.user, { id: membership.workspace.id, name: membership.workspace.name, role: membership.role });
+    return this.issue(membership.user, membership.workspaceId, membership.role);
   }
 
   async logout(auth: AuthContext, refreshToken: string): Promise<{ ok: true }> {
@@ -119,32 +127,41 @@ export class AuthService {
     return { ok: true };
   }
 
-  async me(auth: AuthContext) {
+  /**
+   * GET /auth/me (onboarding-v2 §3.5): cada workspace vem com `status` e `onboarding { step, percent, completedAt }`,
+   * calculados em lote (1 query de memberships + 1 de ofertas + 1 de conexões Meta; sem N+1). Só o ativo traz
+   * `tourCompletedAt`.
+   */
+  async me(auth: AuthContext): Promise<MeResponse & { user: PublicUser; workspace: WorkspaceRef; workspaces: WorkspaceRef[] }> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: auth.userId } });
     const memberships = await this.prisma.membership.findMany({
       where: { userId: auth.userId },
       orderBy: { createdAt: 'asc' },
-      include: { workspace: { select: { id: true, name: true } } },
+      include: { workspace: true },
     });
-    const workspaces = memberships.map((m) => ({ id: m.workspace.id, name: m.workspace.name, role: m.role }));
-    const workspace = workspaces.find((w) => w.id === auth.workspaceId)!;
+    const calc = await this.onboarding.calcMany(memberships.map((m) => m.workspace));
+    const workspaces = memberships.map((m) => workspaceRef(m.workspace, m.role, calc.get(m.workspaceId)!));
+    const active = memberships.find((m) => m.workspaceId === auth.workspaceId)!;
+    const workspace: WorkspaceRef = { ...workspaces.find((w) => w.id === auth.workspaceId)!, tourCompletedAt: active.tourCompletedAt?.toISOString() ?? null };
     return { user: publicUser(user), workspace, workspaces };
   }
 
   async switchWorkspace(auth: AuthContext, workspaceId: string): Promise<Session> {
     const membership = await this.prisma.membership.findUnique({
       where: { workspaceId_userId: { workspaceId, userId: auth.userId } },
-      include: { workspace: { select: { id: true, name: true } }, user: true },
+      include: { user: true },
     });
     if (!membership) throw new AppException('NOT_FOUND');
-    return this.issue(membership.user, { id: membership.workspace.id, name: membership.workspace.name, role: membership.role });
+    return this.issue(membership.user, membership.workspaceId, membership.role);
   }
 
   async updateMe(auth: AuthContext, dto: UpdateMeDto): Promise<PublicUser> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: auth.userId } });
-    const data: { name?: string; uiLocale?: UiLocale; passwordHash?: string } = {};
+    const data: { name?: string; uiLocale?: UiLocale; passwordHash?: string; accountMode?: AccountModeRow } = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.uiLocale !== undefined) data.uiLocale = dto.uiLocale;
+    // onboarding-v2 D9: AGENCY → OWN é permitido mesmo com > 1 membership (nada é apagado; o shell só esconde o seletor)
+    if (dto.accountMode !== undefined) data.accountMode = dto.accountMode;
     if (dto.password) {
       if (!(await verifyPassword(dto.password.current, user.passwordHash))) throw new AppException('INVALID_CREDENTIALS');
       data.passwordHash = await hashPassword(dto.password.next);
@@ -218,27 +235,38 @@ export class AuthService {
       return m.role;
     });
 
-    return this.issue(user, { id: invite.workspace.id, name: invite.workspace.name, role });
+    return this.issue(user, invite.workspaceId, role);
   }
 
   // ───────── tokens ─────────
 
-  private async issue(user: User, workspace: WorkspaceRef): Promise<Session> {
-    const payload: AccessTokenPayload = { sub: user.id, wid: workspace.id, role: workspace.role };
+  /** Sessão nova no workspace: o `workspace` da resposta vem com status, onboarding (%) e o tourCompletedAt do membership. */
+  private async issue(user: User, workspaceId: string, role: MemberRole): Promise<Session> {
+    const payload: AccessTokenPayload = { sub: user.id, wid: workspaceId, role };
     const accessToken = await this.jwt.signAsync(payload);
     const refreshToken = randomToken();
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
-        workspaceId: workspace.id,
+        workspaceId,
         tokenHash: sha256(refreshToken),
         expiresAt: new Date(Date.now() + this.config.refreshTtlDays * DAY_MS),
       },
     });
+    const [ws, membership] = await Promise.all([
+      this.prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId } }),
+      this.prisma.membership.findUnique({ where: { workspaceId_userId: { workspaceId, userId: user.id } }, select: { tourCompletedAt: true } }),
+    ]);
+    const workspace: WorkspaceRef = { ...workspaceRef(ws, role, await this.onboarding.calcOne(ws)), tourCompletedAt: membership?.tourCompletedAt?.toISOString() ?? null };
     return { accessToken, refreshToken, expiresIn: this.config.jwtAccessTtlSec, user: publicUser(user), workspace };
   }
 }
 
 export function publicUser(u: User): PublicUser {
-  return { id: u.id, name: u.name, email: u.email, uiLocale: u.uiLocale };
+  return { id: u.id, name: u.name, email: u.email, uiLocale: u.uiLocale, accountMode: u.accountMode ?? null };
+}
+
+/** Item de `workspaces[]`/`workspace` da sessão (sem tourCompletedAt; quem chama põe no ativo). */
+export function workspaceRef(ws: Workspace, role: MemberRole, calc: import('../workspaces/onboarding').OnboardingCalc): WorkspaceRef {
+  return { id: ws.id, name: ws.name, role, status: clientStatusOf(ws), onboarding: onboardingSummaryOf(ws, calc) };
 }

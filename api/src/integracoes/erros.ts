@@ -31,7 +31,12 @@ export type IntegracaoErrorCode =
   // feature 2: tipo de variação ainda fora do build (COPY_NEW / REMIX_EDIT até a vez deles)
   | 'KIND_NOT_ENABLED'
   // §13.5: áudio do take > 600 s (teto do Pruna por chamada); details { durationSec, maxSec: 600 }
-  | 'LIPSYNC_AUDIO_TOO_LONG';
+  | 'LIPSYNC_AUDIO_TOO_LONG'
+  // §B3.1 b-roll (estatico-montado-e-molduras-v1): nenhum candidato serve (details { rejected, fallbackSubject }) → o
+  // backend cai pro champion_segment ou pra imagem gerada; banco fora/cota (details { reason }); fonte desligada (D15)
+  | 'BROLL_NO_MATCH'
+  | 'BROLL_UNAVAILABLE'
+  | 'BROLL_SOURCE_NOT_SUPPORTED';
 
 export class IntegracaoError extends Error {
   constructor(

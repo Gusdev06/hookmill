@@ -145,6 +145,60 @@ const PATHS = {
     </>
   ),
   folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+  /* onboarding-v2 (design/mockup-onboarding-v2.html): Settings, Just me, Meta plug, trends, upload, exit */
+  gear: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3v2.5" />
+      <path d="M12 18.5V21" />
+      <path d="M3 12h2.5" />
+      <path d="M18.5 12H21" />
+      <path d="m5.6 5.6 1.8 1.8" />
+      <path d="m16.6 16.6 1.8 1.8" />
+      <path d="m5.6 18.4 1.8-1.8" />
+      <path d="m16.6 7.4 1.8-1.8" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
+  plug: (
+    <>
+      <path d="M9 3v5" />
+      <path d="M15 3v5" />
+      <path d="M6 8h12v3a6 6 0 0 1-12 0z" />
+      <path d="M12 17v4" />
+    </>
+  ),
+  trend: (
+    <>
+      <path d="M3 17 9 11l4 4 8-8" />
+      <path d="M15 7h6v6" />
+    </>
+  ),
+  down: (
+    <>
+      <path d="M3 7l6 6 4-4 8 8" />
+      <path d="M15 17h6v-6" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V5" />
+      <path d="m7 10 5-5 5 5" />
+      <path d="M5 20h14" />
+    </>
+  ),
+  out: (
+    <>
+      <path d="M9 4H5v16h4" />
+      <path d="M14 8l4 4-4 4" />
+      <path d="M18 12H9" />
+    </>
+  ),
 }
 export type NavIconName = keyof typeof PATHS
 

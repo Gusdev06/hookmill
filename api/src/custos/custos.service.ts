@@ -8,7 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
  * aqui é só o valor usado pra checar o teto ANTES de chamar (estrutura.md: US$ 0,10-0,30 por rodada de 4).
  */
 export const SCRIPT_ESTIMATE_USD = 0.075;
-export const EXTRACT_ESTIMATE_USD = 0.05;
+/** briefing-leitura-v2 §4.3 (22/10): teto do pior caso (6 subpáginas + 8 imagens com visão ≈ US$ 0,22); era 0,05. O custo real gravado continua o da chamada. */
+export const EXTRACT_ESTIMATE_USD = 0.25;
 
 /** Início do mês UTC de `at` e do seguinte. */
 export function monthRange(at = new Date()): { from: Date; to: Date } {

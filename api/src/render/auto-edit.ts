@@ -20,7 +20,9 @@ export type AutoItemParams =
   | { type: 'SPLIT_LP' } | { type: 'STORY' }
   | { type: 'REVIEW'; quote: string; author: string | null; stars: 1 | 2 | 3 | 4 | 5 | null }
   | { type: 'NATIVE_SEARCH'; query: string }
-  | { type: 'STATIC'; atSec: number; headline: string };
+  /** rev. 23/10 (§14.3): o STATIC é imagem do GPT Image 2 (edicao/ImagemEstaticaService), não passa por aqui. Fica no
+   *  tipo só porque o payload do item ainda pode ter um; `buildAutoEditInput` recusa. */
+  | { type: 'STATIC'; [k: string]: unknown };
 
 export interface AutoEditContext {
   renderId: string;
@@ -79,7 +81,7 @@ function rostoNaSaida(ctx: AutoEditContext, reframe: AutoEditRenderInput['refram
 }
 
 /**
- * Caixa de texto (gancho novo / headline do estático): faixa acima ou abaixo do rosto, a que tiver mais espaço, dentro
+ * Caixa de texto (gancho novo): faixa acima ou abaixo do rosto, a que tiver mais espaço, dentro
  * da safeArea; altura até 20 % da tela. Sem rosto medido: logo abaixo da safeArea de cima.
  */
 function caixaDeTexto(ctx: AutoEditContext, reframe: AutoEditRenderInput['reframe'], f: Fmt, safe: { top: number; bottom: number }): Rect {
@@ -193,13 +195,11 @@ export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat)
       break;
     }
     case 'STATIC':
-      params = { type: 'STATIC', atSec: Math.min(Math.max(0, p.atSec), Math.max(0, dur - 0.1)), headline: p.headline, box: r1(caixaDeTexto(ctx, reframe, f, safe)) };
-      break;
+      throw new Error('STATIC não renderiza no Remotion (variacao-auto-v1 §14.3: imagem do GPT Image 2, engine IMAGE_GEN)');
   }
 
   return {
     kind: 'auto-edit', renderId: ctx.renderId, templateId: 'auto-edit',
-    output: p.type === 'STATIC' ? 'still' : 'video',
     format, language: ctx.language, source: ctx.source, reframe,
     timeline: timeline.map((t) => ({ startSec: t.startSec, endSec: Math.min(t.endSec, dur) })),
     joinFadeMs: 40, safeArea: safe, palette: ctx.palette, brandName: ctx.brandName,

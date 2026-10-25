@@ -94,6 +94,54 @@ export const FACE_MODEL_GPT_IMAGE_2 = {
   usdPerImage: 0.22,
 };
 
+/**
+ * Imagem da peça STATIC. rev. 23/10 (§14.3): criada do zero (nunca o frame do campeão). 25/10 (estatico-montado-e-molduras
+ * §A7/§A8, D1 = 2k): página da WaveSpeed lida 25/10 ("o valor final da task prevalece"): text-to-image high = US$ 0,22 (1k)
+ * / 0,40 (2k) / 0,72 (4k); edit high = 0,23 / 0,41 / 0,73 com 1 imagem de entrada, +0,012 por imagem extra. Billing de
+ * 06/10 cobrou 0,209 no 1k (estimar pra cima com a página). Falha/recusa não cobra. Aspectos 9:16, 4:5 e 1:1 nos dois.
+ * 2k 9:16 medido 1440×2560 em 85 s (sonda S1, 25/10); 1k medido 768×1360 e 864×1536 (varia). Legado (photo_headline/poster)
+ * também sai em 2k: o spec reproduz o plano, a resolução é do produto.
+ */
+export const STATIC_IMAGE_MODEL = {
+  providerModel: FACE_MODEL_GPT_IMAGE_2.providerModel,
+  /** D4: com referência da tela (captura da página / foto do produto) */
+  editProviderModel: 'openai/gpt-image-2/edit',
+  quality: 'high' as const,
+  resolution: '2k' as const,
+  outputFormat: 'png' as const,
+  /** text-to-image high 2k */
+  usdPerImage: 0.4,
+  /** edit high 2k com 1 imagem de entrada */
+  usdPerImageEdit: 0.41,
+  /** edit: cada imagem de entrada além da 1ª */
+  usdPerExtraInput: 0.012,
+  /** fila + geração por imagem (s), o que o backend usa no renderEtaSec: 1k medido 72-82 s, 2k 85 s (S1) */
+  etaSec: 90,
+  /** reconciliador (§14.3.5): consulta a partir de 2 min sem webhook, TIMEOUT com 10 min */
+  pollAfterMs: 2 * 60_000,
+  timeoutMs: 10 * 60_000,
+};
+
+/** US$ de 1 imagem do STATIC: text-to-image, ou edit com `inputs` imagens de referência (≥ 1). */
+export function staticImageUsd(inputs = 0): number {
+  const m = STATIC_IMAGE_MODEL;
+  return inputs > 0 ? round4(m.usdPerImageEdit + (inputs - 1) * m.usdPerExtraInput) : m.usdPerImage;
+}
+
+/**
+ * §A6: checagem de texto do STATIC por visão. Modelo do contrato: Haiku 4.5 (US$ 1 / 5 por milhão). A imagem 9:16 vai em
+ * 2 metades sobrepostas (lado maior ≤ 1568 px cada, ~2,6 mil tokens cada) pra o acento ser legível; ~5,5 mil tokens de
+ * entrada + ~400 de saída ≈ US$ 0,0075 (estimativa; o real vem do usage e vira cost_entry LLM no lote).
+ * `ANTHROPIC_TEXT_CHECK_MODEL` troca o modelo (ex.: claude-haiku-5-5, US$ 0,10 / 0,50: ~10× mais barato, não sondado).
+ */
+export const STATIC_TEXT_CHECK_MODEL = {
+  model: 'claude-haiku-4-5',
+  estimatedUsd: 0.0075,
+  /** lado maior de cada recorte (o Claude reduz acima disso) */
+  maxSidePx: 1568,
+  maxTokens: 4000,
+};
+
 export const TTS_MODEL = {
   providerModel: 'minimax/speech-2.6-turbo',
   usdPerChar: 0.00006, // US$ 0,06 por mil caracteres

@@ -41,10 +41,12 @@
     ".next-f1check/dev/types/**/*.ts",
     ".next-build/types/**/*.ts",
     ".next-build/dev/types/**/*.ts",
-    ".next-qa/types/**/*.ts",
-    ".next-qa/dev/types/**/*.ts",
     ".next-f2/types/**/*.ts",
-    ".next-f2/dev/types/**/*.ts"
+    ".next-f2/dev/types/**/*.ts",
+    ".next-rf/types/**/*.ts",
+    ".next-rf/dev/types/**/*.ts",
+    ".next-qa/types/**/*.ts",
+    ".next-qa/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

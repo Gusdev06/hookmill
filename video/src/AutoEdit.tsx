@@ -287,26 +287,6 @@ const Busca: React.FC<{ p: AutoEditProps & { params: { type: 'NATIVE_SEARCH' } }
 /** Estimativa barata (Inter 600 ≈ 0,55 em por caractere) só pra decidir se o texto rola pra esquerda. */
 const measureFits = (t: string, size: number, w: number) => t.length * size * 0.55 < w;
 
-// ───────────────────────── STATIC ─────────────────────────
-const Estatico: React.FC<{ p: AutoEditProps & { params: { type: 'STATIC' } } }> = ({ p }) => {
-  const { fps, width, height } = useVideoConfig();
-  const { atSec, headline, box } = p.params;
-  const pad = Math.round(Math.min(box.h, box.w) * 0.1);
-  const fundo = corDeDestaque(p.palette, '#000000');
-  return (
-    <>
-      <Quadro src={resolverSrc(p.source.videoUrl)} source={p.source} reframe={p.reframe} box={{ x: 0, y: 0, w: width, h: height }} startFrom={Math.round(atSec * fps)} mudo />
-      {headline ? (
-        <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ backgroundColor: fundo, borderRadius: 24, padding: pad, boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-            <TextoNaCaixa texto={headline} box={{ w: box.w - pad * 2, h: box.h - pad * 2 }} estilo={{ color: contraste(fundo) }} />
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-};
-
 // ───────────────────────── composição ─────────────────────────
 export const AutoEdit: React.FC<AutoEditProps> = (p) => {
   const prontas = useFontes();
@@ -319,7 +299,6 @@ export const AutoEdit: React.FC<AutoEditProps> = (p) => {
     <AbsoluteFill style={{ backgroundColor: '#000', overflow: 'hidden' }}>
       {pr.type === 'SPLIT_LP' ? <SplitPagina p={p as never} />
         : pr.type === 'REVIEW' ? <Review p={p as never} />
-        : pr.type === 'STATIC' ? <Estatico p={p as never} />
         : <Fonte p={p} box={tela} />}
       {pr.type === 'HOOK_TEXT' ? (
         <Sequence name="Gancho escrito" from={0} durationInFrames={Math.max(1, Math.round(pr.endSec * fps))} layout="none"><GanchoEscrito p={p as never} /></Sequence>

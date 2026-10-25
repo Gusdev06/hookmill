@@ -81,7 +81,8 @@ describe('FakeClaudeService.extractOffer', () => {
   it('devolve o briefing com etapas na ordem', async () => {
     const stages: string[] = [];
     const r = await claude.extractOffer({ url: 'https://www.budgetapp.com/x', workspaceId: 'w', jobId: 'j' }, (s) => stages.push(s));
-    expect(stages).toEqual(['fetching_page', 'extracting', 'detecting_language']);
+    expect(stages).toEqual(['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language']); // leitura v2 §4.3
+    expect(r).toMatchObject({ readMode: 'http', relatedUrls: [], imagesRead: [] });
     expect(r).toMatchObject({ name: 'Budgetapp', language: 'en', costUsd: 0 });
   });
 

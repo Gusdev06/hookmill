@@ -4,19 +4,19 @@ import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
-import type { Job, OfferExtractOutput } from "@/lib/api/types"
+import type { FieldOrigins, Job, OfferExtractOutput, OfferReadMeta } from "@/lib/api/types"
 import { Checklist, checklistStates } from "@/components/fx"
+import { Progress } from "@/components/ui/progress"
 
 /*
  * "Read the page" (contract §4): POST /offers/extract → GET /jobs/:id every 1.5 s until terminal.
- * One hook for the wizard Offer step and the client onboarding (step 1), so the reading logic lives in one place.
+ * One hook for the wizard Offer step, the Offers page (reread) and the client onboarding (step 1), so the reading
+ * logic lives in one place. briefing-leitura-v2 (22/10): 6 stages with progress + etaSec, "Read from" block from
+ * `pages`/`imagesRead`/`readMode`, origin per field from `fieldOrigins`.
  */
 const TERMINAL: Job["status"][] = ["SUCCEEDED", "PARTIAL", "FAILED"]
-const DEFAULT_CHECKLIST = [
-  { key: "fetching_page", done: false },
-  { key: "extracting", done: false },
-  { key: "detecting_language", done: false },
-]
+const STAGES = ["fetching_page", "rendering_page", "reading_subpages", "reading_images", "extracting", "detecting_language"] as const
+const DEFAULT_CHECKLIST = STAGES.map((key) => ({ key, done: false }))
 
 export const hostOf = (url: string) => {
   try {
@@ -69,27 +69,59 @@ export function useOfferExtract({ onStart, onError }: { onStart?: () => void; on
   }
 }
 
-/** The reading checklist ("Reading example.com…", "Pulling the brief…", "Detecting the language…"). */
+/** Origins per field (for the brief form); empty when the reading didn't bring them. */
+export const originsOf = (src: { fieldOrigins?: FieldOrigins | null } | null | undefined): FieldOrigins => src?.fieldOrigins ?? {}
+
+/** What "Read from" needs: the job output (v2 fields, or only `relatedUrls` before v2) or the offer's persisted `readMeta`. */
+export type ReadSource = Partial<Pick<OfferReadMeta, "readMode" | "pages" | "imagesRead">> & { relatedUrls?: string[] | null }
+
+/**
+ * The reading checklist with the 6 stages of v2 (a stage that didn't need to run is marked done by the API), the job's
+ * progress + eta, and the honest note: simple pages ~20 s, image-heavy or multi-step pages up to ~2 min.
+ */
 export function ExtractChecklist({ job, url }: { job: Job | null; url: string }) {
   const t = useTranslations("wizard.offer")
+  const tc = useTranslations("offers.checklist")
   const h = hostOf(url || "")
   const checklist = job?.checklist?.length ? job.checklist : DEFAULT_CHECKLIST
   const states = checklistStates(checklist.map((c) => c.done))
-  const labels: Record<string, string> = {
-    fetching_page: checklist[0]?.done ? t("fetched", { host: h }) : t("fetching", { host: h }),
-    extracting: t("extracting"),
-    detecting_language: t("detecting"),
-  }
+  const label = (key: string, done: boolean) =>
+    key === "fetching_page" ? (done ? t("fetched", { host: h }) : t("fetching", { host: h })) : tc.has(key as never) ? tc(key as never) : key
+  const pct = job ? Math.max(0, Math.min(100, Math.round(job.progress ?? 0))) : 0
+  const eta = job?.etaSec ?? null
   return (
-    <div role="status">
-      <Checklist items={checklist.map((c, i) => ({ label: labels[c.key] ?? c.key, state: states[i] }))} />
+    <div role="status" aria-live="polite" className="grid gap-3">
+      <Checklist items={checklist.map((c, i) => ({ label: label(c.key, c.done), state: states[i] }))} />
+      <div className="grid gap-1.5">
+        <Progress value={pct} aria-label={t("progressLabel")} />
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-fg-3">
+          <span className="font-mono tabular-nums">{eta !== null && eta > 0 ? t("progressEta", { pct, sec: eta }) : t("progressPct", { pct })}</span>
+          <span className="text-pretty">{t("takesUpTo")}</span>
+        </div>
+      </div>
     </div>
   )
 }
 
-/** Subdomains of the same offer the API read with the main page (checkout., app., members.…); nothing when none. */
-export function AlsoRead({ urls }: { urls?: string[] | null }) {
+/**
+ * "Read from: main page, checkout, pricing · 3 images" (v2 §0.3), from `pages`/`imagesRead`/`readMode`.
+ * Before v2 the API only sends `relatedUrls`: then "Also read: <hosts>". Nothing when there is nothing to say.
+ */
+export function ReadFrom({ source, className }: { source: ReadSource | null | undefined; className?: string }) {
   const t = useTranslations("wizard.offer")
-  if (!urls?.length) return null
-  return <span className="row-sub whitespace-normal">{t("alsoRead", { hosts: urls.map(hostOf).join(", ") })}</span>
+  if (!source) return null
+  if (source.readMode === "pasted") return <span className={className ?? "row-sub whitespace-normal"}>{t("readFromPasted")}</span>
+  const roles = [...new Set((source.pages ?? []).map((p) => p.role))]
+  const images = source.imagesRead?.length ?? 0
+  if (!roles.length && !images) {
+    const hosts = source.relatedUrls ?? []
+    return hosts.length ? <span className={className ?? "row-sub whitespace-normal"}>{t("alsoRead", { hosts: hosts.map(hostOf).join(", ") })}</span> : null
+  }
+  const parts = roles.map((r) => t(`role.${r}`))
+  const list = parts.join(", ") + (images ? ` · ${t("imagesCount", { count: images })}` : "")
+  return (
+    <span className={className ?? "row-sub whitespace-normal"} title={(source.pages ?? []).map((p) => p.url).join("\n") || undefined}>
+      {t("readFrom", { list })}
+    </span>
+  )
 }

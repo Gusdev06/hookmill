@@ -46,7 +46,18 @@ function validPlan(i: AutoPlanInput): AutoPlanDraft & { costUsd: number } {
   if (max.get('STORY')) items.push({ ...base, type: 'STORY', params: { type: 'STORY' } });
   if (max.get('REVIEW')) items.push({ ...base, type: 'REVIEW', params: { type: 'REVIEW', quote: 'I finally sleep through the night', author: null, stars: null } });
   add(Math.min(2, max.get('NATIVE_SEARCH') ?? 0), (k) => ({ ...base, type: 'NATIVE_SEARCH', params: { type: 'NATIVE_SEARCH', query: ['how to fall asleep fast', 'tired all day why'][k] } }));
-  add(Math.min(2, max.get('STATIC') ?? 0), (k) => ({ ...base, type: 'STATIC', params: { type: 'STATIC', atSec: 2 + k * 4, headline: ['Sleep better', 'Busy parents'][k] } }));
+  // rev. 23/10 §14.3: STATIC = imagem nova; `visual` em inglês, sem marca nem aspas
+  const visual = { object: 'A tired parent in their 30s', scene: 'Dark bedroom, lying awake', vibe: 'Quiet blue night light', style: 'everyday_photo' as const, headlinePlacement: 'top' as const };
+  add(Math.min(2, max.get('STATIC') ?? 0), (k) => ({ ...base, type: 'STATIC', params: { type: 'STATIC', atSec: 2 + k * 4, refAtSec: 2 + k * 4, headline: ['Sleep better', 'Busy parents'][k], visual } }));
+  // catálogo 25/10: molduras (templates distintos, até o máx. do allowed) completam o lote
+  const frames = [
+    { template: 'question_box', texts: { question: 'Still tired in the morning?' } },
+    { template: 'meme', texts: { pov: 'you finally slept', cta: 'Download' } },
+    { template: 'cinema', texts: { question: 'What if tonight was different?', subtitle: 'Sleep better' } },
+    { template: 'post_card', texts: { copy: 'Sleep better tonight' } },
+    { template: 'live', texts: {} },
+  ];
+  add(Math.min(frames.length, max.get('FRAME') ?? 0), (k) => ({ ...base, type: 'FRAME', params: { type: 'FRAME', ...frames[k], sources: {} } } as unknown as AutoPlanDraft['items'][number]));
   const why = {
     hook: { text: 'Names the pain fast', source: 'video' as const, brainField: null, ref: 'From the video' },
     proof: { text: 'A parent says it worked', source: 'brain' as const, brainField: 'proof' as const, ref: 'Ana' },
@@ -171,7 +182,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const r = await call('GET', '/iterate/config');
     expect(r.status).toBe(200);
     expect(r.data).toMatchObject({ maxBytes: 524288000, minSec: 4, maxSec: 180, metaConnected: false, defaultOfferId: offerId, recentWinners: [] });
-    expect(r.data.types).toEqual(['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC']);
+    expect(r.data.types).toEqual(['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']); // catálogo 25/10
     expect(r.data.offers).toEqual([{ id: offerId, name: 'Sleep app', language: 'en' }]);
     expect(r.data.analysisTypicalUsd).toBeGreaterThan(0);
     expect((await call('GET', '/iterate/config', undefined, 'C')).status).toBe(403);
@@ -215,7 +226,10 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     expect(n).toBeGreaterThanOrEqual(4);
     expect(n).toBeLessThanOrEqual(12);
     expect(r.data.summary.newAudience).toBeGreaterThanOrEqual(Math.ceil(n * 0.4));
-    expect(r.data.summary).toMatchObject({ pieces: n, files: n * 3, ready: 0, videoCreditsUsd: 0 });
+    expect(r.data.summary).toMatchObject({ pieces: n, files: n, ready: 0, videoCreditsUsd: 0 }); // rev. 23/10: o Gerar faz só o 9:16
+    const statics = r.data.pieces.filter((p: any) => p.type === 'STATIC').length;
+    expect(r.data.cost).toMatchObject({ generateEstimateUsd: Math.round(statics * 0.4 * 10_000) / 10_000, imagesUsd: 0, renderUsd: 0 });
+    expect(r.data.pieces.every((p: any) => p.formats.map((f: any) => f.state).join() === 'none,none,none' && p.media === (p.type === 'STATIC' ? 'image' : 'video'))).toBe(true);
     expect(new Set(r.data.pieces.map((p: any) => p.code)).size).toBe(n);
     expect(r.data.pieces.every((p: any) => p.status === 'planned' && p.inZip && p.creativeId === null)).toBe(true);
     expect(r.data.pieces.map((p: any) => p.index)).toEqual([...Array(n).keys()]);
@@ -242,20 +256,24 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     await prisma.variationBatch.delete({ where: { id: manual.id } });
   });
 
-  it('start: plano mudou = 409 PLAN_CHANGED; certo = LAUNCHED com 1 criativo AUTO_EDIT e 3 renders por peça; de novo = 409', async () => {
+  it('start: plano mudou = 409 PLAN_CHANGED; certo = LAUNCHED com 1 criativo AUTO_EDIT e 1 render 9:16 por peça; de novo = 409', async () => {
     const before = await call('GET', `/iterate/${batchId}`);
     const n = before.data.pieces.length;
-    const wrong = await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n + 1 });
+    const expectedCostUsd = before.data.cost.generateEstimateUsd;
+    const wrong = await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n + 1, expectedCostUsd });
     expect(wrong.error).toMatchObject({ code: 'PLAN_CHANGED', statusCode: 409, details: { pieces: n } });
-    expect((await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n }, 'C')).status).toBe(403);
-    const ok = await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n });
+    expect((await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n, expectedCostUsd }, 'C')).status).toBe(403);
+    expect((await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n, expectedCostUsd: -1 })).error.code).toBe('VALIDATION_ERROR');
+    const ok = await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n, expectedCostUsd });
     expect(ok.status).toBe(202);
     expect(ok.data.status).toBe('LAUNCHED');
     expect(ok.data.launchedAt).not.toBeNull();
     expect(['generate', 'download']).toContain(ok.data.phase);
     const creatives = await prisma.creative.findMany({ where: { variationBatchId: batchId }, include: { renders: true } });
     expect(creatives).toHaveLength(n);
-    expect(creatives.every((c) => c.variationKind === 'AUTO_EDIT' && !!c.variationCode && c.renders.length === 3)).toBe(true);
+    expect(creatives.every((c) => c.variationKind === 'AUTO_EDIT' && !!c.variationCode && c.renders.length === 1 && c.renders[0].format === 'VERTICAL_9_16')).toBe(true);
+    expect(creatives.every((c) => c.renders[0].engine === (c.variationCode!.startsWith('STATIC') ? 'IMAGE_GEN' : 'REMOTION'))).toBe(true);
+    expect(ok.data.cost.generateEstimateUsd).toBeNull();
     expect((await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n })).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'LAUNCHED' } });
     expect((await call('POST', `/iterate/${batchId}/retry`, {})).error.code).toBe('INVALID_STATE');
   });
@@ -292,7 +310,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     expect(done.data.status).toBe('PLAN_READY');
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0][0]).toMatchObject({ batchId: cr.data.id, rules: { max: 12, minDiversityPct: 40 }, page: { captured: true } });
-    expect(done.data.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(['HOOK-TEXT-2', 'HOOK-TEXT-3', 'LAYOUT-SPLIT-LP', 'LAYOUT-REVIEW', 'STATIC-F1']));
+    expect(done.data.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(['LAYOUT-REVIEW', 'NATIVE-SEARCH', 'STATIC-F1', 'FRAME-QUESTION-BOX', 'FRAME-LIVE']));
     expect(await prisma.job.count({ where: { championId, type: 'CHAMPION_ANALYZE' } })).toBe(1); // não reanalisou
     spy.mockRestore();
   });
@@ -303,7 +321,8 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const spy = jest.spyOn(claude, 'planAutoBatch').mockImplementation(async (i) => {
       calls.push(i);
       const p = validPlan(i);
-      p.items[0] = { ...p.items[0], params: { type: 'HOOK_TEXT', text: '97% of parents agree' } }; // número inventado
+      const k = p.items.findIndex((x) => x.type === 'NATIVE_SEARCH');
+      p.items[k] = { ...p.items[k], params: { type: 'NATIVE_SEARCH', query: 'why 97 parents agree' } }; // número inventado
       return p;
     });
     const cr = await call('POST', '/iterate', { creativeId });
@@ -311,11 +330,39 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     expect(done.data.status).toBe('PLAN_READY');
     expect(calls).toHaveLength(2);
     expect(calls[0].violations).toBeUndefined();
-    expect(calls[1].violations!.join(' ')).toMatch(/item 0 \(HOOK_TEXT\): invented_number/);
+    expect(calls[1].violations!.join(' ')).toMatch(/item \d+ \(NATIVE_SEARCH\): invented_number/);
     const full = validPlan(calls[0]).items.length;
     expect(done.data.pieces).toHaveLength(full - 1);
-    expect(done.data.pieces.some((p: any) => p.type === 'HOOK_TEXT')).toBe(true);
+    expect(done.data.pieces.filter((p: any) => p.type === 'NATIVE_SEARCH')).toHaveLength(1);
     spy.mockRestore();
+  });
+
+  it('rev. 23/10 §14.4: start com STATIC exige expectedCostUsd (ESTIMATE_CHANGED) e respeita o teto (SPEND_CAP_EXCEEDED)', async () => {
+    const claude = app.get<ClaudeService>(CLAUDE_SERVICE);
+    const spy = jest.spyOn(claude, 'planAutoBatch').mockImplementation(async (i) => validPlan(i));
+    const cr = await call('POST', '/iterate', { creativeId });
+    const done = await settled(cr.data.id);
+    spy.mockRestore();
+    expect(done.data.status).toBe('PLAN_READY');
+    const n = done.data.pieces.length;
+    const statics = done.data.pieces.filter((p: any) => p.type === 'STATIC').length;
+    expect(statics).toBe(2);
+    expect(done.data.cost.generateEstimateUsd).toBe(0.8); // 25/10: 2k = US$ 0,40 (D1)
+    // sem expectedCostUsd (= 0) ou abaixo de estimativa ÷ 1,10 = 409 ESTIMATE_CHANGED com a estimativa nova
+    expect((await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n })).error).toMatchObject({ code: 'ESTIMATE_CHANGED', details: { estimateUsd: 0.8 } });
+    expect((await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n, expectedCostUsd: 0.7 })).error.code).toBe('ESTIMATE_CHANGED');
+    // teto
+    await prisma.workspace.update({ where: { id: ws.A.id }, data: { monthlySpendCapUsd: 0.1 } });
+    expect((await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n, expectedCostUsd: 0.8 })).error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED' });
+    await prisma.workspace.update({ where: { id: ws.A.id }, data: { monthlySpendCapUsd: null } });
+    expect((await call('GET', `/iterate/${cr.data.id}`)).data.status).toBe('PLAN_READY');
+    // 0,73 × 1,10 ≥ 0,80: passa (tolerância de 10 %)
+    const ok = await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n, expectedCostUsd: 0.73 });
+    expect(ok.status).toBe(202);
+    expect(ok.data.status).toBe('LAUNCHED');
+    const rs = await prisma.render.findMany({ where: { creative: { variationBatchId: cr.data.id } } });
+    expect(rs).toHaveLength(n);
+    expect(rs.filter((r) => r.engine === 'IMAGE_GEN')).toHaveLength(2);
   });
 
   it('[mock:auto-plan-invalid] (mock da ia): não fecha nem com reparo = ANALYSIS_FAILED PLAN_INVALID; retry → PLANNING → PLAN_READY', async () => {
@@ -354,7 +401,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     spy.mockRestore();
   });
 
-  it('página bloqueada: SPLIT-LP sai do allowed e vira troca no_page', async () => {
+  it('página bloqueada: plano segue (SPLIT-LP nem entra mais no catálogo, 25/10); captura ausente no insight', async () => {
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { websiteUrl: 'https://blocked.example.com' } });
     const claude = app.get<ClaudeService>(CLAUDE_SERVICE);
     const spy = jest.spyOn(claude, 'planAutoBatch').mockImplementation(async (i) => validPlan(i));
@@ -362,8 +409,8 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const done = await settled(cr.data.id);
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { websiteUrl: 'https://example.com/lp' } });
     expect(done.data.status).toBe('PLAN_READY');
-    expect(spy.mock.calls[0][0].allowed.find((a) => a.type === 'SPLIT_LP')).toEqual({ type: 'SPLIT_LP', max: 0 });
-    expect(done.data.insight.swaps).toContainEqual({ from: 'SPLIT_LP', to: 'STORY', reason: 'no_page' });
+    expect(spy.mock.calls[0][0].allowed.map((a) => a.type)).toEqual(['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']);
+    expect(done.data.insight.swaps.some((x: any) => x.from === 'SPLIT_LP')).toBe(false);
     expect(done.data.insight.flags.pageCaptured).toBe(false);
     expect(done.data.pieces.some((p: any) => p.type === 'SPLIT_LP')).toBe(false);
     spy.mockRestore();

@@ -98,6 +98,18 @@ const PATHS = {
       <path d="M5 3v10M11 3v10M2.5 6h2.5M2.5 10h2.5M11 6h2.5M11 10h2.5" />
     </>
   ),
+  // campanhas-v1 mockup (24-unit paths scaled to the 16 grid)
+  dots: (
+    <>
+      <circle cx="3.5" cy="8" r=".9" fill="currentColor" />
+      <circle cx="8" cy="8" r=".9" fill="currentColor" />
+      <circle cx="12.5" cy="8" r=".9" fill="currentColor" />
+    </>
+  ),
+  ext: <path d="M9.5 2.5h4v4M13.5 2.5 7 9M12 9v4.5H2.5V4H7" />,
+  iter: <path d="M2.7 8a5.3 5.3 0 0 1 9.1-3.7l1.5 1.1M13.3 2v3.4H10M13.3 8a5.3 5.3 0 0 1-9.1 3.7l-1.5-1.1M2.7 14v-3.4H6" />,
+  sortd: <path d="M8 3.5v9M4.5 9 8 12.5 11.5 9" />,
+  sortu: <path d="M8 12.5v-9M4.5 7 8 3.5 11.5 7" />,
 } as const
 
 export type IconName = keyof typeof PATHS

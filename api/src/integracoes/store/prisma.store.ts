@@ -34,6 +34,7 @@ function toRecord(r: Row): ProviderTaskRecord {
     championId: r.championId,
     takeId: r.takeId,
     windowIndex: r.windowIndex ?? null,
+    renderId: r.renderId ?? null,
     submittedAt: r.submittedAt,
   };
 }
@@ -56,6 +57,7 @@ export class PrismaTaskStore implements ProviderTaskStore {
         championId: t.championId ?? null,
         takeId: t.takeId ?? null,
         windowIndex: t.windowIndex ?? null,
+        renderId: t.renderId ?? null,
       },
     });
     return toRecord(r);
@@ -115,9 +117,9 @@ export class PrismaTaskStore implements ProviderTaskStore {
     return r ? toRecord(r) : null;
   }
 
-  async listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider) {
+  async listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider, kinds?: ProviderTaskKind[]) {
     const rs = await this.db.providerTask.findMany({
-      where: { status: 'SUBMITTED', submittedAt: { lt: before }, NOT: { externalId: { startsWith: excludePrefix } }, ...(provider ? { provider } : {}) },
+      where: { status: 'SUBMITTED', submittedAt: { lt: before }, NOT: { externalId: { startsWith: excludePrefix } }, ...(provider ? { provider } : {}), ...(kinds?.length ? { kind: { in: kinds } } : {}) },
       orderBy: { submittedAt: 'asc' },
       take: limit,
     });

@@ -11,13 +11,14 @@ const TORDAN: UserRef = { id: "u_tordan", name: "Tordan", initials: "T" }
 export const WORKSPACE: Workspace = {
   id: "ws_1", name: "Workspace", uiLocale: "EN", monthlySpendCapUsd: 300,
   shortCode: "WS", industry: null, market: null, businessType: null, defaultResult: null, websiteUrl: null,
-  status: "LIVE", onboarding: { step: 6, totalSteps: 6, completedAt: "2026-10-05T12:00:00.000Z" },
+  status: "LIVE",
+  onboarding: { step: 6, totalSteps: 6, completedAt: "2026-10-05T12:00:00.000Z", percent: 100, steps: [], updatedBy: null, updatedAt: null },
 }
 /** Workspaces the mock user belongs to (client selector in the sidebar; switch-workspace). Example data. */
 export const WORKSPACES: WorkspaceRef[] = [
-  { id: WORKSPACE.id, name: WORKSPACE.name, role: "OWNER" },
-  { id: "ws_mooncloth", name: "Mooncloth", role: "ADMIN" },
-  { id: "ws_northpeak", name: "Northpeak Dental", role: "CLIENT" },
+  { id: WORKSPACE.id, name: WORKSPACE.name, role: "OWNER", status: "LIVE", onboarding: { step: 6, percent: 100, completedAt: WORKSPACE.onboarding.completedAt } },
+  { id: "ws_mooncloth", name: "Mooncloth", role: "ADMIN", status: "SETUP", onboarding: { step: 3, percent: 33, completedAt: null } },
+  { id: "ws_northpeak", name: "Northpeak Dental", role: "CLIENT", status: "SETUP", onboarding: { step: 2, percent: 17, completedAt: null } },
 ]
 
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString()

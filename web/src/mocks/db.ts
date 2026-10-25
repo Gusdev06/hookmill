@@ -8,14 +8,14 @@
  */
 import type {
   Action, AsyncErrorCode, CreativeDetail, CreativeEvent, CreativeRow, CreativeState, EditSettings, Engine, Face, FileRef, Job,
-  LibraryItem, Offer, Render, Scene, SceneSwap, ScenesSummary, Script, ScriptBlock, Step, StepInfo, SwapResolution, SwapVoiceSource, Take, TakeKind, UserRef, VariationRef, VideoFormat, WinnerUsed,
-} from "@/lib/api/types"
+  LibraryItem, Offer, Render, Scene, SceneSwap, ScenesSummary, Script, ScriptBlock, Step, StepInfo, SwapResolution, SwapVoiceSource, Take, TakeKind, UserRef, VariationRef, VideoFormat, WinnerUsed, OfferExtractOutput, OfferReadMeta } from "@/lib/api/types"
 import { FACE_DESCRIPTION, SCRIPTS } from "./content"
 import { LIBRARY, MEMBERS, OFFERS, SPEND, WORKSPACE } from "./fixtures"
+import { seedV2, type V2State } from "./v2"
 
 // ───────────── model ─────────────
 interface MScript extends Script { t0: number; t1: number; failCode: AsyncErrorCode | null; full: ScriptBlock[]; fullAngle: string; streamed: number }
-interface MJob extends Job { t0: number; t1: number; offerId?: string; creativeId?: string; url?: string; pageText?: string; failCode?: AsyncErrorCode | null }
+interface MJob extends Job { t0: number; t1: number; offerId?: string; creativeId?: string; url?: string; pageText?: string; failCode?: AsyncErrorCode | null; failDetail?: "login_wall" | "empty_after_render" | null }
 interface MFace extends Face { t0: number; t1: number; tone: number; art: number }
 interface MScene extends Scene { t0: number; t1: number; failCode: AsyncErrorCode | null }
 interface MRender extends Render { t0: number; t1: number; failAt: number | null; stale: boolean }
@@ -39,6 +39,8 @@ export interface MCreative {
 interface DB {
   creatives: MCreative[]; offers: Offer[]; library: LibraryItem[]; jobs: MJob[]
   workspace: typeof WORKSPACE; members: typeof MEMBERS; spentUsd: number; uiLocale: "EN" | "PT_BR"; seq: number
+  /** onboarding-v2 + meta-v1 (21/10): account mode, the other workspaces' setup state, tour and Meta connection per workspace */
+  v2: V2State
 }
 
 const GUSTA: UserRef = { id: "u_gusta", name: "Gusta", initials: "G" }
@@ -290,6 +292,7 @@ function seed(): DB {
   return {
     creatives, offers: structuredClone(OFFERS), library: structuredClone(LIBRARY), jobs: [],
     workspace: structuredClone(WORKSPACE), members: structuredClone(MEMBERS), spentUsd: SPEND.spentUsd, uiLocale: "EN", seq,
+    v2: seedV2(),
   }
 }
 
@@ -311,6 +314,8 @@ function load(): DB {
         seq = d.seq ?? seq
         // fase2-agencia: states saved before 12/10 lack the new workspace fields and adName
         d.workspace = { ...structuredClone(WORKSPACE), ...d.workspace }
+        // onboarding-v2 (21/10): states saved before lack the account mode / tour / Meta block
+        d.v2 = { ...seedV2(), ...(d.v2 ?? {}) }
         d.library = d.library.map((x) => ({ ...x, adName: x.adName ?? null }))
         return d
       } catch {}
@@ -349,6 +354,9 @@ const REASON: Record<string, string> = {
   RATE_LIMITED: "The script service hit its rate limit.",
   PAGE_FORBIDDEN: "The site blocked our request (HTTP 403).",
   PAGE_UNREADABLE: "We couldn't find a sales page at that link.",
+  // briefing-leitura-v2 §4.3: the 2 new phrases, by the detail of the failure (mock-login / mock-empty in the URL)
+  login_wall: "This page is behind a login. Paste the page text, or use the public sales page link.",
+  empty_after_render: "The page has no readable text, even after loading it in a browser. Paste the page text or fill the fields manually.",
   RENDER_ERROR: "A scene file didn't download completely. Render again; it fetches the file fresh.",
   VOICE_FIT_OUT_OF_RANGE: "The engine spoke 15% slower than the original (ratio 1.15). Over 8% it can't be fitted without changing the edit.",
   SPEECH_MISMATCH: "The engine said something different from the script (72% of the words matched).",
@@ -606,14 +614,22 @@ export function startRender(c: MCreative) {
   return r
 }
 
+/* briefing-leitura-v2 §4.3: the 6 stages with their progress and etaSec; the mock runs them in ~1.2 s each (text pasted: the 4 reading stages are done at once) */
+const EXTRACT_STAGES = [
+  { key: "fetching_page", progress: 10, etaSec: 5 }, { key: "rendering_page", progress: 25, etaSec: 20 }, { key: "reading_subpages", progress: 45, etaSec: 25 },
+  { key: "reading_images", progress: 60, etaSec: 10 }, { key: "extracting", progress: 80, etaSec: 20 }, { key: "detecting_language", progress: 95, etaSec: 1 },
+]
+const EXTRACT_STEP_MS = 1200
 export function newExtractJob(input: { url?: string; pageText?: string; offerId?: string }) {
   const now = Date.now()
   const u = input.url ?? ""
-  const failCode: AsyncErrorCode | null = input.pageText ? null : u.includes("mock-403") ? "PAGE_FORBIDDEN" : u.includes("mock-unreadable") ? "PAGE_UNREADABLE" : u.includes("mock-429") ? "RATE_LIMITED" : null
+  const failCode: AsyncErrorCode | null = input.pageText ? null : u.includes("mock-403") ? "PAGE_FORBIDDEN" : u.includes("mock-unreadable") || u.includes("mock-login") || u.includes("mock-empty") ? "PAGE_UNREADABLE" : u.includes("mock-429") ? "RATE_LIMITED" : null
+  const failDetail = input.pageText ? null : u.includes("mock-login") ? ("login_wall" as const) : u.includes("mock-empty") ? ("empty_after_render" as const) : null
+  const steps = input.pageText ? 2 : EXTRACT_STAGES.length
   const job: MJob = {
-    id: id("job"), type: "OFFER_EXTRACT", status: "QUEUED", stage: "fetching_page", progress: 0, etaSec: 5,
-    checklist: ["fetching_page", "extracting", "detecting_language"].map((key) => ({ key, done: false })),
-    errorCode: null, failReason: null, action: null, output: null, t0: now, t1: now + 4500, url: input.url, pageText: input.pageText, offerId: input.offerId, failCode,
+    id: id("job"), type: "OFFER_EXTRACT", status: "QUEUED", stage: input.pageText ? "extracting" : "fetching_page", progress: 0, etaSec: EXTRACT_STAGES.slice(-steps).reduce((a, s) => a + s.etaSec, 0),
+    checklist: EXTRACT_STAGES.map((s, i) => ({ key: s.key, done: i < EXTRACT_STAGES.length - steps })),
+    errorCode: null, failReason: null, action: null, output: null, t0: now, t1: now + steps * EXTRACT_STEP_MS, url: input.url, pageText: input.pageText, offerId: input.offerId, failCode, failDetail,
   }
   db.jobs.push(job)
   save()
@@ -627,37 +643,69 @@ export function advanceJob(j: MJob, now = Date.now()) {
   if (j.status === "SUCCEEDED" || j.status === "FAILED" || j.status === "PARTIAL") return j
   if (j.type !== "OFFER_EXTRACT") return j
   const el = now - j.t0
-  const done = Math.min(3, Math.floor(el / 1500))
+  const total = EXTRACT_STAGES.length
+  const pre = j.checklist.filter((c) => c.done).length && el < 0 ? 0 : total - Math.round((j.t1 - j.t0) / EXTRACT_STEP_MS) // stages done at once (pasted text)
+  const done = Math.min(total, pre + Math.floor(el / EXTRACT_STEP_MS))
   j.checklist = j.checklist.map((c, i) => ({ ...c, done: i < done }))
-  j.stage = j.checklist[Math.min(done, 2)].key
-  j.progress = Math.round((done / 3) * 100)
+  const cur = EXTRACT_STAGES[Math.min(done, total - 1)]
+  j.stage = cur.key
+  j.progress = done >= total ? 100 : cur.progress
   j.etaSec = Math.max(0, Math.ceil((j.t1 - now) / 1000))
   j.status = "RUNNING"
-  if (j.failCode && done >= 1) {
+  if (j.failCode && done >= 2) {
     j.status = "FAILED"
     j.errorCode = j.failCode
-    j.failReason = REASON[j.failCode]
-    j.action = j.failCode === "PAGE_FORBIDDEN" ? "paste_page_text" : j.failCode === "PAGE_UNREADABLE" ? "fill_manually" : "retry"
-  } else if (done >= 3) {
+    j.failReason = j.failDetail ? REASON[j.failDetail] : REASON[j.failCode]
+    // v2 §4.3: both page failures offer "paste the text"
+    j.action = j.failCode === "PAGE_FORBIDDEN" || j.failCode === "PAGE_UNREADABLE" ? "paste_page_text" : "retry"
+  } else if (done >= total) {
     j.status = "SUCCEEDED"
     j.stage = null
+    // briefing-leitura-v2 D6: `output.readMeta` is what the web sends back in the apply (POST /offers or PATCH /offers/:id)
     j.output = extractOutput(j)
   }
   save()
   return j
 }
 
-function extractOutput(j: MJob) {
+function extractOutput(j: MJob): OfferExtractOutput {
   const host = (() => {
     try { return new URL(j.url ?? "").host } catch { return "" }
   })()
   const known = db.offers.find((o) => (j.offerId ? o.id === j.offerId : host && o.sourceUrl?.includes(host)))
   const fromPage = { what: "page", audience: "page", promise: "page", pains: "page", proof: "page", offerAndPrice: "page", cta: "page", name: "page", language: "page" } as const
+  // briefing-leitura-v2: a link is read in `vision` (main + checkout + pricing, 3 images); pasted text is `pasted`
+  const base = `https://${host.replace(/^www\./, "") || "example.com"}`
+  const readAt = new Date().toISOString()
+  const sources: Omit<OfferReadMeta, "readAt"> & { relatedUrls: string[] } = j.pageText
+    ? { readMode: "pasted", pages: [], imagesRead: [], fieldOrigins: {}, costUsd: 0.01, relatedUrls: [] }
+    : {
+        readMode: "vision" as const,
+        pages: [
+          { url: `${base}/`, role: "main" as const, via: "rendered" as const, chars: 1840 },
+          { url: `${base}/checkout`, role: "checkout" as const, via: "http" as const, chars: 2210 },
+          { url: `${base}/pricing`, role: "pricing" as const, via: "http" as const, chars: 960 },
+        ],
+        imagesRead: [
+          { index: 1, src: `${base}/_screens/1.png`, alt: null, kind: "screenshot" as const, widthPx: 780, heightPx: 1688, read: "Hero: headline with the promise, price badge and the main button." },
+          { index: 2, src: `${base}/img/banner-reviews.jpg`, alt: "reviews", kind: "img" as const, widthPx: 1200, heightPx: 600, read: "Three customer reviews with 5 stars." },
+          { index: 3, src: `${base}/img/price-table.png`, alt: null, kind: "img" as const, widthPx: 900, heightPx: 700, read: "Price table: one-time payment, 7-day guarantee." },
+        ],
+        fieldOrigins: {
+          name: [{ role: "main" as const, url: `${base}/` }], what: [{ role: "main" as const, url: `${base}/` }], audience: [{ role: "main" as const, url: `${base}/` }],
+          promise: [{ role: "main" as const, url: `${base}/`, imageIndex: 1 }], pains: [{ role: "main" as const, url: `${base}/` }],
+          proof: [{ role: "main" as const, url: `${base}/`, imageIndex: 2 }], offerAndPrice: [{ role: "checkout" as const, url: `${base}/checkout` }, { role: "pricing" as const, url: `${base}/pricing`, imageIndex: 3 }],
+          cta: [{ role: "main" as const, url: `${base}/` }],
+        },
+        costUsd: 0.1,
+        relatedUrls: [`${base}/checkout`, `${base}/pricing`],
+      }
   if (known) {
     return {
       name: known.name, language: known.language, sourceUrl: known.sourceUrl,
       brief: { kind: known.kind, what: known.what, audience: known.audience, promise: j.offerId ? known.promise?.replace(/\.$/, ", without a spreadsheet.") ?? null : known.promise, pains: known.pains, proof: known.proof, offerAndPrice: known.offerAndPrice, cta: known.cta, notes: known.notes },
       fieldSources: fromPage,
+      ...sources, readMeta: { ...sources, readAt },
     }
   }
   const name = host ? host.replace(/^www\./, "").split(".")[0].replace(/[-_]/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : "New offer"
@@ -671,8 +719,7 @@ function extractOutput(j: MJob) {
       proof: "Customer reviews on the sales page.", offerAndPrice: "One-time payment.", cta: "Get started", notes: null,
     },
     fieldSources: fromPage,
-    // link read (not pasted text): pretend the API also read the checkout subdomain
-    relatedUrls: host && !j.pageText ? [`https://checkout.${host.replace(/^www\./, "")}/`] : [],
+    ...sources, readMeta: { ...sources, readAt },
   }
 }
 

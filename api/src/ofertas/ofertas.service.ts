@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { FieldSources, FileRef, Job, Offer as OfferBase, OfferBrief, OfferExtractOutput } from '@maquina/contratos';
-import type { Offer as OfferRow, Prisma } from '@prisma/client';
+import type { FieldOrigin, FieldOrigins, FieldSources, FileRef, Job, Offer as OfferBase, OfferBrief, OfferExtractOutput, OfferReadMeta, PageImageRef, PageRole, ReadMode, ReadPageRef } from '@maquina/contratos';
+import { Prisma, type Offer as OfferRow } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
-import { asAsyncErrorCode, failReasonFor } from '../common/errors/falhas';
+import { asAsyncErrorCode, failReasonFor, pageUnreadableDetailOf } from '../common/errors/falhas';
 import { DEFAULT_LIMIT, afterCursor, decodeCursor, page } from '../common/http/pagination';
 import { CustosService, EXTRACT_ESTIMATE_USD } from '../custos/custos.service';
 import { CLAUDE_SERVICE, isIntegracaoError, type ClaudeService, type OfferBriefDraft } from '../integracoes';
@@ -11,13 +11,62 @@ import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../arquivos/storage.service';
 import { UploadsService } from '../uploads/uploads.service';
-import { BRIEF_FIELDS, CreateOfferDto, SOURCE_KEYS, UpdateOfferDto } from './ofertas.dto';
+import { OnboardingService } from '../workspaces/onboarding';
+import { BRIEF_FIELDS, CreateOfferDto, SOURCE_KEYS, UpdateOfferDto, isReadMeta } from './ofertas.dto';
 
 /** variacao-auto-v1 D4 (api.md "Mudanças 13/10"): `Offer` ganha `productImage`. O tipo do @maquina/contratos ainda não
  *  tem o campo (pendência do A0); a forma é a do contrato. */
 export type Offer = OfferBase & { productImage: FileRef | null };
 
-const STAGE_PROGRESS: Record<string, number> = { fetching_page: 10, extracting: 40, detecting_language: 80 };
+/** briefing-leitura-v2 §4.3: progress e etaSec por etapa do OFFER_EXTRACT (a ia emite as 6; etapa pulada é emitida e concluída na hora). */
+export const EXTRACT_STAGES = ['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language'] as const;
+export const STAGE_PROGRESS: Record<string, number> = { fetching_page: 10, rendering_page: 25, reading_subpages: 45, reading_images: 60, extracting: 80, detecting_language: 95 };
+export const STAGE_ETA_SEC: Record<string, number> = { fetching_page: 5, rendering_page: 20, reading_subpages: 25, reading_images: 10, extracting: 20, detecting_language: 1 };
+
+/**
+ * O que a porta `extractOffer` pode devolver além do briefing (briefing-leitura-v2 §4.1). Lido de forma TOLERANTE: a ia
+ * entrega os campos quando a cascata estiver pronta; antes disso o backend preenche o mínimo (readMode http/pasted,
+ * só a página principal). `sources` = forma crua do modelo (`{ role, imageIndex? }` por campo) que vira `fieldOrigins`.
+ */
+interface ExtractExtras {
+  readMode?: ReadMode;
+  pages?: { url: string; role: PageRole; via?: 'http' | 'rendered'; chars?: number; text?: string }[];
+  imagesRead?: (PageImageRef & { base64?: string; data?: string })[];
+  fieldOrigins?: FieldOrigins;
+  sources?: Partial<Record<string, { role: PageRole; imageIndex?: number }[]>>;
+  relatedUrls?: string[];
+}
+
+export function readMetaOf(json: Prisma.JsonValue | null | undefined): OfferReadMeta | null {
+  return isReadMeta(json) ? json : null;
+}
+
+/** `sources` do modelo (`role` + `imageIndex`) → `fieldOrigins` (role → url pela lista de páginas; imagem leva a url da página dela). */
+export function fieldOriginsOf(extras: ExtractExtras, pages: ReadPageRef[], images: PageImageRef[]): FieldOrigins {
+  if (extras.fieldOrigins && typeof extras.fieldOrigins === 'object') return extras.fieldOrigins;
+  const out: FieldOrigins = {};
+  if (!extras.sources) return out;
+  const urlByRole = new Map<string, string>();
+  for (const p of pages) if (!urlByRole.has(p.role)) urlByRole.set(p.role, p.url);
+  const main = pages.find((p) => p.role === 'main')?.url ?? pages[0]?.url ?? '';
+  for (const [field, list] of Object.entries(extras.sources)) {
+    if (!(SOURCE_KEYS as readonly string[]).includes(field) || field === 'language' || !Array.isArray(list)) continue;
+    const origins: FieldOrigin[] = [];
+    for (const s of list) {
+      if (!s || typeof s !== 'object' || typeof s.role !== 'string') continue;
+      const o: FieldOrigin = { role: s.role, url: urlByRole.get(s.role) ?? main };
+      if (typeof s.imageIndex === 'number' && images.some((i) => i.index === s.imageIndex)) o.imageIndex = s.imageIndex;
+      origins.push(o);
+    }
+    if (origins.length) out[field as keyof FieldOrigins] = origins;
+  }
+  return out;
+}
+
+/** Imagens lidas sem o binário (o print morre com o job; só src + o que o modelo leu ficam no output/read_meta). */
+function imagesReadOf(extras: ExtractExtras): PageImageRef[] {
+  return (extras.imagesRead ?? []).map(({ index, src, alt, kind, widthPx, heightPx, read }) => ({ index, src, alt: alt ?? null, kind, widthPx, heightPx, ...(read && { read }) }));
+}
 
 export function briefOf(o: Pick<OfferRow, (typeof BRIEF_FIELDS)[number]>): OfferBrief {
   return Object.fromEntries(BRIEF_FIELDS.map((k) => [k, o[k] ?? null])) as unknown as OfferBrief;
@@ -45,6 +94,7 @@ export class OfertasService {
     private readonly custos: CustosService,
     private readonly storage: StorageService,
     private readonly uploads: UploadsService,
+    private readonly onboarding: OnboardingService,
     @Inject(CLAUDE_SERVICE) private readonly claude: ClaudeService,
   ) {}
 
@@ -86,6 +136,7 @@ export class OfertasService {
       winnersCount: c.winners.get(o.id) ?? 0,
       updatedAt: o.updatedAt.toISOString(),
       productImage: (o.productImageFileId && images.get(o.productImageFileId)) || null,
+      readMeta: readMetaOf(o.readMeta),
     };
   }
 
@@ -120,8 +171,11 @@ export class OfertasService {
         sourceUrl: dto.sourceUrl ?? null,
         ...Object.fromEntries(BRIEF_FIELDS.map((k) => [k, dto[k] ?? null])),
         fieldSources: (dto.fieldSources ?? {}) as Prisma.InputJsonValue,
+        // briefing-leitura-v2 D5: "lido de" sobrevive ao wizard
+        readMeta: dto.readMeta ? ({ ...dto.readMeta, readAt: dto.readMeta.readAt ?? new Date().toISOString() } as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
+    await this.onboarding.touchIfSetup(auth.workspaceId, auth.userId); // onboarding-v2 §1: oferta criada no wizard
     return this.presentOne(o);
   }
 
@@ -136,8 +190,14 @@ export class OfertasService {
       sources[k] = 'user';
     }
     if (dto.sourceUrl !== undefined) data.sourceUrl = dto.sourceUrl;
+    // QA bug 14: o que o web manda em fieldSources vence o `user` automático (apply da leitura grava `page`)
+    if (dto.fieldSources) Object.assign(sources, dto.fieldSources);
+    if (dto.readMeta !== undefined) {
+      data.readMeta = dto.readMeta ? ({ ...dto.readMeta, readAt: dto.readMeta.readAt ?? new Date().toISOString() } as unknown as Prisma.InputJsonValue) : Prisma.JsonNull;
+    }
     data.fieldSources = sources as Prisma.InputJsonValue;
     const updated = await this.prisma.offer.update({ where: { id: o.id }, data });
+    await this.onboarding.touchIfSetup(auth.workspaceId, auth.userId); // onboarding-v2 §1: só enquanto em SETUP
     return this.presentOne(updated);
   }
 
@@ -194,33 +254,48 @@ export class OfertasService {
     return job;
   }
 
-  private async runExtraction(jobId: string, workspaceId: string, input: { url?: string; pageText?: string }) {
+  /** D6 (reconciliado 22/10): o job NÃO grava `offers.read_meta`; quem aplica o briefing manda `readMeta` no POST/PATCH (reread descartado não sobrescreve). */
+  async runExtraction(jobId: string, workspaceId: string, input: { url?: string; pageText?: string }) {
     let stages = Promise.resolve();
     try {
       // Com texto colado, a integracoes não busca a página (a url só entra como sourceUrl).
       const brief = await this.claude.extractOffer(
         { url: input.pageText ? undefined : input.url, pageText: input.pageText, workspaceId, jobId },
-        (stage) => {
-          stages = stages.then(() => this.jobs.stage(jobId, stage, STAGE_PROGRESS[stage]).then(() => undefined)).catch(() => undefined);
+        (stage: string) => {
+          // §4.3: progress/etaSec por etapa; etapa desconhecida (porta mais nova que o backend) passa sem número
+          stages = stages.then(() => this.jobs.stage(jobId, stage, STAGE_PROGRESS[stage], STAGE_ETA_SEC[stage] ?? null).then(() => undefined)).catch(() => undefined);
         },
       );
       await stages;
-      const fieldSources: FieldSources = { name: 'page', language: 'page' };
-      for (const k of BRIEF_FIELDS) if (brief[k] != null && brief[k] !== '') fieldSources[k] = 'page';
-      const output: OfferExtractOutput = {
-        name: brief.name,
-        language: brief.language,
-        sourceUrl: input.url ?? null,
-        brief: briefOf(brief),
-        fieldSources,
-        relatedUrls: brief.relatedUrls ?? [],
-      };
+      const output = this.extractOutput(brief, input);
       await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: output as unknown as Prisma.InputJsonValue });
     } catch (e) {
       await stages;
       const code = isIntegracaoError(e) ? asAsyncErrorCode(e.code) : 'PROVIDER_ERROR';
       if (!isIntegracaoError(e)) this.log.error(`extração ${jobId} falhou: ${(e as Error).stack ?? e}`);
-      await this.jobs.finish(jobId, { status: 'FAILED', errorCode: code, failReason: failReasonFor(code) }).catch(() => undefined);
+      // §4.3: login_wall / empty_after_render vêm no details do IntegracaoError e trocam a frase (o code e a action não mudam)
+      const detail = isIntegracaoError(e) ? pageUnreadableDetailOf(e.details) : undefined;
+      await this.jobs.finish(jobId, { status: 'FAILED', errorCode: code, failReason: failReasonFor(code, detail) }).catch(() => undefined);
     }
+  }
+
+  /** Briefing + Usage + ExtractSources (tolerante, §4.1) → `Job.output` do OFFER_EXTRACT (§4.2) com `readMeta` pronto pro POST /offers. */
+  extractOutput(brief: OfferBriefDraft & { costUsd?: number } & ExtractExtras, input: { url?: string; pageText?: string }): OfferExtractOutput {
+    const fieldSources: FieldSources = { name: 'page', language: 'page' };
+    for (const k of BRIEF_FIELDS) if (brief[k] != null && brief[k] !== '') fieldSources[k] = 'page';
+    const pasted = !!input.pageText;
+    const pages: ReadPageRef[] = (brief.pages ?? []).map((p) => ({ url: p.url, role: p.role, via: p.via ?? 'http', chars: p.chars ?? p.text?.length ?? 0 }));
+    if (!pages.length && input.url && !pasted) pages.push({ url: input.url, role: 'main', via: 'http', chars: 0 });
+    const imagesRead = imagesReadOf(brief);
+    const readMode: ReadMode = pasted ? 'pasted' : brief.readMode ?? (imagesRead.length ? 'vision' : pages.length > 1 ? 'crawled' : 'http');
+    const fieldOrigins = fieldOriginsOf(brief, pages, imagesRead);
+    const relatedUrls = brief.relatedUrls ?? pages.filter((p) => p.role !== 'main').map((p) => p.url);
+    const costUsd = Math.round((brief.costUsd ?? 0) * 10_000) / 10_000;
+    const readMeta: OfferReadMeta = { readMode, pages, imagesRead, fieldOrigins, costUsd, readAt: new Date().toISOString() };
+    return {
+      name: brief.name, language: brief.language, sourceUrl: input.url ?? null,
+      brief: briefOf(brief), fieldSources,
+      readMode, pages, imagesRead, fieldOrigins, costUsd, readMeta, relatedUrls,
+    };
   }
 }

@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl"
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
 import { toast } from "sonner"
 import { api } from "@/lib/api/client"
-import type { Job, Offer, OfferBrief, OfferExtractOutput } from "@/lib/api/types"
+import type { Job, Offer, OfferBrief, OfferExtractOutput, OfferReadMeta, UpdateOfferBody } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ import { EmptyState, Page, PageHead, Panel, PanelHead, Tag } from "@/components/
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { useLanguageName } from "@/hooks/use-language-name"
 import { BriefFields, FIELDS, toDraft, type Draft, type DraftKey } from "@/components/brief-form"
-import { AlsoRead } from "@/components/offer-extract"
+import { ExtractChecklist, originsOf, ReadFrom, type ReadSource } from "@/components/offer-extract"
 import { cn } from "@/lib/utils"
 
 const TERMINAL: Job["status"][] = ["SUCCEEDED", "PARTIAL", "FAILED"]
@@ -145,20 +145,25 @@ function BriefPanel({ offer }: { offer: Offer }) {
   const [fromPage, setFromPage] = useState<Set<DraftKey>>(new Set())
   const [jobId, setJobId] = useState<string | null>(null)
   const [rereadNote, setRereadNote] = useState<"done" | null>(null)
-  const [alsoRead, setAlsoRead] = useState<string[]>([])
+  // v2: what the last reading read (job output), else what the offer persisted (D5 `readMeta`)
+  const [readFrom, setReadFrom] = useState<(ReadSource & { fieldOrigins?: OfferExtractOutput["fieldOrigins"] }) | null>(() => offer.readMeta ?? null)
+  // D6: the reread's `readMeta` goes with the next Save brief (whoever applies sends it)
+  const [pendingReadMeta, setPendingReadMeta] = useState<OfferReadMeta | null>(null)
 
   const save = useMutation({
     mutationFn: () => {
       const base = toDraft(offer)
-      const changed = Object.fromEntries(
+      const changed: UpdateOfferBody = Object.fromEntries(
         (Object.keys(draft) as DraftKey[]).filter((k) => draft[k] !== base[k]).map((k) => [k, k === "name" || k === "language" ? draft[k] : draft[k] || null])
       )
+      if (pendingReadMeta) changed.readMeta = pendingReadMeta
       return api.offers.update(offer.id, changed)
     },
     onSuccess: (o) => {
       qc.setQueryData<{ data: Offer[] }>(["offers"], (prev) => (prev ? { ...prev, data: prev.data.map((x) => (x.id === o.id ? o : x)) } : prev))
       setFromPage(new Set())
       setRereadNote(null)
+      setPendingReadMeta(null)
       toast(
         <>
           <Icon name="check" />
@@ -202,7 +207,8 @@ function BriefPanel({ offer }: { offer: Offer }) {
       setDraft((d) => ({ ...d, ...next }))
       setFromPage(new Set(Object.entries(out.fieldSources).filter(([, v]) => v === "page").map(([k]) => k as DraftKey)))
       setRereadNote("done")
-      setAlsoRead(out.relatedUrls ?? [])
+      setReadFrom(out.readMeta ?? out)
+      setPendingReadMeta(out.readMeta ?? null)
       setJobId(null)
     }
   }
@@ -227,25 +233,7 @@ function BriefPanel({ offer }: { offer: Offer }) {
         <span className="row-sub">{host(offer.sourceUrl)}</span>
       </PanelHead>
 
-      {running ? (
-        <ul className="m-0 grid list-none gap-2 p-0 text-[13px]" role="status">
-          {(job.data?.checklist ?? [{ key: "fetching_page", done: false }, { key: "extracting", done: false }, { key: "detecting_language", done: false }]).map((c, i, all) => {
-            const now = !c.done && all.slice(0, i).every((x) => x.done)
-            return (
-              <li key={c.key} className={cn("flex items-center gap-2", c.done || now ? "text-fg" : "text-fg-2")}>
-                {c.done ? (
-                  <Icon name="check" className="text-status-approved" />
-                ) : now ? (
-                  <span className="m-px size-3.5 flex-none animate-spin rounded-full border-[1.5px] border-status-progress border-t-transparent" />
-                ) : (
-                  <span className="m-px size-3.5 flex-none rounded-full border-[1.5px] border-line-2" />
-                )}
-                {t.has(`offers.checklist.${c.key}` as never) ? t(`offers.checklist.${c.key}` as never) : c.key}
-              </li>
-            )
-          })}
-        </ul>
-      ) : null}
+      {running ? <ExtractChecklist job={job.data ?? null} url={offer.sourceUrl ?? ""} /> : null}
 
       {failed ? (
         <Alert variant="destructive">
@@ -262,12 +250,13 @@ function BriefPanel({ offer }: { offer: Offer }) {
           <Icon name="info" />
           <AlertBody>
             <AlertDescription>{t("offers.rereadDone")}</AlertDescription>
-            <AlsoRead urls={alsoRead} />
+            <ReadFrom source={readFrom} />
           </AlertBody>
         </Alert>
       ) : null}
 
-      <BriefFields draft={draft} onChange={set} fromPage={fromPage} loading={running} />
+      {rereadNote !== "done" && readFrom && !running ? <ReadFrom source={readFrom} /> : null}
+      <BriefFields draft={draft} onChange={set} fromPage={fromPage} origins={originsOf(readFrom)} loading={running} />
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button onClick={() => reread.mutate()} disabled={running || reread.isPending || !offer.sourceUrl}>

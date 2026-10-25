@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`buildStaticImagePromptV2 (§A4) 9:16 completo (snapshot): ordem do experimento aprovado, paleta do backend, wordmark sem ícone, checklist exato 1`] = `
+"A polished, high-converting vertical direct-response ad poster, designed like a premium agency Instagram/Facebook ad. Dense but organized layout, strong visual hierarchy, every text element crisp, legible and spelled exactly as written below in Brazilian Portuguese with correct accents. Nothing else written anywhere.
+
+PALETTE AND MOOD: very dark background in a deep shade of the accent hue (#140B05), a soft glow of the same light as the photo, accents in #FF8A3D. emotional, intimate, hopeful. Subtle film grain.
+
+TOP LEFT: the brand name "Coluna Leve" as a bold white wordmark in typography only, with no symbol, icon or logo next to it, and below it in small spaced caps "ROTINA NOTURNA DE 10 MIN".
+
+TOP RIGHT: small spaced caps white text on two lines "MENOS DOR." / "MAIS VIDA." with a short #FF8A3D underline.
+
+HEADLINE (huge, bold geometric sans-serif, left aligned, two to three lines): "Você não nasceu pra acordar" in white, continuing straight into "com dor." in #FF8A3D, read as one sentence.
+
+SUBHEADLINE below it, medium size, light grey with the last sentence in white: "10 minutos antes de dormir. Sem academia, sem remédio. Do seu quarto.".
+
+HANDWRITTEN ACCENT: a #FF8A3D brush-stroke banner, slightly tilted, with white handwritten script text "Sua manhã de volta." written with clearly separated letters, the same letters and accents as written, no extra accent marks, and a small curved underline.
+
+HERO EMOTION (left edge, partly cropped by the frame, real and intimate): A woman in her forties in a grey knit sweater, sitting on the edge of her bed in a dim bedroom, one hand on her lower back, a tired but hopeful expression, eyes closed or looking down, brows drawn slightly together, shoulders a little tense, lit by warm lamp light on her face from the left. Realistic photo, real skin texture, not stock-looking.
+
+CENTER, overlapping the photo: a modern smartphone mockup, tilted slightly, showing an abstract interface in dark mode (tilted slightly, overlapping the woman) with shapes, rings and simple icons and no readable words; the only words on the screen are the title "Hoje à noite".
+
+RIGHT COLUMN: 4 stacked dark rounded cards with a soft glow border, each with a #FF8A3D rounded-square icon on the left, a bold white title and a grey one-line description:
+1. icon a crescent moon: "Antes de dormir" / "Só 10 minutos por noite."
+2. icon a single person silhouette: "Guiado passo a passo" / "Vídeo e voz em cada movimento."
+3. icon a simple house: "Sem equipamento" / "Na cama ou no tapete."
+4. icon a heart: "Pra quem tem dor" / "Movimentos leves e seguros."
+
+TRUST STRIP above the bottom, three items separated by thin vertical lines, white icons and spaced caps text: a shield icon "FEITO PRA INICIANTES", a round clock face icon "10 MINUTOS POR NOITE", a lightning bolt icon "COMECE HOJE".
+
+BOTTOM LEFT: a big glossy #FF8A3D pill-shaped CTA button with a white circle arrow icon on the left and the text "COMECE HOJE" (large, bold, white).
+
+BOTTOM RIGHT: white handwritten script with clearly separated letters, tilted, on two lines "Seu corpo agradece." / "Sua manhã também.", with a #FF8A3D brush underline.
+
+Keep the top 5% and the bottom 10% of the frame free of text and buttons, 4% margins on the sides; no element cut off except the person on the edge. No watermarks, no logos other than the wordmark, no extra words, no lorem ipsum, no misspellings.
+
+TEXT CHECKLIST (every text on the poster, spelled exactly like this, accents included; nothing else is written anywhere):
+"Coluna Leve"
+"ROTINA NOTURNA DE 10 MIN"
+"MENOS DOR. MAIS VIDA."
+"Você não nasceu pra acordar com dor."
+"10 minutos antes de dormir. Sem academia, sem remédio. Do seu quarto."
+"Sua manhã de volta."
+"Hoje à noite"
+"Antes de dormir"
+"Só 10 minutos por noite."
+"Guiado passo a passo"
+"Vídeo e voz em cada movimento."
+"Sem equipamento"
+"Na cama ou no tapete."
+"Pra quem tem dor"
+"Movimentos leves e seguros."
+"FEITO PRA INICIANTES"
+"10 MINUTOS POR NOITE"
+"COMECE HOJE"
+"COMECE HOJE"
+"Seu corpo agradece. Sua manhã também."
+
+aspect ratio: 9:16"
+`;

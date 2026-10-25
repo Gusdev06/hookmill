@@ -31,13 +31,35 @@ export interface ScriptBlockDraft { label: string; startSec: number; endSec: num
 export interface ScriptDraft { angle: string; rationale: string; durationSec: number; blocks: ScriptBlockDraft[] }
 export interface SceneDraft { index: number; label: string; startSec: number; endSec: number; speech: string; visualPrompt: string }
 export interface Usage { costUsd: number }                  // a ia já gravou a cost_entry
-/** Subdomínios da oferta lidos junto com a página principal (checkout., app.…); [] = só a principal. */
-export interface ExtractSources { relatedUrls?: string[] }
 
-export interface ClaudeService {
-  /** Lê a página (fetch na própria API) + subdomínios da oferta, ou usa o texto colado, e devolve o briefing. Erros: PAGE_FORBIDDEN, PAGE_UNREADABLE, RATE_LIMITED. */
+// ---- briefing-leitura-v2 (22/10) §4.1: de onde veio o briefing
+/** O mais "fundo" que a leitura precisou ir. */
+export type ReadMode = 'pasted'|'http'|'rendered'|'crawled'|'vision';
+export type PageRole = 'main'|'checkout'|'pricing'|'about'|'faq'|'testimonials'|'terms'|'thankyou'|'other';
+export type BriefField = 'name'|'kind'|'what'|'audience'|'promise'|'pains'|'proof'|'offerAndPrice'|'cta'|'notes';
+/** Imagem que entrou na chamada do Claude; `read` = o que o modelo viu (imageNotes). Nunca carrega base64. */
+export interface PageImage { index: number; src: string; alt: string|null; kind: 'screenshot'|'img'|'poster'; widthPx: number; heightPx: number; read?: string }
+/** `imageIndex` presente = o campo saiu de uma imagem. */
+export interface FieldOrigin { role: PageRole; url: string; imageIndex?: number }
+export interface ExtractSources {
+  readMode: ReadMode;
+  pages: { url: string; role: PageRole; via: 'http'|'rendered'; chars: number }[];
+  imagesRead: PageImage[];
+  fieldOrigins: Partial<Record<BriefField, FieldOrigin[]>>;
+  /** @deprecated = pages.filter(p => p.role !== 'main').map(p => p.url); mantido 1 versão pro web atual */
+  relatedUrls: string[];
+}
+/** Etapas do checklist (§4.3). Texto colado só emite as duas últimas; etapa pulada é emitida mesmo assim (o backend marca feita). */
+export type ExtractStage = 'fetching_page'|'rendering_page'|'reading_subpages'|'reading_images'|'extracting'|'detecting_language';
+
+/** 25/10: `extends StaticTextCheckPort` (checkStaticText, estatico-montado-e-molduras-v1 §A6), ligado no fechamento do A-I. */
+export interface ClaudeService extends StaticTextCheckPort {
+  /**
+   * Lê a oferta em cascata (HTTP → render headless → subpáginas → imagens com visão) ou usa o texto colado, e devolve o
+   * briefing com a origem de cada campo. Erros: PAGE_FORBIDDEN, PAGE_UNREADABLE (details.reason = login_wall | empty_after_render), RATE_LIMITED.
+   */
   extractOffer(input: { url?: string; pageText?: string; workspaceId: string; jobId: string },
-               onStage: (stage: 'fetching_page'|'extracting'|'detecting_language') => void): Promise<OfferBriefDraft & Usage & ExtractSources>;
+               onStage: (stage: ExtractStage) => void): Promise<OfferBriefDraft & Usage & ExtractSources>;
 
   /** Escreve N roteiros, em paralelo, com streaming. Falha parcial não derruba os outros. */
   generateScripts(input: {
@@ -119,9 +141,14 @@ export interface AutoPlanInput {
   page: { captured: boolean; text: string|null };
   teardown: TeardownSections; transcript: TranscriptWord[];
   media: { durationSec: number; cuts: number; silences: { startSec: number; endSec: number }[]; hasWrittenHook: boolean; hasEndCard: boolean };
-  /** até 8 (os do teardown), pra escolher o frame do STATIC e o teaser */
+  /** até 8 (os do teardown): teaser do COLD_OPEN e, rev. 23/10, REFERÊNCIA do STATIC (pessoa genérica, cenário, paleta,
+   *  momento da prova). O STATIC nunca copia o frame: é uma imagem nova no GPT Image 2 (§14.3). */
   keyframes: { atSec: number; reason: string; url: string }[];
-  allowed: { type: AutoVariationType; max: number }[];
+  /** 25/10 (molduras §B2): aceita FRAME (o backend só manda FRAME depois do B1-B) */
+  allowed: { type: AutoVariationTypeWithFrame; max: number }[];
+  /** 25/10 (§B2, TRANSIÇÃO): templates liberados pelo `allowedFrames` do backend pra este lote; ausente = padrão
+   *  conservador da ia (`defaultAllowedFrames`, só B1). Só tem efeito com FRAME em `allowed`. */
+  allowedFrames?: FrameTemplateId[];
   rules: { min: number; max: number; minDiversityPct: 40 };
   /** 2ª chamada (reparo) */
   violations?: string[];
@@ -137,13 +164,14 @@ export interface AutoPlanDraft {
 }
 export interface WhyDraft { text: string; source: 'brain'|'video'; brainField: BrainField|null; ref: string }
 export interface AutoItemDraft {
-  type: AutoVariationType;
+  /** 25/10: inclui FRAME (params = AutoFrameDraft) */
+  type: AutoVariationTypeWithFrame;
   /** ≤ 90, uiLocale: "a única coisa que muda" */
   change: string;
   /** ≤ 160, uiLocale: qual linha do porquê ela ataca */
   rationale: string;
   whyKey: 'hook'|'proof'|'cta';
-  params: AutoParamsDraft;
+  params: AutoParamsDraftWithFrame;
 }
 export type AutoParamsDraft =
   | { type: 'CUT'; targetSec: 15|20; blockIndexes: number[] }                    // blocos inteiros, em ordem
@@ -153,7 +181,17 @@ export type AutoParamsDraft =
   | { type: 'SPLIT_LP' } | { type: 'STORY' }
   | { type: 'REVIEW'; quote: string; author: string|null; stars: 1|2|3|4|5|null } // literal do proof; stars só se estiver lá
   | { type: 'NATIVE_SEARCH'; query: string }                                    // ≤ 60, screenLanguage, sem marca
-  | { type: 'STATIC'; atSec: number; headline: string };                        // ≤ 50
+  // rev. 23/10 (§14.3): STATIC criado do zero no GPT Image 2. TRANSIÇÃO: `refAtSec`/`visual` opcionais e `atSec` legado
+  // (= refAtSec ?? 0) só até o fechamento; aí o membro vira `AutoStaticDraft` (abaixo). Sem `visual` = violação no validatePlan.
+  // 25/10 (estatico-montado-e-molduras-v1 §A2/§A5, TRANSIÇÃO): plano novo traz `layout: 'assembled'` + `copy` + `visualV2`;
+  // enquanto o regras.ts lê o legado, a ia preenche também `headline` = `${copy.headline.lead} ${highlight}` e `atSec`.
+  // No fechamento o membro vira `AutoStaticDraftV2` (`visualV2` → `visual`; saem `atSec`/`headline`).
+  | { type: 'STATIC'; atSec: number; headline: string; refAtSec?: number | null; visual?: StaticVisualDraft;
+      layout?: StaticLayout; copy?: StaticCopy; visualV2?: StaticVisualV2 } // headline ≤ 50 (legado)
+  // 25/10: FRAME (molduras §B2), fundido na entrega B1
+  | AutoFrameDraft;
+/** @deprecated fusão B1 (25/10): igual a `AutoParamsDraft`. */
+export type AutoParamsDraftWithFrame = AutoParamsDraft;
 
 // ---------- §13.2: describeEdit ----------
 export interface DescribeEditInput {
@@ -205,7 +243,8 @@ export interface AdLibraryService {
 // A URL do vídeo (fbcdn) expira em horas: o backend faz ingestFromUrl(validate:'video') no mesmo job.
 
 // ---------- catálogo, estimativa e cenas (sem custo) ----------
-export interface CatalogService {
+/** rev. 23/10: `extends StaticImageCatalog` ligado na R-I (estimateStaticImages). */
+export interface CatalogService extends StaticImageCatalog {
   engines(): { id: 'SCENES'|'LIPSYNC'; models: { id: string; label: string; maxSceneSec: number }[]; tradeoffKey: string }[];
   voices(language?: string): { id: string; name: string; language: string; gender: 'female'|'male'|'neutral'; sampleUrl: string }[];
   /** Quebra o roteiro em cenas respeitando o limite do modelo. Determinístico. */
@@ -253,7 +292,8 @@ export const TAKE_MAX_SEC = 600;
 // ---------- WaveSpeed (assíncrono, termina por webhook/reconciliador) ----------
 export type VideoFormat = 'VERTICAL_9_16'|'PORTRAIT_4_5'|'SQUARE_1_1';
 export interface Submitted { providerTaskId: string; externalId: string; estimatedUsd: number }
-export interface GenerationService {
+/** rev. 23/10: `extends StaticImagePort` ligado na R-I (submitStaticImage). */
+export interface GenerationService extends StaticImagePort {
   /** §13.3: aspectRatio = o da região do rosto (CatalogService.faceAspectFor). Ausente = 9:16 (v1). */
   submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect }): Promise<Submitted>;
   /** §13.15: cena SWAP_VIDEO passa `windowIndex` (grava provider_tasks.window_index) e `sound` (false = (A), mudo, sem
@@ -279,3 +319,436 @@ export interface GenerationService {
   parseTranscript(providerTaskId: string): Promise<{ language: string; words: TranscriptWord[] }>;
 }
 // Fim de qualquer task: evento interno 'provider.task.finished' (eventos.md §5); feature 2: ganha `championId?`; §13.5: `takeId?`.
+
+// ---------- variacao-auto-v1 Revisão 23/10 (§14): STATIC criado do zero no GPT Image 2 (WaveSpeed) ----------
+// R-I (23/10, maquina-ia): (2) `GenerationService extends StaticImagePort` e `CatalogService extends StaticImageCatalog`
+// ligados; (3) `renderId?` no ProviderTaskFinishedEvent (portas.ts). (1) FICA pro fechamento do arquiteto: o membro STATIC do
+// AutoParamsDraft segue com `atSec` legado porque o `iteracao/regras.ts` (backend) ainda lê `atSec`; o planAutoBatch já
+// devolve os campos do `AutoStaticDraft` (`refAtSec`, `visual`) + `atSec = refAtSec ?? 0`.
+export type StaticStyle = 'everyday_photo' | 'cinematic' | 'ad_graphic';
+export type HeadlinePlacement = 'top' | 'center' | 'bottom';
+/** Conceito visual do STATIC, em INGLÊS (vai pro prompt do GPT Image 2). Nada de marca/logo/nicho; pessoa só genérica;
+ *  nenhum texto entre aspas (o único texto da imagem é a headline). Limites: object ≤ 220, scene ≤ 220, vibe ≤ 140. */
+export interface StaticVisualDraft {
+  object: string; scene: string; vibe: string;
+  style: StaticStyle;
+  headlinePlacement: HeadlinePlacement;
+}
+/** Saída do planAutoBatch pro STATIC (substitui `{ type: 'STATIC'; atSec; headline }`). */
+export interface AutoStaticDraft {
+  type: 'STATIC';
+  /** ≤ 50, screenLanguage, regra "nada inventado" (§6.2.5); escrita pela própria imagem */
+  headline: string;
+  /** frame-chave do campeão usado como REFERÊNCIA (pessoa/cenário/paleta); nunca copiado. null = nenhum */
+  refAtSec: number | null;
+  visual: StaticVisualDraft;
+}
+/** O que o backend manda gerar (= item.payload.params do STATIC depois da validação + idioma da tela). */
+export interface StaticImageSpec { headline: string; screenLanguage: string; visual: StaticVisualDraft }
+export type StaticAspect = '9:16' | '4:5' | '1:1';
+export interface SubmitStaticImageInput {
+  workspaceId: string;
+  /** o render (formato) que essa imagem preenche → provider_tasks.render_id */
+  renderId: string;
+  creativeId: string; variationBatchId: string;
+  spec: StaticImageSpec;
+  aspectRatio: StaticAspect;
+  /** true = reenvio automático depois de SAFETY_BLOCK: prompt seguro (sem descrição de pessoa/corpo; mesma headline) */
+  safe: boolean;
+  /** notes da OFERTA: só o mock lê ([mock:static-reject] / [mock:static-reject-all] / [mock:static-timeout]) */
+  notes?: string | null;
+  /** 25/10 (TRANSIÇÃO): presente = layout assembled (builder V2, resolução 2k, `edit` se `screenRefUrl`); ausente = `spec` legado */
+  specV2?: StaticImageSpecV2;
+}
+export interface StaticImagePort {
+  /** kind STATIC_IMAGE, `openai/gpt-image-2/text-to-image` (quality high, resolution 1k, png, aspect_ratio do formato).
+   *  Prompt montado pela ia com `buildStaticImagePrompt(spec, aspect, { safe })` (função pura, campos object/scene/vibe/
+   *  photo quality/aspect ratio + `text on the image: "<headline>"`); gravado em provider_tasks.input.prompt.
+   *  cost_entry IMAGE (creativeId, variationBatchId, providerTaskId) no fim. Recusa na submissão (WsContentRejected) =
+   *  task FAILED SAFETY_BLOCK + provider.task.finished, como no eventos.md §3. Erros síncronos: PROVIDER_UNAVAILABLE, RATE_LIMITED. */
+  submitStaticImage(i: SubmitStaticImageInput): Promise<Submitted>;
+}
+export interface StaticImageCatalog {
+  /** US$ de `count` imagens do STATIC (FACE_MODEL_GPT_IMAGE_2 vira STATIC_IMAGE_MODEL no precos.ts: high 1k, 0,22). */
+  /** 25/10: `withScreenRef` = `gpt-image-2/edit` com a referência da tela (D4): 0,41 em vez de 0,40 por imagem (2k) */
+  estimateStaticImages(count: number, opts?: { withScreenRef?: boolean }): number;
+}
+
+// ---------- estatico-montado-e-molduras-v1 (APROVADO 25/10) PARTE A: STATIC "anúncio montado" ----------
+// TRANSIÇÃO (mesmo esquema do §14.5): tipos novos ao lado dos de 23/10; ninguém é obrigado a usá-los até a entrega
+// A-I/A-B. No fechamento: `AutoStaticDraft` vira `AutoStaticDraftV1` (leitura de plano legado), `SubmitStaticImageInput.spec`
+// passa a `StaticImageSpecAny` e `specV2` sai; `ClaudeService extends StaticTextCheckPort`.
+import type {
+  AutoVariationTypeWithFrame,
+  BrollProvenance, BrollProvider, FrameSecondKind, FrameTemplateId, FrameTexts, FrameTwoSourceId, StaticTextCheck,
+} from '@maquina/contratos';
+export type { AutoVariationTypeWithFrame, BrollProvenance, BrollProvider, FrameSecondKind, FrameTemplateId, FrameTexts, FrameTwoSourceId, StaticTextCheck };
+
+/** `assembled` = único layout de plano novo (D7). `photo_headline` (23-25/10) e `poster` (antes de 23/10) só pra legado (§A5). */
+export type StaticLayout = 'assembled';
+export type StaticLayoutAny = StaticLayout | 'photo_headline' | 'poster';
+/** Conjunto fechado e neutro (o prompt descreve o desenho em palavras, nunca um logo). */
+export type StaticIcon =
+  | 'moon' | 'sun' | 'clock' | 'calendar' | 'check' | 'shield' | 'lock' | 'heart' | 'star' | 'lightning'
+  | 'home' | 'phone' | 'chat' | 'chart' | 'money' | 'gift' | 'person' | 'people' | 'play' | 'leaf'
+  | 'target' | 'book' | 'spark' | 'route';
+export type StaticEmotion = 'pain' | 'relief' | 'desire' | 'curiosity' | 'pride';
+/** De onde saiu o texto de tela. 'generic' só onde a tabela §A3.1 deixa (frase sem afirmação nenhuma). */
+export type CopySource = BriefField | 'transcript' | 'generic';
+/** Textos de tela por bloco, no idioma da tela. null/[] = o bloco some (nunca texto genérico com promessa). Limites §A2. */
+export interface StaticCopy {
+  brandLine: string | null; brandLineSource: CopySource | null;                      // ≤ 32
+  tagline: string | null; taglineSource?: CopySource | null;                         // ≤ 32 · source: TRANSIÇÃO (§A3.1)
+  headline: { lead: string; highlight: string }; headlineSource: CopySource;         // lead ≤ 45, highlight ≤ 22, soma ≤ 60; nunca 'generic'
+  subheadline: string | null; subheadlineSource: CopySource | null;                  // ≤ 90
+  handwritten: string | null; handwrittenSource?: CopySource | null;                 // ≤ 28 e ≤ 5 palavras
+  benefits: { icon: StaticIcon; title: string; line: string; source: CopySource }[]; // 0 ou 3-5; title ≤ 24, line ≤ 40
+  trust: { icon: StaticIcon; text: string; source: CopySource }[];                   // 0 ou 3; text ≤ 24
+  cta: { main: string; mainSource?: CopySource; sub: string | null; subSource: CopySource | null }; // main ≤ 18, sub ≤ 22
+  closing: string | null; closingSource?: CopySource | null;                         // ≤ 50 e ≤ 9 palavras
+}
+/** Em INGLÊS (vai pro prompt); nada de texto, aspas, marca ou nicho nomeado. */
+export interface StaticVisualV2 {
+  hero: { person: string; setting: string; emotion: StaticEmotion; light: string } | null; // ≤ 200 / 160 / 80; null = sem pessoa
+  product: {
+    kind: 'phone_screen' | 'laptop_screen' | 'physical_product' | 'none';
+    look: string | null;                         // ≤ 200, sem texto legível
+    screenTitle: string | null;                  // ≤ 24, idioma da tela: único texto dentro da tela
+    screenTitleSource: CopySource | null;
+  };
+  mood: string;                                  // ≤ 100
+}
+/** Saída final do planAutoBatch pro STATIC (§A2). Hoje chega pelo membro STATIC do AutoParamsDraft (TRANSIÇÃO). */
+export interface AutoStaticDraftV2 {
+  type: 'STATIC'; layout: StaticLayout;
+  refAtSec: number | null;
+  copy: StaticCopy;
+  visual: StaticVisualV2;
+}
+/** O que o backend manda gerar no layout assembled (§A4). `palette` vem do `paletaDoEstatico` (backend, §A3.3). */
+export interface StaticImageSpecV2 {
+  layout: 'assembled'; screenLanguage: string; brandName: string;
+  palette: { background: string; accent: string };
+  copy: StaticCopy; visual: StaticVisualV2;
+  /** D4: captura da página ou foto do produto como referência da tela (`gpt-image-2/edit`, +US$ 0,012); null = tela abstrata */
+  screenRefUrl: string | null;
+}
+/** Legado (§A5): spec de 23/10 = `photo_headline`; sem `visual` (plano anterior a 23/10) = `poster`. */
+export type StaticImageSpecLegacy = StaticImageSpec & { layout?: 'photo_headline' | 'poster' };
+export type StaticImageSpecAny = StaticImageSpecV2 | StaticImageSpecLegacy;
+/** §A6: checagem de texto por visão (Haiku). O backend compara (`compararTexto`: NFC, caixa/espaço ignorados, acento conta). */
+export interface CheckStaticTextInput {
+  workspaceId: string; creativeId: string; variationBatchId: string; renderId: string;
+  imageUrl: string; language: string;
+  expected: { key: string; text: string; critical: boolean }[];
+  /** notes da OFERTA: só o mock lê ([mock:static-text-mismatch] / [mock:static-text-mismatch-all]) */
+  notes?: string | null;
+}
+export interface CheckStaticTextResult { items: { key: string; found: boolean; seen: string | null }[]; extraText: string[] }
+/** Grava cost_entry LLM no lote. Falha (Claude fora) = o backend marca `textCheck.status = 'skipped'`; não segura a peça. */
+export interface StaticTextCheckPort {
+  checkStaticText(i: CheckStaticTextInput): Promise<CheckStaticTextResult & Usage>;
+}
+
+// ---------- estatico-montado-e-molduras-v1 PARTE B: molduras (FRAME) ----------
+/** Saída do plano pra uma moldura. `sources`: chave = caminho do texto ("headline", "items.0", "price.to") → fonte.
+ *  Todo texto vindo do Brain/da fala tem fonte; os de interface ("POV:", "AO VIVO", "Faça uma pergunta") são do template. */
+export type AutoFrameDraft = {
+  [K in FrameTemplateId]: { type: 'FRAME'; template: K; texts: FrameTexts[K]; sources: Record<string, CopySource> }
+}[FrameTemplateId];
+/** Marca na moldura (backend preenche; a IA não escreve): nome = offer.name, handle = workspace.name normalizado, cor = paleta. */
+export interface FrameBrand { name: string; handle: string; initials: string; color: string }
+/** 2ª mídia (B2, §B3). `stock_broll` = clipe de terceiro (§B3.1) já baixado no nosso storage. */
+export type FrameSecondSource =
+  | { kind: 'champion_segment'; startSec: number; endSec: number }
+  | { kind: 'page_capture'; fileUrl: string; scroll: boolean }
+  | { kind: 'product_photo'; fileUrl: string }
+  | { kind: 'stock_broll'; fileUrl: string; provenance: BrollProvenance }
+  /** 25/10 (D Gusta): reserva quando o Pexels não tem clipe bom. Imagem nossa (GPT Image 2, `BrollPort.fallbackImage`),
+   *  já no storage; `prompt`/`model` = proveniência (vai pro README do zip como "imagem gerada"). Sem licença de terceiro. */
+  | { kind: 'generated_image'; fileUrl: string; prompt: string; model: string; subject: string };
+/** Params final da peça FRAME (variation_items.payload.params depois da validação), lido pelo buildFrameInput (api/src/render/frame.ts). */
+export interface FrameSpec {
+  template: FrameTemplateId; texts: FrameTexts[FrameTemplateId]; screenLanguage: string;
+  brand: FrameBrand;
+  /** foto redonda = frame do campeão no faceTrack (question_box, live, gossip_*); null = sem rosto */
+  faceAtSec: number | null;
+  second: FrameSecondSource | null;
+  /** read_caption (D14) */
+  suggestedPrimaryText: string | null;
+}
+/** §B3.1: busca de b-roll pela fala do roteiro (porta da ia; implementação em api/src/integracoes/broll/, fase B2). */
+export interface BrollSearchInput {
+  workspaceId: string; variationBatchId: string; jobId: string;
+  /** trecho da fala (screenLanguage); a ia monta as queries com as entidades do Brain */
+  speech: string; language: string; minSec: number;
+  providers: BrollProvider[];
+  limit: number;
+  /** 25/10: tom e entidades pras queries (nada de nicho embutido; vem da oferta do lote) */
+  offer?: { name?: string | null; kind?: string | null; what?: string | null; audience?: string | null } | null;
+  /** 25/10: `offer.notes` (gatilhos do mock `[mock:broll-*]`) */
+  notes?: string | null;
+}
+export interface BrollCandidateDraft {
+  candidateId: string; provenance: BrollProvenance; posterUrl: string; previewUrl: string | null; durationSec: number; query: string;
+  /** 25/10: escolha da ia por visão (contact sheet + fala). O 1º `chosen: true` é o usado; `reason` ≤ 160, uiLocale.
+   *  TRANSIÇÃO: opcionais até a ia trocar o `pick` local (BrollCandidatePick) por estes dois e o backend ler daqui. */
+  chosen?: boolean;
+  reason?: string;
+}
+export interface BrollPort {
+  search(i: BrollSearchInput): Promise<{ candidates: BrollCandidateDraft[] } & Usage>;
+  /** 25/10: reserva sem clipe bom (`BROLL_NO_MATCH`): imagem do `subject` no GPT Image 2 → FrameSecondSource `generated_image`.
+   *  Grava cost_entry IMAGE no lote. Sem WaveSpeed configurada = NOT_CONFIGURED (o backend cai pro champion_segment). */
+  fallbackImage?(i: { workspaceId: string; variationBatchId: string; subject: string }): Promise<{ fileUrl: string; prompt: string; model: string; costUsd: number }>;
+  /** baixa o intervalo, verifica (ffprobe) e ingere no storage; devolve o fileUrl pra FrameSecondSource */
+  fetch(i: { workspaceId: string; variationBatchId: string; candidateId: string }): Promise<{ fileUrl: string; provenance: BrollProvenance }>;
+}
+
+// ---------- Meta v1 (docs/contratos/meta-v1.md §3, §5, §8; I1, 21/10) ----------
+// Porta entre o backend (api/src/meta/, B1) e a integração (api/src/integracoes/meta/). Assinatura em
+// integracoes/meta/PORTA.md. A integração NÃO toca no banco: o backend lê a MetaConnection, decifra o token
+// (integracoes/meta/cifra.ts) e passa `MetaAuth` em cada chamada; o que volta ele grava. Erros = `MetaError`
+// (integracoes/meta/erros.ts) com `code` META_* do contrato, `action`, `details` e `failDetail` (code/subcode/fbtrace).
+import type {
+  BusinessType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions,
+  MetaPublishSettings, MetaSpecialAdCategory,
+} from '@maquina/contratos';
+export type { BusinessType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions, MetaPublishSettings, MetaSpecialAdCategory };
+
+export type MetaMode = 'mock' | 'live' | 'off';
+export type MetaReturnTo = '/onboarding/meta' | '/settings/connections' | '/settings' | '/meta/done';
+/** Token em claro, só dentro da API (decifrado pelo backend na hora da chamada). Nunca logar, nunca serializar. */
+export interface MetaAuth { accessToken: string }
+
+/** `state` do OAuth (JWT HS256 de 10 min assinado com JWT_ACCESS_SECRET; nada no banco). */
+export interface MetaOAuthState { workspaceId: string; userId: string; returnTo: MetaReturnTo; nonce: string; expiresAt: string }
+/** Resultado da troca do `code` (§3.1 callback). O backend cifra `accessToken` e grava a MetaConnection. */
+export interface MetaTokenGrant {
+  accessToken: string; tokenType: 'USER_LONG_LIVED';
+  /** do debug_token; null = não expira */
+  expiresAt: string | null;
+  /** escopos concedidos de fato (debug_token.scopes) */
+  scopes: string[];
+  user: { id: string; name: string };
+}
+export interface MetaTokenInfo { isValid: boolean; expiresAt: string | null; scopes: string[]; missingScopes: string[] }
+
+/** Conta de anúncios lida ao vivo (`act_<id>?fields=…`). Alimenta a seleção, o health e os defaults de publicação. */
+export interface MetaAdAccountInfo {
+  id: string; name: string; currency: string; timezoneName: string;
+  accountStatus: number; accountStatusLabel: string;
+  business: { id: string; name: string } | null;
+  /** user_tasks contém MANAGE ou ADVERTISE */
+  canManage: boolean;
+  /** funding_source_details presente */
+  hasFunding: boolean;
+  /** minimum_budgets.min_daily_budget_imp (centavos da moeda da conta); null se a leitura falhou */
+  minimumDailyBudgetMinor: number | null;
+}
+
+/** O que o health precisa saber da conexão (vem da MetaConnection). Contagens vêm dos snapshots do backend. */
+export interface MetaHealthInput {
+  adAccountId: string | null; pageId: string | null; pixelId: string | null; businessId: string | null;
+  /** tokenExpiresAt gravado (o health também consulta o debug_token) */
+  tokenExpiresAt: string | null;
+  scopes: string[];
+  counts: { adsCount: number; activeCount: number };
+}
+export interface MetaHealthResult {
+  health: MetaHealth;
+  /** conta relida (null se não há conta escolhida ou se a leitura falhou) — o backend atualiza accountStatus/currency/timezone */
+  account: MetaAdAccountInfo | null;
+  token: MetaTokenInfo;
+}
+
+/** Regra do §5 (env META_WINNER_MIN_SPEND_USD, META_WINNER_MIN_RESULTS, META_TREND_*, META_USD_RATES). */
+export interface MetaWinnerRule {
+  minSpendUsd: number; minResults: number;
+  trendBetter: number; trendWorse: number; trendFreq: number;
+  /** moeda da conta → USD (BRL=5.5 significa 5,5 BRL por USD); sem a moeda = 1:1 */
+  usdRates: Record<string, number>;
+}
+/** Uma linha do MetaAdSnapshot sem os ids do banco. `verdict`/`trend` já calculados pela integração (§5).
+ *  `metrics*.plays2s`/`hookRate` vêm de `video_continuous_2_sec_watched_actions` (2-Second Continuous Video Plays): a Graph
+ *  v25.0 não tem campo de 3 s (22/10, meta/PORTA.md). O nome `plays2s` é do contrato compartilhado; renomear é do arquiteto. */
+export interface MetaAdSnapshotDraft {
+  metaAdId: string; name: string; effectiveStatus: string;
+  campaign: { id: string; name: string }; adset: { id: string; name: string };
+  metaCreativeId: string | null; videoId: string | null; thumbnailUrl: string | null;
+  resultType: string | null;
+  metrics: MetaMetrics; metrics7d: MetaMetrics; metricsPrev7d: MetaMetrics;
+  verdict: MetaAdVerdict; trend: MetaAdTrend | null;
+  adCreatedTime: string | null;
+  /** campanhas-v1 (22/10): status configurado do anúncio (ACTIVE | PAUSED). Opcional até a I4 entregar; o backend grava 'ACTIVE' se faltar */
+  status?: 'ACTIVE' | 'PAUSED';
+}
+
+// ---------- campanhas-v1 (docs/contratos/campanhas-v1.md §1, §2, §4; I4/B4, aprovado 22/10) ----------
+/** Uma linha do MetaCampaignSnapshot (sem ids do banco). Orçamentos em centavos da moeda da conta (a Graph devolve string). */
+export interface MetaCampaignSnapshotDraft {
+  campaignId: string; name: string; objective: string;
+  status: 'ACTIVE' | 'PAUSED'; effectiveStatus: string;
+  buyingType: string | null; bidStrategy: string | null;
+  dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null; budgetRemainingMinor: number | null;
+  specialAdCategories: string[];
+  startTime: string | null; stopTime: string | null; createdTime: string | null;
+  /** insights level=campaign nas 3 janelas (com reach/frequency) */
+  metrics: MetaMetrics; metrics7d: MetaMetrics; metricsPrev7d: MetaMetrics;
+}
+/** Uma linha do MetaAdsetSnapshot. learningStage = learning_stage_info.status (LEARNING | SUCCESS | FAIL). */
+export interface MetaAdsetSnapshotDraft {
+  adsetId: string; campaignId: string; name: string;
+  status: 'ACTIVE' | 'PAUSED'; effectiveStatus: string;
+  optimizationGoal: string | null; billingEvent: string | null; bidStrategy: string | null;
+  dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null; budgetRemainingMinor: number | null;
+  learningStage: 'LEARNING' | 'SUCCESS' | 'FAIL' | null;
+  startTime: string | null; endTime: string | null; createdTime: string | null;
+  /** insights level=adset nas 3 janelas (com reach/frequency) */
+  metrics: MetaMetrics; metrics7d: MetaMetrics; metricsPrev7d: MetaMetrics;
+}
+export type MetaObjectLevelPort = 'campaign' | 'adset' | 'ad';
+/** Leitura AO VIVO de um objeto antes de escrever (guarda D8 e regras do §4.1). Pais vêm junto pra checar pausa/CBO. */
+export interface MetaLiveObject {
+  level: MetaObjectLevelPort; id: string; name: string;
+  status: 'ACTIVE' | 'PAUSED'; effectiveStatus: string;
+  dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null;
+  /** pai campanha (em conjunto e anúncio) */
+  campaign: { id: string; name: string; status: 'ACTIVE' | 'PAUSED'; dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null } | null;
+  /** pai conjunto (só em anúncio) */
+  adset: { id: string; name: string; status: 'ACTIVE' | 'PAUSED'; dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null } | null;
+}
+/** Último uso lido dos headers X-Business-Use-Case-Usage / x-app-usage / x-ad-account-usage (pct = maior entre os eixos). */
+export interface MetaUsage { pct: number; regainSec: number | null; at: string }
+
+export type MetaSyncStage = 'listing_campaigns' | 'listing_adsets' | 'listing_ads' | 'reading_insights' | 'scoring';
+export interface MetaSyncInput {
+  adAccountId: string;
+  /** moeda da conta (pra converter o mínimo em USD da regra) */
+  currency: string;
+  /** decide o action_type do "resultado" (§3.2); null = link_click */
+  businessType: BusinessType | null;
+  /** sem pixel = resultado por clique, resultType diz isso */
+  hasPixel: boolean;
+  /** teto de anúncios lidos (padrão 500) */
+  maxAds?: number;
+  /** relógio (testes) */
+  now?: Date;
+}
+export interface MetaSyncResult {
+  ads: MetaAdSnapshotDraft[];
+  /** mediana do CPA dos elegíveis (30 d); null sem elegível */
+  medianCpa: number | null;
+  rule: { minSpendUsd: number; minResults: number };
+  /** anúncios lidos no total (inclui os que não são de vídeo e ficaram fora) */
+  listed: number;
+  syncedAt: string;
+  // campanhas-v1 (22/10): opcionais até a I4 entregar. Com eles, `ads` passa a trazer TODOS os formatos (videoId null =
+  // imagem; D2) e o verdict dos não-vídeo é calculado contra a mediana dos VÍDEOS (medianCpa continua só de vídeo).
+  campaigns?: MetaCampaignSnapshotDraft[];
+  adsets?: MetaAdsetSnapshotDraft[];
+  /** passou de maxAds (500) em algum nível */
+  truncated?: boolean;
+}
+
+export type MetaPublishStage = 'uploading_video' | 'processing_video' | 'creating_campaign' | 'creating_adset' | 'creating_creative' | 'creating_ad';
+export const META_PUBLISH_STAGES: readonly MetaPublishStage[] = ['uploading_video', 'processing_video', 'creating_campaign', 'creating_adset', 'creating_creative', 'creating_ad'];
+/** Tudo que as 6 etapas precisam (a MetaPublication + o render). O mock lê os gatilhos do §8 em `settings.primaryText`/`headline`. */
+export interface MetaPublishInput {
+  adAccountId: string; pageId: string; pixelId: string | null;
+  /** nome na Meta (campanha, conjunto, anúncio, vídeo, criativo) = Creative.adName (D10; `_2` em republicação é do backend) */
+  adName: string;
+  settings: MetaPublishSettings;
+  video: {
+    /** URL pública (assinada) do render: a Meta baixa (`file_url`). Vazio/privado → `read` (upload resumable) */
+    fileUrl: string | null;
+    /** tamanho em bytes + leitura por faixa (storage), pro upload resumable em pedaços de 8 MB */
+    sizeBytes: number | null;
+    read: ((offset: number, length: number) => Promise<Buffer>) | null;
+  };
+  /** thumbnail JPEG/PNG do render (assinado ≥ 6 h) = `image_url` do video_data. `null` = sem JPEG: o creative vai sem `image_url` e a Meta gera o thumb do vídeo (nunca passe a URL do .mp4 aqui) */
+  thumbnailUrl: string | null;
+}
+/** Ids já criados (retomada idempotente: etapa com id gravado não roda de novo). */
+export interface MetaPublishIds { videoId: string | null; creativeId: string | null; campaignId: string | null; adsetId: string | null; adId: string | null }
+
+export interface MetaServiceStatus { mode: MetaMode; configured: boolean; appIdMasked: string | null; graphVersion: string }
+
+/**
+ * MetaService (token META_SERVICE). Mock (META_MODE=mock, padrão), live (Graph API) e off. Todas as chamadas que
+ * recebem `auth` podem lançar MetaError META_TOKEN_INVALID (code 190 / is_valid false → o backend marca TOKEN_INVALID),
+ * META_PERMISSION, META_UNAVAILABLE ({ reason: 'rate_limited' | 'down', retryAfterSec }) e META_ERROR.
+ * Em `off`/live sem config, toda chamada lança META_NOT_CONFIGURED { reason: 'off' | 'not_configured' }.
+ */
+export interface MetaService {
+  /** ServiceStatus.provider = 'META' (connected = configurado; keyMasked = app id mascarado). Síncrono, sem rede. */
+  status(): MetaServiceStatus;
+
+  // ---------- §3.1 OAuth e conexão ----------
+  /** URL do diálogo (live: facebook.com/<v>/dialog/oauth?…config_id…; mock: <api>/api/v1/meta/callback?code=mock&state=…). */
+  buildAuthUrl(i: { workspaceId: string; userId: string; returnTo: MetaReturnTo }): { url: string; state: string; expiresAt: string };
+  /** Valida assinatura, prazo (10 min) e, se pedido, dono. Falha = META_STATE_INVALID. */
+  verifyState(state: string | undefined | null, expect?: { workspaceId?: string; userId?: string }): MetaOAuthState;
+  /** Query do callback → token long-lived + debug_token + /me. Falhas: META_OAUTH_DENIED (error=access_denied),
+   *  META_SCOPES_MISSING { missing } (não gravar a conexão), META_OAUTH_FAILED (code usado/expirado/redirect/secret),
+   *  META_UNAVAILABLE. Mock: code 'mock' ok; 'mock-denied' / 'mock-scopes' / 'mock-failed' = os 3 erros. */
+  exchangeCode(q: { code?: string | null; error?: string | null; errorReason?: string | null; errorDescription?: string | null }): Promise<MetaTokenGrant>;
+  /** debug_token: validade, prazo, escopos e os que faltam dos 4 do §4. is_valid=false NÃO lança (volta isValid:false). */
+  inspectToken(auth: MetaAuth): Promise<MetaTokenInfo>;
+  /** DELETE /me/permissions (melhor esforço: nunca lança). */
+  revoke(auth: MetaAuth): Promise<void>;
+
+  /** GET /meta/options ao vivo: contas (canManage/permissionReason), páginas, pixels (só da conta de `adAccountId`). */
+  listOptions(auth: MetaAuth, q: { adAccountId?: string | null }): Promise<MetaOptions>;
+  /** Conta de anúncios completa (seleção, health, defaults). Conta inexistente/sem acesso = META_PERMISSION. */
+  readAdAccount(auth: MetaAuth, adAccountId: string): Promise<MetaAdAccountInfo>;
+  /** Os 8 checks do §3.1 com níveis ok/warn/bad e `canPublish`. Só lança quando a checagem não roda (token/rede). */
+  health(auth: MetaAuth, i: MetaHealthInput): Promise<MetaHealthResult>;
+
+  // ---------- §3.2 leitura ----------
+  /** Anúncios de VÍDEO da conta + 3 janelas de insights → snapshots com verdict/trend (§5). `onProgress` alimenta o
+   *  job META_SYNC (`total` conhecido a partir de listing_ads). */
+  syncAds(auth: MetaAuth, i: MetaSyncInput, onProgress?: (p: { stage: MetaSyncStage; done: number; total: number }) => void): Promise<MetaSyncResult>;
+  /** GET /{videoId}?fields=source,… → URL temporária da CDN pro `storage.ingestVideoWithThumbnail`.
+   *  Sem `source` = META_VIDEO_UNAVAILABLE (action upload_video). Mock: videoId 'mock_video_novideo' cai aqui. */
+  videoSource(auth: MetaAuth, videoId: string, ctx?: { adAccountId?: string | null; pageId?: string | null }): Promise<{ sourceUrl: string; permalinkUrl: string | null; lengthSec: number | null }>;
+  /** Regra do §5 em uso (pra MetaSummary.rule e pra recalcular sobre snapshots). */
+  rule(): MetaWinnerRule;
+
+  // ---------- §3.3 publicação (6 etapas; o backend grava o id de cada uma antes da próxima) ----------
+  /** 1. POST act/advideos (file_url ou resumable 8 MB). Falhas: META_VIDEO_REJECTED, META_PERMISSION, META_ERROR. */
+  uploadVideo(auth: MetaAuth, i: MetaPublishInput): Promise<{ videoId: string }>;
+  /** 2. GET /{videoId}?fields=status a cada 3 s até ready (teto 10 min → META_ERROR action retry; error → META_VIDEO_REJECTED). */
+  waitVideoReady(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds, opts?: { timeoutMs?: number; onPoll?: (status: string) => void }): Promise<void>;
+  /** 3. POST act/campaigns (PAUSED, AUCTION). */
+  createCampaign(auth: MetaAuth, i: MetaPublishInput): Promise<{ campaignId: string }>;
+  /** 4. POST act/adsets (PAUSED, orçamento diário, público amplo, optimization_goal/promoted_object por objetivo).
+   *  Falhas: META_BUDGET_TOO_LOW { minimumMinor, currency }, META_PAYMENT_REQUIRED, META_ACCOUNT_UNUSABLE. */
+  createAdSet(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds): Promise<{ adsetId: string }>;
+  /** 5. POST act/adcreatives (object_story_spec.video_data). Falhas: META_POLICY (edit_ad_text), META_PERMISSION (page). */
+  createAdCreative(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds): Promise<{ creativeId: string }>;
+  /** 6. POST act/ads (PAUSED) + preview opcional. */
+  createAd(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds): Promise<{ adId: string; previewUrl: string | null }>;
+  /** activate = ACTIVE em [adId, adsetId, campaignId]; pause = PAUSED só no adId. Falhas: META_TOKEN_INVALID, META_PERMISSION, META_ACCOUNT_UNUSABLE. */
+  setStatus(auth: MetaAuth, i: { objectIds: string[]; status: 'ACTIVE' | 'PAUSED' }): Promise<void>;
+  /** https://adsmanager.facebook.com/adsmanager/manage/ads?act=<id sem act_>&selected_ad_ids=<adId> (mock: '#'). */
+  adsManagerUrl(adAccountId: string, adId: string): string;
+
+  // ---------- campanhas-v1 §4 (I4, entregue 22/10: mock + live; escrita live NUNCA exercitada de verdade, só fetch falso) ----------
+  // `syncAds` passa a devolver também `campaigns`/`adsets`/`truncated` (MetaSyncResult) lendo act/campaigns, act/adsets e
+  // insights level=campaign|adset nas 3 janelas (campos no campanhas-v1 §1), etapas listing_campaigns → listing_adsets →
+  // listing_ads → reading_insights → scoring. `setStatus` (acima) serve às escritas da Campaigns com 1 id por chamada
+  // (o backend passa os pais junto quando includeParents).
+  /** GET /{id}?fields=status,effective_status,daily_budget,lifetime_budget,campaign{…},adset{…} AO VIVO.
+   *  Objeto inexistente/apagado = MetaError META_OBJECT_GONE. Mock: objeto com `[mock:stale]` no nome devolve status/orçamento
+   *  diferentes do snapshot (o backend responde META_OBJECT_CHANGED); `[mock:meta-rate]`/`[mock:meta-token]` lançam os erros. */
+  readObject(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string }): Promise<MetaLiveObject>;
+  /** POST /{id} daily_budget=<minor> (campanha CBO ou conjunto ABO). Falhas: META_BUDGET_TOO_LOW { minimumMinor, currency },
+   *  META_BUDGET_NOT_EDITABLE (a Meta recusou porque o orçamento mora no outro nível), META_PERMISSION, META_ACCOUNT_UNUSABLE.
+   *  As regras de produto (teto 2×, expected) são do backend; aqui só a chamada e o mapa de erro. */
+  setDailyBudget(auth: MetaAuth, i: { level: 'campaign' | 'adset'; id: string; dailyBudgetMinor: number }): Promise<void>;
+  /** Link do Ads Manager por nível (campanhas-v1 §5.4; mock: '#'). Substitui `adsManagerUrl` quando a I4 entregar. */
+  objectUrl(adAccountId: string, level: MetaObjectLevelPort, id: string): string;
+  /** Último uso de cota da Meta visto pelo cliente Graph (null antes da 1ª chamada / mock). O backend bloqueia escrita com pct ≥ META_WRITE_USAGE_CEILING (90). */
+  usage(): MetaUsage | null;
+}

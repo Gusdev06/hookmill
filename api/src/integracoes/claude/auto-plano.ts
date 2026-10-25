@@ -5,16 +5,32 @@
 //  - `why` só cita o Brain quando o campo existe (senão source 'video');
 //  - parâmetros só do tipo da peça, sentinelas ("" / 0 / 'none') viram null;
 //  - textos de interface cortados em fronteira de palavra no limite do contrato; a citação do REVIEW nunca é mexida.
+// Rev. 23/10 (§14.3): o STATIC é uma imagem NOVA do GPT Image 2 (conceito `visual` em inglês + headline ≤ 50); os
+// frames-chave vão como REFERÊNCIA (pessoa genérica, cenário, paleta), nunca como o frame da peça. Marca, aspas e
+// limites do `visual` são validados pelo backend (regras.ts) e voltam como `violations` no reparo.
+// 25/10 (estatico-montado-e-molduras-v1): o STATIC vira anúncio montado (`copy` por bloco com fonte + `visualV2`,
+// auto-plano-estatico.ts) e entra o FRAME (moldura + textos com fonte, auto-plano-moldura.ts; TRANSIÇÃO com os aliases WithFrame).
 // Esquema SEM union (anyOf/null): limite de 16 unions por pedido. Parâmetros num objeto plano, lido por tipo.
 import type {
-  AutoItemDraft, AutoParamsDraft, AutoPlanDraft, AutoPlanInput, AutoVariationType, BlockFn, BrainField, OfferBriefDraft,
-  TeardownSections, WhyDraft,
+  AutoItemDraft, AutoParamsDraft, AutoParamsDraftWithFrame, AutoPlanDraft, AutoPlanInput, AutoVariationType, AutoVariationTypeWithFrame, BlockFn,
+  BrainField, FrameTemplateId, HeadlinePlacement, OfferBriefDraft, StaticStyle, StaticVisualDraft, TeardownSections, WhyDraft,
 } from '../contrato';
+import { STATIC_V2_RULES, staticCopyOf, staticVisualV2Of } from './auto-plano-estatico';
+import { FRAME_RULES, allowedFramesOf, frameAllowed, frameParamsOf, framesRequestLine, type AutoPlanInputWithFrame } from './auto-plano-moldura';
 import { IntegracaoError } from '../erros';
 import { wordsBlock } from './prompts-campeao';
 import { parseJsonObject } from './validacao-campeao';
 
 export const AUTO_TYPES: AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
+/** 25/10 (§B2, TRANSIÇÃO): com FRAME. Vira o AUTO_TYPES na fusão do B1. */
+export const AUTO_TYPES_WITH_FRAME: AutoVariationTypeWithFrame[] = [...AUTO_TYPES, 'FRAME'];
+export type { AutoPlanInputWithFrame } from './auto-plano-moldura';
+/** Catálogo dos lotes NOVOS (decisão do Gusta 25/10): saem COLD_OPEN, HOOK_TEXT, ENDCARD, STORY e SPLIT_LP do esquema e
+ *  do prompt; o parse dos tipos antigos continua (AUTO_TYPES_WITH_FRAME) pra plano já salvo e pro reparo. */
+export const PLAN_TYPES: AutoVariationTypeWithFrame[] = ['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
+/** TRANSIÇÃO (§C.0): item/plano com FRAME. Na fusão do B1 viram o AutoItemDraft/AutoPlanDraft do contrato. */
+export type AutoItemDraftWithFrame = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationTypeWithFrame; params: AutoParamsDraftWithFrame };
+export type AutoPlanDraftWithFrame = Omit<AutoPlanDraft, 'items'> & { items: AutoItemDraftWithFrame[] };
 export const BLOCK_FNS: BlockFn[] = ['hook', 'problem', 'mechanism', 'proof', 'cta', 'other'];
 /** Campos do Brain que o porquê pode citar ('page' = texto capturado da LP). */
 export const BRAIN_FIELDS: BrainField[] = ['what', 'audience', 'pains', 'promise', 'proof', 'offerAndPrice', 'cta', 'notes', 'page'];
@@ -25,7 +41,14 @@ export const AUTO_LIMITS = {
   whyText: 120, whyRef: 60, keptLabel: 40, change: 90, rationale: 160,
   hookText: 60, endHeadline: 40, endSubline: 60, endCta: 24, query: 60, staticHeadline: 50, author: 60,
   pageChars: 4000,
+  /** §14.3: conceito visual do STATIC (inglês) */
+  visualObject: 220, visualScene: 220, visualVibe: 140,
 } as const;
+
+export const STATIC_STYLES: StaticStyle[] = ['everyday_photo', 'cinematic', 'ad_graphic'];
+export const HEADLINE_PLACEMENTS: HeadlinePlacement[] = ['top', 'center', 'bottom'];
+/** Frames-chave mandados como imagem quando STATIC está em `allowed` (o resto vai só como horário + motivo). */
+export const STATIC_REF_IMAGES = 4;
 
 const str = (description: string) => ({ type: 'string', description });
 const num = (description: string) => ({ type: 'number', description });
@@ -46,18 +69,15 @@ const WHY = obj({
 const PARAMS = obj({
   targetSec: en([0, 15, 20], 'CUT only: 15 or 20. 0 for other types.'),
   blockIndexes: arr({ type: 'integer' }, 'CUT only: whole blocks kept, in order (always the hook block 0 and every kept block). Empty for other types.'),
-  teaserStartSec: num('COLD_OPEN only: start of the teaser lifted from later in the video (at or after 5 s, in a silence between words). 0 otherwise.'),
-  teaserEndSec: num('COLD_OPEN only: end of the teaser, 1.5 to 3.5 s after its start, in a silence. 0 otherwise.'),
-  text: str('HOOK_TEXT only: the new written hook for the first seconds, screen language, max 60 characters. Empty otherwise.'),
-  variant: en(['offer', 'guarantee', 'price', 'cta', 'none'], 'ENDCARD only: what the end card shows, by what the Brain really has. "none" for other types.'),
-  headline: str('ENDCARD (max 40) or STATIC (max 50): headline in the screen language. Empty otherwise.'),
-  subline: str('ENDCARD only: optional second line, max 60, screen language. Empty when not needed.'),
-  ctaText: str('ENDCARD only: button text, max 24, screen language. Empty otherwise.'),
   quote: str('REVIEW only: a testimonial copied LITERALLY from the Brain proof field (character for character). Empty otherwise.'),
   author: str('REVIEW only: the author exactly as written next to the quote in the Brain. Empty if not written there.'),
   stars: en([0, 1, 2, 3, 4, 5], 'REVIEW only: star rating only if the Brain states it. 0 when not stated or other types.'),
   query: str('NATIVE_SEARCH only: what a viewer would type into a search bar about the problem the hook names, screen language, max 60, no brand. Empty otherwise.'),
-  atSec: num('STATIC only: second of the frame used for the still (the proof moment if there is one). 0 for other types.'),
+  refAtSec: num('STATIC only: second of the key frame you used as visual REFERENCE (generic person, setting, palette), or -1 when none. -1 for other types.'),
+  // bug live 25/10: os textos do STATIC e da moldura saem numa 2ª etapa (auto-plano-detalhe.ts); aqui só a escolha
+  emotion: str('STATIC only: the hero emotion, one of pain, relief, desire, curiosity, pride (hook → pain or curiosity, proof → relief or pride, cta → desire). "none" for other types.'),
+  concept: str('STATIC only, in English, max 160 characters: the concept of the assembled ad (who is in the hero photo, where, what the product shows, which pain or desire the headline names). No quotation marks, no brand. Empty otherwise.'),
+  template: str('FRAME only: the frame template id, one of those listed in <frames> of the request. "none" for other types.'),
 }, 'Parameters of this piece. Fill only the fields of its type; the rest get the empty value (empty string, 0, empty list, "none").');
 
 export const AUTO_PLAN_SCHEMA = obj({
@@ -65,7 +85,7 @@ export const AUTO_PLAN_SCHEMA = obj({
   why: obj({ hook: WHY, proof: WHY, cta: WHY }, 'Why the champion sells: one line for its hook, one for its proof, one for its CTA.'),
   kept: arr(obj({ label: str('Short pill, interface language, max 40 characters: something that stays identical in every piece.'), blockIndex: int('Block it refers to, or -1 when it is not one block (voice, pace, framing).') }), '2 to 4 things kept intact in every piece.'),
   items: arr(obj({
-    type: en(AUTO_TYPES, 'Piece type; only types listed in <allowed>.'),
+    type: en(PLAN_TYPES, 'Piece type; only types listed in <allowed>.'),
     change: str('The ONE thing that changes in this piece, interface language, max 90 characters.'),
     rationale: str('Which why line it attacks and how, interface language, max 160 characters. A hypothesis.'),
     whyKey: en(['hook', 'proof', 'cta'], 'The why line this piece attacks.'),
@@ -73,29 +93,31 @@ export const AUTO_PLAN_SCHEMA = obj({
   }), 'The pieces, in plan order.'),
 });
 
-export const AUTO_PLAN_SYSTEM = `You plan a batch of edit-only variations of a winning short video ad (the "champion") for a performance team. Every piece reuses the champion's own footage and audio; nothing is filmed or generated. Each piece changes exactly ONE thing so the test reads clean.
+export const AUTO_PLAN_SYSTEM = `You plan a batch of edit-only variations of a winning short video ad (the "champion") for a performance team. Every video piece reuses the champion's own footage and audio; nothing is filmed or generated (the one exception is STATIC, a new image ad). Each piece changes exactly ONE thing so the test reads clean.
 
 Piece types (axis in brackets; ITERATION keeps the first frame, DIVERSITY changes it):
 - CUT [ITERATION]: a 15 s (or 20 s) cut made of whole blocks, in order. The hook block (index 0) and every kept block always stay. Use 20 s only when hook + proof + CTA do not fit in 15 s.
-- COLD_OPEN [ITERATION]: a 1.5-3.5 s teaser lifted from later in the video (at or after 0:05: a proof or reaction stronger than the opening frame) is placed before the untouched original.
-- HOOK_TEXT [ITERATION]: a new written hook over the first seconds; speech untouched. Repeats must take clearly different angles.
-- ENDCARD [ITERATION]: a 2 s end card appended. Variant by what the Brain really has: offer (offer and price field), guarantee (a guarantee written in the Brain), price (a price written in the Brain), cta (fallback: the spoken CTA).
-- SPLIT_LP [DIVERSITY]: the offer's landing page on top, the video below. No parameters.
-- STORY [DIVERSITY]: the video framed as a social story with a generic brand handle. No parameters.
 - REVIEW [DIVERSITY]: a customer review card above the video. The quote is copied character for character from the Brain proof field.
 - NATIVE_SEARCH [DIVERSITY]: opens on a generic search screen typing the problem the hook names, then the video. No brand in the query.
-- STATIC [DIVERSITY]: one still frame of the video with a headline (an image ad). Pick the proof moment if there is one.
+- STATIC [DIVERSITY]: a NEW single-image ad, created from scratch by an image model (never a frame of the video), laid out as an assembled direct-response poster. Details in "STATIC assembled ads" below.
+- FRAME [DIVERSITY]: the whole champion video inside a social-format frame (news, meme, story, live, review caption, split screen, gossip page, video call…). Up to 8 per batch, each with a different template. Only when FRAME is in <allowed>. Details in "FRAME" below.
 
 Batch rules:
-- Use only the types in <allowed>, never more of a type than its max. Stay within the requested piece count and keep at least the requested share of DIVERSITY pieces. Within diversity, prefer layouts and STATIC, then NATIVE_SEARCH.
+- Use only the types in <allowed>, never more of a type than its max. Stay within the requested piece count and keep at least the requested share of DIVERSITY pieces. Within diversity, prefer FRAME and STATIC, then REVIEW and NATIVE_SEARCH.
 - One variable per piece. Never two types in the same piece.
-- What is listed in "kept" never changes in any piece: kept blocks never leave a CUT, the spoken hook is always in a CUT, a COLD_OPEN cuts nothing.
-- Nothing invented on screen: every number, price, time span or percentage in HOOK_TEXT, ENDCARD, STATIC or NATIVE_SEARCH text must already appear in the Brain or in the transcript. When unsure, write the text without numbers.
+- What is listed in "kept" never changes in any piece: kept blocks never leave a CUT and the spoken hook is always in a CUT.
+- Nothing invented on screen: every number, price, time span or percentage in STATIC, FRAME or NATIVE_SEARCH text must already appear in the Brain or in the transcript. When unsure, write the text without numbers.
 - The why line cites the Brain only when that field is filled; otherwise its source is the video.
 - Offer-agnostic: describe mechanics (hook, proof, CTA), never label the niche. Describe any person only generically; never a name, handle or distinctive trait.
 - Times come from the transcript and the silences; never place a boundary inside a word.
-- On-screen texts (hook text, headlines, CTA, query, quote) are in the screen language given in the request, as people really write: short, concrete, no emojis, no hashtags. Interface texts (why, kept, change, rationale) are in the interface language given in the request.
-- Metrics are unknown: never claim results; reasons are hypotheses.`;
+- On-screen texts (headlines, CTA, query, quote) are in the screen language given in the request, as people really write: short, concrete, no emojis, no hashtags. Interface texts (why, kept, change, rationale) are in the interface language given in the request.
+- Metrics are unknown: never claim results; reasons are hypotheses.
+
+Two steps: in the plan, a STATIC piece only gets refAtSec, emotion and a one-line concept, and a FRAME piece only its template; their on-screen texts are written right after (each STATIC on its own, all FRAME pieces together), with the rules below.
+
+${STATIC_V2_RULES}
+
+${FRAME_RULES}`;
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const LOCALE_NAME = { EN: 'English', PT_BR: 'Brazilian Portuguese' } as const;
@@ -140,9 +162,16 @@ export function autoPlanContext(i: AutoPlanInput): string {
   ].join('\n\n');
 }
 
+/** STATIC em `allowed` (com max > 0): só aí os frames-chave vão como imagem. */
+export function staticAllowed(i: Pick<AutoPlanInputWithFrame, 'allowed'>): boolean {
+  return i.allowed.some((a) => a.type === 'STATIC' && a.max > 0);
+}
+
 /** Pedido desta chamada: idiomas, tipos permitidos, regras numéricas e (no reparo) as violações. */
-export function autoPlanUserMessage(i: AutoPlanInput): string {
-  const allowed = i.allowed.filter((a) => a.max > 0);
+/** `refImages` = quantos frames-chave foram anexados como referência do STATIC (0 = nenhum). */
+export function autoPlanUserMessage(i: AutoPlanInputWithFrame, refImages = 0): string {
+  // catálogo novo (25/10): tipo antigo que ainda venha no `allowed` não é oferecido ao modelo
+  const allowed = i.allowed.filter((a) => a.max > 0 && PLAN_TYPES.includes(a.type));
   const lines = [
     `Interface language (why, kept, change, rationale): ${LOCALE_NAME[i.uiLocale]}.`,
     `Screen language (texts that appear in the video): ${languageName(i.screenLanguage)}.`,
@@ -152,6 +181,12 @@ export function autoPlanUserMessage(i: AutoPlanInput): string {
   if (i.violations?.length) {
     lines.push(`A previous plan for this batch broke these rules. Write a new plan that fixes every one of them:\n${i.violations.map((v) => `- ${v}`).join('\n')}`);
   }
+  if (staticAllowed(i)) {
+    lines.push(refImages > 0
+      ? `STATIC is allowed: the ${refImages} images attached right before this request are key frames of the champion, as REFERENCE for the STATIC concepts only (generic person, setting, palette, proof moment). Set refAtSec to the one you leaned on, or -1.`
+      : 'STATIC is allowed: no key frame image could be attached, so lean on the hook, layout and why-it-sells descriptions for the STATIC concepts. refAtSec may still name a key frame time you leaned on, or -1.');
+  }
+  if (frameAllowed(i)) lines.push(framesRequestLine(allowedFramesOf(i)));
   lines.push('Write the plan.');
   return lines.join('\n\n');
 }
@@ -179,9 +214,11 @@ export interface AutoPlanParseCtx {
   blockCount: number;
   offer: OfferBriefDraft;
   pageCaptured: boolean;
+  /** FRAME (TRANSIÇÃO): moldura só entra se o template estiver aqui. Ausente/vazio = nenhuma FRAME passa. */
+  allowedFrames?: FrameTemplateId[];
 }
 
-export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraft {
+export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraftWithFrame {
   const root = parseJsonObject(text);
   const dur = ctx.durationSec > 0 ? ctx.durationSec : Infinity;
   const inVideo = (x: number) => r2(Math.min(Math.max(0, x), Number.isFinite(dur) ? dur : x));
@@ -219,21 +256,41 @@ export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraf
     if (kept.length === 4) break;
   }
 
-  const items: AutoItemDraft[] = [];
+  const items: AutoItemDraftWithFrame[] = [];
   for (const it of a(root.items).map(o)) {
-    const type = s(it.type) as AutoVariationType;
-    if (!AUTO_TYPES.includes(type)) continue;
+    const type = s(it.type) as AutoVariationTypeWithFrame;
+    if (!AUTO_TYPES_WITH_FRAME.includes(type)) continue;
     const whyKey = (['hook', 'proof', 'cta'] as const).find((k) => k === s(it.whyKey)) ?? 'hook';
     const change = clip(s(it.change), AUTO_LIMITS.change);
     if (!change) continue;
-    items.push({ type, change, rationale: clip(s(it.rationale), AUTO_LIMITS.rationale), whyKey, params: paramsOf(type, o(it.params), inVideo, ctx.blockCount) });
+    const rationale = clip(s(it.rationale), AUTO_LIMITS.rationale);
+    if (type === 'FRAME') {
+      // moldura fora das permitidas ou sem texto obrigatório: a peça sai (o backend completa o lote no reparo)
+      const params = frameParamsOf(o(it.params), ctx.allowedFrames ?? [], ctx.offer);
+      if (params) items.push({ type, change, rationale, whyKey, params });
+      continue;
+    }
+    items.push({ type, change, rationale, whyKey, params: paramsOf(type, o(it.params), inVideo, ctx.blockCount) });
   }
   if (!items.length) throw new IntegracaoError('PROVIDER_ERROR', 'auto plan: no usable item');
 
   return { blocks, why: { hook: why('hook'), proof: why('proof'), cta: why('cta') }, kept, items };
 }
 
-function paramsOf(type: AutoVariationType, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
+/** Conceito visual do STATIC: só forma (limites, enums). Aspas e marca ficam pra validação do backend (viram reparo). */
+export function visualOf(v: Record<string, unknown>): StaticVisualDraft {
+  const style = STATIC_STYLES.find((x) => x === s(v.style)) ?? 'everyday_photo';
+  const headlinePlacement = HEADLINE_PLACEMENTS.find((x) => x === s(v.headlinePlacement)) ?? 'top';
+  return {
+    object: clip(s(v.object), AUTO_LIMITS.visualObject),
+    scene: clip(s(v.scene), AUTO_LIMITS.visualScene),
+    vibe: clip(s(v.vibe), AUTO_LIMITS.visualVibe),
+    style,
+    headlinePlacement,
+  };
+}
+
+function paramsOf(type: Exclude<AutoVariationType, 'FRAME'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
   const orNull = (v: string) => (v ? v : null);
   switch (type) {
     case 'CUT': {
@@ -264,8 +321,19 @@ function paramsOf(type: AutoVariationType, p: Record<string, unknown>, inVideo: 
     }
     case 'NATIVE_SEARCH':
       return { type, query: clip(s(p.query), AUTO_LIMITS.query) };
-    case 'STATIC':
-      return { type, atSec: inVideo(n(p.atSec)), headline: clip(s(p.headline), AUTO_LIMITS.staticHeadline) };
+    case 'STATIC': {
+      // refAtSec: -1/negativo/ausente = nenhum; senão dentro do vídeo. `atSec` = legado até o fechamento do §14.5
+      const raw = typeof p.refAtSec === 'number' && Number.isFinite(p.refAtSec) ? p.refAtSec : typeof p.atSec === 'number' ? p.atSec : -1;
+      const refAtSec = raw < 0 ? null : inVideo(raw);
+      const copyRaw = o(p.copy);
+      if (s(o(copyRaw.headline).lead) || s(o(copyRaw.headline).highlight)) {
+        // 25/10 §A2 (assembled). TRANSIÇÃO: `headline` (lead + highlight) e `atSec` legados enquanto o regras.ts lê os dois
+        const copy = staticCopyOf(copyRaw);
+        return { type, atSec: refAtSec ?? 0, headline: `${copy.headline.lead} ${copy.headline.highlight}`.trim(), refAtSec, layout: 'assembled', copy, visualV2: staticVisualV2Of(p.visualV2) };
+      }
+      // plano de 23-25/10 (photo_headline) lido como veio
+      return { type, atSec: refAtSec ?? 0, headline: clip(s(p.headline), AUTO_LIMITS.staticHeadline), refAtSec, visual: visualOf(o(p.visual)) };
+    }
     case 'SPLIT_LP':
       return { type: 'SPLIT_LP' };
     case 'STORY':

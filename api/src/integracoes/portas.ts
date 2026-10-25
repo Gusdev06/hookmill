@@ -2,7 +2,7 @@
 // Implementações: store/prisma.store.ts (app) e store/memoria.store.ts (testes).
 
 /** §13.15: LIPSYNC_VIDEO = lipsync vídeo-a-vídeo do Trocar avatar (A) com motor de vídeo. */
-export type ProviderTaskKind = 'FACE_IMAGE' | 'SCENE_VIDEO' | 'TTS' | 'LIPSYNC' | 'TRANSCRIBE' | 'LIPSYNC_VIDEO';
+export type ProviderTaskKind = 'FACE_IMAGE' | 'SCENE_VIDEO' | 'TTS' | 'LIPSYNC' | 'TRANSCRIBE' | 'LIPSYNC_VIDEO' | 'STATIC_IMAGE'; // STATIC_IMAGE: variacao-auto-v1 rev. 23/10 (espelho do enum Prisma; arquiteto)
 export type ProviderTaskStatus = 'SUBMITTED' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'TIMEOUT';
 export type CostKind = 'LLM' | 'IMAGE' | 'VIDEO' | 'TTS' | 'LIPSYNC' | 'TRANSCRIBE' | 'SCRAPE';
 export type CostUnit = 'second' | 'image' | 'character' | 'ktoken_in' | 'ktoken_out' | 'call';
@@ -30,6 +30,8 @@ export interface ProviderTaskRecord {
   takeId: string | null;
   /** §13.15: janela da cena SWAP_VIDEO (SCENE_VIDEO da janela); null fora dela */
   windowIndex: number | null;
+  /** variacao-auto-v1 rev. 23/10: STATIC_IMAGE → o render (formato) que ela preenche; null fora dela */
+  renderId: string | null;
   submittedAt: Date;
 }
 
@@ -48,6 +50,8 @@ export interface NewProviderTask {
   takeId?: string;
   /** §13.15 */
   windowIndex?: number;
+  /** rev. 23/10: STATIC_IMAGE */
+  renderId?: string;
 }
 
 export interface TaskFinish {
@@ -74,8 +78,8 @@ export interface ProviderTaskStore {
   /** Live: acha a task pelo id da WaveSpeed (webhook). */
   findByExternalId(externalId: string): Promise<ProviderTaskRecord | null>;
   /** Live (reconciliador): SUBMITTED enviadas antes de `before`, fora do mock, mais antigas primeiro.
-   *  `provider` filtra (o laço rápido do rosto só olha HIGGSFIELD). */
-  listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider): Promise<ProviderTaskRecord[]>;
+   *  `provider` filtra (o laço rápido do rosto só olha HIGGSFIELD); `kinds` filtra (laço do STATIC_IMAGE, rev. 23/10). */
+  listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider, kinds?: ProviderTaskKind[]): Promise<ProviderTaskRecord[]>;
   /** Marca a última consulta do reconciliador (debug / não martelar a mesma task). */
   markPolled(id: string): Promise<void>;
 }
@@ -117,6 +121,8 @@ export interface ProviderTaskFinishedEvent {
   takeId?: string;
   /** §13.15: janela da cena SWAP_VIDEO */
   windowIndex?: number;
+  /** rev. 23/10: STATIC_IMAGE → o render do formato. Quem ouve é o ImagemEstaticaService (backend); o orquestrador ignora. */
+  renderId?: string;
 }
 
 export interface TaskEventBus {

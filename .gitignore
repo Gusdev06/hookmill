@@ -33,3 +33,6 @@ api/src/medicao/modelos/*.onnx
 tmp-*
 .vercel
 .env*
+
+# relatórios gerados do Playwright (dev)
+testes/playwright-report-dev/

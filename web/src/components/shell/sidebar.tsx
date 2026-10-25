@@ -16,6 +16,9 @@ import { api } from "@/lib/api/client"
 import { switchWorkspace } from "@/lib/session/token"
 import { cn } from "@/lib/utils"
 import { SoonBadge } from "@/components/soon"
+import { startReplay } from "@/components/tour/tour-state"
+import { useAccountMode, useMe } from "@/hooks/use-me"
+import { isMetaOff, metaReady, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
 import { LanguageToggle } from "./language-toggle"
 import { ClientAvatar, LogoMark } from "./logo"
 import { NavIcon, type NavIconName } from "./nav-icon"
@@ -23,9 +26,11 @@ import { NavIcon, type NavIconName } from "./nav-icon"
 /*
  * App shell (fase2-telas-novas §4, plan §1): dark sidebar instead of the header with tabs.
  * WORKSPACE: Home, Campaigns (soon), Eddy (soon), Brain · MAKE ADS: Iterate a winner, New concepts, Review, Library
- * · footer: All clients, account, EN/PT. ≤760 px: dark top bar (client + menu) and the same nav in a sheet from the top.
+ * · footer: All clients (AGENCY) or Settings (OWN), account, EN/PT. ≤760 px: dark top bar (client + menu) and the same
+ * nav in a sheet from the top. onboarding-v2 decision 11: in OWN mode the client selector becomes the workspace identity
+ * card (name + Meta status → Settings › Connections); no "All clients", no "New client"; role shown as "Owner".
  */
-type NavKey = "home" | "campaigns" | "eddy" | "brain" | "iterate" | "concepts" | "review" | "library" | "clients"
+type NavKey = "home" | "campaigns" | "eddy" | "brain" | "iterate" | "concepts" | "review" | "library" | "clients" | "settings"
 
 export const REVIEW_HREF = "/?filter=needs_you"
 const NAV: { group: "groupWorkspace" | "groupMakeAds"; items: { key: NavKey; href: string; icon: NavIconName; soon?: boolean }[] }[] = [
@@ -33,7 +38,8 @@ const NAV: { group: "groupWorkspace" | "groupMakeAds"; items: { key: NavKey; hre
     group: "groupWorkspace",
     items: [
       { key: "home", href: "/", icon: "home" },
-      { key: "campaigns", href: "/campaigns", icon: "chart", soon: true },
+      // campanhas-v1: real screen; "Soon" only while the server has Meta off (META_MODE=off)
+      { key: "campaigns", href: "/campaigns", icon: "chart" },
       { key: "eddy", href: "/eddy", icon: "chat", soon: true },
       { key: "brain", href: "/brain", icon: "brain" },
     ],
@@ -56,7 +62,7 @@ function useActive(): NavKey | null {
   const first = pathname.split("/")[1]
   const map: Record<string, NavKey> = {
     campaigns: "campaigns", eddy: "eddy", brain: "brain", offers: "brain",
-    variations: "iterate", iterate: "iterate", creatives: "concepts", library: "library", clients: "clients", onboarding: "clients",
+    variations: "iterate", iterate: "iterate", creatives: "concepts", library: "library", clients: "clients", onboarding: "clients", settings: "settings",
   }
   return map[first] ?? null
 }
@@ -83,16 +89,21 @@ function NavLink({ href, icon, active, children, onNavigate }: { href: string; i
   )
 }
 
-/** Client selector = workspace switch (POST /auth/switch-workspace through /api/session). "All clients" at the end. */
+const topCls = "flex w-full min-w-0 items-center gap-2.5 rounded-btn border border-ink-line bg-ink-2 text-left text-ink-fg outline-none hover:border-[#3a3f46] focus-visible:outline-2 focus-visible:outline-info-on-ink"
+
+/** Client selector = workspace switch (POST /auth/switch-workspace through /api/session). "All clients" at the end. Clients in setup show "Setup 33 %". */
 function ClientSwitcher({ compact, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
   const t = useTranslations("shell")
+  const to = useTranslations("onboarding")
   const { session } = useSession()
   const router = useRouter()
   const qc = useQueryClient()
   const [pending, start] = useTransition()
-  const me = useQuery({ queryKey: ["me"], queryFn: () => api.auth.me(), staleTime: 60_000 })
-  const name = session.workspace.name
+  const me = useMe()
+  const active = me.data?.workspace ?? session.workspace
+  const name = active.name
   const others = me.data?.workspaces ?? [session.workspace]
+  const setupLine = (w: { status?: string; onboarding?: { percent: number } }) => (w.status === "SETUP" ? to("setupPct", { pct: w.onboarding?.percent ?? 0 }) : null)
 
   const change = (id: string) => {
     if (id === session.workspace.id) return
@@ -110,29 +121,26 @@ function ClientSwitcher({ compact, onNavigate }: { compact?: boolean; onNavigate
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={t("switchClient", { name })}
-        aria-busy={pending}
-        className={cn(
-          "flex w-full min-w-0 items-center gap-2.5 rounded-btn border border-ink-line bg-ink-2 text-left text-ink-fg outline-none hover:border-[#3a3f46] focus-visible:outline-2 focus-visible:outline-info-on-ink",
-          compact ? "min-h-10 px-2 py-1" : "min-h-14 px-2.5 py-2"
-        )}
-      >
+      <DropdownMenuTrigger aria-label={t("switchClient", { name })} aria-busy={pending} className={cn(topCls, compact ? "min-h-10 px-2 py-1" : "min-h-14 px-2.5 py-2")}>
         <ClientAvatar name={name} className={compact ? "size-[26px] text-xs" : undefined} />
         <span className="flex min-w-0 flex-1 flex-col">
           <b className="truncate font-bold">{pending ? t("switching") : name}</b>
-          {compact ? null : <small className="truncate text-xs text-ink-fg-3">{t("clientWorkspace")}</small>}
+          {compact ? null : <small className="truncate text-xs text-ink-fg-3">{setupLine(active) ?? t("clientWorkspace")}</small>}
         </span>
         <NavIcon name="updown" size={compact ? 16 : 18} className="text-ink-fg-3" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56">
         <DropdownMenuLabel className="eyebrow">{t("clients")}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={session.workspace.id} onValueChange={change}>
-          {others.map((w) => (
-            <DropdownMenuRadioItem key={w.id} value={w.id} disabled={pending} className="min-h-10">
-              <span className="truncate">{w.name}</span>
-            </DropdownMenuRadioItem>
-          ))}
+          {others.map((w) => {
+            const line = setupLine(w)
+            return (
+              <DropdownMenuRadioItem key={w.id} value={w.id} disabled={pending} className="min-h-10">
+                <span className="truncate">{w.name}</span>
+                {line ? <span className="ml-auto rounded-full bg-status-waiting-bg px-1.5 py-px font-mono text-[10px] font-semibold whitespace-nowrap text-status-waiting">{line}</span> : null}
+              </DropdownMenuRadioItem>
+            )
+          })}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="min-h-10">
@@ -146,10 +154,39 @@ function ClientSwitcher({ compact, onNavigate }: { compact?: boolean; onNavigate
   )
 }
 
+/** OWN mode (spec decision 11): the workspace identity card with the Meta status line; leads to Settings › Connections. */
+function WorkspaceIdentity({ compact, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
+  const t = useTranslations("shell")
+  const { session } = useSession()
+  const me = useMe()
+  const name = me.data?.workspace.name ?? session.workspace.name
+  const conn = useMetaConnection()
+  const rel = useRelativeTime()
+  const off = conn.isError && isMetaOff(conn.error)
+  const ready = metaReady(conn.data)
+  return (
+    <Link href="/settings/connections" onClick={onNavigate} className={cn(topCls, "no-underline", compact ? "min-h-10 px-2 py-1" : "min-h-14 px-2.5 py-2")}>
+      <ClientAvatar name={name} className={compact ? "size-[26px] text-xs" : undefined} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <b className="truncate font-bold">{name}</b>
+        {compact || off || conn.isPending ? null : (
+          <small className={cn("flex items-center gap-1.5 truncate text-xs", ready ? "text-[#8bd7a9]" : "text-[#efc45a]")}>
+            <i className="size-2 flex-none rounded-full bg-current" aria-hidden="true" />
+            {ready ? t("metaOk", { ago: rel(conn.data?.lastSyncAt ?? conn.data?.connectedAt) }) : t("metaOff")}
+          </small>
+        )}
+      </span>
+    </Link>
+  )
+}
+
 function Account({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations()
+  const router = useRouter()
   const { session, logout } = useSession()
+  const mode = useAccountMode()
   const initials = session.user.name.slice(0, 1).toUpperCase()
+  const role = mode === "OWN" && session.workspace.role === "OWNER" ? t("shell.ownRole") : t(`shell.roleLabel.${session.workspace.role}`)
   return (
     <div className="flex items-center gap-2.5 px-1.5">
       <DropdownMenu>
@@ -162,7 +199,7 @@ function Account({ onNavigate }: { onNavigate?: () => void }) {
           </span>
           <span className="flex min-w-0 flex-col">
             <b className="truncate font-semibold text-ink-fg">{session.user.name}</b>
-            <small className="truncate text-xs text-ink-fg-3">{t(`shell.roleLabel.${session.workspace.role}`)}</small>
+            <small className="truncate text-xs text-ink-fg-3">{role}</small>
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="top" className="min-w-52">
@@ -175,6 +212,15 @@ function Account({ onNavigate }: { onNavigate?: () => void }) {
             <Link href="/settings" onClick={onNavigate}>
               {t("shell.nav.settings")}
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => {
+              startReplay()
+              onNavigate?.()
+              router.push("/brain")
+            }}
+          >
+            {t("tour.replay")}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void logout()}>{t("common.logout")}</DropdownMenuItem>
         </DropdownMenuContent>
@@ -189,16 +235,19 @@ function SidebarNav({ onNavigate, showClient = true }: { onNavigate?: () => void
   const t = useTranslations("shell")
   const active = useActive()
   const review = useReviewCount()
+  const mode = useAccountMode()
+  const metaConn = useMetaConnection()
+  const metaOff = metaConn.isError && isMetaOff(metaConn.error)
   return (
     <>
-      {showClient ? <ClientSwitcher onNavigate={onNavigate} /> : null}
+      {showClient ? mode === "OWN" ? <WorkspaceIdentity onNavigate={onNavigate} /> : <ClientSwitcher onNavigate={onNavigate} /> : null}
       {NAV.map((g) => (
         <div key={g.group} className="flex flex-col gap-0.5">
           <span className="px-2.5 pb-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-fg-3 uppercase">{t(g.group)}</span>
           {g.items.map((it) => (
             <NavLink key={it.key} href={it.href} icon={it.icon} active={active === it.key} onNavigate={onNavigate}>
               {t(`nav.${it.key}`)}
-              {it.soon ? <SoonBadge mini /> : null}
+              {it.soon || (it.key === "campaigns" && metaOff) ? <SoonBadge mini /> : null}
               {it.key === "review" && review > 0 ? (
                 <span className="ml-auto rounded-full bg-brand px-[7px] py-px font-mono text-[11px] font-semibold text-[#15171a]">
                   {review}
@@ -210,9 +259,15 @@ function SidebarNav({ onNavigate, showClient = true }: { onNavigate?: () => void
         </div>
       ))}
       <div className="mt-auto flex flex-col gap-2.5 border-t border-ink-line pt-3">
-        <NavLink href="/clients" icon="bld" active={active === "clients"} onNavigate={onNavigate}>
-          {t("nav.clients")}
-        </NavLink>
+        {mode === "OWN" ? (
+          <NavLink href="/settings" icon="gear" active={active === "settings"} onNavigate={onNavigate}>
+            {t("nav.settings")}
+          </NavLink>
+        ) : (
+          <NavLink href="/clients" icon="bld" active={active === "clients"} onNavigate={onNavigate}>
+            {t("nav.clients")}
+          </NavLink>
+        )}
         <Account onNavigate={onNavigate} />
       </div>
     </>
@@ -246,6 +301,7 @@ export function Sidebar() {
 /** ≤760 px: dark top bar (HM · client · menu); the menu opens the same nav in a sheet from the top. */
 export function MobileTopbar() {
   const t = useTranslations()
+  const mode = useAccountMode()
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
   return (
@@ -253,9 +309,7 @@ export function MobileTopbar() {
       <Link href="/" aria-label={t("common.home")} className="flex-none rounded-sm">
         <LogoMark />
       </Link>
-      <div className="min-w-0 flex-1">
-        <ClientSwitcher compact />
-      </div>
+      <div className="min-w-0 flex-1">{mode === "OWN" ? <WorkspaceIdentity compact /> : <ClientSwitcher compact />}</div>
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <DialogPrimitive.Trigger
           aria-label={t("shell.openMenu")}

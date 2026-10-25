@@ -35,6 +35,8 @@ import { UploadsModule } from './uploads/uploads.module';
 import { VariacoesModule } from './variacoes/variacoes.module';
 import { IteracaoModule } from './iteracao/iteracao.module';
 import { ZipModule } from './iteracao/zip.module';
+import { MetaModule } from './meta/meta.module';
+import { BrainModule } from './brain/brain.module';
 
 @Module({
   imports: [
@@ -76,7 +78,10 @@ import { ZipModule } from './iteracao/zip.module';
     VariacoesModule,
     // variação automática v1 (B2: zip do lote AUTO; peças em EdicaoModule)
     ZipModule,
+    // meta-v1 (21/10): conexão, sync, Pick from Meta (via iteracao), publicação
+    MetaModule,
     IteracaoModule, // B1: o lote (POST /iterate, análise sozinha, plano, start)
+    BrainModule, // brain-3d-v1 (22/10): GET /brain/graph e /brain/node/:id, só leitura
   ],
   providers: [
     // Ordem importa: auth primeiro (preenche req.auth), throttle depois (conta por workspace).

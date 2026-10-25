@@ -21,6 +21,7 @@ import { alignCaptionToScript } from './legenda';
  *   LIPSYNC: TTS → LIPSYNC → TRANSCRIBE → cena READY
  *   feature 2: AUDIO_LIPSYNC: LIPSYNC (trecho do campeão) → READY (words do teardown); REUSE: sem task, copia da dona
  *   rostos:  FACE_IMAGE → rosto READY
+ *   STATIC_IMAGE (task com renderId, rev. 23/10): ignorada aqui; quem trata é o ImagemEstaticaService (edicao)
  * Idempotente: task com handledAt é ignorada; resultado de tentativa antiga (cena regerada/stale) só é marcado.
  */
 @Injectable()
@@ -53,6 +54,8 @@ export class OrquestradorService {
     try {
       const t = await this.prisma.providerTask.findUnique({ where: { id: providerTaskId } });
       if (!t || t.handledAt || t.status === 'SUBMITTED') return;
+      // variacao-auto-v1 rev. 23/10 §14.3: task do STATIC (render_id) é do ImagemEstaticaService (edicao); aqui nem marca handledAt
+      if (t.renderId) return;
       if (t.faceId) await this.onFace(t);
       else if (t.takeId) await this.onTake(t);
       else if (t.sceneId && (await this.isSwap(t.sceneId))) await this.onSwap(t);

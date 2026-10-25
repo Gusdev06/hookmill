@@ -20,6 +20,9 @@
     "iterate": "E2E_API_PORT=3121 E2E_WEB_PORT=3216 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 playwright test --project=iterate",
     "iterate:navegador": "E2E_API_PORT=3121 E2E_WEB_PORT=3216 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 E2E_COM_WEB=1 playwright test --project=iterate-1440 --project=iterate-390",
     "iterate:tempo": "E2E_API_PORT=3122 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 E2E_RENDER_REAL=1 playwright test --project=iterate-render",
+    "em": "E2E_EM=1 E2E_API_PORT=3131 E2E_WEB_PORT=3226 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 playwright test --project=estatico --project=molduras",
+    "em:navegador": "E2E_EM=1 E2E_API_PORT=3131 E2E_WEB_PORT=3226 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 E2E_COM_WEB=1 playwright test --project=em-1440 --project=em-390",
+    "em:roteiro": "node ferramentas/roteiro-estatico.mjs",
     "api:build": "node harness/api-qa.mjs --so-build"
   },
   "devDependencies": {

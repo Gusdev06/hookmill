@@ -1,6 +1,6 @@
 // Validação do JSON que o Claude devolve. A saída estruturada já garante a FORMA; aqui ficam as regras
 // que o schema não expressa (tempos, primeiro bloco = gancho, textos vazios) e a normalização final.
-import type { OfferBriefDraft, ScriptBlockDraft, ScriptDraft } from '../contrato';
+import type { BriefField, OfferBriefDraft, PageRole, ScriptBlockDraft, ScriptDraft } from '../contrato';
 import { IntegracaoError } from '../erros';
 
 function parseJson(text: string): Record<string, unknown> {
@@ -26,7 +26,49 @@ export function normalizeLanguage(v: unknown): string {
 }
 
 export function parseBrief(text: string): OfferBriefDraft {
+  return parseBriefFull(text).brief;
+}
+
+export interface BriefSource { role: PageRole; imageIndex?: number }
+export interface ParsedBrief {
+  brief: OfferBriefDraft;
+  /** §5: de onde saiu cada campo preenchido (papel da página e, se veio de imagem, o nº dela) */
+  sources: Partial<Record<BriefField, BriefSource[]>>;
+  /** §5: o que o modelo viu em cada imagem (≤ 40 palavras) */
+  imageNotes: { index: number; text: string }[];
+}
+
+const ROLES = new Set<string>(['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other']);
+const FIELDS: BriefField[] = ['name', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'];
+
+/** Briefing + sources + imageNotes. Tolerante: sources/imageNotes ausentes ou fora do formato viram vazios. */
+export function parseBriefFull(text: string): ParsedBrief {
   const o = parseJson(text);
+  const brief = briefOf(o);
+  const sources: ParsedBrief['sources'] = {};
+  const rawSources = o.sources && typeof o.sources === 'object' ? (o.sources as Record<string, unknown>) : {};
+  for (const f of FIELDS) {
+    const list = Array.isArray(rawSources[f]) ? (rawSources[f] as unknown[]) : [];
+    const out: BriefSource[] = [];
+    for (const s of list) {
+      if (!s || typeof s !== 'object') continue;
+      const { role, imageIndex } = s as { role?: unknown; imageIndex?: unknown };
+      if (typeof role !== 'string' || !ROLES.has(role)) continue;
+      const idx = typeof imageIndex === 'number' && Number.isInteger(imageIndex) && imageIndex > 0 ? imageIndex : undefined;
+      if (!out.some((x) => x.role === role && x.imageIndex === idx)) out.push(idx ? { role: role as PageRole, imageIndex: idx } : { role: role as PageRole });
+    }
+    if (out.length && brief[f] != null) sources[f] = out;
+  }
+  const imageNotes: ParsedBrief['imageNotes'] = [];
+  for (const n of Array.isArray(o.imageNotes) ? (o.imageNotes as unknown[]) : []) {
+    if (!n || typeof n !== 'object') continue;
+    const { index, text: t } = n as { index?: unknown; text?: unknown };
+    if (typeof index === 'number' && Number.isInteger(index) && index > 0 && typeof t === 'string' && t.trim()) imageNotes.push({ index, text: t.trim().split(/\s+/).slice(0, 60).join(' ') });
+  }
+  return { brief, sources, imageNotes };
+}
+
+function briefOf(o: Record<string, unknown>): OfferBriefDraft {
   const name = str(o.name);
   if (!name) throw new IntegracaoError('PAGE_UNREADABLE', 'no offer found on the page');
   return {

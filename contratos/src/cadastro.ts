@@ -1,6 +1,7 @@
 // Fase 2 · cadastro self-serve (docs/contratos/fase2-cadastro.md, APROVADO 12/10). Dono: maquina-arquiteto. SÓ TIPOS.
 // Só aditivo: nenhum tipo existente muda, então o tsc do api e do web não quebra.
 import type { AuthSession, UiLocale } from './index';
+import type { AccountMode } from './onboarding-v2';
 
 /** POST /auth/signup (pública, throttle do login). Conta nova = "agência" com 1 cliente vazio, OWNER, em SETUP. */
 export interface SignupBody {
@@ -14,6 +15,8 @@ export interface SignupBody {
   agencyName?: string;
   /** opcional: idioma do usuário e do 1º cliente. Sem = EN */
   uiLocale?: UiLocale;
+  /** onboarding-v2 D8: opcional (a pergunta é a tela /start); se vier, grava e o web pula o /start */
+  accountMode?: AccountMode;
 }
 /** 201: igual ao login (tokens + user + workspace com role OWNER). O web manda pra /onboarding/1. */
 export type SignupResponse = AuthSession;

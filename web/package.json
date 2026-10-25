@@ -16,6 +16,7 @@
     "@maquina/video": "^0.1.0",
     "@remotion/player": "4.0.533",
     "@tanstack/react-query": "^5.104.1",
+    "3d-force-graph": "1.80.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.4.0",
@@ -29,13 +30,15 @@
     "react-dom": "19.2.8",
     "remotion": "4.0.533",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "0.185.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "msw": "^3.0.2",

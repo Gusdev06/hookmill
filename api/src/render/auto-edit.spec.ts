@@ -111,17 +111,23 @@ describe('buildAutoEditInput', () => {
     { type: 'SPLIT_LP' }, { type: 'STORY' },
     { type: 'REVIEW', quote: 'Great', author: null, stars: 5 },
     { type: 'NATIVE_SEARCH', query: 'how to know if my wife is cheating' },
-    { type: 'STATIC', atSec: 17.2, headline: 'It showed everything' },
   ];
-  it.each(formatos)('os 9 tipos em %s passam no schema da composição e são determinísticos', (fmt) => {
+  it.each(formatos)('os 8 tipos de vídeo em %s passam no schema da composição e são determinísticos', (fmt) => {
     for (const p of todos) {
       const a = buildAutoEditInput(ctx(p), fmt);
       expect(buildAutoEditInput(ctx(p), fmt)).toEqual(a);
       const props = propsDeAutoEditInput(a as never);
-      expect(props.output).toBe(p.type === 'STATIC' ? 'still' : 'video');
+      expect(a.output).toBeUndefined();
       expect(duracaoAutoEdit(props)).toBeGreaterThan(0);
       for (const t of a.timeline) { expect(dentroDePalavra(t.startSec)).toBeNull(); if (t.endSec < 31) expect(dentroDePalavra(t.endSec)).toBeNull(); }
     }
+  });
+  it('STATIC saiu do Remotion (rev. 23/10, §14.6): o builder recusa e a composição não aceita still nem STATIC', () => {
+    expect(() => buildAutoEditInput(ctx({ type: 'STATIC', atSec: 17.2, headline: 'It showed everything' }, { type: 'STATIC' }), 'VERTICAL_9_16')).toThrow(/STATIC/);
+    const video = buildAutoEditInput(ctx(todos[0]), 'VERTICAL_9_16');
+    expect(() => propsDeAutoEditInput({ ...video, output: 'still' } as never)).toThrow();
+    expect(() => propsDeAutoEditInput({ ...video, type: 'STATIC', params: { type: 'STATIC', atSec: 1, headline: 'x', box: { x: 0, y: 0, w: 10, h: 10 } } } as never)).toThrow();
+    expect(propsDeAutoEditInput({ ...video, output: 'video' } as never).output).toBe('video'); // legado da transição
   });
   it('CUT: blocos em ordem, encaixados; duração = soma', () => {
     const a = buildAutoEditInput(ctx(todos[0]), 'VERTICAL_9_16');

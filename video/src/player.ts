@@ -28,7 +28,7 @@ export const metadadosRemix = (props: RemixKeepProps): MetadadosPlayer => ({
   compositionHeight: props.canvas.height,
 });
 
-/** = calculateMetadata das composições `AutoEdit` / `AutoEditStill` (variacao-auto-v1 §7.2). */
+/** = calculateMetadata da composição `AutoEdit` (variacao-auto-v1 §7.2). */
 export const metadadosAutoEdit = (props: AutoEditProps): MetadadosPlayer => ({
   durationInFrames: duracaoAutoEdit(props, FPS),
   fps: FPS,

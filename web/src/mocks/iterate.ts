@@ -3,14 +3,27 @@
  * Same rules as db.ts / variar.ts: time-based (t0 + step), derived on read, persisted in localStorage (own key), `?mock=reset` reseeds.
  *
  * Contract triggers (§10), in the offer NOTES: [mock:auto-fail:reading] · [mock:auto-fail:planning] · [mock:auto-plan-invalid]
- *   · [mock:page-403] (SPLIT-LP swapped, flags.pageCaptured false) · [mock:render-fail:<TYPE>] (1st try of that type's 4:5 fails, retry passes)
+ *   · [mock:page-403] (SPLIT-LP swapped, flags.pageCaptured false) · [mock:render-fail:<TYPE>] (1st try of that type's 9:16 fails, retry passes)
+ * Rev. 23/10 (§14.7): the batch renders only the 9:16; 4:5 / 1:1 on demand (POST /iterate/pieces/:id/formats, ahead of the batch).
+ *   · [mock:format-fail:<TYPE>] (1st on-demand 4:5 of that type fails RENDER_ERROR; asking again passes)
+ *   · [mock:static-reject] / [mock:static-timeout] (the automatic resend passes: the image just takes longer)
+ *   · [mock:static-reject-all] (STATIC 9:16 fails SAFETY_BLOCK; Retry passes and costs the image)
+ *   · [mock:spend-cap] (web-mock only: start with images, STATIC retry and STATIC format answer 409 SPEND_CAP_EXCEEDED)
+ *   The STATIC is an image (IMAGE_GEN), outside the Remotion line: it runs in parallel and costs STATIC_USD when it finishes.
+ * 25/10 (estatico-montado-e-molduras-v1 §A6/§A9/§B6): the STATIC 9:16 = image → text check (→ 2nd image → check when a critical
+ *   text is wrong). [mock:static-text-mismatch] (1st image critical typo, 2nd ok) · [mock:static-text-mismatch-all] (both wrong →
+ *   mismatch, G1: out of the zip) · web-only ?mocktext=ok|minor|critical|retake|skipped|cap (scenario.ts).
+ *   FRAME pieces (B1) with the prototype stills; [mock:frame-fail:<id>] (1st render fails, retry passes) · web-only
+ *   [mock:frame-overflow:<id>] (FRAME_TEXT_OVERFLOW, retryHint leave_out) · ?mockframes=all (all 18 in the plan).
+ *   Example data: the `meme` frame has no 1:1 (`supported: false`, §B4) so the hidden button can be checked.
  * Web-mock-only triggers (QA of the screens), in the uploaded file NAME:
  *   mock-truncated → MEDIA_INVALID at decode ("stops at 0:11 of 0:32", nothing charged) · mock-nobrain → Brain empty
  *   mock-onebeat → short video (one shot, smaller batch) · mock-page403 → SPLIT-LP fails with PAGE_FORBIDDEN (retry with photo)
  *   mock-planfail → PROVIDER_ERROR while planning (cents charged, try again)
  */
 import type {
-  AutoInsight, AutoVariationType, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceStatus,
+  AutoInsight, AutoVariationType, AutoVariationTypeWithFrame, FrameTemplateId, StaticRenderStage, StaticTextCheck, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceFormat,
+  PieceFormatState, PieceStatus,
   SwapReason, UserRef, VariationAxis, WhyLine,
 } from "@/lib/api/types"
 import type { LibraryItemV, WaitingBatchRefV } from "@/lib/api/types"
@@ -22,30 +35,112 @@ const KEYS = ["decode", "transcribe", "cuts", "edit_map", "blocks", "audience", 
 const READING_END = 5 // keys 0-4 = reading, 5-8 = brain, 9 = planning
 const STEP_MS = 1400
 const RENDER_MS = 1500
-const STILL_MS = 600
+const STILL_MS = 3200 // GPT Image 2 (~90 s real at 2k), compressed
+const CHECK_MS = 1800 // checkStaticText (Haiku vision, ~5 s real), compressed
+export const STATIC_USD = 0.4 // STATIC_IMAGE_MODEL.usdPerImage: GPT Image 2 high 2k (estatico-montado D1)
 const USD_PER_SEC = 0.01 // transcription + teardown with frames (mock)
 const PLAN_USD = 0.02
 const FORMATS: FormatCode[] = ["9x16", "4x5", "1x1"]
-const AXIS: Record<AutoVariationType, VariationAxis> = {
+const AXIS: Record<AutoVariationTypeWithFrame, VariationAxis> = {
   CUT: "ITERATION", COLD_OPEN: "ITERATION", HOOK_TEXT: "ITERATION", ENDCARD: "ITERATION",
-  SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY",
+  SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY", FRAME: "DIVERSITY",
 }
+// ───────────── frames (§B2/§B7) ─────────────
+const FRAME_IDS: FrameTemplateId[] = [
+  "question_box", "gossip_page", "meme", "cinema", "news", "split_stack", "split_torn", "call", "call_dialog",
+  "ranking", "post_card", "direct_offer", "story", "read_caption", "pov_testimonial", "live", "gossip_white", "gossip_pink",
+]
+const FRAME_PT: Record<FrameTemplateId, string> = {
+  question_box: "CAIXINHA", gossip_page: "CHOQUEI", meme: "MEME", cinema: "CINEMA", news: "NOTICIA", split_stack: "TELA-DIVIDIDA",
+  split_torn: "TELA-DIVIDIDA-2", call: "MEET", call_dialog: "MEET-DIALOGO", ranking: "RANKING", post_card: "TWEET", direct_offer: "OFERTA-DIRETA",
+  story: "STORY", read_caption: "LEIA-A-LEGENDA", pov_testimonial: "POV-DEPOIMENTO", live: "LIVE", gossip_white: "FOFOCA-1", gossip_pink: "FOFOCA-2",
+}
+/** mock of the backend's `change` line (interface language) */
+const FRAME_NAME: Record<FrameTemplateId, [string, string]> = {
+  question_box: ["question box", "caixinha de pergunta"], gossip_page: ["gossip page", "página de fofoca"], meme: ["meme", "meme"],
+  cinema: ["cinema", "cinema"], news: ["news", "notícia"], split_stack: ["split screen", "tela dividida"], split_torn: ["torn split screen", "tela dividida rasgada"],
+  call: ["video call", "videochamada"], call_dialog: ["call dialog", "diálogo em chamada"], ranking: ["ranking", "ranking"], post_card: ["post", "post"],
+  direct_offer: ["direct offer", "oferta direta"], story: ["story question", "pergunta no story"], read_caption: ["read the caption", "leia a legenda"],
+  pov_testimonial: ["POV testimonial", "POV + depoimento"], live: ["live", "live"], gossip_white: ["gossip (white)", "fofoca (branca)"], gossip_pink: ["gossip (pink)", "fofoca (rosa)"],
+}
+/** example data (§B4): a template without a format, so the hidden button can be checked */
+const FRAME_UNSUPPORTED: Partial<Record<FrameTemplateId, FormatCode[]>> = { meme: ["1x1"] }
+const frameStill = (id: FrameTemplateId) => ({ id: `f_frame_${id}`, url: `/mock/frames/${id}.jpg`, mimeType: "image/jpeg" })
+// ───────────── STATIC text check (§A6) ─────────────
+/** extra = every item matches but the image wrote text nobody asked for (G3: critical; live finding 25/10) */
+type TextMode = "ok" | "minor" | "critical" | "extra" | "retake" | "skipped" | "cap"
+const TEXTS: { key: string; text: string; critical: boolean }[] = [
+  { key: "brand", text: "Coluna Leve", critical: true }, { key: "brandLine", text: "rotina noturna de 10 min", critical: false },
+  { key: "tagline", text: "Menos dor. Mais vida.", critical: false }, { key: "headline.lead", text: "Você não nasceu pra", critical: true },
+  { key: "headline.highlight", text: "acordar com dor.", critical: true },
+  { key: "subheadline", text: "Alongamentos guiados antes de dormir. Sem academia. Sem equipamento.", critical: false },
+  { key: "handwritten", text: "Sua manhã de volta.", critical: false }, { key: "benefits.1.title", text: "10 minutos por noite", critical: true },
+  { key: "benefits.2.title", text: "Guiado passo a passo", critical: false }, { key: "benefits.3.title", text: "Feito pra iniciantes", critical: false },
+  { key: "trust.1.text", text: "SEM EQUIPAMENTO", critical: false }, { key: "trust.2.text", text: "NO SEU RITMO", critical: false },
+  { key: "trust.3.text", text: "EM CASA", critical: false }, { key: "cta.main", text: "Comece hoje", critical: true },
+  { key: "cta.sub", text: "7 DIAS DE TESTE", critical: true },
+]
+const SEEN: Record<string, Record<string, string>> = {
+  minor: { handwritten: "Sua manhã de vólta." },
+  critical: { handwritten: "Sua manhã de vólta.", "cta.sub": "7 DIAS GRÁTIS" },
+  first: { "cta.sub": "7 DIAS GRÁTIS" },
+}
+function textCheckOf(mode: TextMode | "first"): StaticTextCheck {
+  // §A10 (25/10): items = every text checked, each with `match`; skipped = all `match: false`, nothing seen
+  if (mode === "skipped") return { status: "skipped", items: TEXTS.map((x) => ({ key: x.key, expected: x.text, seen: null, critical: x.critical, match: false })), extraText: [] }
+  const seen = SEEN[mode === "cap" ? "minor" : mode] ?? {}
+  const items = TEXTS.map((x) => ({ key: x.key, expected: x.text, seen: seen[x.key] ?? x.text, critical: x.critical, match: !(x.key in seen) }))
+  const bad = Object.keys(seen).length > 0
+  const extraText = mode === "critical" ? ["iOS E ANDROID"] : mode === "extra" ? ["Application error: a client-side exception has occurred"] : []
+  return { status: bad || extraText.length ? "mismatch" : "ok", items, extraText }
+}
+function textModeFor(offerId: string): TextMode {
+  const forced = typeof window !== "undefined" ? (sessionStorage.getItem("mock:text") as TextMode | null) : null
+  if (forced) return forced
+  const notes = notesOf(offerId)
+  if (notes.includes("[mock:static-text-mismatch-all]")) return "critical"
+  if (notes.includes("[mock:static-text-mismatch]")) return "retake"
+  return "ok"
+}
+/** the batch's 9:16 job follows the session switch (so the seeded batch can show every end state); retries keep their own */
+const modeOf = (j: MRenderJob) => ((j.priority ?? 0) === 0 && typeof window !== "undefined" ? (sessionStorage.getItem("mock:text") as TextMode | null) : null) ?? j.text ?? "ok"
+const twoImages = (m: TextMode) => m === "retake" || m === "critical" || m === "extra"
+const staticMs = (m: TextMode, slow = false) => STILL_MS * (slow ? 2 : 1) + CHECK_MS + (twoImages(m) ? STILL_MS + CHECK_MS : 0)
+/** stage of a STATIC job at `now` (§A10 render.stage / attempt) */
+function staticPhase(j: MRenderJob, now: number): { stage: StaticRenderStage; attempt: 1 | 2; imageReady: boolean } {
+  const m = j.text ?? "ok"
+  const img1 = j.endAt - (staticMs(m) - STILL_MS) // end of the 1st image (slow first image stretches it)
+  if (now < img1) return { stage: "image", attempt: 1, imageReady: false }
+  if (now < img1 + CHECK_MS || !twoImages(m)) return { stage: "text_check", attempt: 1, imageReady: true }
+  if (now < img1 + CHECK_MS + STILL_MS) return { stage: "retake", attempt: 2, imageReady: true }
+  return { stage: "text_check", attempt: 2, imageReady: true }
+}
+const staticUrl = (m: TextMode) => (m === "minor" || m === "critical" || m === "cap" ? "/mock/static-volta.jpg" : "/mock/static-2k.jpg")
 export const ITER_LIMITS = { maxBytes: 524_288_000, minSec: 4, maxSec: 180, mimeTypes: ["video/mp4", "video/quicktime"] }
 
 // ───────────── model ─────────────
 interface MPiece {
-  id: string; index: number; type: AutoVariationType; variant: string; n: number
+  id: string; index: number; type: AutoVariationTypeWithFrame; variant: string; n: number
+  /** FRAME only: the template (= variant) */
+  frame?: FrameTemplateId
+  /** true once the user set "In zip" (G1 default only applies before that) */
+  zipSet?: boolean
   change: { en: string; pt: string }
   inZip: boolean; leftOutAt: number | null; creativeId: string | null; inLibrary: boolean
   /** first attempt of this format fails with this code */
   failFirst: { format: FormatCode; code: string } | null
+  /** first STATIC image takes longer (reject/timeout + automatic resend) */
+  slowFirst?: boolean
   sec: number
 }
-interface MRenderJob { pieceId: string; format: FormatCode; startAt: number; endAt: number; fail: string | null }
+/** priority 10 = on demand (ahead of every queued batch render), 0 = batch; image = STATIC, outside the Remotion line */
+interface MRenderJob { pieceId: string; format: FormatCode; startAt: number; endAt: number; fail: string | null; priority?: number; image?: boolean; text?: TextMode }
 interface MIter {
   id: string; championId: string; sourceCreativeId: string | null; uploadId: string | null; name: string; fromLibrary: boolean
   durationSec: number; width: number; height: number; tone: number; offerId: string; codeLang: "EN" | "PT"
   brainEmpty: boolean; shortVideo: boolean; pageCaptured: boolean; page403Render: boolean; renderFailType: AutoVariationType | null
+  formatFailType?: AutoVariationType | null; formatFailUsed?: boolean
+  frameFail?: { id: FrameTemplateId; code: string } | null
   t0: number; startIndex: number; failAt: { index: number; code: string } | null; retries: number
   pieces: MPiece[]; launchedAt: number | null; jobs: MRenderJob[]
   zip: { status: "none" | "building" | "ready"; t0: number; key: string; sizeBytes: number | null }
@@ -56,7 +151,7 @@ interface Store { batches: MIter[]; lastOfferId: string | null }
 const GUSTA: UserRef = { id: "u_gusta", name: "Gusta", initials: "G" }
 
 // ───────────── persistence ─────────────
-const KEY = "mock:iter:v1"
+const KEY = "mock:iter:v3" // v3 = 25/10 (text check + frames)
 function load(): Store {
   if (typeof window !== "undefined") {
     const reset = new URLSearchParams(window.location.search).get("mock") === "reset"
@@ -86,9 +181,10 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).
 const ratioLabel = (w: number, h: number) => { const r = h / w; return r > 1.6 ? "9:16" : r > 1.15 ? "4:5" : r > 0.9 ? "1:1" : "16:9" }
 
 /** codeFor(type, variant, n, lang) — the web never builds codes; this is the mock of the backend's pure function (§6.1). */
-function codeFor(type: AutoVariationType, variant: string, n: number, lang: "EN" | "PT") {
+function codeFor(type: AutoVariationTypeWithFrame, variant: string, n: number, lang: "EN" | "PT") {
   const P = lang === "PT"
   switch (type) {
+    case "FRAME": return P ? `MOLDURA-${FRAME_PT[variant as FrameTemplateId]}` : `FRAME-${variant.toUpperCase().replace(/_/g, "-")}`
     case "CUT": return `${P ? "CORTE" : "CUT"}-${variant}S`
     case "COLD_OPEN": return "COLD-OPEN"
     case "HOOK_TEXT": return `${P ? "GANCHO-TEXTO" : "HOOK-TEXT"}-${n + 1}`
@@ -102,8 +198,19 @@ function codeFor(type: AutoVariationType, variant: string, n: number, lang: "EN"
 }
 const code = (b: MIter, p: MPiece) => codeFor(p.type, p.variant, p.n, b.codeLang)
 
-type Row = [AutoVariationType, string, string, string, number?] // type, variant, change EN, change PT, n
+type Row = [AutoVariationTypeWithFrame, string, string, string, number?] // type, variant, change EN, change PT, n
+const frameRow = (id: FrameTemplateId): Row => {
+  const [en, ptName] = FRAME_NAME[id]
+  return ["FRAME", id, `The champion plays inside a ${en} frame. Screen text from the Brain.`, `O campeão toca dentro de uma moldura de ${ptName}. Texto de tela do Brain.`]
+}
 function planRows(b: MIter): Row[] {
+  const rows = basePlanRows(b)
+  const all = typeof window !== "undefined" && sessionStorage.getItem("mock:frames") === "all"
+  // D10: at most 2 frames per batch, different templates (all 18 only in the web-mock QA switch)
+  const frames: FrameTemplateId[] = all ? FRAME_IDS : b.shortVideo || b.brainEmpty ? ["meme"] : ["news", "meme"]
+  return [...rows, ...frames.map(frameRow)]
+}
+function basePlanRows(b: MIter): Row[] {
   const d = b.durationSec
   if (b.shortVideo) {
     return [
@@ -112,7 +219,7 @@ function planRows(b: MIter): Row[] {
       ["ENDCARD", "offer", "Ends on a 2 s card with the offer from the Brain.", "Termina num cartão de 2 s com a oferta do Brain."],
       ["NATIVE_SEARCH", "", "Opens on a search for the problem, then the video.", "Abre numa busca pelo problema, depois o vídeo."],
       ["STORY", "", "The video inside a story frame.", "O vídeo dentro de uma moldura de story."],
-      ["STATIC", "", "Best frame + one headline. Image.", "O melhor frame + uma headline. Imagem."],
+      ["STATIC", "", "New image: the promise with one headline, made from scratch.", "Imagem nova: a promessa com uma headline, criada do zero."],
     ]
   }
   if (b.brainEmpty) {
@@ -123,8 +230,8 @@ function planRows(b: MIter): Row[] {
       ["ENDCARD", "cta", "Ends on a 2 s card with the spoken CTA.", "Termina num cartão de 2 s com o CTA falado."],
       ["NATIVE_SEARCH", "", "Opens on a search for the problem, then the video.", "Abre numa busca pelo problema, depois o vídeo."],
       ["STORY", "", "The video inside a story frame.", "O vídeo dentro de uma moldura de story."],
-      ["STATIC", "", "Frame from the proof moment + headline. Image.", "Frame do momento da prova + headline. Imagem."],
-      ["STATIC", "", "Opening frame + a second headline. Image.", "Frame de abertura + uma segunda headline. Imagem.", 1],
+      ["STATIC", "", "New image: someone checking the result at home, with the proof as headline.", "Imagem nova: pessoa conferindo o resultado em casa, com a prova de headline."],
+      ["STATIC", "", "New image: the pain in one scene, with a second headline.", "Imagem nova: a dor numa cena, com uma segunda headline.", 1],
     ]
   }
   const rows: Row[] = [
@@ -140,20 +247,27 @@ function planRows(b: MIter): Row[] {
   rows.push(
     ["REVIEW", "", "A review from Brain › Proof sits on top of the video.", "Um depoimento do Brain › Prova fica em cima do vídeo."],
     ["NATIVE_SEARCH", "", "Opens on a search for the problem, then the video.", "Abre numa busca pelo problema, depois o vídeo."],
-    ["STATIC", "", "Frame from the proof moment + headline. Image.", "Frame do momento da prova + headline. Imagem."],
+    ["STATIC", "", "New image: someone checking the result at home, with the proof as headline.", "Imagem nova: pessoa conferindo o resultado em casa, com a prova de headline."],
   )
   if (b.pageCaptured) rows.push(["STORY", "", "The video inside a story frame.", "O vídeo dentro de uma moldura de story."])
   return rows
 }
 function buildPieces(b: MIter): MPiece[] {
-  const counts: Partial<Record<AutoVariationType, number>> = {}
+  const counts: Partial<Record<AutoVariationTypeWithFrame, number>> = {}
   return planRows(b).map(([type, variant, en, ptText, n], index) => {
     const k = counts[type] ?? 0
     counts[type] = k + 1
     const sec = type === "CUT" ? Number(variant) : type === "COLD_OPEN" ? b.durationSec + 2.5 : type === "ENDCARD" ? b.durationSec + 2 : b.durationSec
-    const failFirst = type === b.renderFailType ? { format: "4x5" as FormatCode, code: "RENDER_ERROR" }
-      : type === "SPLIT_LP" && b.page403Render ? { format: "9x16" as FormatCode, code: "PAGE_FORBIDDEN" } : null
-    return { id: mockId("vi"), index, type, variant, n: n ?? k, change: { en, pt: ptText }, inZip: true, leftOutAt: null, creativeId: null, inLibrary: false, failFirst, sec }
+    const notes = notesOf(b.offerId)
+    const failFirst = type === b.renderFailType ? { format: "9x16" as FormatCode, code: "RENDER_ERROR" }
+      : type === "STATIC" && notes.includes("[mock:static-reject-all]") ? { format: "9x16" as FormatCode, code: "SAFETY_BLOCK" }
+      : type === "SPLIT_LP" && b.page403Render ? { format: "9x16" as FormatCode, code: "PAGE_FORBIDDEN" }
+      : type === "FRAME" && b.frameFail?.id === variant ? { format: "9x16" as FormatCode, code: b.frameFail.code } : null
+    const slowFirst = type === "STATIC" && (notes.includes("[mock:static-reject]") || notes.includes("[mock:static-timeout]"))
+    return {
+      id: mockId("vi"), index, type, variant, n: n ?? k, change: { en, pt: ptText }, inZip: true, leftOutAt: null, creativeId: null, inLibrary: false, failFirst, slowFirst, sec,
+      ...(type === "FRAME" ? { frame: variant as FrameTemplateId } : {}),
+    }
   })
 }
 
@@ -172,21 +286,54 @@ function statusOf(b: MIter, now = Date.now()): IterateStatus {
 
 // ───────────── renders ─────────────
 const msOf = (p: MPiece) => (p.type === "STATIC" ? STILL_MS : RENDER_MS)
+const isStatic = (p: MPiece) => p.type === "STATIC"
 function lastJob(b: MIter, pieceId: string, f: FormatCode) {
   let j: MRenderJob | null = null
   for (const x of b.jobs) if (x.pieceId === pieceId && x.format === f) j = x
   return j
 }
+/** §14.2: the piece follows its 9:16 only (ready = 9:16 READY, failed = 9:16 FAILED). */
 function pieceStatus(b: MIter, p: MPiece, now: number): PieceStatus {
   if (!b.launchedAt) return "planned"
   if (p.leftOutAt) return "left_out"
-  const jobs = FORMATS.map((f) => lastJob(b, p.id, f))
-  if (jobs.some((j) => j && j.endAt <= now && j.fail)) return "failed"
-  if (jobs.every((j) => j && j.endAt <= now)) return "ready"
-  if (jobs.some((j) => j && j.startAt <= now && now < j.endAt)) return "rendering"
-  return "queued"
+  const j = lastJob(b, p.id, "9x16")
+  if (!j || j.startAt > now) return "queued"
+  if (now < j.endAt) return "rendering"
+  return j.fail ? "failed" : "ready"
+}
+function formatState(j: MRenderJob | null, now: number): PieceFormatState {
+  if (!j) return "none"
+  if (j.startAt > now) return "queued"
+  if (now < j.endAt) return "rendering"
+  return j.fail ? "failed" : "ready"
+}
+const failText = (code: string, frames: number, host: string) =>
+  code === "PAGE_FORBIDDEN" ? `The product page didn't load: ${host} blocked our browser (403).`
+    : code === "SAFETY_BLOCK" ? "The image model refused this concept. Retry tries again; Leave out removes it."
+    : code === "FRAME_TEXT_OVERFLOW" ? "The frame text didn't fit at the minimum size (36 px)."
+    : `Rendering stopped at frame ${Math.round(frames * 0.6)}.`
+function formatsOf(b: MIter, p: MPiece, now: number, host: string): PieceFormat[] {
+  return FORMATS.map((format) => {
+    if (p.frame && FRAME_UNSUPPORTED[p.frame]?.includes(format))
+      return { format, state: "none" as const, progress: null, errorCode: null, failReason: null, requestUsd: null, supported: false }
+    const j = b.launchedAt ? lastJob(b, p.id, format) : null
+    const state = formatState(j, now)
+    const progress = state === "rendering" && j ? (isStatic(p) ? 0 : Math.round(((now - j.startAt) / (j.endAt - j.startAt)) * 100)) : null
+    const fail = state === "failed" && j?.fail ? j.fail : null
+    return {
+      format, state, progress, errorCode: fail, failReason: fail ? failText(fail, Math.round(p.sec * 30), host) : null,
+      requestUsd: state === "failed" || (state === "none" && b.launchedAt && format !== "9x16") ? (isStatic(p) ? STATIC_USD : 0) : null,
+      ...(isStatic(p) ? { textCheck: state === "ready" && j ? (format === "9x16" ? textCheckOf(modeOf(j)) : textCheckOf("ok")) : null } : {}),
+    }
+  })
 }
 
+/** Last finished, successful job of a format: a Retry / new format keeps the previous file until the new one is ready (§A10). */
+function lastDone(b: MIter, pieceId: string, f: FormatCode, now: number) {
+  let j: MRenderJob | null = null
+  for (const x of b.jobs) if (x.pieceId === pieceId && x.format === f && x.endAt <= now && !x.fail) j = x
+  return j
+}
 function pieceFiles(b: MIter, p: MPiece, now: number): PieceFile[] {
   const client = db.workspace.shortCode || "WS"
   const d = new Date(b.launchedAt ?? now)
@@ -194,12 +341,12 @@ function pieceFiles(b: MIter, p: MPiece, now: number): PieceFile[] {
   const still = p.type === "STATIC"
   const video = sourceVideo(b)
   return FORMATS.flatMap((f) => {
-    const j = lastJob(b, p.id, f)
-    if (!j || j.endAt > now || j.fail) return []
+    const j = lastDone(b, p.id, f, now)
+    if (!j) return []
     return [{
       format: f, name: `${client}_${mmdd}_${code(b, p)}_${f}.${still ? "png" : "mp4"}`,
-      url: still ? mockArt((b.tone + 2) % 4, p.index % 4).url : video, mimeType: still ? "image/png" as const : "video/mp4" as const,
-      sizeBytes: still ? 420_000 + p.index * 13_000 : Math.round(p.sec * (f === "9x16" ? 610_000 : f === "4x5" ? 520_000 : 440_000)), durationSec: still ? null : p.sec,
+      url: still ? staticUrl(f === "9x16" ? modeOf(j) : "ok") : video, mimeType: still ? "image/png" as const : "video/mp4" as const,
+      sizeBytes: still ? 1_100_000 + p.index * 13_000 : Math.round(p.sec * (f === "9x16" ? 610_000 : f === "4x5" ? 520_000 : 440_000)), durationSec: still ? null : p.sec,
     }]
   })
 }
@@ -209,8 +356,16 @@ function sourceVideo(b: MIter) {
 
 /** Ready pieces go to the Library by themselves (§3.3 AUTO_APPROVE): a LibraryItem per piece, once. */
 function toLibrary(b: MIter, p: MPiece, now: number) {
-  if (p.inLibrary) return
   const files = pieceFiles(b, p, now)
+  if (p.inLibrary) {
+    // a format made later (§14.2) joins the Library item's formats
+    const item = (db.library as LibraryItemV[]).find((l) => l.id === p.creativeId)
+    if (item && (item.formats?.length ?? 0) !== files.length) {
+      item.formats = files.map((x) => ({ format: x.format, file: { id: `f_${p.id}_${x.format}`, url: x.url, mimeType: x.mimeType } }))
+      saveDb()
+    }
+    return
+  }
   const f916 = files.find((f) => f.format === "9x16")
   if (!f916) return
   p.creativeId ??= mockId("cr")
@@ -310,25 +465,55 @@ export function iterView(b: MIter, now = Date.now()): IterateBatch {
     if (s === "ready") toLibrary(b, p, now)
     const running = launched ? b.jobs.find((j) => j.pieceId === p.id && j.startAt <= now && now < j.endAt) ?? null : null
     const files = launched ? pieceFiles(b, p, now) : []
-    const failedJob = s === "failed" ? FORMATS.map((f) => lastJob(b, p.id, f)).find((j) => j && j.fail && j.endAt <= now) : null
+    const failedJob = s === "failed" ? lastJob(b, p.id, "9x16") : null
     const frames = Math.round(p.sec * 30)
+    const still = isStatic(p)
+    const formats = formatsOf(b, p, now, hostOf(of?.sourceUrl))
+    // STATIC (§A6/§A10): stage of the image job; the image shows once the 1st one exists; text check of the ready 9:16
+    const job916 = still && launched ? lastJob(b, p.id, "9x16") : null
+    const phase = still && running ? staticPhase(running, now) : null
+    const ready916 = formats[0].state === "ready" && job916 && !job916.fail
+    const mode = job916 ? modeOf(job916) : "ok"
+    // G1: critical text still wrong after the 2 tries → out of the zip by default (one click puts it back)
+    const zipDefault = (mode === "critical" || mode === "extra") && (job916?.priority ?? 0) === 0 && !p.zipSet ? false : p.inZip
+    const textCheck = still ? (ready916 ? textCheckOf(mode) : phase?.stage === "retake" || (phase?.attempt === 2) ? textCheckOf("first") : null) : null
+    const done916 = still && launched ? lastDone(b, p.id, "9x16", now) : null
+    const poster = files.length ? (p.frame ? frameStill(p.frame) : still ? { id: `f_${p.id}_poster`, url: staticUrl(done916 ? modeOf(done916) : mode), mimeType: "image/jpeg" } : mockArt((b.tone + p.index) % 4, p.index % 4))
+      : p.frame && s === "ready" ? frameStill(p.frame) : phase?.imageReady ? { id: `f_${p.id}_poster`, url: running?.text && twoImages(running.text) ? "/mock/static-volta.jpg" : "/mock/static-2k.jpg", mimeType: "image/jpeg" } : null
+    const retake = still && s === "ready" && textCheck?.status === "mismatch" && !running
     return {
       id: p.id, index: p.index, type: p.type, code: code(b, p), axis: AXIS[p.type], change: pt() ? p.change.pt : p.change.en, status: s,
-      previewReady: files.some((f) => f.format === "9x16"),
-      render: running ? { format: running.format, progress: Math.round(((now - running.startAt) / (running.endAt - running.startAt)) * 100), frame: p.type === "STATIC" ? null : Math.round(((now - running.startAt) / (running.endAt - running.startAt)) * frames), frames: p.type === "STATIC" ? null : frames } : null,
-      formatsReady: files.length as 0 | 1 | 2 | 3,
+      previewReady: files.some((f) => f.format === "9x16"), media: still ? "image" : "video",
+      render: running ? {
+        format: running.format, progress: still ? 0 : Math.round(((now - running.startAt) / (running.endAt - running.startAt)) * 100), frame: still ? null : Math.round(((now - running.startAt) / (running.endAt - running.startAt)) * frames), frames: still ? null : frames,
+        ...(phase ? { stage: phase.stage, attempt: phase.attempt } : {}),
+      } : null,
+      formatsReady: files.length as 0 | 1 | 2 | 3, formats,
       errorCode: failedJob?.fail ?? null,
-      failReason: failedJob?.fail === "PAGE_FORBIDDEN" ? `The product page didn't load: ${hostOf(of?.sourceUrl)} blocked our browser (403).` : failedJob?.fail ? `Rendering stopped at frame ${Math.round(frames * 0.6)}.` : null,
-      retryHint: failedJob ? (failedJob.fail === "PAGE_FORBIDDEN" ? "use_product_photo" : "retry") : null,
-      inZip: s === "ready" ? p.inZip : false, creativeId: launched ? p.creativeId : null,
-      poster: files.length ? mockArt((b.tone + p.index) % 4, p.index % 4) : null, files,
+      failReason: failedJob?.fail ? failText(failedJob.fail, frames, hostOf(of?.sourceUrl)) : null,
+      retryHint: failedJob ? (failedJob.fail === "PAGE_FORBIDDEN" ? "use_product_photo" : failedJob.fail === "FRAME_TEXT_OVERFLOW" ? "leave_out" : "retry") : retake ? "retry" : null,
+      retryUsd: s === "failed" || s === "left_out" || retake ? (still ? STATIC_USD : 0) : null,
+      inZip: s === "ready" || (s === "rendering" && files.some((f) => f.format === "9x16")) ? zipDefault : false, creativeId: launched ? p.creativeId : null,
+      poster, files,
       folder: AXIS[p.type] === "ITERATION" ? "1-stretch" : "2-new-audience",
-    }
+      frame: p.frame ? { template: p.frame, second: null, canSwapBroll: false } : null,
+      textCheck,
+      suggestedPrimaryText: p.frame === "read_caption" ? L("Most people stretch in the morning. That's the mistake. Here is what 10 minutes at night does instead…", "Quase todo mundo alonga de manhã. Esse é o erro. Veja o que 10 minutos à noite fazem no lugar…") : null,
+    } as IteratePiece
   })
   const all = b.pieces
   const stretch = all.filter((p) => AXIS[p.type] === "ITERATION").length
-  const queuedOrRunning = pieces.some((p) => p.status === "queued" || p.status === "rendering")
-  const remainingMs = launched ? b.jobs.reduce((a, j) => a + Math.max(0, j.endAt - Math.max(now, j.startAt)), 0) : all.reduce((a, p) => a + msOf(p) * 3, 0)
+  // api.md 25/10: the phase follows only the batch's own 9:16 renders (priority 0); Retry / on-demand formats (priority 10) never send it back to Generate
+  const queuedOrRunning = b.jobs.some((j) => (j.priority ?? 0) === 0 && j.endAt > now)
+  // ETA: the Remotion line is serial (sum); images run beside it (the longest one)
+  const pendingJobs = b.jobs.filter((j) => j.endAt > now)
+  const lineMs = pendingJobs.filter((j) => !j.image).reduce((a, j) => a + (j.endAt - Math.max(now, j.startAt)), 0)
+  const imageMs = pendingJobs.filter((j) => j.image).reduce((a, j) => Math.max(a, j.endAt - now), 0)
+  const remainingMs = launched ? Math.max(lineMs, imageMs) : Math.max(all.filter((p) => !isStatic(p)).reduce((a, p) => a + msOf(p), 0), all.some(isStatic) ? STILL_MS : 0)
+  const anyPending = pendingJobs.length > 0
+  const nStatic = all.filter(isStatic).length
+  const imagesUsd = Math.round(b.jobs.filter((j) => j.image && j.endAt <= now && !j.fail).length * STATIC_USD * 100) / 100
+  const liveFiles = pieces.filter((p) => p.status !== "left_out").reduce((a, p) => a + (p.formats ?? []).filter((f) => f.state === "queued" || f.state === "rendering" || f.state === "ready").length, 0)
   const analysisEstimateUsd = Math.round(((b.fromLibrary && b.startIndex >= READING_END ? 0 : b.durationSec * USD_PER_SEC) + PLAN_USD) * 100) / 100
   const analysisDone = status === "PLAN_READY" || launched
   const analysisUsd = analysisDone ? analysisEstimateUsd : errorOf(b, status)?.chargedUsd ?? 0
@@ -343,17 +528,20 @@ export function iterView(b: MIter, now = Date.now()): IterateBatch {
     id: b.id, status, phase: !launched ? "analyze" : queuedOrRunning ? "generate" : "download",
     offer: { id: b.offerId, name: of?.name ?? "—", language: of?.language ?? "en" }, codeLanguage: b.codeLang,
     source: {
-      championId: b.championId, name: b.name, fromLibrary: b.fromLibrary, durationSec: b.durationSec, width: b.width, height: b.height,
+      championId: b.championId, name: b.name, fromLibrary: b.fromLibrary, fromMeta: false, durationSec: b.durationSec, width: b.width, height: b.height,
       ratioLabel: ratioLabel(b.width, b.height), cuts: status === "ANALYZING" && keyIndex(b, now) < 3 ? null : b.shortVideo ? 0 : 6,
       thumbnail: mockArt(b.tone, 1), video: { id: `f_src_${b.id}`, url: sourceVideo(b), mimeType: "video/mp4", width: b.width, height: b.height, durationSec: b.durationSec },
     },
     analysis: analysisOf(b, status, now), insight: insightOf(b, status), error: errorOf(b, status), pieces,
     summary: {
-      pieces: all.length, stretch, newAudience: all.length - stretch, files: all.length * 3,
+      pieces: all.length, stretch, newAudience: all.length - stretch, files: launched ? liveFiles : all.length,
       ready: pieces.filter((p) => p.status === "ready").length, failed: pieces.filter((p) => p.status === "failed").length, leftOut: pieces.filter((p) => p.status === "left_out").length,
-      renderEtaSec: analysisDone && (queuedOrRunning || !launched) ? Math.max(1, Math.round(remainingMs / 1000)) : null, videoCreditsUsd: 0,
+      renderEtaSec: analysisDone && (anyPending || !launched) ? Math.max(1, Math.round(remainingMs / 1000)) : null, videoCreditsUsd: 0,
     },
-    cost: { analysisEstimateUsd, analysisUsd, renderUsd: 0, totalUsd: analysisUsd },
+    cost: {
+      analysisEstimateUsd, analysisUsd, generateEstimateUsd: status === "PLAN_READY" ? Math.round(nStatic * STATIC_USD * 100) / 100 : null,
+      imagesUsd, renderUsd: 0, totalUsd: Math.round((analysisUsd + imagesUsd) * 100) / 100,
+    },
     zip: {
       status: zipReady ? "ready" : b.zip.status === "building" ? "building" : "none", fileName: zipReady ? fileName : null, url: zipReady ? zipUrl() : null,
       sizeBytes: zipReady ? b.zip.sizeBytes : null, pieces: zipPieces.length, files: zipPieces.reduce((a, p) => a + p.files.length, 0),
@@ -391,7 +579,7 @@ export function iterConfig(empty: boolean): IterateConfig {
   return {
     ...ITER_LIMITS, analysisUsdPerSec: USD_PER_SEC, analysisTypicalUsd: Math.round((30 * USD_PER_SEC + PLAN_USD) * 100) / 100,
     types: ["CUT", "COLD_OPEN", "HOOK_TEXT", "ENDCARD", "SPLIT_LP", "STORY", "REVIEW", "NATIVE_SEARCH", "STATIC"], metaConnected: false,
-    offers, defaultOfferId: offers.length === 1 ? offers[0].id : last, recentWinners: empty ? [] : (winners as LibraryItem[]),
+    offers, defaultOfferId: offers.length === 1 ? offers[0].id : last, recentWinners: empty ? [] : (winners as LibraryItem[]), staticImageUsd: STATIC_USD,
   }
 }
 
@@ -409,6 +597,8 @@ export function newIter(p: { offerId: string; uploadId: string | null; sourceCre
     brainEmpty: fname.includes("mock-nobrain") || notes.includes("[mock:brain-empty]") || !(of?.audience || of?.proof || of?.offerAndPrice),
     shortVideo: fname.includes("mock-onebeat") || p.durationSec < 12,
     pageCaptured: !notes.includes("[mock:page-403]") && !!of?.sourceUrl, page403Render: fname.includes("mock-page403"), renderFailType: renderFail ?? null,
+    formatFailType: (/\[mock:format-fail:([A-Z_]+)\]/.exec(notes)?.[1] as AutoVariationType | undefined) ?? null, formatFailUsed: false,
+    frameFail: frameFailOf(notes),
     t0: now, startIndex: prev ? READING_END : 0, retries: 0,
     failAt: fname.includes("mock-truncated") || notes.includes("[mock:auto-fail:reading]") ? { index: 0, code: "MEDIA_INVALID" }
       : fname.includes("mock-planfail") || notes.includes("[mock:auto-fail:planning]") ? { index: KEYS.length - 1, code: "PROVIDER_ERROR" }
@@ -432,35 +622,89 @@ export function retryIter(b: MIter) {
   saveIter()
 }
 
-/** §5.1 note 4: queue order = every 9:16 in plan order, then every 4:5, then every 1:1. */
+/** Next free slot of the Remotion line (images don't use it). */
+const lineEnd = (b: MIter, now: number) => Math.max(now + 300, ...b.jobs.filter((j) => !j.image).map((j) => j.endAt))
+
+/** §14.2: the batch queues only the 9:16, in plan order (priority 0). The STATIC image is submitted right away, beside the line. */
 export function launchIter(b: MIter, at = Date.now()) {
   b.launchedAt = at
   let t = at + 400
-  for (const f of FORMATS) {
-    for (const p of b.pieces) {
-      const ms = msOf(p)
-      const fail = p.failFirst && p.failFirst.format === f ? p.failFirst.code : null
-      b.jobs.push({ pieceId: p.id, format: f, startAt: t, endAt: t + ms, fail })
-      t += ms
+  for (const p of b.pieces) {
+    const fail = p.failFirst && p.failFirst.format === "9x16" ? p.failFirst.code : null
+    if (isStatic(p)) {
+      const text = textModeFor(b.offerId)
+      b.jobs.push({ pieceId: p.id, format: "9x16", startAt: at + 400, endAt: at + 400 + (fail ? STILL_MS : staticMs(text, p.slowFirst)), fail, priority: 0, image: true, text })
+      continue
+    }
+    b.jobs.push({ pieceId: p.id, format: "9x16", startAt: t, endAt: t + RENDER_MS, fail, priority: 0 })
+    t += RENDER_MS
+  }
+  saveIter()
+}
+
+/** Retry of the piece = a new 9:16 (STATIC: a new image, costs STATIC_USD when it finishes). */
+export function retryPiece(b: MIter, p: MPiece) {
+  const now = Date.now()
+  p.leftOutAt = null
+  p.inZip = true
+  const j = lastJob(b, p.id, "9x16")
+  // §A10: STATIC ready with a text mismatch → a new image (with its check); the old one stays until the new one is ready
+  if (j && !j.fail && j.endAt <= now && isStatic(p)) {
+    p.zipSet = true
+    b.jobs.push({ pieceId: p.id, format: "9x16", startAt: now + 300, endAt: now + 300 + staticMs("ok"), fail: null, priority: 10, image: true, text: "ok" })
+  } else if (j && j.fail && j.endAt <= now) {
+    if (isStatic(p)) b.jobs.push({ pieceId: p.id, format: "9x16", startAt: now + 300, endAt: now + 300 + staticMs("ok"), fail: null, priority: 10, image: true, text: "ok" })
+    else {
+      const t = lineEnd(b, now)
+      b.jobs.push({ pieceId: p.id, format: "9x16", startAt: t, endAt: t + RENDER_MS, fail: null, priority: 10 })
     }
   }
   saveIter()
 }
 
-export function retryPiece(b: MIter, p: MPiece) {
+/** Current state of a format of the piece (for the idempotency of POST /formats). */
+export function formatStateOf(b: MIter, p: MPiece, f: FormatCode, now = Date.now()) {
+  return formatState(lastJob(b, p.id, f), now)
+}
+
+/**
+ * §14.2 POST /iterate/pieces/:id/formats: a video format goes ahead of every queued batch render (priority 10, FIFO between
+ * requests) and never interrupts the one running; a STATIC format is a new image beside the line.
+ */
+export function requestFormat(b: MIter, p: MPiece, f: FormatCode) {
   const now = Date.now()
-  p.leftOutAt = null
-  p.inZip = true
-  let t = Math.max(now + 300, ...b.jobs.map((j) => j.endAt))
-  for (const f of FORMATS) {
-    const j = lastJob(b, p.id, f)
-    if (j && j.fail) {
-      b.jobs.push({ pieceId: p.id, format: f, startAt: t, endAt: t + msOf(p), fail: null })
-      t += msOf(p)
+  if (isStatic(p)) {
+    b.jobs.push({ pieceId: p.id, format: f, startAt: now + 300, endAt: now + 300 + STILL_MS + CHECK_MS, fail: null, priority: 10, image: true, text: "ok" })
+    saveIter()
+    return
+  }
+  const fail = f === "4x5" && b.formatFailType === p.type && !b.formatFailUsed ? "RENDER_ERROR" : null
+  if (fail) b.formatFailUsed = true
+  const line = b.jobs.filter((j) => !j.image)
+  const running = line.find((j) => j.startAt <= now && now < j.endAt)
+  const pending = line.filter((j) => j.startAt > now)
+  const lastAsked = pending.filter((j) => (j.priority ?? 0) >= 10).reduce((a, j) => Math.max(a, j.endAt), 0)
+  const at = lastAsked || (pending.length ? Math.min(...pending.map((j) => j.startAt)) : Math.max(now + 300, running?.endAt ?? 0))
+  for (const j of pending) {
+    if ((j.priority ?? 0) < 10 && j.startAt >= at) {
+      j.startAt += RENDER_MS
+      j.endAt += RENDER_MS
     }
   }
+  b.jobs.push({ pieceId: p.id, format: f, startAt: at, endAt: at + RENDER_MS, fail, priority: 10 })
   saveIter()
 }
+
+function frameFailOf(notes: string): MIter["frameFail"] {
+  const f = /\[mock:frame-fail:([a-z_]+)\]/.exec(notes)?.[1]
+  if (f && FRAME_IDS.includes(f as FrameTemplateId)) return { id: f as FrameTemplateId, code: "RENDER_ERROR" }
+  const o = /\[mock:frame-overflow:([a-z_]+)\]/.exec(notes)?.[1]
+  if (o && FRAME_IDS.includes(o as FrameTemplateId)) return { id: o as FrameTemplateId, code: "FRAME_TEXT_OVERFLOW" }
+  return null
+}
+/** web-mock: Retry of a STATIC with ?mocktext=cap answers SPEND_CAP_EXCEEDED */
+export const textCapForced = () => typeof window !== "undefined" && sessionStorage.getItem("mock:text") === "cap"
+export const isUnsupportedFormat = (p: MPiece, f: FormatCode) => !!p.frame && !!FRAME_UNSUPPORTED[p.frame]?.includes(f)
 
 export function findPiece(pieceId: string) {
   for (const b of it.batches) {

@@ -16,6 +16,8 @@ const buttonVariants = cva(
         ghost: "border-transparent bg-transparent font-semibold text-fg-btn hover:bg-card-2 hover:text-fg",
         destructive: "border-status-failed-edge bg-card font-semibold text-status-failed hover:border-status-failed",
         link: "border-transparent font-semibold text-fg underline-offset-4 hover:text-brand-ink hover:underline",
+        /** only "Continue with Facebook" (spec §3: the one third-party brand color, because it is their button) */
+        meta: "border-transparent bg-meta text-white hover:bg-[#1466d1]",
       },
       size: {
         default: "h-11 px-4 text-sm",

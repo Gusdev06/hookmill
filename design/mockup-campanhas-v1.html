@@ -1,0 +1,965 @@
+<title>HookMill Campaigns v1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: same shell as onboarding-v2 (dark sidebar + light work area, single light theme by decision 12/10).
+   Campaigns = one tree table (campaign > ad set > ad, rows expand in place) on desktop; drill-down cards on phone. */
+:root{
+  --bg:#EEEEEA; --card:#FDFDFB; --card-2:#F3F4F0; --input:#FFFFFF;
+  --line:#DCDDD7; --line-soft:#E4E5E0; --line-strong:#CFD1CB; --control:#B9BCB5; --sep:#9A9F96;
+  --fg:#15171A; --fg-2:#3B4047; --fg-3:#5A6068; --fg-btn:#4A5058; --on-ink-btn:#FFFFFF;
+  --accent:#C8F03C; --accent-ink:#3E5200; --accent-soft:#F0F8D2; --accent-edge:#A9CC2A;
+  --ink:#16181B; --ink-2:#202328; --ink-3:#2A2E33; --ink-line:#2E3238; --ink-fg:#F2F3EE; --ink-fg-2:#C5CAD0; --ink-fg-3:#9AA1A9; --ink-body:#E8EAE4;
+  --ok-bg:#E2F3E8; --ok:#0B6B43; --ok-dot:#1C9A5E;
+  --warn-bg:#FBF0D3; --warn:#7A5000; --warn-line:#E9C76B; --warn-dot:#D9A21B;
+  --bad-bg:#FBE7DD; --bad:#A8360C; --bad-edge:#E4B9A6;
+  --info-bg:#E6EBFC; --info:#2B4BC8; --info-line:#C3CEF6;
+  --row-hover:#F6F7F2; --row-l1:#FAFAF7; --row-l2:#F6F6F2; --scrim:rgba(22,24,27,.55);
+  --font:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --r-chip:8px; --r-ctl:10px; --r-btn:12px; --r-card:16px; --r-panel:18px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.45;color:var(--fg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:100;background:var(--ink)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+a{color:var(--fg)} a:hover{color:var(--accent-ink)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+svg{flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* prototype bar (not product) */
+.proto{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--ink);color:var(--ink-fg-2);border-bottom:1px solid var(--ink-line);padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12px}
+.proto b{color:var(--ink-fg);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.proto select{background:var(--ink-2);color:var(--ink-fg);border:1px solid var(--ink-line);border-radius:8px;min-height:32px;padding:0 8px;max-width:100%}
+.pg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--ink-fg-2);border-radius:7px;min-height:28px;padding:0 9px;cursor:pointer;font-size:12px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--fg);font-weight:700}
+.proto .note{color:var(--ink-fg-3)}
+
+/* frame */
+.frame{container-type:inline-size;container-name:app;margin:0 auto;width:100%;background:var(--bg);position:relative}
+.frame.phone{width:390px;max-width:100%;margin-block:20px;border:1px solid var(--line-strong);border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(21,23,26,.12)}
+
+/* app shell (identical to onboarding-v2) */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - 50px)}
+.side{background:var(--ink);color:var(--ink-fg-2);padding:18px 14px 20px;display:flex;flex-direction:column;gap:18px;position:sticky;top:50px;height:calc(100vh - 50px);overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 6px;color:var(--ink-fg);text-decoration:none}
+.brand-mark{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--fg);font-weight:800;font-stretch:125%;font-size:10px;flex:none}
+.brand-name{font-weight:800;font-stretch:125%;font-size:15px;letter-spacing:-.01em}
+.client{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border-radius:12px;background:var(--ink-2);border:1px solid var(--ink-line);color:var(--ink-fg);text-align:left;width:100%}
+.client-av{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:#1E2550;color:#E9DFC9;font-weight:800}
+.client .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.client b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client small{font-size:12px;color:var(--ink-fg-3)}
+.client small.ok{color:#8BD7A9}
+.navgrp{display:flex;flex-direction:column;gap:2px}
+.navlab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-fg-3);padding:0 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border-radius:10px;border:0;background:transparent;color:var(--ink-fg-2);font-weight:500;cursor:pointer;text-align:left;width:100%}
+.nav svg{stroke:var(--ink-fg-3)}
+.nav:hover{background:var(--ink-2)}
+.nav[aria-current="page"]{background:var(--ink-3);color:#fff;font-weight:700}
+.nav[aria-current="page"] svg{stroke:var(--accent)}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--fg);background:var(--accent);border-radius:999px;padding:1px 7px}
+.soon-mini{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-fg-3);border:1px dashed var(--ink-fg-3);border-radius:999px;padding:0 6px}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--ink-line);padding-top:12px}
+.me{display:flex;align-items:center;gap:10px;padding:0 6px}
+.me-av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;background:var(--ink-line);color:var(--ink-fg);font-weight:700;font-size:13px;flex:none}
+.me .t{min-width:0;flex:1}
+.me b{color:var(--ink-fg);font-weight:600;display:block}.me small{font-size:12px;color:var(--ink-fg-3)}
+.lang{display:inline-flex;border:1px solid var(--ink-line);border-radius:8px;overflow:hidden;flex:none}
+.lang button{border:0;background:transparent;color:var(--ink-fg-3);font-family:var(--mono);font-size:11px;min-height:30px;padding:0 8px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink-3);color:var(--ink-fg)}
+.topm{display:none}
+main.work{min-width:0;padding:24px 32px 120px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+
+/* type */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--fg-3);text-transform:uppercase}
+.h1{margin:0;font-size:30px;line-height:1.1;font-weight:800;font-stretch:125%;letter-spacing:-.015em;text-wrap:balance}
+.h2{margin:0;font-size:16px;font-weight:700;text-wrap:balance}
+.lede{margin:0;color:var(--fg-3);max-width:640px;text-wrap:pretty}
+.muted{color:var(--fg-3)} .small{font-size:13px} .tiny{font-size:12px}
+.headrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.head{display:flex;flex-direction:column;gap:6px;min-width:0}
+.acct{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;color:var(--fg-3);font-size:13px}
+.acct .num{font-size:12px}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* surfaces */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ink{background:var(--ink);color:var(--ink-body);border-radius:var(--r-panel);padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.ink .eyebrow{color:var(--ink-fg-2)}
+.big{font-family:var(--mono);font-size:44px;font-weight:600;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:var(--r-btn);border:1px solid transparent;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn-sm{min-height:36px;padding:0 12px;border-radius:10px;font-size:13px}
+.btn-xs{min-height:30px;padding:0 10px;border-radius:9px;font-size:12px}
+.btn-accent{background:var(--accent);color:var(--fg)} .btn-accent:hover{background:#BDE52F;color:var(--fg)}
+.btn-ink{background:var(--fg);color:var(--on-ink-btn)} .btn-ink:hover{color:var(--on-ink-btn);background:#2A2E33}
+.btn-out{background:var(--card);border-color:var(--line-strong);font-weight:600}
+.btn-out:hover{border-color:var(--fg)}
+.btn-ghost{background:transparent;color:var(--fg-btn);font-weight:600}
+.btn-ghost:hover{background:var(--card-2)}
+.btn-icon{width:36px;min-height:36px;padding:0;border-radius:10px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.spin{width:14px;height:14px;border-radius:999px;border:2px solid var(--line-strong);border-top-color:var(--fg);animation:spin 1s linear infinite;flex:none}
+.btn-ink .spin{border-color:#555;border-top-color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* tags */
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap;height:fit-content;line-height:1.5}
+.t-ok{background:var(--ok-bg);color:var(--ok)} .t-warn{background:var(--warn-bg);color:var(--warn)}
+.t-bad{background:var(--bad-bg);color:var(--bad)} .t-info{background:var(--info-bg);color:var(--info)}
+.t-neutral{background:var(--card-2);color:var(--fg-2);border:1px solid var(--line-soft)}
+.t-win{background:var(--fg);color:var(--accent)}
+.t-dash{background:transparent;color:var(--fg-3);border:1px dashed var(--control)}
+.t-hm{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-edge);font-family:var(--mono);font-size:10px;letter-spacing:.04em}
+.dot{width:7px;height:7px;border-radius:999px;background:currentColor;flex:none}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* alerts */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;border:1px solid;flex-wrap:wrap}
+.alert .a-body{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 240px}
+.alert .a-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.al-bad{background:var(--bad-bg);border-color:var(--bad-edge);color:#5E1E06}
+.al-warn{background:var(--warn-bg);border-color:var(--warn-line);color:#4A3100}
+.al-ok{background:var(--ok-bg);border-color:#B7DEC5;color:#0B4D31}
+.al-info{background:var(--info-bg);border-color:var(--info-line);color:#1D2F7A}
+
+/* sync chip */
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg-2);white-space:nowrap}
+.sync.ok .dot{color:var(--ok-dot)} .sync.warn .dot{color:var(--warn-dot)} .sync.bad .dot{color:var(--bad)} .sync.run .dot{color:var(--info)}
+
+/* toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.lseg{display:inline-flex;gap:2px;background:var(--card-2);border:1px solid var(--line);border-radius:11px;padding:2px;flex:none}
+.lseg button{border:0;background:transparent;color:var(--fg-btn);border-radius:9px;min-height:32px;padding:0 10px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.lseg button[aria-pressed="true"]{background:var(--card);color:var(--fg);box-shadow:0 0 0 1px var(--line-strong)}
+.lseg .c{font-family:var(--mono);font-size:11px;color:var(--fg-3)}
+.search{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--input);flex:1 1 220px;min-width:0;max-width:340px}
+.search input{border:0;outline:0;background:transparent;min-width:0;flex:1;min-height:36px}
+.search:focus-within{outline:2px solid var(--info);outline-offset:1px}
+.toolbar .scroll{display:contents}
+.ocard .top .sw{margin-top:2px}
+.sortsel{min-height:38px;border:1px solid var(--line-strong);border-radius:10px;background:var(--input);padding:0 8px;display:none}
+
+/* tree table */
+.tblwrap{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);overflow-x:auto;min-width:0}
+table.tree{width:100%;border-collapse:separate;border-spacing:0;min-width:1060px;font-size:13px}
+.tree th{position:sticky;top:0;background:var(--card);text-align:right;font-weight:600;color:var(--fg-3);font-size:12px;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tree th.l,.tree td.l{text-align:left}
+.tree th button{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:2px 0}
+.tree th button:hover{color:var(--fg)}
+.tree th[aria-sort] button{color:var(--fg);font-weight:700}
+.tree td{padding:8px 10px;border-bottom:1px solid var(--line-soft);text-align:right;vertical-align:middle;white-space:nowrap}
+.tree tbody tr:last-child td{border-bottom:0}
+.tree tr.lv0 td{background:var(--card)}
+.tree tr.lv1 td{background:var(--row-l1)}
+.tree tr.lv2 td{background:var(--row-l2)}
+.tree tbody tr:hover td{background:var(--row-hover)}
+.tree tr.total td{background:var(--card-2);font-weight:700;border-bottom:1px solid var(--line)}
+.tree tr.changed td{animation:flash 1.6s ease-out}
+@keyframes flash{0%{background:var(--accent-soft)}}
+.ocard.changed{animation:flash 1.6s ease-out}
+.tree .m{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+.tree .m.dim{color:var(--fg-3)}
+.namecell{display:flex;align-items:center;gap:8px;min-width:0;max-width:380px}
+.namecell .ind{flex:none}
+.exp{width:26px;height:26px;border-radius:7px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--fg-3);flex:none}
+.exp:hover{background:var(--card-2);color:var(--fg)}
+.exp svg{transition:transform .15s}
+.exp[aria-expanded="true"] svg{transform:rotate(90deg)}
+.exp.none{visibility:hidden}
+.nm{display:flex;flex-direction:column;min-width:0;gap:2px}
+.nm .n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lv1 .nm .n,.lv2 .nm .n{font-weight:600}
+.nm .s{display:flex;gap:6px;align-items:center;color:var(--fg-3);font-size:12px;overflow:hidden;white-space:nowrap}
+.lvl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--fg-3);text-transform:uppercase}
+.thumb{width:22px;aspect-ratio:9/16;border-radius:4px;background:var(--t,#1E2550);flex:none;max-width:100%}
+.thumb.img{aspect-ratio:1/1;width:28px;display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:#fff}
+mark{background:var(--accent);color:var(--fg);border-radius:3px;padding:0 1px}
+.delta{display:block;font-family:var(--mono);font-size:11px;font-weight:500;margin-top:1px}
+.delta.good{color:var(--ok)} .delta.bad{color:var(--bad)} .delta.flat{color:var(--fg-3)}
+.budget{display:inline-flex;align-items:center;gap:6px;justify-content:flex-end}
+.budget .k{font-size:11px;color:var(--fg-3);font-family:var(--mono)}
+.bud-edit{border:1px solid transparent;background:transparent;border-radius:8px;min-height:30px;padding:0 6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--mono);font-weight:600}
+.bud-edit:hover{border-color:var(--line-strong);background:var(--card)}
+.bud-edit svg{stroke:var(--fg-3)}
+.bud-shared{color:var(--fg-3);font-size:12px}
+.rowact{display:inline-flex;gap:6px;justify-content:flex-end;align-items:center;position:relative}
+
+/* switch (shadcn Switch) */
+.sw{position:relative;width:36px;height:20px;border-radius:999px;border:0;background:var(--control);cursor:pointer;flex:none;padding:0;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.sw[aria-checked="true"]{background:var(--ok-dot)}
+.sw[aria-checked="true"]::after{transform:translateX(16px)}
+.sw[aria-checked="true"].held{background:#8FC9A9}
+.sw[disabled]{opacity:.45;cursor:not-allowed}
+.swcell{display:flex;align-items:center;gap:8px}
+.stat{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--fg-2)}
+.stat.on .dot{color:var(--ok-dot)} .stat.off .dot{color:var(--control)} .stat.held .dot{color:var(--warn-dot)} .stat.bad .dot{color:var(--bad)}
+
+/* menu */
+.menu{position:absolute;right:0;top:calc(100% + 4px);z-index:40;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(21,23,26,.16);padding:6px;display:flex;flex-direction:column;text-align:left}
+.menu button,.menu a{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 10px;border-radius:8px;border:0;background:transparent;cursor:pointer;text-decoration:none;color:var(--fg);font-size:13px;font-weight:500;white-space:nowrap}
+.menu button:hover,.menu a:hover{background:var(--card-2);color:var(--fg)}
+.menu svg{stroke:var(--fg-3)}
+.menu hr{border:0;border-top:1px solid var(--line-soft);margin:4px 0}
+
+/* phone cards (drill-down) */
+.cards{display:none;flex-direction:column;gap:10px}
+.crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--fg-3)}
+.crumb button{border:0;background:transparent;color:var(--fg-2);font-weight:600;cursor:pointer;padding:6px 0;min-height:36px}
+.crumb b{color:var(--fg)}
+.ocard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.ocard.win{border-color:var(--accent-edge);background:var(--accent-soft)}
+.ocard .top{display:flex;gap:10px;align-items:flex-start}
+.ocard .top .nm{flex:1}
+.ocard .top .nm .n{white-space:normal;overflow:visible;font-size:15px}
+.ocard .chips{display:flex;flex-wrap:wrap;gap:6px}
+.ocard .mg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding-top:8px;border-top:1px solid var(--line-soft)}
+.ocard .mg div{display:flex;flex-direction:column;min-width:0}
+.ocard .mg small{font-size:11px;color:var(--fg-3)}
+.ocard .mg span{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums;font-size:14px}
+.ocard .foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ocard .foot .grow{flex:1}
+.ocard .drill{display:flex;align-items:center;justify-content:space-between;min-height:44px;border:0;border-top:1px solid var(--line-soft);background:transparent;width:100%;padding:8px 0 0;font-weight:700;cursor:pointer;text-align:left}
+.ocard .thumb{width:40px}
+.ocard .thumb.img{width:48px}
+.totals{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.totals div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column}
+.totals small{font-size:11px;color:var(--fg-3)} .totals span{font-family:var(--mono);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+
+/* skeleton */
+.sk{display:inline-block;height:10px;border-radius:6px;background:linear-gradient(90deg,var(--line-soft),var(--card-2),var(--line-soft));background-size:200% 100%;animation:sk 1.3s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+
+/* beam (waiting only) */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.beam{position:relative}
+.beam::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),transparent 0 70%,var(--accent) 82%,var(--info) 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:beam 2.4s linear infinite;pointer-events:none}
+@keyframes beam{to{--a:360deg}}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.steps li{display:flex;gap:10px;align-items:center}
+.steps .st{width:20px;height:20px;border-radius:999px;display:inline-grid;place-items:center;flex:none;border:1.5px solid var(--ink-line)}
+.steps .st.done{background:var(--accent);border-color:var(--accent);color:var(--fg)}
+.steps .st.now{border-color:var(--accent)}
+.steps li.todo{color:var(--ink-fg-3)}
+.bar{height:6px;border-radius:999px;background:var(--ink-line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+
+/* empty */
+.empty{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:center}
+.ghost-rows{display:flex;flex-direction:column;gap:8px;opacity:.55}
+.ghost-rows div{height:34px;border-radius:10px;border:1px dashed var(--control);background:var(--card-2)}
+
+/* dialog + sheet */
+.ov{position:fixed;inset:0;z-index:70;background:var(--scrim);display:grid;place-items:center;padding:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.frame.phone ~ .layer .ov,.layer.phone .ov{left:50%;right:auto;width:390px;max-width:100%;transform:translateX(-50%)}
+.dlg{width:460px;max-width:100%;max-height:calc(100vh - 48px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(21,23,26,.3);animation:dlg .18s ease-out}
+@keyframes dlg{from{opacity:0;transform:translateY(6px)}}
+.dlg h2{margin:0;font-size:18px;font-weight:800;font-stretch:115%;letter-spacing:-.01em;text-wrap:balance}
+.dlg p{margin:0;color:var(--fg-2)}
+.dlg .btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding-top:4px}
+.objline{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--card-2);border:1px solid var(--line-soft);min-width:0}
+.objline .nm .n{white-space:normal}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.plist li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line-soft);min-width:0}
+.plist li:first-child{border-top:0}
+.plist .nm{flex:1}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line-soft);font-size:13px}
+.kv:first-child{border-top:0}
+.kv span:first-child{color:var(--fg-3)} .kv span:last-child{font-family:var(--mono);font-weight:600;text-align:right}
+.money{display:flex;align-items:center;gap:6px;border:1px solid var(--line-strong);border-radius:12px;background:var(--input);padding:0 12px;min-height:52px}
+.money:focus-within{outline:2px solid var(--info);outline-offset:1px}
+.money.err{border-color:var(--bad)}
+.money span{font-family:var(--mono);color:var(--fg-3);font-size:18px}
+.money input{border:0;outline:0;background:transparent;font-family:var(--mono);font-size:22px;font-weight:600;min-width:0;flex:1;font-variant-numeric:tabular-nums}
+.money .per{font-size:13px}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{min-height:34px;padding:0 10px;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer}
+.quick button:hover{border-color:var(--fg)}
+.fmsg{font-size:13px;display:flex;gap:6px;align-items:flex-start}
+.fmsg.bad{color:var(--bad)} .fmsg.warn{color:var(--warn)} .fmsg.mute{color:var(--fg-3)}
+
+.sheet{position:fixed;top:0;right:0;bottom:0;z-index:72;width:460px;max-width:100%;background:var(--card);border-left:1px solid var(--line);box-shadow:-20px 0 50px rgba(21,23,26,.18);display:flex;flex-direction:column;animation:sheet .2s ease-out;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+@keyframes sheet{from{transform:translateX(24px);opacity:0}}
+.sheet-scrim{position:fixed;inset:0;z-index:71;background:var(--scrim)}
+.sheet .sh-h{display:flex;align-items:flex-start;gap:10px;padding:18px 18px 12px;border-bottom:1px solid var(--line-soft)}
+.sheet .sh-h .head{flex:1}
+.sheet .sh-b{flex:1;overflow:auto;padding:12px 18px 24px;display:flex;flex-direction:column;gap:10px}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hist li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;padding:12px 0;border-top:1px solid var(--line-soft)}
+.hist li:first-child{border-top:0}
+.hist .av{width:32px;height:32px;border-radius:999px;background:var(--card-2);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:12px}
+.hist .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hist .who{font-size:13px} .hist .who b{font-weight:700}
+.fromto{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+.fromto s{color:var(--fg-3)}
+.hist .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--fg-3)}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:90;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+
+@media (prefers-reduced-motion:reduce){.beam::before,.pulse,.spin,.sk,.dlg,.sheet,.tree tr.changed td{animation:none!important}.beam::before{background:linear-gradient(90deg,var(--accent),var(--info))}.sw,.sw::after,.exp svg{transition:none}}
+
+/* ============ responsive (container) ============ */
+@container app (max-width: 980px){
+  .empty{grid-template-columns:minmax(0,1fr)}
+}
+@container app (max-width: 760px){
+  .app{grid-template-columns:minmax(0,1fr);min-height:auto}
+  .side{display:none}
+  .app.menuopen .side{display:flex;position:absolute;top:56px;left:0;right:0;height:auto;z-index:30}
+  .topm{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--ink-fg);padding:8px 16px;min-height:56px;position:sticky;top:50px;z-index:20}
+  .topm .client{min-height:40px;padding:4px 8px;flex:1;min-width:0}
+  .topm .client-av{width:26px;height:26px;font-size:12px}
+  .topm .mbtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--ink-line);background:transparent;color:var(--ink-fg);display:grid;place-items:center;cursor:pointer;flex:none}
+  main.work{padding:16px 16px 120px}
+  .h1{font-size:24px}
+  .headrow{align-items:stretch}
+  .hbtns{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .hbtns .sync{grid-column:1/-1;justify-self:start}
+  .toolbar{gap:8px}
+  .toolbar .scroll{display:flex;gap:8px;overflow-x:auto;width:100%;padding-bottom:2px;scrollbar-width:none}
+  .search{max-width:none;flex:1 1 100%}
+  .sortsel{display:block;flex:1 1 auto}
+  .tblwrap{display:none}
+  .cards{display:flex}
+  .totals{display:grid}
+  .ov{place-items:end center;padding:0}
+  .dlg{width:100%;border-radius:20px 20px 0 0;max-height:88vh;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .dlg .btns{display:grid;grid-template-columns:1fr 1fr}
+  .dlg .btns .btn{width:100%}
+  .sheet{width:100%;top:auto;height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:20px 20px 0 0}
+  .alert .a-act{width:100%}
+}
+@media (max-width: 760px){
+  .ov{place-items:end center;padding:0}
+  .dlg{width:100%;border-radius:20px 20px 0 0;max-height:88vh;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .dlg .btns{display:grid;grid-template-columns:1fr 1fr}
+  .sheet{width:100%;top:auto;height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:20px 20px 0 0}
+}
+.layer.phone .ov{place-items:end center;padding:0}
+.layer.phone .dlg{width:100%;border-radius:20px 20px 0 0;max-height:88vh}
+.layer.phone .dlg .btns{display:grid;grid-template-columns:1fr 1fr}
+.layer.phone .dlg .btns .btn{width:100%}
+.layer.phone .sheet{left:50%;right:auto;transform:translateX(-50%);width:390px;max-width:100%;top:auto;height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:20px 20px 0 0;animation:none}
+.layer.phone .sheet-scrim{left:50%;right:auto;width:390px;max-width:100%;transform:translateX(-50%)}
+</style>
+
+<div class="proto" role="region" aria-label="Prototype controls (not part of the product)">
+  <b>PROTOTYPE</b>
+  <div class="pg"><span>State</span><label for="pstate" class="sr">Page state</label><select id="pstate"></select></div>
+  <div class="pg"><span>Role</span><div class="seg" id="prole"></div></div>
+  <div class="pg"><span>Next write</span><div class="seg" id="pwrite"></div></div>
+  <div class="pg"><div class="seg" id="pdev"><button data-v="desktop">Desktop</button><button data-v="phone">Phone 390</button></div></div>
+  <span class="note">Example data · Mooncloth is fictional · numbers are placeholders</span>
+</div>
+<div class="frame" id="frame"></div>
+<div class="layer" id="layer"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+/* ================= state ================= */
+const S={state:'ready',role:'owner',write:'ok',dev:'desktop',lang:'en',view:'tree',period:'30d',status:'all',origin:'all',q:'',sort:'spend',dir:'desc',
+  open:new Set(['c1','c2']),drill:{c:null,a:null},menuFor:null,dlg:null,sheet:null,mobileMenu:false,syncing:0,flash:null};
+
+const STATES=[
+ ['ready','Ready (synced 12 min ago)'],['loading','Loading'],['first','First sync running'],['stale','Sync is old (9 h)'],
+ ['failed','Last sync failed'],['nometa','No Meta connected'],['nocamp','No campaigns in the account'],['unusable','Account can\'t run ads'],['trunc','More than 500 (truncated)']];
+const ROLES=[['owner','Owner/Admin'],['member','Member'],['client','Client']];
+const WRITES=[['ok','Succeeds'],['changed','Changed in Ads Manager'],['rate','Meta asks to wait'],['token','Meta access expired']];
+
+/* ================= i18n (EN default, PT-BR) ================= */
+const D={
+ en:{campaigns:'Campaigns',sub:'Every campaign in the connected ad account. Turn things on and off and change daily budgets here; everything else opens in Ads Manager.',
+  synced:'Synced with Meta {t}',syncNow:'Sync now',syncing:'Syncing…',history:'History',viewTree:'Campaigns',viewAds:'Ads only',
+  p30:'Last 30 days',p7:'Last 7 days',all:'All',active:'Active',paused:'Paused',issues:'Issues',originAll:'All',originHm:'HookMill',
+  search:'Search campaigns, ad sets, ads',sortBy:'Sort',name:'Name',budget:'Budget',spend:'Spend',results:'Purchases',cpa:'Cost / purchase',ctr:'CTR',hook:'Hook rate',verdict:'Verdict',
+  total:'Total',iterate:'Iterate',iterateFull:'Iterate this ad',openAM:'Open in Ads Manager',openCreative:'Open the HookMill creative',histOf:'History of this item',
+  perDay:'/day',lifetime:'lifetime',shared:'Campaign budget',on:'On',off:'Off',viewOnly:'View only',
+  pauseT:'Pause {lvl}?',turnOnT:'Turn on {lvl}?',pauseB:'It stops delivering now. What\'s inside keeps its own on/off setting, so it comes back the same way when you turn this on again.',
+  turnOnB:'This starts spending today.',alsoOn:'This also turns on',alsoOnB:'These are off, so this {lvl} can\'t deliver until they\'re on.',
+  cancel:'Cancel',pauseBtn:'Pause',turnOnBtn:'Turn on',turnOnN:'Turn on {n} items',
+  budT:'Daily budget',budNow:'Now',budNew:'New daily budget',saveBud:'Save budget',
+  min:'The account minimum is {v} a day.',max:'Up to {v} in one change (2× the current budget). Raise it in steps, or in Ads Manager.',
+  learnWarn:'Big changes can restart Meta\'s learning phase. Results may wobble for a few days.',
+  budNote:'Takes effect today. Spend and results update at the next sync.',
+  changedT:'This changed in Ads Manager after our last sync',changedB:'Meta now shows {now}. We didn\'t change anything.',updateRow:'Update row',
+  rateT:'Meta asked us to wait',rateB:'Too many changes in a short time. Try again in {s} seconds. Nothing was changed.',
+  tokenT:'Meta access expired',tokenB:'Nothing was changed. Reconnect Meta in Settings › Connections, then try again.',reconnect:'Reconnect Meta',
+  histT:'History',histScopeObj:'This item',histScopeAll:'Whole account',histNote:'Changes made in HookMill, including the ones Meta refused. Changes made directly in Ads Manager don\'t show here.',
+  applied:'Applied',failed:'Failed',fromCampaigns:'Campaigns',fromSend:'Send to Meta',
+  noMetaT:'Connect Meta to see your campaigns',noMetaB:'HookMill reads your campaigns, ad sets and ads with 30 days of results. You can pause, turn on and change daily budgets from here.',connect:'Connect Meta',
+  noCampT:'No campaigns in Mooncloth US yet',noCampB:'Send a creative to Meta and its campaign shows up here, or create one in Ads Manager.',sendCreative:'Send a creative to Meta',
+  firstT:'Reading your campaigns from Meta',firstB:'About 1 minute left. You can leave this page; it fills in when the sync ends.',
+  staleT:'Last sync was 9 hours ago',staleB:'Numbers are from 05:12. Changes you make still go straight to Meta.',
+  failedT:'The last sync failed at 14:02',failedB:'Meta stopped answering (rate limit). You\'re seeing data from 08:02.',retry:'Sync again',
+  unusableT:'Meta disabled ads on this account',unusableB:'You can still see everything. Turning things on and changing budgets is off until the account is fixed in Meta.',openBilling:'Open account in Meta',
+  truncT:'Showing the 500 most recent campaigns',truncB:'Older ones are in Ads Manager.',
+  clientNote:'View only. Ask the agency to change anything.',memberNote:'Only owners and admins can change Meta. You can sync and iterate.',
+  noMatch:'Nothing matches these filters.',clear:'Clear filters',
+  adsets:'{n} ad sets',ads:'{n} ads',viewAdsets:'View {n} ad sets',viewAdsL:'View {n} ads',back:'All campaigns',
+  winner:'Winner',ok:'OK',lowData:'Low data',working:'Working',steady:'Steady',tiring:'Tiring',learning:'Learning',learnLim:'Learning limited',
+  rejected:'Rejected by Meta',inReview:'In review',notDeliv:'Not delivering',campOff:'campaign off',setOff:'ad set off',imageOnly:'Iterate works on video ads',
+ },
+ pt:{campaigns:'Campanhas',sub:'Todas as campanhas da conta de anúncios conectada. Ligue, desligue e mude o orçamento diário aqui; o resto abre no Gerenciador de Anúncios.',
+  synced:'Sincronizado com a Meta {t}',syncNow:'Sincronizar',syncing:'Sincronizando…',history:'Histórico',viewTree:'Campanhas',viewAds:'Só anúncios',
+  p30:'Últimos 30 dias',p7:'Últimos 7 dias',all:'Todas',active:'Ativas',paused:'Pausadas',issues:'Com problema',originAll:'Todas',originHm:'HookMill',
+  search:'Buscar campanha, conjunto, anúncio',sortBy:'Ordenar',name:'Nome',budget:'Orçamento',spend:'Gasto',results:'Compras',cpa:'Custo / compra',ctr:'CTR',hook:'Hook rate',verdict:'Veredito',
+  total:'Total',iterate:'Iterar',iterateFull:'Iterar este anúncio',openAM:'Abrir no Gerenciador',openCreative:'Abrir o criativo no HookMill',histOf:'Histórico deste item',
+  perDay:'/dia',lifetime:'vitalício',shared:'Orçamento da campanha',on:'Ligado',off:'Desligado',viewOnly:'Só leitura',
+  pauseT:'Pausar {lvl}?',turnOnT:'Ligar {lvl}?',pauseB:'Para de entregar agora. O que está dentro mantém o próprio liga/desliga, então volta do mesmo jeito quando você religar.',
+  turnOnB:'Isto começa a gastar hoje.',alsoOn:'Isto também liga',alsoOnB:'Estão desligados, então este {lvl} não entrega até eles ligarem.',
+  cancel:'Cancelar',pauseBtn:'Pausar',turnOnBtn:'Ligar',turnOnN:'Ligar {n} itens',
+  budT:'Orçamento diário',budNow:'Atual',budNew:'Novo orçamento diário',saveBud:'Salvar orçamento',
+  min:'O mínimo da conta é {v} por dia.',max:'Até {v} numa mudança (2× o orçamento atual). Suba em passos, ou no Gerenciador.',
+  learnWarn:'Mudança grande pode reiniciar a fase de aprendizado da Meta. O resultado pode oscilar por alguns dias.',
+  budNote:'Vale a partir de hoje. Gasto e resultado atualizam no próximo sync.',
+  changedT:'Isto mudou no Gerenciador depois do último sync',changedB:'A Meta agora mostra {now}. Não mudamos nada.',updateRow:'Atualizar linha',
+  rateT:'A Meta pediu pra esperar',rateB:'Muitas mudanças em pouco tempo. Tente de novo em {s} segundos. Nada foi alterado.',
+  tokenT:'O acesso à Meta expirou',tokenB:'Nada foi alterado. Reconecte a Meta em Configurações › Conexões e tente de novo.',reconnect:'Reconectar a Meta',
+  histT:'Histórico',histScopeObj:'Este item',histScopeAll:'Conta inteira',histNote:'Mudanças feitas no HookMill, inclusive as que a Meta recusou. Mudanças feitas direto no Gerenciador não aparecem aqui.',
+  applied:'Aplicada',failed:'Falhou',fromCampaigns:'Campanhas',fromSend:'Enviar pra Meta',
+  noMetaT:'Conecte a Meta pra ver suas campanhas',noMetaB:'O HookMill lê campanhas, conjuntos e anúncios com 30 dias de resultado. Daqui dá pra pausar, ligar e mudar orçamento diário.',connect:'Conectar a Meta',
+  noCampT:'Ainda não há campanhas em Mooncloth US',noCampB:'Envie um criativo pra Meta e a campanha aparece aqui, ou crie uma no Gerenciador.',sendCreative:'Enviar um criativo pra Meta',
+  firstT:'Lendo suas campanhas na Meta',firstB:'Falta cerca de 1 minuto. Pode sair desta página; ela se completa quando o sync terminar.',
+  staleT:'O último sync foi há 9 horas',staleB:'Os números são das 05:12. O que você mudar continua indo direto pra Meta.',
+  failedT:'O último sync falhou às 14:02',failedB:'A Meta parou de responder (limite de uso). Você está vendo os dados das 08:02.',retry:'Sincronizar de novo',
+  unusableT:'A Meta desativou os anúncios desta conta',unusableB:'Dá pra ver tudo. Ligar e mudar orçamento fica bloqueado até a conta ser regularizada na Meta.',openBilling:'Abrir a conta na Meta',
+  truncT:'Mostrando as 500 campanhas mais recentes',truncB:'As mais antigas estão no Gerenciador.',
+  clientNote:'Só leitura. Peça pra agência mudar o que precisar.',memberNote:'Só dono e admin mudam a Meta. Você pode sincronizar e iterar.',
+  noMatch:'Nada bate com esses filtros.',clear:'Limpar filtros',
+  adsets:'{n} conjuntos',ads:'{n} anúncios',viewAdsets:'Ver {n} conjuntos',viewAdsL:'Ver {n} anúncios',back:'Todas as campanhas',
+  winner:'Vencedor',ok:'OK',lowData:'Poucos dados',working:'Funcionando',steady:'Estável',tiring:'Cansando',learning:'Aprendendo',learnLim:'Aprendizado limitado',
+  rejected:'Reprovado pela Meta',inReview:'Em análise',notDeliv:'Sem entrega',campOff:'campanha desligada',setOff:'conjunto desligado',imageOnly:'Iterar funciona em anúncio de vídeo',
+ }};
+const T=(k,v={})=>(D[S.lang][k]||D.en[k]||k).replace(/\{(\w+)\}/g,(_,x)=>v[x]!==undefined?v[x]:'');
+const LV={en:{campaign:'campaign',adset:'ad set',ad:'ad'},pt:{campaign:'campanha',adset:'conjunto',ad:'anúncio'}};
+const lv=l=>LV[S.lang][l];
+
+/* ================= icons ================= */
+const P={home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/>',chart:'<path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M21 20H3"/>',
+ chat:'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',brain:'<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 7h7"/><path d="m7.3 9.2 3.5 6.6"/><path d="m16.7 9.2-3.5 6.6"/>',
+ iter:'<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 3v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 21v-5h5"/>',
+ bulb:'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6 1 1.3 1 2.4h5.6c0-1.1.4-1.8 1-2.4A6 6 0 0 0 12 3z"/>',
+ review:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',lib:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+ bld:'<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>',chev:'<path d="m9 6 6 6-6 6"/>',left:'<path d="m15 6-6 6 6 6"/>',updown:'<path d="m8 9 4-4 4 4"/><path d="m8 15 4 4 4-4"/>',
+ clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',refresh:'<path d="M20 11a8 8 0 0 0-14.7-4.3L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.7 4.3L20 16"/><path d="M20 21v-5h-5"/>',
+ alert:'<path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.5v.5"/>',lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ menu:'<path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/>',x:'<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',ext:'<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 13v7H4V6h7"/>',
+ search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>',pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+ sortd:'<path d="M12 5v14"/><path d="m6 13 6 6 6-6"/>',sortu:'<path d="M12 19V5"/><path d="m6 11 6-6 6 6"/>',check:'<path d="m5 12.5 4.5 4.5L19 7"/>',film:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16"/><path d="M16 4v16"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5"/><path d="M12 18.5V21"/><path d="M3 12h2.5"/><path d="M18.5 12H21"/>'};
+const ic=(n,s=16,w=1.9)=>`<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||''}</svg>`;
+
+/* ================= example data ================= */
+const M=(s,r,ctr,hr)=>({s,r,ctr,hr});
+const MIN=5, AM='https://adsmanager.facebook.com/adsmanager/manage/';
+const ad=(id,name,o)=>Object.assign({id,lvl:'ad',name,status:'ACTIVE',eff:'ACTIVE',fmt:'video',verdict:'OK',trend:'steady',hm:false,t:'#1E2550'},o);
+let DATA=[
+ {id:'c1',lvl:'campaign',name:'MC | Sleep mask | Purchases',status:'ACTIVE',eff:'ACTIVE',cbo:true,bud:{kind:'daily',amt:250},hm:false,
+  m:M(5980,262,1.84,31.2),w:M(1520,71,1.92,32.0),p:M(1400,58,1.75,30.1),
+  sets:[
+   {id:'a1',lvl:'adset',name:'Broad · US · 30–55',status:'ACTIVE',eff:'ACTIVE',learn:'SUCCESS',m:M(4210,196,1.95,33.4),w:M(1060,54,2.01,34.0),p:M(980,44,1.88,32.2),
+    ads:[ad('d1','I tried 11 sleep masks',{verdict:'WINNER',trend:'working',t:'#1E2550',m:M(2650,137,2.31,38.2),w:M(690,40,2.40,39.0),p:M(610,31,2.22,37.5)}),
+         ad('d2','60 nights to try it',{trend:'tiring',t:'#E5D8C3',m:M(1180,44,1.52,27.0),w:M(260,9,1.31,24.8),p:M(300,12,1.60,28.0)}),
+         ad('d3','Mask flatlay · still',{fmt:'image',trend:null,t:'#7A6A55',m:M(380,15,1.10,null),w:M(110,5,1.08,null),p:M(70,1,1.02,null)})]},
+   {id:'a2',lvl:'adset',name:'Lookalike 1% · buyers',status:'ACTIVE',eff:'ACTIVE',learn:'LEARNING',m:M(1770,66,1.63,26.9),w:M(460,17,1.70,27.5),p:M(420,14,1.52,26.0),
+    ads:[ad('d4','Founder story v2',{t:'#3A2142',m:M(1540,60,1.70,28.1),w:M(400,16,1.78,28.9),p:M(370,13,1.60,27.1)}),
+         ad('d5','HookMill · Light sleeper hook 3',{hm:true,verdict:'LOW_DATA',trend:null,t:'#2D4A3E',m:M(230,6,1.21,22.4),w:M(60,1,1.25,23.0),p:M(50,1,1.10,21.0)})]}]},
+ {id:'c2',lvl:'campaign',name:'MC | Founder story | ABO tests',status:'ACTIVE',eff:'ACTIVE',cbo:false,bud:null,hm:false,
+  m:M(3140,104,1.58,29.0),w:M(640,19,1.49,27.8),p:M(720,26,1.66,29.9),
+  sets:[
+   {id:'a3',lvl:'adset',name:'Interests · sleep & wellness',status:'ACTIVE',eff:'ACTIVE',learn:'SUCCESS',bud:{kind:'daily',amt:60},m:M(1650,64,1.72,30.6),w:M(420,15,1.70,30.0),p:M(410,16,1.74,31.0),
+    ads:[ad('d6','Founder story v1',{verdict:'WINNER',trend:'steady',t:'#4B2B1E',m:M(1210,52,1.88,32.8),w:M(300,12,1.86,32.1),p:M(290,12,1.90,33.0)}),
+         ad('d7','Unboxing in 9 seconds',{t:'#203A55',m:M(440,12,1.30,24.6),w:M(120,3,1.28,24.0),p:M(120,4,1.35,25.2)})]},
+   {id:'a4',lvl:'adset',name:'Retarget · visitors 30d',status:'PAUSED',eff:'PAUSED',learn:null,bud:{kind:'daily',amt:40},m:M(890,28,1.41,27.2),w:M(0,0,null,null),p:M(150,6,1.50,28.0),
+    ads:[ad('d8','Night routine POV',{eff:'ADSET_PAUSED',t:'#2A2240',m:M(640,22,1.52,28.4),w:M(0,0,null,null),p:M(110,5,1.6,29)}),
+         ad('d9','Review stack',{status:'PAUSED',eff:'PAUSED',trend:null,verdict:'LOW_DATA',t:'#5B3A2E',m:M(250,6,1.12,23.0),w:M(0,0,null,null),p:M(40,1,1.1,22)})]},
+   {id:'a5',lvl:'adset',name:'Women 35+ · US',status:'ACTIVE',eff:'ACTIVE',learn:'FAIL',bud:{kind:'daily',amt:50},stale:true,m:M(600,12,1.30,24.1),w:M(220,4,1.10,22.0),p:M(160,4,1.40,25.0),
+    ads:[ad('d10','Pillow talk',{trend:'tiring',t:'#6A3D4F',m:M(600,12,1.30,24.1),w:M(220,4,1.10,22.0),p:M(160,4,1.40,25.0)}),
+         ad('d11','Sleep like a baby (old)',{status:'PAUSED',eff:'DISAPPROVED',verdict:'LOW_DATA',trend:null,t:'#444',m:M(0,0,null,null),w:M(0,0,null,null),p:M(0,0,null,null)})]}]},
+ {id:'c3',lvl:'campaign',name:'HookMill · Weighted mask · Oct 18',status:'PAUSED',eff:'PAUSED',cbo:true,bud:{kind:'daily',amt:40},hm:true,
+  m:M(0,0,null,null),w:M(0,0,null,null),p:M(0,0,null,null),
+  sets:[{id:'a6',lvl:'adset',name:'HookMill · Broad · US',status:'ACTIVE',eff:'CAMPAIGN_PAUSED',learn:null,hm:true,m:M(0,0,null,null),w:M(0,0,null,null),p:M(0,0,null,null),
+    ads:[ad('d12','HookMill · Weighted mask A',{hm:true,eff:'CAMPAIGN_PAUSED',verdict:'LOW_DATA',trend:null,t:'#24324A',m:M(0,0,null,null),w:M(0,0,null,null),p:M(0,0,null,null)})]}]},
+ {id:'c4',lvl:'campaign',name:'MC | Evergreen | Lifetime',status:'ACTIVE',eff:'ACTIVE',cbo:true,bud:{kind:'lifetime',amt:3000,rem:1140},hm:false,
+  m:M(1720,58,1.44,26.0),w:M(410,13,1.38,25.1),p:M(420,15,1.47,26.4),
+  sets:[{id:'a7',lvl:'adset',name:'Broad · worldwide EN',status:'ACTIVE',eff:'ACTIVE',learn:'SUCCESS',m:M(1720,58,1.44,26.0),w:M(410,13,1.38,25.1),p:M(420,15,1.47,26.4),
+    ads:[ad('d13','Sleep test · 7 nights',{t:'#3B3B22',m:M(1720,58,1.44,26.0),w:M(410,13,1.38,25.1),p:M(420,15,1.47,26.4)})]}]}
+];
+const HIST0=[
+ {who:'Gusta',lvl:'adset',id:'a3',name:'Interests · sleep & wellness',field:'budget',from:'$50.00',to:'$60.00',ok:true,src:'c',at:'Today 11:42'},
+ {who:'Tordan',lvl:'adset',id:'a4',name:'Retarget · visitors 30d',field:'status',from:'On',to:'Off',ok:true,src:'c',at:'Yesterday 18:05'},
+ {who:'Tordan',lvl:'ad',id:'d11',name:'Sleep like a baby (old)',field:'status',from:'Off',to:'On',ok:false,err:'Rejected by Meta\'s ad review (META_POLICY)',src:'c',at:'Oct 19, 10:30'},
+ {who:'Gusta',lvl:'campaign',id:'c3',name:'HookMill · Weighted mask · Oct 18',field:'status',from:'On',to:'Off',ok:true,src:'s',at:'Oct 18, 16:12'},
+ {who:'Tordan',lvl:'campaign',id:'c1',name:'MC | Sleep mask | Purchases',field:'budget',from:'$200.00',to:'$250.00',ok:true,src:'c',at:'Oct 17, 09:03'}];
+let HIST=HIST0.slice();
+const ORIG=JSON.stringify(DATA);
+
+/* ================= helpers ================= */
+const $m=n=>n==null?'—':'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+const $c=n=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=n=>n==null?'—':n.toFixed(2)+'%';
+const pct1=n=>n==null?'—':n.toFixed(1)+'%';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cur=o=>S.period==='7d'?o.w:o.m;
+const cpa=x=>x.r?x.s/x.r:null;
+const val=(o,k)=>{const x=cur(o);return k==='spend'?x.s:k==='results'?x.r:k==='cpa'?cpa(x):k==='ctr'?x.ctr:k==='hookRate'?x.hr:k==='budget'?(o.bud?o.bud.amt:-1):o.name};
+const canWrite=()=>S.role==='owner'&&S.state!=='unusable';
+const hl=s=>{const q=S.q.trim();if(!q)return esc(s);const i=s.toLowerCase().indexOf(q.toLowerCase());if(i<0)return esc(s);return esc(s.slice(0,i))+'<mark>'+esc(s.slice(i,i+q.length))+'</mark>'+esc(s.slice(i+q.length))};
+const parents=o=>{for(const c of DATA){if(c===o)return{};for(const a of c.sets){if(a===o)return{c};for(const d of a.ads)if(d===o)return{c,a}}}return{}};
+const find=id=>{for(const c of DATA){if(c.id===id)return c;for(const a of c.sets){if(a.id===id)return a;for(const d of a.ads)if(d.id===id)return d}}};
+const budOf=o=>{if(o.lvl==='campaign')return o.cbo?o.bud:null;if(o.lvl==='adset'){const {c}=parents(o);return c.cbo?{shared:true}:o.bud}return null};
+
+function delta(o,k){
+ if(S.period!=='7d')return '';
+ const a=o.w,b=o.p; let x,y;
+ if(k==='spend'){x=a.s;y=b.s}else if(k==='results'){x=a.r;y=b.r}else if(k==='cpa'){x=cpa(a);y=cpa(b)}else if(k==='ctr'){x=a.ctr;y=b.ctr}else{x=a.hr;y=b.hr}
+ if(x==null||y==null||!y)return '<span class="delta flat">—</span>';
+ const d=(x-y)/y*100; if(Math.abs(d)<1)return '<span class="delta flat">→ 0%</span>';
+ const up=d>0; const better=k==='spend'?null:(k==='cpa'?!up:up);
+ const cls=better==null?'flat':better?'good':'bad';
+ return `<span class="delta ${cls}" title="vs. the 7 days before">${up?'↑':'↓'} ${Math.abs(d).toFixed(0)}%</span>`;
+}
+function statusInfo(o){
+ if(o.eff==='DISAPPROVED')return {cls:'bad',txt:T('rejected')};
+ if(o.eff==='PENDING_REVIEW'||o.eff==='IN_PROCESS')return {cls:'held',txt:T('inReview')};
+ if(o.status==='PAUSED')return {cls:'off',txt:T('off')};
+ if(o.eff==='CAMPAIGN_PAUSED')return {cls:'held',txt:T('notDeliv')+' · '+T('campOff'),held:true};
+ if(o.eff==='ADSET_PAUSED')return {cls:'held',txt:T('notDeliv')+' · '+T('setOff'),held:true};
+ return {cls:'on',txt:T('on')};
+}
+function verdictChips(o){
+ if(o.lvl==='ad'){
+  const v=o.verdict==='WINNER'?`<span class="tag t-win">${T('winner')}</span>`:o.verdict==='LOW_DATA'?`<span class="tag t-dash">${T('lowData')}</span>`:`<span class="tag t-neutral">${T('ok')}</span>`;
+  const tr=o.trend==='working'?`<span class="tag t-ok">${T('working')}</span>`:o.trend==='tiring'?`<span class="tag t-warn">${T('tiring')}</span>`:o.trend==='steady'&&o.verdict!=='WINNER'?'':o.trend==='steady'?`<span class="tag t-neutral">${T('steady')}</span>`:'';
+  return v+' '+tr;
+ }
+ const ads=o.lvl==='campaign'?o.sets.flatMap(a=>a.ads):o.ads;
+ const w=ads.filter(a=>a.verdict==='WINNER').length,t=ads.filter(a=>a.trend==='tiring').length;
+ return (w?`<span class="tag t-win">${w} ${T('winner').toLowerCase()}</span> `:'')+(t?`<span class="tag t-warn">${t} ${T('tiring').toLowerCase()}</span>`:'')||'<span class="muted tiny">—</span>';
+}
+function learnChip(o){return o.learn==='LEARNING'?`<span class="tag t-info">${T('learning')}</span>`:o.learn==='FAIL'?`<span class="tag t-warn">${T('learnLim')}</span>`:''}
+const hmChip=o=>o.hm?'<span class="tag t-hm" title="Published by HookMill">HOOKMILL</span>':'';
+
+/* ---------- filtering & sorting ---------- */
+function matchStatus(o){
+ if(S.status==='all')return true;
+ if(S.status==='active')return o.eff==='ACTIVE';
+ if(S.status==='paused')return ['PAUSED','CAMPAIGN_PAUSED','ADSET_PAUSED'].includes(o.eff);
+ return ['DISAPPROVED','WITH_ISSUES','PENDING_REVIEW','IN_PROCESS'].includes(o.eff);
+}
+const matchQ=o=>!S.q.trim()||o.name.toLowerCase().includes(S.q.trim().toLowerCase());
+const matchO=o=>S.origin==='all'||o.hm;
+function selfOk(o){return matchStatus(o)&&matchQ(o)&&matchO(o)}
+function sortList(l){const k=S.sort,d=S.dir==='asc'?1:-1;return l.slice().sort((a,b)=>{let x=val(a,k),y=val(b,k);if(k==='name')return d*String(x).localeCompare(String(y));if(x==null)x=k==='cpa'?Infinity*d:-Infinity;if(y==null)y=k==='cpa'?Infinity*d:-Infinity;return d*(x-y)})}
+function tree(){
+ const out=[];
+ for(const c of sortList(DATA)){
+  const sets=[];
+  for(const a of sortList(c.sets)){
+   const ads=sortList(a.ads).filter(selfOk);
+   if(selfOk(a)||ads.length)sets.push({a,ads:ads.length?ads:(S.q||S.status!=='all'||S.origin!=='all'?[]:a.ads),hit:!!ads.length});
+  }
+  if(selfOk(c)||sets.length)out.push({c,sets,hit:sets.length>0});
+ }
+ return out;
+}
+function flatAds(){return sortList(DATA.flatMap(c=>c.sets.flatMap(a=>a.ads))).filter(selfOk)}
+const filtering=()=>S.q.trim()||S.status!=='all'||S.origin!=='all';
+function counts(){const all=DATA;return{all:all.length,active:all.filter(c=>c.eff==='ACTIVE').length,paused:all.filter(c=>c.eff==='PAUSED').length,issues:DATA.flatMap(c=>c.sets.flatMap(a=>a.ads)).filter(d=>['DISAPPROVED','WITH_ISSUES'].includes(d.eff)).length}}
+function totals(list){let s=0,r=0;for(const o of list){const x=cur(o);s+=x.s;r+=x.r}
+ const ctrs=list.map(o=>cur(o).ctr).filter(v=>v!=null);return{s,r,cpa:r?s/r:null,ctr:ctrs.length?ctrs.reduce((a,b)=>a+b,0)/ctrs.length:null}}
+
+/* ================= shell ================= */
+function sidebar(){
+ const nav=(k,label,icon,extra='')=>`<button class="nav" data-act="nav:${k}" ${k==='campaigns'?'aria-current="page"':''}>${ic(icon,18)}${label}${extra}</button>`;
+ const me=S.role==='client'?['Lena','Client']:S.role==='member'?['Rafa','Member']:['Tordan','Agency admin'];
+ return `<nav class="side" aria-label="Main">
+  <a class="brand" href="#" data-act="noop"><span class="brand-mark">HM</span><span class="brand-name">HookMill</span></a>
+  <button class="client" data-act="toast:Client switcher (exists today)"><span class="client-av">M</span><span class="t"><b>Mooncloth</b><small class="ok">Meta · synced 12 min ago</small></span>${ic('updown',18)}</button>
+  <div class="navgrp"><span class="navlab">WORKSPACE</span>
+   ${nav('home','Home','home')}${nav('campaigns',T('campaigns'),'chart')}${nav('eddy','Eddy','chat','<span class="soon-mini">SOON</span>')}${nav('brain','Brain','brain')}
+  </div>
+  <div class="navgrp"><span class="navlab">MAKE ADS</span>
+   ${nav('iterate','Iterate a winner','iter')}${nav('concepts','New concepts','bulb')}${nav('review','Review','review','<span class="badge">2</span>')}${nav('library','Library','lib')}
+  </div>
+  <div class="side-foot">${nav('clients','All clients','bld')}
+   <div class="me"><span class="me-av">${me[0][0]}</span><span class="t"><b>${me[0]}</b><small>${me[1]}</small></span>
+   <div class="lang" role="group" aria-label="Language"><button data-act="lang:en" aria-pressed="${S.lang==='en'}">EN</button><button data-act="lang:pt" aria-pressed="${S.lang==='pt'}">PT</button></div></div>
+  </div></nav>`;
+}
+function shell(content){
+ return `<div class="app ${S.mobileMenu?'menuopen':''}">${sidebar()}
+  <div class="topm"><span class="brand-mark">HM</span><button class="client" data-act="toast:Client switcher"><span class="client-av">M</span><span class="t"><b>Mooncloth</b></span>${ic('updown',16)}</button><button class="mbtn" data-act="mmenu" aria-label="${S.mobileMenu?'Close menu':'Open menu'}">${ic(S.mobileMenu?'x':'menu',18)}</button></div>
+  <main class="work"><div class="wrap">${content}</div></main></div>`;
+}
+
+/* ================= page ================= */
+function header(){
+ const st=S.state;
+ const chip=S.syncing?`<span class="sync run"><i class="dot pulse"></i>${T('syncing')} ${['listing campaigns','listing ad sets','listing ads','reading results 4 of 9','scoring'][S.syncing-1]}</span>`
+  :st==='stale'?`<span class="sync warn"><i class="dot"></i>${T('synced',{t:'9 h ago'})}</span>`
+  :st==='failed'?`<span class="sync bad"><i class="dot"></i>${S.lang==='pt'?'Sync falhou às 14:02':'Sync failed at 14:02'}</span>`
+  :st==='first'?`<span class="sync run"><i class="dot pulse"></i>${T('syncing')}</span>`
+  :`<span class="sync ok"><i class="dot"></i>${T('synced',{t:S.lang==='pt'?'há 12 min':'12 min ago'})}</span>`;
+ const canSync=S.role!=='client'&&st!=='first'&&!S.syncing;
+ const ro=S.role==='client'?`<span class="tag t-neutral">${ic('lock',12)} ${T('viewOnly')}</span>`:'';
+ return `<div class="headrow"><div class="head"><span class="eyebrow">Mooncloth · Meta</span><h1 class="h1">${T('campaigns')} ${ro}</h1>
+  <div class="acct"><span>Mooncloth US</span><span class="num">act_229184301</span><span>USD</span></div></div>
+  <div class="hbtns">${chip}<button class="btn btn-out btn-sm" data-act="hist:all">${ic('clock')}${T('history')}</button>${S.role!=='client'?`<button class="btn btn-out btn-sm" data-act="sync" ${canSync?'':'disabled'}>${ic('refresh')}${T('syncNow')}</button>`:''}</div></div>`;
+}
+function banners(){
+ const st=S.state,b=[];
+ if(st==='stale')b.push(`<div class="alert al-warn" role="status">${ic('clock',18)}<div class="a-body"><b>${T('staleT')}</b><span>${T('staleB')}</span></div><div class="a-act"><button class="btn btn-out btn-sm" data-act="sync">${T('syncNow')}</button></div></div>`);
+ if(st==='failed')b.push(`<div class="alert al-bad" role="alert">${ic('alert',18)}<div class="a-body"><b>${T('failedT')}</b><span>${T('failedB')}</span></div><div class="a-act"><button class="btn btn-out btn-sm" data-act="sync">${T('retry')}</button></div></div>`);
+ if(st==='unusable')b.push(`<div class="alert al-bad" role="alert">${ic('lock',18)}<div class="a-body"><b>${T('unusableT')}</b><span>${T('unusableB')}</span></div><div class="a-act"><a class="btn btn-out btn-sm" href="https://adsmanager.facebook.com/" target="_blank" rel="noopener">${T('openBilling')} ${ic('ext',14)}</a></div></div>`);
+ if(st==='trunc')b.push(`<div class="alert al-info" role="status">${ic('alert',18)}<div class="a-body"><b>${T('truncT')}</b><span>${T('truncB')}</span></div><div class="a-act"><a class="btn btn-out btn-sm" href="${AM}campaigns" target="_blank" rel="noopener">${T('openAM')} ${ic('ext',14)}</a></div></div>`);
+ if(S.role==='member'&&!['nometa','first','nocamp'].includes(st))b.push(`<div class="alert al-info" role="status">${ic('lock',18)}<div class="a-body"><span>${T('memberNote')}</span></div></div>`);
+ return b.join('');
+}
+function toolbar(){
+ const c=counts();
+ const sb=(v,l,n)=>`<button data-act="status:${v}" aria-pressed="${S.status===v}">${l}${n!=null?` <span class="c">${n}</span>`:''}</button>`;
+ const sorts=[['spend',T('spend')],['cpa',T('cpa')],['results',T('results')],['ctr',T('ctr')],['hookRate',T('hook')],['budget',T('budget')],['name',T('name')]];
+ return `<div class="toolbar">
+  <div class="scroll">
+   <div class="lseg" role="group" aria-label="View"><button data-act="view:tree" aria-pressed="${S.view==='tree'}">${T('viewTree')}</button><button data-act="view:ads" aria-pressed="${S.view==='ads'}">${T('viewAds')}</button></div>
+   <div class="lseg" role="group" aria-label="Period"><button data-act="period:30d" aria-pressed="${S.period==='30d'}">${T('p30')}</button><button data-act="period:7d" aria-pressed="${S.period==='7d'}">${T('p7')}</button></div>
+   <div class="lseg" role="group" aria-label="Status">${sb('all',T('all'),null)}${sb('active',T('active'),null)}${sb('paused',T('paused'),null)}${sb('issues',T('issues'),c.issues)}</div>
+   <div class="lseg" role="group" aria-label="Origin"><button data-act="origin:all" aria-pressed="${S.origin==='all'}">${T('originAll')}</button><button data-act="origin:hookmill" aria-pressed="${S.origin==='hookmill'}"><span class="tag t-hm" style="padding:0 6px">HM</span>${T('originHm')}</button></div>
+  </div>
+  <label class="search">${ic('search')}<span class="sr">${T('search')}</span><input id="q" type="search" placeholder="${T('search')}" value="${esc(S.q)}" autocomplete="off"></label>
+  <label class="sr" for="sortsel">${T('sortBy')}</label><select id="sortsel" class="sortsel">${sorts.map(([k,l])=>`<option value="${k}" ${S.sort===k?'selected':''}>${T('sortBy')}: ${l}</option>`).join('')}</select>
+ </div>`;
+}
+
+/* ---------- desktop table ---------- */
+function th(k,l,cls=''){const on=S.sort===k;return `<th class="${cls}" ${on?`aria-sort="${S.dir==='asc'?'ascending':'descending'}"`:''} scope="col"><button data-act="sort:${k}">${l}${on?ic(S.dir==='asc'?'sortu':'sortd',12):''}</button></th>`}
+function swCell(o){
+ const si=statusInfo(o);
+ const lbl=`<span class="stat ${si.cls}"><i class="dot"></i>${si.txt}</span>`;
+ if(S.role!=='owner')return `<div class="swcell" title="${T('viewOnly')}">${lbl}</div>`;
+ const dis=S.state==='unusable'||o.eff==='DISAPPROVED';
+ const reason=S.state==='unusable'?T('unusableT'):o.eff==='DISAPPROVED'?T('rejected'):'';
+ return `<div class="swcell"><button class="sw ${si.held?'held':''}" role="switch" aria-checked="${o.status==='ACTIVE'}" aria-label="${o.status==='ACTIVE'?T('pauseBtn'):T('turnOnBtn')} ${esc(o.name)}" data-act="toggle:${o.id}" ${dis?`disabled title="${reason}"`:''}></button>${o.status==='ACTIVE'&&!si.held?'':lbl}</div>`;
+}
+function swOnly(o){
+ if(S.role!=='owner')return '';
+ const dis=S.state==='unusable'||o.eff==='DISAPPROVED';
+ return `<button class="sw ${statusInfo(o).held?'held':''}" role="switch" aria-checked="${o.status==='ACTIVE'}" aria-label="${o.status==='ACTIVE'?T('pauseBtn'):T('turnOnBtn')} ${esc(o.name)}" data-act="toggle:${o.id}" ${dis?'disabled':''} style="width:44px;height:26px"></button>`;
+}
+function budCell(o){
+ const b=budOf(o);
+ if(o.lvl==='ad')return '';
+ if(!b)return `<span class="bud-shared">${o.lvl==='campaign'?(S.lang==='pt'?'No conjunto':'Set per ad set'):''}</span>`;
+ if(b.shared)return `<span class="bud-shared" title="${S.lang==='pt'?'Este conjunto divide o orçamento da campanha (CBO).':'This ad set shares the campaign budget (CBO).'}">${T('shared')}</span>`;
+ const where=o.lvl==='campaign'?'CBO':'ABO';
+ if(b.kind==='lifetime')return `<span class="budget" title="${S.lang==='pt'?'Orçamento vitalício: edite no Gerenciador':'Lifetime budget: edit in Ads Manager'}"><span class="k">${where}</span><span class="m">${$m(b.amt)}</span><span class="muted tiny">${T('lifetime')}</span>${ic('lock',12)}</span>`;
+ const txt=`<span class="k">${where}</span>${$c(b.amt)}<span class="muted tiny" style="font-family:var(--font);font-weight:500">${T('perDay')}</span>`;
+ return canWrite()?`<button class="bud-edit" data-act="budget:${o.id}" aria-label="${T('budT')} ${esc(o.name)}: ${$c(b.amt)}">${txt}${ic('pencil',13)}</button>`:`<span class="budget m">${txt}</span>`;
+}
+function actCell(o){
+ const menu=S.menuFor===o.id?menuHtml(o):'';
+ let it='';
+ if(o.lvl==='ad'&&S.role!=='client'){
+  it=o.fmt==='video'?`<button class="btn btn-xs ${o.verdict==='WINNER'?'btn-accent':'btn-out'}" data-act="iterate:${o.id}">${ic('iter',13)}${T('iterate')}</button>`
+   :`<button class="btn btn-xs btn-out" disabled title="${T('imageOnly')}">${ic('iter',13)}${T('iterate')}</button>`;
+ }
+ return `<div class="rowact">${it}<button class="btn btn-ghost btn-icon" data-act="menu:${o.id}" aria-haspopup="menu" aria-expanded="${S.menuFor===o.id}" aria-label="More for ${esc(o.name)}">${ic('dots',16)}</button>${menu}</div>`;
+}
+function menuHtml(o){
+ const url=AM+(o.lvl==='campaign'?'campaigns':o.lvl==='adset'?'adsets':'ads')+'?act=229184301&selected_'+(o.lvl==='adset'?'adset':o.lvl)+'_ids='+o.id;
+ return `<div class="menu" role="menu">
+  ${o.lvl==='ad'&&o.fmt==='video'&&S.role!=='client'?`<button role="menuitem" data-act="iterate:${o.id}">${ic('iter')}${T('iterateFull')}</button>`:''}
+  ${o.hm?`<button role="menuitem" data-act="toast:Opens /creatives/cr_8812 (the HookMill creative this came from)">${ic('film')}${T('openCreative')}</button>`:''}
+  <button role="menuitem" data-act="hist:${o.id}">${ic('clock')}${T('histOf')}</button><hr>
+  <a role="menuitem" href="${url}" target="_blank" rel="noopener">${ic('ext')}${T('openAM')}</a></div>`;
+}
+function metricTds(o){
+ const x=cur(o),c=cpa(x),zero=!x.s;
+ const td=(v,k)=>`<td><span class="m ${zero?'dim':''}">${v}</span>${zero?'':delta(o,k)}</td>`;
+ return td($m(x.s),'spend')+td(x.r||'—','results')+td($c(c),'cpa')+td(pct(x.ctr),'ctr')+td(o.lvl==='ad'&&o.fmt==='image'?'—':pct1(x.hr),'hook');
+}
+function row(o,depth,hasKids,openKey,extraSub=''){
+ const isOpen=S.open.has(o.id)||(filtering()&&openKey);
+ const exp=hasKids?`<button class="exp" data-act="exp:${o.id}" aria-expanded="${!!isOpen}" aria-label="${isOpen?'Collapse':'Expand'} ${esc(o.name)}">${ic('chev',14)}</button>`:'<span class="exp none"></span>';
+ const th=o.lvl==='ad'?`<span class="thumb ${o.fmt==='image'?'img':''}" style="--t:${o.t}">${o.fmt==='image'?'IMG':''}</span>`:'';
+ const sub=o.lvl==='campaign'?`<span class="lvl">${lv('campaign')}</span>·<span>${T('adsets',{n:o.sets.length})}</span>·<span>${T('ads',{n:o.sets.reduce((a,s)=>a+s.ads.length,0)})}</span>`
+  :o.lvl==='adset'?`<span class="lvl">${lv('adset')}</span>·<span>${T('ads',{n:o.ads.length})}</span>`
+  :`<span class="lvl">${lv('ad')}</span>·<span>${o.fmt==='image'?(S.lang==='pt'?'Imagem':'Image'):'Video'}</span>${extraSub}`;
+ return `<tr class="lv${depth} ${S.flash===o.id?'changed':''}" aria-level="${depth+1}" ${hasKids?`aria-expanded="${!!isOpen}"`:''}>
+  <td class="l">${swCell(o)}</td>
+  <td class="l"><div class="namecell"><span class="ind" style="width:${depth*22}px"></span>${exp}${th}<div class="nm"><span class="n" title="${esc(o.name)}">${hl(o.name)}</span><span class="s">${sub} ${hmChip(o)} ${learnChip(o)}</span></div></div></td>
+  <td>${budCell(o)}</td>${metricTds(o)}
+  <td class="l">${verdictChips(o)}</td><td>${actCell(o)}</td></tr>`;
+}
+function table(){
+ const head=`<thead><tr><th class="l" scope="col" style="width:150px">Status</th>${th('name',T('name'),'l')}${th('budget',T('budget'))}${th('spend',T('spend'))}${th('results',T('results'))}${th('cpa',T('cpa'))}${th('ctr',T('ctr'))}${th('hookRate',T('hook'))}<th class="l" scope="col">${T('verdict')}</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>`;
+ let body='',list;
+ if(S.view==='tree'){
+  const t=tree(); list=t.map(x=>x.c);
+  for(const {c,sets,hit} of t){
+   body+=row(c,0,true,hit);
+   if(S.open.has(c.id)||(filtering()&&hit)) for(const {a,ads,hit:h2} of sets){
+    body+=row(a,1,a.ads.length>0,h2);
+    if(S.open.has(a.id)||(filtering()&&h2)) for(const d of ads) body+=row(d,2,false,false);
+   }
+  }
+ } else {
+  list=flatAds();
+  for(const d of list){const {c,a}=parents(d);body+=row(d,0,false,false,`·<span>${esc(c.name)} › ${esc(a.name)}</span>`)}
+ }
+ const tt=totals(list);
+ const tot=`<tr class="total"><td class="l" colspan="2">${T('total')} · ${S.view==='tree'?`${list.length} ${lv('campaign')}${list.length===1?'':'s'}`:`${list.length} ${lv('ad')}s`} · ${S.period==='7d'?T('p7'):T('p30')}</td><td></td><td><span class="m">${$m(tt.s)}</span></td><td><span class="m">${tt.r}</span></td><td><span class="m">${$c(tt.cpa)}</span></td><td><span class="m">${pct(tt.ctr)}</span></td><td></td><td></td><td></td></tr>`;
+ if(!list.length)return `<div class="tblwrap"><table class="tree">${head}</table>${noMatch()}</div>`;
+ return `<div class="tblwrap"><table class="tree" role="treegrid" aria-label="${T('campaigns')}">${head}<tbody>${tot}${body}</tbody></table></div>`;
+}
+const noMatch=()=>`<div class="card" style="border:0;align-items:flex-start"><b>${T('noMatch')}</b><button class="btn btn-out btn-sm" data-act="clear">${T('clear')}</button></div>`;
+
+/* ---------- phone cards (drill-down) ---------- */
+function ocard(o,sub='',isHead=false){
+ const x=cur(o),c=cpa(x);
+ const b=budOf(o);
+ let budLine='';
+ if(o.lvl!=='ad'){
+  if(b&&b.shared)budLine=`<span class="bud-shared">${T('shared')} (CBO)</span>`;
+  else if(b&&b.kind==='lifetime')budLine=`<span class="budget"><span class="k">CBO</span><span class="num">${$m(b.amt)}</span> <span class="muted tiny">${T('lifetime')}</span>${ic('lock',12)}</span>`;
+  else if(b)budLine=canWrite()?`<button class="bud-edit" data-act="budget:${o.id}"><span class="k">${o.lvl==='campaign'?'CBO':'ABO'}</span>${$c(b.amt)}<span class="muted tiny">${T('perDay')}</span>${ic('pencil',13)}</button>`:`<span class="budget num"><span class="k">${o.lvl==='campaign'?'CBO':'ABO'}</span>${$c(b.amt)}${T('perDay')}</span>`;
+  else budLine=`<span class="bud-shared">${S.lang==='pt'?'Orçamento por conjunto (ABO)':'Budget per ad set (ABO)'}</span>`;
+ }
+ const thumb=o.lvl==='ad'?`<span class="thumb ${o.fmt==='image'?'img':''}" style="--t:${o.t}">${o.fmt==='image'?'IMG':''}</span>`:'';
+ const kids=o.lvl==='campaign'?o.sets.length:o.lvl==='adset'?o.ads.length:0;
+ const drill=o.lvl==='ad'||isHead?'':`<button class="drill" data-act="drill:${o.id}">${o.lvl==='campaign'?T('viewAdsets',{n:kids}):T('viewAdsL',{n:kids})}${ic('chev')}</button>`;
+ const iter=o.lvl==='ad'&&S.role!=='client'?(o.fmt==='video'?`<button class="btn btn-sm grow ${o.verdict==='WINNER'?'btn-accent':'btn-out'}" data-act="iterate:${o.id}">${ic('iter',14)}${T('iterateFull')}</button>`:`<span class="muted tiny grow">${T('imageOnly')}</span>`):'';
+ const si=statusInfo(o);
+ return `<article class="ocard ${o.lvl==='ad'&&o.verdict==='WINNER'?'win':''} ${S.flash===o.id?'changed':''}">
+  <div class="top">${thumb}<div class="nm"><span class="lvl">${lv(o.lvl)}</span><span class="n">${hl(o.name)}</span>${sub?`<span class="s" style="white-space:normal">${sub}</span>`:''}</div>${swOnly(o)}</div>
+  <div class="chips"><span class="stat ${si.cls}"><i class="dot"></i>${si.txt}</span>${hmChip(o)}${learnChip(o)}${verdictChips(o)}</div>
+  <div class="mg"><div><small>${T('spend')}</small><span>${$m(x.s)}</span>${x.s?delta(o,'spend'):''}</div><div><small>${S.lang==='pt'?'Compras':'Purch.'}</small><span>${x.r||'—'}</span>${x.s?delta(o,'results'):''}</div><div><small>CPA</small><span>${$c(c)}</span>${x.s?delta(o,'cpa'):''}</div><div><small>${o.lvl==='ad'&&o.fmt==='video'?T('hook'):T('ctr')}</small><span>${o.lvl==='ad'&&o.fmt==='video'?pct1(x.hr):pct(x.ctr)}</span>${x.s?delta(o,o.lvl==='ad'&&o.fmt==='video'?'hook':'ctr'):''}</div></div>
+  ${o.lvl!=='ad'?`<div class="foot">${budLine}</div>`:''}
+  ${o.lvl==='ad'?`<div class="foot">${iter}<div class="rowact"><button class="btn btn-out btn-icon" data-act="menu:${o.id}" aria-label="More">${ic('dots')}</button>${S.menuFor===o.id?menuHtml(o):''}</div></div>`:`<div class="foot"><span class="grow"></span><div class="rowact"><button class="btn btn-ghost btn-sm" data-act="hist:${o.id}">${ic('clock',14)}${T('history')}</button><a class="btn btn-ghost btn-sm" href="${AM}campaigns" target="_blank" rel="noopener">${ic('ext',14)}Ads Manager</a></div></div>`}
+  ${drill}</article>`;
+}
+function cards(){
+ let h='',list=[];
+ if(S.view==='ads'){
+  list=flatAds(); h=list.map(d=>{const {c,a}=parents(d);return ocard(d,esc(c.name)+' › '+esc(a.name))}).join('');
+ } else if(S.drill.a){
+  const a=find(S.drill.a),{c}=parents(a);
+  h=`<nav class="crumb" aria-label="Breadcrumb"><button data-act="drill:root">${ic('left',14)} ${T('back')}</button><span>/</span><button data-act="drill:${c.id}">${esc(c.name)}</button><span>/</span><b>${esc(a.name)}</b></nav>`;
+  list=sortList(a.ads).filter(d=>!filtering()||selfOk(d)); h+=ocard(a,'',true)+list.map(d=>ocard(d)).join('');
+ } else if(S.drill.c){
+  const c=find(S.drill.c);
+  h=`<nav class="crumb" aria-label="Breadcrumb"><button data-act="drill:root">${ic('left',14)} ${T('back')}</button><span>/</span><b>${esc(c.name)}</b></nav>`;
+  list=sortList(c.sets); h+=ocard(c,'',true)+list.map(a=>ocard(a)).join('');
+ } else { const t=tree(); list=t.map(x=>x.c); h=list.map(c=>ocard(c)).join('') }
+ if(!list.length)h+=noMatch();
+ const tt=totals(S.view==='ads'?flatAds():tree().map(x=>x.c));
+ return `<div class="totals"><div><small>${T('spend')}</small><span>${$m(tt.s)}</span></div><div><small>${T('results')}</small><span>${tt.r}</span></div><div><small>${T('cpa')}</small><span>${$c(tt.cpa)}</span></div><div><small>${T('ctr')}</small><span>${pct(tt.ctr)}</span></div></div><div class="cards">${h}</div>`;
+}
+
+/* ---------- special states ---------- */
+function loading(){
+ const r=w=>`<tr><td class="l"><span class="sk" style="width:36px;height:18px;border-radius:999px"></span></td><td class="l"><span class="sk" style="width:${w}px"></span></td>${'<td><span class="sk" style="width:56px"></span></td>'.repeat(6)}<td class="l"><span class="sk" style="width:60px"></span></td><td></td></tr>`;
+ const head=`<thead><tr><th class="l">Status</th><th class="l">${T('name')}</th><th>${T('budget')}</th><th>${T('spend')}</th><th>${T('results')}</th><th>${T('cpa')}</th><th>${T('ctr')}</th><th>${T('hook')}</th><th class="l">${T('verdict')}</th><th></th></tr></thead>`;
+ const cardsk=`<div class="ocard"><span class="sk" style="width:70%"></span><span class="sk" style="width:40%"></span><div class="mg">${'<div><span class="sk" style="width:48px"></span></div>'.repeat(4)}</div></div>`;
+ return `<div class="tblwrap" aria-busy="true"><table class="tree">${head}<tbody>${r(260)+r(220)+r(280)+r(200)}</tbody></table></div><div class="cards" aria-busy="true">${cardsk.repeat(3)}</div>`;
+}
+function firstSync(){
+ const steps=[['Campaigns','12 read'],['Ad sets','31 read'],['Ads','104 read'],['Results · 30 d, 7 d, 7 d before','4 of 9 reads'],['Winners and trends','']];
+ return `<div class="ink beam" role="status" aria-live="polite"><span class="eyebrow">First sync · Mooncloth US</span><div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between"><div style="display:flex;flex-direction:column;gap:6px;max-width:520px"><h2 class="h2" style="color:var(--ink-fg);font-size:20px">${T('firstT')}</h2><span style="color:var(--ink-fg-2)">${T('firstB')}</span></div><span class="big">62%</span></div>
+  <div class="bar"><i style="width:62%"></i></div>
+  <ul class="steps">${steps.map((s,i)=>`<li class="${i>3?'todo':''}"><span class="st ${i<3?'done':i===3?'now':''}">${i<3?ic('check',12,2.4):i===3?'<span class="spin" style="width:10px;height:10px;border-color:var(--ink-line);border-top-color:var(--accent)"></span>':''}</span><span style="flex:1">${s[0]}</span><span class="num tiny" style="color:var(--ink-fg-3)">${s[1]}</span></li>`).join('')}</ul></div>`;
+}
+function emptyState(kind){
+ const nm=kind==='nometa';
+ return `<div class="card"><div class="empty"><div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><span class="eyebrow">${nm?'Meta not connected':'Mooncloth US · 0 campaigns'}</span><h2 class="h2" style="font-size:20px">${nm?T('noMetaT'):T('noCampT')}</h2><p class="lede">${nm?T('noMetaB'):T('noCampB')}</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${nm?(S.role==='owner'?`<button class="btn btn-accent" data-act="toast:Opens Settings › Connections (MetaConnect)">${T('connect')}</button>`:`<span class="muted small">${S.lang==='pt'?'Peça pra um admin conectar.':'Ask an admin to connect it.'}</span>`):`${S.role!=='client'?`<button class="btn btn-accent" data-act="toast:Opens Library → pick an approved creative → Send to Meta">${T('sendCreative')}</button>`:''}<a class="btn btn-out" href="${AM}campaigns" target="_blank" rel="noopener">${T('openAM')} ${ic('ext',14)}</a>`}</div></div>
+  <div class="ghost-rows" aria-hidden="true"><div></div><div style="margin-left:22px"></div><div style="margin-left:44px"></div><div></div></div></div></div>`;
+}
+
+function page(){
+ const st=S.state;
+ let body;
+ if(st==='nometa')return shell(header().replace(/<div class="hbtns">[^]*<\/div><\/div>$/,'</div>')+emptyState('nometa'));
+ if(st==='first')body=firstSync()+loading();
+ else if(st==='nocamp')body=emptyState('nocamp');
+ else if(st==='loading')body=toolbar()+loading();
+ else body=toolbar()+table()+cards();
+ return shell(header()+banners()+body);
+}
+
+/* ================= dialogs ================= */
+function objLine(o){const {c,a}=parents(o);return `<div class="objline">${o.lvl==='ad'?`<span class="thumb" style="--t:${o.t};width:24px"></span>`:''}<div class="nm"><span class="lvl">${lv(o.lvl)}</span><span class="n">${esc(o.name)}</span>${c?`<span class="s" style="white-space:normal">${esc(c.name)}${a?' › '+esc(a.name):''}</span>`:''}</div></div>`}
+function dlgHtml(){
+ const d=S.dlg; if(!d)return '';
+ const o=find(d.id);
+ let inner='';
+ const errBox=()=>d.err==='rate'?`<div class="alert al-warn" role="alert">${ic('clock',18)}<div class="a-body"><b>${T('rateT')}</b><span>${T('rateB',{s:60})}</span></div></div>`
+  :d.err==='token'?`<div class="alert al-bad" role="alert">${ic('alert',18)}<div class="a-body"><b>${T('tokenT')}</b><span>${T('tokenB')}</span></div><div class="a-act"><button class="btn btn-out btn-sm" data-act="toast:Opens Settings › Connections">${T('reconnect')}</button></div></div>`:'';
+ if(d.err==='changed'){
+  const now=d.kind==='budget'||o.lvl!=='ad'?(S.lang==='pt'?'Desligado · $80.00/dia':'Off · $80.00/day'):'Off';
+  inner=`<h2 id="dlgt">${T('changedT')}</h2>${objLine(o)}<p>${T('changedB',{now:`<b>${now}</b>`})}</p>
+   <div class="kv"><span>${S.lang==='pt'?'Último sync':'Our last sync'}</span><span>${o.status==='ACTIVE'?T('on'):T('off')}${o.bud?' · '+$c(o.bud.amt)+T('perDay'):''}</span></div><div class="kv"><span>${S.lang==='pt'?'Meta agora':'Meta now'}</span><span>${now}</span></div>
+   <div class="btns"><button class="btn btn-ghost" data-act="close">${T('cancel')}</button><button class="btn btn-ink" data-act="refreshrow:${o.id}">${ic('refresh')}${T('updateRow')}</button></div>`;
+ } else if(d.kind==='toggle'){
+  const on=o.status!=='ACTIVE';
+  const {c,a}=parents(o);
+  const pp=on?[c,a].filter(x=>x&&x.status==='PAUSED'):[];
+  const budSrc=o.lvl==='campaign'?(o.bud?`${$c(o.bud.amt)}${T('perDay')} (CBO)`:'ABO'):(c&&c.cbo?`${$c(c.bud.amt)}${c.bud.kind==='lifetime'?' '+T('lifetime'):T('perDay')} · ${lv('campaign')}`:(a||o).bud?`${$c(((a||o).bud).amt)}${T('perDay')} · ${lv('adset')}`:'—');
+  inner=`<h2 id="dlgt">${on?T('turnOnT',{lvl:lv(o.lvl)}):T('pauseT',{lvl:lv(o.lvl)})}</h2>${objLine(o)}
+   ${on?`<p><b>${T('turnOnB')}</b></p><div><div class="kv"><span>${T('budget')}</span><span>${budSrc}</span></div><div class="kv"><span>${S.lang==='pt'?'Últimos 30 dias':'Last 30 days'}</span><span>${$m(o.m.s)} · CPA ${$c(cpa(o.m))}</span></div></div>`:`<p>${T('pauseB')}</p>`}
+   ${pp.length?`<div style="display:flex;flex-direction:column;gap:8px"><b>${T('alsoOn')}</b><ul class="plist">${pp.map(p=>`<li><span class="stat off"><i class="dot"></i></span><div class="nm"><span class="lvl">${lv(p.lvl)}</span><span class="n" style="white-space:normal">${esc(p.name)}</span></div><span class="tag t-neutral">${T('off')} → ${T('on')}</span></li>`).join('')}</ul><span class="muted small">${T('alsoOnB',{lvl:lv(o.lvl)})}</span></div>`:''}
+   ${errBox()}
+   <div class="btns"><button class="btn btn-ghost" data-act="close">${T('cancel')}</button><button class="btn ${on?'btn-accent':'btn-ink'}" data-act="confirm" ${d.busy||d.err==='rate'?'disabled':''}>${d.busy?'<span class="spin"></span>':''}${on?(pp.length?T('turnOnN',{n:pp.length+1}):T('turnOnBtn')):T('pauseBtn')}</button></div>`;
+ } else if(d.kind==='budget'){
+  const b=o.bud, now=b.amt, v=parseFloat(d.v), ok=!isNaN(v);
+  const max=now*2;
+  let msg='',err=false;
+  if(!ok){msg=`<span class="fmsg bad">${S.lang==='pt'?'Digite um valor.':'Enter an amount.'}</span>`;err=true}
+  else if(v<MIN){msg=`<span class="fmsg bad">${ic('alert',14)}${T('min',{v:$c(MIN)})}</span>`;err=true}
+  else if(v>max){msg=`<span class="fmsg bad">${ic('alert',14)}${T('max',{v:$c(max)})}</span>`;err=true}
+  const learning=o.lvl==='adset'&&o.learn==='LEARNING'||o.lvl==='campaign'&&o.sets.some(s=>s.learn==='LEARNING');
+  const big=ok&&!err&&v>now*1.2;
+  const warn=!err&&ok&&v!==now&&(big||learning)?`<div class="alert al-warn">${ic('alert',16)}<div class="a-body"><span>${T('learnWarn')}</span></div></div>`:'';
+  const diff=ok&&!err&&v!==now?`<span class="fmsg mute">${v>now?'+':'−'}${$c(Math.abs(v-now))} ${S.lang==='pt'?'por dia':'a day'} (${v>now?'+':'−'}${Math.abs((v-now)/now*100).toFixed(0)}%) · ${S.lang==='pt'?'mínimo':'min'} ${$c(MIN)} · ${S.lang==='pt'?'máximo':'max'} ${$c(max)}</span>`:`<span class="fmsg mute">${S.lang==='pt'?'mínimo':'min'} ${$c(MIN)} · ${S.lang==='pt'?'máximo nesta mudança':'max this change'} ${$c(max)}</span>`;
+  inner=`<h2 id="dlgt">${T('budT')}</h2>${objLine(o)}
+   <div class="kv"><span>${T('budNow')} · ${o.lvl==='campaign'?'CBO':'ABO'}</span><span>${$c(now)}${T('perDay')}</span></div>
+   <div style="display:flex;flex-direction:column;gap:8px"><label for="budin" style="font-weight:700;font-size:13px">${T('budNew')}</label>
+    <div class="money ${err&&ok?'err':''}"><span>$</span><input id="budin" inputmode="decimal" value="${esc(d.v)}" aria-describedby="budmsg"><span class="per">${T('perDay')}</span></div>
+    <div class="quick">${[-20,20,50,100].map(p=>`<button data-act="bq:${p}">${p>0?'+':''}${p}%</button>`).join('')}</div>
+    <div id="budmsg">${msg||diff}</div></div>
+   ${warn}${errBox()}
+   <span class="muted small">${T('budNote')}</span>
+   <div class="btns"><button class="btn btn-ghost" data-act="close">${T('cancel')}</button><button class="btn btn-ink" data-act="confirm" ${err||!ok||v===now||d.busy||d.err==='rate'?'disabled':''}>${d.busy?'<span class="spin"></span>':''}${T('saveBud')}</button></div>`;
+ }
+ return `<div class="ov" data-act="close-ov"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgt">${inner}</div></div>`;
+}
+function sheetHtml(){
+ if(!S.sheet)return '';
+ const scope=S.sheet.scope, o=scope==='all'?null:find(scope);
+ const list=scope==='all'?HIST:HIST.filter(h=>h.id===scope);
+ return `<div class="sheet-scrim" data-act="closesheet"></div><aside class="sheet" role="dialog" aria-modal="true" aria-labelledby="sht">
+  <div class="sh-h"><div class="head"><span class="eyebrow">${scope==='all'?'Mooncloth US':lv(o.lvl)}</span><h2 class="h2" id="sht" style="font-size:18px">${T('histT')}${o?' · '+esc(o.name):''}</h2></div><button class="btn btn-ghost btn-icon" data-act="closesheet" aria-label="Close">${ic('x',18)}</button></div>
+  <div class="sh-b">
+   ${o?`<div class="lseg" role="group"><button aria-pressed="true">${T('histScopeObj')}</button><button data-act="hist:all" aria-pressed="false">${T('histScopeAll')}</button></div>`:''}
+   <span class="muted small">${T('histNote')}</span>
+   ${list.length?`<ul class="hist">${list.map(h=>`<li><span class="av">${h.who[0]}</span><div class="t">
+    <span class="who"><b>${h.who}</b> ${h.field==='status'?(h.to===T('on')||h.to==='On'?(S.lang==='pt'?'ligou':'turned on'):(S.lang==='pt'?'pausou':'paused')):(S.lang==='pt'?'mudou o orçamento diário de':'changed the daily budget of')} ${lv(h.lvl)} <b>${esc(h.name)}</b></span>
+    <span class="fromto"><s>${h.from}</s>${ic('chev',12)}<span>${h.to}</span>${h.also?`<span class="tag t-neutral">+ ${h.also}</span>`:''}</span>
+    ${h.ok?'':`<span class="fmsg bad">${ic('alert',14)}${esc(h.err)}</span>`}
+    <span class="meta"><span class="tag ${h.ok?'t-ok':'t-bad'}">${h.ok?T('applied'):T('failed')}</span><span>${h.at}</span><span>·</span><span>${h.src==='s'?T('fromSend'):T('fromCampaigns')}</span></span></div></li>`).join('')}</ul>`
+   :`<div class="card" style="background:var(--card-2)"><b>${S.lang==='pt'?'Nada mudou por aqui ainda':'No changes from HookMill yet'}</b><span class="muted small">${S.lang==='pt'?'Ligar, pausar e mudar orçamento aparecem aqui, com quem fez.':'Turning on, pausing and budget changes show up here, with who did them.'}</span></div>`}
+  </div></aside>`;
+}
+
+/* ================= actions ================= */
+const toastEl=document.getElementById('toast');let tt;
+function toast(m){toastEl.textContent=m;toastEl.hidden=false;clearTimeout(tt);tt=setTimeout(()=>toastEl.hidden=true,2800)}
+function apply(){
+ const d=S.dlg,o=find(d.id);
+ if(o.stale||S.write==='changed'){S.dlg.err='changed';S.dlg.busy=false;renderLayer();return}
+ if(S.write==='rate'||S.write==='token'){S.dlg.err=S.write;S.dlg.busy=false;renderLayer();
+   HIST.unshift({who:'Tordan',lvl:o.lvl,id:o.id,name:o.name,field:d.kind==='budget'?'budget':'status',from:d.kind==='budget'?$c(o.bud.amt):(o.status==='ACTIVE'?'On':'Off'),to:d.kind==='budget'?$c(+d.v):(o.status==='ACTIVE'?'Off':'On'),ok:false,err:S.write==='rate'?'Meta asked us to wait (rate limit)':'Meta access expired (META_TOKEN_INVALID)',src:'c',at:'Just now'});return}
+ if(d.kind==='toggle'){
+  const on=o.status!=='ACTIVE';const {c,a}=parents(o);const pp=on?[c,a].filter(x=>x&&x.status==='PAUSED'):[];
+  HIST.unshift({who:'Tordan',lvl:o.lvl,id:o.id,name:o.name,field:'status',from:on?'Off':'On',to:on?'On':'Off',ok:true,src:'c',at:'Just now',also:pp.length?pp.map(p=>p.name).join(', '):null});
+  o.status=on?'ACTIVE':'PAUSED';o.eff=on?'ACTIVE':'PAUSED';
+  pp.forEach(p=>{p.status='ACTIVE';p.eff='ACTIVE'});
+  // recompute children effective status
+  DATA.forEach(cc=>cc.sets.forEach(aa=>{if(aa.status==='ACTIVE')aa.eff=cc.status==='PAUSED'?'CAMPAIGN_PAUSED':'ACTIVE';aa.ads.forEach(dd=>{if(dd.status==='ACTIVE'&&dd.eff!=='DISAPPROVED')dd.eff=cc.status==='PAUSED'?'CAMPAIGN_PAUSED':aa.status==='PAUSED'?'ADSET_PAUSED':'ACTIVE'})}));
+  toast((on?(S.lang==='pt'?'Ligado: ':'Turned on: '):(S.lang==='pt'?'Pausado: ':'Paused: '))+o.name+(pp.length?` (+${pp.length})`:'')+(S.lang==='pt'?' · registrado no Histórico':' · logged in History'));
+ } else {
+  HIST.unshift({who:'Tordan',lvl:o.lvl,id:o.id,name:o.name,field:'budget',from:$c(o.bud.amt),to:$c(+d.v),ok:true,src:'c',at:'Just now'});
+  o.bud.amt=+d.v; toast((S.lang==='pt'?'Orçamento salvo: ':'Budget saved: ')+$c(+d.v)+T('perDay')+' · '+o.name);
+ }
+ S.flash=o.id;S.dlg=null;render();setTimeout(()=>{S.flash=null},1700);
+}
+function openToggle(id){
+ const o=find(id); if(!canWrite()||o.eff==='DISAPPROVED')return;
+ S.dlg={kind:'toggle',id};S.menuFor=null;renderLayer();
+}
+
+function renderLayer(){
+ const L=document.getElementById('layer');L.className='layer '+(S.dev==='phone'?'phone':'');
+ L.innerHTML=dlgHtml()+sheetHtml();
+ const bi=document.getElementById('budin');
+ if(bi){bi.addEventListener('input',e=>{S.dlg.v=e.target.value;const p=e.target.selectionStart;renderLayer();const n=document.getElementById('budin');n.focus();try{n.setSelectionRange(p,p)}catch(_){}});}
+ const f=L.querySelector('.dlg [data-act="confirm"]:not([disabled]),.dlg [data-act="refreshrow"]'); if(f&&!bi)f.focus();
+}
+function render(){
+ const F=document.getElementById('frame');F.className='frame '+(S.dev==='phone'?'phone':'');
+ const qa=document.activeElement&&document.activeElement.id==='q';const pos=qa?document.activeElement.selectionStart:0;
+ F.innerHTML=page();
+ if(qa){const q=document.getElementById('q');if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}}
+ const ss=document.getElementById('sortsel');if(ss)ss.onchange=e=>{S.sort=e.target.value;S.dir=S.sort==='cpa'||S.sort==='name'?'asc':'desc';render()};
+ const q=document.getElementById('q');if(q)q.oninput=e=>{S.q=e.target.value;render()};
+ renderLayer();
+ proto();
+}
+function proto(){
+ const sel=document.getElementById('pstate');if(!sel.options.length){STATES.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o)})}
+ sel.value=S.state;
+ document.getElementById('prole').innerHTML=ROLES.map(([v,l])=>`<button data-v="${v}" aria-pressed="${S.role===v}">${l}</button>`).join('');
+ document.getElementById('pwrite').innerHTML=WRITES.map(([v,l])=>`<button data-v="${v}" aria-pressed="${S.write===v}">${l}</button>`).join('');
+ document.querySelectorAll('#pdev button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.dev));
+}
+document.getElementById('pstate').addEventListener('change',e=>{S.state=e.target.value;render()});
+document.getElementById('prole').addEventListener('click',e=>{const b=e.target.closest('button');if(b){S.role=b.dataset.v;render()}});
+document.getElementById('pwrite').addEventListener('click',e=>{const b=e.target.closest('button');if(b){S.write=b.dataset.v;render()}});
+document.getElementById('pdev').addEventListener('click',e=>{const b=e.target.closest('button');if(b){S.dev=b.dataset.v;S.drill={c:null,a:null};render()}});
+
+function onAct(e){
+ const b=e.target.closest('[data-act]');
+ if(!b){if(S.menuFor&&!e.target.closest('.menu')){S.menuFor=null;render()}return}
+ if(b.tagName==='A'&&b.getAttribute('href')&&b.getAttribute('href')!=='#')return;
+ e.preventDefault();
+ const [k,v]=b.dataset.act.split(/:(.*)/s);
+ if(k==='close-ov'){if(e.target===b){S.dlg=null;renderLayer()}return}
+ if(k!=='menu'&&S.menuFor){S.menuFor=null}
+ switch(k){
+  case 'noop':return;
+  case 'toast':toast(v);render();return;
+  case 'lang':S.lang=v;render();return;
+  case 'mmenu':S.mobileMenu=!S.mobileMenu;render();return;
+  case 'nav':if(v!=='campaigns')toast('Goes to '+v+' (unchanged screen)');S.mobileMenu=false;render();return;
+  case 'view':S.view=v;S.drill={c:null,a:null};render();return;
+  case 'period':S.period=v;render();return;
+  case 'status':S.status=v;render();return;
+  case 'origin':S.origin=v;render();return;
+  case 'clear':S.q='';S.status='all';S.origin='all';render();return;
+  case 'sort':if(S.sort===v)S.dir=S.dir==='asc'?'desc':'asc';else{S.sort=v;S.dir=v==='cpa'||v==='name'?'asc':'desc'}render();return;
+  case 'exp':S.open.has(v)?S.open.delete(v):S.open.add(v);render();return;
+  case 'drill':if(v==='root')S.drill={c:null,a:null};else{const o=find(v);S.drill=o.lvl==='campaign'?{c:v,a:null}:{c:parents(o).c.id,a:v}}render();window.scrollTo(0,0);return;
+  case 'menu':S.menuFor=S.menuFor===v?null:v;render();return;
+  case 'toggle':openToggle(v);return;
+  case 'budget':{if(!canWrite())return;const o=find(v);S.dlg={kind:'budget',id:v,v:String(o.bud.amt)};renderLayer();setTimeout(()=>{const i=document.getElementById('budin');if(i){i.focus();i.select()}},30);return}
+  case 'bq':{const o=find(S.dlg.id);S.dlg.v=(Math.round(o.bud.amt*(1+(+v)/100)*100)/100).toFixed(2);renderLayer();return}
+  case 'close':S.dlg=null;renderLayer();return;
+  case 'confirm':S.dlg.busy=true;S.dlg.err=null;renderLayer();setTimeout(apply,700);return;
+  case 'refreshrow':{const o=find(v);if(o.lvl!=='ad'&&o.bud){o.bud.amt=80}o.status='PAUSED';o.eff='PAUSED';o.stale=false;S.dlg=null;S.flash=o.id;render();toast(S.lang==='pt'?'Linha atualizada com o que está na Meta. Confira e tente de novo.':'Row updated from Meta. Check it and try again.');return}
+  case 'hist':S.sheet={scope:v};S.menuFor=null;render();return;
+  case 'closesheet':S.sheet=null;renderLayer();return;
+  case 'iterate':{const o=find(v);toast((S.lang==='pt'?'Abrindo Iterar com ':'Opening Iterate with ')+'"'+o.name+'" (POST /iterate { metaAdId })');render();return}
+  case 'sync':S.syncing=1;render();const iv=setInterval(()=>{S.syncing++;if(S.syncing>5){clearInterval(iv);S.syncing=0;if(['stale','failed'].includes(S.state))S.state='ready';toast(S.lang==='pt'?'Sincronizado com a Meta agora':'Synced with Meta just now')}render()},800);return;
+ }
+}
+document.getElementById('frame').addEventListener('click',onAct);
+document.getElementById('layer').addEventListener('click',onAct);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(S.dlg){S.dlg=null;renderLayer()}else if(S.sheet){S.sheet=null;renderLayer()}else if(S.menuFor){S.menuFor=null;render()}}});
+try{const h=location.hash.slice(1);if(h==='phone')S.dev='phone'}catch(_){}
+render();
+})();
+</script>

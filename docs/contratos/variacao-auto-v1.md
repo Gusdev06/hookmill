@@ -1,13 +1,13 @@
 # Variação automática de campeão v1: contrato
-Data: 2026-10-13 · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta em 13/10** (as 5 decisões do §13 como recomendadas). Código liberado na ordem do §11.
+Data: 2026-10-13 · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta em 13/10** (as 5 decisões do §13 como recomendadas). Código liberado na ordem do §11. **Revisão 23/10 (§14, decisões do Gusta de 23/10):** lote gera só o 9:16 (4:5 e 1:1 sob demanda) e o STATIC vira imagem criada do zero no GPT Image 2; migrações `20261023000300_auto_formatos_estatico` e `20261023000400_render_error_code` aplicadas. Onde um trecho abaixo diverge do §14, vale o §14.
 Base: spec aprovada `design/variacao-auto-v1-2026-10-12.md` (13/10, §10 respondido) + mockup https://claude.ai/artifact/D9F5BwAoxCUKTihuu95Rmv; `design/catalogo-variacoes-criativo-2026-10-12.md`; `decisions/log.md` (12/10 "variação de campeão vira automática"; 13/10 "spec da variação automática aprovada"). Convenções, envelope, erros e auth: [`api.md` §1](api.md). Reaproveita: uploads, campeão + teardown + editMap ([`feature-2-variar-campeao.md`](feature-2-variar-campeao.md)), `VariationBatch`/`VariationItem`, fila de render, `adName` e download ([`fase2-agencia.md` §3.5 e §6](fase2-agencia.md)), Library.
 
 ## 0. Resumo em 5 linhas
 1. O usuário sobe um vídeo (ou escolhe da Library) e a API cria **um lote `AUTO`**: roda a análise que já existe (transcrição, medição, mapa da edição, teardown) e depois **uma chamada nova do Claude** que devolve o "porquê" (HOOK/PROOF/CTA), o que fica intacto e o plano de 8 a 12 peças.
 2. O plano usa só os 9 tipos da v1 (CUT, COLD-OPEN, HOOK-TEXT, ENDCARD, SPLIT-LP, STORY, REVIEW, NATIVE-SEARCH, STATIC). O backend confere as regras (contagem, ≥ 40 % diversidade, uma variável por peça, nada inventado) antes de mostrar.
-3. **Gerar** cria 1 `Creative` por peça (variação do campeão, `variationCode` = código) e 3 renders (9:16, 4:5, 1:1) num template Remotion novo `auto-edit`, sem nenhuma chamada de vídeo paga. Peça pronta é aprovada sozinha e entra na Library.
+3. **Gerar** cria 1 `Creative` por peça (variação do campeão, `variationCode` = código) e **só o render 9:16** (rev. 23/10): vídeo no template Remotion `auto-edit`; STATIC = imagem nova no GPT Image 2 (WaveSpeed). 4:5 e 1:1 saem **sob demanda** (`POST /iterate/pieces/:pieceId/formats`). Peça com o 9:16 pronto é aprovada sozinha e entra na Library.
 4. O único ajuste depois de gerar é **"In zip"**. O zip sai com 2 pastas (esticar a vida / público novo), README em cada uma e nomes `CLIENTE_MMDD_CODIGO_FORMATO`.
-5. Status por **polling** de `GET /iterate/:id` (1,5 s). Custo: só a análise (Whisper + Claude). Render = US$ 0.
+5. Status por **polling** de `GET /iterate/:id` (1,5 s). Custo: análise (Whisper + Claude) + **imagens do STATIC** (~US$ 0,22 cada, rev. 23/10). Render Remotion = US$ 0.
 
 ## 1. Conceitos
 | conceito | onde mora | o que é |
@@ -15,7 +15,7 @@ Base: spec aprovada `design/variacao-auto-v1-2026-10-12.md` (13/10, §10 respond
 | **Lote automático** | `VariationBatch` com `mode = AUTO` | 1 por "Iterate". Guarda o insight (porquê, blocos, flags), o plano e o estado. |
 | **Campeão** | `Champion` (existente) | o vídeo analisado. Upload → campeão novo. Library → campeão com `sourceCreativeId`, reaproveitado se já foi analisado. |
 | **Linha do plano / peça** | `VariationItem` com `kind = AUTO_EDIT` | uma linha do plano antes de gerar; a mesma linha é a peça depois. O `id` da peça é o `id` do item (estável do plano ao download). |
-| **Criativo da peça** | `Creative` (`origin VARIATION`, `variationKind AUTO_EDIT`, `variationCode`) | nasce no Gerar; 3 `Render` (um por formato). É o que a Library mostra. |
+| **Criativo da peça** | `Creative` (`origin VARIATION`, `variationKind AUTO_EDIT`, `variationCode`) | nasce no Gerar; 1 `Render` 9:16 no Gerar + 1 por formato pedido depois (rev. 23/10). É o que a Library mostra. |
 | **Tipo / código** | `autoType` + `code` | tipo = um dos 9; código = o rótulo da variável no idioma da oferta (`CUT-15S` / `CORTE-15S`), igual na tela, no arquivo, no zip e no README. |
 | **Eixo** | `axis` | `ITERATION` (mesmo visual, edição diferente → pasta "esticar a vida") ou `DIVERSITY` (muda o 1º frame → pasta "público novo"). Fixo por tipo (§6). |
 
@@ -98,19 +98,19 @@ Depois de `LAUNCHED` o progresso é **derivado** das peças (como na feature 2).
 |---|---|
 | `planned` | lote ainda não `LAUNCHED` |
 | `left_out` | `item.leftOutAt != null` |
-| `ready` | criativo `APPROVED` (3 formatos `READY`) |
+| `ready` | criativo `APPROVED` (rev. 23/10: o 9:16 `READY`; 4:5/1:1 não contam) |
 | `failed` | criativo `RENDER_FAILED` |
 | `rendering` | algum render da peça `RENDERING` |
 | `queued` | resto |
-`previewReady = true` assim que o render 9:16 está `READY` (o preview libera antes dos outros formatos).
+`previewReady = true` assim que o render 9:16 está `READY`. Estado de cada formato em `formats[]` (§14.2).
 
 ### 3.3 Criativo da peça (transições novas no `CreativeStateMachine`)
 | evento novo | de | para | quando |
 |---|---|---|---|
-| `AUTO_PIECE_START` | (novo) | `RENDERING` | `POST /iterate/:id/start`, na mesma transação que cria o criativo e os 3 `Render` `QUEUED` |
-| `RENDER_FINISHED` (existente) | `RENDERING` | `RENDER_READY` / `RENDER_FAILED` | peça AUTO: `RENDER_READY` só com os 3 formatos `READY`; qualquer formato `FAILED` (depois do retry interno da fila) = `RENDER_FAILED` |
+| `AUTO_PIECE_START` | (novo) | `RENDERING` | `POST /iterate/:id/start`, na mesma transação que cria o criativo e o `Render` 9:16 `QUEUED` (rev. 23/10) |
+| `RENDER_FINISHED` (existente) | `RENDERING` | `RENDER_READY` / `RENDER_FAILED` | peça AUTO (rev. 23/10): `RENDER_READY` com o 9:16 `READY`; 9:16 `FAILED` = `RENDER_FAILED`. Formato sob demanda **não** mexe no estado do criativo (§14.2) |
 | `AUTO_APPROVE` | `RENDER_READY` | `APPROVED` | **na mesma transação** do `RENDER_READY`: `approvedById` = quem clicou Gerar, grava `adName` (§8). É o "vai sozinha pra Library". |
-| `RENDER` (existente) | `RENDER_FAILED` | `RENDERING` | Retry da peça: re-enfileira só os formatos `FAILED` |
+| `RENDER` (existente) | `RENDER_FAILED` | `RENDERING` | Retry da peça: re-enfileira o 9:16 (rev. 23/10; formato sob demanda falho se refaz pela rota de formatos) |
 Travas: criativo `AUTO_EDIT` não aceita `generate`, `scripts/*`, `engine`, `edit`, `editor`, `changes` (`409 INVALID_STATE` `reason: 'variation_locked'`). "Edit in video" do preview **fica fora da v1**: a decisão de 13/10 diz que o único ajuste depois de gerar é "In zip" (§12, conflito 3).
 
 ## 4. Tipos compartilhados (vão pra `contratos/src/iteracao.ts` no A0)
@@ -213,10 +213,10 @@ Módulo Nest novo **`api/src/iteracao/`** (controller, DTOs, service, regras pur
 Esclarecimentos:
 1. **A análise começa sozinha:** o web chama `POST /iterate` assim que o `complete` responde. Não existe "Analisar" separado. O custo mostrado antes vem de `IterateConfig.analysisTypicalUsd` (antes de subir) e de `complete.analysisEstimateUsd` (com a duração real).
 2. **Library → "Vary":** procura um `Champion` com `sourceCreativeId = creativeId` não arquivado. `READY` com teardown e editMap = reaproveita (lote nasce em `PLANNING`, só o plano é cobrado). Senão cria um (`rights: OWN`, vídeo = `finalRender` 9:16 do criativo, `name` = nome do criativo). Peça AUTO também pode ser variada (vira campeão).
-3. **`start` não tem custo nem estimativa** (render é US$ 0), por isso não usa `expectedCostUsd`; o `expectedPieces` só protege contra plano que mudou entre a tela e o clique.
-4. **Ordem da fila:** no `start`, os renders entram na fila nesta ordem: o 9:16 de todas as peças (na ordem do plano), depois todos os 4:5, depois todos os 1:1. Preview e Library ficam úteis cedo. Falha de uma peça não para as outras.
+3. ~~`start` não tem custo~~ **rev. 23/10:** o `start` custa as imagens do STATIC: recebe `expectedCostUsd` (= `cost.generateEstimateUsd`), checa `ESTIMATE_CHANGED` e o teto (§14.4). O `expectedPieces` continua protegendo contra plano que mudou.
+4. **Ordem da fila (rev. 23/10):** no `start` só entra o 9:16 de cada peça de vídeo, na ordem do plano (o STATIC vai direto pra WaveSpeed, fora da fila). Formato pedido depois entra **na frente** dos renders do lote (`priority`, §14.2). Falha de uma peça não para as outras.
 5. **Zip:** job `ZIP_BUILD` monta o zip **sem compressão** (MP4/PNG já são comprimidos) a partir dos arquivos no storage, sobe como `ZIP_ARCHIVE` e devolve URL assinada com `Content-Disposition: attachment; filename="<fileName>"` (mesmo mecanismo do `GET /creatives/:id/download`). `zipKey` igual = reaproveita. Zip apagado do storage depois de 72 h (cron), refeito sob demanda. O 1º `ready` entregue grava `downloadedAt`.
-6. **Retry de peça é grátis**; não passa pelo teto de gasto.
+6. **Retry de peça de vídeo é grátis**; não passa pelo teto. Rev. 23/10: retry de STATIC e formato de STATIC custam 1 imagem e checam o teto (§14.4).
 
 ### 5.2 Checklist da análise (`analysis.checklist[].key`, chaves i18n)
 | etapa da tela | chaves (em ordem) | de onde vem |
@@ -252,6 +252,16 @@ Assíncronos (no lote em `ANALYSIS_FAILED` ou na peça `failed`), com `failReaso
 
 ## 6. Regras do plano (o backend garante; a IA segue)
 ### 6.1 Catálogo v1: código, eixo, quando entra e o que precisa
+**Revisão 25/10 (decisão do Gusta depois do teste live das molduras; vale por cima da tabela e da §6.2):**
+- **Catálogo dos lotes novos:** `CUT` (ITERATION, até 2), `REVIEW` (1), `NATIVE_SEARCH` (até 2), `STATIC` (até 2) e **`FRAME` (até 8, todas de templates diferentes**, D10 revista; DIVERSITY). Máximo possível = 15, então o lote de 8 a 12 fecha.
+- **Saem dos lotes novos:** `COLD_OPEN`, `HOOK_TEXT`, `ENDCARD`, `STORY` (o layout antigo, não confundir com a moldura `story`) e `SPLIT_LP`. Continuam no enum do banco e no código de leitura: lote antigo segue abrindo, com Retry, formatos e zip. O `allowed` do plano nunca mais oferece esses tipos, e o `validatePlan` marca como violação se a IA mandar.
+- **Molduras de 2 fontes liberadas (B2):** o `allowedFrames` oferece as 6 (`split_stack`, `split_torn`, `gossip_page`, `gossip_white`, `gossip_pink`, `call_dialog`), com a 2ª fonte na ordem Pexels → imagem gerada → trecho do campeão (`estatico-montado-e-molduras-v1.md` §B3.1 item 8). Ficam fora só no campeão sem rosto (caso 3, `no_face`, §B3.2).
+- **Conferência das regras (ajuste mínimo):**
+  1. **40 % de diversidade:** continua igual e passa sempre, porque o único tipo ITERATION que sobrou é o `CUT` (≤ 2): com 8 peças a diversidade é ≥ 75 %. O efeito colateral é que a pasta "esticar a vida" fica com no máximo 2 peças por lote. Não mexo na regra, porque ela só ficou folgada.
+  2. **8-12 peças:** fecha mesmo no pior caso. Campeão curto (sem `CUT`) e sem depoimento (sem `REVIEW`) = `NATIVE_SEARCH` 2 + `STATIC` 2 + `FRAME` até 8 = 12. No caso 3 (`no_face`) restam 10 templates de 1 fonte sem rosto, alguns condicionados ao Brain (`ranking`, `call`, `direct_offer`), e o piso de 8 continua alcançável. O piso de 4 com aviso (D2) fica como está.
+  3. **Troca do §6.2.4** (tipo sem o dado do Brain): passa a trocar por `FRAME` (outra moldura permitida) ou `STATIC`, nunca por `STORY`/`HOOK_TEXT`. Prioridade dentro da diversidade: `FRAME` e `STATIC`, depois `REVIEW` e `NATIVE_SEARCH`.
+  4. **Custo e teto (§14.4):** `cost.generateEstimateUsd` passa a ser = nº de `STATIC` × `staticImageUsd` **+ nº de `FRAME` de 2 fontes × `BROLL_ESTIMATED_USD` (US$ 0,016, seleção por visão)**. A imagem de reserva (~US$ 0,22) não entra na estimativa, porque só acontece sem clipe bom. Ela passa pelo `assertWithinCap` na hora: se o teto bloquear, cai direto pro trecho do campeão, sem falhar a peça. Pior caso por lote: 2 × 2 imagens do STATIC + 6 reservas ≈ US$ 2,2. Quando o render for pro Lambda, ~US$ 0,01 por peça 9:16 (`render-lambda-v1.md` §10) também conta no custo do lote.
+
 | tipo | código EN / PT | eixo | entra quando | precisa | máx. no lote |
 |---|---|---|---|---|---|
 | `CUT` | `CUT-15S`, `CUT-20S` / `CORTE-15S`, `CORTE-20S` | ITERATION | vídeo ≥ 25 s e ≥ 4 blocos; 15 s primeiro, 20 s se gancho+prova+CTA passam de 15 s | blocos do teardown | 2 (um de cada) |
@@ -262,7 +272,7 @@ Assíncronos (no lote em `ANALYSIS_FAILED` ou na peça `failed`), com `failReaso
 | `STORY` | `LAYOUT-STORY` | DIVERSITY | sempre disponível; entra quando ainda falta visual novo | nada | 1 |
 | `REVIEW` | `LAYOUT-REVIEW` | DIVERSITY | `offer.proof` tem um depoimento citável | Brain › Proof | 1 |
 | `NATIVE_SEARCH` | `NATIVE-SEARCH` / `NATIVO-BUSCA` | DIVERSITY | o gancho nomeia um problema que se pesquisa | análise | 1 (D2: 2, `-2`) |
-| `STATIC` | `STATIC-F1` / `ESTATICO-F1` | DIVERSITY | sempre 1, do momento da prova se houver | frames-chave | 1 (D2: 2, `-F2`) |
+| `STATIC` | `STATIC-F1` / `ESTATICO-F1` | DIVERSITY | sempre 1 (rev. 23/10: imagem nova no GPT Image 2 a partir do Brain; o campeão é referência, §14.3) | Brain + frames-chave como referência | 1 (D2: 2, `-F2`) |
 O código do catálogo `ENDCARD-60N` da spec carrega dado de uma oferta ("60 noites"); trocado por variantes genéricas (regra: agnóstico de oferta). Idioma do código: `offer.language` começa com `pt` → coluna PT; qualquer outro → EN. Função pura `codeFor(type, variant, n, lang)` no backend; a tabela EN/PT mora só nela.
 
 ### 6.2 Regras do lote
@@ -319,12 +329,12 @@ type AutoParamsDraft =
   | { type: 'SPLIT_LP' } | { type: 'STORY' }
   | { type: 'REVIEW'; quote: string; author: string|null; stars: 1|2|3|4|5|null } // literal do proof; stars só se estiver lá
   | { type: 'NATIVE_SEARCH'; query: string }                                    // ≤ 60, screenLanguage, sem marca
-  | { type: 'STATIC'; atSec: number; headline: string };                        // ≤ 50
+  | { type: 'STATIC'; atSec: number; headline: string };                        // ≤ 50 — rev. 23/10: vira AutoStaticDraft (§14.3)
 ```
 Regras do prompt (ia): agnóstico de oferta, nunca nomeia nicho; descreve a pessoa só de forma genérica; não inventa número; textos de tela no idioma da fala; `why` cita o Brain só quando o campo existe (senão `source: 'video'`). Grava `cost_entry` (`LLM`, `variationBatchId`). Mock: determinístico a partir do teardown, com os gatilhos do §10.
 
 ### 7.2 Render (maquina-video): `AutoEditRenderInput`
-Entra em `api/src/render/contrato.ts` como terceiro membro de `RenderInput`. Composições novas `AutoEdit` (vídeo) e `AutoEditStill` (PNG, `renderStill` no frame 0) em `video/src`.
+Entra em `api/src/render/contrato.ts` como terceiro membro de `RenderInput`. Composições novas `AutoEdit` (vídeo) e `AutoEditStill` (PNG, `renderStill` no frame 0) em `video/src`. **Rev. 23/10: o STATIC sai do Remotion** (`AutoEditStill`, `output: 'still'` e o membro `STATIC` de `AutoEditParams` aposentados, §14.6).
 ```ts
 interface AutoEditRenderInput {
   kind: 'auto-edit'; renderId: string; templateId: 'auto-edit';
@@ -377,7 +387,7 @@ Regras do template: uma coisa muda por tipo (nada de legenda nova, música ou ef
 - **Zip:** `<CLIENTE>_<MMDD>_<SLUG>_variations.zip` (PT: `_variacoes.zip`), `SLUG` = nome do campeão em ASCII maiúsculo com hífen, ≤ 24 caracteres.
   - `1-stretch-its-life/` (PT `1-esticar-a-vida/`): peças `ITERATION`. `README.txt`: "conjunto de teste do mesmo conceito, separado do conjunto do campeão (que segue rodando); a que ganhar migra pro conjunto principal" + lista `arquivo → o que mudou`.
   - `2-new-audience/` (PT `2-publico-novo/`): peças `DIVERSITY`. `README.txt`: "conjunto novo, todas as peças juntas" + lista.
-  - Os 3 formatos de cada peça na mesma pasta. Só peças `ready` com `inZip`. Pasta vazia não entra.
+  - Os formatos **prontos** de cada peça na mesma pasta (rev. 23/10: o 9:16 sempre; 4:5/1:1 só se foram pedidos e estão `ready`; o zip não espera formato na fila). Só peças `ready` com `inZip`. Pasta vazia não entra.
 - Idiomas: **código** no idioma da oferta (decisão 13/10); **nomes de pasta e README** no idioma da interface do workspace (são instrução pro operador). `zip.folders` traz os nomes prontos.
 
 ## 9. Custos
@@ -386,16 +396,17 @@ Regras do template: uma coisa muda por tipo (nada de legenda nova, música ou ef
 | Transcrição (WaveSpeed, por segundo) | preço por segundo do catálogo × duração | ia (`TRANSCRIBE`, `championId`) |
 | Teardown + mapa da edição (Claude com frames) | o que já é cobrado hoje na análise do campeão | ia (`LLM`, `championId`) |
 | Plano (`planAutoBatch`, + 1 reparo se preciso) | tokens reais | ia (`LLM`, `variationBatchId`) |
-| Captura da página, render, zip | US$ 0 | — |
-| **Vídeo/imagem/voz/lipsync** | **nenhum** (v1 sem crédito de vídeo) | — |
+| Captura da página, render Remotion, zip | US$ 0 | — |
+| **Imagem do STATIC (rev. 23/10)** | GPT Image 2 high 1k, ~US$ 0,22 por imagem (9:16 no Gerar; 4:5/1:1 sob demanda; retry) | ia (`IMAGE`, `creativeId`, `variationBatchId`, `providerTaskId`) |
+| **Vídeo/voz/lipsync** | **nenhum** (v1 sem crédito de vídeo) | — |
 - Estimativa mostrada antes: `CatalogService.estimateAutoAnalysis(durationSec)` (nova; = `estimateAnalysis` de hoje + o plano). `analysisTypicalUsd` = estimativa de 30 s. Campeão reaproveitado da Library = só o plano.
 - **Conflito com a spec:** o mockup diz "~US$ 0,06" (marcado como placeholder). Só a transcrição de 30 s já fica nessa ordem pelo preço de hoje (US$ 0,002/s), e a análise atual soma o Claude com frames por cima; o número real vai sair maior. A tela mostra a estimativa do catálogo, não um valor fixo. O valor certo sai da primeira análise de teste do Gusta (as `cost_entries` são reais).
-- Teto de gasto: `POST /iterate` e `retry` checam `SPEND_CAP_EXCEEDED` com a estimativa. `IterateBatch.cost.totalUsd` = entradas do lote + do campeão desta análise.
+- Teto de gasto: `POST /iterate` e `retry` checam `SPEND_CAP_EXCEEDED` com a estimativa. Rev. 23/10: `start`, retry de STATIC e formato de STATIC também (§14.4). `IterateBatch.cost.totalUsd` = análise + imagens (§14.4).
 
 ## 10. Tempo real e mock
 - **Polling, sem stream novo.** Porquê: é a tela-resumo de um recurso só, o estado está no banco e 1,5 s basta pra barra de frame; mesma linha do `eventos.md` (campeão e lote já são polling). `GET /iterate/:id` a cada 1,5 s enquanto `status ∈ {ANALYZING, PLANNING}`, `phase = generate` ou `zip.status = building`; para nos outros casos. A spec sugeria "SSE por peça"; descartado por isso.
 - `renderEtaSec` = soma dos segundos de saída que faltam × velocidade medida (mediana dos últimos 20 renders do mesmo formato na máquina: `finishedAt − startedAt` ÷ `durationSec`). Sem histórico: `null` (a tela esconde o tempo).
-- Gatilhos de mock (`INTEGRACOES_MODE=mock` + render fake do `edicao`), nas `notes` da oferta: `[mock:auto-fail:reading]` / `[mock:auto-fail:planning]` / `[mock:auto-plan-invalid]` (as duas chamadas violam → `PLAN_INVALID`) / `[mock:page-403]` (captura falha → SPLIT-LP trocado) / `[mock:render-fail:<TYPE>]` (a 1ª tentativa do 4:5 daquele tipo falha com `RENDER_ERROR`; o retry passa). A medição, a captura (contra um HTML de fixture) e o render real rodam de verdade e de graça quando o QA liga `RENDER_IMPL=remotion` numa API própria (nunca a 3001).
+- Gatilhos de mock (`INTEGRACOES_MODE=mock` + render fake do `edicao`), nas `notes` da oferta: `[mock:auto-fail:reading]` / `[mock:auto-fail:planning]` / `[mock:auto-plan-invalid]` (as duas chamadas violam → `PLAN_INVALID`) / `[mock:page-403]` (captura falha → SPLIT-LP trocado) / `[mock:render-fail:<TYPE>]` (rev. 23/10: a 1ª tentativa do **9:16** daquele tipo falha com `RENDER_ERROR`; o retry passa) + gatilhos novos do §14.7. A medição, a captura (contra um HTML de fixture) e o render real rodam de verdade e de graça quando o QA liga `RENDER_IMPL=remotion` numa API própria (nunca a 3001).
 
 ## 11. Divisão do trabalho (código só depois do ok do Gusta)
 | # | agente | tarefa | pastas | depende de | verificação |
@@ -427,3 +438,109 @@ Regras do template: uma coisa muda por tipo (nada de legenda nova, música ou ef
 3. **De que oferta é o vídeo, quando o cliente tem mais de uma?** A oferta define o idioma do código e o Brain usado. **Recomendo:** com 1 oferta é automático; com mais de 1, um seletor pequeno acima do dropzone, que já vem marcado com a última usada.
 4. **Foto do produto pro SPLIT-LP.** Muita página bloqueia navegador automático. **Recomendo:** 1 foto opcional na oferta (Brain › Business & offer), usada quando a captura da página falha; é o que faz o "Retry with photo" da spec funcionar. Sem a foto, o SPLIT-LP só entra quando a página foi capturada na análise, e o retry tenta capturar de novo.
 5. **Tempo de um lote.** 33 renders numa fila de 1 na VPS levam bem mais que os 4 min do mockup. **Recomendo:** não mexer na máquina agora. Renderizar primeiro o 9:16 de todas as peças, pra preview e Library ficarem prontos rápido, e depois o 4:5 e o 1:1. Mostrar o tempo medido, não um número fixo. Subir a máquina só se a medição do QA ficar ruim.
+
+## 14. Revisão 23/10: só 9:16 no lote, formatos sob demanda e STATIC no GPT Image 2
+Data: 2026-10-23 · Dono: maquina-arquiteto · Status: **decisões do Gusta de 23/10** (`decisions/log.md`, 23/10: "o lote gera só o 9:16 … o STATIC vira criativo em imagem criado do zero no GPT Image 2"). Por quê: o lote real de 23/10 teve 25 renders em fila única (~45 min) e "as variações de imagem estática não devem ser um print do vídeo". Este § vale sobre qualquer trecho anterior que diga outra coisa.
+
+### 14.1 Modelo de dados (aplicado em `maquina` e `maquina_test`; backups `.infra/backups/maquina-2026-10-23-2017.sql.gz` e `-2023.sql.gz`)
+Migrações aditivas `20261023000300_auto_formatos_estatico` e `20261023000400_render_error_code`:
+```prisma
+enum ProviderTaskKind { … STATIC_IMAGE }          // imagem do STATIC (GPT Image 2 na WaveSpeed)
+enum RenderEngine { REMOTION IMAGE_GEN }          // novo: quem produz o arquivo do render
+model Render {
+  engine    RenderEngine @default(REMOTION)       // IMAGE_GEN = STATIC; a fila do Remotion só tira REMOTION
+  priority  Int          @default(0)              // fila = priority DESC, created_at ASC; 0 = lote, 10 = sob demanda
+  errorCode String?      @map("error_code")       // código do formato FAILED (vira PieceFormat.errorCode)
+  providerTasks ProviderTask[]
+  @@index([status, engine, priority, createdAt])
+}
+model ProviderTask {
+  renderId String? @map("render_id")              // STATIC_IMAGE → o render (formato) que ela preenche; ≤ 2 tasks por render
+  render   Render? @relation(onDelete: SetNull)
+  @@index([renderId])
+}
+```
+**Por que o STATIC continua sendo um `Render`:** o estado por formato fica igual pra vídeo e imagem (o render vigente do formato), e zip, Library, `files[]`, download e `latestByFormat` não ganham ramo novo. O que muda é só quem produz o arquivo (`engine`). **Por que `render_id` na task e não `creative_id`/`variation_item_id`:** a task preenche um formato específico; render → criativo → item já existe. O `CostEntry` continua com `creativeId` + `variationBatchId` + `providerTaskId`.
+
+### 14.2 Formatos sob demanda
+**No Gerar** (`start`, mesma transação de hoje): 1 criativo por peça e **1 render 9:16**. Peça de vídeo: `engine REMOTION`, `priority 0`, `createdAt = launchedAt + index` (ordem do plano). STATIC: `engine IMAGE_GEN`, submetido logo depois do commit (§14.3), fora da fila do Remotion.
+
+**Peça:** `ready` = criativo `APPROVED` = 9:16 `READY` (`pieceOutcome` olha só o 9:16; `AUTO_FORMATS` do lote = `['VERTICAL_9_16']`, e `ALL_FORMATS` = os 3 pra vista/zip). `failed` = 9:16 `FAILED`. Lote antigo com 3 renders segue funcionando: o 4:5/1:1 que ainda estiver na fila vira, na prática, formato sob demanda.
+
+**Rota nova:**
+| método e rota | entrada | saída | erros | quem chama / papel |
+|---|---|---|---|---|
+| `POST /iterate/pieces/:pieceId/formats` | `RequestPieceFormatBody { format: '4x5' \| '1x1' }` | `202 IteratePiece` (enfileirou) · `200 IteratePiece` (já estava `queued`/`rendering`/`ready`: nada muda) | 400 `VALIDATION_ERROR` (`9x16` ou outro valor); 404; 409 `INVALID_STATE` (peça não `ready`: `{ state, allowed: ['ready'] }`); 409 `SPEND_CAP_EXCEEDED` (só STATIC); 403 `FORBIDDEN` (CLIENT) | botões 4:5 / 1:1 do preview e do Download · OWNER, ADMIN, MEMBER |
+
+Regras: (1) idempotente por `(peça, formato)` sob o lock do criativo: render vigente `QUEUED`/`RENDERING`/`READY` = `200` sem criar nada; `FAILED` = marca o antigo `stale` e cria outro (é o **retry do formato**, mesma rota); sem render = cria. (2) Vídeo: `Render` `REMOTION`, `priority 10`, `createdAt = now` → a fila pega **na frente** de todo render do lote ainda `QUEUED` (FIFO entre os pedidos); nunca interrompe o render que já está rodando. (3) STATIC: checa o teto com 1 imagem, cria `Render` `IMAGE_GEN` e submete depois do commit (nova geração no aspecto `4:5`/`1:1`, §14.3). (4) O estado do criativo **não muda** (segue `APPROVED`, `adName` congelado); só sai `render.updated` no SSE. (5) Falha de formato sob demanda = só aquele formato `failed` (`Render.errorCode` + `failReason`); a peça segue `ready`, no zip e na Library. (6) CLIENT não pede formato (o STATIC custa dinheiro e o resto do contrato barra CLIENT em tudo que gera); ele baixa o que estiver pronto.
+
+**Vista (`IteratePiece`):** `formats: PieceFormat[]`, sempre os 3 na ordem `9x16, 4x5, 1x1`: `state` = render vigente do formato (`none` sem render; `queued`/`rendering`/`ready`/`failed`), `progress` em `rendering`, `errorCode`/`failReason` em `failed`, `requestUsd` em `none`/`failed` (STATIC = `staticImageUsd`; vídeo = 0). `formatsReady` = nº de `ready`. `render` = o que está rodando agora (9:16 ou sob demanda). `files[]` = os `ready`. `media: 'image'` no STATIC. `retryUsd` = custo do Retry da peça.
+**Lote:** `phase` continua pelo 9:16 (`generate` enquanto algum 9:16 está na fila/rodando; formato sob demanda **não** volta a fase). `summary.files` = Σ formatos `queued`/`rendering`/`ready` das peças não `left_out` (antes do start: nº de peças). `renderEtaSec` = renders pendentes do lote, 9:16 e sob demanda: Remotion pela velocidade medida (§10); `IMAGE_GEN` conta `STATIC_IMAGE_MODEL.etaSec` (60 s) fixos.
+**Fila (`edicao`):** claim `status QUEUED, engine REMOTION, creative não arquivado`, ordem `priority DESC, createdAt ASC`. Boot: `RENDERING` órfão `REMOTION` → `QUEUED` (como hoje); `IMAGE_GEN` segue o §14.3.
+**Zip:** leva os formatos `ready` de cada peça `ready` com `inZip` (o `zipKey` muda quando um formato novo fica pronto, então o zip é refeito sozinho no próximo clique). Não espera formato na fila. README sem mudança.
+**Download/Library:** `GET /creatives/:id/download?format=` de formato não `READY` = `409 INVALID_STATE` `reason: 'format_not_ready'` (antes vinha sem reason). `LibraryItem.formats` = só os prontos (sem mudança).
+**Polling (eventos.md):** o web segue fazendo polling de `GET /iterate/:id` a 1,5 s também enquanto **qualquer** `formats[].state` estiver `queued`/`rendering`.
+
+### 14.3 STATIC criado do zero (GPT Image 2 na WaveSpeed)
+**Plano (`planAutoBatch`, ia).** Entrada sem mudança de forma; muda o papel dos `keyframes`: são **referência** (pessoa genérica, cenário, paleta, momento da prova), nunca o frame da peça. A imagem nasce do Brain (promessa, dor, prova, oferta) e ataca a linha do porquê do item (`whyKey`, normalmente `proof` ou `hook`). Saída do STATIC (`AutoStaticDraft`, `api/src/integracoes/contrato.ts`):
+```ts
+{ type: 'STATIC';
+  headline: string;            // ≤ 50, idioma da tela, "nada inventado" (§6.2.5); a própria imagem escreve
+  refAtSec: number|null;       // frame-chave usado como referência (rastreio); null = nenhum
+  visual: {                    // em INGLÊS (vai pro prompt)
+    object: string;            // ≤ 220: o sujeito (pessoa só genérica: idade aproximada, jeito, roupa; sem celebridade, sem marca)
+    scene: string;             // ≤ 220: onde e o que acontece
+    vibe: string;              // ≤ 140: clima e luz nomeada
+    style: 'everyday_photo'|'cinematic'|'ad_graphic';
+    headlinePlacement: 'top'|'center'|'bottom' } }
+```
+Regras do prompt (ia): agnóstico de oferta; nada de marca, logo, nome de produto ou app no `visual` (descreve pela aparência); **nenhum texto no `visual`** (o único texto da imagem é a headline); dois STATIC no mesmo lote com conceitos diferentes; `change` (uiLocale) descreve o conceito ("Imagem nova: pessoa conferindo a fatura na cozinha").
+**Validação (backend, `regras.ts`, antes de mostrar o plano = antes de gerar):** `headline` não vazia, ≤ 50, sem número inventado (o `screenTexts` já cobre); `visual` presente com os 3 textos não vazios e nos limites (`static_visual_missing`, `text_too_long`); `static_visual_has_text` (aspas `"` `“` `”` no `visual`); `static_visual_has_brand` (`brandTerms` no `visual`); `refAtSec` null ou dentro do vídeo; `duplicateKey` = `STATIC:<headline normalizada>`. Violou = mesma rotina de reparo do §6.3. `FinalParams` do STATIC = `{ type, headline, refAtSec, visual }` (o `atSec` sai no fechamento). **Plano antigo** (item `PLAN_READY` de antes do deploy, sem `visual`): o backend manda `visual = { object: '', scene: '', vibe: '', style: 'ad_graphic', headlinePlacement: 'center' }` e o prompt builder da ia faz um pôster tipográfico só com a headline e a paleta.
+**Prompt (ia, função pura `buildStaticImagePrompt(spec, aspect, { safe })` em `api/src/integracoes/wavespeed/prompts-midia.ts`):** blocos da skill `gpt-image-2-prompt` (`object`, `scene`, `vibe`, `photo quality` pelo `style` (recomendação "real/everyday", "cinematic" ou "ads"), `aspect ratio`) + `text on the image, exactly as written, in <screenLanguage>: "<headline>"` na posição pedida, dentro da safe area (topo/base livres ~12 %), "no other text, no watermarks, no logos". `safe: true` tira descrições de corpo/pessoa e mantém cena, clima e headline. Passa pelo `scrubSlop` existente.
+**Submissão (ia, `GenerationService.submitStaticImage`, `StaticImagePort`):** `openai/gpt-image-2/text-to-image`, `quality high`, `resolution 1k`, `output_format png`, `aspect_ratio` `9:16`/`4:5`/`1:1` (os 3 existem no schema do modelo, conferido 23/10 com `wavespeed schema`). Webhook como as outras. Grava `provider_tasks` (`kind STATIC_IMAGE`, `render_id`, `input.prompt`). Recusa na submissão (`WsContentRejected`) = task `FAILED` `SAFETY_BLOCK` + `provider.task.finished` (mesmo caminho do eventos.md §3). `cost_entry` `IMAGE` só na task `COMPLETED` (falha não cobra; a ia confere no billing na 1ª sonda). Saída guardada no tamanho nativo do modelo (1k; 9:16 ≈ 864×1536), sem upscale. Catálogo: `STATIC_IMAGE_MODEL = { providerModel, quality: 'high', resolution: '1k', usdPerImage: 0.22, etaSec: 60 }` em `precos.ts` e `estimateStaticImages(count)` (`StaticImageCatalog`).
+**Ciclo do render `IMAGE_GEN` (backend, `edicao`, serviço novo `ImagemEstaticaService`):**
+1. `dispatch(renderId)` (depois do commit do `start`, do retry da peça e do pedido de formato; e no boot pra `IMAGE_GEN` `QUEUED`): monta `StaticImageSpec` (item `payload.params` + `batch.language`), aspecto pelo `format`, chama `submitStaticImage({ safe: false })`. OK → render `RENDERING` (`stage 'generating'`, `startedAt`, `input = { model, aspectRatio, spec, providerTaskIds }`). Erro síncrono (`PROVIDER_UNAVAILABLE`, `RATE_LIMITED`) → render `FAILED` `PROVIDER_ERROR`.
+2. **Fim:** quem ouve o `provider.task.finished` de `STATIC_IMAGE` é o `ImagemEstaticaService` (`@OnEvent`, lê `render_id` da task). O `orquestrador` (`geracao`) **ignora** task com `renderId` (não processa nem marca `handledAt`). Idempotente: task com `handledAt` ou render que não está `RENDERING` = nada.
+3. `COMPLETED` → `storage.ingestFromUrl(outputUrls[0], { kind: 'RENDER_IMAGE', validate: 'image' })` (download truncado: 3 tentativas, depois `DOWNLOAD_INVALID`) → render `READY` (`fileId`, `durationSec null`, `finishedAt`). 9:16: `creative.thumbnailFileId` = o mesmo arquivo (pôster) e `settleAuto` (aprova a peça). Sob demanda: só `render.updated`.
+4. **Reenvio automático, no máximo 1 por render** (2 tasks): `SAFETY_BLOCK` com `safe: false` → reenvia com `safe: true`; `PROVIDER_ERROR`/`TIMEOUT`/`DOWNLOAD_INVALID` → reenvia igual. Não passa de novo pelo teto (no máximo 1 imagem a mais, e falha não cobra). Falhou de novo → render `FAILED` com `errorCode` (`SAFETY_BLOCK`, `PROVIDER_TIMEOUT`, `PROVIDER_ERROR`, `DOWNLOAD_INVALID`); 9:16 → `failAuto` (código no item, peça `failed`, `retryHint: 'retry'`, `retryUsd = staticImageUsd`); sob demanda → só o formato `failed`. `failReason` humano no backend: `SAFETY_BLOCK` "The image model refused this concept. Retry tries again; Leave out removes it."
+5. **Timeouts (ia, reconciliador):** `STATIC_IMAGE` sem webhook é consultada a partir de **2 min** (não 10) e vira `TIMEOUT` com **10 min** (não 30). Com `WAVESPEED_WEBHOOKS=off`, polling de 15 s como hoje.
+6. **Boot:** `IMAGE_GEN` `QUEUED` → `dispatch`; `RENDERING` com task `SUBMITTED` → nada (o reconciliador fecha); `RENDERING` com task terminada e sem `handledAt` → processa como no passo 2.
+**Retry da peça STATIC:** igual ao de vídeo (marca o 9:16 `FAILED` como `stale`, cria um `IMAGE_GEN` novo, `RENDER_FAILED` → `RENDERING`), mais o teto com 1 imagem.
+
+### 14.4 Custos e teto
+- `IterateConfig.staticImageUsd` = `estimateStaticImages(1)`.
+- `cost.generateEstimateUsd` (só `PLAN_READY`, senão `null`) = nº de itens STATIC × `staticImageUsd`. O botão "Generate N pieces" mostra esse valor e manda `expectedCostUsd`.
+- `start`: estimativa > `expectedCostUsd` × 1,10 → `409 ESTIMATE_CHANGED { estimateUsd }`; `assertWithinCap(estimativa)` → `409 SPEND_CAP_EXCEEDED`. Estimativa 0 (lote sem STATIC) não chama o teto. Retry de STATIC e formato de STATIC: `assertWithinCap(staticImageUsd)` (sem `expectedCostUsd`: o preço fixo vem em `requestUsd`/`retryUsd`).
+- `cost.imagesUsd` = Σ `cost_entries` `IMAGE` com `variationBatchId` do lote. `cost.analysisUsd` passa a excluir `IMAGE` (era "tudo do lote + campeão"). `totalUsd = analysisUsd + imagesUsd`. `renderUsd` e `summary.videoCreditsUsd` continuam 0 (Remotion e nenhum crédito de vídeo, o que é verdade).
+- Custo por criativo (`creativeCost`, Library) já soma por `creativeId`: a imagem entra sem mudança.
+
+### 14.5 Tipos (escritos 23/10) e transição
+- `contratos/src/iteracao.ts`: `PieceFormatState`, `PieceFormat`, `RequestPieceFormatBody`; `IteratePiece.formats`/`media`/`retryUsd`; `IterateBatch.cost.generateEstimateUsd`/`imagesUsd`; `IterateConfig.staticImageUsd`; `StartIterateBody.expectedCostUsd`; erros assíncronos `SAFETY_BLOCK`, `DOWNLOAD_INVALID`; reason `format_not_ready`.
+- `api/src/integracoes/contrato.ts`: `StaticVisualDraft`, `AutoStaticDraft`, `StaticImageSpec`, `StaticAspect`, `SubmitStaticImageInput`, `StaticImagePort`, `StaticImageCatalog`; o membro `STATIC` do `AutoParamsDraft` ganhou `refAtSec?`/`visual?`. `portas.ts`: `ProviderTaskKind` + `'STATIC_IMAGE'`. Placeholders do arquiteto só pra fechar `switch` exaustivo: `case 'STATIC_IMAGE'` no `costOf` da WaveSpeed e no `complete` do fake (a R-I troca).
+- **TRANSIÇÃO** (mesmo esquema do campanhas-v1): os campos novos acima estão opcionais (`?`) pra o typecheck da raiz seguir verde enquanto cada dono entrega. No fechamento (depois do R-Q), o arquiteto tira os `?`, troca o membro `STATIC` por `AutoStaticDraft` (sai o `atSec`), faz `GenerationService extends StaticImagePort` e `CatalogService extends StaticImageCatalog` se a ia já não tiver feito.
+
+### 14.6 Divisão do trabalho (sem arquivo em comum)
+| # | dono | tarefa | arquivos (só estes) | depende de | verificação |
+|---|---|---|---|---|---|
+| R-B | maquina-backend | fila com `priority`/`engine`; `start` só 9:16 + teto/`ESTIMATE_CHANGED`; `pieceOutcome`/`AUTO_FORMATS`=9:16, `ALL_FORMATS`; rota `POST /iterate/pieces/:pieceId/formats` (DTO, controller, idempotência, prioridade 10, CLIENT 403); `formats[]`/`media`/`retryUsd` na vista; `summary.files`, `renderEtaSec` com `IMAGE_GEN`; `cost.generateEstimateUsd`/`imagesUsd`, `analysisUsd` sem IMAGE; `IterateConfig.staticImageUsd`; zip com formatos prontos; download `format_not_ready`; `ImagemEstaticaService` (dispatch, `@OnEvent`, reenvio, boot); orquestrador ignora task com `renderId`; validação e `FinalParams` do STATIC + plano legado; retry com teto pro STATIC; `mockRenderFail` no 9:16 + `[mock:format-fail:<TYPE>]`; `expectedOutputSec` sem STATIC; comentários do `state-machine.ts:63`; testes que assumem 3 renders (`pecas.spec.ts`, `pecas.int.spec.ts`, `iteracao.int.spec.ts:218`) | `api/src/edicao/`, `api/src/iteracao/`, `api/src/biblioteca/`, `api/src/geracao/orquestrador.service.ts`, `api/src/criativos/state-machine.ts` | contrato (já); usa o fake da ia quando a R-I chegar (até lá, stub local no spec) | unit + int em mock: 11 peças → 11 renders 9:16; pedido 4:5 passa na frente; 200 idempotente; formato falho não derruba a peça; zip com 9:16 + 4:5 pronto; STATIC: reject→safe→ok, reject-all→failed, retry cobra e checa teto; `start` sem `expectedCostUsd` certo = 409 |
+| R-I | maquina-ia | prompt + schema do STATIC no `planAutoBatch` (campos do §14.3, regras de marca/texto/pessoa, referência dos keyframes); `buildStaticImagePrompt` (`prompts-midia.ts`, com `safe`); `submitStaticImage` na WaveSpeed (`generation.service.ts`) e no fake (PNG no aspecto, triggers do §14.7); `costOf` real; reconciliador 2 min / 10 min pra `STATIC_IMAGE`; `STATIC_IMAGE_MODEL` + `estimateStaticImages`; `renderId?` no `ProviderTaskFinishedEvent`; liga `extends` no `contrato.ts`; fake-auto-plan com `visual`; 1 sonda real só com ok do Gusta (~US$ 0,66: 1 imagem por aspecto) | `api/src/integracoes/**` | contrato (já) | spec com mock; prompt montado bate com a skill (snapshot); nenhuma chamada paga sem ok |
+| R-F | maquina-frontend | preview: abas 9:16 / 4:5 / 1:1 por `formats[]` (`none` → botão "Make 4:5" com `requestUsd` quando > 0; `queued`/`rendering` → progresso; `failed` → motivo + "Try again"; `ready` → toca/baixa); STATIC mostra imagem (`media`); Download: chips por formato em cada peça + "4:5 pra todas"/"1:1 pra todas" (N chamadas da rota, soma do custo no confirm); botão Generate com `generateEstimateUsd` e `expectedCostUsd`, trata `ESTIMATE_CHANGED`/`SPEND_CAP_EXCEEDED`; linha "Images" no custo do lote (`imagesUsd`) e total; polling também com formato na fila; `generate-screen` conta progresso pelo 9:16; CLIENT sem botões de formato; textos EN/PT; MSW (`web/src/mocks/iterate.ts`) com `formats[]`, rota nova e custos | `web/` | contrato (já); MSW | `tsc`, desktop e 390 px, EN/PT |
+| R-V | maquina-video | aposentar o STATIC do Remotion: tirar `AutoEditStill`, `AUTO_EDIT_STILL_COMPOSITION_ID`, o ramo STATIC do `AutoEdit.tsx` (l.290-322), `output: 'still'` e o membro `STATIC` de `AutoEditParams` (`render/contrato.ts`), o `case 'STATIC'` do `auto-edit.ts` (l.195-202) e a referência em `video/src/player.ts`. `RenderResult.mimeType` pode ficar. Nada mais muda no `video/` (4:5/1:1 de vídeo já renderizam hoje). | `video/`, `api/src/render/` | contrato (já) | `tsc` do video e da api; render real local de 1 tipo × 3 formatos continua igual |
+| R-Q | maquina-qa | casos do §14.8 em mock; medir de novo o tempo do lote de 11 peças com `RENDER_IMPL=remotion` numa API própria (esperado: ~1/3 do anterior) | `testes/` | R-B, R-I, R-F, R-V | só o qa declara "funciona" |
+Arquivo compartilhado inevitável: nenhum. `regras.ts` é do backend (validação); as regras do STATIC **no prompt** são da ia. `api/src/integracoes/contrato.ts` e `portas.ts`: a ia mexe (é a pasta dela); o arquiteto só revisa e faz o fechamento do §14.5. Paralelo: R-B ‖ R-I ‖ R-F ‖ R-V; R-Q por último.
+
+### 14.7 Mock (gatilhos novos nas `notes` da oferta)
+`[mock:static-reject]` (1ª submissão `SAFETY_BLOCK`; o reenvio `safe` passa) · `[mock:static-reject-all]` (as duas recusam → peça `failed` `SAFETY_BLOCK`) · `[mock:static-timeout]` (task fecha `TIMEOUT` em 3 s no fake; reenvio passa) · `[mock:render-fail:<TYPE>]` agora na 1ª tentativa do 9:16 · `[mock:format-fail:<TYPE>]` (1ª tentativa do 4:5 sob demanda daquele tipo falha `RENDER_ERROR`; o pedido de novo passa). Fake do STATIC: PNG determinístico no tamanho do aspecto, custo 0.
+
+### 14.8 Casos pro QA
+1. Lote de 11 peças → 11 renders (só 9:16); peças `ready` assim que o 9:16 fica pronto; zip só com 9:16. 2. Pedir 4:5 de uma peça com o lote ainda renderizando: o 4:5 roda antes dos 9:16 que faltam. 3. Pedir de novo o mesmo formato (na fila, rodando, pronto) = 200 sem render novo. 4. `[mock:format-fail:CUT]`: 4:5 `failed`, peça segue `ready`, zip sem o 4:5; pedir de novo passa. 5. STATIC: `media: 'image'`, PNG no zip `…_STATIC-F1_9x16.png`, pôster = a imagem, custo em `imagesUsd`. 6. `[mock:static-reject]` passa no reenvio (2 tasks no render); `[mock:static-reject-all]` → `failed` `SAFETY_BLOCK`, Retry cobra e checa o teto. 7. `start` com `expectedCostUsd` baixo → `ESTIMATE_CHANGED`; teto estourado → `SPEND_CAP_EXCEEDED` no start, no retry do STATIC e no formato do STATIC (vídeo não). 8. CLIENT: 403 no formato; In zip e zip liberados. 9. Download `?format=4x5` sem 4:5 pronto = 409 `format_not_ready`. 10. Plano: STATIC sem `visual`, com aspas ou com marca no `visual` → violação e reparo. 11. Lote `PLAN_READY` antigo (STATIC sem `visual`) gera pôster tipográfico. 12. Reinício da API com STATIC em `RENDERING`: o reconciliador fecha; `IMAGE_GEN` `QUEUED` é submetido no boot.
+
+### 14.9 Decisões tomadas pelo arquiteto nesta revisão
+1. STATIC continua sendo `Render` (engine `IMAGE_GEN`), fora da fila do Remotion; vínculo `provider_tasks.render_id`.
+2. Prioridade por coluna `renders.priority` (10 sob demanda, 0 lote), não por truque de `createdAt`.
+3. Uma rota só pra pedir **e** refazer formato; idempotente; só peça `ready`.
+4. CLIENT não pede formato (403). Muda com 1 decorator se o Gusta quiser liberar só os de vídeo (grátis).
+5. Reenvio automático de no máximo 1 por imagem (seguro depois de recusa); não reconta o teto.
+6. `start` passa a exigir `expectedCostUsd` (regra "gasto sem estimativa na tela é proibido"); retry/formato de STATIC só checam o teto, com o preço fixo na tela.
+7. GPT Image 2 em `high` + `1k` (US$ 0,22, o número do Gusta), sem upscale (9:16 sai ~864×1536). 2k só se o Gusta pedir.
+8. `renderUsd`/`videoCreditsUsd` continuam 0 (são verdade); o custo novo entra em `imagesUsd`.

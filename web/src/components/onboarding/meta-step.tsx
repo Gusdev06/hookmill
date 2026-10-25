@@ -4,83 +4,76 @@ import { useTranslations } from "next-intl"
 import type { Workspace } from "@/lib/api/types"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
-import { ExampleBadge, SoonBadge, SoonBody } from "@/components/soon"
-import { BackLink, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
+import { MetaConnect, useMetaConnect, WhyConnect } from "@/components/meta/meta-connect"
+import { BackLink, OnboardingFrame, type useOnboarding } from "./shared"
 
 type Ctx = ReturnType<typeof useOnboarding>
 
 /**
- * Step 2 · Connect Meta: whole section "Soon" (fase2-agencia §8, F0 §2.12). One sentence of what it will do and
- * what's missing, "Skip for now" (= PATCH onboardingStep 3), and the faded mockup preview with example data.
+ * Step 2 · Connect Meta (onboarding-v2 §3.6, spec decision 7): the real MetaConnect. "Skip for now" (outline) stays until
+ * it is connected; the lime Continue only opens when the health check passes (warning = can continue; blocked = no).
+ * Continue / Skip = PATCH onboardingStep 3. Hidden by the API with META_MODE=off (the step isn't in `onboarding.steps`).
  */
 export function MetaStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
-  const t = useTranslations("onboarding")
-  const ts = useTranslations("soon")
-  const { move } = ctx
-  const skip = () => move.mutate({ step: 3, to: onboardingHref(3) })
+  const t = useTranslations("meta")
+  const to = useTranslations("onboarding")
+  const { move, canEdit } = ctx
+  const m = useMetaConnect("/onboarding/meta")
+  const { state } = m
+  const go = () => move.mutate({ step: ctx.nextStep(2), to: ctx.next(2) })
+  const connected = state === "ok" || state === "warning"
+  const busy = state === "connecting" || state === "checking"
+
+  const hint =
+    state === "connecting" ? t("hint.connecting")
+    : state === "choose" ? (m.chosenOption && !m.chosenOption.canManage ? t("hint.noPerm") : t("hint.next4"))
+    : state === "ok" ? t("hint.ok")
+    : state === "warning" ? t("hint.warn")
+    : state === "blocked" ? t("hint.blocked")
+    : t("hint.optional")
+  const hintWarn = state === "blocked" || (state === "choose" && !!m.chosenOption && !m.chosenOption.canManage)
+
+  const primary =
+    state === "choose" ? (
+      <Button variant="brand" size="lg" onClick={m.use} disabled={!m.canUse || !canEdit}>
+        {t("useAccount")}
+        <Icon name="arrowr" />
+      </Button>
+    ) : (
+      <Button variant="brand" size="lg" onClick={go} disabled={!connected || move.isPending || busy}>
+        {to("continue")}
+        <Icon name="arrowr" />
+      </Button>
+    )
+
   return (
     <OnboardingFrame
       slug="meta"
       ws={ws}
-      title={
-        <span className="inline-flex flex-wrap items-center gap-2.5">
-          {t("meta.title", { name: ws.name })}
-          <SoonBadge />
-        </span>
-      }
-      sub={t("meta.sub")}
+      title={t("title")}
+      sub={t("sub")}
       error={move.error}
       saving={move.isPending}
-      onSaveExit={() => move.mutate({ step: 2, to: "/clients" })}
-      hint={t("meta.hint")}
-      back={<BackLink href={onboardingHref(1)}>{t("back")}</BackLink>}
-      primary={
-        <Button variant="brand" size="lg" onClick={skip} disabled={move.isPending}>
-          {t("meta.skip")}
-          <Icon name="arrowr" />
-        </Button>
+      onSaveExit={() => move.mutate({ step: 2, to: ctx.exitTo })}
+      hint={hint}
+      hintWarn={hintWarn}
+      back={<BackLink href={ctx.prev(2)}>{to("back")}</BackLink>}
+      secondary={
+        connected ? null : (
+          <Button variant="outline" size="lg" onClick={go} disabled={move.isPending || busy}>
+            {t("skip")}
+          </Button>
+        )
       }
+      primary={primary}
     >
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-xl border border-line bg-card p-4 tablet:p-[22px]">
-        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-1.5">
-          <h2 className="wide text-xl">{t("meta.heading")}</h2>
-          <p className="m-0 text-fg-3 text-pretty">{t("meta.promise")}</p>
+      <div className="flex flex-wrap items-start gap-5">
+        <div className="flex min-w-0 flex-[999_1_420px] flex-col gap-4">
+          <MetaConnect m={m} mode="onboarding" clientName={ws.name} />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-3.5 rounded-xl border border-dashed border-control bg-card-2 p-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="eyebrow">{ts("previewOf")}</span>
-          <ExampleBadge>{ts("exampleData")}</ExampleBadge>
-        </div>
-        <SoonBody className="grid grid-cols-[minmax(0,1fr)] gap-3.5 desktop:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <div className="flex flex-col gap-3 rounded-xl border border-line bg-card p-5">
-            <h3 className="text-base font-bold">{t("meta.preview.login")}</h3>
-            <p className="m-0 text-[13px] text-fg-3">{t("meta.preview.loginSub")}</p>
-            <span className="inline-flex min-h-11 w-fit items-center rounded-btn bg-[#1877F2] px-4 font-bold text-white">{t("meta.preview.continue")}</span>
-            <ul className="m-0 grid list-none gap-2 border-t border-line-soft p-0 pt-3 text-[13px]">
-              {(["account", "payment", "pixel", "verified"] as const).map((k) => (
-                <li key={k} className="flex items-center gap-2">
-                  <Icon name="check" className="text-status-approved" />
-                  {t(`meta.preview.health.${k}`)}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col gap-2.5 rounded-xl bg-ink p-5 text-ink-fg-2">
-            <h3 className="text-base font-bold text-ink-fg">{t("meta.preview.can")}</h3>
-            <ul className="m-0 grid list-disc gap-1.5 pl-5 text-[13px]">
-              <li>{t("meta.preview.can1")}</li>
-              <li>{t("meta.preview.can2")}</li>
-              <li>{t("meta.preview.can3")}</li>
-            </ul>
-            <h4 className="mt-1 text-sm font-bold text-ink-fg">{t("meta.preview.cant")}</h4>
-            <ul className="m-0 grid list-disc gap-1.5 pl-5 text-[13px]">
-              <li>{t("meta.preview.cant1")}</li>
-              <li>{t("meta.preview.cant2")}</li>
-            </ul>
-          </div>
-        </SoonBody>
+        <aside className="flex max-w-full min-w-0 flex-[1_1_280px] flex-col gap-4">
+          <WhyConnect />
+        </aside>
       </div>
     </OnboardingFrame>
   )

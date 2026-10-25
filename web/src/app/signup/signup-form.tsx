@@ -12,7 +12,6 @@ import { Icon } from "@/components/icon"
 import { isApiError } from "@/lib/api/errors"
 import { signup } from "@/lib/session/token"
 import { toUiLocale, toLocale } from "@/i18n/config"
-import { onboardingHref } from "@/components/onboarding/shared"
 
 type Field = "name" | "email" | "password" | "agencyName"
 const FIELDS: Field[] = ["name", "email", "password", "agencyName"]
@@ -54,8 +53,8 @@ export function SignupForm() {
           ...(values.agencyName.trim() ? { agencyName: values.agencyName.trim() } : {}),
           uiLocale: toUiLocale(toLocale(locale)),
         })
-        // contract "/onboarding/1" = step 1 of the onboarding, whose route is a slug (/onboarding/business)
-        router.replace(onboardingHref(1))
+        // onboarding-v2 D8: the account mode question comes first (/start), then step 1 of the setup
+        router.replace("/start")
         router.refresh()
       } catch (err) {
         if (!isApiError(err)) return setError(t("errors.fallback"))

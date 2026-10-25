@@ -5,33 +5,41 @@ import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
-import type { BrainItem, ClientStatus, Offer, OnboardingStep, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
+import type { BrainItem, ClientStatus, Offer, OnboardingStep, OnboardingStepInfo, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
-import { ClientAvatar } from "@/components/shell/logo"
+import { NavIcon } from "@/components/shell/nav-icon"
+import { MinimalShell } from "@/components/shell/minimal-shell"
 import { useSession } from "@/components/providers/session-provider"
-import { WizardRail } from "@/components/wizard-rail"
 import { useErrorMessage } from "@/hooks/use-error-message"
+import { ME_KEY, useAccountMode } from "@/hooks/use-me"
 import { cn } from "@/lib/utils"
+import { ActionBar } from "./action-bar"
+import { SetupProgress } from "./setup-progress"
 
 /*
- * Client onboarding (fase2-agencia §3.3, plano fase 2 "Onboarding"): 6 steps on the ACTIVE workspace (the token).
- * `onboardingStep` only says where to resume; it moves both ways and is saved on every Continue / Save and exit.
- * After the onboarding is done the steps stay editable, but the step is no longer sent (409 onboarding_completed).
+ * Client onboarding (fase2-agencia §3.3 + onboarding-v2 §3.2-3.3): 6 steps on the ACTIVE workspace (the token), in the
+ * minimal shell (no sidebar). `onboardingStep` only says where to resume; it moves both ways and is saved on every
+ * Continue / Save and exit. After the onboarding is done the steps stay editable ("Edit setup"), but the step is no longer
+ * sent (409 onboarding_completed). The % and the state of each step come from the API (`onboarding.percent` / `steps`);
+ * without them (older API) the web derives both from the position.
  */
 export const ONBOARDING_SLUGS = ["business", "meta", "offer", "audience", "goals", "brain"] as const
 export type OnboardingSlug = (typeof ONBOARDING_SLUGS)[number]
 
 export const stepOf = (slug: OnboardingSlug) => (ONBOARDING_SLUGS.indexOf(slug) + 1) as OnboardingStep
 export const onboardingHref = (step: number) => `/onboarding/${ONBOARDING_SLUGS[Math.min(6, Math.max(1, step)) - 1]}`
+/** Resume screen after "Save and exit" (spec D4) and the "Setup in progress" screen of MEMBER/CLIENT. */
+export const SAVED_HREF = "/onboarding/saved"
+export const WAITING_HREF = "/onboarding/waiting"
 
 /** Where a client card leads: setup → the step it stopped at; done (live or paused) → Home. */
 export function clientHref(c: { status: ClientStatus; onboarding: { step: number; completedAt: string | null } }) {
   return c.onboarding.completedAt ? "/" : onboardingHref(c.onboarding.step)
 }
 
-/** Which step fills each Brain item (step 6 "what's missing" links). */
+/** Which step fills each Brain item (step 6 "what's missing" links, Brain "Fill"). */
 export const BRAIN_ITEM_STEP: Record<BrainItem, number> = {
   businessType: 1, industry: 1, market: 1,
   offer: 3, what: 3, promise: 3, offerAndPrice: 3, cta: 3, proof: 3,
@@ -39,15 +47,44 @@ export const BRAIN_ITEM_STEP: Record<BrainItem, number> = {
   spendCap: 5,
 }
 
-/** Workspace + offers of the active client, the edit right, and the "save + move" action. */
+type Ob = Pick<Workspace, "onboarding">
+/** The enabled steps (5 with META_MODE=off). Falls back to the 6 positional steps when the API doesn't send `steps`. */
+export function stepsOf(ws: Ob): OnboardingStepInfo[] {
+  const api = ws.onboarding.steps?.filter((s) => s.enabled)
+  if (api?.length) return api
+  const cur = ws.onboarding.completedAt ? 7 : ws.onboarding.step
+  return ONBOARDING_SLUGS.map((key, i) => ({
+    step: (i + 1) as OnboardingStep, key, enabled: true, state: i + 1 < cur ? "done" : i + 1 === cur ? "current" : "todo",
+  }))
+}
+export function percentOf(ws: Ob): number {
+  if (typeof ws.onboarding.percent === "number") return ws.onboarding.percent
+  if (ws.onboarding.completedAt) return 100
+  return Math.round(((ws.onboarding.step - 1) / 6) * 100)
+}
+/** Next / previous ENABLED step number (skips Connect Meta when it is off). */
+export function nextStepOf(ws: Ob, from: number): number {
+  const s = stepsOf(ws).map((x) => x.step).find((n) => n > from)
+  return s ?? 6
+}
+export function prevStepOf(ws: Ob, from: number): number {
+  const s = [...stepsOf(ws).map((x) => x.step)].reverse().find((n) => n < from)
+  return s ?? 1
+}
+export const isMetaEnabled = (ws: Ob) => stepsOf(ws).some((s) => s.key === "meta")
+
+/** Workspace + offers of the active client, the edit right, where "Save and exit" goes, and the "save + move" action. */
 export function useOnboarding() {
-  const { session } = useSession()
+  const { session, logout } = useSession()
   const qc = useQueryClient()
   const router = useRouter()
+  const mode = useAccountMode()
   const ws = useQuery({ queryKey: ["workspace"], queryFn: api.workspace.get })
   const offers = useQuery({ queryKey: ["offers"], queryFn: () => api.offers.list() })
   const canEdit = session.workspace.role === "OWNER" || session.workspace.role === "ADMIN"
   const done = !!ws.data?.onboarding.completedAt
+  /** edit mode → Brain · agency in setup → resume screen · own business in setup → log out (there is nowhere else to go) */
+  const exitTo: string = done ? "/brain" : mode === "OWN" ? "logout" : SAVED_HREF
 
   /** PATCH /workspace with the step's fields + where to resume, then go. */
   const move = useMutation({
@@ -60,19 +97,21 @@ export function useOnboarding() {
     onSuccess: (w, v) => {
       if (w) qc.setQueryData(["workspace"], w)
       qc.invalidateQueries({ queryKey: ["clients"] })
-      router.push(v.to)
+      qc.invalidateQueries({ queryKey: ME_KEY })
+      if (v.to === "logout") void logout()
+      else router.push(v.to)
     },
   })
 
   const list: Offer[] = offers.data?.data ?? []
-  return { ws, offers, list, offer: list[0] ?? null, canEdit, done, move }
+  const next = (from: number) => (ws.data ? onboardingHref(nextStepOf(ws.data, from)) : onboardingHref(from + 1))
+  const prev = (from: number) => (ws.data ? onboardingHref(prevStepOf(ws.data, from)) : onboardingHref(from - 1))
+  return { ws, offers, list, offer: list[0] ?? null, canEdit, done, move, exitTo, next, prev, nextStep: (from: number) => (ws.data ? nextStepOf(ws.data, from) : from + 1) }
 }
 
-type RailKey = "business" | "meta" | "offer" | "audience" | "goals" | "brain"
-
-/** Rail (desktop) / compact progress (phone) + the step's header, body and the Back / Continue bar. */
+/** Minimal shell + progress card + the step's header, body and the Back / (Skip) / Continue bar. */
 export function OnboardingFrame({
-  slug, ws, title, sub, children, back, primary, hint, hintWarn, onSaveExit, saving, error,
+  slug, ws, title, sub, children, back, secondary, primary, hint, hintWarn, onSaveExit, saving, error,
 }: {
   slug: OnboardingSlug
   ws: Workspace
@@ -80,76 +119,45 @@ export function OnboardingFrame({
   sub?: React.ReactNode
   children: React.ReactNode
   back?: React.ReactNode
+  /** e.g. "Skip for now" (outline) */
+  secondary?: React.ReactNode
   primary: React.ReactNode
   hint?: React.ReactNode
-  /** a validation hint: also shown on the phone (the plain "saved" hint is desktop only) */
+  /** a validation hint: amber */
   hintWarn?: boolean
-  /** saves the step and goes back to Clients */
+  /** saves the step and leaves (resume screen · log out · Brain) */
   onSaveExit: () => void
   saving?: boolean
   error?: unknown
 }) {
   const t = useTranslations("onboarding")
+  const tc = useTranslations("common")
   const errorMessage = useErrorMessage()
   const { session } = useSession()
+  const mode = useAccountMode()
   const canEdit = session.workspace.role === "OWNER" || session.workspace.role === "ADMIN"
   const step = stepOf(slug)
-  const reached = ws.onboarding.completedAt ? 6 : Math.max(ws.onboarding.step, step)
-  const steps = ONBOARDING_SLUGS.map((k, i) => ({
-    title: t(`rail.${k as RailKey}.title`),
-    desc: t(`rail.${k as RailKey}.desc`),
-    href: i + 1 <= reached ? onboardingHref(i + 1) : undefined,
-  }))
-  const pct = Math.round(((step - 1) / 6) * 100)
-  const eyebrow = ws.onboarding.completedAt ? t("eyebrowEdit") : t("eyebrow")
-  const saveExit = (
-    <Button variant="outline" size="sm" onClick={onSaveExit} disabled={saving} className="w-full tablet:w-auto">
-      {t("saveExit")}
-    </Button>
-  )
+  const done = !!ws.onboarding.completedAt
+  const steps = stepsOf(ws)
+  const pos = Math.max(0, steps.findIndex((s) => s.step === step))
+  const exitLabel = done ? t("saveExit") : mode === "OWN" ? tc("logout") : t("saveExit")
 
   return (
-    <div className="mx-auto flex max-w-[1180px] flex-col gap-5 px-[var(--gut)] pt-5 pb-16 tablet:flex-row tablet:items-start tablet:gap-6 tablet:pt-7">
-      <WizardRail
-        aria-label={t("railLabel")}
-        eyebrow={eyebrow}
-        name={ws.name}
-        steps={steps}
-        current={step}
-        className="hidden flex-none tablet:sticky tablet:top-7 tablet:flex tablet:w-[280px]"
-        footer={
-          <>
-            <span className="text-[13px] text-fg-3">{t("railFooter")}</span>
-            {saveExit}
-          </>
-        }
-      />
-      {/* phone: compact progress instead of the 640 px rail */}
-      <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-card p-4 tablet:hidden">
-        <div className="flex items-center gap-2.5">
-          <ClientAvatar name={ws.name} className="size-7 text-xs" />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="eyebrow">{eyebrow}</span>
-            <strong className="truncate">{ws.name}</strong>
-          </span>
-          <span className="font-mono text-xs text-fg-3">{t("pctDone", { pct })}</span>
-        </div>
-        <div className="flex gap-1" aria-hidden="true">
-          {ONBOARDING_SLUGS.map((k, i) => (
-            <span key={k} className={cn("h-1.5 flex-1 rounded-full", i + 1 < step ? "bg-brand-edge" : i + 1 === step ? "bg-fg" : "bg-line")} />
-          ))}
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 text-[13px] text-fg-2">{t("stepOfNamed", { n: step, title: steps[step - 1].title })}</span>
-          <Button variant="ghost" size="sm" onClick={onSaveExit} disabled={saving} className="-mr-2">
-            {t("saveExit")}
-          </Button>
-        </div>
-      </div>
+    <MinimalShell
+      client={ws.name}
+      eyebrow={done ? t("eyebrowEdit") : t("eyebrowShort")}
+      right={
+        <Button variant="outline" size="sm" onClick={onSaveExit} disabled={saving}>
+          <NavIcon name="out" size={16} />
+          {exitLabel}
+        </Button>
+      }
+    >
+      <SetupProgress steps={steps} current={step} percent={percentOf(ws)} hrefFor={onboardingHref} allClickable={done} />
 
-      <section aria-labelledby="ob-title" className="flex min-w-0 flex-1 flex-col gap-[18px]">
+      <section aria-labelledby="ob-title" className="flex min-w-0 flex-col gap-[18px]">
         <div className="flex flex-col gap-2">
-          <span className="eyebrow">{t("stepOf", { n: step })}</span>
+          <span className="eyebrow">{t("stepOf", { n: pos + 1, total: steps.length })}</span>
           <h1 id="ob-title" className="text-pretty">{title}</h1>
           {sub ? <p className="m-0 max-w-[640px] text-fg-3 text-pretty">{sub}</p> : null}
         </div>
@@ -171,22 +179,16 @@ export function OnboardingFrame({
           </Alert>
         ) : null}
         {children}
-        <div className="sticky bottom-0 z-10 -mx-[var(--gut)] flex flex-col gap-2.5 border-t border-line bg-card px-[var(--gut)] pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] tablet:static tablet:mx-0 tablet:flex-row tablet:flex-wrap tablet:items-center tablet:justify-between tablet:rounded-xl tablet:border tablet:p-3">
-          {hint ? <span className={cn("text-[13px] tablet:block tablet:min-w-0 tablet:flex-1", hintWarn ? "text-status-waiting" : "hidden text-fg-3")}>{hint}</span> : null}
-          <div className="flex gap-2 tablet:ml-auto [&>*:last-child]:min-w-0 [&>*:last-child]:flex-1 tablet:[&>*:last-child]:flex-none">
-            {back}
-            {primary}
-          </div>
-        </div>
+        <ActionBar hint={hint} hintWarn={hintWarn} back={back} secondary={secondary} primary={primary} />
       </section>
-    </div>
+    </MinimalShell>
   )
 }
 
 /** Light card with an h2 (mockup cards: 16 px radius, 20 px padding). */
-export function Card({ title, aside, children, className }: { title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string }) {
+export function Card({ title, aside, children, className, id }: { title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-3.5 rounded-xl border border-line bg-card p-4 tablet:p-5", className)}>
+    <div id={id} className={cn("flex min-w-0 flex-col gap-3.5 rounded-xl border border-line bg-card p-4 tablet:p-5", className)}>
       {title || aside ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {title ? <h2 className="text-base font-bold">{title}</h2> : null}
@@ -210,17 +212,16 @@ export function BackLink({ href, children }: { href: string; children: React.Rea
 /** Loading (skeleton in the same footprint) and error states of the whole step. */
 export function OnboardingLoading() {
   return (
-    <div className="mx-auto flex max-w-[1180px] flex-col gap-5 px-[var(--gut)] pt-5 pb-16 tablet:flex-row tablet:gap-6 tablet:pt-7" role="status" aria-busy="true">
-      <span className="sk hidden h-[560px] w-[280px] flex-none rounded-xl tablet:block" />
-      <span className="sk h-[110px] rounded-xl tablet:hidden" />
-      <div className="flex min-w-0 flex-1 flex-col gap-[18px]">
+    <MinimalShell right={null}>
+      <div role="status" aria-busy="true" className="flex flex-col gap-5">
+        <span className="sk h-[92px] rounded-xl" />
         <span className="sk h-3 w-24" />
         <span className="sk h-8 w-3/5" />
         <span className="sk h-4 w-4/5" />
         <span className="sk h-[180px] rounded-xl" />
         <span className="sk h-[240px] rounded-xl" />
       </div>
-    </div>
+    </MinimalShell>
   )
 }
 
@@ -228,7 +229,7 @@ export function OnboardingError({ error, retry }: { error: unknown; retry: () =>
   const t = useTranslations()
   const errorMessage = useErrorMessage()
   return (
-    <div className="mx-auto max-w-[760px] px-[var(--gut)] pt-7">
+    <MinimalShell>
       <Alert variant="destructive">
         <Icon name="alert" />
         <AlertBody>
@@ -242,6 +243,6 @@ export function OnboardingError({ error, retry }: { error: unknown; retry: () =>
           </Button>
         </AlertActions>
       </Alert>
-    </div>
+    </MinimalShell>
   )
 }

@@ -8,15 +8,22 @@
 // LIPSYNC_VIDEO = vídeo de entrada remuxado com o áudio; TRANSCRIBE da cena = falas das janelas. Gatilhos nas notas do
 // campeão (o backend repassa em submitSceneVideo.notes): [mock:voice-fit-out] (ratio 1,15) e [mock:speech-mismatch].
 // [mock:identity-drift] é da medicao (identityScore), não daqui.
+// STATIC (variacao-auto-v1 rev. 23/10 §14.7), nas notas da OFERTA (submitStaticImage.notes):
+//   [mock:static-reject]     1ª submissão (safe=false) recusada SAFETY_BLOCK; o reenvio com safe=true passa.
+//   [mock:static-reject-all] toda submissão recusada (inclusive a safe) → a peça vira failed SAFETY_BLOCK.
+//   [mock:static-timeout]    1ª task do render fecha TIMEOUT (PROVIDER_TIMEOUT) em 3 s; o reenvio passa.
+// 25/10 (§A4): `specV2` monta o prompt V2; com `screenRefUrl` a task grava o modelo `edit` (preço 0,41, custo mock 0).
+// Os gatilhos do texto ([mock:static-text-mismatch] / [mock:static-text-mismatch-all]) moram no checkStaticText do FakeClaudeService.
+// Saída: PNG determinístico (gradiente) no aspecto pedido, 2× a grade (9:16 720×1280, 4:5 864×1080, 1:1 960×960). Custo 0.
 // TRANSCRIBE do campeão (feature 2): lê a duração e se há trilha de áudio da própria mídia (ffprobe; os fixtures do
 // QA são vídeos de verdade). Sem áudio = 0 palavras (hasSpeech false); com áudio = fala sintética no idioma pedido.
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
-import type { FaceAspect, GenerationService, Submitted, TranscriptWord, VideoFormat } from '../contrato';
+import type { FaceAspect, GenerationService, StaticAspect, SubmitStaticImageInput, Submitted, TranscriptWord, VideoFormat } from '../contrato';
 import { assertTakeDuration } from '../catalogo/take';
 import { IntegracaoError } from '../erros';
-import { FACE_MODEL, SWAP_V2V_MODEL, TRANSCRIBE_MODEL, TTS_MODEL, VOICES, findSceneModel, speechSeconds } from '../catalogo/precos';
+import { FACE_MODEL, STATIC_IMAGE_MODEL, staticImageUsd, SWAP_V2V_MODEL, TRANSCRIBE_MODEL, TTS_MODEL, VOICES, findSceneModel, speechSeconds } from '../catalogo/precos';
 import { billedSceneSeconds } from '../catalogo/catalog.service';
 import {
   PROVIDER_TASK_FINISHED,
@@ -31,6 +38,7 @@ import {
 } from '../portas';
 import { mockLipsyncUrl, mockMediaUrl, seedOf, unit, writeMockLipsyncSpec } from './midia';
 import { normalizeLanguage } from '../claude/validacao';
+import { staticImagePrompt } from '../wavespeed/prompts-estatico';
 
 export const MOCK_EXTERNAL_PREFIX = 'mock_';
 const FAIL_RE = /\[mock:(SAFETY_BLOCK|PROVIDER_ERROR|PROVIDER_TIMEOUT|CANCELLED)\]/;
@@ -93,8 +101,12 @@ interface Words {
   endSec: number;
 }
 
+const ASPECT_FORMAT: Record<StaticAspect, VideoFormat> = { '9:16': 'VERTICAL_9_16', '4:5': 'PORTRAIT_4_5', '1:1': 'SQUARE_1_1' };
+
 export class FakeGenerationService implements GenerationService {
   private readonly timers = new Set<NodeJS.Timeout>();
+  /** renders cuja 1ª imagem já "deu timeout" no [mock:static-timeout] (memória do processo; o reenvio passa) */
+  private readonly staticTimedOut = new Set<string>();
 
   constructor(
     private readonly tasks: ProviderTaskStore,
@@ -118,6 +130,30 @@ export class FakeGenerationService implements GenerationService {
     const durationSec = billedSceneSeconds(m, i.durationSec);
     const swap = i.windowIndex != null;
     return this.submit({ workspaceId: i.workspaceId, kind: 'SCENE_VIDEO', model: m.providerModel, sceneId: i.sceneId, windowIndex: i.windowIndex, input: { ...i, durationSec, ...(swap ? { swap: true, sound: i.sound === true } : {}) } });
+  }
+
+  /** §14.3: mesma forma do live (task STATIC_IMAGE com renderId e o prompt montado); termina sozinha com um PNG no aspecto. */
+  async submitStaticImage(i: SubmitStaticImageInput): Promise<Submitted> {
+    const notes = i.notes ?? '';
+    const ref = i.specV2?.screenRefUrl?.trim() || null;
+    const prompt = staticImagePrompt(i, !!ref);
+    const model = ref ? STATIC_IMAGE_MODEL.editProviderModel : STATIC_IMAGE_MODEL.providerModel;
+    const { notes: _notes, ...rest } = i;
+    let mockFail: string | null = null;
+    let mockDelayMs: number | null = null;
+    if (notes.includes('[mock:static-reject-all]') || (notes.includes('[mock:static-reject]') && !i.safe)) {
+      mockFail = '[mock:SAFETY_BLOCK]'; // recusa "na submissão": fecha logo, como o rejected() do live
+      mockDelayMs = 50;
+    } else if (notes.includes('[mock:static-timeout]') && !this.staticTimedOut.has(i.renderId)) {
+      this.staticTimedOut.add(i.renderId);
+      mockFail = '[mock:PROVIDER_TIMEOUT]';
+      mockDelayMs = 3000;
+    }
+    const input = {
+      ...rest, prompt, model, resolution: STATIC_IMAGE_MODEL.resolution, usdPerImage: staticImageUsd(ref ? 1 : 0), layout: i.specV2 ? 'assembled' : 'legacy',
+      ...(mockFail ? { mockFail } : {}), ...(mockDelayMs != null ? { mockDelayMs } : {}),
+    };
+    return this.submit({ workspaceId: i.workspaceId, kind: 'STATIC_IMAGE', model, renderId: i.renderId, input });
   }
 
   /** §13.15 (A): o vídeo de entrada remuxado com o áudio (cut_off: o mais curto dos dois). */
@@ -185,7 +221,8 @@ export class FakeGenerationService implements GenerationService {
   }
 
   private schedule(t: ProviderTaskRecord) {
-    const delay = (this.opts.delayMs ?? defaultMockDelay)(this.inputSeed(t));
+    const fixed = Number(t.input.mockDelayMs);
+    const delay = Number.isFinite(fixed) && fixed >= 0 ? fixed : (this.opts.delayMs ?? defaultMockDelay)(this.inputSeed(t));
     const timer = setTimeout(() => {
       this.timers.delete(timer);
       this.complete(t).catch((e) => console.error('[integracoes/mock] failed to complete task', t.id, e));
@@ -205,6 +242,12 @@ export class FakeGenerationService implements GenerationService {
     const format = (t.input.format as VideoFormat | undefined) ?? 'VERTICAL_9_16';
 
     switch (t.kind) {
+      case 'STATIC_IMAGE': {
+        const aspect = String(t.input.aspectRatio ?? '9:16') as StaticAspect;
+        outputUrls = [mockMediaUrl(this.opts.publicApiUrl, { kind: 'static', seed, format: ASPECT_FORMAT[aspect] ?? 'VERTICAL_9_16' })];
+        cost = { kind: 'IMAGE', units: 1, unit: 'image' };
+        break;
+      }
       case 'FACE_IMAGE':
         outputUrls = [mockMediaUrl(this.opts.publicApiUrl, { kind: 'face', seed, format: 'VERTICAL_9_16' })];
         cost = { kind: 'IMAGE', units: 1, unit: 'image' };
@@ -279,16 +322,22 @@ export class FakeGenerationService implements GenerationService {
     const done = await this.tasks.finish(t.id, { status, outputUrls, output, errorCode: failCode, errorRaw: failCode ? `mock ${failCode}` : null });
     if (!done) return; // já terminado por outro caminho (idempotência)
 
-    await this.costs.record({
-      workspaceId: t.workspaceId,
-      provider: t.provider,
-      kind: cost.kind,
-      model: t.model,
-      units: cost.units,
-      unit: cost.unit,
-      amountUsd: 0, // modo mock: custo zero, mas o caminho de gravação é o mesmo do live
-      providerTaskId: t.id,
-    });
+    // STATIC: como no live, falha não cobra e o custo vai pro criativo/lote da peça
+    const isStatic = t.kind === 'STATIC_IMAGE';
+    if (!isStatic || status === 'COMPLETED') {
+      await this.costs.record({
+        workspaceId: t.workspaceId,
+        provider: t.provider,
+        kind: cost.kind,
+        model: t.model,
+        units: cost.units,
+        unit: cost.unit,
+        amountUsd: 0, // modo mock: custo zero, mas o caminho de gravação é o mesmo do live
+        providerTaskId: t.id,
+        ...(isStatic && typeof t.input.creativeId === 'string' ? { creativeId: t.input.creativeId } : {}),
+        ...(isStatic && typeof t.input.variationBatchId === 'string' ? { variationBatchId: t.input.variationBatchId } : {}),
+      });
+    }
 
     this.bus.emit(PROVIDER_TASK_FINISHED, {
       providerTaskId: t.id,
@@ -301,6 +350,7 @@ export class FakeGenerationService implements GenerationService {
       ...(t.championId ? { championId: t.championId } : {}),
       ...(t.takeId ? { takeId: t.takeId } : {}),
       ...(t.windowIndex != null ? { windowIndex: t.windowIndex } : {}),
+      ...(t.renderId ? { renderId: t.renderId } : {}),
     });
   }
 

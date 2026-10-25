@@ -3,26 +3,45 @@
 //  2. validatePlan(draft, ctx): §6.1 + §6.2 → violações (por peça ou do plano).
 //  3. repairPlan(draft, ctx): reparo determinístico depois da 2ª chamada (tira peças que violam; diversidade).
 //  4. finalizePlan(...): código (codeFor, com sufixo de repetição), eixo, tempos encaixados no silêncio, textos cortados.
+// 25/10 (estatico-montado-e-molduras-v1): STATIC V2 "anúncio montado" (§A3: fonte por bloco, invented_claim, reparo que
+// apaga o bloco opcional) e FRAME (molduras, §B2/§B5: allowedFrames, textos por template, preço literal, máx. 2 distintas).
+// TRANSIÇÃO (§C.0): FRAME ainda fora do AutoVariationType; aqui tudo é escrito contra `AutoVariationTypeWithFrame`.
 import type {
-  AutoInsight, AutoVariationType, BlockFn, BrainField, CodeLanguage, EndcardVariant, SwapReason, TranscriptWord, VariationAxis, WhyLine,
+  AutoInsight, AutoVariationType, AutoVariationTypeWithFrame, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts,
+  SwapReason, TranscriptWord, VariationAxis, WhyLine,
 } from '@maquina/contratos';
-import type { AutoItemDraft, AutoParamsDraft, AutoPlanDraft } from '../integracoes';
+import type {
+  AutoFrameDraft, AutoItemDraft, AutoParamsDraft, AutoParamsDraftWithFrame, AutoPlanDraft, CopySource, FrameBrand, FrameSpec, StaticCopy,
+  StaticIcon, StaticVisualDraft, StaticVisualV2,
+} from '../integracoes';
+import { inventedClaimsIn } from './afirmacoes';
+import { DEFAULT_ACCENT } from './paleta';
 import type { MediaRulesPort, Span } from './portas';
 
 // ───────── catálogo (§6.1) ─────────
 
 export const AUTO_TYPES: readonly AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
 
-/** Eixo fixo por tipo: ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". */
-export const AXIS_OF: Record<AutoVariationType, VariationAxis> = {
+/** Eixo fixo por tipo: ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". FRAME (§B2) = DIVERSITY. */
+export const AXIS_OF: Record<AutoVariationTypeWithFrame, VariationAxis> = {
   CUT: 'ITERATION', COLD_OPEN: 'ITERATION', HOOK_TEXT: 'ITERATION', ENDCARD: 'ITERATION',
-  SPLIT_LP: 'DIVERSITY', STORY: 'DIVERSITY', REVIEW: 'DIVERSITY', NATIVE_SEARCH: 'DIVERSITY', STATIC: 'DIVERSITY',
+  SPLIT_LP: 'DIVERSITY', STORY: 'DIVERSITY', REVIEW: 'DIVERSITY', NATIVE_SEARCH: 'DIVERSITY', STATIC: 'DIVERSITY', FRAME: 'DIVERSITY',
 };
 
-/** Máximo por lote com a repetição da D2 (HOOK-TEXT ≤ 3, STATIC ≤ 2, NATIVE-SEARCH ≤ 2; CUT = um de 15 s e um de 20 s). */
-export const TYPE_MAX: Record<AutoVariationType, number> = {
-  CUT: 2, COLD_OPEN: 1, HOOK_TEXT: 3, ENDCARD: 1, SPLIT_LP: 1, STORY: 1, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2,
+/** Máximo por lote com a repetição da D2 (HOOK-TEXT ≤ 3, STATIC ≤ 2, NATIVE-SEARCH ≤ 2; CUT = um de 15 s e um de 20 s).
+ *  25/10 (Gusta, D10 revista): FRAME ≤ 8, todas de templates diferentes. Os tipos que saíram do catálogo mantêm o número
+ *  (só leitura de lote antigo). */
+export const TYPE_MAX: Record<AutoVariationTypeWithFrame, number> = {
+  CUT: 2, COLD_OPEN: 1, HOOK_TEXT: 3, ENDCARD: 1, SPLIT_LP: 1, STORY: 1, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8,
 };
+
+/**
+ * Catálogo dos lotes NOVOS (decisão do Gusta 25/10): CUT, REVIEW, NATIVE_SEARCH, STATIC (≤ 2) e FRAME (≤ 8). COLD_OPEN,
+ * HOOK_TEXT, ENDCARD, STORY e SPLIT_LP saíram: nunca entram no `allowed` do plano; lote antigo com eles segue (leitura,
+ * retry, formatos, zip), porque o render, a vista e o zip não olham o catálogo.
+ */
+export const AUTO_TYPES_NOVOS: readonly AutoVariationTypeWithFrame[] = ['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
+export const AUTO_TYPES_FORA: readonly AutoVariationTypeWithFrame[] = ['COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'STORY', 'SPLIT_LP'];
 
 /** Lote (§6.2 + D2): 8 a 12; sem tipos que fechem 8, sai menor até o piso 4 (com aviso smallBatch). */
 export const BATCH_MAX = 12;
@@ -42,12 +61,21 @@ export const TEASER_FROM = 5;
 export const CUT_SLACK_SEC = 1.5;
 
 /** Limites de texto (§7.1). change/rationale são cortados; texto de TELA acima do limite é violação. */
-export const LIMITS = { change: 90, rationale: 160, whyText: 120, whyRef: 60, hookText: 60, endHeadline: 40, endSubline: 60, endCta: 24, query: 60, staticHeadline: 50 } as const;
+export const LIMITS = {
+  change: 90, rationale: 160, whyText: 120, whyRef: 60, hookText: 60, endHeadline: 40, endSubline: 60, endCta: 24, query: 60, staticHeadline: 50,
+  // rev. 23/10 §14.3: conceito visual do STATIC (em inglês, vai pro prompt do GPT Image 2)
+  staticObject: 220, staticScene: 220, staticVibe: 140,
+} as const;
+const STATIC_STYLES: readonly StaticVisualDraft['style'][] = ['everyday_photo', 'cinematic', 'ad_graphic'];
+const STATIC_PLACEMENTS: readonly StaticVisualDraft['headlinePlacement'][] = ['top', 'center', 'bottom'];
+/** Aspas no `visual` = texto escrito na imagem além da headline (§14.3: static_visual_has_text). */
+const QUOTE_RE = /["“”]/;
 
 /** Troca do §6.2.4: tipo que depende do Brain/da mídia sem o dado → um que não depende (STORY, STATIC, HOOK-TEXT). */
-const SWAP_TO: Record<AutoVariationType, AutoVariationType> = {
-  CUT: 'HOOK_TEXT', COLD_OPEN: 'HOOK_TEXT', HOOK_TEXT: 'HOOK_TEXT', ENDCARD: 'HOOK_TEXT',
-  SPLIT_LP: 'STORY', STORY: 'STORY', REVIEW: 'STATIC', NATIVE_SEARCH: 'STATIC', STATIC: 'STATIC',
+const SWAP_TO: Record<AutoVariationTypeWithFrame, AutoVariationType> = {
+  // 25/10: o que não entra vira moldura (o tipo que sobra pra qualquer campeão)
+  CUT: 'FRAME', COLD_OPEN: 'FRAME', HOOK_TEXT: 'FRAME', ENDCARD: 'FRAME',
+  SPLIT_LP: 'FRAME', STORY: 'FRAME', REVIEW: 'FRAME', NATIVE_SEARCH: 'STATIC', STATIC: 'FRAME', FRAME: 'STATIC',
 };
 
 /** Código no idioma da oferta: `offer.language` começando com `pt` = PT; qualquer outro = EN. */
@@ -61,12 +89,36 @@ const ENDCARD_CODE: Record<CodeLanguage, Record<EndcardVariant, string>> = {
 };
 
 /**
+ * Códigos das molduras (§B2: `FRAME-<ID>` / `MOLDURA-<ID-PT>`, ex. FRAME-NEWS / MOLDURA-NOTICIA). EN = id em caixa alta com
+ * hífen; PT = o nome da interface (Caixinha, Notícia, Tweet, Oferta direta, Leia a legenda, Choquei, Fofoca…) em ASCII.
+ * Templates distintos por lote (D10) = código único sem sufixo de repetição.
+ */
+export const FRAME_CODE: Record<CodeLanguage, Record<FrameTemplateId, string>> = {
+  EN: {
+    question_box: 'FRAME-QUESTION-BOX', gossip_page: 'FRAME-GOSSIP-PAGE', meme: 'FRAME-MEME', cinema: 'FRAME-CINEMA', news: 'FRAME-NEWS',
+    split_stack: 'FRAME-SPLIT-STACK', split_torn: 'FRAME-SPLIT-TORN', call: 'FRAME-CALL', call_dialog: 'FRAME-CALL-DIALOG',
+    ranking: 'FRAME-RANKING', post_card: 'FRAME-POST-CARD', direct_offer: 'FRAME-DIRECT-OFFER', story: 'FRAME-STORY',
+    read_caption: 'FRAME-READ-CAPTION', pov_testimonial: 'FRAME-POV-TESTIMONIAL', live: 'FRAME-LIVE', gossip_white: 'FRAME-GOSSIP-WHITE',
+    gossip_pink: 'FRAME-GOSSIP-PINK',
+  },
+  PT: {
+    question_box: 'MOLDURA-CAIXINHA', gossip_page: 'MOLDURA-CHOQUEI', meme: 'MOLDURA-MEME', cinema: 'MOLDURA-CINEMA', news: 'MOLDURA-NOTICIA',
+    split_stack: 'MOLDURA-TELA-DIVIDIDA', split_torn: 'MOLDURA-TELA-DIVIDIDA-2', call: 'MOLDURA-MEET', call_dialog: 'MOLDURA-MEET-DIALOGO',
+    ranking: 'MOLDURA-RANKING', post_card: 'MOLDURA-TWEET', direct_offer: 'MOLDURA-OFERTA-DIRETA', story: 'MOLDURA-STORY',
+    read_caption: 'MOLDURA-LEIA-A-LEGENDA', pov_testimonial: 'MOLDURA-POV-DEPOIMENTO', live: 'MOLDURA-AO-VIVO', gossip_white: 'MOLDURA-FOFOCA-1',
+    gossip_pink: 'MOLDURA-FOFOCA-2',
+  },
+};
+
+/**
  * A ÚNICA tabela EN/PT dos códigos (§6.1). `variant`: CUT = 15|20, ENDCARD = a variante; `n` = ocorrência do tipo no
  * lote (1, 2, 3): HOOK-TEXT começa no 2 (o "1" é o gancho do original), NATIVE-SEARCH ganha "-2" na 2ª, STATIC é F<n>.
  */
-export function codeFor(type: AutoVariationType, variant: string | number | null, n: number, lang: CodeLanguage): string {
+export function codeFor(type: AutoVariationTypeWithFrame, variant: string | number | null, n: number, lang: CodeLanguage): string {
   const pt = lang === 'PT';
   switch (type) {
+    case 'FRAME':
+      return FRAME_CODE[lang][(variant as FrameTemplateId) ?? 'question_box'] ?? `${pt ? 'MOLDURA' : 'FRAME'}-${String(variant ?? n).toUpperCase().replace(/_/g, '-')}`;
     case 'CUT':
       return `${pt ? 'CORTE' : 'CUT'}-${variant ?? 15}S`;
     case 'COLD_OPEN':
@@ -112,10 +164,17 @@ export interface PlanCtx {
   productPhoto: boolean;
   /** nomes que não podem aparecer numa busca nativa (workspace, oferta) */
   brandTerms: string[];
+  /** 25/10: BCP 47 da FALA do campeão (idioma dos textos de tela; léxico do invented_claim). Ausente = pelo `lang` */
+  screenLanguage?: string;
+  /** 25/10: `offer.name` e `offer.kind` (fontes 'name'/'kind' do CopySource). Ausente = name existe, kind não */
+  offerName?: string | null;
+  offerKind?: string | null;
+  /** 25/10 (§B2): marca e rosto das molduras (backend preenche; a IA não escreve) */
+  frame?: { brand: FrameBrand; faceAtSec: number | null };
 }
 
 export type BlockedReason = SwapReason | 'has_end_card';
-export interface AllowedType { type: AutoVariationType; max: number; blockedReason: BlockedReason | null }
+export interface AllowedType { type: AutoVariationTypeWithFrame; max: number; blockedReason: BlockedReason | null }
 
 const has = (s: string | null | undefined) => !!s && s.trim().length > 0;
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
@@ -140,20 +199,96 @@ export function hasQuotableProof(ctx: PlanCtx): boolean {
 /** §6.3.1: o que pode entrar, com o máximo por tipo e o motivo do bloqueio (max 0). */
 export function allowedFor(ctx: PlanCtx): AllowedType[] {
   const short = ctx.durationSec < CUT_MIN_SEC || ctx.blocks.length < CUT_MIN_BLOCKS;
-  const rule = (type: AutoVariationType, ok: boolean, reason: BlockedReason): AllowedType =>
+  const rule = (type: AutoVariationTypeWithFrame, ok: boolean, reason: BlockedReason): AllowedType =>
     ({ type, max: ok ? TYPE_MAX[type] : 0, blockedReason: ok ? null : reason });
+  // 25/10: FRAME até 8, mas nunca mais que os templates liberados (todas diferentes)
+  const frames = allowedFrameIds(ctx).length;
   return [
     rule('CUT', !short, 'short_video'),
-    rule('COLD_OPEN', ctx.durationSec >= COLD_OPEN_MIN_SEC && ctx.blocks.length >= 2, 'short_video'),
-    rule('HOOK_TEXT', true, 'no_speech'),
-    ctx.hasEndCard ? rule('ENDCARD', false, 'has_end_card') : rule('ENDCARD', endcardVariants(ctx).length > 0, 'no_offer'),
-    rule('SPLIT_LP', ctx.pageCaptured || ctx.productPhoto, 'no_page'),
-    rule('STORY', true, 'no_page'),
     rule('REVIEW', hasQuotableProof(ctx), 'no_proof'),
     rule('NATIVE_SEARCH', ctx.hasSpeech, 'no_speech'),
     rule('STATIC', true, 'no_page'),
+    { ...rule('FRAME', frames > 0, 'no_page'), max: Math.min(TYPE_MAX.FRAME, frames) },
   ];
 }
+
+// ───────── molduras: o que pode entrar (§B2, §B5) ─────────
+
+export const FRAME_TEMPLATE_IDS: readonly FrameTemplateId[] = [
+  'question_box', 'gossip_page', 'meme', 'cinema', 'news', 'split_stack', 'split_torn', 'call', 'call_dialog',
+  'ranking', 'post_card', 'direct_offer', 'story', 'read_caption', 'pov_testimonial', 'live', 'gossip_white', 'gossip_pink',
+];
+/** Fase B2 (2ª mídia, §B3): fora do lote até a entrega B2. */
+export const FRAME_TWO_SOURCE_IDS: readonly FrameTemplateId[] = ['split_stack', 'split_torn', 'call_dialog', 'gossip_page', 'gossip_white', 'gossip_pink'];
+/** Usam o rosto recortado do campeão (`faceAtSec`, §B2/§B3). */
+export const FRAME_WITH_FACE: readonly FrameTemplateId[] = ['question_box', 'live', 'gossip_page', 'gossip_white', 'gossip_pink'];
+
+/** `two_sources` = B2 bloqueado (antes de 25/10; não sai mais); `no_face` = campeão sem rosto no faceTrack (§B3.2 caso 3). */
+export type FrameBlockedReason = 'no_price' | 'no_proof' | 'no_data' | 'two_sources' | 'no_face';
+export interface AllowedFrame { template: FrameTemplateId; allowed: boolean; blockedReason: FrameBlockedReason | null }
+
+const RANKING_SOURCES: readonly CopySource[] = ['pains', 'what', 'promise', 'proof'];
+const CALL_STEP_SOURCES: readonly CopySource[] = ['what', 'promise'];
+
+/** Rosto do campeão no faceTrack (o mesmo dado do `faceAtSec`; sem `ctx.frame` = sem informação = sem rosto). */
+export function hasFace(ctx: PlanCtx): boolean {
+  return ctx.frame?.faceAtSec != null;
+}
+
+/** Bloco de prova no teardown (função "proof"). */
+export function hasProofBlock(ctx: PlanCtx): boolean {
+  return ctx.blocks.some((b) => b.fn.trim().toLowerCase() === 'proof');
+}
+
+/** §B2 "permitido quando" (backend). 25/10: as 6 de 2 fontes entram (fora só sem rosto no campeão). */
+export function allowedFrames(ctx: PlanCtx): AllowedFrame[] {
+  const b = ctx.brain;
+  const some = (fs: readonly CopySource[]) => fs.some((f) => has(b[f as keyof Brain]));
+  const ok = (template: FrameTemplateId, cond: boolean, reason: FrameBlockedReason): AllowedFrame =>
+    ({ template, allowed: cond, blockedReason: cond ? null : reason });
+  return FRAME_TEMPLATE_IDS.map((t) => {
+    // 25/10: B2 liberado; a 2ª fonte é resolvida no render (edicao/segunda-fonte.ts). Sem rosto no campeão = fora
+    if (FRAME_TWO_SOURCE_IDS.includes(t)) return ok(t, hasFace(ctx), 'no_face');
+    switch (t) {
+      case 'pov_testimonial': return ok(t, hasProofBlock(ctx) || has(b.proof), 'no_proof');
+      case 'direct_offer': return ok(t, pricesIn(b.offerAndPrice).length > 0, 'no_price');
+      // "a IA decide" (≥ 3 itens/passos possíveis); o backend só exige que exista ao menos uma fonte aceita
+      case 'ranking': return ok(t, some(RANKING_SOURCES), 'no_data');
+      case 'call': return ok(t, some(CALL_STEP_SOURCES), 'no_data');
+      default: return ok(t, true, 'no_data');
+    }
+  });
+}
+
+/** Os ids liberados (vai pro Claude em `allowedFrames`). */
+export function allowedFrameIds(ctx: PlanCtx): FrameTemplateId[] {
+  return allowedFrames(ctx).filter((f) => f.allowed).map((f) => f.template);
+}
+
+// ───────── preço literal (§B5) ─────────
+
+/** Símbolo/código → moeda (comparação do preço com o Brain). "$" sozinho = USD (MXN/ARS etc. usam código). */
+const CURRENCY_OF: Record<string, string> = {
+  'r$': 'BRL', 'us$': 'USD', '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY',
+  brl: 'BRL', usd: 'USD', eur: 'EUR', gbp: 'GBP', mxn: 'MXN', ars: 'ARS', cop: 'COP', clp: 'CLP', reais: 'BRL', real: 'BRL', dolares: 'USD', dólares: 'USD', euros: 'EUR',
+};
+const CUR = String.raw`R\$|US\$|\$|€|£|¥|\b(?:BRL|USD|EUR|GBP|MXN|ARS|COP|CLP)\b`;
+const CUR_AFTER = String.raw`R\$|€|£|\b(?:BRL|USD|EUR|GBP|MXN|ARS|COP|CLP|reais|d[óo]lares|euros)\b`;
+const NUM = String.raw`\d+(?:[.,]\d+)*`;
+const PRICE_RE = new RegExp(String.raw`(?:(${CUR})\s?(${NUM}))|(?:(${NUM})\s?(${CUR_AFTER}))`, 'gi');
+
+/** Preços (número com moeda) de um texto: dígitos (como `numbersIn`) + moeda normalizada. */
+export function pricesIn(s: string | null | undefined): { digits: string; currency: string }[] {
+  const out: { digits: string; currency: string }[] = [];
+  for (const m of (s ?? '').matchAll(PRICE_RE)) {
+    const cur = (m[1] ?? m[4] ?? '').toLowerCase();
+    const num = m[2] ?? m[3] ?? '';
+    out.push({ digits: digitsOf(num), currency: CURRENCY_OF[cur] ?? cur.toUpperCase() });
+  }
+  return out;
+}
+
+const samePrice = (a: { digits: string; currency: string }, b: { digits: string; currency: string }) => a.digits === b.digits && a.currency === b.currency;
 
 /** Regras do lote mandadas ao Claude: `min` = 8, ou menos (até o piso 4) quando os tipos permitidos não fecham 8 (D2). */
 export function rulesFor(allowed: AllowedType[]): { min: number; max: number; minDiversityPct: 40 } {
@@ -167,6 +302,7 @@ export const minDiversity = (n: number) => Math.ceil((n * MIN_DIVERSITY_PCT) / 1
 /** §6.2.4: trocas registradas em insight.swaps (o alerta "no Brain" diz o que trocou). `has_end_card` não é troca. */
 export function swapsFor(allowed: AllowedType[]): AutoInsight['swaps'] {
   return allowed
+    .filter((a): a is AllowedType & { type: AutoVariationType } => a.type !== 'FRAME') // TRANSIÇÃO: AutoInsight.swaps sem FRAME até a fusão
     .filter((a) => a.max === 0 && a.blockedReason && a.blockedReason !== 'has_end_card')
     .map((a) => ({ from: a.type, to: SWAP_TO[a.type], reason: a.blockedReason as SwapReason }));
 }
@@ -194,23 +330,45 @@ export function inventedNumbers(text: string, ctx: PlanCtx): string[] {
   return [...new Set(numbersIn(text))].filter((n) => !hay.has(n));
 }
 
+/** Fontes do "nada inventado" por afirmação: Brain + nome/tipo da oferta + CTA falado + fala do campeão. */
+function claimSources(ctx: PlanCtx): (string | null | undefined)[] {
+  return [...Object.values(ctx.brain), ctx.offerName, ctx.offerKind, ctx.spokenCta, ctx.words.map((w) => w.word).join(' ')];
+}
+
+/** Idioma da tela pro léxico de afirmações (§A3.2): a fala do campeão; sem ela, o idioma do código. */
+export function screenLangOf(ctx: PlanCtx): string {
+  return ctx.screenLanguage || (ctx.lang === 'PT' ? 'pt' : 'en');
+}
+
+/** §A3.2 item 2: afirmações do texto (grátis, garantia, desconto, plataforma, autoridade, nº 1, sem risco) sem fonte. */
+export function inventedClaims(text: string, ctx: PlanCtx): string[] {
+  return inventedClaimsIn(text, claimSources(ctx), screenLangOf(ctx)).map((c) => c.term);
+}
+
 // ───────── validação (§6.3.2) ─────────
 
-export interface Violation { item: number | null; rule: string; detail: string }
+/** `block` (25/10, STATIC V2): o bloco do `copy` que violou ("subheadline", "benefits.1", "cta.sub"…); o reparo apaga o
+ *  opcional (§A3.2). Ausente = a violação é da peça inteira. */
+export interface Violation { item: number | null; rule: string; detail: string; block?: string }
+
+/** Item do plano com FRAME (TRANSIÇÃO §C.0: o AutoItemDraft ainda não tem FRAME). */
+export type PlanItem = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationTypeWithFrame; params: AutoParamsDraftWithFrame };
+const itemsOf = (d: Pick<AutoPlanDraft, 'items'>): PlanItem[] => (d.items ?? []) as unknown as PlanItem[];
 
 /** Texto da violação mandado ao Claude na 2ª chamada. */
 export function violationText(v: Violation, items: AutoItemDraft[]): string {
-  return v.item === null ? `plan: ${v.rule}: ${v.detail}` : `item ${v.item} (${items[v.item]?.type}): ${v.rule}: ${v.detail}`;
+  const where = v.block ? ` [${v.block}]` : '';
+  return v.item === null ? `plan: ${v.rule}: ${v.detail}` : `item ${v.item} (${items[v.item]?.type})${where}: ${v.rule}: ${v.detail}`;
 }
 
 const lenOver = (s: string | null | undefined, max: number) => !!s && s.trim().length > max;
 
-function screenTexts(p: AutoParamsDraft): string[] {
+function screenTexts(p: AutoParamsDraftWithFrame): string[] {
   switch (p.type) {
     case 'HOOK_TEXT': return [p.text];
     case 'ENDCARD': return [p.headline, p.subline ?? '', p.ctaText];
     case 'NATIVE_SEARCH': return [p.query];
-    case 'STATIC': return [p.headline];
+    case 'STATIC': return staticV2Of(p) ? [] : [p.headline]; // V2: por bloco, no staticV2Violations
     default: return [];
   }
 }
@@ -223,7 +381,7 @@ export function mustKeepBlocks(draft: Pick<AutoPlanDraft, 'blocks' | 'kept'>, ct
   return [...new Set([...(hook !== undefined ? [hook] : []), ...kept])].sort((a, b) => a - b);
 }
 
-function itemViolations(it: AutoItemDraft, i: number, draft: AutoPlanDraft, ctx: PlanCtx, allowed: Map<AutoVariationType, AllowedType>): Violation[] {
+function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: PlanCtx, allowed: Map<AutoVariationTypeWithFrame, AllowedType>): Violation[] {
   const out: Violation[] = [];
   const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
   const a = allowed.get(it.type);
@@ -294,10 +452,36 @@ function itemViolations(it: AutoItemDraft, i: number, draft: AutoPlanDraft, ctx:
       if (brand) v('search_has_brand', `the search must not name the brand ("${brand}")`);
       break;
     }
-    case 'STATIC':
-      if (!(p.atSec >= 0 && p.atSec <= ctx.durationSec)) v('static_out_of_range', 'atSec outside the video');
+    case 'STATIC': {
+      // rev. 23/10 §14.3: imagem nova no GPT Image 2. `refAtSec` = frame de referência (null = nenhum); `atSec` legado (TRANSIÇÃO)
+      const ref = p.refAtSec !== undefined ? p.refAtSec : typeof p.atSec === 'number' ? p.atSec : null;
+      if (ref !== null && !(ref >= 0 && ref <= ctx.durationSec)) v('static_out_of_range', 'refAtSec outside the video');
+      const v2 = staticV2Of(p);
+      if (v2) {
+        out.push(...staticV2Violations(v2, i, ctx));
+        break;
+      }
       if (!has(p.headline)) v('text_empty', 'headline is empty');
       if (lenOver(p.headline, LIMITS.staticHeadline)) v('text_too_long', `headline over ${LIMITS.staticHeadline} chars`);
+      const vis = p.visual;
+      if (!vis || !has(vis.object) || !has(vis.scene) || !has(vis.vibe)) {
+        v('static_visual_missing', 'visual needs object, scene and vibe (in English)');
+        break;
+      }
+      if (!STATIC_STYLES.includes(vis.style) || !STATIC_PLACEMENTS.includes(vis.headlinePlacement)) {
+        v('static_visual_missing', `visual.style must be ${STATIC_STYLES.join('|')} and headlinePlacement ${STATIC_PLACEMENTS.join('|')}`);
+      }
+      if (lenOver(vis.object, LIMITS.staticObject) || lenOver(vis.scene, LIMITS.staticScene) || lenOver(vis.vibe, LIMITS.staticVibe)) {
+        v('text_too_long', `visual: object ≤ ${LIMITS.staticObject}, scene ≤ ${LIMITS.staticScene}, vibe ≤ ${LIMITS.staticVibe}`);
+      }
+      const texts = [vis.object, vis.scene, vis.vibe];
+      if (texts.some((t) => QUOTE_RE.test(t))) v('static_visual_has_text', 'no quoted text in visual: the only text on the image is the headline');
+      const brand = brandIn(texts, ctx);
+      if (brand) v('static_visual_has_brand', `visual must not name the brand ("${brand}"): describe it by how it looks`);
+      break;
+    }
+    case 'FRAME':
+      out.push(...frameViolations(p, i, ctx));
       break;
     default:
       break;
@@ -305,13 +489,410 @@ function itemViolations(it: AutoItemDraft, i: number, draft: AutoPlanDraft, ctx:
   return out;
 }
 
+/** Nome da marca (palavra inteira, ≥ 3 letras) num conjunto de textos. */
+function brandIn(texts: (string | null | undefined)[], ctx: PlanCtx): string | null {
+  const words = ` ${normalizeText(texts.filter(has).join(' '))} `;
+  return ctx.brandTerms.map(normalizeText).find((b) => b.length >= 3 && words.includes(` ${b} `)) ?? null;
+}
+
+// ───────── STATIC V2 "anúncio montado" (estatico-montado-e-molduras-v1 §A2, §A3) ─────────
+
+/** Limites do §A2 (caracteres; `*Words` = palavras). */
+export const STATIC_V2_LIMITS = {
+  brandLine: 32, tagline: 32, lead: 45, highlight: 22, headline: 60, subheadline: 90, handwritten: 28, handwrittenWords: 5,
+  benefitTitle: 24, benefitLine: 40, trustText: 24, ctaMain: 18, ctaSub: 22, closing: 50, closingWords: 9, screenTitle: 24,
+  copyTotal: 420, person: 200, setting: 160, light: 80, look: 200, mood: 100,
+} as const;
+const STATIC_ICONS: readonly StaticIcon[] = [
+  'moon', 'sun', 'clock', 'calendar', 'check', 'shield', 'lock', 'heart', 'star', 'lightning', 'home', 'phone', 'chat', 'chart', 'money',
+  'gift', 'person', 'people', 'play', 'leaf', 'target', 'book', 'spark', 'route',
+];
+const STATIC_EMOTIONS: readonly string[] = ['pain', 'relief', 'desire', 'curiosity', 'pride'];
+const PRODUCT_KINDS: readonly string[] = ['phone_screen', 'laptop_screen', 'physical_product', 'none'];
+
+/** Bloco do `copy` (+ `screenTitle` do visual) e a fonte que ele aceita (tabela §A3.1). `generic` = pode vir sem dado. */
+type StaticBlock = 'brandLine' | 'tagline' | 'headline' | 'subheadline' | 'handwritten' | 'benefits' | 'trust' | 'cta.main' | 'cta.sub' | 'closing' | 'screenTitle';
+const STATIC_SOURCES: Record<StaticBlock, { accept: readonly CopySource[] | 'any'; generic: boolean }> = {
+  brandLine: { accept: ['what', 'kind', 'promise'], generic: false },
+  tagline: { accept: ['promise', 'pains', 'transcript'], generic: true },
+  headline: { accept: ['promise', 'pains', 'transcript'], generic: false },
+  subheadline: { accept: ['what', 'promise', 'proof', 'offerAndPrice', 'transcript'], generic: false },
+  handwritten: { accept: 'any', generic: true },
+  benefits: { accept: ['what', 'promise', 'pains', 'proof', 'offerAndPrice'], generic: false },
+  trust: { accept: ['proof', 'offerAndPrice', 'what', 'notes'], generic: false },
+  'cta.main': { accept: ['cta', 'transcript'], generic: true },
+  'cta.sub': { accept: ['offerAndPrice', 'cta'], generic: false },
+  closing: { accept: 'any', generic: true },
+  screenTitle: { accept: ['what', 'name', 'kind'], generic: false },
+};
+/** Blocos que NÃO podem sumir: violação aqui tira a peça (§A3.2: "só tira a peça se a violação for na headline"; o CTA
+ *  sempre existe, então violação nele também tira). */
+const STATIC_REQUIRED_BLOCKS = new Set(['headline', 'cta.main']);
+
+export interface StaticV2 { copy: StaticCopy; visual: StaticVisualV2 }
+
+/** STATIC de plano novo (layout assembled): `copy` + visual V2 (`visualV2` na TRANSIÇÃO; `visual` com `mood` depois da fusão). */
+export function staticV2Of(p: AutoParamsDraftWithFrame | Record<string, unknown> | null | undefined): StaticV2 | null {
+  const q = p as { layout?: unknown; copy?: unknown; visualV2?: unknown; visual?: unknown } | null | undefined;
+  if (!q || !q.copy || typeof q.copy !== 'object') return null;
+  if (q.layout !== undefined && q.layout !== 'assembled') return null;
+  const vis = (q.visualV2 ?? q.visual) as Partial<StaticVisualV2> | undefined;
+  const visual: StaticVisualV2 = vis && typeof vis === 'object' && 'mood' in vis
+    ? { hero: vis.hero ?? null, product: vis.product ?? { kind: 'none', look: null, screenTitle: null, screenTitleSource: null }, mood: vis.mood ?? '' }
+    : { hero: null, product: { kind: 'none', look: null, screenTitle: null, screenTitleSource: null }, mood: '' };
+  return { copy: q.copy as StaticCopy, visual };
+}
+
+/** Todos os textos de tela do `copy` (pra soma ≤ 420 e "nada inventado"), com o bloco de cada um. */
+function staticTexts(c: StaticCopy): { block: string; text: string }[] {
+  const out: { block: string; text: string }[] = [];
+  const add = (block: string, t: string | null | undefined) => { if (has(t)) out.push({ block, text: t!.trim() }); };
+  add('brandLine', c.brandLine);
+  add('tagline', c.tagline);
+  add('headline', c.headline?.lead);
+  add('headline', c.headline?.highlight);
+  add('subheadline', c.subheadline);
+  add('handwritten', c.handwritten);
+  (c.benefits ?? []).forEach((b, k) => { add(`benefits.${k}`, b?.title); add(`benefits.${k}`, b?.line); });
+  (c.trust ?? []).forEach((t, k) => add(`trust.${k}`, t?.text));
+  add('cta.main', c.cta?.main);
+  add('cta.sub', c.cta?.sub);
+  add('closing', c.closing);
+  return out;
+}
+
+export function staticCopyLength(c: StaticCopy): number {
+  return staticTexts(c).reduce((n, t) => n + t.text.length, 0);
+}
+
+/** A fonte existe no Brain? 'transcript' = há fala; 'name' sempre; 'generic' = sem fonte (a tabela decide se pode). */
+function sourceFilled(src: CopySource, ctx: PlanCtx): boolean {
+  if (src === 'generic') return true;
+  if (src === 'transcript') return ctx.words.length > 0;
+  if (src === 'name') return ctx.offerName === undefined ? true : has(ctx.offerName);
+  if (src === 'kind') return has(ctx.offerKind);
+  return has(ctx.brain[src as keyof Brain]);
+}
+
+/** §A3.2 item 3: fonte que não existe no Brain, fora da tabela, ou 'generic' onde não pode. null = ok. */
+function sourceProblem(field: StaticBlock, src: CopySource | null | undefined): string | null {
+  const rule = STATIC_SOURCES[field];
+  if (!src) return `${field} needs a source`;
+  if (src === 'generic') return rule.generic ? null : `${field} cannot be generic: it needs a Brain field or the transcript`;
+  if (rule.accept !== 'any' && !rule.accept.includes(src)) return `${field} must come from ${rule.accept.join('|')}, not ${src}`;
+  return null;
+}
+
+function staticV2Violations({ copy: c, visual: vis }: StaticV2, i: number, ctx: PlanCtx): Violation[] {
+  const out: Violation[] = [];
+  const v = (rule: string, detail: string, block?: string) => out.push({ item: i, rule, detail, ...(block ? { block } : {}) });
+  const L = STATIC_V2_LIMITS;
+  const over = (s: string | null | undefined, max: number) => lenOver(s, max);
+  const wordsOver = (s: string | null | undefined, max: number) => has(s) && words(s!) > max;
+  const source = (field: StaticBlock, src: CopySource | null | undefined, block: string = field) => {
+    const why = sourceProblem(field, src);
+    if (why) return v('unsupported_source', why, block);
+    if (src && !sourceFilled(src, ctx)) v('unsupported_source', `${field} cites ${src}, which is empty in the Brain`, block);
+  };
+
+  // headline (obrigatória; nunca generic)
+  if (!has(c.headline?.lead) || !has(c.headline?.highlight)) v('text_empty', 'headline.lead and headline.highlight are required', 'headline');
+  if (over(c.headline?.lead, L.lead) || over(c.headline?.highlight, L.highlight) || (c.headline?.lead ?? '').trim().length + (c.headline?.highlight ?? '').trim().length > L.headline) {
+    v('text_too_long', `headline: lead ≤ ${L.lead}, highlight ≤ ${L.highlight}, together ≤ ${L.headline}`, 'headline');
+  }
+  const hs = sourceProblem('headline', c.headlineSource);
+  if (hs) v('static_headline_unsupported', hs, 'headline');
+  else if (!sourceFilled(c.headlineSource, ctx)) v('static_headline_unsupported', `headline cites ${c.headlineSource}, which is empty in the Brain`, 'headline');
+
+  // blocos opcionais com fonte
+  if (has(c.brandLine)) {
+    if (over(c.brandLine, L.brandLine)) v('text_too_long', `brandLine ≤ ${L.brandLine}`, 'brandLine');
+    source('brandLine', c.brandLineSource);
+  }
+  if (over(c.tagline, L.tagline)) v('text_too_long', `tagline ≤ ${L.tagline}`, 'tagline');
+  if (has(c.subheadline)) {
+    if (over(c.subheadline, L.subheadline)) v('text_too_long', `subheadline ≤ ${L.subheadline}`, 'subheadline');
+    source('subheadline', c.subheadlineSource);
+  }
+  if (over(c.handwritten, L.handwritten) || wordsOver(c.handwritten, L.handwrittenWords)) v('text_too_long', `handwritten ≤ ${L.handwritten} chars and ${L.handwrittenWords} words`, 'handwritten');
+  if (over(c.closing, L.closing) || wordsOver(c.closing, L.closingWords)) v('text_too_long', `closing ≤ ${L.closing} chars and ${L.closingWords} words`, 'closing');
+
+  // cards e faixa de confiança: 0 ou 3-5 / 0 ou 3, cada item com fonte do Brain e sem a marca
+  const benefits = Array.isArray(c.benefits) ? c.benefits : [];
+  if (benefits.length && (benefits.length < 3 || benefits.length > 5)) v('static_count', `benefits must be 0 or 3-5, got ${benefits.length}`, 'benefits');
+  benefits.forEach((b, k) => {
+    const block = `benefits.${k}`;
+    if (!has(b?.title) || !has(b?.line)) v('text_empty', 'each benefit needs title and line', block);
+    if (over(b?.title, L.benefitTitle) || over(b?.line, L.benefitLine)) v('text_too_long', `benefit: title ≤ ${L.benefitTitle}, line ≤ ${L.benefitLine}`, block);
+    if (!STATIC_ICONS.includes(b?.icon)) v('static_icon_invalid', `icon must be one of ${STATIC_ICONS.join('|')}`, block);
+    source('benefits', b?.source, block);
+    const brand = brandIn([b?.title, b?.line], ctx);
+    if (brand) v('static_copy_has_brand', `the brand ("${brand}") only goes in the brand block`, block);
+  });
+  const trust = Array.isArray(c.trust) ? c.trust : [];
+  if (trust.length && trust.length !== 3) v('static_count', `trust must be 0 or 3, got ${trust.length}`, 'trust');
+  trust.forEach((t, k) => {
+    const block = `trust.${k}`;
+    if (!has(t?.text)) v('text_empty', 'each trust item needs text', block);
+    if (over(t?.text, L.trustText)) v('text_too_long', `trust text ≤ ${L.trustText}`, block);
+    if (!STATIC_ICONS.includes(t?.icon)) v('static_icon_invalid', `icon must be one of ${STATIC_ICONS.join('|')}`, block);
+    source('trust', t?.source, block);
+    const brand = brandIn([t?.text], ctx);
+    if (brand) v('static_copy_has_brand', `the brand ("${brand}") only goes in the brand block`, block);
+  });
+
+  // CTA (main sempre existe; sub só com dado)
+  if (!has(c.cta?.main)) v('text_empty', 'cta.main is required', 'cta.main');
+  if (over(c.cta?.main, L.ctaMain)) v('text_too_long', `cta.main ≤ ${L.ctaMain}`, 'cta.main');
+  if (has(c.cta?.sub)) {
+    if (over(c.cta?.sub, L.ctaSub)) v('text_too_long', `cta.sub ≤ ${L.ctaSub}`, 'cta.sub');
+    source('cta.sub', c.cta?.subSource, 'cta.sub');
+  }
+
+  // "nada inventado" (§A3.2 itens 1-2) em todo texto do copy + screenTitle
+  const texts = [...staticTexts(c), ...(has(vis.product?.screenTitle) ? [{ block: 'screenTitle', text: vis.product.screenTitle!.trim() }] : [])];
+  for (const t of texts) {
+    const n = inventedNumbers(t.text, ctx);
+    if (n.length) v('invented_number', `"${t.text}" has ${n.join(', ')}, not in the Brain nor the transcript`, t.block);
+    const cl = inventedClaims(t.text, ctx);
+    if (cl.length) v('invented_claim', `"${t.text}" claims "${cl.join('", "')}" with nothing in the Brain or the transcript to back it`, t.block);
+  }
+  const total = staticCopyLength(c);
+  if (total > L.copyTotal) v('static_copy_too_long', `all copy texts sum ${total} chars, max ${L.copyTotal}`, '*total');
+
+  // visual V2 (inglês, sem texto entre aspas, sem marca)
+  if (!has(vis.mood)) v('static_visual_missing', 'visual.mood is required (in English)');
+  if (over(vis.mood, L.mood)) v('text_too_long', `visual.mood ≤ ${L.mood}`);
+  if (vis.hero) {
+    if (!has(vis.hero.person) || !has(vis.hero.setting) || !has(vis.hero.light) || !STATIC_EMOTIONS.includes(vis.hero.emotion)) {
+      v('static_visual_missing', `hero needs person, setting, light and emotion ${STATIC_EMOTIONS.join('|')} (or hero: null)`);
+    }
+    if (over(vis.hero.person, L.person) || over(vis.hero.setting, L.setting) || over(vis.hero.light, L.light)) {
+      v('text_too_long', `hero: person ≤ ${L.person}, setting ≤ ${L.setting}, light ≤ ${L.light}`);
+    }
+  }
+  if (!vis.product || !PRODUCT_KINDS.includes(vis.product.kind)) v('static_visual_missing', `product.kind must be ${PRODUCT_KINDS.join('|')}`);
+  if (over(vis.product?.look, L.look)) v('text_too_long', `product.look ≤ ${L.look}`);
+  if (has(vis.product?.screenTitle)) {
+    if (over(vis.product.screenTitle, L.screenTitle)) v('text_too_long', `screenTitle ≤ ${L.screenTitle}`, 'screenTitle');
+    source('screenTitle', vis.product.screenTitleSource, 'screenTitle');
+  }
+  const visTexts = [vis.hero?.person, vis.hero?.setting, vis.hero?.light, vis.product?.look, vis.mood];
+  if (visTexts.some((t) => !!t && QUOTE_RE.test(t))) v('static_visual_has_text', 'no quoted text in visual: the texts on the image are only the copy blocks');
+  const brand = brandIn(visTexts, ctx);
+  if (brand) v('static_visual_has_brand', `visual must not name the brand ("${brand}"): describe it by how it looks`);
+  return out;
+}
+
+/** Ordem em que o reparo corta blocos opcionais quando a soma passa de 420 (do menos pro mais importante). */
+const TRIM_ORDER = ['closing', 'handwritten', 'tagline', 'brandLine', 'subheadline', 'trust', 'benefits', 'cta.sub'] as const;
+
+/** Apaga um bloco opcional do copy (null/[]); `benefits.N`/`trust.N` tiram o item (se o que sobra não fecha, o bloco todo). */
+function dropBlock(c: StaticCopy, vis: StaticVisualV2, block: string): { copy: StaticCopy; visual: StaticVisualV2 } {
+  const copy: StaticCopy = { ...c, headline: { ...c.headline }, cta: { ...c.cta }, benefits: [...(c.benefits ?? [])], trust: [...(c.trust ?? [])] };
+  let visual = vis;
+  const [head, idx] = block.split('.');
+  switch (head) {
+    case 'brandLine': copy.brandLine = null; copy.brandLineSource = null; break;
+    case 'tagline': copy.tagline = null; break;
+    case 'subheadline': copy.subheadline = null; copy.subheadlineSource = null; break;
+    case 'handwritten': copy.handwritten = null; break;
+    case 'closing': copy.closing = null; break;
+    case 'cta': if (idx === 'sub') { copy.cta.sub = null; copy.cta.subSource = null; } break;
+    case 'screenTitle': visual = { ...vis, product: { ...vis.product, screenTitle: null, screenTitleSource: null } }; break;
+    case 'benefits':
+      if (idx === undefined) copy.benefits = [];
+      else {
+        copy.benefits = copy.benefits.filter((_, k) => k !== Number(idx));
+        if (copy.benefits.length < 3) copy.benefits = [];
+      }
+      break;
+    case 'trust': copy.trust = []; break; // 0 ou 3: sem um item, a faixa inteira some
+  }
+  return { copy, visual };
+}
+
+/**
+ * §A3.2 (reparo determinístico do STATIC V2): apaga os blocos OPCIONAIS que violaram (vira null/[]) em vez de tirar a peça;
+ * soma > 420 corta blocos opcionais na ordem do TRIM_ORDER. Violação na headline, no CTA principal, no visual ou da peça
+ * inteira fica (o reparo do plano tira a peça). Puro: devolve itens novos, mesma ordem.
+ */
+export function repairStaticBlocks(items: PlanItem[], violations: Violation[]): PlanItem[] {
+  return items.map((it, i) => {
+    if (it.type !== 'STATIC' || it.params?.type !== 'STATIC') return it;
+    const v2 = staticV2Of(it.params);
+    if (!v2) return it;
+    const mine = violations.filter((v) => v.item === i);
+    if (!mine.length || mine.some((v) => !v.block || STATIC_REQUIRED_BLOCKS.has(v.block))) return it;
+    let { copy, visual } = v2;
+    // índices de item em ordem decrescente: tirar o benefits.3 antes do benefits.1 não desloca os outros
+    const blocks = [...new Set(mine.map((v) => v.block!).filter((b) => b !== '*total'))].sort((a, b) => b.localeCompare(a, 'en', { numeric: true }));
+    for (const b of blocks) ({ copy, visual } = dropBlock(copy, visual, b));
+    for (const b of TRIM_ORDER) {
+      if (staticCopyLength(copy) <= STATIC_V2_LIMITS.copyTotal) break;
+      ({ copy, visual } = dropBlock(copy, visual, b));
+    }
+    const params = { ...it.params, copy, ...('visualV2' in it.params && it.params.visualV2 ? { visualV2: visual } : { visual }) } as AutoParamsDraftWithFrame;
+    return { ...it, params };
+  });
+}
+
+// ───────── FRAME (molduras, §B2/§B5) ─────────
+
+/** Limites do §B2 por template (caracteres visíveis: os *asteriscos* do destaque não contam). `list` = [mín, máx] itens. */
+interface FrameField { path: string; max: number; nullable?: boolean; list?: [number, number] }
+export const FRAME_FIELDS: Record<FrameTemplateId, FrameField[]> = {
+  question_box: [{ path: 'question', max: 70 }],
+  meme: [{ path: 'pov', max: 70 }, { path: 'cta', max: 28 }],
+  cinema: [{ path: 'question', max: 60 }, { path: 'subtitle', max: 80 }],
+  news: [{ path: 'topic', max: 18 }, { path: 'headline.lead', max: 40 }, { path: 'headline.highlight', max: 30 }, { path: 'dek', max: 80 }, { path: 'cta', max: 28 }],
+  read_caption: [{ path: 'headline', max: 70 }, { path: 'primaryText', max: 600 }],
+  pov_testimonial: [{ path: 'pov', max: 80 }, { path: 'cta', max: 28 }],
+  direct_offer: [{ path: 'promise', max: 40 }, { path: 'price.from', max: 24, nullable: true }, { path: 'price.to', max: 24 }, { path: 'cta', max: 28 }],
+  live: [],
+  ranking: [{ path: 'title', max: 24 }, { path: 'items', max: 28, list: [3, 5] }],
+  post_card: [{ path: 'copy', max: 140 }],
+  story: [{ path: 'question', max: 70 }, { path: 'headline', max: 40 }, { path: 'support', max: 80 }, { path: 'copy', max: 320 }],
+  call: [{ path: 'title', max: 40 }, { path: 'slideTitle', max: 50 }, { path: 'slideSteps', max: 32, list: [3, 3] }],
+  // B2 (§B3): forma já validada pra quando entrar
+  split_stack: [{ path: 'headline', max: 50 }],
+  split_torn: [{ path: 'headline', max: 50 }],
+  gossip_page: [{ path: 'headline', max: 80 }, { path: 'pageName', max: 24 }],
+  gossip_white: [{ path: 'headline', max: 80 }],
+  gossip_pink: [{ path: 'headline', max: 80 }],
+  call_dialog: [{ path: 'title', max: 40 }, { path: 'names', max: 14, list: [2, 2] }],
+};
+/** Textos cuja fonte a validação COBRA (§B2: "validação cobra a fonte"), com as fontes aceitas. */
+const FRAME_REQUIRED_SOURCES: Partial<Record<FrameTemplateId, { list: string; accept: readonly CopySource[] }>> = {
+  ranking: { list: 'items', accept: RANKING_SOURCES },
+  call: { list: 'slideSteps', accept: CALL_STEP_SOURCES },
+};
+
+const getPath = (o: unknown, path: string): unknown => path.split('.').reduce<unknown>((x, k) => (x && typeof x === 'object' ? (x as Record<string, unknown>)[k] : undefined), o);
+/** Comprimento visível (sem os asteriscos do destaque). */
+export const visibleLength = (s: string) => s.replace(/\*/g, '').trim().length;
+/** Destaque: no máximo 1 trecho `*assim*` por texto (0 ou 2 asteriscos, trecho não vazio). */
+export const highlightOk = (s: string) => {
+  const n = (s.match(/\*/g) ?? []).length;
+  return n === 0 || (n === 2 && /\*[^*]*\S[^*]*\*/.test(s));
+};
+
+/** Todos os textos de tela da moldura com o caminho ("headline.lead", "items.0", "price.to"). */
+export function frameTexts(template: FrameTemplateId, texts: unknown): { path: string; text: string }[] {
+  const out: { path: string; text: string }[] = [];
+  for (const f of FRAME_FIELDS[template] ?? []) {
+    const val = getPath(texts, f.path);
+    if (f.list) (Array.isArray(val) ? val : []).forEach((x, k) => { if (typeof x === 'string' && x.trim()) out.push({ path: `${f.path}.${k}`, text: x }); });
+    else if (typeof val === 'string' && val.trim()) out.push({ path: f.path, text: val });
+  }
+  return out;
+}
+
+function frameViolations(p: AutoFrameDraft, i: number, ctx: PlanCtx): Violation[] {
+  const out: Violation[] = [];
+  const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
+  const allowed = allowedFrames(ctx).find((f) => f.template === p.template);
+  if (!allowed) {
+    v('frame_unknown', `template must be one of ${FRAME_TEMPLATE_IDS.join('|')}`);
+    return out;
+  }
+  if (!allowed.allowed) {
+    v('frame_not_allowed', `the ${p.template} frame is not allowed here (${allowed.blockedReason})`);
+    return out;
+  }
+  return frameContentViolations(p, i, ctx);
+}
+
+/**
+ * Forma, limites, "nada inventado", fontes e preço literal dos textos de UMA moldura, sem o "permitido quando" (o
+ * `allowedFrames`). Usado pelo validatePlan (depois do allowedFrames) e pelo script de teste das 18 molduras
+ * (`dev/molduras-todas.ts`), que valida as 6 de 2 fontes antes de o B2 liberá-las no produto.
+ */
+export function frameContentViolations(p: AutoFrameDraft, i: number, ctx: PlanCtx): Violation[] {
+  const out: Violation[] = [];
+  const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
+  if (!FRAME_FIELDS[p.template]) {
+    v('frame_unknown', `template must be one of ${FRAME_TEMPLATE_IDS.join('|')}`);
+    return out;
+  }
+  const texts = (p.texts ?? {}) as unknown;
+  const sources = (p.sources ?? {}) as Record<string, CopySource>;
+  // forma e limites
+  for (const f of FRAME_FIELDS[p.template]) {
+    const val = getPath(texts, f.path);
+    if (f.list) {
+      const list = Array.isArray(val) ? val : [];
+      if (list.length < f.list[0] || list.length > f.list[1]) v('frame_count', `${f.path} needs ${f.list[0] === f.list[1] ? f.list[0] : `${f.list[0]}-${f.list[1]}`} entries, got ${list.length}`);
+      list.forEach((x, k) => {
+        if (typeof x !== 'string' || !x.trim()) v('text_empty', `${f.path}.${k} is empty`);
+        else if (visibleLength(x) > f.max) v('text_too_long', `${f.path}.${k} over ${f.max} chars`);
+      });
+      continue;
+    }
+    if (val === null && f.nullable) continue;
+    if (typeof val !== 'string' || !val.trim()) {
+      v('text_empty', `${f.path} is required`);
+      continue;
+    }
+    if (visibleLength(val) > f.max) v('text_too_long', `${f.path} over ${f.max} chars`);
+  }
+  const all = frameTexts(p.template, texts);
+  for (const t of all) {
+    if (!highlightOk(t.text)) v('frame_highlight_invalid', `${t.path}: at most one *highlight* per text`);
+    const plain = t.text.replace(/\*/g, '');
+    const n = inventedNumbers(plain, ctx);
+    if (n.length) v('invented_number', `"${plain}" has ${n.join(', ')}, not in the Brain nor the transcript`);
+    const cl = inventedClaims(plain, ctx);
+    if (cl.length) v('invented_claim', `"${plain}" claims "${cl.join('", "')}" with nothing in the Brain or the transcript to back it`);
+  }
+  // fontes: toda fonte citada tem que existir no Brain; ranking/call cobram a fonte de cada item
+  const flagged = new Set<string>();
+  for (const [path, src] of Object.entries(sources)) {
+    if (src && src !== 'generic' && !sourceFilled(src, ctx)) {
+      v('unsupported_source', `${path} cites ${src}, which is empty in the Brain`);
+      flagged.add(path);
+    }
+  }
+  const req = FRAME_REQUIRED_SOURCES[p.template];
+  if (req) {
+    const list = getPath(texts, req.list);
+    (Array.isArray(list) ? list : []).forEach((_, k) => {
+      const path = `${req.list}.${k}`;
+      const src = sources[path];
+      if (!flagged.has(path) && (!src || !req.accept.includes(src))) v('unsupported_source', `${path} needs a source from ${req.accept.join('|')}`);
+    });
+  }
+  // §B5: preço literal do offerAndPrice (nunca da fala nem da página)
+  if (p.template === 'direct_offer') {
+    const brainPrices = pricesIn(ctx.brain.offerAndPrice);
+    const price = (p.texts as FrameTexts['direct_offer']).price ?? { from: null, to: '' };
+    const to = pricesIn(price.to);
+    if (!to.length || !to.some((x) => brainPrices.some((y) => samePrice(x, y)))) {
+      v('price_not_in_brain', `price.to ("${price.to}") must be written exactly as a price in Brain › Offer and price`);
+    }
+    if (price.from !== null && price.from !== undefined) {
+      const distinct = new Set(brainPrices.map((x) => `${x.currency}:${x.digits}`));
+      const from = pricesIn(price.from);
+      if (distinct.size < 2) v('price_from_invalid', 'price.from only when Brain › Offer and price has two prices; otherwise null');
+      else if (!from.length || !from.some((x) => brainPrices.some((y) => samePrice(x, y))) || from.some((x) => to.some((y) => samePrice(x, y)))) {
+        v('price_from_invalid', `price.from ("${price.from}") must be the other price written in Brain › Offer and price`);
+      }
+    }
+  }
+  return out;
+}
+
 /** Repetição do mesmo tipo tem que mudar o conteúdo (D2): mesmo alvo de CUT, mesmo texto, mesma busca, mesmo frame. */
-function duplicateKey(p: AutoParamsDraft): string | null {
+function duplicateKey(p: AutoParamsDraftWithFrame): string | null {
   switch (p.type) {
     case 'CUT': return `CUT:${p.targetSec}`;
     case 'HOOK_TEXT': return `HOOK_TEXT:${normalizeText(p.text ?? '')}`;
     case 'NATIVE_SEARCH': return `NATIVE_SEARCH:${normalizeText(p.query ?? '')}`;
-    case 'STATIC': return `STATIC:${Math.round(p.atSec ?? 0)}`;
+    case 'STATIC': {
+      const v2 = staticV2Of(p); // §A3.2 item 6: conceito = headline (lead + highlight)
+      return `STATIC:${normalizeText(v2 ? `${v2.copy.headline?.lead ?? ''} ${v2.copy.headline?.highlight ?? ''}` : p.headline ?? '')}`;
+    }
+    case 'FRAME': return `FRAME:${p.template}`; // D10: templates diferentes
     default: return null;
   }
 }
@@ -319,9 +900,9 @@ function duplicateKey(p: AutoParamsDraft): string | null {
 /** §6.1 + §6.2 sobre o rascunho. Violação com `item` = a peça sai no reparo; `item: null` = do plano. */
 export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedType[]): Violation[] {
   const byType = new Map(allowed.map((a) => [a.type, a]));
-  const items = draft.items ?? [];
+  const items = itemsOf(draft);
   const out: Violation[] = [];
-  const count = new Map<AutoVariationType, number>();
+  const count = new Map<AutoVariationTypeWithFrame, number>();
   const seen = new Set<string>();
   items.forEach((it, i) => {
     const own = itemViolations(it, i, draft, ctx, byType);
@@ -333,7 +914,7 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
     if (n > max) out.push({ item: i, rule: 'over_max', detail: `at most ${max} ${it.type} per batch` });
     const key = duplicateKey(it.params);
     if (key) {
-      if (seen.has(key)) out.push({ item: i, rule: 'duplicate', detail: 'a repeated type must change its content (other text, frame or length)' });
+      if (seen.has(key)) out.push({ item: i, rule: 'duplicate', detail: it.type === 'FRAME' ? 'two frames in a batch must use different templates' : 'a repeated type must change its content (other text, frame or length)' });
       seen.add(key);
     }
   });
@@ -352,18 +933,22 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
 
 // ───────── reparo determinístico (§6.3.2) ─────────
 
-export interface RepairResult { draft: AutoPlanDraft; removed: { index: number; type: AutoVariationType; rules: string[] }[]; ok: boolean; violations: Violation[] }
+export interface RepairResult { draft: AutoPlanDraft; removed: { index: number; type: AutoVariationTypeWithFrame; rules: string[] }[]; ok: boolean; violations: Violation[] }
 
 /**
- * Tira as peças que violam; acima de 12, tira ITERATION do fim; diversidade < 40 %: tira ITERATION da última pra primeira.
- * `why`/`kept` incompletos são completados a partir do vídeo (não derrubam o lote). ok = piso (4) e diversidade fecham.
+ * STATIC V2 primeiro apaga os blocos opcionais que violaram (§A3.2); depois tira as peças que ainda violam; acima de 12,
+ * tira ITERATION do fim; diversidade < 40 %: tira ITERATION da última pra primeira. `why`/`kept` incompletos são
+ * completados a partir do vídeo (não derrubam o lote). ok = piso (4) e diversidade fecham. `violations` = as que sobraram
+ * depois do reparo de blocos (as que tiraram peças).
  */
 export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedType[], fallback: { why: AutoPlanDraft['why']; kept: AutoPlanDraft['kept'] }): RepairResult {
-  const violations = validatePlan(draft, ctx, allowed);
+  const patched: AutoPlanDraft = { ...draft, items: repairStaticBlocks(itemsOf(draft), validatePlan(draft, ctx, allowed)) as unknown as AutoItemDraft[] };
+  const violations = validatePlan(patched, ctx, allowed);
   const bad = new Map<number, string[]>();
   for (const v of violations) if (v.item !== null) bad.set(v.item, [...(bad.get(v.item) ?? []), v.rule]);
   const removed: RepairResult['removed'] = [];
-  let items = (draft.items ?? []).filter((it, i) => {
+  const all = itemsOf(patched);
+  let items = all.filter((it, i) => {
     if (!bad.has(i)) return true;
     removed.push({ index: i, type: it.type, rules: bad.get(i)! });
     return false;
@@ -371,7 +956,7 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
   const dropLastIteration = (): boolean => {
     for (let k = items.length - 1; k >= 0; k--) {
       if (AXIS_OF[items[k].type] === 'ITERATION') {
-        removed.push({ index: (draft.items ?? []).indexOf(items[k]), type: items[k].type, rules: ['repair'] });
+        removed.push({ index: all.indexOf(items[k]), type: items[k].type, rules: ['repair'] });
         items = items.filter((_, j) => j !== k);
         return true;
       }
@@ -386,7 +971,7 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
   const kept = own.length >= 2
     ? own.slice(0, 4)
     : [...own, ...fallback.kept.filter((f) => !own.some((k) => normalizeText(k.label) === normalizeText(f.label)))].slice(0, 4);
-  const repaired: AutoPlanDraft = { ...draft, why, kept, items };
+  const repaired: AutoPlanDraft = { ...draft, why, kept, items: items as unknown as AutoItemDraft[] };
   const ok = items.length >= BATCH_FLOOR && divOf() >= minDiversity(items.length);
   return { draft: repaired, removed, ok, violations };
 }
@@ -416,10 +1001,14 @@ export type FinalParams =
   | { type: 'STORY' }
   | { type: 'REVIEW'; quote: string; author: string | null; stars: 1 | 2 | 3 | 4 | 5 | null }
   | { type: 'NATIVE_SEARCH'; query: string }
-  | { type: 'STATIC'; atSec: number; headline: string };
+  | { type: 'STATIC'; headline: string; refAtSec: number | null; visual: StaticVisualDraft } // rev. 23/10 §14.3 (sem atSec)
+  /** 25/10 §A2/§A5: plano novo. `headline` = lead + highlight (rótulo/duplicado/legado); `visual` = V2 */
+  | { type: 'STATIC'; layout: 'assembled'; headline: string; refAtSec: number | null; copy: StaticCopy; visual: StaticVisualV2 }
+  /** 25/10 §B2: = FrameSpec (lido pelo buildFrameInput do video) + as fontes de cada texto (rastreio) */
+  | ({ type: 'FRAME'; sources: Record<string, CopySource> } & FrameSpec);
 
 export interface FinalItem {
-  index: number; type: AutoVariationType; code: string; axis: VariationAxis;
+  index: number; type: AutoVariationTypeWithFrame; code: string; axis: VariationAxis;
   change: string; rationale: string; whyKey: 'hook' | 'proof' | 'cta'; params: FinalParams;
 }
 
@@ -441,10 +1030,72 @@ function mergeSpans(spans: Span[]): Span[] {
   return out;
 }
 
+const t = (s: string | null | undefined) => (s ?? '').trim();
+const tn = (s: string | null | undefined) => (has(s) ? s!.trim() : null);
+
+/** Copy salvo (§A2): textos aparados, vazios viram null, fonte de bloco apagado vira null. */
+function trimCopy(c: StaticCopy): StaticCopy {
+  const brandLine = tn(c.brandLine);
+  const subheadline = tn(c.subheadline);
+  const sub = tn(c.cta?.sub);
+  return {
+    brandLine, brandLineSource: brandLine ? c.brandLineSource ?? null : null,
+    tagline: tn(c.tagline),
+    headline: { lead: t(c.headline?.lead), highlight: t(c.headline?.highlight) }, headlineSource: c.headlineSource,
+    subheadline, subheadlineSource: subheadline ? c.subheadlineSource ?? null : null,
+    handwritten: tn(c.handwritten),
+    benefits: (c.benefits ?? []).map((b) => ({ icon: b.icon, title: t(b.title), line: t(b.line), source: b.source })),
+    trust: (c.trust ?? []).map((x) => ({ icon: x.icon, text: t(x.text), source: x.source })),
+    cta: { main: t(c.cta?.main), sub, subSource: sub ? c.cta?.subSource ?? null : null },
+    closing: tn(c.closing),
+  };
+}
+
+function trimVisual(v: StaticVisualV2): StaticVisualV2 {
+  const screenTitle = tn(v.product?.screenTitle);
+  return {
+    hero: v.hero ? { person: t(v.hero.person), setting: t(v.hero.setting), emotion: v.hero.emotion, light: t(v.hero.light) } : null,
+    product: { kind: v.product?.kind ?? 'none', look: tn(v.product?.look), screenTitle, screenTitleSource: screenTitle ? v.product?.screenTitleSource ?? null : null },
+    mood: t(v.mood),
+  };
+}
+
+/** Textos da moldura aparados (strings no caminho; listas item a item; `price.from` vazio = null). */
+function trimFrameTexts(template: FrameTemplateId, texts: unknown): FrameTexts[FrameTemplateId] {
+  const trimDeep = (x: unknown): unknown =>
+    typeof x === 'string' ? x.trim() : Array.isArray(x) ? x.map(trimDeep) : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, trimDeep(v)])) : x;
+  const out = (trimDeep(texts ?? {}) ?? {}) as Record<string, unknown>;
+  if (template === 'direct_offer') {
+    const price = (out.price ?? {}) as { from?: string | null; to?: string };
+    out.price = { from: has(price.from) ? price.from : null, to: price.to ?? '' };
+  }
+  return out as unknown as FrameTexts[FrameTemplateId];
+}
+
+/** Marca da moldura sem o ctx.frame (testes/legado): nome = 2º brandTerm (oferta), handle = 1º (workspace). */
+function fallbackBrand(ctx: PlanCtx): FrameBrand {
+  const name = ctx.offerName || ctx.brandTerms[1] || ctx.brandTerms[0] || 'Brand';
+  const ws = ctx.brandTerms[0] || name;
+  const handle = '@' + (ws.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9._]+/g, '').slice(0, 24) || 'brand');
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || 'B';
+  return { name, handle, initials, color: DEFAULT_ACCENT };
+}
+
+/** §B2: FrameSpec da peça (o que o buildFrameInput do video lê). Marca e rosto do backend; B1 = sem 2ª fonte. */
+export function frameSpecOf(p: AutoFrameDraft, ctx: PlanCtx): Extract<FinalParams, { type: 'FRAME' }> {
+  const texts = trimFrameTexts(p.template, p.texts);
+  const face = FRAME_WITH_FACE.includes(p.template) ? ctx.frame?.faceAtSec ?? null : null;
+  return {
+    type: 'FRAME', template: p.template, texts, sources: { ...(p.sources ?? {}) }, screenLanguage: screenLangOf(ctx),
+    brand: ctx.frame?.brand ?? fallbackBrand(ctx), faceAtSec: face, second: null,
+    suggestedPrimaryText: p.template === 'read_caption' ? (texts as FrameTexts['read_caption']).primaryText ?? null : null,
+  };
+}
+
 export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<MediaRulesPort, 'snapSpans'>): FinalItem[] {
-  const nth = new Map<AutoVariationType, number>();
+  const nth = new Map<AutoVariationTypeWithFrame, number>();
   const hookEnd = hookTextEndSec(draft, ctx);
-  return draft.items.map((it, index) => {
+  return itemsOf(draft).map((it, index) => {
     const n = (nth.get(it.type) ?? 0) + 1;
     nth.set(it.type, n);
     const p = it.params;
@@ -481,8 +1132,25 @@ export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<Med
       case 'NATIVE_SEARCH':
         params = { type: 'NATIVE_SEARCH', query: p.query.trim() };
         break;
-      case 'STATIC':
-        params = { type: 'STATIC', atSec: Math.round(p.atSec * 1000) / 1000, headline: p.headline.trim() };
+      case 'STATIC': {
+        const ref = p.refAtSec !== undefined ? p.refAtSec : typeof p.atSec === 'number' ? p.atSec : null;
+        const refAtSec = ref === null ? null : Math.round(ref * 1000) / 1000;
+        const v2 = staticV2Of(p);
+        if (v2) {
+          const copy = trimCopy(v2.copy);
+          params = { type: 'STATIC', layout: 'assembled', headline: `${copy.headline.lead} ${copy.headline.highlight}`.trim(), refAtSec, copy, visual: trimVisual(v2.visual) };
+          break;
+        }
+        const vis = p.visual ?? { object: '', scene: '', vibe: '', style: 'ad_graphic' as const, headlinePlacement: 'center' as const }; // validatePlan garante o visual
+        params = {
+          type: 'STATIC', headline: p.headline.trim(), refAtSec,
+          visual: { object: vis.object.trim(), scene: vis.scene.trim(), vibe: vis.vibe.trim(), style: vis.style, headlinePlacement: vis.headlinePlacement },
+        };
+        break;
+      }
+      case 'FRAME':
+        variant = p.template;
+        params = frameSpecOf(p, ctx);
         break;
     }
     return {

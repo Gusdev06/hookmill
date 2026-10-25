@@ -146,11 +146,13 @@ export interface UploadOptions {
 type Ok = { ok: true }
 type Signal = { signal?: AbortSignal }
 type PageQuery = { limit?: number; cursor?: string | null }
+const LEVEL_PATH: Record<T.MetaLevel, string> = { campaign: "campaigns", adset: "adsets", ad: "ads" }
 
 export const api = {
   auth: {
     me: () => data(get<T.MeResponse>("/auth/me")),
-    updateMe: (b: { name?: string; uiLocale?: T.UiLocale; password?: { current: string; next: string } }) =>
+    /** onboarding-v2 §3.1: `accountMode` (AGENCY | OWN) is answered once on /start and editable in Settings. */
+    updateMe: (b: { name?: string; uiLocale?: T.UiLocale; password?: { current: string; next: string }; accountMode?: T.AccountMode }) =>
       data(patch<T.AuthUser>("/auth/me", b)),
     switchWorkspace: (workspaceId: string) => data(post<T.AuthSession>("/auth/switch-workspace", { workspaceId })),
     invite: (token: string) => data(get<T.InviteInfo>(`/auth/invites/${seg(token)}`, { auth: false })),
@@ -173,10 +175,10 @@ export const api = {
     list: (q: PageQuery = {}) => get<T.Offer[], T.PageMeta>("/offers", { query: q }),
     get: (id: string) => data(get<T.Offer>(`/offers/${seg(id)}`)),
     extract: (b: { url: string } | { pageText: string; url?: string }) => data(post<T.Job>("/offers/extract", b)),
-    create: (b: { name: string; language: string; sourceUrl?: string | null; fieldSources?: T.Offer["fieldSources"] } & Partial<T.OfferBrief>) =>
-      data(post<T.Offer>("/offers", b)),
-    update: (id: string, b: Partial<Pick<T.Offer, "name" | "language" | "sourceUrl"> & T.OfferBrief>) =>
-      data(patch<T.Offer>(`/offers/${seg(id)}`, b)),
+    /** `readMeta` (briefing-leitura-v2 D5): a new offer carries `output.readMeta` of the OFFER_EXTRACT job. */
+    create: (b: T.CreateOfferBody) => data(post<T.Offer>("/offers", b)),
+    /** D6: the apply of a reread sends `readMeta` with the fields. */
+    update: (id: string, b: T.UpdateOfferBody) => data(patch<T.Offer>(`/offers/${seg(id)}`, b)),
     reread: (id: string, b: { pageText?: string } = {}) => data(post<T.Job>(`/offers/${seg(id)}/reread`, b)),
     archive: (id: string) => data(del<Ok>(`/offers/${seg(id)}`)),
   },
@@ -321,9 +323,13 @@ export const api = {
     get: (id: string, o: Signal = {}) => data(get<T.IterateBatch>(`/iterate/${seg(id)}`, o)),
     /** Only from ANALYSIS_FAILED with action try_again. */
     retry: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/retry`)),
-    /** 409 PLAN_CHANGED `{ pieces }` when the plan differs from the number on the button. */
+    /** 409 PLAN_CHANGED `{ pieces }` when the plan differs from the number on the button. Rev. 23/10 (§14.4): `expectedCostUsd` =
+     *  `cost.generateEstimateUsd` on the button; 409 ESTIMATE_CHANGED `{ estimateUsd }`, 409 SPEND_CAP_EXCEEDED. */
     start: (id: string, b: T.StartIterateBody) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/start`, b)),
     retryPiece: (pieceId: string, b: T.RetryPieceBody = {}) => data(post<T.IteratePiece>(`/iterate/pieces/${seg(pieceId)}/retry`, b)),
+    /** Rev. 23/10 (§14.2): 4:5 / 1:1 on demand, also the retry of a failed format. 202 queued · 200 already there. Only `ready` pieces;
+     *  409 INVALID_STATE, 409 SPEND_CAP_EXCEEDED (STATIC), 403 FORBIDDEN (CLIENT). */
+    requestFormat: (pieceId: string, b: T.RequestPieceFormatBody) => data(post<T.IteratePiece>(`/iterate/pieces/${seg(pieceId)}/formats`, b)),
     leaveOut: (pieceId: string) => data(post<T.IteratePiece>(`/iterate/pieces/${seg(pieceId)}/leave-out`)),
     /** "In zip": the only adjustment after generating. */
     updatePiece: (pieceId: string, b: T.UpdatePieceBody) => data(patch<T.IteratePiece>(`/iterate/pieces/${seg(pieceId)}`, b)),
@@ -349,6 +355,64 @@ export const api = {
     removeMember: (userId: string) => data(del<Ok>(`/workspace/members/${seg(userId)}`)),
     services: () => data(get<T.ServiceStatus[]>("/workspace/services")),
     spend: (month?: string) => data(get<T.Spend>("/workspace/spend", { query: { month } })),
+    /** onboarding-v2 §3.4: `stops` without `iterate` when there is no Meta connection or no WINNER ad. */
+    tour: (o: Signal = {}) => data(get<T.TourState>("/workspace/tour", o)),
+    /** Idempotent: an already completed tour answers the saved date. */
+    completeTour: () => data(post<T.TourCompleteResponse>("/workspace/tour/complete", {})),
+  },
+
+  // ───── Brain 3D v1 (brain-3d-v1.md §1): read-only, every role (CLIENT too). Cache 60 s on the API; `fresh: "1"` skips it.
+  brain: {
+    /** 404 when `offerId` is from another workspace or archived */
+    graph: (q: T.BrainGraphQuery = {}, o: Signal = {}) => data(get<T.BrainGraph>("/brain/graph", { query: q, ...o })),
+    /** `id` = "<kind>:<key>" (§2.1). 404 when it doesn't exist (or a meta_ad with Meta off) */
+    node: (id: string, o: Signal = {}) => data(get<T.BrainNodeDetail>(`/brain/node/${seg(id)}`, o)),
+  },
+
+  // ───── Meta v1 (meta-v1.md §3). The token never reaches the web; the callback is a redirect handled by the API.
+  meta: {
+    /** 201 { url }: open it in the same tab; the API sends the browser back to `returnTo?meta=connected|error&code=`. 503 META_NOT_CONFIGURED. */
+    connect: (b: T.MetaConnectBody = {}) => data(post<T.MetaConnectResponse>("/meta/connect", b)),
+    /** null when the workspace never connected. */
+    connection: (o: Signal = {}) => data(get<T.MetaConnection | null>("/meta/connection", o)),
+    /** "Connect from another browser" (§3.1, 22/10): the origin tab polls this every 3 s while `pending`. */
+    oauthStatus: (o: Signal = {}) => data(get<T.MetaOAuthStatus>("/meta/oauth/status", o)),
+    /** Live from Meta: ad accounts (`canManage`), Pages and the pixels of `adAccountId`. 422 META_NOT_CONNECTED / META_TOKEN_INVALID, 503 META_UNAVAILABLE. */
+    options: (q: T.MetaOptionsQuery = {}, o: Signal = {}) => data(get<T.MetaOptions>("/meta/options", { query: q, ...o, timeoutMs: 30_000 })),
+    /** Runs the health check right away and starts the first sync. 422 META_PERMISSION `{ adAccountId, reason }` on an account without the advertise task. */
+    select: (b: T.MetaSelectionBody) => data(put<T.MetaConnection>("/meta/selection", b, { timeoutMs: 30_000 })),
+    health: () => data(post<T.MetaHealth>("/meta/health", {}, { timeoutMs: 30_000 })),
+    disconnect: () => data(del<Ok>("/meta/connection")),
+    /** 202 { job } (or 200 with the running one). 429 RATE_LIMITED `{ retryAfterSec }` under 5 min between manual syncs. */
+    sync: () => data(post<T.MetaSyncResponse>("/meta/sync", {})),
+    /** Video ads with 30-day numbers; default order WINNER first, then spend. The tour takes the first of `?verdict=WINNER&limit=1`. */
+    ads: (q: Omit<T.MetaAdsQuery, "cursor"> & PageQuery = {}, o: Signal = {}) => get<T.MetaAdRow[], T.MetaAdsMeta>("/meta/ads", { query: q, ...o }),
+    /** KPIs of the chosen account for 7d | 30d (+ `prev`), counts and `sync` (Home scoreboard). */
+    summary: (q: T.MetaSummaryQuery = {}, o: Signal = {}) => data(get<T.MetaSummary>("/meta/summary", { query: q, ...o })),
+    // ───── Campaigns v1 (campanhas-v1.md §4): snapshots per level; writes are OWNER/ADMIN, confirmed and audited
+    /** GET /meta/campaigns: campaign rows + totals/counts/sync of the filtered set (snapshot only, never live) */
+    campaigns: (q: Omit<T.MetaCampaignsQuery, "cursor"> & PageQuery = {}, o: Signal = {}) => get<T.MetaCampaignRow[], T.MetaCampaignsMeta>("/meta/campaigns", { query: q, ...o }),
+    /** GET /meta/campaigns/:id: its ad sets with their ads (every format), ordered like the list */
+    campaign: (id: string, q: T.MetaCampaignDetailQuery = {}, o: Signal = {}) => data(get<T.MetaCampaignDetail>(`/meta/campaigns/${seg(id)}`, { query: q, ...o })),
+    /** POST /meta/{campaigns|adsets|ads}/:id/status (409 META_OBJECT_CHANGED / META_PARENT_PAUSED, 422 META_POLICY…) */
+    setStatus: (level: T.MetaLevel, id: string, b: T.MetaStatusBody) => data(post<T.MetaWriteResult>(`/meta/${LEVEL_PATH[level]}/${seg(id)}/status`, b, { timeoutMs: 30_000 })),
+    /** PATCH /meta/{campaigns|adsets}/:id/budget (422 META_BUDGET_TOO_LOW / _STEP_TOO_LARGE / _NOT_EDITABLE) */
+    setBudget: (level: "campaign" | "adset", id: string, b: T.MetaBudgetBody) => data(patch<T.MetaWriteResult>(`/meta/${LEVEL_PATH[level]}/${seg(id)}/budget`, b, { timeoutMs: 30_000 })),
+    /** GET /meta/changes: the History drawer (newest first, cursor) */
+    changes: (q: Omit<T.MetaChangesQuery, "cursor"> & PageQuery = {}, o: Signal = {}) => get<T.MetaChangeRow[], T.PageMeta>("/meta/changes", { query: q, ...o }),
+    publications: (q: Omit<T.MetaPublicationsQuery, "cursor"> & PageQuery = {}) => get<T.MetaPublication[], T.PageMeta>("/meta/publications", { query: q }),
+
+    // ───── §3.3 Send → "Publish to Meta" (per creative). Poll `creative` every 2 s while publication.status = PUBLISHING (§3.3.1).
+    /** Current publication, history, prefilled defaults (null without a connection) and the connection state. 404. */
+    creative: (cid: string, o: Signal = {}) => data(get<T.CreativeMetaResponse>(`/creatives/${seg(cid)}/meta`, o)),
+    /** 202 PUBLISHING. 409 INVALID_STATE `not_approved` | `publish_in_progress`; 422 META_PIXEL_REQUIRED `{ objective }` / META_BUDGET_TOO_LOW `{ minimumMinor, currency }` / META_ACCOUNT_UNUSABLE / META_TOKEN_INVALID; 503 META_UNAVAILABLE `{ retryAfterSec }`. */
+    publish: (cid: string, b: T.MetaPublishBody) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/publish`, b, { timeoutMs: 30_000 })),
+    /** Reopens a FAILED job from the ids already created (no duplicate campaign). 409 when not FAILED. */
+    retry: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/retry`, {})),
+    /** OWNER/ADMIN only (D11: activating is what spends). 409 when not PAUSED. */
+    activate: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/activate`, { confirm: true } satisfies T.MetaActivateBody, { timeoutMs: 30_000 })),
+    /** OWNER/ADMIN only. Pauses just the ad. 409 when not ACTIVE. */
+    pause: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/pause`, {}, { timeoutMs: 30_000 })),
   },
 }
 

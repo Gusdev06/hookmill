@@ -24,6 +24,7 @@ import { VariationLine } from "@/components/variar/variation-line"
 import { EditedBadge } from "@/components/editor/entry"
 import { ik } from "@/hooks/use-iterate"
 import { iterateHref } from "@/lib/routes"
+import { isMetaOff, useMetaConnection } from "@/hooks/use-meta"
 
 const ALL = "all"
 const GRID = "grid grid-cols-2 gap-3 tablet:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] tablet:gap-4"
@@ -179,6 +180,9 @@ function LibraryCard({ item, isNew, queryKey }: { item: LibraryItem; isNew: bool
   const router = useRouter()
   const ti = useTranslations("iterate.lib")
   const image = item.media === "image"
+  // meta-v1 §3.3: Send → "Publish to Meta" (hidden when the server has no Meta)
+  const metaConn = useMetaConnection()
+  const metaOff = metaConn.isError && isMetaOff(metaConn.error)
   const vary = useMutation({
     mutationFn: () => api.iterate.create({ creativeId: item.id }),
     onSuccess: (b) => {
@@ -229,11 +233,17 @@ function LibraryCard({ item, isNew, queryKey }: { item: LibraryItem; isNew: bool
           {item.variation ? <VariationLine v={item.variation} /> : null}
           {item.editedInEditor ? <span><EditedBadge variation={!!item.variation} /></span> : null}
           {image ? null : (
-            <span className="pt-1">
+            <span className="flex flex-wrap gap-1.5 pt-1">
               <Button size="sm" disabled={vary.isPending} onClick={() => vary.mutate()}>
                 {vary.isPending ? <span className="spin-ring size-3.5" aria-hidden="true" /> : <Icon name="branch" />}
                 {vary.isPending ? ti("starting") : ti("vary")}
               </Button>
+              {metaOff ? null : (
+                <Link href={`/creatives/${encodeURIComponent(item.id)}/send`} className={buttonVariants({ size: "sm" })}>
+                  <Icon name="upload" />
+                  {t("sendMeta")}
+                </Link>
+              )}
             </span>
           )}
         </div>

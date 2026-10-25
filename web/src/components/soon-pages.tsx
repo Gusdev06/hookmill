@@ -167,6 +167,7 @@ export function SoonPage({ section }: { section: SoonPageKey }) {
   return (
     <Page>
       <SoonSection
+        id={section === "eddy" ? "t-eddy" : undefined}
         title={t(section === "clients" ? "shell.clients" : `shell.nav.${section}`)}
         eyebrow={section === "campaigns" ? t("soon.campaigns.eyebrow", { client }) : undefined}
         heading={t(`soon.${section}.heading`, { client })}

@@ -61,6 +61,7 @@ describe('máquina do campeão (§3.1): uma transição válida por teste', () =
       ANALYSIS_FAILED: { from: ['ANALYZING'], to: ['FAILED'] },
       ATTACH_VIDEO: { from: ['FAILED'], to: ['ANALYZING'] },
       ANALYZE_AGAIN: { from: ['FAILED', 'READY'], to: ['ANALYZING'] },
+      IMPORT_AGAIN: { from: ['FAILED'], to: ['RESOLVING'] }, // meta-v1 D13 (21/10): download da Meta de novo no retry do lote
     });
   });
 });

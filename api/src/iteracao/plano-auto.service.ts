@@ -4,15 +4,16 @@ import type { Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import { measurementsOf, sectionsOf, transcriptOf } from '../campeoes/champion-views';
 import { failReasonFor, asAsyncErrorCode } from '../common/errors/falhas';
-import { CLAUDE_SERVICE, integracoesMode, isIntegracaoError, type AutoPlanDraft, type ClaudeService } from '../integracoes';
+import { CLAUDE_SERVICE, integracoesMode, isIntegracaoError, type AutoPlanDraft, type AutoPlanInput, type ClaudeService } from '../integracoes';
 import { JobsService } from '../jobs/jobs.service';
 import { draftOf } from '../ofertas/ofertas.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BatchStateMachine } from '../variacoes/batch-state-machine';
+import { diagnosticarPagina } from '../medicao/pagina-quebrada';
 import { flagsOf, planCtxOf } from './contexto';
 import { MEDIA_RULES, PAGE_CAPTURE, type MediaRulesPort, type PageCapturePort } from './portas';
 import {
-  type Violation, allowedFor, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
+  type Violation, allowedFor, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
 } from './regras';
 
 /** Etapas do job AUTO_PLAN (JOB_CHECKLIST) e progresso do job. */
@@ -93,7 +94,7 @@ export class PlanoAutoService {
       const transcript = transcriptOf(teardown.transcript);
       const keyframes = await this.keyframes(m?.keyframes ?? []);
       const sections = sectionsOf(teardown.sections)!;
-      const input = {
+      const input: AutoPlanInput = {
         workspaceId: b.workspaceId, batchId: b.id, jobId,
         uiLocale: b.createdBy.uiLocale,
         screenLanguage: b.champion.language || transcript?.language || b.offer.language,
@@ -104,6 +105,7 @@ export class PlanoAutoService {
         media: { durationSec: ctx.durationSec, cuts: m?.cuts?.length ?? 0, silences: ctx.silences, hasWrittenHook: ctx.hasWrittenHook, hasEndCard: ctx.hasEndCard },
         keyframes,
         allowed: allowed.map((a) => ({ type: a.type, max: a.max })),
+        allowedFrames: allowedFrameIds(ctx),
         rules: rulesFor(allowed),
       };
       const first = await this.plan(input);
@@ -145,7 +147,7 @@ export class PlanoAutoService {
           data: items.map((it) => ({
             workspaceId: b.workspaceId, batchId: b.id, kind: 'AUTO_EDIT' as const, index: it.index, status: 'READY' as const,
             rationale: it.rationale, payload: { params: it.params, whyKey: it.whyKey } as unknown as Prisma.InputJsonValue,
-            autoType: it.type as AutoVariationType, code: it.code, axis: it.axis, change: it.change, inZip: true, jobId,
+            autoType: it.type, code: it.code, axis: it.axis, change: it.change, inZip: true, jobId,
           })),
         });
         await this.sm.transition({
@@ -191,7 +193,13 @@ export class PlanoAutoService {
     if (integracoesMode() === 'mock' && b.offer.notes?.includes('[mock:page-403]')) return { fileId: null, text: null };
     try {
       const r = await this.pages.capture({ workspaceId: b.workspaceId, url });
-      if ('fileId' in r) return { fileId: r.fileId, text: r.text };
+      if ('fileId' in r) {
+        // bug 25/10: defesa se a captura vier de outro adaptador sem o diagnóstico (texto de erro do Next/Vercel/Cloudflare)
+        const d = diagnosticarPagina({ title: '', text: r.text, imagens: 1 });
+        if (d.ok) return { fileId: r.fileId, text: r.text };
+        this.log.warn(`captura da página descartada (${d.motivo}: ${d.detalhe}): SPLIT-LP e referência do STATIC sem ela`);
+        return { fileId: null, text: null };
+      }
       this.log.warn(`captura da página falhou (${r.error} ${r.status ?? ''}): SPLIT-LP sai do plano`);
     } catch (e) {
       this.log.warn(`captura da página falhou: ${(e as Error).message}`);

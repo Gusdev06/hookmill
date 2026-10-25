@@ -42,6 +42,26 @@ export const ERROR_HTTP_STATUS = {
   OFFER_REQUIRED: 422,
   PLAN_CHANGED: 409,
   NO_PRODUCT_PHOTO: 422,
+  // meta-v1 §3.4 (21/10): síncronos do módulo meta
+  META_NOT_CONFIGURED: 503,
+  META_NOT_CONNECTED: 422,
+  META_SELECTION_MISSING: 422,
+  META_TOKEN_INVALID: 422,
+  META_PERMISSION: 422,
+  META_PIXEL_REQUIRED: 422,
+  META_ACCOUNT_UNUSABLE: 422,
+  META_BUDGET_TOO_LOW: 422,
+  META_UNAVAILABLE: 503,
+  // campanhas-v1 §4.1 (22/10; entrada do arquiteto no A1 pra manter o tsc verde, B4 usa)
+  META_OBJECT_CHANGED: 409,
+  META_OBJECT_GONE: 404,
+  META_PARENT_PAUSED: 409,
+  META_BUDGET_NOT_EDITABLE: 422,
+  META_BUDGET_STEP_TOO_LARGE: 422,
+  // campanhas-v1 §4.1: ativar anúncio DISAPPROVED/WITH_ISSUES (síncrono; o assíncrono homônimo é da publicação)
+  META_POLICY: 422,
+  // molduras §B3.1 (25/10): URL colada na troca de b-roll de fonte desligada/fora da v1 (D15)
+  BROLL_SOURCE_NOT_SUPPORTED: 422,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_HTTP_STATUS;
@@ -83,6 +103,22 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   OFFER_REQUIRED: 'Pick which offer this video is for.',
   PLAN_CHANGED: 'The plan changed. Review the pieces again.',
   NO_PRODUCT_PHOTO: 'Add a product photo to the offer first.',
+  META_NOT_CONFIGURED: "Meta isn't set up on this server yet.",
+  META_NOT_CONNECTED: 'Connect a Meta account first.',
+  META_SELECTION_MISSING: 'Choose an ad account and a Page to continue.',
+  META_TOKEN_INVALID: 'Your Meta login expired. Reconnect to continue.',
+  META_PERMISSION: "You don't have permission to advertise on this account. Ask the account admin to add you (Business Settings → Ad accounts → Add people).",
+  META_PIXEL_REQUIRED: 'This objective needs a pixel. Choose one, or switch to Traffic.',
+  META_ACCOUNT_UNUSABLE: 'This ad account cannot run ads right now. Choose another account.',
+  META_BUDGET_TOO_LOW: 'Daily budget is below the minimum for this account.',
+  META_UNAVAILABLE: "Meta didn't answer. Try again in a moment.",
+  META_OBJECT_CHANGED: 'This changed in Ads Manager since the last sync. We refreshed it: check and try again.',
+  META_OBJECT_GONE: 'This no longer exists on Meta.',
+  META_PARENT_PAUSED: 'Its ad set or campaign is paused. Turn them on too?',
+  META_BUDGET_NOT_EDITABLE: "This budget can't be changed here (it's set on another level, or it's a lifetime budget).",
+  META_BUDGET_STEP_TOO_LARGE: 'That raise is too big for one step. Raise it in smaller steps.',
+  META_POLICY: 'Meta rejected this ad for a policy reason. Fix it in Ads Manager before turning it on.',
+  BROLL_SOURCE_NOT_SUPPORTED: 'That link is from a source we cannot use. Paste a Pexels link or pick one of the suggested clips.',
 };
 
 /** Códigos de falha DENTRO de trabalho assíncrono (viram status FAILED + errorCode no recurso, nunca erro HTTP). */
@@ -94,5 +130,7 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
  * variacao-auto-v1 §5.3 (aprovado 13/10): códigos que o contrato já tem mas o `ApiErrorCode` do @maquina/contratos ainda
  * não (pendência do A0, arquiteto). Quando entrarem lá, esta checagem quebra de propósito: aí é só esvaziar a lista.
  */
-type PendingInContract = never; // vazia: os 3 códigos entraram no ApiErrorCode (13/10)
+/** 21/10: os 9 síncronos META_* entraram no `ApiErrorCode` do @maquina/contratos (arquiteto); lista vazia de novo. */
+/** 22/10 (A4b): 'META_POLICY' síncrono entrou no `ApiErrorCode` (campanhas-v1 §4.1); lista vazia de novo. */
+type PendingInContract = never;
 export const ERROR_CODES_MATCH_CONTRACT: Same<Exclude<ErrorCode, PendingInContract>, ApiErrorCode> = true;

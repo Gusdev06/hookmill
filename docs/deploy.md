@@ -92,6 +92,13 @@ Segredo só no painel (EasyPanel / Vercel). Nada disto vai pro git.
 | `APIFY_TOKEN` | conta do ad-radar (teto até 19/10) |
 | `APIFY_AD_LIBRARY_ACTOR` | `curious_coder~facebook-ads-library-scraper` |
 | `AD_LIBRARY_MODE` | `live` (ou `off` se o Gusta não quiser link da Ad Library na estreia) |
+| `META_MODE` | `live` só depois do checklist do [`contratos/meta-v1.md` §11](contratos/meta-v1.md) (app na Meta); até lá `off` (o web esconde o passo 2 e o Pick from Meta) |
+| `META_APP_ID` / `META_APP_SECRET` | Meta for Developers → app HookMill → Settings → Basic |
+| `META_CONFIG_ID` | Facebook Login for Business → Configurations (User access token; `ads_management`, `ads_read`, `business_management`, `pages_show_list`) |
+| `META_GRAPH_VERSION` | a mais nova no painel no dia (D3); ex. `v25.0` |
+| `META_TOKEN_KEY` | gerar: `openssl rand -base64 32` (chave de produção ≠ dev; trocar = todo mundo reconecta) |
+| `META_WINNER_MIN_SPEND_USD` / `META_WINNER_MIN_RESULTS` / `META_TREND_*` / `META_USD_RATES` / `META_SYNC_EVERY_HOURS` | padrões do `.env.example` (`50` / `3` / `0.85`, `1.25`, `3` / vazio / `6`) |
+| **Valid OAuth Redirect URI no app da Meta** | `https://<domínio do EasyPanel>/api/v1/meta/callback` (= `PUBLIC_API_URL` + `/api/v1/meta/callback`) |
 | `UPLOAD_MODE` | `proxy`, ou `direct` só se o §3 aprovar o PUT |
 | `UPLOAD_MAX_BYTES` | **`524288000`** (500 MB; Supabase Pro desde 14/10) |
 | `CHAMPION_MIN_SEC` / `CHAMPION_MAX_SEC` | `5` / `180` |
@@ -107,6 +114,29 @@ Segredo só no painel (EasyPanel / Vercel). Nada disto vai pro git.
 | `SEED_*` | não usar em produção (o seed precisa de `ts-node`, que não está na imagem; o 1º dono entra pelo §7) |
 
 As variáveis marcadas "imagem" já vêm no Dockerfile; só repita no painel se quiser mudar.
+
+### Meta: o que subir no EasyPanel (meta-v1.md, 21/10) e a sonda antes de liberar o Tordan
+Hoje a API em produção roda `META_MODE=mock` ou `off`. Pra ligar o live (nesta ordem):
+1. **Pré-requisitos do Gusta** (checklist completo em [`contratos/meta-v1.md` §11](contratos/meta-v1.md)): app tipo Business no Meta for Developers; produto Facebook Login for Business com uma Configuration (User access token; `ads_management`, `ads_read`, `business_management`, `pages_show_list`); produto Marketing API; app em modo Desenvolvimento com Gusta e Tordan como Testers (Tordan aceita o convite); **Valid OAuth Redirect URI já cadastrada: `https://hookmill-api.ex6qmx.easypanel.host/api/v1/meta/callback`** (tem que ser igual a `PUBLIC_API_URL` + `/api/v1/meta/callback`, sem barra extra).
+2. **Envs no EasyPanel → Environment** (depois Deploy/restart):
+```
+META_MODE=live
+META_APP_ID=<Settings → Basic>
+META_APP_SECRET=<Settings → Basic → Show>
+META_CONFIG_ID=<Facebook Login for Business → Configurations → Configuration ID>
+META_GRAPH_VERSION=v25.0            # a mais nova listada no painel no dia (D3)
+META_TOKEN_KEY=<openssl rand -base64 32>   # chave de PRODUÇÃO, diferente da de dev; trocar = todo mundo reconecta
+META_WINNER_MIN_SPEND_USD=50
+META_WINNER_MIN_RESULTS=3
+META_TREND_BETTER=0.85
+META_TREND_WORSE=1.25
+META_TREND_FREQ=3
+META_USD_RATES=BRL=5.5              # opcional; moeda da conta → USD pra regra do vencedor
+META_SYNC_EVERY_HOURS=6
+```
+   Sem qualquer uma das 4 primeiras (`APP_ID`, `APP_SECRET`, `CONFIG_ID`, `TOKEN_KEY`) a API sobe e toda rota `/meta` responde `503 META_NOT_CONFIGURED { reason: 'not_configured' }` (nunca cai no mock em silêncio). Conferir no log do boot e em `GET /workspace/services` (`META.connected = true`, app id mascarado).
+3. **Sonda real de centavos (maquina-ia, com ok do Gusta; custo US$ 0 porque tudo nasce PAUSED):** `cd api && npx ts-node --transpile-only src/integracoes/meta/sondas/sonda-meta.ts` com o token de um workspace de teste do Gusta: (a) login real pelo `/onboarding/meta` e volta com `?meta=connected`; (b) `GET /meta/options` lista a conta do Gusta com `canManage: true`; (c) `PUT /meta/selection` + `POST /meta/health` → `canPublish: true`; (d) `POST /meta/sync` → snapshots com `verdict`/`trend`, e confirmar se `video_3_sec_watched_actions` veio (senão `hookRate` fica null, previsto); (e) `POST /creatives/:id/meta/publish` de um criativo aprovado → campanha/conjunto/anúncio **PAUSED** no Ads Manager, com o `adName`; (f) `POST …/meta/pause`/`activate` 1×; (g) **apagar a campanha de teste no Ads Manager**. Registrar em `docs/integracoes.md`: versão da Graph confirmada, subcódigos vistos no mapa de erro, escopos de reserva pedidos ou não.
+4. **Só depois da sonda:** Tordan como Tester faz o login no cliente dele. Até lá o passo 2 do onboarding dele funciona em `mock` (não publica nada de verdade).
 
 ### web (Vercel → Settings → Environment Variables, ambiente Production)
 | variável | valor / origem |

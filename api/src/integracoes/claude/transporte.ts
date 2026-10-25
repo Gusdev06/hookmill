@@ -1,6 +1,7 @@
 // Uma chamada ao Claude com saída estruturada (JSON Schema) e streaming. É a ÚNICA peça que conhece o SDK;
 // o ClaudeLiveService fala com esta interface, então os testes trocam o transporte por um falso.
 import Anthropic from '@anthropic-ai/sdk';
+import { Logger } from '@nestjs/common';
 import { IntegracaoError } from '../erros';
 
 export interface ClaudeCall {
@@ -14,6 +15,11 @@ export interface ClaudeCall {
   user: string;
   schema: Record<string, unknown>;
   maxTokens: number;
+  /** Outro modelo só nesta chamada (ex.: Haiku na checagem de texto do STATIC). Com ele não há fallback de servidor
+   *  (o `fallbacks: "default"` é dos modelos Opus/Sonnet/Fable) e o esforço é o `effort` abaixo. */
+  model?: string;
+  /** Esforço desta chamada (vence o do transporte); null = sem `effort` (Haiku 4.5 recusa o parâmetro). */
+  effort?: SdkTransportOptions['effort'] | null;
 }
 
 export interface ClaudeImage {
@@ -73,14 +79,17 @@ export class SdkClaudeTransport implements ClaudeTransport {
     content.push({ type: 'text', text: call.user });
 
     let final: Anthropic.Beta.BetaMessage;
+    const model = call.model ?? this.opts.model;
+    // `effort` da chamada vence (null = sem effort); sem ele, o padrão do transporte (ou nenhum, quando o modelo é outro)
+    const effort = call.effort !== undefined ? call.effort : call.model ? null : this.opts.effort;
     try {
       const stream = this.client.beta.messages.stream({
-        model: this.opts.model,
+        model,
         max_tokens: call.maxTokens,
         system,
         messages: [{ role: 'user', content }],
-        output_config: { effort: this.opts.effort, format: { type: 'json_schema', schema: call.schema } },
-        ...(this.opts.fallbacks ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
+        output_config: { ...(effort ? { effort } : {}), format: { type: 'json_schema', schema: call.schema } },
+        ...(this.opts.fallbacks && !call.model ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
       });
       for await (const ev of stream) {
         if (!onText) continue;
@@ -89,7 +98,10 @@ export class SdkClaudeTransport implements ClaudeTransport {
       }
       final = await stream.finalMessage();
     } catch (e) {
-      throw mapSdkError(e);
+      const mapped = mapSdkError(e);
+      // nunca mais cego (bug live 22/10): status + tipo + mensagem do provedor no log (sem chave, sem base64 — o corpo do erro não ecoa o pedido)
+      log.warn(`anthropic falhou (${model}): ${mapped.code} ${String(mapped.details?.providerDetail ?? mapped.message)}`);
+      throw mapped;
     }
 
     // texto depois do último bloco de fallback = resposta do modelo que terminou
@@ -98,7 +110,7 @@ export class SdkClaudeTransport implements ClaudeTransport {
       if (b.type === 'fallback') text = '';
       else if (b.type === 'text') text += b.text;
     }
-    return { text, stopReason: final.stop_reason ?? null, usage: usageOf(final, this.opts.model) };
+    return { text, stopReason: final.stop_reason ?? null, usage: usageOf(final, model) };
   }
 }
 
@@ -128,18 +140,30 @@ function usageOf(m: Anthropic.Beta.BetaMessage, requested: string): ModelUsage[]
   ];
 }
 
-/** Erros do SDK → códigos do contrato. Classes tipadas, nunca casar texto. */
+const log = new Logger('ClaudeTransport');
+
+/** "400 invalid_request_error: <mensagem> (req_…)" — o que vai pro log e pro `details.providerDetail` (backend → failDetail). */
+export function providerDetailOf(e: InstanceType<typeof Anthropic.APIError>): string {
+  const body = (e.error ?? {}) as { error?: { type?: string; message?: string } };
+  const type = body.error?.type ?? 'unknown';
+  const msg = body.error?.message ?? e.message;
+  const req = (e as { requestID?: string | null }).requestID;
+  return `${e.status ?? '-'} ${type}: ${msg}${req ? ` (${req})` : ''}`.slice(0, 1000);
+}
+
+/** Erros do SDK → códigos do contrato. Classes tipadas, nunca casar texto. `details.providerDetail` = status + tipo + mensagem do provedor. */
 export function mapSdkError(e: unknown): IntegracaoError {
   if (e instanceof IntegracaoError) return e;
-  if (e instanceof Anthropic.RateLimitError) return new IntegracaoError('RATE_LIMITED', 'anthropic 429');
-  if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError)
-    return new IntegracaoError('PROVIDER_UNAVAILABLE', `anthropic auth ${e.status}`);
-  if (e instanceof Anthropic.BadRequestError) return new IntegracaoError('PROVIDER_ERROR', `anthropic 400: ${e.message}`);
-  if (e instanceof Anthropic.APIConnectionTimeoutError) return new IntegracaoError('PROVIDER_TIMEOUT', 'anthropic timeout');
-  if (e instanceof Anthropic.APIConnectionError) return new IntegracaoError('PROVIDER_UNAVAILABLE', 'anthropic connection');
+  const err = (code: ConstructorParameters<typeof IntegracaoError>[0], message: string) =>
+    new IntegracaoError(code, message, e instanceof Anthropic.APIError ? { providerDetail: providerDetailOf(e) } : { providerDetail: e instanceof Error ? e.message : String(e) });
+  if (e instanceof Anthropic.RateLimitError) return err('RATE_LIMITED', 'anthropic 429');
+  if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) return err('PROVIDER_UNAVAILABLE', `anthropic auth ${e.status}`);
+  if (e instanceof Anthropic.BadRequestError) return err('PROVIDER_ERROR', `anthropic 400: ${e.message}`);
+  if (e instanceof Anthropic.APIConnectionTimeoutError) return err('PROVIDER_TIMEOUT', 'anthropic timeout');
+  if (e instanceof Anthropic.APIConnectionError) return err('PROVIDER_UNAVAILABLE', 'anthropic connection');
   if (e instanceof Anthropic.APIError) {
-    if (e.status === 529 || (e.status ?? 0) >= 500) return new IntegracaoError('PROVIDER_UNAVAILABLE', `anthropic ${e.status}`);
-    return new IntegracaoError('PROVIDER_ERROR', `anthropic ${e.status}`);
+    if (e.status === 529 || (e.status ?? 0) >= 500) return err('PROVIDER_UNAVAILABLE', `anthropic ${e.status}`);
+    return err('PROVIDER_ERROR', `anthropic ${e.status}: ${e.message}`);
   }
-  return new IntegracaoError('PROVIDER_ERROR', e instanceof Error ? e.message : String(e));
+  return err('PROVIDER_ERROR', e instanceof Error ? e.message : String(e));
 }

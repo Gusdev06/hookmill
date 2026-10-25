@@ -2,17 +2,20 @@
 // mora aqui; tudo vem do briefing. Os prompts estão em inglês (instrução), a saída sai no idioma da oferta.
 // Lições da operação embutidas (clonador/system.md, memória do Gusta): uma pessoa só em quadro, pose descrita
 // em positivo, nada de objeto proibido citado, fala no ritmo de ~2,5 palavras/s, nunca inventar prova.
-import type { OfferBriefDraft, WinnerExample } from '../contrato';
+import type { BriefField, OfferBriefDraft, PageRole, ReadMode, WinnerExample } from '../contrato';
 import { WORDS_PER_SECOND, countWords } from '../catalogo/precos';
 
 // ---------------------------------------------------------------- briefing
 
 const nullableString = { anyOf: [{ type: 'string' }, { type: 'null' }] };
 
+export const PAGE_ROLES: readonly PageRole[] = ['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other'];
+export const BRIEF_SOURCE_FIELDS: readonly BriefField[] = ['name', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'];
+
 export const BRIEF_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['name', 'language', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'],
+  required: ['name', 'language', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes', 'sources', 'imageNotes'],
   properties: {
     name: { type: 'string', description: 'Product or offer name as the page presents it.' },
     language: { type: 'string', description: 'BCP 47 tag of the page language, e.g. en, pt-BR, es, fr, de.' },
@@ -25,6 +28,35 @@ export const BRIEF_SCHEMA = {
     offerAndPrice: { ...nullableString, description: 'Price, plans, discounts, bonuses, trial, guarantee terms.' },
     cta: { ...nullableString, description: 'The call to action the page uses (button text or equivalent).' },
     notes: { ...nullableString, description: 'Tone of voice, claims to avoid, compliance-sensitive points. null if nothing stands out.' },
+    sources: {
+      type: 'object',
+      additionalProperties: false,
+      description: 'Where each filled field came from: the page role(s) and, when it was read from an image, the image number. Empty array for null fields.',
+      required: [...BRIEF_SOURCE_FIELDS],
+      properties: Object.fromEntries(BRIEF_SOURCE_FIELDS.map((f) => [f, {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['role', 'imageIndex'],
+          properties: {
+            role: { type: 'string', enum: [...PAGE_ROLES] },
+            // inteiro simples (0 = texto), nunca anyOf/null: a API limita a 16 parâmetros com união no schema todo (bug live 22/10)
+            imageIndex: { type: 'integer', description: 'Image number when the information was read from an image; 0 when it came from page text.' },
+          },
+        },
+      }])),
+    },
+    imageNotes: {
+      type: 'array',
+      description: 'One entry per image you were given: what it shows, at most 40 words, transcribing visible text literally. Empty array when there are no images.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['index', 'text'],
+        properties: { index: { type: 'integer' }, text: { type: 'string' } },
+      },
+    },
   },
 } as const;
 
@@ -36,21 +68,36 @@ Rules:
 - Keep fields short and concrete: an ad writer should be able to scan the whole brief in 20 seconds.
 - "language" is a BCP 47 tag. Use region subtags only when the page makes the region clear (Brazilian Portuguese = pt-BR).
 - The page text was extracted automatically and may include navigation, cookie banners or repeated footer text: ignore those.
-- Related pages, when present, are other subdomains of the same offer (checkout, members area, app, upsell). The main page leads: use related pages to fill gaps or add specifics (price, plans, guarantee, bonuses, what the buyer gets). If they contradict the main page, keep the main page. Ignore related pages that are clearly about something else (a blog post, a login wall, a different product). "language" comes from the main page.`;
+- Pages come labeled by role: "main" (the page the user gave), then "checkout", "pricing", "about", "faq", "testimonials", "terms", "thankyou" or "other" pages of the same offer. The main page leads for what the offer is, who it is for and the promise; "language" comes from the main page.
+- "checkout" and "pricing" pages are the preferred source for "offerAndPrice" (price, installments, guarantee, bonuses, what the buyer gets), even when they contradict the main page: that is where people pay. "terms" pages count only for guarantee and refund terms. "thankyou" pages count only for upsells and bonuses, which go in "notes". Ignore pages that are clearly about something else (a blog post, a login wall, a different product).
+- Images, when present, are screenshots of the page and its banners, each preceded by a label with its number, page role and source. Transcribe literally the text that appears in them (price, promise, social proof, button text); describe the product in one sentence; never invent what is not legible. Fill "imageNotes" with one entry per image, at most 40 words each.
+- "sources": for every field you filled, list where it came from as { role, imageIndex }: the page role, and the image number when the information was read from an image (0 when it came from page text). Leave the array empty for fields you returned as null.`;
 
-export function briefUserMessage(page: {
+/** Página como vai pro prompt (§5): a principal primeiro, subpáginas na ordem de prioridade. */
+export interface PromptPage { url: string; role: PageRole; title: string | null; text: string; truncated: boolean; via: 'http' | 'rendered' | 'pasted' }
+
+export function briefUserMessage(r: {
   url?: string; title?: string | null; description?: string | null; text: string; truncated?: boolean;
-  related?: { url: string; title: string | null; text: string; truncated: boolean }[];
+  pages?: PromptPage[]; readMode?: ReadMode; imageCount?: number;
 }): string {
+  const pages: PromptPage[] = r.pages?.length
+    ? r.pages
+    : [{ url: r.url ?? '', role: 'main', title: r.title ?? null, text: r.text, truncated: !!r.truncated, via: r.url ? 'http' : 'pasted' }];
+  const subs = pages.filter((p) => p.role !== 'main').length;
+  const images = r.imageCount ?? 0;
+  const mode = r.readMode ?? (r.url ? 'http' : 'pasted');
+  // "vision" é o mais fundo; no cabeçalho mostramos a leitura de texto + "vision" (ex.: crawled+vision)
+  const base = mode === 'vision' ? (subs ? 'crawled' : pages[0].via === 'rendered' ? 'rendered' : 'http') : mode;
   const head = [
-    page.url ? `URL: ${page.url}` : 'Source: text pasted by the user',
-    page.title ? `Title: ${page.title}` : null,
-    page.description ? `Meta description: ${page.description}` : null,
-    page.truncated ? 'Note: the page was long and the text below was cut at the end.' : null,
+    `Read mode: ${base}${images ? '+vision' : ''} — 1 main page, ${subs} subpage${subs === 1 ? '' : 's'}, ${images} image${images === 1 ? '' : 's'}`,
+    r.url ? `URL: ${r.url}` : 'Source: text pasted by the user',
+    r.title ? `Title: ${r.title}` : null,
+    r.description ? `Meta description: ${r.description}` : null,
+    r.truncated ? 'Note: the main page was long and its text was cut at the end.' : null,
   ].filter(Boolean);
-  const related = (page.related ?? []).map((r) =>
-    `<related_page url="${r.url}"${r.title ? ` title="${r.title.replace(/"/g, "'")}"` : ''}${r.truncated ? ' cut="true"' : ''}>\n${r.text}\n</related_page>`);
-  return `${head.join('\n')}\n\n<page_text>\n${page.text}\n</page_text>${related.length ? `\n\n${related.join('\n\n')}` : ''}\n\nFill the brief.`;
+  const blocks = pages.map((p) =>
+    `<page role="${p.role}"${p.url ? ` url="${p.url}"` : ''} via="${p.via}"${p.title ? ` title="${p.title.replace(/"/g, "'")}"` : ''}${p.truncated ? ' cut="true"' : ''}>\n${p.text}\n</page>`);
+  return `${head.join('\n')}\n\n${blocks.join('\n\n')}\n\nFill the brief.`;
 }
 
 // ---------------------------------------------------------------- roteiros

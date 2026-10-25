@@ -34,6 +34,7 @@
     "@nestjs/throttler": "^6.7.1",
     "@prisma/client": "^6.19.2",
     "@remotion/bundler": "4.0.533",
+    "@remotion/lambda": "4.0.533",
     "@remotion/renderer": "4.0.533",
     "archiver": "^7.0.1",
     "class-transformer": "^0.5.1",

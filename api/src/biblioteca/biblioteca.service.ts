@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { CreativeDownload, CreativeState, FileRef, FormatCode, LibraryMeta } from '@maquina/contratos';
 import type { LibraryItemAuto } from '../criativos/contrato-auto';
-import { AUTO_FORMATS, FORMAT_CODE, autoFileName, formatFromQuery } from '../edicao/pecas';
+import { ALL_FORMATS, FORMAT_CODE, autoFileName, formatFromQuery } from '../edicao/pecas';
 import type { Prisma } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
@@ -88,7 +88,7 @@ export class BibliotecaService {
   /** Formatos prontos da peça AUTO, na ordem 9:16, 4:5, 1:1 (criativo comum: só o do render final, que é o `video`). */
   private async formatsOf(renders: Prisma.RenderGetPayload<{ include: { file: true } }>[]): Promise<{ format: FormatCode; file: FileRef }[]> {
     const out: { format: FormatCode; file: FileRef }[] = [];
-    for (const f of AUTO_FORMATS) {
+    for (const f of ALL_FORMATS) {
       const r = renders.find((x) => x.format === f && x.file);
       if (r) out.push({ format: FORMAT_CODE[f], file: (await this.views.file(r.file))! });
     }
@@ -123,7 +123,9 @@ export class BibliotecaService {
       const r = c.state === 'APPROVED'
         ? await this.prisma.render.findFirst({ where: { creativeId: c.id, format: fmt, status: 'READY', stale: false }, orderBy: { createdAt: 'desc' }, include: { file: true } })
         : null;
-      if (!r?.file) throw invalidState(c.state, ['APPROVED']);
+      if (c.state !== 'APPROVED') throw invalidState(c.state, ['APPROVED']);
+      // rev. 23/10 §14.2: formato que não está READY (sob demanda ainda não pedido, na fila ou falho) = reason format_not_ready
+      if (!r?.file) throw new AppException('INVALID_STATE', { state: c.state, allowed: ['APPROVED'], reason: 'format_not_ready' });
       const frozen = !!c.adName;
       const fileName = autoFileName(c.adName ?? (await computeAdName(this.prisma, c.id)), fmt, r.file.mimeType);
       const { url, expiresAt } = await this.storage.signedDownloadUrl(r.file, fileName);

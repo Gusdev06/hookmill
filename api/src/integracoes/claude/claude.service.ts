@@ -6,7 +6,12 @@ import type {
   AutoPlanDraft,
   AutoPlanInput,
   CastingStyle,
+  CheckStaticTextInput,
+  CheckStaticTextResult,
+  StaticTextCheckPort,
   ClaudeService,
+  ExtractStage,
+  FieldOrigin,
   DescribeEditInput,
   ExtractSources,
   EditMap,
@@ -23,7 +28,7 @@ import type {
   VariationKind,
   WinnerExample,
 } from '../contrato';
-import { WORDS_PER_SECOND } from '../catalogo/precos';
+import { STATIC_TEXT_CHECK_MODEL, WORDS_PER_SECOND } from '../catalogo/precos';
 import { genderOf } from '../catalogo/genero';
 import { guessLanguage } from '../wavespeed/idioma';
 import {
@@ -60,7 +65,11 @@ import {
   spokenHookOf,
 } from './edicao';
 import { IntegracaoError, isIntegracaoError } from '../erros';
-import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanUserMessage, parseAutoPlan } from './auto-plano';
+import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanUserMessage, parseAutoPlan, STATIC_REF_IMAGES, staticAllowed } from './auto-plano';
+import { allowedFramesOf } from './auto-plano-moldura';
+import { FRAMES_DETAIL_SCHEMA, STATIC_DETAIL_SCHEMA, detailTargets, framesByIndex, framesDetailMessage, mergeDetails, staticDetailMessage } from './auto-plano-detalhe';
+import { languageName } from './auto-plano';
+import { TEXT_CHECK_SCHEMA, TEXT_CHECK_SYSTEM, ffmpegRunner, parseTextCheck, prepareCheckImages, textCheckEffort, textCheckUserMessage, type RunFfmpeg } from './checagem-texto';
 import type { CostStore } from '../portas';
 import { recordLlmCost } from './custo';
 import {
@@ -76,7 +85,8 @@ import {
 } from './elenco';
 import { JsonStringStream } from './json-stream';
 import type { PageText } from './pagina';
-import { fetchOfferPages, type RelatedOptions } from './subdominios';
+import { imageCaption, stripImage } from './imagens';
+import { readOffer, type OfferReading, type ReadOfferOptions } from './leitura';
 import {
   BRIEF_SCHEMA,
   BRIEF_SYSTEM,
@@ -91,15 +101,20 @@ import {
   scriptsContext,
 } from './prompts';
 import type { ClaudeCall, ClaudeImage, ClaudeResult, ClaudeTransport } from './transporte';
-import { normalizeLanguage, parseBrief, parseFace, parseScript } from './validacao';
+import { normalizeLanguage, parseBriefFull, parseFace, parseScript } from './validacao';
 
 export interface ClaudeLiveOptions {
   model: string;
-  /** só pros testes: troca o leitor de página */
-  fetchPage?: (url: string) => Promise<PageText>;
-  pageOptions?: RelatedOptions;
+  /** só pros testes: troca a leitura em cascata da oferta (leitura.ts) */
+  readOffer?: (url: string, onStage: (stage: ExtractStage) => void) => Promise<OfferReading>;
+  /** leitura v2: fetch/render/captura/crt.sh (o módulo liga o navegador aqui) */
+  pageOptions?: ReadOfferOptions;
   /** baixa os frames-chave (URL assinada do storage); testes trocam */
   fetchImpl?: typeof fetch;
+  /** §A6: modelo da checagem de texto do STATIC (padrão STATIC_TEXT_CHECK_MODEL.model = claude-haiku-4-5) */
+  textCheckModel?: string;
+  /** §A6: recorta/reduz a imagem antes da visão (padrão: ffmpeg do PATH / FFMPEG_PATH); null = manda a original se couber */
+  runFfmpeg?: RunFfmpeg | null;
 }
 
 /** Limites dos frames que vão pro Claude (§6.1: até 16, lado maior 768 px, já reduzidos pelo backend). */
@@ -112,7 +127,7 @@ const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as co
 const MAX_TOKENS_MSG = 'claude hit max_tokens';
 const SCRIPT_FAIL_CODES = new Set(['RATE_LIMITED', 'SAFETY_BLOCK', 'PROVIDER_TIMEOUT', 'PROVIDER_ERROR']);
 
-export class ClaudeLiveService implements ClaudeService {
+export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort {
   private readonly log = new Logger('ClaudeLive');
 
   constructor(
@@ -123,28 +138,63 @@ export class ClaudeLiveService implements ClaudeService {
 
   async extractOffer(
     input: { url?: string; pageText?: string; workspaceId: string; jobId: string },
-    onStage: (stage: 'fetching_page' | 'extracting' | 'detecting_language') => void,
+    onStage: (stage: ExtractStage) => void,
   ): Promise<OfferBriefDraft & Usage & ExtractSources> {
-    let page: PageText;
+    let reading: OfferReading;
     if (input.pageText?.trim()) {
-      // texto colado (fallback do 403): não busca a página de novo
+      // texto colado (fallback do 403): não busca a página; só `extracting` e `detecting_language` (§4.3)
       const text = input.pageText.trim();
-      page = { url: input.url ?? '', title: null, description: null, text: text.slice(0, 60_000), truncated: text.length > 60_000 };
+      const url = input.url ?? '';
+      const page: PageText = {
+        url, title: null, description: null, text: text.slice(0, 60_000), truncated: text.length > 60_000,
+        pages: [{ url, role: 'main', title: null, text: text.slice(0, 60_000), truncated: text.length > 60_000, via: 'http', images: [] }],
+        readMode: 'pasted',
+      };
+      reading = { page, images: [], imageReason: null, readMs: 0 };
     } else if (input.url) {
-      onStage('fetching_page');
-      // página principal + subdomínios da mesma oferta (checkout., app., members.…); subdomínio que falha fica de fora
-      page = await (this.opts.fetchPage ?? ((u: string) => fetchOfferPages(u, this.opts.pageOptions)))(input.url);
+      // leitura em cascata (leitura.ts): HTTP → render → subpáginas → imagens; emite os 4 stages de leitura
+      reading = await (this.opts.readOffer ?? ((u: string, s: (stage: ExtractStage) => void) => readOffer(u, this.opts.pageOptions ?? {}, s)))(input.url, onStage);
     } else {
       throw new IntegracaoError('PAGE_UNREADABLE', 'no url and no page text');
     }
+    const { page, images } = reading;
 
     onStage('extracting');
-    const res = await this.transport.run({ system: BRIEF_SYSTEM, user: briefUserMessage({ ...page, url: page.url || undefined }), schema: BRIEF_SCHEMA, maxTokens: 16000 });
+    const user = briefUserMessage({
+      url: page.url || undefined, title: page.title, description: page.description, text: page.text, truncated: page.truncated,
+      pages: page.pages.map((p) => ({ url: p.url, role: p.role, title: p.title, text: p.text, truncated: p.truncated, via: page.readMode === 'pasted' ? 'pasted' : p.via })),
+      readMode: page.readMode, imageCount: images.length,
+    });
+    // imagens (§3.2) vão como blocos `image` antes do texto, cada uma depois do rótulo; a visão é cobrada pelos tokens de entrada da mesma chamada
+    const imageBlocks: ClaudeImage[] = images.map((i) => ({ mediaType: i.mediaType, data: i.data, caption: imageCaption(i) }));
+    const res = await this.transport.run({ system: BRIEF_SYSTEM, images: imageBlocks, user, schema: BRIEF_SCHEMA, maxTokens: 16000 });
     const costUsd = await this.charge(res, { workspaceId: input.workspaceId, jobId: input.jobId });
     this.assertFinished(res);
     onStage('detecting_language'); // o idioma sai na mesma resposta; a etapa existe pro checklist do web
-    const brief = parseBrief(res.text);
-    return { ...brief, costUsd, relatedUrls: (page.related ?? []).map((r) => r.url) };
+    const { brief, sources, imageNotes } = parseBriefFull(res.text);
+
+    // §4.1: sources (role + imageIndex) → fieldOrigins (role + url); imagem aponta pra página de onde foi tirada
+    const urlByRole = new Map<string, string>();
+    for (const p of page.pages) if (!urlByRole.has(p.role)) urlByRole.set(p.role, p.url);
+    const fieldOrigins: ExtractSources['fieldOrigins'] = {};
+    for (const [field, list] of Object.entries(sources) as [keyof typeof sources, { role: string; imageIndex?: number }[]][]) {
+      const origins: FieldOrigin[] = [];
+      for (const s of list) {
+        const img = s.imageIndex ? images.find((i) => i.index === s.imageIndex) : undefined;
+        const url = img ? img.page.url : urlByRole.get(s.role) ?? (s.role === 'main' ? page.url : undefined);
+        if (url === undefined) continue;
+        origins.push(img ? { role: img.page.role, url, imageIndex: img.index } : { role: s.role as FieldOrigin['role'], url });
+      }
+      if (origins.length) fieldOrigins[field] = origins;
+    }
+    const notes = new Map(imageNotes.map((n) => [n.index, n.text]));
+    const imagesRead = images.map((i) => stripImage(i, notes.get(i.index)));
+    const pages = page.pages.map((p) => ({ url: p.url, role: p.role, via: p.via, chars: p.text.length }));
+    return {
+      ...brief, costUsd,
+      readMode: page.readMode, pages, imagesRead, fieldOrigins,
+      relatedUrls: pages.filter((p) => p.role !== 'main').map((p) => p.url),
+    };
   }
 
   async generateScripts(
@@ -391,21 +441,102 @@ export class ClaudeLiveService implements ClaudeService {
   async planAutoBatch(i: AutoPlanInput, onStage: (s: 'planning') => void): Promise<AutoPlanDraft & Usage> {
     onStage('planning');
     const context = autoPlanContext(i);
-    const user = autoPlanUserMessage(i);
     const t = i.teardown;
     const ctx = {
       uiLocale: i.uiLocale, durationSec: i.media.durationSec, offer: i.offer, pageCaptured: i.page.captured,
       blockCount: t.structure.status === 'ok' && t.structure.data ? t.structure.data.blocks.length : 0,
+      allowedFrames: allowedFramesOf(i),
     };
+    // §14.3: com STATIC em `allowed`, até 4 frames-chave vão como REFERÊNCIA visual (baixados uma vez; o reparo reusa)
+    const refs = staticAllowed(i) && i.keyframes.length ? await this.loadFrames(i.keyframes.slice(0, 8), STATIC_REF_IMAGES) : { images: [], failed: 0 };
+    const images = refs.images.map((img) => ({ ...img, caption: `Reference for STATIC only. ${img.caption}` }));
+    const user = autoPlanUserMessage(i, images.length);
+    const charge = { workspaceId: i.workspaceId, variationBatchId: i.batchId, jobId: i.jobId };
     let total = 0;
-    const draft = await this.withRetry('auto plan', async () => {
-      const res = await this.transport.run({ system: AUTO_PLAN_SYSTEM, context, user, schema: AUTO_PLAN_SCHEMA, maxTokens: 32000 });
-      const spent = await this.charge(res, { workspaceId: i.workspaceId, variationBatchId: i.batchId, jobId: i.jobId });
+    // 1ª etapa: o plano (STATIC = conceito + emoção, FRAME = template). Esquema pequeno: o único com tudo estourou a
+    // gramática da saída estruturada em live (25/10, auto-plano-detalhe.ts).
+    const { root, targets, whys } = await this.withRetry('auto plan', async () => {
+      const res = await this.transport.run({ system: AUTO_PLAN_SYSTEM, context, ...(images.length ? { images } : {}), user, schema: AUTO_PLAN_SCHEMA, maxTokens: 32000 });
+      const spent = await this.charge(res, charge);
       total += spent;
       this.assertFinished(res);
-      return parseAutoPlan(res.text, ctx);
+      const r = parseJsonObject(res.text);
+      const tg = detailTargets(r, ctx.allowedFrames);
+      let first: ReturnType<typeof parseAutoPlan> | null = null;
+      try {
+        first = parseAutoPlan(res.text, ctx); // forma do plano (why, itens); STATIC/FRAME ainda sem texto
+      } catch (e) {
+        if (!tg.length) throw e;
+      }
+      const w = first ? { hook: first.why.hook.text, proof: first.why.proof.text, cta: first.why.cta.text } : {};
+      return { root: r, targets: tg, whys: w as Record<string, string> };
     });
-    return { ...draft, costUsd: round6(total) };
+    // 2ª etapa: 1 chamada por STATIC + 1 chamada com todas as molduras, em paralelo, mesmo sistema + contexto. Falhou = a peça sai.
+    const screenLanguage = languageName(i.screenLanguage);
+    const statics = targets.filter((x) => x.kind === 'STATIC');
+    const frames = targets.filter((x) => x.kind === 'FRAME');
+    const detailCall = async (what: string, call: () => Promise<Record<string, unknown>>) => {
+      try {
+        return await this.withRetry(what, call);
+      } catch (e) {
+        this.log.warn(`${what} detail failed: ${(e as Error).message}`);
+        return null;
+      }
+    };
+    const runDetail = async (user: string, schema: Record<string, unknown>, withImages: boolean, effort?: 'low') => {
+      const res = await this.transport.run({ system: AUTO_PLAN_SYSTEM, context, ...(withImages && images.length ? { images } : {}), user, schema, maxTokens: 16000, ...(effort ? { effort } : {}) });
+      const spent = await this.charge(res, charge);
+      total += spent;
+      this.assertFinished(res);
+      return parseJsonObject(res.text);
+    };
+    const [staticDetails, framesDetail] = await Promise.all([
+      Promise.all(statics.map((tg) => detailCall(`auto plan STATIC ${tg.index}`, () =>
+        runDetail(staticDetailMessage(tg, { screenLanguage, whys, others: statics.filter((x) => x.index !== tg.index), violations: i.violations, refImages: images.length }), STATIC_DETAIL_SCHEMA, true)))),
+      frames.length ? detailCall('auto plan FRAMES', () => runDetail(framesDetailMessage(frames, { screenLanguage, whys, violations: i.violations }), FRAMES_DETAIL_SCHEMA, false, 'low')) : Promise.resolve(null),
+    ]);
+    const details = framesByIndex(framesDetail, frames);
+    statics.forEach((tg, k) => {
+      if (staticDetails[k]) details.set(tg.index, staticDetails[k]!);
+    });
+    const draft = parseAutoPlan(mergeDetails(root, targets, details), ctx);
+    // TRANSIÇÃO (§C.0): itens FRAME só existem quando o backend põe FRAME em `allowed` (alias WithFrame); na fusão do B1
+    // o AutoPlanDraft do contrato passa a aceitá-los e o cast sai.
+    return { ...(draft as AutoPlanDraft), costUsd: round6(total) };
+  }
+
+  /**
+   * §A6: transcreve, por visão, o que está escrito na imagem do STATIC pra cada texto esperado (o backend compara).
+   * Modelo barato (Haiku), 1 nova tentativa se a resposta não serve; custo gravado (LLM) no lote e no criativo.
+   * Falha = erro do contrato (o backend marca `textCheck.status = 'skipped'` e entrega a peça).
+   */
+  async checkStaticText(i: CheckStaticTextInput): Promise<CheckStaticTextResult & Usage> {
+    if (!i.expected.length) return { items: [], extraText: [], costUsd: 0 };
+    const f = this.opts.fetchImpl ?? fetch;
+    let buf: Buffer;
+    try {
+      const res = await f(i.imageUrl, { signal: AbortSignal.timeout(30_000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      buf = Buffer.from(await res.arrayBuffer());
+      if (!buf.length) throw new Error('empty');
+    } catch (e) {
+      throw new IntegracaoError('PROVIDER_ERROR', `text check: could not read the image (${(e as Error).message})`);
+    }
+    const run = this.opts.runFfmpeg === undefined ? ffmpegRunner(process.env.FFMPEG_PATH || 'ffmpeg') : this.opts.runFfmpeg;
+    const images = await prepareCheckImages(buf, run);
+    const model = this.opts.textCheckModel || STATIC_TEXT_CHECK_MODEL.model;
+    let total = 0;
+    const out = await this.withRetry('static text check', async () => {
+      const res = await this.transport.run({
+        system: TEXT_CHECK_SYSTEM, images, user: textCheckUserMessage(i, images.length), schema: TEXT_CHECK_SCHEMA,
+        maxTokens: STATIC_TEXT_CHECK_MODEL.maxTokens, model, effort: textCheckEffort(model),
+      });
+      const spent = await recordLlmCost(this.costs, { workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, model }, res.usage);
+      total += spent;
+      this.assertFinished(res);
+      return parseTextCheck(res.text, i.expected);
+    });
+    return { ...out, costUsd: round6(total) };
   }
 
   /** 1 nova tentativa quando a resposta veio mas não serve (JSON fora da regra, corte); recusa não repete. */
@@ -422,8 +553,8 @@ export class ClaudeLiveService implements ClaudeService {
   }
 
   /** Baixa os frames (URL assinada) em base64. Frame que falha é pulado (o prompt avisa quantos faltaram). */
-  private async loadFrames(frames: { atSec: number; reason: string; url: string }[]): Promise<{ images: ClaudeImage[]; failed: number }> {
-    const pick = evenly([...frames].sort((a, b) => a.atSec - b.atSec), FRAME_LIMITS.max);
+  private async loadFrames(frames: { atSec: number; reason: string; url: string }[], max: number = FRAME_LIMITS.max): Promise<{ images: ClaudeImage[]; failed: number }> {
+    const pick = evenly([...frames].sort((a, b) => a.atSec - b.atSec), max);
     const f = this.opts.fetchImpl ?? fetch;
     const got = await Promise.all(
       pick.map(async (k): Promise<ClaudeImage | null> => {

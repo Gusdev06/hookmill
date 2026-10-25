@@ -4,19 +4,20 @@ import { useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useFormatter, useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
-import type { BusinessType, Offer, OfferBrief, OfferExtractOutput, UiLocale, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
+import type { BusinessType, Offer, OfferBrief, OfferExtractOutput, UiLocale, UpdateOfferBody, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
+import { BrandColorField, normalizeBrandColor } from "@/components/brand-color-field"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Icon } from "@/components/icon"
-import { ExtractChecklist, hostOf, useOfferExtract } from "@/components/offer-extract"
+import { ExtractChecklist, hostOf, ReadFrom, useOfferExtract } from "@/components/offer-extract"
 import { SoonBlock } from "@/components/soon"
 import { InviteForm } from "@/components/team"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { cn } from "@/lib/utils"
-import { Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
+import { Card, isMetaEnabled, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
 
 type Ctx = ReturnType<typeof useOnboarding>
 const BUSINESS_TYPES: BusinessType[] = ["ONLINE_STORE", "LOCAL_BUSINESS", "APP"]
@@ -39,11 +40,19 @@ async function applyReading(out: OfferExtractOutput, url: string, current: Offer
     return api.offers.create({
       name: out.name || hostOf(url), language: out.language, sourceUrl: url, kind: out.brief.kind ?? null, notes: null, ...brief,
       fieldSources: out.fieldSources,
+      // briefing-leitura-v2 D5: a new offer keeps the "read from" of the reading (absent before v2)
+      readMeta: out.readMeta,
     })
   }
-  const patch: Partial<OfferBrief> & { sourceUrl?: string } = {}
+  // existing offer: only the empty fields, plus the reading's `readMeta` (D6: whoever applies sends it); step 3 reads
+  // the origins back from the offer
+  const patch: UpdateOfferBody = {}
   for (const k of BRIEF_KEYS) if (!current[k]?.trim() && brief[k]) patch[k] = brief[k]
+  // QA bug 14 (BR-04): what the reading filled stays "from page" (step 3 shows the "From …" tags); without it, every sent field becomes `user`
+  const filled = BRIEF_KEYS.filter((k) => patch[k] !== undefined)
+  if (filled.length) patch.fieldSources = Object.fromEntries(filled.map((k) => [k, "page" as const]))
   if (!current.sourceUrl) patch.sourceUrl = url
+  if (out.readMeta) patch.readMeta = out.readMeta
   return Object.keys(patch).length ? api.offers.update(current.id, patch) : current
 }
 
@@ -54,6 +63,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const format = useFormatter()
   const qc = useQueryClient()
   const { canEdit, offer, move } = ctx
+  const metaOn = isMetaEnabled(ws)
 
   const [site, setSite] = useState(ws.websiteUrl ?? "")
   const [name, setName] = useState(ws.name)
@@ -62,6 +72,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const [type, setType] = useState<BusinessType | null>(ws.businessType)
   const [code, setCode] = useState(ws.shortCode)
   const [locale, setLocale] = useState<UiLocale>(ws.uiLocale)
+  const [brandColor, setBrandColor] = useState(ws.brandColor ?? "")
   const [found, setFound] = useState<string[] | null>(null)
 
   const ex = useOfferExtract({ onStart: () => setFound(null) })
@@ -97,6 +108,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   }
 
   const codeOk = CODE_RE.test(code)
+  const brandColorNorm = normalizeBrandColor(brandColor)
   const nameOk = name.trim().length > 0 && name.trim().length <= 80
   const body = (): UpdateWorkspaceBody => ({
     name: name.trim(),
@@ -106,8 +118,10 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
     businessType: type,
     shortCode: code,
     uiLocale: locale,
+    // estatico-montado D3: sent only when it changed (an API without the field ignores nothing it didn't get)
+    ...((brandColorNorm || null) !== (ws.brandColor ?? null) ? { brandColor: brandColorNorm || null } : {}),
   })
-  const valid = nameOk && codeOk
+  const valid = nameOk && codeOk && brandColorNorm !== null
   const go = (step: number, to: string) => (valid || !canEdit ? move.mutate({ body: canEdit ? body() : undefined, step, to }) : undefined)
 
   const mmdd = format.dateTime(new Date(), { month: "2-digit", day: "2-digit", timeZone: "UTC" }).replace(/\D/g, "").slice(0, 4)
@@ -122,13 +136,13 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       sub={t("business.sub")}
       error={move.error}
       saving={move.isPending}
-      onSaveExit={() => go(1, "/clients")}
+      onSaveExit={() => go(1, ctx.exitTo)}
       hintWarn={!valid}
       hint={!valid ? t("business.fixFirst") : t("savedAsYouGo")}
       back={null}
       primary={
-        <Button variant="brand" size="lg" disabled={move.isPending || (canEdit && !valid) || reading} onClick={() => go(2, onboardingHref(2))}>
-          {t("business.continue")}
+        <Button variant="brand" size="lg" disabled={move.isPending || (canEdit && !valid) || reading} onClick={() => go(ctx.nextStep(1), ctx.next(1))}>
+          {metaOn ? t("business.continue") : t("business.continueOffer")}
           <Icon name="arrowr" />
         </Button>
       }
@@ -172,6 +186,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
                 ))}
               </div>
             ) : null}
+            <ReadFrom source={ex.result?.readMeta ?? ex.result} className="text-[13px] text-fg-2" />
           </div>
         ) : null}
         {readFailed && !reading ? (
@@ -217,6 +232,8 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
             </Select>
           </div>
         </div>
+
+        <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} />
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="mb-2 p-0 text-[13px] font-semibold">{t("business.typeLegend")}</legend>

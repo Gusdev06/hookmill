@@ -1,17 +1,9 @@
 // Subdomínios da oferta (pedido do Gusta, 16/10): o funil raramente mora só na URL colada. Preço, garantia, bônus e
-// upsell costumam estar no checkout., pay., app., members. do mesmo domínio. Depois de ler a página principal, a gente
-// acha os subdomínios por dois caminhos e lê até MAX_RELATED deles com o mesmo fetchPage (mesma trava de SSRF):
+// upsell costumam estar no checkout., pay., app., members. do mesmo domínio. Dois caminhos pra achá-los:
 //   1. links da própria página (botão de compra, login, área de membros): o funil real, vem primeiro;
 //   2. certificados públicos (crt.sh): pega o que não está linkado. Lento e instável, então tem teto curto e é opcional.
-// Nada aqui derruba o briefing: subdomínio que falha fica de fora.
+// Desde a leitura v2 (22/10) quem lê as páginas é o subpaginas.ts; aqui ficam só as regras de domínio/subdomínio.
 import { getDomain, getHostname } from 'tldts';
-import { fetchPage, type FetchPageOptions, type PageText, type RelatedPage } from './pagina';
-
-export const MAX_RELATED = 4;
-/** Cada subdomínio entra com no máximo isso de texto: complemento, não concorrente da página principal. */
-export const RELATED_PAGE_CHARS = 8_000;
-const RELATED_TIMEOUT_MS = 8_000;
-const CT_TIMEOUT_MS = 6_000;
 
 /** Plataformas onde o domínio é de todo mundo: subdomínio de lá é da plataforma, não da oferta. */
 const PLATFORM_DOMAINS = new Set([
@@ -24,7 +16,7 @@ const PLATFORM_DOMAINS = new Set([
 ]);
 
 /** Infra, e-mail, ambientes internos e suporte/docs/vagas: não dizem nada da oferta. */
-const SKIP = /^(?:help|support|suporte|ajuda|faq|docs?|documentation|developers?|feedback|community|comunidade|forum|careers|jobs|vagas|press|imprensa|investors?|ir|legal|privacy|trust|security|changelog|www\d*|mail\d*|webmail|smtp|imap|pop3?|mx\d*|email|e|ftp|sftp|cpanel|whm|webdisk|autodiscover|autoconfig|ns\d*|dns\d*|api\d*|cdn\d*|static|assets|img|images|media|files|uploads|s3|dev|develop|staging|stage|stg|test|testing|qa|uat|sandbox|preview|beta|admin|vpn|remote|git|gitlab|jira|status|grafana|metrics|monitor|sso|auth|login|id|track|tracking|click|links?|em\d*|bounce|sendgrid|mailgun|k8s|db|sql|redis|internal|intranet|localhost)$/i;
+export const SKIP = /^(?:help|support|suporte|ajuda|faq|docs?|documentation|developers?|feedback|community|comunidade|forum|careers|jobs|vagas|press|imprensa|investors?|ir|legal|privacy|trust|security|changelog|www\d*|mail\d*|webmail|smtp|imap|pop3?|mx\d*|email|e|ftp|sftp|cpanel|whm|webdisk|autodiscover|autoconfig|ns\d*|dns\d*|api\d*|cdn\d*|static|assets|img|images|media|files|uploads|s3|dev|develop|staging|stage|stg|test|testing|qa|uat|sandbox|preview|beta|admin|vpn|remote|git|gitlab|jira|status|grafana|metrics|monitor|sso|auth|login|id|track|tracking|click|links?|em\d*|bounce|sendgrid|mailgun|k8s|db|sql|redis|internal|intranet|localhost)$/i;
 
 /** Nomes de etapa de funil: no crt.sh (que pode listar centenas) só vale a pena o que tem cara de funil. */
 const FUNNEL = /^(?:checkout|pay|pagamento|pagar|compra|comprar|buy|order|cart|carrinho|shop|loja|store|app|members?|membros|area|aluno|alunos|portal|go|lp|oferta|offer|vendas|sales|quiz|start|join|get|try|trial|pricing|precos|upsell|obrigado|thanks|bonus|vip|clube|club|curso|course|academy|academia|plataforma)\d*$/i;
@@ -36,10 +28,10 @@ export function offerDomain(host: string): string | null {
   return d;
 }
 
-const bare = (host: string) => host.toLowerCase().replace(/^www\./, '');
+export const bare = (host: string) => host.toLowerCase().replace(/^www\./, '');
 /** Rótulos antes do domínio: checkout.foo.com.br → ['checkout']; app.eu.foo.com → ['app', 'eu']. */
-const labels = (host: string, domain: string) => bare(host).slice(0, -(domain.length + 1)).split('.');
-const skip = (host: string, domain: string) => labels(host, domain).some((l) => SKIP.test(l));
+export const labels = (host: string, domain: string) => bare(host).slice(0, -(domain.length + 1)).split('.');
+export const skipHost = (host: string, domain: string) => labels(host, domain).some((l) => SKIP.test(l));
 const funnel = (host: string, domain: string) => FUNNEL.test(labels(host, domain)[0]);
 
 /** URLs de subdomínios da mesma oferta linkados na página (uma por host, a primeira que aparece; os de funil primeiro). */
@@ -51,12 +43,14 @@ export function linkedSubdomains(pageUrl: string, links: string[]): string[] {
   for (const l of links) {
     const host = bare(getHostname(l) ?? '');
     if (!host || host === main || host === domain || !host.endsWith(`.${domain}`) || byHost.has(host)) continue;
-    if (skip(host, domain)) continue;
+    if (skipHost(host, domain)) continue;
     byHost.set(host, l);
   }
   const hosts = [...byHost.keys()];
   return [...hosts.filter((h) => funnel(h, domain)), ...hosts.filter((h) => !funnel(h, domain))].map((h) => byHost.get(h)!);
 }
+
+const CT_TIMEOUT_MS = 6_000;
 
 /** Subdomínios com cara de funil dos certificados públicos (crt.sh), como https://host/. Falha/lento → []. */
 export async function certSubdomains(domain: string, opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {}): Promise<string[]> {
@@ -73,65 +67,11 @@ export async function certSubdomains(domain: string, opts: { fetchImpl?: typeof 
         const host = bare(n.trim());
         if (!host || host.includes('*') || host === domain || !host.endsWith(`.${domain}`)) continue;
         // só um nível (checkout.foo.com): app.linux-packages.foo.com é infra com nome bonito
-        if (labels(host, domain).length === 1 && !skip(host, domain) && funnel(host, domain)) hosts.add(host);
+        if (labels(host, domain).length === 1 && !skipHost(host, domain) && funnel(host, domain)) hosts.add(host);
       }
     }
     return [...hosts].sort().map((h) => `https://${h}/`);
   } catch {
     return [];
   }
-}
-
-export interface RelatedOptions extends FetchPageOptions {
-  /** crt.sh (testes trocam ou desligam com `async () => []`) */
-  certLookup?: (domain: string) => Promise<string[]>;
-  max?: number;
-}
-
-/** Lê os subdomínios da oferta a partir da página principal já baixada. Nunca lança. */
-export async function fetchRelatedPages(main: PageText, opts: RelatedOptions = {}): Promise<RelatedPage[]> {
-  if (!main.url) return [];
-  const domain = offerDomain(new URL(main.url).hostname);
-  if (!domain) return [];
-  const max = opts.max ?? MAX_RELATED;
-  const linked = linkedSubdomains(main.url, main.links ?? []);
-  const certs = linked.length >= max ? [] : await (opts.certLookup ?? ((d: string) => certSubdomains(d, { fetchImpl: opts.fetchImpl })))(domain).catch(() => []);
-  const seen = new Set([bare(new URL(main.url).hostname)]);
-  const candidates: string[] = [];
-  for (const u of [...linked, ...certs]) {
-    const h = bare(new URL(u).hostname);
-    if (seen.has(h)) continue;
-    seen.add(h);
-    candidates.push(u);
-    if (candidates.length >= max) break;
-  }
-  const pages = await Promise.all(candidates.map(async (u): Promise<RelatedPage | null> => {
-    try {
-      const p = await fetchPage(u, { ...opts, timeoutMs: Math.min(opts.timeoutMs ?? RELATED_TIMEOUT_MS, RELATED_TIMEOUT_MS) });
-      // redirect pra fora da oferta (ex.: checkout. → hotmart) ou de volta pra principal não acrescenta nada
-      const h = bare(new URL(p.url).hostname);
-      if (!h.endsWith(`.${domain}`) && h !== domain) return null;
-      if (h === bare(new URL(main.url).hostname)) return null;
-      const truncated = p.truncated || p.text.length > RELATED_PAGE_CHARS;
-      return { url: p.url, title: p.title, text: p.text.slice(0, RELATED_PAGE_CHARS), truncated };
-    } catch {
-      return null;
-    }
-  }));
-  const out: RelatedPage[] = [];
-  const hosts = new Set<string>();
-  for (const p of pages) {
-    if (!p) continue;
-    const h = bare(new URL(p.url).hostname);
-    if (hosts.has(h)) continue;
-    hosts.add(h);
-    out.push(p);
-  }
-  return out;
-}
-
-/** Página principal + subdomínios: o que o ClaudeLiveService usa por padrão pra ler a oferta. */
-export async function fetchOfferPages(url: string, opts: RelatedOptions = {}): Promise<PageText> {
-  const main = await fetchPage(url, opts);
-  return { ...main, related: await fetchRelatedPages(main, opts) };
 }

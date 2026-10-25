@@ -285,6 +285,13 @@ export class StorageService {
     return Buffer.from(await out.Body!.transformToByteArray());
   }
 
+  /** Lê só uma faixa do objeto (`Range: bytes=offset-(offset+length-1)`): upload em pedaços sem carregar o MP4 inteiro. */
+  async readRange(file: Pick<FileRow, 'storageKey'>, offset: number, length: number): Promise<Buffer> {
+    if (!Number.isInteger(offset) || offset < 0 || !Number.isInteger(length) || length <= 0) throw new RangeError(`faixa inválida: ${offset}+${length}`);
+    const out = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: file.storageKey, Range: `bytes=${offset}-${offset + length - 1}` }));
+    return Buffer.from(await out.Body!.transformToByteArray());
+  }
+
   async ping(): Promise<boolean> {
     try {
       await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));

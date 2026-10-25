@@ -60,7 +60,8 @@ export const TRANSITIONS = {
   CHANGE_FACE: { from: ['RENDER_READY'], to: ['FACES_READY'] },
   /** variacao-auto-v1 §3.3: peça AUTO nasce RENDERING no start do lote (criação; sem origem). Ver `initialState`. */
   AUTO_PIECE_START: { from: [], to: ['RENDERING'] },
-  /** variacao-auto-v1 §3.3: peça AUTO com os 3 formatos READY vai sozinha pra Library, na mesma transação do RENDER_READY */
+  /** variacao-auto-v1 §3.3 (rev. 23/10 §14.2): peça AUTO com o 9:16 READY vai sozinha pra Library, na mesma transação do
+   *  RENDER_READY. 4:5/1:1 são sob demanda depois disso e nunca mexem no estado (o criativo segue APPROVED). */
   AUTO_APPROVE: { from: ['RENDER_READY'], to: ['APPROVED'] },
 } as const satisfies Record<string, { from: readonly CreativeState[]; to: readonly CreativeState[] }>;
 

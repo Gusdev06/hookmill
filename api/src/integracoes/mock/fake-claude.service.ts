@@ -3,7 +3,9 @@
 //
 // Gatilhos (pra QA testar erros):
 //   extractOffer: url contendo "mock-403" → PAGE_FORBIDDEN; "mock-unreadable" (ou sem url e sem texto) → PAGE_UNREADABLE;
-//                 "mock-429" → RATE_LIMITED.
+//                 "mock-429" → RATE_LIMITED; "mock-login" → PAGE_UNREADABLE { reason: 'login_wall' } (leitura v2 §7);
+//                 "mock-vision" → readMode 'vision' com principal + checkout, 2 imagens lidas (imageNotes) e
+//                 offerAndPrice vindo da imagem 1 (fieldOrigins com imageIndex). Os 6 stages do §4.3 são emitidos.
 //   generateScripts: offer.notes contendo "[mock:fail-slot:N]" (N = 0-based) → slot N falha com PROVIDER_ERROR;
 //                    "[mock:fail-all]" → todos falham.
 //   analyzeChampion (feature 2): offer.notes contendo "[mock:analysis-fail]" → PROVIDER_ERROR. (O gatilho do contrato
@@ -28,6 +30,8 @@ import type {
   ClaudeService,
   DescribeEditInput,
   EditLayer,
+  ExtractSources,
+  ExtractStage,
   EditMap,
   EditMapDraft,
   HookMode,
@@ -54,6 +58,18 @@ import type { CostStore } from '../portas';
 import { hookTextSlot, spokenHookOf } from '../claude/edicao';
 import { seedOf, unit } from './midia';
 import { mockAutoPlan } from './fake-auto-plan';
+import type { CheckStaticTextInput, CheckStaticTextResult, StaticTextCheckPort } from '../contrato';
+
+/** Erro de grafia determinístico do mock (o defeito real visto no 1k: "volta" → "vólta"). Tira o 1º acento, se houver;
+ *  senão põe um agudo na 1ª vogal sem acento. */
+export function misspell(text: string): string {
+  const strip: Record<string, string> = { á: 'a', à: 'a', â: 'a', ã: 'a', é: 'e', ê: 'e', í: 'i', ó: 'o', ô: 'o', õ: 'o', ú: 'u', ç: 'c' };
+  const acc = text.search(/[áàâãéêíóôõúç]/i);
+  if (acc >= 0) return text.slice(0, acc) + (strip[text[acc].toLowerCase()] ?? text[acc]) + text.slice(acc + 1);
+  const add: Record<string, string> = { a: 'á', e: 'é', i: 'í', o: 'ó', u: 'ú' };
+  const v = text.search(/[aeiou]/);
+  return v >= 0 ? text.slice(0, v) + add[text[v]] + text.slice(v + 1) : `${text}x`;
+}
 
 export interface FakeClaudeOptions {
   model: string;
@@ -142,7 +158,7 @@ function fill(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '').replace(/\s+/g, ' ').trim();
 }
 
-export class FakeClaudeService implements ClaudeService {
+export class FakeClaudeService implements ClaudeService, StaticTextCheckPort {
   constructor(
     private readonly costs: CostStore,
     private readonly opts: FakeClaudeOptions,
@@ -150,14 +166,21 @@ export class FakeClaudeService implements ClaudeService {
 
   async extractOffer(
     input: { url?: string; pageText?: string; workspaceId: string; jobId: string },
-    onStage: (stage: 'fetching_page' | 'extracting' | 'detecting_language') => void,
-  ): Promise<OfferBriefDraft & Usage> {
+    onStage: (stage: ExtractStage) => void,
+  ): Promise<OfferBriefDraft & Usage & ExtractSources> {
+    const vision = !!input.url?.includes('mock-vision');
     if (input.url) {
       onStage('fetching_page');
       await this.pause();
       if (input.url.includes('mock-403')) throw new IntegracaoError('PAGE_FORBIDDEN', 'page returned 403');
       if (input.url.includes('mock-429')) throw new IntegracaoError('RATE_LIMITED', 'rate limited');
       if (input.url.includes('mock-unreadable')) throw new IntegracaoError('PAGE_UNREADABLE', 'no readable text');
+      if (input.url.includes('mock-login')) throw new IntegracaoError('PAGE_UNREADABLE', 'login wall', { reason: 'login_wall' });
+      // leitura v2 §4.3: etapas de leitura sempre emitidas (o backend marca feita a que não precisou rodar)
+      onStage('rendering_page');
+      onStage('reading_subpages');
+      onStage('reading_images');
+      if (vision) await this.pause();
     } else if (!input.pageText?.trim()) {
       throw new IntegracaoError('PAGE_UNREADABLE', 'no url and no page text');
     }
@@ -189,12 +212,43 @@ export class FakeClaudeService implements ClaudeService {
       promise: lg === 'pt' ? 'Resultado visível na primeira semana.' : lg === 'es' ? 'Resultado visible en la primera semana.' : 'Visible results in the first week.',
       pains: T[lg].defPains,
       proof: T[lg].defProof,
-      offerAndPrice: null,
+      offerAndPrice: vision ? (lg === 'pt' ? '12x de R$ 49,70 (lido do banner)' : lg === 'es' ? '12 cuotas de US$ 9,90 (leído del banner)' : '12 payments of $9.90 (read from the banner)') : null,
       cta: T[lg].defCta,
       notes: null,
     };
     await this.recordCost(input.workspaceId, input.jobId, null);
-    return { ...brief, costUsd: 0 };
+    return { ...brief, costUsd: 0, ...this.readSources(input, brief, vision) };
+  }
+
+  /** ExtractSources do mock (§4.1): texto colado = pasted; url = http; mock-vision = principal + checkout + 2 imagens. */
+  private readSources(input: { url?: string; pageText?: string }, brief: OfferBriefDraft, vision: boolean): ExtractSources {
+    const url = input.url ?? '';
+    if (!input.url || input.pageText?.trim()) {
+      const origins = this.originsOf(brief, [{ role: 'main', url }]);
+      return { readMode: 'pasted', pages: [{ url, role: 'main', via: 'http', chars: (input.pageText ?? '').trim().length }], imagesRead: [], fieldOrigins: origins, relatedUrls: [] };
+    }
+    if (!vision) {
+      return { readMode: 'http', pages: [{ url, role: 'main', via: 'http', chars: 4200 }], imagesRead: [], fieldOrigins: this.originsOf(brief, [{ role: 'main', url }]), relatedUrls: [] };
+    }
+    let checkout = `${url.replace(/\/$/, '')}/checkout`;
+    try { checkout = new URL('/checkout', url).toString(); } catch { /* url inválida: fica a concatenação */ }
+    const pages: ExtractSources['pages'] = [{ url, role: 'main', via: 'rendered', chars: 423 }, { url: checkout, role: 'checkout', via: 'http', chars: 1800 }];
+    const imagesRead: ExtractSources['imagesRead'] = [
+      { index: 1, src: `${url}#screen-1`, alt: null, kind: 'screenshot', widthPx: 724, heightPx: 1568, read: 'Hero banner with the offer promise, a price of 12 x 49.70 and a "Buy now" button.' },
+      { index: 2, src: `${checkout}#screen-1`, alt: null, kind: 'screenshot', widthPx: 724, heightPx: 1568, read: 'Checkout form with order summary and 7-day guarantee seal.' },
+    ];
+    const fieldOrigins = this.originsOf(brief, [{ role: 'main', url }]);
+    fieldOrigins.offerAndPrice = [{ role: 'main', url, imageIndex: 1 }, { role: 'checkout', url: checkout }];
+    fieldOrigins.proof = [{ role: 'main', url }, { role: 'checkout', url: checkout, imageIndex: 2 }];
+    return { readMode: 'vision', pages, imagesRead, fieldOrigins, relatedUrls: [checkout] };
+  }
+
+  private originsOf(brief: OfferBriefDraft, from: { role: 'main'; url: string }[]): ExtractSources['fieldOrigins'] {
+    const out: ExtractSources['fieldOrigins'] = {};
+    for (const k of ['name', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'] as const) {
+      if (brief[k] != null && brief[k] !== '') out[k] = from.map((f) => ({ ...f }));
+    }
+    return out;
   }
 
   async generateScripts(
@@ -349,9 +403,40 @@ export class FakeClaudeService implements ClaudeService {
   async planAutoBatch(i: AutoPlanInput, onStage: (s: 'planning') => void): Promise<AutoPlanDraft & Usage> {
     onStage('planning');
     await this.pause();
-    const draft = mockAutoPlan(i);
+    // TRANSIÇÃO (§C.0): com FRAME em `allowed` o mock devolve peças FRAME; o cast sai na fusão do B1
+    const draft = mockAutoPlan(i) as AutoPlanDraft;
     await this.costs.record({ workspaceId: i.workspaceId, variationBatchId: i.batchId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0, jobId: i.jobId });
     return { ...draft, costUsd: 0 };
+  }
+
+  /** renders cuja 1ª checagem já saiu errada no [mock:static-text-mismatch] (memória do processo; a 2ª passa) */
+  private readonly textMismatched = new Set<string>();
+
+  /**
+   * §A6 mock: "vê" exatamente o texto esperado. Gatilhos nas notas da OFERTA (CheckStaticTextInput.notes):
+   *   [mock:static-text-mismatch]     1ª checagem do render vê o 1º texto crítico com acento errado ("volta" → "vólta");
+   *                                   a 2ª (depois da refação) vê tudo certo.
+   *   [mock:static-text-mismatch-all] toda checagem vê o erro (as duas imagens erradas → `mismatch`).
+   *   [mock:static-text-fail]         a checagem falha (PROVIDER_UNAVAILABLE → o backend marca `skipped`).
+   * Custo 0 (cost_entry LLM no lote).
+   */
+  async checkStaticText(i: CheckStaticTextInput): Promise<CheckStaticTextResult & Usage> {
+    await this.pause();
+    const notes = i.notes ?? '';
+    if (notes.includes('[mock:static-text-fail]')) throw new IntegracaoError('PROVIDER_UNAVAILABLE', 'mock text check failure');
+    let wrong = false;
+    if (notes.includes('[mock:static-text-mismatch-all]')) wrong = true;
+    else if (notes.includes('[mock:static-text-mismatch]') && !this.textMismatched.has(i.renderId)) {
+      this.textMismatched.add(i.renderId);
+      wrong = true;
+    }
+    const target = wrong ? (i.expected.find((e) => e.critical) ?? i.expected[0])?.key : undefined;
+    await this.costs.record({ workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0 });
+    return {
+      items: i.expected.map((e) => ({ key: e.key, found: true, seen: e.key === target ? misspell(e.text) : e.text })),
+      extraText: [],
+      costUsd: 0,
+    };
   }
 
   private async recordCost(workspaceId: string, jobId: string, creativeId: string | null) {

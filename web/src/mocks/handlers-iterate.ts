@@ -3,11 +3,13 @@
  */
 import { delay, http, HttpResponse } from "msw"
 import { API_URL } from "@/lib/api/client"
-import type { CreateIterateBody, LibraryItemV, RetryPieceBody, StartIterateBody, UpdatePieceBody } from "@/lib/api/types"
-import { db } from "./db"
+import type { CreateIterateBody, LibraryItemV, RequestPieceFormatBody, RetryPieceBody, StartIterateBody, UpdatePieceBody } from "@/lib/api/types"
+import { db, save as saveDb } from "./db"
+import { mockWorkspaceOf } from "./auth"
+import { adRows } from "./v2"
 import { f2 } from "./variar"
 import { listScenario, scenario } from "./scenario"
-import { advanceIter, findPiece, iterConfig, iterView, it, launchIter, newIter, pieceView, retryIter, retryPiece, saveIter, startZip } from "./iterate"
+import { advanceIter, findPiece, formatStateOf, isUnsupportedFormat, iterConfig, iterView, it, launchIter, newIter, pieceView, requestFormat, retryIter, retryPiece, saveIter, STATIC_USD, startZip, textCapForced, type MIter } from "./iterate"
 
 const u = (p: string) => API_URL + p
 const ok = <D,>(data: D, status = 200) => HttpResponse.json({ success: true, data }, { status })
@@ -17,6 +19,14 @@ const notFound = () => fail("NOT_FOUND", 404, "Not found.")
 const invalid = (state: string, allowed: string[], reason?: string) =>
   fail("INVALID_STATE", 409, "Not allowed in the current state.", { state, allowed, ...(reason ? { reason } : {}) })
 const body = async <T,>(r: Request) => ((await r.json().catch(() => ({}))) as T)
+
+/** Web-mock trigger [mock:spend-cap] in the offer notes: any image spend is over the cap (§14.4). `force` = ?mocktext=cap.
+ *  Details = `{ spentUsd, capUsd, estimateUsd }` (monthly cap, api.md 25/10). */
+const capped = (b: MIter, estimateUsd: number, force = false) =>
+  estimateUsd > 0 && (force || (db.offers.find((o) => o.id === b.offerId)?.notes ?? "").includes("[mock:spend-cap]"))
+    ? fail("SPEND_CAP_EXCEEDED", 409, "Monthly spend cap reached.", { spentUsd: 299.9, capUsd: db.workspace.monthlySpendCapUsd ?? 300, estimateUsd })
+    : null
+const roleOf = (r: Request) => (typeof window !== "undefined" && sessionStorage.getItem("mock:role")) || mockWorkspaceOf(r.headers.get("Authorization")).role
 
 function batch(id: unknown) {
   const b = it.batches.find((x) => x.id === id && !x.archived)
@@ -31,8 +41,25 @@ export const iterateHandlers = [
 
   http.post(u("/iterate"), async ({ request }) => {
     const b = await body<CreateIterateBody>(request)
-    if (!!b.uploadId === !!b.creativeId) return fail("VALIDATION_ERROR", 400, "Send exactly one of uploadId / creativeId.", { fields: [{ field: "uploadId", rule: "exactly_one" }] })
+    const given = [b.uploadId, b.creativeId, b.metaAdId].filter(Boolean).length
+    if (given !== 1) return fail("VALIDATION_ERROR", 400, "Send exactly one of uploadId / creativeId / metaAdId.", { fields: [{ field: "uploadId", rule: "exactly_one" }] })
     await delay(300)
+    // meta-v1 D13: Pick from Meta = the ad's video downloaded as the champion (META_IMPORT), then the usual analysis
+    if (b.metaAdId) {
+      const wid = mockWorkspaceOf(request.headers.get("Authorization")).id
+      const m = db.v2.meta[wid]
+      if (!m || m.status !== "ACTIVE" || !m.adAccountId) return fail("META_NOT_CONNECTED", 422, "Connect a Meta account first.")
+      const ad = adRows(m, new Set()).find((r) => r.metaAdId === b.metaAdId)
+      if (!ad) return notFound()
+      const offers = db.offers
+      if (!b.offerId && offers.length !== 1) return fail("OFFER_REQUIRED", 422, "Pick the offer this ad is for.", { offers: offers.map((o) => ({ id: o.id, name: o.name })) })
+      const offerId = b.offerId ?? offers[0].id
+      if (!offers.some((o) => o.id === offerId)) return notFound()
+      m.iterated = Array.from(new Set([...(m.iterated ?? []), ad.metaAdId]))
+      saveDb()
+      const nb = newIter({ offerId, uploadId: null, sourceCreativeId: null, name: ad.name, durationSec: 29, width: 1080, height: 1920, filename: "" })
+      return ok(iterView(nb), 202)
+    }
     if (b.creativeId) {
       const lib = (db.library as LibraryItemV[]).find((l) => l.id === b.creativeId)
       if (!lib) return notFound()
@@ -77,8 +104,14 @@ export const iterateHandlers = [
     if (!b) return notFound()
     const v = iterView(b)
     if (v.status !== "PLAN_READY") return invalid(v.status, ["PLAN_READY"])
-    const { expectedPieces } = await body<StartIterateBody>(request)
+    const { expectedPieces, expectedCostUsd } = await body<StartIterateBody>(request)
     if (expectedPieces !== b.pieces.length) return fail("PLAN_CHANGED", 409, "The plan changed.", { pieces: b.pieces.length })
+    // §14.4: estimate > expected × 1.10 = ESTIMATE_CHANGED; then the cap
+    const estimateUsd = v.cost.generateEstimateUsd ?? 0
+    if (typeof expectedCostUsd !== "number") return fail("VALIDATION_ERROR", 400, "expectedCostUsd is required.", { fields: [{ field: "expectedCostUsd", rule: "isNumber" }] })
+    if (estimateUsd > expectedCostUsd * 1.1 + 1e-9) return fail("ESTIMATE_CHANGED", 409, "The estimate changed.", { estimateUsd })
+    const cap = capped(b, estimateUsd)
+    if (cap) return cap
     launchIter(b)
     await delay(250)
     return ok(iterView(b), 202)
@@ -88,9 +121,33 @@ export const iterateHandlers = [
     const f = findPiece(String(params.pieceId))
     if (!f) return notFound()
     const v = pieceView(f.b, f.p)
-    if (v.status !== "failed" && v.status !== "left_out") return invalid(v.status, ["failed", "left_out"])
+    // §A10: also a STATIC `ready` whose text check is `mismatch` (new image, charged, through the cap)
+    const textRetry = v.status === "ready" && v.textCheck?.status === "mismatch" && !v.render
+    if (v.status !== "failed" && v.status !== "left_out" && !textRetry) return invalid(v.status, ["failed", "left_out"])
     await body<RetryPieceBody>(request)
+    const cap = capped(f.b, v.retryUsd ?? 0, textRetry && textCapForced())
+    if (cap) return cap
     retryPiece(f.b, f.p)
+    return ok(pieceView(f.b, f.p), 202)
+  }),
+
+  // §14.2: 4:5 / 1:1 on demand (also the retry of a failed format). 202 queued · 200 already queued/rendering/ready.
+  http.post(u("/iterate/pieces/:pieceId/formats"), async ({ params, request }) => {
+    const { format } = await body<RequestPieceFormatBody>(request)
+    if (format !== "4x5" && format !== "1x1") return fail("VALIDATION_ERROR", 400, "format must be 4x5 or 1x1.", { fields: [{ field: "format", rule: "isIn" }] })
+    const f = findPiece(String(params.pieceId))
+    if (!f) return notFound()
+    if (roleOf(request) === "CLIENT") return fail("FORBIDDEN", 403, "Clients can't request formats.")
+    const v = pieceView(f.b, f.p)
+    if (v.status !== "ready") return invalid(v.status, ["ready"])
+    // §B4: a frame template without this format
+    if (isUnsupportedFormat(f.p, format)) return invalid(v.status, [], "format_not_supported")
+    const st = formatStateOf(f.b, f.p, format)
+    await delay(180)
+    if (st === "queued" || st === "rendering" || st === "ready") return ok(v)
+    const cap = capped(f.b, f.p.type === "STATIC" ? STATIC_USD : 0)
+    if (cap) return cap
+    requestFormat(f.b, f.p, format)
     return ok(pieceView(f.b, f.p), 202)
   }),
 
@@ -113,6 +170,7 @@ export const iterateHandlers = [
     const v = pieceView(f.b, f.p)
     if (v.status !== "ready") return invalid(v.status, ["ready"])
     f.p.inZip = b.inZip
+    f.p.zipSet = true
     saveIter()
     await delay(120)
     return ok(pieceView(f.b, f.p))

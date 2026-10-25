@@ -1,0 +1,842 @@
+<title>HookMill Onboarding v2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: same shell as fase2 (dark sidebar + light work area). New here: a minimal shell for signup → mode → wizard → resume,
+   a route-based first-run tour drawn over the real screens, and the Home scoreboard. Single light theme by decision (12/10). */
+:root{
+  --bg:#EEEEEA; --card:#FDFDFB; --card-2:#F3F4F0; --input:#FFFFFF;
+  --line:#DCDDD7; --line-soft:#E4E5E0; --line-strong:#CFD1CB; --control:#B9BCB5; --sep:#9A9F96;
+  --fg:#15171A; --fg-2:#3B4047; --fg-3:#5A6068; --fg-btn:#4A5058; --on-ink-btn:#FFFFFF;
+  --accent:#C8F03C; --accent-ink:#3E5200; --accent-soft:#F0F8D2; --accent-edge:#A9CC2A;
+  --ink:#16181B; --ink-2:#202328; --ink-3:#2A2E33; --ink-line:#2E3238; --ink-fg:#F2F3EE; --ink-fg-2:#C5CAD0; --ink-fg-3:#9AA1A9; --ink-body:#E8EAE4;
+  --ok-bg:#E2F3E8; --ok:#0B6B43; --ok-dot:#1C9A5E;
+  --warn-bg:#FBF0D3; --warn:#7A5000; --warn-line:#E9C76B; --warn-dot:#D9A21B;
+  --bad-bg:#FBE7DD; --bad:#A8360C; --bad-edge:#E4B9A6;
+  --info-bg:#E6EBFC; --info:#2B4BC8; --info-on-ink:#8FA6FF;
+  --meta:#1877F2;
+  --font:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --r-chip:8px; --r-ctl:10px; --r-btn:12px; --r-card:16px; --r-panel:18px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.45;color:var(--fg)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+a{color:var(--fg)} a:hover{color:var(--accent-ink)}
+.mono{font-family:var(--mono)} .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+svg{flex:none}
+
+/* ---------- prototype bar (not product) ---------- */
+.proto{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--ink);color:var(--ink-fg-2);border-bottom:1px solid var(--ink-line);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:12px}
+.proto b{color:var(--ink-fg);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.proto select{background:var(--ink-2);color:var(--ink-fg);border:1px solid var(--ink-line);border-radius:8px;min-height:32px;padding:0 8px;font:inherit;max-width:100%}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--ink-fg-2);border-radius:7px;min-height:28px;padding:0 10px;cursor:pointer;font-size:12px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--fg);font-weight:700}
+.proto .note{margin-left:auto;color:var(--ink-fg-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- frame ---------- */
+.stagewrap{padding-block:0}
+.frame{container-type:inline-size;container-name:app;margin:0 auto;width:100%;background:var(--bg);position:relative}
+.frame.phone{width:390px;max-width:100%;margin-block:20px;border:1px solid var(--line-strong);border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(21,23,26,.12)}
+.frame.touring{overflow:hidden}
+
+/* ---------- app shell ---------- */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - 50px)}
+.side{background:var(--ink);color:var(--ink-fg-2);padding:18px 14px 20px;display:flex;flex-direction:column;gap:18px;position:sticky;top:50px;height:calc(100vh - 50px);overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 6px;color:var(--ink-fg);text-decoration:none}
+.brand-mark{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--fg);font-weight:800;font-stretch:125%;font-size:10px;flex:none}
+.brand-name{font-weight:800;font-stretch:125%;font-size:15px;letter-spacing:-.01em}
+.client{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border-radius:12px;background:var(--ink-2);border:1px solid var(--ink-line);color:var(--ink-fg);cursor:pointer;text-align:left;width:100%}
+.client-av{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:#1E2550;color:#E9DFC9;font-weight:800}
+.client .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.client b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client small{display:block;font-size:12px;color:var(--ink-fg-3)}
+.wsid{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border-radius:12px;background:var(--ink-2);border:1px solid var(--ink-line);color:var(--ink-fg)}
+.wsid .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.wsid b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wsid small{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-fg-3)}
+.wsid small.ok{color:#8BD7A9} .wsid small.warn{color:#EFC45A}
+.navgrp{display:flex;flex-direction:column;gap:2px}
+.navlab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-fg-3);padding:0 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border-radius:10px;border:0;background:transparent;color:var(--ink-fg-2);font-weight:500;cursor:pointer;text-align:left;width:100%}
+.nav svg{stroke:var(--ink-fg-3)}
+.nav:hover{background:var(--ink-2)}
+.nav[aria-current="page"]{background:var(--ink-3);color:#fff;font-weight:700}
+.nav[aria-current="page"] svg{stroke:var(--accent)}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--fg);background:var(--accent);border-radius:999px;padding:1px 7px}
+.soon-mini{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-fg-3);border:1px dashed var(--ink-fg-3);border-radius:999px;padding:0 6px}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--ink-line);padding-top:12px}
+.me{display:flex;align-items:center;gap:10px;padding:0 6px}
+.me-av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;background:var(--ink-line);color:var(--ink-fg);font-weight:700;font-size:13px;flex:none}
+.me .t{min-width:0;flex:1}
+.me b{color:var(--ink-fg);font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.me small{font-size:12px;color:var(--ink-fg-3)}
+.lang{display:inline-flex;border:1px solid var(--ink-line);border-radius:8px;overflow:hidden;flex:none}
+.lang button{border:0;background:transparent;color:var(--ink-fg-3);font-family:var(--mono);font-size:11px;min-height:30px;padding:0 8px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink-3);color:var(--ink-fg)}
+.lang.light{border-color:var(--line-strong)} .lang.light button{color:var(--fg-3)} .lang.light button[aria-pressed="true"]{background:var(--card-2);color:var(--fg)}
+.topm{display:none}
+main.work{min-width:0;padding:24px max(32px,env(safe-area-inset-right,0px)) 120px max(32px,env(safe-area-inset-left,0px))}
+.wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* ---------- minimal shell (mode · wizard · resume) ---------- */
+.min{min-height:calc(100vh - 50px);display:flex;flex-direction:column}
+.min-top{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px max(32px,env(safe-area-inset-right,0px)) 8px max(32px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:50px;z-index:20}
+.min-top .brand{color:var(--fg)}
+.min-top .who{display:flex;align-items:center;gap:10px;min-width:0;padding-left:12px;border-left:1px solid var(--line)}
+.min-top .who .client-av{width:28px;height:28px;font-size:12px;border-radius:8px}
+.min-top .who .t{display:flex;flex-direction:column;min-width:0}
+.min-top .who b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.min-top .spacer{flex:1}
+.min-body{flex:1;padding:32px max(32px,env(safe-area-inset-right,0px)) 140px max(32px,env(safe-area-inset-left,0px))}
+.center{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.center.narrow{max-width:640px}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.mode{display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:var(--r-card);border:1.5px solid var(--line);background:var(--card);text-align:left;cursor:pointer;min-height:230px;position:relative}
+.mode:hover{border-color:var(--fg)}
+.mode[aria-checked="true"]{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.mode .mi{width:44px;height:44px;border-radius:12px;background:var(--card-2);display:grid;place-items:center}
+.mode[aria-checked="true"] .mi{background:var(--accent)}
+.mode h3{margin:0;font-size:19px;font-weight:800;font-stretch:125%;letter-spacing:-.01em}
+.mode p{margin:0;color:var(--fg-2)}
+.mode ul{margin:0;padding:0 0 0 18px;color:var(--fg-3);font-size:13px;display:grid;gap:4px}
+.mode .pick{position:absolute;top:16px;right:16px}
+
+/* progress (wizard) */
+.prog{display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:14px 18px}
+.prog .r1{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.prog .r1 .l{display:flex;align-items:baseline;gap:10px;min-width:0}
+.prog .pct{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.prog .steps{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.prog .stp{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--fg-3);min-width:0;border:0;background:transparent;padding:0;text-align:left;cursor:pointer}
+.prog .stp[disabled]{cursor:default}
+.prog .stp i{display:block;height:6px;border-radius:999px;background:var(--line)}
+.prog .stp.d i{background:var(--fg)} .prog .stp.c i{background:var(--accent);outline:1px solid var(--accent-edge)}
+.prog .stp.c{color:var(--fg);font-weight:700}
+.prog .stp span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog .m{display:none}
+
+/* ---------- type ---------- */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--fg-3);text-transform:uppercase}
+.h1{margin:0;font-size:30px;line-height:1.1;font-weight:800;font-stretch:125%;letter-spacing:-.015em;text-wrap:balance}
+.h2{margin:0;font-size:16px;font-weight:700}
+.h3{margin:0;font-size:14px;font-weight:700}
+.lede{margin:0;color:var(--fg-3);max-width:640px;text-wrap:pretty}
+.head{display:flex;flex-direction:column;gap:8px}
+.headrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.muted{color:var(--fg-3)} .small{font-size:13px} .tiny{font-size:12px}
+.sec-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px}
+.sec-h .h2{display:flex;align-items:center;gap:8px}
+.count{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--card-2);border:1px solid var(--line-soft);border-radius:999px;padding:1px 8px}
+
+/* ---------- surfaces ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.sel{border:1.5px solid var(--fg)}
+.card.soft{background:var(--accent-soft);border-color:var(--accent-edge)}
+.ink{background:var(--ink);color:var(--ink-body);border-radius:var(--r-panel);padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.ink .eyebrow{color:var(--ink-fg-2)}
+.ink-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ink-list li{display:flex;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--ink-line)}
+.ink-list li:last-child{border-bottom:0;padding-bottom:0}
+.ink-list span:first-child{color:var(--ink-fg-2)} .ink-list span:last-child{color:#fff;font-weight:600;text-align:right}
+.big{font-family:var(--mono);font-size:54px;font-weight:600;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col-main{flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.col-side{flex:1 1 300px;max-width:100%;min-width:0;display:flex;flex-direction:column;gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.divider{border-top:1px solid var(--line-soft)}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.list li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line-soft)}
+.list li:first-child{border-top:0;padding-top:0}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:var(--r-btn);border:1px solid transparent;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn-lg{min-height:50px;padding:0 18px}
+.btn-sm{min-height:36px;padding:0 12px;border-radius:10px;font-size:13px}
+.btn-accent{background:var(--accent);color:var(--fg)} .btn-accent:hover{background:#BDE52F;color:var(--fg)}
+.btn-ink{background:var(--fg);color:var(--on-ink-btn)} .btn-ink:hover{color:var(--on-ink-btn);background:#2A2E33}
+.btn-out{background:var(--card);border-color:var(--line-strong);font-weight:600}
+.btn-out:hover{border-color:var(--fg)}
+.btn-ghost{background:transparent;color:var(--fg-btn);font-weight:600}
+.btn-bad{background:var(--card);border-color:var(--bad-edge);color:var(--bad);font-weight:600}
+.btn-on-ink{background:transparent;color:var(--ink-body);font-weight:600;border-color:var(--ink-line)}
+.btn-meta{background:var(--meta);color:#fff} .btn-meta:hover{background:#1466D1;color:#fff}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.spin{width:16px;height:16px;border-radius:999px;border:2px solid var(--line-strong);border-top-color:var(--fg);animation:spin 1s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- tags ---------- */
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;height:fit-content}
+.t-ok{background:var(--ok-bg);color:var(--ok)} .t-warn{background:var(--warn-bg);color:var(--warn)}
+.t-bad{background:var(--bad-bg);color:var(--bad)} .t-info{background:var(--info-bg);color:var(--info)}
+.t-neutral{background:var(--card-2);color:var(--fg-2);border:1px solid var(--line-soft)}
+.t-ink{background:var(--fg);color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:999px;background:currentColor;flex:none}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.soon{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:999px;background:var(--card);color:var(--fg-2);border:1px dashed var(--control);white-space:nowrap;height:fit-content}
+.example{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;padding:2px 7px;border-radius:999px;background:repeating-linear-gradient(135deg,var(--card-2) 0 6px,var(--line-soft) 6px 12px);color:var(--fg-2);border:1px solid var(--line-strong);white-space:nowrap}
+
+/* ---------- alerts ---------- */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;border:1px solid;flex-wrap:wrap}
+.alert .a-body{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 240px}
+.alert .a-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.alert b{font-weight:700}
+.al-bad{background:var(--bad-bg);border-color:var(--bad-edge);color:#5E1E06}
+.al-warn{background:var(--warn-bg);border-color:var(--warn-line);color:#4A3100}
+.al-ok{background:var(--ok-bg);border-color:#B7DEC5;color:#0B4D31}
+.al-info{background:var(--info-bg);border-color:#C3CEF6;color:#1D2F7A}
+.al-neutral{background:var(--card);border-color:var(--line);color:var(--fg-2)}
+
+/* ---------- action bar ---------- */
+.actionbar{position:sticky;bottom:0;z-index:5;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 10px 10px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:0 -6px 24px rgba(21,23,26,.06);padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.actionbar .hint{flex:1 1 220px;color:var(--fg-2);font-size:13px;min-width:0}
+.actionbar .hint.warn{color:var(--warn)}
+.actionbar .btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- waiting effects ---------- */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.beam{position:relative}
+.beam::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),transparent 0 70%,var(--accent) 82%,var(--info) 92%,transparent 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:beam 2.4s linear infinite;pointer-events:none}
+@keyframes beam{to{--a:360deg}}
+@media (prefers-reduced-motion:reduce){.beam::before,.pulse,.spin,.coach,.spot,.ring i{animation:none!important;transition:none!important}.beam::before{background:linear-gradient(90deg,var(--accent),var(--info))}}
+
+/* ---------- bars ---------- */
+.bar{height:8px;border-radius:999px;background:var(--line-soft);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--fg);transition:width .4s ease-out}
+.bar.okb i{background:var(--ok-dot)} .bar.lime i{background:var(--accent-edge)} .bar.warnb i{background:var(--warn-dot)}
+.ink .bar{background:var(--ink-line)} .ink .bar i{background:var(--accent)}
+
+/* ---------- form bits ---------- */
+label.lab{font-weight:700;font-size:13px}
+.inp,.ta,.sel{width:100%;border:1px solid var(--line-strong);border-radius:10px;background:var(--input);font:inherit;color:var(--fg);padding:10px 12px;min-height:44px}
+.fieldrow{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fields .full{grid-column:1/-1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);font-weight:600;color:var(--fg-btn);cursor:pointer}
+.chip.on{background:var(--fg);color:#fff;border-color:var(--fg)}
+.radio{width:20px;height:20px;border-radius:999px;border:1.5px solid var(--control);display:inline-grid;place-items:center;flex:none}
+.radio.on{border-color:var(--fg)} .radio.on::after{content:"";width:10px;height:10px;border-radius:999px;background:var(--fg)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line-soft);font-size:13px}
+.kv:first-child{border-top:0;padding-top:0}
+.kv span:first-child{color:var(--fg-3)}
+
+/* ---------- meta connect ---------- */
+.acc{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;text-align:left;width:100%}
+.acc.on{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.acc.off{cursor:not-allowed} .acc.off .t{opacity:.55}
+.acc .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.acc .t b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc .t small{font-family:var(--mono);font-size:12px;color:var(--fg-3)}
+.hl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.hl li{display:flex;gap:10px;align-items:flex-start}
+.hl .st{width:22px;height:22px;border-radius:999px;display:inline-grid;place-items:center;flex:none;margin-top:1px}
+.hl .st.ok{background:var(--ok-bg);color:var(--ok)} .hl .st.warn{background:var(--warn-bg);color:var(--warn)} .hl .st.bad{background:var(--bad-bg);color:var(--bad)} .hl .st.wait{border:1.5px solid var(--control)}
+.hl .t{display:flex;flex-direction:column;min-width:0}
+.hl .t small{color:var(--fg-3);font-size:13px}
+.conn{display:flex;gap:12px;align-items:center;padding:14px;border-radius:12px;background:var(--card-2);border:1px solid var(--line-soft)}
+.conn .fb{width:40px;height:40px;border-radius:10px;background:var(--meta);display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px;flex:none}
+.conn .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.conn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conn small{color:var(--fg-3);font-size:13px}
+
+/* ---------- home scoreboard ---------- */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi .k{font-size:13px;color:var(--fg-3);font-weight:600}
+.kpi .v{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .d{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg-3);flex-wrap:wrap}
+.kpi .bar{margin-top:4px}
+.ads{display:flex;flex-direction:column;gap:8px}
+.ad{display:grid;grid-template-columns:40px minmax(0,1fr) repeat(3,76px) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.ad.win{border-color:var(--accent-edge);background:var(--accent-soft)}
+.ad .th{width:40px;aspect-ratio:9/16;border-radius:6px;background:var(--t,#1E2550)}
+.ad .nm{display:flex;flex-direction:column;min-width:0}
+.ad .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .nm small{color:var(--fg-3);font-size:12px}
+.ad .m{display:flex;flex-direction:column;min-width:0}
+.ad .m small{font-size:11px;color:var(--fg-3)} .ad .m span{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums}
+.ad .stats{display:contents}
+.ad .act{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.wait{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.wcard{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);min-width:0}
+.wcard .th{width:48px;aspect-ratio:9/16;border-radius:6px;background:var(--t,#3A2142);flex:none}
+.wcard .t{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.wcard .t b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.path{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);text-align:left;cursor:pointer;min-width:0}
+.path:hover{border-color:var(--fg)}
+.path b{display:flex;align-items:center;gap:8px;font-size:16px}
+.path span{color:var(--fg-3);font-size:13px}
+.ring{position:relative;width:96px;height:96px;flex:none}
+.ring svg{width:96px;height:96px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9}
+.ring .tr{stroke:var(--line-soft)} .ring .pr{stroke:var(--accent-edge);stroke-linecap:round;transition:stroke-dashoffset .5s ease-out}
+.ring .n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums}
+.bsec{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line-soft)}
+.bsec:first-child{border-top:0;padding-top:0}
+.bsec .ck{width:24px;height:24px;border-radius:999px;display:inline-grid;place-items:center;flex:none;border:1.5px solid var(--control);color:var(--fg-3);transition:background .25s,border-color .25s}
+.bsec .ck.ok{background:var(--accent);border-color:var(--accent);color:var(--fg)}
+.bsec .ck.part{background:var(--warn-bg);border-color:var(--warn-bg);color:var(--warn)}
+.bsec .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.bsec .t small{color:var(--fg-3);font-size:13px}
+.empty-meta{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:center}
+
+/* ---------- client tiles (resume + clients) ---------- */
+.tile{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);min-width:0}
+.tile .r{display:flex;align-items:center;gap:10px}
+.tile .r .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.tile .r b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .r small{color:var(--fg-3);font-size:12px}
+.tile .client-av{width:36px;height:36px}
+
+/* ---------- flow bar (compact, reused from fase2) ---------- */
+.flow{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:8px 10px 8px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.flow-name{display:flex;flex-direction:column}
+.flow-name b{font-weight:800;font-stretch:125%;font-size:15px}
+.flow-ph{display:flex;flex-wrap:wrap;align-items:center;gap:6px;list-style:none;margin:0;padding:0}
+.st{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:0;background:transparent;font-weight:600;color:var(--fg-btn);white-space:nowrap}
+.st[aria-current="step"]{background:var(--fg);color:#fff;font-weight:700}
+.circ{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:600;border:1.5px solid var(--control);color:var(--fg);flex:none}
+.circ.on{background:var(--accent);border-color:var(--accent);color:var(--fg)}
+.circ.dash{border-style:dashed;color:var(--fg-3)}
+.flow-exit{margin-left:auto}
+
+/* ---------- upload / pick ---------- */
+.drop{border:1.5px dashed var(--control);border-radius:var(--r-card);padding:28px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:var(--card)}
+.drop b{font-size:15px}
+
+/* ---------- soon section ---------- */
+.soon-hero{display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line)}
+.soon-prev{border:1px dashed var(--control);border-radius:var(--r-card);background:var(--card-2);padding:14px;display:flex;flex-direction:column;gap:12px}
+.soon-prev .body{opacity:.5;filter:grayscale(.6);pointer-events:none}
+.eddy-msg{display:flex;flex-direction:column;gap:8px}
+.eddy-msg .b{padding:10px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);max-width:520px}
+.eddy-msg .b.me{background:var(--fg);color:#fff;align-self:flex-end}
+
+/* ---------- tour: spotlight + coachmark ---------- */
+.spot{position:absolute;z-index:60;border-radius:14px;box-shadow:0 0 0 9999px rgba(22,24,27,.62),0 0 0 2px var(--accent);pointer-events:none;transition:top .3s cubic-bezier(.2,.7,.2,1),left .3s cubic-bezier(.2,.7,.2,1),width .3s cubic-bezier(.2,.7,.2,1),height .3s cubic-bezier(.2,.7,.2,1)}
+.coach{position:absolute;z-index:61;width:360px;max-width:calc(100% - 32px);background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 50px rgba(21,23,26,.28);animation:coach .2s ease-out}
+@keyframes coach{from{opacity:0;transform:translateY(8px)}}
+.coach .ce{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.coach .dots{display:flex;gap:4px} .coach .dots i{width:6px;height:6px;border-radius:999px;background:var(--line-strong)} .coach .dots i.on{background:var(--fg)}
+.coach h3{margin:0;font-size:17px;font-weight:800;font-stretch:125%;letter-spacing:-.01em}
+.coach p{margin:0;color:var(--fg-2)}
+.coach .cb{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding-top:4px}
+.coach .cb .btn-ghost{margin-right:auto}
+.tour-lock{position:absolute;inset:0;z-index:59}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:80;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center}
+
+/* =================== responsive (container) =================== */
+@container app (max-width: 980px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wait{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .empty-meta{grid-template-columns:minmax(0,1fr)}
+}
+@container app (max-width: 760px){
+  .app{grid-template-columns:minmax(0,1fr);min-height:auto}
+  .side{display:none}
+  .app.menu .side{display:flex;position:absolute;top:56px;left:0;right:0;height:auto;z-index:30;border-bottom:1px solid var(--ink-line)}
+  .topm{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--ink-fg);padding:8px 16px;min-height:56px;position:sticky;top:50px;z-index:20}
+  .topm .client,.topm .wsid{min-height:40px;padding:4px 8px;flex:1;min-width:0}
+  .topm .client-av{width:26px;height:26px;font-size:12px}
+  .topm .wsid small{display:none}
+  .topm .mbtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--ink-line);background:transparent;color:var(--ink-fg);display:grid;place-items:center;cursor:pointer;flex:none}
+  main.work{padding:16px 16px 140px}
+  .min-top{padding:8px 16px;gap:8px}
+  .min-top .brand-name{display:none}
+  .min-body{padding:20px 16px 140px}
+  .h1{font-size:24px}
+  .modes{grid-template-columns:minmax(0,1fr)}
+  .mode{min-height:0}
+  .prog .steps{display:none}
+  .prog .m{display:flex;flex-direction:column;gap:8px}
+  .prog .m .segs{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+  .prog .m .segs i{height:5px;border-radius:999px;background:var(--line)}
+  .prog .m .segs i.d{background:var(--fg)} .prog .m .segs i.c{background:var(--accent);outline:1px solid var(--accent-edge)}
+  .fields{grid-template-columns:minmax(0,1fr)}
+  .actionbar{position:fixed;left:0;right:0;bottom:0;border-radius:0;border-width:1px 0 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+  .frame.phone .actionbar{position:sticky;margin-inline:-16px}
+  .actionbar .hint{flex-basis:100%}
+  .actionbar .btns{width:100%;display:grid;grid-template-columns:auto 1fr}
+  .actionbar .btns.three{grid-template-columns:auto 1fr 1fr}
+  .actionbar .btns .btn{width:100%}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi .v{font-size:24px}
+  .wait{grid-template-columns:minmax(0,1fr)}
+  .ad{grid-template-columns:40px minmax(0,1fr);row-gap:8px}
+  .ad .m{flex-direction:row;gap:6px;align-items:baseline}
+  .ad .stats{grid-column:1/-1;display:flex;gap:14px;flex-wrap:wrap}
+  .ad .act{grid-column:1/-1}
+  .ad .act .btn{width:100%}
+  .paths{grid-template-columns:minmax(0,1fr)}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .big{font-size:42px}
+  .flow{display:none}
+  .coach{left:16px!important;right:16px;width:auto}
+  .coach .cb .btn{flex:1}
+  .soon-hero{padding:16px}
+}
+</style>
+
+<div class="proto" role="region" aria-label="Prototype controls (not part of the product)">
+  <b>PROTOTYPE</b>
+  <label for="scr" class="sr">Screen</label>
+  <select id="scr" aria-label="Screen"></select>
+  <span>State</span><div class="seg" id="states"></div>
+  <span>Mode</span><div class="seg" id="mode"><button data-mode="agency" aria-pressed="true">Agency</button><button data-mode="own" aria-pressed="false">Just me</button></div>
+  <div class="seg" id="dev"><button data-dev="desktop" aria-pressed="true">Desktop</button><button data-dev="phone" aria-pressed="false">Phone 390</button></div>
+  <span class="note">Example data · Mooncloth is fictional · numbers are placeholders</span>
+</div>
+<div class="stagewrap"><div class="frame" id="frame"></div></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+const S={screen:'mode',st:{},dev:'desktop',mode:'agency',menu:false,pick:null,acc:'us',page:'Mooncloth',range:'30d',tourStep:1};
+try{const h=location.hash.slice(1); if(h) S.screen=h;}catch(e){}
+
+const SCREENS=[
+ {id:'mode',g:'1 · Right after signup',l:'How will you use HookMill?',states:['nothing picked','agency picked','just me picked']},
+ {id:'wz-business',g:'2 · Setup wizard (own shell)',l:'Step 1 · Business',states:['default','saving']},
+ {id:'wz-meta',g:'2 · Setup wizard (own shell)',l:'Step 2 · Connect Meta',states:['not connected','connecting','choose account','health ok','health warning','no permission','login failed']},
+ {id:'wz-brain',g:'2 · Setup wizard (own shell)',l:'Step 6 · Build the Brain',states:['completing','incomplete','live']},
+ {id:'saved',g:'3 · Way back',l:'Save and exit → resume screen',states:['default']},
+ {id:'brain',g:'3 · Way back',l:'Brain · Revisit setup',states:['default']},
+ {id:'settings',g:'3 · Way back',l:'Settings · Connections',states:['connected','not connected']},
+ {id:'home',g:'4 · Home scoreboard + sidebar',l:'Home',states:['meta connected','no meta','first sync','meta needs attention']},
+ {id:'tour',g:'5 · First-run tour',l:'Tour over the real screens',states:['1 Brain','2 Winner (Meta)','2 Upload (no Meta)','3 New concepts','4 Eddy','5 Home']},
+];
+const byId=id=>SCREENS.find(s=>s.id===id)||SCREENS[0];
+const st=()=>S.st[S.screen]||byId(S.screen).states[0];
+
+/* ---------- icons ---------- */
+const P={
+ home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/>',
+ chart:'<path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M21 20H3"/>',
+ chat:'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',
+ brain:'<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 7h7"/><path d="m7.3 9.2 3.5 6.6"/><path d="m16.7 9.2-3.5 6.6"/>',
+ iter:'<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 3v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 21v-5h5"/>',
+ bulb:'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6 1 1.3 1 2.4h5.6c0-1.1.4-1.8 1-2.4A6 6 0 0 0 12 3z"/>',
+ review:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+ lib:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+ bld:'<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5"/><path d="M12 18.5V21"/><path d="M3 12h2.5"/><path d="M18.5 12H21"/><path d="m5.6 5.6 1.8 1.8"/><path d="m16.6 16.6 1.8 1.8"/><path d="m5.6 18.4 1.8-1.8"/><path d="m16.6 7.4 1.8-1.8"/>',
+ check:'<path d="m5 12.5 4.5 4.5L19 7"/>', x:'<path d="M6 6l12 12"/><path d="M18 6 6 18"/>', minus:'<path d="M6 12h12"/>',
+ right:'<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', left:'<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
+ chev:'<path d="m9 6 6 6-6 6"/>', updown:'<path d="m8 9 4-4 4 4"/><path d="m8 15 4 4 4-4"/>',
+ clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', play:'<path d="M7 4v16l13-8z"/>',
+ refresh:'<path d="M20 11a8 8 0 0 0-14.7-4.3L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.7 4.3L20 16"/><path d="M20 21v-5h-5"/>',
+ alert:'<path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.5v.5"/>', lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ menu:'<path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/>', up:'<path d="M12 19V6"/><path d="m6 11 6-6 6 6"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ plug:'<path d="M9 3v5"/><path d="M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/>',
+ trend:'<path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/>', down:'<path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/>',
+ upload:'<path d="M12 16V5"/><path d="m7 10 5-5 5 5"/><path d="M5 20h14"/>', ext:'<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 13v7H4V6h7"/>',
+ plus:'<path d="M12 5v14"/><path d="M5 12h14"/>', out:'<path d="M9 4H5v16h4"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/>',
+ search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>'
+};
+const ic=(n,s=18,st='currentColor',w=1.9)=>`<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${st}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||''}</svg>`;
+
+/* ---------- data (example) ---------- */
+const STEPS=['Business','Connect Meta','Product & offer','Audience & voice','Goals & guardrails','Build the Brain'];
+const ACCTS=[
+ {id:'us',name:'Mooncloth US',act:'act_229184301',cur:'USD',ok:true},
+ {id:'eu',name:'Mooncloth EU',act:'act_229184388',cur:'EUR',ok:true},
+ {id:'old',name:'Old store (2023)',act:'act_118820011',cur:'USD',ok:false},
+];
+const TOP=[
+ {n:'I tried 11 sleep masks',sub:'Video · running 41 days',spend:'$4,120',cpa:'$19.40',roas:'3.4x',tag:'WORKING',cls:'t-ok',t:'#1E2550',win:true},
+ {n:'Founder story v2',sub:'Video · running 18 days',spend:'$2,860',cpa:'$27.10',roas:'2.8x',tag:'STEADY',cls:'t-neutral',t:'#3A2142'},
+ {n:'60 nights to try it',sub:'Video · running 63 days',spend:'$1,900',cpa:'$38.70',roas:'1.9x',tag:'TIRING',cls:'t-warn',t:'#E5D8C3'},
+];
+const BRAIN=[
+ {s:'Business & offer',ok:'ok',d:'Online store · Sleep products · United States · the weighted mask offer'},
+ {s:'Audience',ok:'ok',d:'Light sleepers 30–55 who tried cheap masks'},
+ {s:'Proof',ok:'part',d:'Missing: reviews or numbers you can show'},
+ {s:'Custom instructions',ok:'empty',d:'Missing: words to use and never use'},
+ {s:'Goals',ok:'ok',d:'$15,000 a month cap · result: purchases'},
+];
+const BRAIN_PCT=62;
+
+/* ---------- helpers ---------- */
+const toastEl=document.getElementById('toast');let toastT;
+function toast(m){toastEl.textContent=m;toastEl.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>toastEl.hidden=true,2400)}
+function go(screen,state){S.screen=screen;if(state)S.st[screen]=state;S.menu=false;try{history.replaceState(null,'','#'+screen)}catch(e){}render()}
+const tag=(c,t)=>`<span class="tag ${c}">${t}</span>`;
+const lang=(light)=>`<div class="lang ${light?'light':''}" role="group" aria-label="Language"><button aria-pressed="true">EN</button><button aria-pressed="false">PT</button></div>`;
+
+/* ---------- sidebar / shell ---------- */
+function metaOk(){const h=S.st.home||'meta connected';return h!=='no meta'}
+function sidebar(active){
+ const own=S.mode==='own';
+ const top=own
+  ? `<div class="wsid" data-act="settings" role="link" tabindex="0"><span class="client-av">M</span><span class="t"><b>Mooncloth</b><small class="${metaOk()?'ok':'warn'}"><i class="dot"></i>${metaOk()?'Meta · synced 4 min ago':'Meta not connected'}</small></span></div>`
+  : `<button class="client" data-act="switch" aria-label="Switch client: Mooncloth"><span class="client-av">M</span><span class="t"><b>Mooncloth</b><small>Client workspace</small></span>${ic('updown',18,'var(--ink-fg-3)')}</button>`;
+ const nav=(k,label,icon,extra='')=>`<button class="nav" data-act="nav:${k}" ${active===k?'aria-current="page"':''}>${ic(icon)}${label}${extra}</button>`;
+ return `<nav class="side" aria-label="Main">
+  <a class="brand" href="#home" data-act="nav:home">${'<span class="brand-mark">HM</span><span class="brand-name">HookMill</span>'}</a>
+  ${top}
+  <div class="navgrp"><span class="navlab">WORKSPACE</span>
+   ${nav('home','Home','home')}${nav('campaigns','Campaigns','chart','<span class="soon-mini">SOON</span>')}${nav('eddy','Eddy','chat','<span class="soon-mini">SOON</span>')}${nav('brain','Brain','brain')}
+  </div>
+  <div class="navgrp"><span class="navlab">MAKE ADS</span>
+   ${nav('iterate','Iterate a winner','iter')}${nav('concepts','New concepts','bulb')}${nav('review','Review','review','<span class="badge">2</span>')}${nav('library','Library','lib')}
+  </div>
+  <div class="side-foot">
+   ${own?nav('settings','Settings','gear'):nav('clients','All clients','bld')}
+   <div class="me"><span class="me-av">T</span><span class="t"><b>Tordan</b><small>${own?'Owner':'Agency admin'}</small></span>${lang(false)}</div>
+  </div>
+ </nav>`;
+}
+function shell(active,content){
+ const own=S.mode==='own';
+ const top=own?`<div class="wsid"><span class="client-av">M</span><span class="t"><b>Mooncloth</b></span></div>`:`<button class="client" data-act="switch"><span class="client-av">M</span><span class="t"><b>Mooncloth</b></span>${ic('updown',16,'var(--ink-fg-3)')}</button>`;
+ return `<div class="app ${S.menu?'menu':''}">${sidebar(active)}
+  <div class="topm"><span class="brand-mark">HM</span>${top}<button class="mbtn" data-act="menu" aria-label="${S.menu?'Close menu':'Open menu'}">${ic(S.menu?'x':'menu')}</button></div>
+  <main class="work"><div class="wrap">${content}</div></main></div>`;
+}
+/* minimal shell: logo · (client) · spacer · actions */
+function minShell(opts,content){
+ const who=opts.client?`<div class="who"><span class="client-av">M</span><span class="t"><span class="eyebrow">${opts.eyebrow||'Setup'}</span><b>Mooncloth</b></span></div>`:'';
+ return `<div class="min"><div class="min-top"><a class="brand" href="#" data-act="noop"><span class="brand-mark">HM</span><span class="brand-name">HookMill</span></a>${who}<span class="spacer"></span>${opts.right||lang(true)}</div><div class="min-body">${content}</div></div>`;
+}
+
+/* ================= 1 · MODE ================= */
+function screenMode(){
+ const s=st(); const pick=s==='agency picked'?'agency':s==='just me picked'?'own':null;
+ const card=(k,icon,title,sub,items)=>`<button class="mode" role="radio" aria-checked="${pick===k}" data-act="pick:${k}">
+   <span class="pick"><span class="radio ${pick===k?'on':''}"></span></span>
+   <span class="mi">${ic(icon,22)}</span><h3>${title}</h3><p>${sub}</p>
+   <ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul></button>`;
+ return minShell({right:lang(true)},`<div class="center">
+  <div class="head"><span class="eyebrow">Welcome, Tordan</span><h1 class="h1">How will you use HookMill?</h1><p class="lede">This sets up your workspace. You can change it later in Settings.</p></div>
+  <div class="modes" role="radiogroup" aria-label="Account mode">
+   ${card('agency','bld','Agency','I run ads for clients.',['One workspace per client, with its own Brain, ads and Meta account','A Clients page to switch between them and see what is waiting on you','Invite clients to approve ads without spending'])}
+   ${card('own','user','Just me','I run my own ads.',['One workspace: your business','No client switcher, no client list; the sidebar stays short','Switch to Agency later and keep everything'])}
+  </div>
+  <div class="actionbar"><span class="hint">${pick?(pick==='agency'?'Next: set up your first client (about 10 minutes).':'Next: set up your business (about 10 minutes).'):'Pick one to continue.'}</span>
+   <div class="btns"><span></span><button class="btn btn-accent btn-lg" ${pick?'':'disabled'} data-act="go:wz-business">Continue ${ic('right')}</button></div></div>
+ </div>`);
+}
+
+/* ================= 2 · WIZARD ================= */
+function progress(step){
+ const pct=Math.round((step-1)/6*100);
+ return `<div class="prog" role="group" aria-label="Setup progress">
+  <div class="r1"><span class="l"><span class="pct">${pct}%</span><span class="muted">set up</span></span><span class="small muted">Step ${step} of 6 · ${STEPS[step-1]}</span></div>
+  <div class="steps">${STEPS.map((n,i)=>{const k=i+1<step?'d':i+1===step?'c':'';return `<button class="stp ${k}" ${i+1<=step?`data-act="step:${i+1}"`:'disabled'} ${i+1===step?'aria-current="step"':''}><i></i><span>${n}</span></button>`}).join('')}</div>
+  <div class="m"><div class="segs" aria-hidden="true">${STEPS.map((n,i)=>`<i class="${i+1<step?'d':i+1===step?'c':''}"></i>`).join('')}</div></div>
+ </div>`;
+}
+function wizard(step,body,bar,opts={}){
+ const right=`<button class="btn btn-out btn-sm" data-act="go:saved">${ic('out',16)} Save and exit</button>`;
+ return minShell({client:true,eyebrow:opts.edit?'Edit setup':'Setup',right},`<div class="center">${progress(step)}
+  <div class="head"><span class="eyebrow">Step ${step} of 6</span><h1 class="h1">${opts.title}</h1>${opts.sub?`<p class="lede">${opts.sub}</p>`:''}</div>
+  ${body}${bar}</div>`);
+}
+const bar=(hint,btns,warn)=>`<div class="actionbar"><span class="hint ${warn?'warn':''}">${hint}</span><div class="btns ${btns.length>2?'three':''}">${btns.join('')}</div></div>`;
+const backBtn=(to)=>`<button class="btn btn-out" data-act="go:${to}">${ic('left')} Back</button>`;
+
+function screenBusiness(){
+ const saving=st()==='saving';
+ const body=`<div class="card"><h2 class="h2">Read the site first</h2><p class="lede small">Paste the client's site. We read it and pre-fill the offer, audience and proof. You check everything before it counts.</p>
+   <div class="fieldrow"><label class="lab" for="site">Website</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="site" class="inp" style="flex:1 1 240px" value="https://mooncloth.com"><button class="btn btn-ink" data-act="toast:Reading mooncloth.com… (about 40 s)">Read the site</button></div>
+   <span class="tiny muted">${saving?'Saving…':'Found 6 of 7 brief fields on the last read · 2 min ago'}</span></div></div>
+  <div class="card"><h2 class="h2">The business</h2>
+   <div class="fields">
+    <div class="fieldrow"><label class="lab" for="n">Client name</label><input id="n" class="inp" value="Mooncloth"></div>
+    <div class="fieldrow"><label class="lab" for="c">Code for file names</label><input id="c" class="inp mono" value="MC"><span class="tiny muted">2–6 letters. Goes into every MP4 name.</span></div>
+    <div class="fieldrow"><label class="lab" for="i">Industry</label><input id="i" class="inp" value="Sleep products"></div>
+    <div class="fieldrow"><label class="lab" for="m">Main market</label><input id="m" class="inp" value="United States"></div>
+    <div class="fieldrow full"><span class="lab">Type of business</span><div class="chips" role="radiogroup"><button class="chip on" role="radio" aria-checked="true">${ic('check',16)} Online store</button><button class="chip" role="radio" aria-checked="false">Local business</button><button class="chip" role="radio" aria-checked="false">App</button></div><span class="tiny muted">Sets the result we optimize for: purchases.</span></div>
+   </div></div>`;
+ return wizard(1,body,bar(saving?'Saving…':'Saved as you go.',[`<span></span>`,`<button class="btn btn-accent btn-lg" data-act="go:wz-meta" ${saving?'disabled':''}>${saving?'<span class="spin"></span>':''} Continue ${ic('right')}</button>`]),{title:'Tell us about Mooncloth',sub:'One screen. The site does most of the typing.'});
+}
+
+function screenMeta(){
+ const s=st(); let body='',hint='Optional now. Everything else works without it; results and the winner on Home need it.',btns=[backBtn('wz-business')],warn=false;
+ const whyPanel=`<div class="ink"><span class="eyebrow">Why connect</span>
+   <ul class="ink-list"><li><span>Pick a winner</span><span>from your real ads</span></li><li><span>Home</span><span>spend, CPA, ROAS</span></li><li><span>Send</span><span>straight to a campaign</span></li></ul>
+   <div class="divider" style="border-color:var(--ink-line)"></div><span class="small" style="color:var(--ink-fg-2)">We read ads and results. We never post, pause or spend without a button you press.</span></div>`;
+ const permList=`<ul class="list small"><li>${ic('check',16,'var(--ok)')}<span>Read your ad accounts, ads and 30 days of results</span></li><li>${ic('check',16,'var(--ok)')}<span>Create ads in a campaign when you press Send</span></li><li>${ic('x',16,'var(--fg-3)')}<span class="muted">Never: post on your Page, change budgets, pause ads on its own</span></li></ul>`;
+ const health=(rows)=>`<ul class="hl">${rows.map(r=>`<li><span class="st ${r.k}">${ic(r.k==='ok'?'check':r.k==='wait'?'':r.k==='bad'?'x':'minus',14)}</span><span class="t"><b>${r.t}</b>${r.d?`<small>${r.d}</small>`:''}</span></li>`).join('')}</ul>`;
+
+ if(s==='not connected'||s==='login failed'){
+  body=`${s==='login failed'?`<div class="alert al-bad">${ic('alert')}<div class="a-body"><b>Facebook didn't finish the login</b><span>The window was closed before it finished, or a popup blocker stopped it. Nothing was connected.</span></div><div class="a-act"><button class="btn btn-sm btn-ink" data-act="st:connecting">${ic('refresh',16)} Try again</button></div></div>`:''}
+  <div class="cols"><div class="col-main"><div class="card"><h2 class="h2">Connect Mooncloth's Meta account</h2><p class="lede small">Log in with the Facebook profile that manages Mooncloth's ads. You pick the ad account and Page on the next screen.</p>
+   <button class="btn btn-meta btn-lg" style="align-self:flex-start" data-act="st:connecting"><span style="font-weight:800;font-size:18px;line-height:1">f</span> Continue with Facebook</button>
+   <div class="divider"></div><span class="h3">What we'll ask for</span>${permList}</div></div><div class="col-side">${whyPanel}</div></div>`;
+  btns.push(`<button class="btn btn-out" data-act="go:wz-brain">Skip for now</button>`,`<button class="btn btn-accent btn-lg" disabled>Continue ${ic('right')}</button>`);
+ }
+ if(s==='connecting'){
+  body=`<div class="cols"><div class="col-main"><div class="card beam"><div style="display:flex;gap:12px;align-items:center"><span class="spin"></span><div><b>Reading your ad accounts…</b><div class="small muted">Logged in as Tordan Oliveira. Usually under 10 seconds.</div></div></div>
+   ${health([{k:'ok',t:'Facebook login'},{k:'wait',t:'Listing ad accounts you can manage'},{k:'wait',t:'Listing Pages'}])}
+   <span class="tiny muted">You can leave this tab; we'll finish in the background and bring you back here.</span></div></div><div class="col-side">${whyPanel}</div></div>`;
+  hint='Connecting…';
+  btns.push(`<button class="btn btn-out" disabled>Skip for now</button>`,`<button class="btn btn-accent btn-lg" disabled>Continue ${ic('right')}</button>`);
+ }
+ if(s==='choose account'){
+  body=`<div class="cols"><div class="col-main">
+   <div class="conn"><span class="fb">f</span><span class="t"><b>Tordan Oliveira</b><small>Logged in · 3 ad accounts, 2 Pages</small></span><button class="btn btn-ghost btn-sm" data-act="st:not connected">Use another login</button></div>
+   <div class="card"><h2 class="h2">Which ad account is Mooncloth's?</h2>
+    <div role="radiogroup" style="display:flex;flex-direction:column;gap:8px">${ACCTS.map(a=>`<button class="acc ${S.acc===a.id?'on':''} ${a.ok?'':'off'}" role="radio" aria-checked="${S.acc===a.id}" data-act="acc:${a.id}"><span class="radio ${S.acc===a.id?'on':''}"></span><span class="t"><b>${a.name}</b><small>${a.act} · ${a.cur}</small></span>${a.ok?tag('t-ok','Active'):tag('t-bad','No permission')}</button>`).join('')}</div>
+    <span class="tiny muted">Not here? Ask the account owner to add your profile in Meta Business settings, then press refresh.</span></div>
+   <div class="card"><h2 class="h2">Which Page runs the ads?</h2><div class="fieldrow"><label class="lab" for="pg">Facebook Page</label><select id="pg" class="sel"><option>Mooncloth (12.4k followers)</option><option>Mooncloth Sleep (820 followers)</option></select><span class="tiny muted">Instagram account linked to this Page comes along.</span></div></div>
+  </div><div class="col-side">${whyPanel}</div></div>`;
+  hint=S.acc==='old'?'That account has no ads permission. Pick another or ask for access.':'Next we run 4 quick checks on the account.';warn=S.acc==='old';
+  btns.push(`<button class="btn btn-out" data-act="go:wz-brain">Skip for now</button>`,`<button class="btn btn-accent btn-lg" data-act="st:${S.acc==='old'?'no permission':'health ok'}">Use this account ${ic('right')}</button>`);
+ }
+ if(s==='health ok'||s==='health warning'){
+  const warnS=s==='health warning';
+  body=`<div class="cols"><div class="col-main">
+   <div class="conn"><span class="fb">f</span><span class="t"><b>Mooncloth US · act_229184301</b><small>Page: Mooncloth · Logged in as Tordan Oliveira</small></span><button class="btn btn-ghost btn-sm" data-act="st:choose account">Change</button></div>
+   <div class="card"><div class="sec-h"><h2 class="h2">Account health</h2>${warnS?tag('t-warn','1 thing to look at'):tag('t-ok','All good')}</div>
+    ${health([{k:'ok',t:'Ad account active',d:'No restrictions, spending allowed'},{k:'ok',t:'Payment method valid',d:'Visa ending 4412'},
+      warnS?{k:'warn',t:'Pixel: no purchase events in 7 days',d:'Results will show spend but no CPA until the pixel fires. We flag it on Home.'}:{k:'ok',t:'Pixel firing',d:'Last purchase event 2 min ago'},
+      {k:'ok',t:'Business verified'}])}
+    <div class="divider"></div><div class="kv"><span>Ads found</span><span class="mono">212 · 14 active</span></div><div class="kv"><span>Results read</span><span class="mono">last 30 days</span></div></div>
+  </div><div class="col-side">${whyPanel}</div></div>`;
+  hint=warnS?'You can continue. We will keep checking the pixel and tell you on Home.':'Connected. We already found a winner for the tour.';
+  btns.push(`<button class="btn btn-accent btn-lg" data-act="go:wz-brain">Continue ${ic('right')}</button>`);
+ }
+ if(s==='no permission'){
+  body=`<div class="cols"><div class="col-main">
+   <div class="conn"><span class="fb">f</span><span class="t"><b>Old store (2023) · act_118820011</b><small>Logged in as Tordan Oliveira</small></span><button class="btn btn-ghost btn-sm" data-act="st:choose account">Change</button></div>
+   <div class="card"><div class="sec-h"><h2 class="h2">Account health</h2>${tag('t-bad','Blocked')}</div>
+    ${health([{k:'bad',t:"You can't manage ads on this account",d:'Your profile has view access only. Ask the account owner to give you Advertiser (or higher) in Meta Business settings → Ad accounts → People. Then press Check again.'},{k:'wait',t:'Payment method'},{k:'wait',t:'Pixel'},{k:'wait',t:'Business verified'}])}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ink btn-sm" data-act="toast:Checking permission again…">${ic('refresh',16)} Check again</button><button class="btn btn-out btn-sm" data-act="st:choose account">Choose another account</button></div></div>
+  </div><div class="col-side">${whyPanel}</div></div>`;
+  hint='This account cannot be used yet. Skip for now and connect it later in Settings.';warn=true;
+  btns.push(`<button class="btn btn-out" data-act="go:wz-brain">Skip for now</button>`,`<button class="btn btn-accent btn-lg" disabled>Continue ${ic('right')}</button>`);
+ }
+ return wizard(2,body,bar(hint,btns,warn),{title:'Connect Meta',sub:'So Home shows real results and the tour can start from an ad that already works.'});
+}
+
+function brainList(animPct){
+ return `<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap"><div class="ring" id="ring"><svg viewBox="0 0 96 96"><circle class="tr" cx="48" cy="48" r="40"/><circle class="pr" cx="48" cy="48" r="40" stroke-dasharray="251.3" stroke-dashoffset="${251.3*(1-(animPct??BRAIN_PCT)/100)}"/></svg><span class="n" id="ringn">${animPct??BRAIN_PCT}%</span></div>
+  <div style="flex:1 1 260px;min-width:0" id="bsecs">${BRAIN.map((b,i)=>`<div class="bsec" data-i="${i}"><span class="ck ${animPct==null?b.ok:''}">${animPct==null?(b.ok==='ok'?ic('check',14):b.ok==='part'?ic('minus',14):''):''}</span><span class="t"><b>${b.s}</b><small>${b.d}</small></span>${b.ok!=='ok'&&animPct==null?`<button class="btn btn-ghost btn-sm" data-act="toast:Opens the setup step that fills this">Fill</button>`:''}</div>`).join('')}</div></div>`;
+}
+function screenWzBrain(){
+ const s=st();
+ const alert=s==='completing'?`<div class="alert al-neutral beam"><span class="spin"></span><div class="a-body"><b>Building Mooncloth's Brain…</b><span>Checking the business type and the offer. A few seconds.</span></div></div>`
+  :s==='incomplete'?`<div class="alert al-warn">${ic('alert')}<div class="a-body"><b>Two things are missing before Mooncloth goes live</b><span>The Brain needs the type of business (step 1) and at least one offer (step 3).</span></div><div class="a-act"><button class="btn btn-sm btn-ink" data-act="go:wz-business">Go to step 1</button><button class="btn btn-sm btn-out" data-act="toast:Opens step 3">Go to step 3</button></div></div>`
+  :`<div class="alert al-ok">${ic('check')}<div class="a-body"><b>Mooncloth is live</b><span>Setup is done. Next: a 2-minute tour of the five places you'll use every week. It starts from an ad that is already working.</span></div></div>`;
+ const body=`${alert}<div class="cols"><div class="col-main"><div class="card"><div class="sec-h"><h2 class="h2">What the Brain knows</h2><span class="small muted">5 missing items</span></div>${brainList()}</div></div>
+  <div class="col-side"><div class="ink"><span class="eyebrow">From Meta · last 30 days</span><span class="big">212</span><ul class="ink-list"><li><span>Ads read</span><span>212 · 14 active</span></li><li><span>Best ad</span><span>$19.40 CPA</span></li><li><span>Account average</span><span>$31.10 CPA</span></li></ul><span class="small" style="color:var(--ink-fg-2)">The tour starts from the best ad.</span></div></div></div>`;
+ const live=s==='live';
+ return wizard(6,body,bar(live?'Setup complete · 100%':s==='incomplete'?'Fix the missing items, then come back here.':'Finishing…',[backBtn('wz-meta'),`<button class="btn btn-accent btn-lg" data-act="go:tour" ${live?'':'disabled'}>Start the tour ${ic('right')}</button>`],s==='incomplete'),{title:live?"Mooncloth's Brain is ready":"Building Mooncloth's Brain",sub:'Everything the wizard collected, in one place. The Brain feeds every ad we make.'});
+}
+
+/* ================= 3 · WAY BACK ================= */
+function screenSaved(){
+ const own=S.mode==='own';
+ const others=own?'':`<div class="card"><div class="sec-h"><h2 class="h2">Your other clients</h2><button class="btn btn-ghost btn-sm" data-act="toast:Creates a client and opens its setup">${ic('plus',16)} New client</button></div>
+   <div class="grid2">
+    <div class="tile"><div class="r"><span class="client-av" style="background:#3A2142;color:#F3D3E3">LB</span><span class="t"><b>Lumen Bikes</b><small>Live · 3 waiting on you</small></span>${tag('t-ok','Live')}</div><button class="btn btn-out btn-sm" data-act="go:home">Open ${ic('right',16)}</button></div>
+    <div class="tile"><div class="r"><span class="client-av" style="background:#22362B;color:#D9EAD3">DK</span><span class="t"><b>Dental Kirk</b><small>Setup · step 4 of 6</small></span>${tag('t-warn','Setup 50%')}</div><button class="btn btn-out btn-sm" data-act="toast:Switches to Dental Kirk and opens step 4">Continue setup ${ic('right',16)}</button></div>
+   </div></div>`;
+ return minShell({right:`<button class="btn btn-ghost btn-sm" data-act="toast:Signs out">Sign out</button>`},`<div class="center narrow">
+  <div class="head"><span class="eyebrow">Saved</span><h1 class="h1">Mooncloth's setup is saved at step 2</h1><p class="lede">Pick it up any time. ${own?'Next time you sign in, you land right here.':'Opening Mooncloth from Clients brings you back to this step.'}</p></div>
+  <div class="card sel"><div class="tile" style="border:0;padding:0"><div class="r"><span class="client-av">M</span><span class="t"><b>Mooncloth</b><small>${own?'Your workspace':'Client workspace'} · 17% set up</small></span>${tag('t-warn','Setup')}</div><div class="bar lime"><i style="width:17%"></i></div><span class="small muted">Next: Connect Meta (optional) · then Product &amp; offer</span></div>
+   <button class="btn btn-accent btn-lg" data-act="go:wz-meta">Continue setup ${ic('right')}</button></div>
+  ${others}
+  ${own?`<p class="small muted">Setup takes about 10 minutes in total. The app opens when it is done.</p>`:''}
+ </div>`);
+}
+function screenBrain(){
+ const content=`<div class="headrow"><div class="head"><span class="eyebrow">Mooncloth</span><h1 class="h1">Brain</h1><p class="lede">What every ad starts from. Filled by setup; grows with every winner.</p></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out" data-act="revisit">${ic('refresh',16)} Revisit setup</button><button class="btn btn-ink" data-act="toast:Opens the offer editor">Edit offer</button></div></div>
+  <div class="cols"><div class="col-main"><div class="card" id="t-brain"><div class="sec-h"><h2 class="h2">What the Brain knows</h2><span class="small muted">62% · 5 missing items</span></div>${brainList()}</div>
+   <div class="card"><div class="sec-h"><h2 class="h2">Creative library</h2><button class="btn btn-ghost btn-sm" data-act="nav:library">Open ${ic('right',16)}</button></div><div class="kv"><span>Approved ads</span><span class="mono">9</span></div><div class="kv"><span>Winners marked</span><span class="mono">2</span></div></div></div>
+   <div class="col-side"><div class="ink"><span class="eyebrow">Learnings · soon</span><span class="small" style="color:var(--ink-fg-2)">Once ads run through HookMill, what worked and what tired lands here and feeds the next batch.</span></div></div></div>`;
+ return shell('brain',content);
+}
+function screenSettings(){
+ const on=st()==='connected';
+ const content=`<div class="head"><span class="eyebrow">Settings</span><h1 class="h1">Connections</h1><p class="lede">Meta is the only connection today. Same card as step 2 of setup.</p></div>
+  <div class="card"><div class="sec-h"><h2 class="h2">Meta</h2>${on?tag('t-ok','Connected'):tag('t-warn','Not connected')}</div>
+   ${on?`<div class="conn"><span class="fb">f</span><span class="t"><b>Mooncloth US · act_229184301</b><small>Page: Mooncloth · Tordan Oliveira · synced 4 min ago</small></span></div>
+   <ul class="hl"><li><span class="st ok">${ic('check',14)}</span><span class="t"><b>Ad account active</b></span></li><li><span class="st ok">${ic('check',14)}</span><span class="t"><b>Payment method valid</b></span></li><li><span class="st ok">${ic('check',14)}</span><span class="t"><b>Pixel firing</b><small>Last purchase event 2 min ago</small></span></li><li><span class="st ok">${ic('check',14)}</span><span class="t"><b>Business verified</b></span></li></ul>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out btn-sm" data-act="toast:Re-runs the 4 checks">${ic('refresh',16)} Check again</button><button class="btn btn-out btn-sm" data-act="toast:Opens the account picker">Change account</button><button class="btn btn-bad btn-sm" data-act="toast:Asks to confirm, then disconnects">Disconnect</button></div>`
+   :`<p class="lede small">Connect to see spend, CPA and ROAS on Home, pick winners from the account and send ads to a campaign.</p><button class="btn btn-meta" style="align-self:flex-start" data-act="toast:Same OAuth flow as step 2"><span style="font-weight:800;font-size:18px;line-height:1">f</span> Continue with Facebook</button>`}
+  </div>
+  <div class="card"><div class="sec-h"><h2 class="h2">Account mode</h2>${tag('t-neutral',S.mode==='own'?'Just me':'Agency')}</div><p class="lede small">${S.mode==='own'?'Switch to Agency to add clients. Mooncloth becomes your first client; nothing is lost.':'Switch to Just me only if you have one workspace. The Clients page and the switcher go away.'}</p><button class="btn btn-out btn-sm" style="align-self:flex-start" data-act="toast:Asks to confirm, then switches">${S.mode==='own'?'Switch to Agency':'Switch to Just me'}</button></div>`;
+ return shell('settings',content);
+}
+
+/* ================= 4 · HOME ================= */
+function screenHome(extra=''){
+ const s=S.st.home||'meta connected'; const own=S.mode==='own';
+ const head=`<div class="headrow"><div class="head"><span class="eyebrow">${own?'Your business':'Client'} · Mooncloth</span><h1 class="h1">Home</h1>
+   <p class="lede">${s==='meta connected'?`<span class="tag t-ok" style="vertical-align:middle"><i class="dot"></i> Synced with Meta 4 min ago</span>`:s==='first sync'?`<span class="tag t-info"><i class="dot pulse"></i> Reading 30 days from Meta…</span>`:s==='meta needs attention'?`<span class="tag t-warn"><i class="dot"></i> Meta needs attention</span>`:`<span class="tag t-neutral">Meta not connected</span>`}</p></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out" data-act="nav:iterate">${ic('iter',16)} Iterate a winner</button><button class="btn btn-ink" data-act="nav:concepts">${ic('plus',16)} New concepts</button></div></div>`;
+ let results='';
+ if(s==='meta connected'||s==='meta needs attention'){
+  const stale=s==='meta needs attention';
+  results=`${stale?`<div class="alert al-warn">${ic('alert')}<div class="a-body"><b>Meta stopped answering 2 days ago</b><span>The login expired. Numbers below are from Oct 19. Reconnect to keep Home current.</span></div><div class="a-act"><button class="btn btn-sm btn-ink" data-act="go:settings">Reconnect</button></div></div>`:''}
+  <div class="sec-h"><h2 class="h2">Results</h2><div class="chips"><button class="chip ${S.range==='7d'?'on':''}" style="min-height:36px" data-act="range:7d">7 days</button><button class="chip ${S.range==='30d'?'on':''}" style="min-height:36px" data-act="range:30d">30 days</button></div></div>
+  <div class="kpis" id="t-kpis">
+   <div class="kpi"><span class="k">Spend</span><span class="v">${S.range==='7d'?'$2,910':'$12,480'}</span><span class="d">of $15,000 monthly cap</span><div class="bar"><i style="width:${S.range==='7d'?19:83}%"></i></div></div>
+   <div class="kpi"><span class="k">Cost per purchase</span><span class="v">${S.range==='7d'?'$24.80':'$26.30'}</span><span class="d">${tag('t-ok',ic('down',12)+' 6% under $28 target')}</span></div>
+   <div class="kpi"><span class="k">ROAS</span><span class="v">${S.range==='7d'?'3.1x':'2.9x'}</span><span class="d">${tag('t-ok',ic('trend',12)+' +0.3 vs previous')}</span></div>
+   <div class="kpi"><span class="k">Active ads</span><span class="v">14</span><span class="d">3 new this week · 1 tiring</span></div>
+  </div>
+  <div class="cols"><div class="col-main"><div class="sec-h"><h2 class="h2">Top ads <span class="count">${S.range}</span></h2><button class="btn btn-ghost btn-sm" data-act="toast:Campaigns is coming soon">All ads ${ic('right',16)}</button></div>
+   <div class="ads">${TOP.map(a=>`<div class="ad ${a.win?'win':''}"><span class="th" style="--t:${a.t}"></span><span class="nm"><b>${a.n}</b><small>${a.sub}</small></span>
+     <span class="stats"><span class="m"><small>Spend</small><span>${a.spend}</span></span><span class="m"><small>CPA</small><span>${a.cpa}</span></span><span class="m"><small>ROAS</small><span>${a.roas}</span></span></span>
+     <span class="act">${tag(a.cls,a.tag)}<button class="btn ${a.win?'btn-accent':'btn-out'} btn-sm" data-act="nav:iterate">Iterate</button></span></div>`).join('')}</div></div>
+   <div class="col-side">${waitingCard()}${brainCard()}</div></div>`;
+ }
+ if(s==='no meta'){
+  results=`<div class="card" id="t-kpis"><div class="empty-meta"><div style="display:flex;flex-direction:column;gap:10px"><h2 class="h2" style="font-size:19px;font-weight:800;font-stretch:125%">No results here yet</h2><p class="lede">Connect Mooncloth's Meta account and Home shows spend, cost per purchase, ROAS, the ads running and the ones worth iterating. About 2 minutes; you choose the account and Page.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-meta" data-act="go:settings"><span style="font-weight:800;font-size:18px;line-height:1">f</span> Connect Meta</button><button class="btn btn-ghost" data-act="toast:Shows what Meta access we ask for">What we read</button></div></div>
+    <div class="ink" style="padding:18px"><span class="eyebrow">Once connected</span><ul class="ink-list"><li><span>Spend · CPA · ROAS</span><span>7 and 30 days</span></li><li><span>Top ads</span><span>with a winner marked</span></li><li><span>Send</span><span>to a campaign</span></li></ul></div></div></div>
+   <div class="cols"><div class="col-main">${waitingCard()}</div><div class="col-side">${brainCard()}</div></div>`;
+ }
+ if(s==='first sync'){
+  results=`<div class="card beam" id="t-kpis"><div style="display:flex;gap:12px;align-items:center"><span class="spin"></span><div><b>Reading 30 days of results from Mooncloth US</b><div class="small muted">212 ads · 4 of 6 ad sets read · about 1 minute left. You can leave; we'll fill this in.</div></div></div><div class="bar lime"><i style="width:66%"></i></div></div>
+   <div class="cols"><div class="col-main">${waitingCard()}</div><div class="col-side">${brainCard()}</div></div>`;
+ }
+ const recent=`<div class="sec-h"><h2 class="h2">Recent creatives <span class="count">31</span></h2><div class="chips"><button class="chip on" style="min-height:36px">All</button><button class="chip" style="min-height:36px">In progress</button><button class="chip" style="min-height:36px">Needs you</button><button class="chip" style="min-height:36px">Approved</button></div></div>
+  <div class="card" style="padding:0;gap:0">${[['MC_NEW_1021_A_F2_9x16','Edit · rendering 64%','t-info','Rendering'],['MC_ITER_1020_H03_F1_9x16','Review','t-warn','Waiting for your OK'],['MC_NEW_1019_B_F3_9x16','Library','t-ok','Approved']].map(r=>`<div style="display:flex;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--line-soft)"><span class="mono small" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r[0]}</span><span class="small muted" style="display:none">${r[1]}</span>${tag(r[2],r[3])}${ic('chev',16,'var(--sep)')}</div>`).join('')}</div>`;
+ return shell('home',head+results+recent+extra);
+}
+function waitingCard(){
+ return `<div class="card" id="t-wait"><div class="sec-h"><h2 class="h2">Waiting on you <span class="count">2</span></h2></div>
+  <div class="wcard"><span class="th" style="--t:#3A2142"></span><span class="t"><b>MC_ITER_1020_H03_F1_9x16</b><small class="muted small">Hook variation · 2 h ago</small>${tag('t-warn','Review the video')}</span></div>
+  <div class="wcard"><span class="th" style="--t:#BFCFB8"></span><span class="t"><b>I tried 11 sleep masks · batch</b><small class="muted small">Plan ready · 1 day ago</small>${tag('t-warn','Launch the plan')}</span></div></div>`;
+}
+function brainCard(){
+ return `<div class="card"><div class="sec-h"><h2 class="h2">Brain</h2><span class="mono" style="font-weight:600">62%</span></div><div class="bar lime"><i style="width:62%"></i></div><span class="small muted">Missing: proof, custom instructions. <button class="btn btn-ghost btn-sm" style="padding:0 4px;min-height:24px" data-act="nav:brain">Fill in the Brain ${ic('right',14)}</button></span></div>`;
+}
+
+/* ===== real screens the tour sits on ===== */
+function screenIterate(meta){
+ const fromMeta=meta?`<div class="card" id="t-winner" style="border-color:var(--accent-edge)"><div class="sec-h"><h2 class="h2">From Mooncloth's Meta account</h2>${tag('t-ok','Synced 4 min ago')}</div>
+   <div class="ad win"><span class="th" style="--t:#1E2550"></span><span class="nm"><b>I tried 11 sleep masks</b><small>Running 41 days · $4,120 spent</small></span>
+    <span class="stats"><span class="m"><small>CPA</small><span>$19.40</span></span><span class="m"><small>Account</small><span>$31.10</span></span><span class="m"><small>ROAS</small><span>3.4x</span></span></span>
+    <span class="act">${tag('t-ok','38% under average')}<button class="btn btn-accent btn-sm" data-act="toast:Opens Breakdown with this ad">Iterate it</button></span></div>
+   <button class="btn btn-ghost btn-sm" style="align-self:flex-start" data-act="toast:Lists the 14 active ads">See all 14 active ads ${ic('right',16)}</button></div>`
+  :`<div class="alert al-neutral">${ic('plug')}<div class="a-body"><b>Pick from your Meta account</b><span>Connect Meta and the ads that are already working show up here, with the best one marked.</span></div><div class="a-act"><button class="btn btn-sm btn-out" data-act="go:settings">Connect Meta</button></div></div>`;
+ const content=`<div class="flow"><span class="flow-name"><span class="eyebrow">Iterate a winner</span><b>Pick a winner</b></span><ul class="flow-ph"><li><span class="st" aria-current="step"><span class="circ on">1</span>Pick</span></li><li><span class="st"><span class="circ">2</span>Breakdown</span></li><li><span class="st"><span class="circ">3</span>Plan</span></li><li><span class="st"><span class="circ">4</span>Generate</span></li></ul><button class="btn btn-ghost btn-sm flow-exit" data-act="nav:home">Exit</button></div>
+  <div class="head"><h1 class="h1">Start from an ad that already sells</h1><p class="lede">We break it down, keep what works and make new versions.</p></div>
+  ${fromMeta}
+  <div class="grid2"><div class="drop" id="t-upload">${ic('upload',22)}<b>Drop a video here</b><span class="small muted">MP4 or MOV, up to 500 MB · or <button class="btn btn-ghost btn-sm" style="display:inline-flex;min-height:28px;padding:0 6px">choose a file</button></span></div>
+   <div class="card"><h2 class="h2">Or paste an Ad Library link</h2><div style="display:flex;gap:8px"><input class="inp" placeholder="facebook.com/ads/library/?id=…" aria-label="Ad Library link"><button class="btn btn-ink">Fetch</button></div><span class="tiny muted">Works for any public ad, yours or a competitor's.</span><div class="divider"></div><button class="btn btn-out btn-sm" style="align-self:flex-start" data-act="nav:library">${ic('lib',16)} Pick from the Library</button></div></div>`;
+ return shell('iterate',content);
+}
+function screenConcepts(){
+ const content=`<div class="flow"><span class="flow-name"><span class="eyebrow">New concepts</span><b>Plan</b></span><ul class="flow-ph"><li><span class="st" aria-current="step"><span class="circ on">1</span>What we know</span></li><li><span class="st"><span class="circ dash">2</span>Concepts</span></li><li><span class="st"><span class="circ">2</span>Scripts</span></li><li><span class="st"><span class="circ">3</span>Face</span></li></ul><button class="btn btn-ghost btn-sm flow-exit" data-act="nav:home">Exit</button></div>
+  <div class="head"><span class="eyebrow">Step 1 of 8</span><h1 class="h1">What we know about Mooncloth</h1><p class="lede">The scripts start from this. Fix anything wrong before we write.</p></div>
+  <div class="cols"><div class="col-main"><div class="card" id="t-concepts"><div class="sec-h"><h2 class="h2">From the Brain</h2><button class="btn btn-ghost btn-sm" data-act="nav:brain">Edit in Brain</button></div>
+    <div class="kv"><span>Offer</span><span>Weighted sleep mask · $59 · 60-night trial</span></div><div class="kv"><span>Promise</span><span>Stays put all night and blocks every bit of light</span></div><div class="kv"><span>Audience</span><span>Light sleepers 30–55 who tried cheap masks</span></div><div class="kv"><span>Proof</span><span class="muted">Missing · add in Brain</span></div><div class="kv"><span>CTA</span><span>Try it for 60 nights</span></div></div></div>
+   <div class="col-side"><div class="ink"><span class="eyebrow">This ad</span><ul class="ink-list"><li><span>Scripts</span><span>3 options</span></li><li><span>Faces</span><span>4 to pick from</span></li><li><span>Takes</span><span>about 12 min</span></li></ul></div></div></div>
+  <div class="actionbar"><span class="hint">Nothing is generated yet.</span><div class="btns"><span></span><button class="btn btn-accent btn-lg">Write the scripts ${ic('right')}</button></div></div>`;
+ return shell('concepts',content);
+}
+function screenEddy(){
+ const content=`<div class="head"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1 class="h1">Eddy</h1><span class="soon">SOON</span></div><p class="lede">Ask anything about Mooncloth's campaigns and get an answer from the real numbers.</p></div>
+  <div class="soon-hero" id="t-eddy"><b>Not live yet.</b><span>Eddy will read the same Meta data Home shows and answer questions like the ones below. Until then, Home and Campaigns are where the numbers live.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out btn-sm" data-act="nav:home">Open Home</button><button class="btn btn-out btn-sm" data-act="nav:iterate">Iterate a winner</button></div></div>
+  <div class="soon-prev"><div class="sec-h"><span class="eyebrow">Preview of what comes</span><span class="example">EXAMPLE DATA</span></div><div class="body eddy-msg"><div class="b me">Which ad is tiring?</div><div class="b">"60 nights to try it" has run 63 days; CPA went from $24 to $38.70 in two weeks. Pause it or iterate the hook.</div><div class="b me">What's the best hook this month?</div><div class="b">"I tried 11 sleep masks": 3.4x ROAS, 38% under the account average.</div></div></div>`;
+ return shell('eddy',content);
+}
+
+/* ================= 5 · TOUR ================= */
+const TOUR=[
+ {k:'1 Brain',scr:()=>screenBrain(),target:'#t-brain',title:"We're building Mooncloth's Brain",body:'Everything from setup is already in: business, offer, audience, goals. Every ad starts here. The more it knows, the better the ads; the missing items are a 5-minute job.',pos:'right',anim:true},
+ {k:'2 Winner (Meta)',scr:()=>screenIterate(true),target:'#t-winner',title:'This ad is already working',body:'From your Meta account: "I tried 11 sleep masks" costs $19.40 per purchase, 38% under the account average. The fastest win is more versions of it. That is Iterate a winner.',pos:'below'},
+ {k:'2 Upload (no Meta)',scr:()=>screenIterate(false),target:'#t-upload',title:'Start from an ad that worked',body:'Drop a video or paste an Ad Library link. We break it down, keep what sells and make new versions. Connect Meta later and your best ad shows up here on its own.',pos:'below'},
+ {k:'3 New concepts',scr:()=>screenConcepts(),target:'#t-concepts',title:'Or start from a blank page',body:'New concepts writes scripts from the Brain, picks a face, generates the scenes and edits the video. About 12 minutes, in the background; you get called when it needs you.',pos:'right'},
+ {k:'4 Eddy',scr:()=>screenEddy(),target:'#t-eddy',title:'Eddy will read your campaigns',body:"Soon you can ask Eddy what's tiring, what to scale and what to iterate, from the same numbers Home shows. Not live yet; you'll see it in the sidebar when it is.",pos:'below'},
+ {k:'5 Home',scr:()=>screenHome(),target:'#t-kpis',title:'Home is your scoreboard',body:'Spend, cost per purchase, ROAS and the ads running, from Meta. The top ads to iterate, and whatever is waiting on you. That is the tour. Go make an ad.',pos:'below',last:true},
+];
+function tourIndex(){const i=TOUR.findIndex(t=>t.k===st());return i<0?0:i}
+function tourNum(i){return i<=1?i+1:i===2?2:i}  /* two variants of stop 2 */
+function screenTour(){
+ const i=tourIndex(); const t=TOUR[i]; const n=tourNum(i);
+ return t.scr()+`<div class="tour-lock" aria-hidden="true"></div><div class="spot" id="spot"></div>
+  <div class="coach" id="coach" role="dialog" aria-modal="true" aria-labelledby="coach-t"><div class="ce"><span class="eyebrow">Tour · ${n} of 5</span><span class="dots" aria-hidden="true">${[1,2,3,4,5].map(d=>`<i class="${d<=n?'on':''}"></i>`).join('')}</span></div>
+   <h3 id="coach-t">${t.title}</h3><p>${t.body}</p>
+   <div class="cb">${i>0?`<button class="btn btn-ghost btn-sm" data-act="tour:${i===2?0:i===3?1:i-1}">Back</button>`:''}${t.last?`<button class="btn btn-accent" data-act="tour:done">Finish ${ic('check',16)}</button>`:`<button class="btn btn-ink" data-act="tour:${i===1?3:i+1}">Next ${ic('right',16)}</button>`}</div></div>`;
+}
+function placeTour(){
+ const frame=document.getElementById('frame'); const spot=document.getElementById('spot'); const coach=document.getElementById('coach'); if(!spot||!coach) return;
+ const i=tourIndex(); const t=TOUR[i]; const el=frame.querySelector(t.target); if(!el) return;
+ const fr=frame.getBoundingClientRect(); const r=el.getBoundingClientRect(); const pad=8;
+ const top=r.top-fr.top-pad, left=r.left-fr.left-pad, w=r.width+pad*2, h=r.height+pad*2;
+ Object.assign(spot.style,{top:top+'px',left:left+'px',width:w+'px',height:h+'px'});
+ const narrow=fr.width<=760; const cw=narrow?fr.width-32:360;
+ let ct,cl;
+ if(!narrow&&t.pos==='right'&&left+w+16+cw<=fr.width-16){cl=left+w+16;ct=top}
+ else{ct=top+h+14;cl=Math.min(Math.max(16,left),fr.width-cw-16)}
+ Object.assign(coach.style,{top:ct+'px',left:cl+'px'});
+ const y=window.scrollY+fr.top+top-90; window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+ if(t.anim) animateBrain();
+}
+let brainTimer;
+function animateBrain(){
+ clearTimeout(brainTimer); const n=document.getElementById('ringn'); const pr=document.querySelector('#ring .pr'); const secs=[...document.querySelectorAll('#bsecs .bsec .ck')];
+ if(!n||!pr) return;
+ secs.forEach(c=>{c.className='ck';c.innerHTML=''});
+ const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ let v=0; const step=()=>{v=Math.min(BRAIN_PCT,v+2);n.textContent=v+'%';pr.style.strokeDashoffset=251.3*(1-v/100);
+   const lit=Math.floor(v/BRAIN_PCT*BRAIN.length); secs.forEach((c,i)=>{if(i<lit&&!c.classList.contains(BRAIN[i].ok)){c.className='ck '+BRAIN[i].ok;c.innerHTML=BRAIN[i].ok==='ok'?ic('check',14):BRAIN[i].ok==='part'?ic('minus',14):''}});
+   if(v<BRAIN_PCT) brainTimer=setTimeout(step,rm?0:38); else secs.forEach((c,i)=>{c.className='ck '+BRAIN[i].ok;c.innerHTML=BRAIN[i].ok==='ok'?ic('check',14):BRAIN[i].ok==='part'?ic('minus',14):''})};
+ if(rm){v=BRAIN_PCT-2} step();
+}
+
+/* ---------- render ---------- */
+const R={mode:screenMode,'wz-business':screenBusiness,'wz-meta':screenMeta,'wz-brain':screenWzBrain,saved:screenSaved,brain:screenBrain,settings:screenSettings,home:()=>screenHome(),tour:screenTour};
+function render(){
+ const frame=document.getElementById('frame');
+ frame.className='frame '+(S.dev==='phone'?'phone':'')+(S.screen==='tour'?' touring':'');
+ frame.innerHTML=(R[S.screen]||screenMode)();
+ /* proto bar */
+ const sel=document.getElementById('scr'); if(!sel.options.length){let g=null,og;SCREENS.forEach(s=>{if(s.g!==g){g=s.g;og=document.createElement('optgroup');og.label=g;sel.appendChild(og)}const o=document.createElement('option');o.value=s.id;o.textContent=s.l;og.appendChild(o)})}
+ sel.value=S.screen;
+ const sc=byId(S.screen); document.getElementById('states').innerHTML=sc.states.map(s=>`<button data-st="${s}" aria-pressed="${s===st()}">${s}</button>`).join('');
+ document.querySelectorAll('#dev button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.dev===S.dev));
+ document.querySelectorAll('#mode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
+ if(S.screen==='tour') requestAnimationFrame(()=>requestAnimationFrame(placeTour));
+}
+document.getElementById('scr').addEventListener('change',e=>go(e.target.value));
+document.getElementById('states').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.st[S.screen]=b.dataset.st;render()});
+document.getElementById('dev').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.dev=b.dataset.dev;render()});
+document.getElementById('mode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.mode=b.dataset.mode;render()});
+window.addEventListener('resize',()=>{if(S.screen==='tour')placeTour()});
+
+document.getElementById('frame').addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]'); if(!b) return; e.preventDefault();
+ const [k,v]=b.dataset.act.split(/:(.*)/s);
+ if(k==='noop') return;
+ if(k==='go'){ if(v==='wz-business'&&S.screen==='mode'){S.mode=st()==='just me picked'?'own':'agency'} if(v==='tour'){S.st.tour='1 Brain'} if(v==='settings'&&!metaOk()){S.st.settings='not connected'} go(v); return }
+ if(k==='st'){S.st[S.screen]=v;render();return}
+ if(k==='pick'){S.st.mode=v==='agency'?'agency picked':'just me picked';render();return}
+ if(k==='acc'){const a=ACCTS.find(x=>x.id===v);S.acc=v;render();if(!a.ok)toast('No ads permission on this account');return}
+ if(k==='step'){const n=+v;go(n===1?'wz-business':n===2?'wz-meta':n===6?'wz-brain':'wz-meta');if(n>2&&n<6)toast('Step '+n+' keeps today\'s content, in the new shell');return}
+ if(k==='range'){S.range=v;render();return}
+ if(k==='menu'){S.menu=!S.menu;render();return}
+ if(k==='switch'){toast('Client switcher: Lumen Bikes · Dental Kirk (Setup 50%) · All clients');return}
+ if(k==='revisit'){toast('Opens the wizard in "Edit setup" mode, step 1; Save and exit returns to Brain');go('wz-business');return}
+ if(k==='tour'){ if(v==='done'){toast('tourCompletedAt saved · you are on Home');go('home');return} const i=+v; S.st.tour=TOUR[(i===1||i===2)?(metaOk()?1:2):i].k; render(); return }
+ if(k==='nav'){const m={home:'home',brain:'brain',settings:'settings',iterate:null,concepts:null,eddy:null,clients:null,library:null,review:null,campaigns:null};
+   if(m[v]){go(m[v]);return}
+   if(v==='iterate'){S.menu=false;document.getElementById('frame').innerHTML=screenIterate(metaOk());window.scrollTo(0,0);return}
+   if(v==='concepts'){S.menu=false;document.getElementById('frame').innerHTML=screenConcepts();window.scrollTo(0,0);return}
+   if(v==='eddy'){S.menu=false;document.getElementById('frame').innerHTML=screenEddy();window.scrollTo(0,0);return}
+   toast({clients:'Clients page (exists today): tiles with Setup step X of 6 · Continue setup',library:'Library (exists today)',review:'Home filtered on Needs you (exists today)',campaigns:'Campaigns: Soon section (exists today)'}[v]);return}
+ if(k==='toast'){toast(v);return}
+});
+render();
+})();
+</script>

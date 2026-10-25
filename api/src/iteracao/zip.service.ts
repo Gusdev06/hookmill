@@ -1,9 +1,9 @@
-// Zip do lote AUTO (variacao-auto-v1 §5.1 esclarecimento 5 e §8): job ZIP_BUILD, sem compressão (MP4/PNG já vêm
+// Zip do lote AUTO (variacao-auto-v1 §5.1 esclarecimento 5, §8; rev. 23/10 §14.2: os formatos READY de cada peça, 9:16 + os pedidos): job ZIP_BUILD, sem compressão (MP4/PNG já vêm
 // comprimidos), 2 pastas por eixo com README, nomes <adName>_<FMT>.<ext>. Só peças `ready` com `inZip`. zipKey igual =
 // reaproveita; 72 h depois o cron apaga e o próximo pedido refaz.
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import type { IterateZip, VariationAxis } from '@maquina/contratos';
+import type { BrollProvenance, IterateZip, VariationAxis } from '@maquina/contratos';
 import type { File as FileRow, VideoFormat } from '@prisma/client';
 import archiver from 'archiver';
 import { createWriteStream } from 'node:fs';
@@ -15,11 +15,15 @@ import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
 import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { AUTO_FORMATS, autoFileName, latestByFormat, pieceStatus } from '../edicao/pecas';
-import { ZIP_TTL_MS, folderFor, readmeFor, zipFileName, zipFolders, zipKeyOf, type ZipLocale } from './zip';
+import { ALL_FORMATS, autoFileName, latestByFormat, paramsOf, pieceStatus, suggestedPrimaryTextOf } from '../edicao/pecas';
+import { ZIP_TTL_MS, creditoDoBroll, folderFor, readmeFor, zipFileName, zipFolders, zipKeyOf, type ZipLocale } from './zip';
 
 interface ZipEntry {
   pieceId: string; axis: VariationAxis; change: string;
+  /** D14: FRAME read_caption = texto do anúncio sugerido (vai no README da pasta) */
+  primaryText: string | null;
+  /** §B3.1: proveniência do b-roll da 2ª fonte (molduras de 2 fontes) */
+  provenance: BrollProvenance | null;
   files: { name: string; format: VideoFormat; file: FileRow }[];
 }
 
@@ -55,11 +59,17 @@ export class ZipService {
       if (!c?.adName) continue;
       if (pieceStatus({ launched, leftOutAt: i.leftOutAt, creativeState: c.state, renders: c.renders }) !== 'ready') continue;
       const latest = latestByFormat(c.renders);
-      const files = AUTO_FORMATS.flatMap((f) => {
+      const files = ALL_FORMATS.flatMap((f) => {
         const r = latest.get(f);
         return r?.status === 'READY' && r.file ? [{ name: autoFileName(c.adName!, f, r.file.mimeType), format: f, file: r.file }] : [];
       });
-      if (files.length) out.push({ pieceId: i.id, axis: (i.axis ?? 'ITERATION') as VariationAxis, change: i.change ?? '', files });
+      if (files.length) {
+        out.push({
+          pieceId: i.id, axis: (i.axis ?? 'ITERATION') as VariationAxis, change: i.change ?? '', files,
+          primaryText: i.autoType === 'FRAME' ? suggestedPrimaryTextOf(paramsOf(i.payload)) : null, // D14
+          provenance: i.autoType === 'FRAME' ? ((paramsOf(i.payload)?.second as { provenance?: BrollProvenance } | null)?.provenance ?? null) : null, // §B3.1
+        });
+      }
     }
     return out;
   }
@@ -144,7 +154,7 @@ export class ZipService {
             await this.jobs.stage(jobId, 'zipping', Math.min(95, Math.round((n / total) * 90)));
           }
         }
-        const lines = list.flatMap((e) => e.files.map((f) => ({ file: f.name, change: e.change })));
+        const lines = list.flatMap((e) => e.files.map((f) => ({ file: f.name, change: e.change, primaryText: e.primaryText, credit: creditoDoBroll(e.provenance, locale) })));
         archive.append(readmeFor(axis, lines, locale), { name: `${folder}/README.txt` });
       }
       await archive.finalize();

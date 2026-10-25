@@ -123,6 +123,9 @@ export function apiTestEnv(): Record<string, string> {
     CHAMPION_MIN_SEC: process.env.E2E_LIMITES_V2 === '1' ? '4' : '5',
     CHAMPION_MAX_SEC: process.env.E2E_LIMITES_V2 === '1' ? '180' : '120',
     MEDIA_PROMPTS: 'v2',
+    // incidente 22/10 (TIME.md): 2ª API nunca roda o cron da Meta nem fala com a Meta de verdade
+    META_MODE: 'mock',
+    META_CRON: 'off',
     // editor F2d: fake (ffmpeg sintético) por padrão; E2E_RENDER_REAL=1 = RemotionRenderService de verdade (local, grátis)
     RENDER_IMPL: ENV.renderReal ? 'remotion' : 'fake',
   };

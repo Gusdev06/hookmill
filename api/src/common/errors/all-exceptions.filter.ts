@@ -45,7 +45,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse<Response>();
     const body = toErrorBody(exception);
-    if (body.statusCode >= 500) {
+    if (body.code === 'META_NOT_CONFIGURED') {
+      // 503 esperado (META_MODE=off ou live sem chave): estado de configuração, não falha; o web chama GET /meta/connection em toda tela
+      this.logger.warn(`${body.code} ${JSON.stringify(body.details ?? {})}`);
+    } else if (body.statusCode >= 500) {
       this.logger.error(exception instanceof Error ? exception.stack ?? exception.message : String(exception));
     }
     if (res.headersSent) {

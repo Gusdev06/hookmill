@@ -15,7 +15,7 @@ import { RostosService } from '../rostos/rostos.service';
 /**
  * Retomada depois de reinício da API (modelo-de-dados.md):
  *  1. jobs do Claude QUEUED/RUNNING → FAILED INTERRUPTED + transição de falha (roteiros: READY se sobrou algum, senão FAILED);
- *  2. renders RENDERING → QUEUED (a fila pega de novo);
+ *  2. renders RENDERING → QUEUED (a fila pega de novo), menos os do Remotion Lambda já submetidos (o poller retoma);
  *  3. tasks da WaveSpeed que terminaram e não foram tratadas (API caiu no meio) → orquestrador;
  *  4. cena/rosto pendente sem task viva → FAILED INTERRUPTED (o usuário regera).
  * BOOT_RECOVERY=off desliga a rodada automática do boot: SÓ pros testes de integração, em que vários processos
@@ -64,7 +64,22 @@ export class RecuperacaoService implements OnApplicationBootstrap {
     await this.iteracao.recover(opts.workspaceId);
 
     // 2. renders
-    const renders = await this.prisma.render.updateMany({ where: { ...ws, status: 'RENDERING' }, data: { status: 'QUEUED', stage: null } });
+    // rev. 23/10 §14.2: só REMOTION volta pra fila; o IMAGE_GEN (STATIC) tem retomada própria (edicao/ImagemEstaticaService.recover)
+    // render-lambda-v1 §2.7: `impl='lambda'` com externalId NÃO volta pra fila (o render segue na AWS; o poller retoma);
+    // lambda sem externalId há mais de 2 min (caiu entre invocar e gravar) → fila; local/fake/antigo → fila (morreu com o processo)
+    const back = { status: 'QUEUED' as const, stage: null, progress: 0, startedAt: null, impl: null, externalId: null, externalBucket: null, submittedAt: null, finalizingAt: null };
+    const local = await this.prisma.render.updateMany({
+      where: { ...ws, status: 'RENDERING', engine: 'REMOTION', OR: [{ impl: null }, { impl: { in: ['local', 'fake'] } }] }, data: back,
+    });
+    const semId = await this.prisma.render.updateMany({
+      where: { ...ws, status: 'RENDERING', engine: 'REMOTION', impl: 'lambda', externalId: null, startedAt: { lt: new Date(Date.now() - 2 * 60_000) } }, data: back,
+    });
+    // lambda que estava no meio do `settle` (claim em finalizingAt) quando o processo caiu: solta o claim pro poller refazer o finalize
+    await this.prisma.render.updateMany({
+      where: { ...ws, status: 'RENDERING', engine: 'REMOTION', impl: 'lambda', externalId: { not: null }, finalizingAt: { not: null } },
+      data: { finalizingAt: null },
+    });
+    const renders = { count: local.count + semId.count };
 
     // 3. tasks terminadas e não tratadas
     const tasks = await this.prisma.providerTask.findMany({ where: { ...ws, status: { not: 'SUBMITTED' }, handledAt: null }, orderBy: { completedAt: 'asc' } });

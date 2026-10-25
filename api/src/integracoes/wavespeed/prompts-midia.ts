@@ -3,7 +3,7 @@
 //   frame 0 → "SOLO SHOT", tudo em POSITIVO, sem citar o objeto proibido, identidade travada, seed 7 (19/19 limpos).
 // - Não pedir ao Pruna pose diferente da imagem (ele reimagina a cena).
 // - Rosto centrado e enquadrado do peito pra cima, porque o recorte de 4:5 / 1:1 é centrado no rosto.
-import type { VideoFormat } from '../contrato';
+import type { HeadlinePlacement, StaticAspect, StaticImageSpec, StaticStyle, VideoFormat } from '../contrato';
 
 const LANGUAGE_NAMES: Record<string, string> = { en: 'English', pt: 'Portuguese', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', nl: 'Dutch', pl: 'Polish', tr: 'Turkish', ru: 'Russian', ar: 'Arabic', hi: 'Hindi', id: 'Indonesian', vi: 'Vietnamese', th: 'Thai' };
 
@@ -294,5 +294,89 @@ export function swapScenePrompt(i: { visualPrompt: string; speech: string; langu
     `They look straight into the lens and talk, lips moving in sync with every word. ${body}`,
     `[Speaker, ${voice}]: "${speech}"`,
     'Only this one voice is heard, clear and close to the microphone, quiet room tone, no music.',
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------- STATIC (GPT Image 2, variacao-auto-v1 rev. 23/10 §14.3)
+// Estrutura da skill gpt-image-2-prompt (.claude/skills/gpt-image-2-prompt): campos object / scene / vibe /
+// photo quality and vibe (recomendação pelo tipo: everyday, cinematic, ads) / aspect ratio + "Avoid".
+// Sem a frase de abertura da skill ("Generate an image ... dont change it"): ela existe pra travar o reescritor do
+// ChatGPT; na API não há reescritor e a frase só viraria ruído (ou texto na imagem).
+// A headline é o ÚNICO texto da imagem e vai entre aspas, no idioma da tela, dentro da safe area (topo/base ~12 % livres).
+
+/** Recomendações de "photo quality and vibe" da skill, por estilo (texto da skill; só a parte de nitidez da headline é nossa). */
+export const STATIC_STYLE_QUALITY: Record<StaticStyle, string> = {
+  everyday_photo:
+    'non-studio lighting, no oversharpening, real light from the location, iphone photo vibe, imperfect photo quality/raw quality (for realism), random realistic photo taken during a random moment of the day, make sure the lighting is natural and matches the background, 2k, the photo slightly soft like a phone photo while the headline text stays crisp',
+  cinematic:
+    'focused cinematic shot, natural light, highly aesthetic scene, movie-still composition, raw quality, warm rim light, subtle film grain, clean composition, cool ambient shadows, colors with a slight gray tone, make sure the lighting is natural and matches the background, no oversaturation, no oversharpening, a lively vibe, as if the frame was taken while the characters were doing something, raw quality',
+  ad_graphic:
+    'social media ad creative, clean composition, strong color direction, one clear focal point, generous empty space around the headline, print-quality sharp edges',
+};
+
+const PLACEMENT: Record<HeadlinePlacement, string> = {
+  top: 'in the upper third of the frame, just below the top safe margin',
+  center: 'across the middle of the frame',
+  bottom: 'in the lower third of the frame, just above the bottom safe margin',
+};
+
+/** Palavras de pessoa/corpo: o modo `safe` tira os trechos da cena que as citam (o reenvio depois de SAFETY_BLOCK). */
+const PERSON_RE = /\b(person|people|persons|man|men|woman|women|girl|girls|boy|boys|guy|lady|kid|kids|child|children|teen|teenager|adult|mother|father|mom|dad|baby|couple|someone|somebody|customer|user|he|she|him|her|his|hers|they|their|them|body|bodies|skin|face|faces|hand|hands|arm|arms|leg|legs|belly|waist|chest|hair|lips|eyes|shoulders?|figure|model|wearing|dressed|shirtless|naked|nude|swimsuit|bikini|underwear|lingerie)\b/i;
+
+/** Tira os trechos (entre vírgula/ponto; dentro deles, entre and/while/with) que descrevem pessoa ou corpo. Trecho sem
+ *  pessoa fica intacto. */
+export function withoutPeople(text: string): string {
+  const parts: string[] = [];
+  for (const raw of text.split(/(?<=[.;,])\s+/)) {
+    const chunk = raw.trim().replace(/[.;,]+$/, '');
+    if (!chunk) continue;
+    if (!PERSON_RE.test(chunk)) parts.push(chunk);
+    else parts.push(...chunk.split(/\s+(?:and|while|with)\s+/i).map((x) => x.trim()).filter((x) => x && !PERSON_RE.test(x)));
+  }
+  return parts.join(', ');
+}
+
+const quoteSafe = (t: string) => t.replace(/\s+/g, ' ').trim().replace(/"/g, '”');
+const field = (t: string) => scrubSlop(t.replace(/\s+/g, ' ').replace(/["“”]/g, '').trim()).replace(/\.$/, '');
+
+/**
+ * Prompt da imagem do STATIC (função pura). `safe` = reenvio depois de recusa: sem pessoa/corpo, mesma cena, clima e headline.
+ * `visual` vazio (plano antigo, sem conceito) = pôster tipográfico só com a headline e uma cor forte.
+ */
+export function buildStaticImagePrompt(spec: StaticImageSpec, aspect: StaticAspect, opts: { safe: boolean }): string {
+  const v = spec.visual;
+  const headline = quoteSafe(spec.headline);
+  const legacy = !v.object.trim() && !v.scene.trim() && !v.vibe.trim();
+  const style: StaticStyle = legacy ? 'ad_graphic' : v.style;
+  const placement: HeadlinePlacement = legacy ? 'center' : v.headlinePlacement;
+
+  let object: string;
+  let scene: string;
+  let vibe: string;
+  if (legacy) {
+    object = 'the headline set as large bold typography, the main and only element of the image';
+    scene = 'a clean flat background in one strong color with a subtle paper texture';
+    vibe = 'confident, simple, direct';
+  } else if (opts.safe) {
+    const place = withoutPeople(field(v.scene));
+    object = 'an everyday setting with a few ordinary objects that fit it, empty of people';
+    scene = place ? `${place}, nobody in the frame` : 'an ordinary everyday setting that fits the headline, nobody in the frame';
+    vibe = withoutPeople(field(v.vibe)) || 'calm and honest';
+  } else {
+    object = field(v.object);
+    scene = field(v.scene);
+    vibe = field(v.vibe);
+  }
+
+  return [
+    `object: ${object}`,
+    `scene: ${scene}`,
+    `vibe: ${vibe}`,
+    `photo quality and vibe: ${STATIC_STYLE_QUALITY[style]}`,
+    `text on the image, exactly as written, in ${languageName(spec.screenLanguage)}: "${headline}"`,
+    `text placement: ${PLACEMENT[placement]}, inside the safe area (the top 12% and the bottom 12% of the frame stay free of text), large bold legible sans-serif letters with strong contrast against the background, written once, every letter and accent spelled exactly as given`,
+    'no other text, no watermarks, no logos, no borders, no frames.',
+    `aspect ratio: ${aspect}`,
+    'Avoid: excessive yellow in the photo, too sharp or overly sharpened image, too many highlights or glare on faces, misspelled or extra words, studio lighting, overpolished look.',
   ].join('\n');
 }

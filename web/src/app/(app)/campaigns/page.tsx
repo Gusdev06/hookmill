@@ -1,6 +1,11 @@
-import { SoonPage } from "@/components/soon-pages"
+import { Suspense } from "react"
+import { CampaignsScreen } from "@/components/campaigns/campaigns-screen"
 
-/** No screen yet (fase2 plan F2): whole-section "Em breve" with a faded example preview. */
+/** Campaigns v1 (campanhas-v1.md): the real screen; META_MODE=off keeps the "Soon" page (decided inside the screen). */
 export default function Page() {
-  return <SoonPage section="campaigns" />
+  return (
+    <Suspense>
+      <CampaignsScreen />
+    </Suspense>
+  )
 }

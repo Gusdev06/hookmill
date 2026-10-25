@@ -44,7 +44,7 @@ export class MockMediaController {
     @Query('sec') sec: string | undefined,
     @Res() res: Response,
   ) {
-    if (!['face', 'video', 'audio'].includes(kind)) throw new BadRequestException('invalid kind');
+    if (!['face', 'video', 'audio', 'static'].includes(kind)) throw new BadRequestException('invalid kind');
     const seed = file.replace(/\.(png|mp4|wav)$/, '');
     if (!/^[0-9a-f]{16}$/.test(seed)) throw new BadRequestException('invalid file');
     if (format && !FORMATS.includes(format as VideoFormat)) throw new BadRequestException('invalid format');

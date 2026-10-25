@@ -1,4 +1,4 @@
-import type { CreateOfferBody, FieldSources, OfferBrief, UpdateOfferBody } from '@maquina/contratos';
+import type { CreateOfferBody, FieldSources, OfferBrief, OfferReadMeta, ReadMode, UpdateOfferBody } from '@maquina/contratos';
 import {
   IsObject, IsOptional, IsString, IsUrl, Matches, MaxLength, MinLength, ValidateIf, registerDecorator, type ValidationOptions,
 } from 'class-validator';
@@ -27,6 +27,27 @@ function IsFieldSources(opts?: ValidationOptions) {
     });
 }
 
+export const READ_MODES: readonly ReadMode[] = ['pasted', 'http', 'rendered', 'crawled', 'vision'];
+/** Teto do JSON `read_meta` (imagens entram SEM base64: só src + o que o modelo leu). */
+const READ_META_MAX_JSON = 60_000;
+
+/** briefing-leitura-v2 D5: `{ readMode, pages[], imagesRead[], fieldOrigins{}, costUsd, readAt? }`, sem base64, ≤ 60 KB. */
+export function isReadMeta(v: unknown): v is OfferReadMeta {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const m = v as Record<string, unknown>;
+  if (!(READ_MODES as readonly string[]).includes(m.readMode as string)) return false;
+  if (!Array.isArray(m.pages) || !Array.isArray(m.imagesRead)) return false;
+  if (m.fieldOrigins !== undefined && (!m.fieldOrigins || typeof m.fieldOrigins !== 'object' || Array.isArray(m.fieldOrigins))) return false;
+  if (m.costUsd !== undefined && typeof m.costUsd !== 'number') return false;
+  if (m.readAt !== undefined && typeof m.readAt !== 'string') return false;
+  if ((m.imagesRead as unknown[]).some((i) => !i || typeof i !== 'object' || 'base64' in (i as object) || 'data' in (i as object))) return false;
+  return JSON.stringify(v).length <= READ_META_MAX_JSON;
+}
+function IsReadMeta(opts?: ValidationOptions) {
+  return (object: object, propertyName: string) =>
+    registerDecorator({ name: 'isReadMeta', target: object.constructor, propertyName, options: opts, validator: { validate: (v: unknown) => isReadMeta(v) } });
+}
+
 /** Campo de texto livre do briefing: string ou null (null limpa). */
 const Brief = () => (target: object, key: string) => {
   IsOptional()(target, key);
@@ -49,6 +70,8 @@ export class CreateOfferDto implements CreateOfferBody {
   @Brief() cta?: string | null;
   @Brief() notes?: string | null;
   @IsOptional() @IsObject() @IsFieldSources() fieldSources?: FieldSources;
+  /** briefing-leitura-v2 D5: o web manda `output.readMeta` do OFFER_EXTRACT. */
+  @IsOptional() @IsObject() @IsReadMeta() readMeta?: OfferReadMeta;
 }
 
 export class UpdateOfferDto implements UpdateOfferBody {
@@ -64,6 +87,10 @@ export class UpdateOfferDto implements UpdateOfferBody {
   @Brief() offerAndPrice?: string | null;
   @Brief() cta?: string | null;
   @Brief() notes?: string | null;
+  /** apply do reread; null limpa. */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsObject() @IsReadMeta() readMeta?: OfferReadMeta | null;
+  /** QA bug 14: origem por campo que o web aplica (`page` ao aplicar a leitura); vence o `user` automático do autosave. */
+  @IsOptional() @IsObject() @IsFieldSources() fieldSources?: FieldSources;
 }
 
 /** ExtractOfferBody = { url } | { pageText, url? }: união não dá pra `implements`; a regra "um dos dois" fica no service. */

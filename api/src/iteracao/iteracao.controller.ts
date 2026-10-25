@@ -37,7 +37,7 @@ export class IteracaoController {
 
   @HttpCode(202) @Post(':id/start')
   start(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: StartIterateDto) {
-    return this.iteracao.start(auth, id, dto.expectedPieces);
+    return this.iteracao.start(auth, id, dto.expectedPieces, dto.expectedCostUsd);
   }
 
 }

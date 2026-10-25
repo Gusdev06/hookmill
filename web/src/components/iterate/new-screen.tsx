@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
@@ -13,13 +13,14 @@ import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { NavIcon } from "@/components/shell/nav-icon"
-import { SoonBadge } from "@/components/soon"
+import { AdRow } from "@/components/meta/ad-row"
+import { metaReady, mk, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { ik, useIterateConfig } from "@/hooks/use-iterate"
 import { useUploadMessage } from "@/components/variar/winner-step"
 import { mb, useChampionUpload, type UploadState } from "@/components/variar/upload"
 import { cn } from "@/lib/utils"
-import { Bar, Card, Head, IterActionBar, IterFlow, IterWrap, mmss, TypeThumb, useIterFormat } from "./parts"
+import { Bar, Card, Head, IterActionBar, IterFlow, IterWrap, mmss, Tag, TypeThumb, useIterFormat } from "./parts"
 
 /**
  * /iterate/new · Analyze, empty + uploading (spec §4.1). The analysis starts by itself when the upload finishes
@@ -48,6 +49,25 @@ export function IterateNew() {
           <span className="sk h-[210px] rounded-lg" />
           <span className="sk h-[260px] rounded-lg" />
         </div>
+        {bar}
+      </IterWrap>
+    )
+  }
+  // QA 21/10 (bug 7, onboarding-v2 §3.4): a CLIENT can't start a batch (403 on the config) but reads the Meta card, so the
+  // tour stop "This ad is already working" (#t-winner) renders for them too, with "Iterate it" disabled.
+  if (config.isError && isApiError(config.error) && config.error.status === 403) {
+    return (
+      <IterWrap>
+        <IterFlow current="analyze" />
+        {head}
+        <MetaPick busy running={null} onPick={() => {}} needsOffer={false} readOnly />
+        <Alert>
+          <NavIcon name="info" size={20} />
+          <AlertBody>
+            <AlertTitle>{t("readOnlyTitle")}</AlertTitle>
+            <AlertDescription>{t("readOnlyBody")}</AlertDescription>
+          </AlertBody>
+        </Alert>
         {bar}
       </IterWrap>
     )
@@ -114,7 +134,7 @@ function Ready({ config }: { config: IterateConfig }) {
     router.replace(iterateHref(b.id))
   }
   const create = useMutation({
-    mutationFn: (b: { uploadId?: string; creativeId?: string; offerId?: string }) => api.iterate.create(b),
+    mutationFn: (b: { uploadId?: string; creativeId?: string; metaAdId?: string; offerId?: string }) => api.iterate.create(b),
     onSuccess: go,
     onError: (e) => {
       // 422 OFFER_REQUIRED: the selector shows with the offers the API sent (spec D3)
@@ -141,6 +161,7 @@ function Ready({ config }: { config: IterateConfig }) {
 
   const busy = upload.state.phase === "uploading" || upload.state.phase === "checking" || !!ready
   const fromLibrary = create.isPending && !!create.variables?.creativeId ? create.variables.creativeId : null
+  const fromMeta = create.isPending && !!create.variables?.metaAdId ? create.variables.metaAdId : null
   const createError = create.isError && !(isApiError(create.error) && create.error.code === "OFFER_REQUIRED") ? create.error : null
   const waitingOffer = !!ready && needsOffer && !offerId
 
@@ -148,8 +169,14 @@ function Ready({ config }: { config: IterateConfig }) {
     <IterWrap>
       <IterFlow current="analyze" />
       <Head title={t("h1")} lede={t("lede")} />
+      <MetaPick
+        busy={busy || create.isPending}
+        running={fromMeta}
+        onPick={(metaAdId) => create.mutate({ metaAdId, offerId: needsOffer ? offerId ?? undefined : undefined })}
+        needsOffer={needsOffer && !offerId}
+      />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-start gap-4">
-        <div className="flex min-w-0 flex-col gap-3">
+        <div id="t-upload" className="flex min-w-0 flex-col gap-3">
           {needsOffer ? (
             <div className="flex flex-col gap-1.5">
               <label htmlFor="iter-offer" className="text-[13px] font-semibold">
@@ -212,10 +239,6 @@ function Ready({ config }: { config: IterateConfig }) {
           ) : (
             <p className="m-0 text-[13px] text-fg-3">{t("libEmpty")}</p>
           )}
-          <div className="flex flex-wrap items-center gap-2 text-xs text-fg-3">
-            <SoonBadge className="px-2 py-0.5 text-[10px]" />
-            {t("metaSoon")}
-          </div>
         </Card>
       </div>
       <IterActionBar hint={waitingOffer ? t("offerLabel") : busy ? t("hintUploading") : t("hintEmpty")}>
@@ -315,5 +338,113 @@ function Source({ state, config, onFile, onCancel, creating }: {
         </Alert>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * "From {client}'s Meta account" (meta-v1 §3.2, spec decision 9 stop 2): the ads already running with their verdict and
+ * trend, the winner first and marked. "Iterate it" = POST /iterate { metaAdId } (D13, the only path of Pick from Meta).
+ * `?metaAdId=` (from Home) pre-selects the row. Without a ready connection: the neutral alert with "Connect Meta".
+ */
+function MetaPick({ busy, running, onPick, needsOffer, readOnly }: { busy: boolean; running: string | null; onPick: (metaAdId: string) => void; needsOffer: boolean; readOnly?: boolean }) {
+  const t = useTranslations("iterate.meta")
+  const errorMessage = useErrorMessage()
+  const rel = useRelativeTime()
+  const conn = useMetaConnection()
+  const ready = metaReady(conn.data)
+  const preselected = useSearchParams().get("metaAdId")
+  const [all, setAll] = useState(false)
+  const ads = useQuery({
+    queryKey: mk.ads({ limit: all ? 20 : 3 }),
+    queryFn: ({ signal }) => api.meta.ads({ limit: all ? 20 : 3 }, { signal }),
+    enabled: ready,
+    staleTime: 30_000,
+  })
+  // ?metaAdId= (Campaigns, Home, Brain): the chosen ad may sit outside the top rows, so fetch it and pin it first
+  const picked = useQuery({
+    queryKey: mk.ads({ q: preselected ?? "", limit: 1, format: "all" }),
+    queryFn: ({ signal }) => api.meta.ads({ q: preselected!, limit: 1, format: "all" }, { signal }),
+    enabled: ready && !!preselected,
+    staleTime: 30_000,
+  })
+  const pinned = picked.data?.data.find((a) => a.metaAdId === preselected) ?? null
+  const rows = ads.data ? (pinned ? [pinned, ...ads.data.data.filter((a) => a.metaAdId !== pinned.metaAdId)] : ads.data.data) : []
+  if (conn.isPending || (conn.isError && !ready)) return null
+  if (!ready) {
+    return (
+      <Alert>
+        <NavIcon name="plug" size={20} />
+        <AlertBody>
+          <AlertTitle>{t("notConnectedTitle")}</AlertTitle>
+          <AlertDescription>{t("notConnectedBody")}</AlertDescription>
+        </AlertBody>
+        <AlertActions>
+          <Link href="/settings/connections" className={buttonVariants({ size: "sm" })}>
+            {t("connect")}
+          </Link>
+        </AlertActions>
+      </Alert>
+    )
+  }
+  const summary = ads.data?.meta.summary
+  const first = summary?.sync.state === "first_sync" || summary?.sync.state === "never"
+  return (
+    <Card id="t-winner" className={cn("gap-3", ads.data?.data[0]?.verdict === "WINNER" && "border-brand-edge")} aria-busy={ads.isPending}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2>{t("title", { name: conn.data?.adAccount?.name ?? "" })}</h2>
+        {summary?.sync.syncedAt ? <Tag tone="ok">{t("synced", { ago: rel(summary.sync.syncedAt) })}</Tag> : null}
+      </div>
+      {ads.isPending ? (
+        <div className="grid gap-2">
+          <span className="sk h-16 rounded-md" />
+          <span className="sk h-16 rounded-md" />
+        </div>
+      ) : ads.isError ? (
+        <Alert variant="destructive">
+          <NavIcon name="alert" size={20} />
+          <AlertBody>
+            <AlertTitle>{errorMessage(ads.error)}</AlertTitle>
+          </AlertBody>
+          <AlertActions>
+            <Button size="sm" onClick={() => ads.refetch()}>
+              {t("retry")}
+            </Button>
+          </AlertActions>
+        </Alert>
+      ) : first ? (
+        <p className="m-0 text-[13px] text-fg-3">{t("firstSync")}</p>
+      ) : rows.length ? (
+        <>
+          <div className="flex flex-col gap-2">
+            {rows.map((ad, i) => (
+              <AdRow
+                key={ad.metaAdId}
+                ad={ad}
+                currency={summary?.currency}
+                stats="account"
+                selected={preselected === ad.metaAdId}
+                winner={i === 0 && ad.verdict === "WINNER"}
+                action={
+                  <Button size="sm" variant={i === 0 && ad.verdict === "WINNER" ? "brand" : "outline"} disabled={busy || needsOffer || readOnly} title={readOnly ? t("readOnly") : undefined} aria-busy={running === ad.metaAdId} onClick={() => onPick(ad.metaAdId)}>
+                    {running === ad.metaAdId ? <span className="spin-ring size-3.5" aria-hidden="true" /> : null}
+                    {ad.championId ? t("iterateAgain") : t("iterateIt")}
+                  </Button>
+                }
+              />
+            ))}
+          </div>
+          {needsOffer ? <span className="text-xs text-status-waiting">{t("pickOffer")}</span> : null}
+          {summary && summary.activeAds > 3 && !all ? (
+            <Button variant="ghost" size="sm" className="self-start" onClick={() => setAll(true)}>
+              {t("seeAll", { n: summary.activeAds })}
+              <NavIcon name="right" size={16} />
+            </Button>
+          ) : null}
+          {summary?.rule ? <span className="text-xs text-fg-3">{t("rule", { spend: summary.rule.minSpendUsd, results: summary.rule.minResults })}</span> : null}
+        </>
+      ) : (
+        <p className="m-0 text-[13px] text-fg-3">{t("noAds")}</p>
+      )}
+    </Card>
   )
 }

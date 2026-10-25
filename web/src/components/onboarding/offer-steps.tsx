@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { BriefFields, EMPTY_DRAFT, toDraft, type Draft, type DraftKey } from "@/components/brief-form"
+import { originsOf } from "@/components/offer-extract"
 import { Icon } from "@/components/icon"
 import { SoonBlock } from "@/components/soon"
 import { BackLink, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
@@ -34,6 +35,8 @@ function useOfferDraft(ws: Workspace, offer: Offer | null) {
   const [fromPage, setFromPage] = useState<Set<DraftKey>>(
     () => new Set(Object.entries(offer?.fieldSources ?? {}).filter(([k, v]) => v === "page" && k !== "language").map(([k]) => k as DraftKey))
   )
+  // briefing-leitura-v2 D5: where each field came from, when the offer kept it
+  const origins = originsOf(offer?.readMeta)
 
   const change = (k: DraftKey, v: string) => {
     setDraft((d) => ({ ...d, [k]: v }))
@@ -65,7 +68,7 @@ function useOfferDraft(ws: Workspace, offer: Offer | null) {
     }
     if (!hasContent) return null
     const o = await api.offers.create({
-      name: draft.name.trim(), language: draft.language, sourceUrl: url,
+      name: draft.name.trim(), language: draft.language, sourceUrl: url ?? undefined,
       what: draft.what.trim() || null, audience: draft.audience.trim() || null, promise: draft.promise.trim() || null,
       pains: draft.pains.trim() || null, proof: draft.proof.trim() || null, offerAndPrice: draft.offerAndPrice.trim() || null,
       cta: draft.cta.trim() || null, notes: notes.trim() || null,
@@ -74,7 +77,7 @@ function useOfferDraft(ws: Workspace, offer: Offer | null) {
     return o
   }
 
-  return { draft, change, fromPage, lp, setLp, notes, setNotes, save, needsName }
+  return { draft, change, fromPage, origins, lp, setLp, notes, setNotes, save, needsName }
 }
 
 /** Save the offer, then PATCH the step and move. */
@@ -122,12 +125,12 @@ export function ProductStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       sub={ctx.offer?.sourceUrl && site ? t("offer.subRead", { site, name: ws.name }) : t("offer.sub", { name: ws.name })}
       error={error}
       saving={pending}
-      onSaveExit={() => !d.needsName && go(3, "/clients")}
+      onSaveExit={() => !d.needsName && go(3, ctx.exitTo)}
       hintWarn={d.needsName}
       hint={d.needsName ? t("offer.needsName") : t("savedAsYouGo")}
-      back={<BackLink href={onboardingHref(2)}>{t("back")}</BackLink>}
+      back={<BackLink href={ctx.prev(3)}>{t("back")}</BackLink>}
       primary={
-        <Button variant="brand" size="lg" disabled={pending || d.needsName} onClick={() => go(4, onboardingHref(4))}>
+        <Button variant="brand" size="lg" disabled={pending || d.needsName} onClick={() => go(4, ctx.next(3))}>
           {t("offer.continue")}
           <Icon name="arrowr" />
         </Button>
@@ -164,7 +167,7 @@ export function ProductStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-[18px] desktop:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Card title={t("offer.theOffer")}>
-          <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} only={STEP3} disabled={!ctx.canEdit} labels={{ name: t("offer.nameLabel") }} />
+          <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} origins={d.origins} only={STEP3} disabled={!ctx.canEdit} labels={{ name: t("offer.nameLabel") }} />
           <div className="grid gap-1.5">
             <Label htmlFor="ob-lp">{t("offer.lp")}</Label>
             <Input id="ob-lp" type="text" inputMode="url" value={d.lp} disabled={!ctx.canEdit} onChange={(e) => d.setLp(e.target.value)} placeholder="example.com/offer" />
@@ -172,7 +175,7 @@ export function ProductStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
           <SoonBlock what={t.rich("offer.soonWhy", { b: (c) => <b>{c}</b> })} />
         </Card>
         <Card title={t("offer.proofTitle")}>
-          <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} only={["proof"]} disabled={!ctx.canEdit} labels={{ proof: tf("proof") }} />
+          <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} origins={d.origins} only={["proof"]} disabled={!ctx.canEdit} labels={{ proof: tf("proof") }} />
           <p className="m-0 text-xs text-fg-3">{t("offer.proofHint")}</p>
         </Card>
       </div>
@@ -207,11 +210,11 @@ export function AudienceStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       sub={t("audience.sub")}
       error={error}
       saving={pending}
-      onSaveExit={() => go(4, "/clients")}
+      onSaveExit={() => go(4, ctx.exitTo)}
       hint={t("savedAsYouGo")}
       back={<BackLink href={onboardingHref(3)}>{t("back")}</BackLink>}
       primary={
-        <Button variant="brand" size="lg" disabled={pending} onClick={() => go(5, onboardingHref(5))}>
+        <Button variant="brand" size="lg" disabled={pending} onClick={() => go(5, ctx.next(4))}>
           {t("audience.continue")}
           <Icon name="arrowr" />
         </Button>
@@ -232,7 +235,7 @@ export function AudienceStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       ) : null}
 
       <Card title={t("audience.who")}>
-        <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} only={STEP4} disabled={disabled} />
+        <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} origins={d.origins} only={STEP4} disabled={disabled} />
         <SoonBlock what={t.rich("audience.soonGroups", { b: (c) => <b>{c}</b> })} />
       </Card>
 

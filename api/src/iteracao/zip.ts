@@ -31,8 +31,11 @@ export function zipFileName(i: { shortCode: string; launchedAt: Date; championNa
   return `${i.shortCode}_${mmddUtc(i.launchedAt)}_${slugOf(i.championName)}_${i.locale === 'PT_BR' ? 'variacoes' : 'variations'}.zip`;
 }
 
-/** README.txt de cada pasta: a instrução do conjunto + `arquivo → o que mudou`. */
-export function readmeFor(axis: VariationAxis, lines: { file: string; change: string }[], locale: ZipLocale): string {
+/**
+ * README.txt de cada pasta: a instrução do conjunto + `arquivo → o que mudou`. 25/10 (D14): peça com texto do anúncio
+ * sugerido (moldura "Leia a legenda") ganha a linha seguinte com ele, recuada (sem publicar pelo HookMill, é daqui que sai).
+ */
+export function readmeFor(axis: VariationAxis, lines: { file: string; change: string; primaryText?: string | null; credit?: string | null }[], locale: ZipLocale): string {
   const head = axis === 'ITERATION'
     ? locale === 'PT_BR'
       ? 'Conjunto de teste do mesmo conceito, separado do conjunto do campeão (que segue rodando). A peça que ganhar migra pro conjunto principal.'
@@ -41,7 +44,13 @@ export function readmeFor(axis: VariationAxis, lines: { file: string; change: st
       ? 'Conjunto novo, com todas as peças juntas.'
       : 'New ad set, with all pieces together.';
   const title = locale === 'PT_BR' ? 'Arquivo → o que mudou' : 'File → what changed';
-  return [head, '', title, ...lines.map((l) => `${l.file} → ${l.change}`), ''].join('\n');
+  const label = locale === 'PT_BR' ? 'Texto do anúncio' : 'Ad primary text';
+  const body = lines.flatMap((l) => [
+    `${l.file} → ${l.change}`,
+    ...(l.primaryText?.trim() ? [`    ${label}: ${l.primaryText.trim().replace(/\s*\n\s*/g, ' ')}`] : []),
+    ...(l.credit?.trim() ? [`    B-roll: ${l.credit.trim()}`] : []),
+  ]);
+  return [head, '', title, ...body, ''].join('\n');
 }
 
 /** zipKey = sha1 dos (pieceId, fileIds) incluídos, em ordem estável: igual = reaproveita o zip pronto. */
@@ -55,3 +64,17 @@ export function zipKeyOf(entries: { pieceId: string; fileIds: string[] }[]): str
 
 /** Zip apagado do storage depois de 72 h (cron), refeito sob demanda. */
 export const ZIP_TTL_MS = 72 * 3_600_000;
+
+/**
+ * §B3.1: 1 linha de proveniência do b-roll da 2ª fonte (fonte, autor, licença, link, intervalo). Licença desconhecida
+ * aparece como desconhecida (nunca vira domínio público); sem permissão comercial = aviso.
+ */
+export function creditoDoBroll(p: {
+  provider: string; sourceUrl: string; creator: string | null; license: string | null; licenseCommercialOk: boolean; startSec: number; endSec: number;
+} | null | undefined, locale: ZipLocale): string | null {
+  if (!p?.sourceUrl) return null;
+  const pt = locale === 'PT_BR';
+  const lic = p.license ?? (pt ? 'licença desconhecida' : 'unknown license');
+  const aviso = p.licenseCommercialOk ? '' : pt ? ' · LICENÇA NÃO VERIFICADA pra uso comercial' : ' · LICENSE NOT VERIFIED for commercial use';
+  return `${p.provider} · ${p.creator ?? (pt ? 'autor desconhecido' : 'unknown author')} · ${lic} · ${p.sourceUrl} · ${p.startSec.toFixed(1)}-${p.endSec.toFixed(1)} s${aviso}`;
+}

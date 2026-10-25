@@ -12,7 +12,9 @@ import type { VideoFormat } from '../contrato';
 const run = promisify(execFile);
 
 export const MOCK_MEDIA_ROUTE = 'mock-media';
-export type MockMediaKind = 'face' | 'video' | 'audio';
+/** `static` (rev. 23/10): imagem da peça STATIC, gradiente PNG no aspecto (nunca foto de rosto). */
+export type MockMediaKind = 'face' | 'video' | 'audio' | 'static';
+const isImage = (k: MockMediaKind) => k === 'face' || k === 'static';
 
 const DIMS: Record<VideoFormat, [number, number]> = {
   VERTICAL_9_16: [360, 640],
@@ -48,7 +50,7 @@ export interface MockMediaParams {
 
 /** URL pública da mídia sintética (rota servida pelo MockMediaController). */
 export function mockMediaUrl(publicApiUrl: string, p: MockMediaParams): string {
-  const ext = p.kind === 'face' ? 'png' : p.kind === 'video' ? 'mp4' : 'wav';
+  const ext = isImage(p.kind) ? 'png' : p.kind === 'video' ? 'mp4' : 'wav';
   const q = new URLSearchParams();
   if (p.format) q.set('format', p.format);
   if (p.sec != null) q.set('sec', String(clampSec(p.sec)));
@@ -70,8 +72,8 @@ export async function ensureMockMedia(p: MockMediaParams): Promise<{ path: strin
   const dir = mockMediaDir();
   mkdirSync(dir, { recursive: true });
 
-  const ext = p.kind === 'face' ? 'png' : p.kind === 'video' ? 'mp4' : 'wav';
-  const mimeType = p.kind === 'face' ? 'image/png' : p.kind === 'video' ? 'video/mp4' : 'audio/wav';
+  const ext = isImage(p.kind) ? 'png' : p.kind === 'video' ? 'mp4' : 'wav';
+  const mimeType = isImage(p.kind) ? 'image/png' : p.kind === 'video' ? 'video/mp4' : 'audio/wav';
   const realFace = p.kind === 'face' ? pickMockFacePhoto(p.seed) : null;
   // rosto de foto ganha outro nome no cache (o gradiente antigo, sem rosto, não pode ser reaproveitado)
   const faceTag = realFace ? `-real-${createHash('sha256').update(realFace).digest('hex').slice(0, 8)}` : '';
@@ -91,7 +93,7 @@ export async function ensureMockMedia(p: MockMediaParams): Promise<{ path: strin
     const fw = w * 2;
     const fh = h * 2;
     args = ['-i', realFace, '-vf', `scale=${fw}:${fh}:force_original_aspect_ratio=increase,crop=${fw}:${fh}`, '-frames:v', '1', tmp];
-  } else if (p.kind === 'face') {
+  } else if (isImage(p.kind)) {
     const fw = w * 2;
     const fh = h * 2;
     args = ['-f', 'lavfi', '-i', `gradients=s=${fw}x${fh}:c0=${color('c0')}:c1=${color('c1')}:c2=${color('c2')}:nb_colors=3:seed=${Math.floor(unit(p.seed, 's') * 1e6)}:d=1`, '-frames:v', '1', tmp];

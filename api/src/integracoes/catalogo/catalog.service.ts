@@ -8,6 +8,9 @@ import { genderOf } from './genero';
 import {
   FACE_MODEL,
   SCENE_MODELS,
+  STATIC_IMAGE_MODEL,
+  STATIC_TEXT_CHECK_MODEL,
+  staticImageUsd,
   TRANSCRIBE_MODEL,
   TTS_MODEL,
   VOICES,
@@ -132,6 +135,18 @@ export class CatalogServiceImpl implements CatalogService {
     return round4(Math.max(0, count) * FACE_MODEL.usdPerImage);
   }
 
+  /** US$ de `count` imagens do STATIC (GPT Image 2 high 2k, por imagem: 0,40; `withScreenRef` = edit com 1 referência,
+   *  0,41, D4). A checagem de texto (~0,0075) e a refação por texto crítico não entram: a refação passa pelo teto (§A8).
+   *  `opts` é extra da ia (o contrato só tem `count`): o backend que quiser o preço do edit chama com `{ withScreenRef }`. */
+  estimateStaticImages(count: number, opts?: { withScreenRef?: boolean }): number {
+    return round4(Math.max(0, Math.ceil(count)) * staticImageUsd(opts?.withScreenRef ? 1 : 0));
+  }
+
+  /** §A6: US$ estimado de `count` checagens de texto (visão). */
+  estimateStaticTextChecks(count: number): number {
+    return round4(Math.max(0, Math.ceil(count)) * STATIC_TEXT_CHECK_MODEL.estimatedUsd);
+  }
+
   /** Whisper (s × 0,002, com timestamps) + Claude com frames (tokens estimados pra cima; calibrar com a sonda). */
   estimateAnalysis(durationSec: number, keyframeCount: number): number {
     const sec = Math.ceil(Math.max(0, durationSec));
@@ -150,9 +165,12 @@ export class CatalogServiceImpl implements CatalogService {
   estimateAutoAnalysis(durationSec: number, opts?: { keyframeCount?: number; planOnly?: boolean }): number {
     const sec = Math.ceil(Math.max(0, durationSec));
     const p = CLAUDE_PRICES['claude-opus-5-5'];
-    const plan = ((AUTO_PLAN.baseInTokens + sec * AUTO_PLAN.inTokensPerSec) * p.input + AUTO_PLAN.outTokens * p.output) / 1e6;
-    if (opts?.planOnly) return round4(plan);
-    return round4(this.estimateAnalysis(durationSec, opts?.keyframeCount ?? AUTO_PLAN.defaultKeyframes) + plan);
+    const plan = ((AUTO_PLAN.baseInTokens + sec * AUTO_PLAN.inTokensPerSec + AUTO_PLAN.refImages * AUTO_PLAN.tokensPerRefImage) * p.input + AUTO_PLAN.outTokens * p.output) / 1e6;
+    const { static: st, frames: fr } = AUTO_PLAN.details;
+    const details = (st.calls * (st.uncachedInTokens * p.input + (st.cachedInTokens + sec * AUTO_PLAN.inTokensPerSec) * p.cacheRead + st.outTokens * p.output)
+      + fr.calls * ((fr.inTokens + sec * AUTO_PLAN.inTokensPerSec) * p.input + fr.outTokens * p.output)) / 1e6;
+    if (opts?.planOnly) return round4(plan + details);
+    return round4(this.estimateAnalysis(durationSec, opts?.keyframeCount ?? AUTO_PLAN.defaultKeyframes) + plan + details);
   }
 
   splitSourceScenes(words: TranscriptWord[], blocks: { label: string; startSec: number; endSec: number }[], maxSceneSec: number) {
@@ -268,10 +286,21 @@ export const ANALYSIS = {
   edit: { baseInTokens: 4000, tokensPerImage: 600, crops: 6, outTokens: 3000 },
 };
 
-/** variacao-auto §9: planAutoBatch (sem imagens). Entrada: sistema + esquema (~2,5 mil) + Brain/página (até 4 mil
+/** variacao-auto §9: planAutoBatch. Entrada: sistema + esquema (~2,5 mil) + Brain/página (até 4 mil
  *  caracteres ≈ 1,2 mil) + teardown resumido (~1,5 mil) + pedido; transcrição ~25 tokens/s como na análise. Saída:
- *  raciocínio (effort medium) + JSON de 8-12 peças. Estimado pra cima; sem sonda real ainda (13/10). */
-export const AUTO_PLAN = { baseInTokens: 7000, inTokensPerSec: 25, outTokens: 6000, defaultKeyframes: 12 };
+ *  raciocínio (effort medium) + JSON de 8-12 peças. Estimado pra cima; sem sonda real ainda (13/10).
+ *  Rev. 23/10 (§14.3): com STATIC em `allowed`, até `refImages` frames-chave vão como REFERÊNCIA visual (fora do cache);
+ *  a estimativa conta sempre (pra cima). */
+export const AUTO_PLAN = {
+  baseInTokens: 7000, inTokensPerSec: 25, outTokens: 6000, defaultKeyframes: 12, refImages: 4, tokensPerRefImage: 1600,
+  /** 25/10 (bug live da gramática + catálogo novo): 2ª etapa = 1 chamada por STATIC (até 2, com as imagens de referência
+   *  fora do cache) + 1 chamada com TODAS as molduras (até 8, effort low; a troca de effort perde o cache das mensagens,
+   *  então o contexto conta inteiro). Conta sempre o máximo (pra cima). */
+  details: {
+    static: { calls: 2, uncachedInTokens: 4000, cachedInTokens: 8000, outTokens: 2500 },
+    frames: { calls: 1, inTokens: 10000, outTokens: 4000 },
+  },
+};
 
 /**
  * §13.5: unidades de UM take. TTS_LIPSYNC: caracteres do texto inteiro, LIPSYNC e TRANSCRIBE = ceil(s do take) uma vez.
