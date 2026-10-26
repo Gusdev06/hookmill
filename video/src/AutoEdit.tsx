@@ -9,7 +9,8 @@ import { LegendaAuto } from './componentes/LegendaAuto';
 import { caixaLegendaAutoEdit } from './lib/legendaAuto';
 import { ajustarTexto } from './RemixKeep';
 import { endCardFrames, janelaCover, trechosEmFrames, type AutoEditProps, type AutoReframe } from './lib/autoEdit';
-import { corDeDestaque, corClara, contraste } from './lib/cores';
+import { corDeDestaque, corClara, contraste, corEscura } from './lib/cores';
+import { pinturaNaCaixa, type FrameReframe } from './lib/molduras';
 import type { RemixTextStyle } from './lib/remix';
 
 // Template auto-edit (variacao-auto-v1 §7.2). Base = o campeão recortado pelo `timeline` e reenquadrado; por cima, a ÚNICA
@@ -32,8 +33,8 @@ const useFontes = (language: string, texto: string) => {
 
 /** O campeão dentro de `box`: cover = janela centrada no foco, escala exata; contain_blur = inteiro, com o próprio vídeo
  *  desfocado atrás. `startFrom` = 1º frame do campeão (grade da saída). Só o vídeo da frente tem som. */
-const Quadro: React.FC<{ src: string; source: AutoEditProps['source']; reframe: AutoReframe; box: Box; startFrom: number; mudo: boolean; volume?: (f: number) => number }> = ({
-  src, source, reframe, box, startFrom, mudo, volume,
+const Quadro: React.FC<{ src: string; source: AutoEditProps['source']; reframe: AutoReframe; box: Box; startFrom: number; mudo: boolean; volume?: (f: number) => number; contentBox?: Box | null; fundo?: string }> = ({
+  src, source, reframe, box, startFrom, mudo, volume, contentBox, fundo,
 }) => {
   const comSom = !mudo && source.hasAudio;
   const video = (r: { left: number; top: number; w: number; h: number }, muted: boolean, extra?: React.CSSProperties) => (
@@ -51,6 +52,18 @@ const Quadro: React.FC<{ src: string; source: AutoEditProps['source']; reframe: 
     return { left: -j.x * s, top: -j.y * s, w: source.width * s, h: source.height * s };
   };
   const cover = (foco: { x: number; y: number }) => coverEm(box, foco);
+  // legenda-protegida-v1 'replace' (contentBox = campeão sem a faixa da legenda) ou zoom limitado (scale): só a área,
+  // em cover no foco; o que sobrar fica na cor de fundo (sem blur)
+  if (contentBox || (reframe.mode === 'cover' && reframe.scale)) {
+    const p = pinturaNaCaixa(box, source, reframe as FrameReframe, contentBox ?? null);
+    return (
+      <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, overflow: 'hidden', backgroundColor: fundo ?? '#000' }}>
+        <div style={{ position: 'absolute', left: p.area.left, top: p.area.top, width: p.area.w, height: p.area.h, overflow: 'hidden' }}>
+          {video({ left: p.video.left, top: p.video.top, w: p.video.w, h: p.video.h }, !comSom)}
+        </div>
+      </div>
+    );
+  }
   if (reframe.mode === 'cover') {
     return <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, overflow: 'hidden' }}>{video(cover(reframe.focus), !comSom)}</div>;
   }
@@ -79,6 +92,7 @@ const Fonte: React.FC<{ p: AutoEditProps; box: Box; reframe?: AutoReframe }> = (
         <Sequence key={i} name={`Trecho ${i + 1} (${(t.from / fps).toFixed(2)} s)`} from={t.at} durationInFrames={t.frames} layout="none">
           <Quadro
             src={src} source={p.source} reframe={reframe ?? p.reframe} box={box} startFrom={t.from} mudo={false}
+            contentBox={reframe ? null : p.contentBox ?? null} fundo={corEscura(p.palette)}
             volume={rampa > 0 ? (f) => Math.min(interpolate(f, [0, rampa], [0, 1], clamp), interpolate(f, [t.frames - 1 - rampa, t.frames - 1], [1, 0], clamp)) : undefined}
           />
         </Sequence>
@@ -306,7 +320,9 @@ export const AutoEdit: React.FC<AutoEditProps> = (p) => {
   // legenda automática (§2.2): terço de baixo da área do vídeo, acima da UI; some na busca de abertura e no end card
   const areaVideo = pr.type === 'REVIEW' ? { x: 0, y: Math.round(height * pr.ratio), w: width, h: height - Math.round(height * pr.ratio) }
     : pr.type === 'SPLIT_LP' ? { x: 0, y: Math.round(height * pr.ratio), w: width, h: height - Math.round(height * pr.ratio) } : tela;
-  const caixaLeg = p.captions?.words.length ? caixaLegendaAutoEdit(p.format, p.safeArea, areaVideo) : null;
+  // legenda refeita (captionMode 'replace'): o tamanho relativo da original, na escala do vídeo na área
+  const tamLeg = p.captions?.style ? Math.round(p.captions.style.sizeRel * p.source.height * pinturaNaCaixa(areaVideo, p.source, p.reframe as FrameReframe, p.contentBox ?? null).s) : undefined;
+  const caixaLeg = p.captions?.words.length ? caixaLegendaAutoEdit(p.format, p.safeArea, areaVideo, tamLeg) : null;
   const legendaDe = pr.type === 'NATIVE_SEARCH' ? Math.round(pr.introSec * fps) : 0;
   return (
     <AbsoluteFill style={{ backgroundColor: '#000', overflow: 'hidden' }}>

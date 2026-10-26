@@ -14,6 +14,7 @@ export * from './autoEdit';
 export * from './cores';
 export * from './molduras';
 export * from './legendaAuto';
+export * from './legendaProtegida';
 
 /** id da composição registrada no bundle (selectComposition / renderMedia / Lambda). */
 export const COMPOSITION_ID = 'Criativo';

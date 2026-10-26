@@ -16,6 +16,7 @@ import type {
 } from '../integracoes';
 import { inventedClaimsIn } from './afirmacoes';
 import type { HeadlineBlocked, HeadlineInfo } from './headline-plano';
+import type { CaptionGuard } from './legenda-protegida';
 import { DEFAULT_ACCENT } from './paleta';
 import type { MediaRulesPort, Span } from './portas';
 
@@ -180,9 +181,12 @@ export interface PlanCtx {
   headline?: HeadlineInfo | null;
   /** §2.1: o campeão não tem legenda queimada → todas as peças de vídeo ganham legenda */
   captionsAuto?: boolean;
+  /** legenda-protegida-v1 §2.3: o que tamparia a legenda queimada (backend preenche; ausente = nada protegido) */
+  caption?: CaptionGuard | null;
 }
 
-export type BlockedReason = SwapReason | 'has_end_card' | HeadlineBlocked;
+/** `burned_captions` (legenda-protegida-v1 §2.3): o tipo/template tamparia ou cortaria a legenda queimada do campeão. */
+export type BlockedReason = SwapReason | 'has_end_card' | HeadlineBlocked | 'burned_captions';
 export interface AllowedType { type: AutoVariationType; max: number; blockedReason: BlockedReason | null }
 
 const has = (s: string | null | undefined) => !!s && s.trim().length > 0;
@@ -205,19 +209,28 @@ export function hasQuotableProof(ctx: PlanCtx): boolean {
   return has(ctx.brain.proof) && ctx.brain.proof!.split(/[\n.!?]+/).some((s) => words(s) >= 4);
 }
 
+/** legenda-protegida-v1 §2.3: o tipo (template null) ou a moldura tamparia a legenda queimada (conta do `ctx.caption`). */
+export function captionBlocks(ctx: PlanCtx, type: AutoVariationType, template: FrameTemplateId | null = null): boolean {
+  return !!ctx.caption?.blocked.some((b) => b.type === type && b.template === template);
+}
+
 /** headline-e-legenda-v1 §1.1/§1.4: `replace` até 3, `add` até 2; bloqueio com motivo. Sem info do campeão = fora da lista. */
 function headlineRule(ctx: PlanCtx): AllowedType[] {
   const h = ctx.headline;
   if (!h) return [];
   if (h.blockedReason) return [{ type: 'HEADLINE', max: 0, blockedReason: h.blockedReason }];
+  if (captionBlocks(ctx, 'HEADLINE')) return [{ type: 'HEADLINE', max: 0, blockedReason: 'burned_captions' }];
   return [{ type: 'HEADLINE', max: h.mode === 'replace' ? 3 : 2, blockedReason: null }];
 }
 
 /** §6.3.1: o que pode entrar, com o máximo por tipo e o motivo do bloqueio (max 0). */
 export function allowedFor(ctx: PlanCtx): AllowedType[] {
   const short = ctx.durationSec < CUT_MIN_SEC || ctx.blocks.length < CUT_MIN_BLOCKS;
-  const rule = (type: AutoVariationType, ok: boolean, reason: BlockedReason): AllowedType =>
-    ({ type, max: ok ? TYPE_MAX[type] : 0, blockedReason: ok ? null : reason });
+  // legenda-protegida-v1 §2.3: o que já passou nas outras regras e tamparia a legenda queimada sai com `burned_captions`
+  const rule = (type: AutoVariationType, ok: boolean, reason: BlockedReason): AllowedType => {
+    const r: BlockedReason | null = !ok ? reason : captionBlocks(ctx, type) ? 'burned_captions' : null;
+    return { type, max: r ? 0 : TYPE_MAX[type], blockedReason: r };
+  };
   // 25/10: FRAME até 8, mas nunca mais que os templates liberados (todas diferentes)
   const frames = allowedFrameIds(ctx).length;
   return [
@@ -226,7 +239,8 @@ export function allowedFor(ctx: PlanCtx): AllowedType[] {
     rule('REVIEW', hasQuotableProof(ctx), 'no_proof'),
     rule('NATIVE_SEARCH', ctx.hasSpeech, 'no_speech'),
     rule('STATIC', true, 'no_page'),
-    { ...rule('FRAME', frames > 0, 'no_page'), max: Math.min(TYPE_MAX.FRAME, frames) },
+    // sem moldura liberada porque todas as que sobravam tampam a legenda = o motivo é a legenda
+    { ...rule('FRAME', frames > 0, allowedFrames(ctx).some((f) => f.blockedReason === 'burned_captions') ? 'burned_captions' : 'no_page'), max: Math.min(TYPE_MAX.FRAME, frames) },
   ];
 }
 
@@ -242,7 +256,7 @@ export const FRAME_TWO_SOURCE_IDS: readonly FrameTemplateId[] = ['split_stack', 
 export const FRAME_WITH_FACE: readonly FrameTemplateId[] = ['question_box', 'live', 'gossip_page', 'gossip_white', 'gossip_pink'];
 
 /** `two_sources` = B2 bloqueado (antes de 25/10; não sai mais); `no_face` = campeão sem rosto no faceTrack (§B3.2 caso 3). */
-export type FrameBlockedReason = 'no_price' | 'no_proof' | 'no_data' | 'two_sources' | 'no_face';
+export type FrameBlockedReason = 'no_price' | 'no_proof' | 'no_data' | 'two_sources' | 'no_face' | 'burned_captions';
 export interface AllowedFrame { template: FrameTemplateId; allowed: boolean; blockedReason: FrameBlockedReason | null }
 
 const RANKING_SOURCES: readonly CopySource[] = ['pains', 'what', 'promise', 'proof'];
@@ -262,8 +276,11 @@ export function hasProofBlock(ctx: PlanCtx): boolean {
 export function allowedFrames(ctx: PlanCtx): AllowedFrame[] {
   const b = ctx.brain;
   const some = (fs: readonly CopySource[]) => fs.some((f) => has(b[f as keyof Brain]));
-  const ok = (template: FrameTemplateId, cond: boolean, reason: FrameBlockedReason): AllowedFrame =>
-    ({ template, allowed: cond, blockedReason: cond ? null : reason });
+  // legenda-protegida-v1 §2.3: liberada pelas outras regras e tampa a legenda queimada = `burned_captions`
+  const ok = (template: FrameTemplateId, cond: boolean, reason: FrameBlockedReason): AllowedFrame => {
+    const r: FrameBlockedReason | null = !cond ? reason : captionBlocks(ctx, 'FRAME', template) ? 'burned_captions' : null;
+    return { template, allowed: !r, blockedReason: r };
+  };
   return FRAME_TEMPLATE_IDS.map((t) => {
     // 25/10: B2 liberado; a 2ª fonte é resolvida no render (edicao/segunda-fonte.ts). Sem rosto no campeão = fora
     if (FRAME_TWO_SOURCE_IDS.includes(t)) return ok(t, hasFace(ctx), 'no_face');
@@ -321,7 +338,7 @@ export const minDiversity = (n: number) => Math.ceil((n * MIN_DIVERSITY_PCT) / 1
 export function swapsFor(allowed: AllowedType[]): AutoInsight['swaps'] {
   return allowed
     .filter((a): a is AllowedType & { type: AutoVariationType } => a.type !== 'HEADLINE') // TRANSIÇÃO: AutoInsight.swaps sem HEADLINE até a fusão
-    .filter((a) => a.max === 0 && a.blockedReason && a.blockedReason !== 'has_end_card')
+    .filter((a) => a.max === 0 && a.blockedReason && a.blockedReason !== 'has_end_card' && a.blockedReason !== 'burned_captions') // burned_captions vai em insight.captionBlocked
     .map((a) => ({ from: a.type, to: SWAP_TO[a.type], reason: a.blockedReason as SwapReason }));
 }
 
@@ -948,6 +965,31 @@ function duplicateKey(p: AutoParamsDraft): string | null {
   }
 }
 
+/** legenda-protegida-v1 §3: params do item como o build vai ver (FRAME = FrameSpec; CUT = spans dos blocos). */
+function captionParamsOf(it: PlanItem, ctx: PlanCtx): Record<string, unknown> | null {
+  const p = it.params;
+  switch (p.type) {
+    case 'FRAME': return frameSpecOf(p as AutoFrameDraft, ctx) as unknown as Record<string, unknown>;
+    case 'HEADLINE': return { type: 'HEADLINE', mode: p.mode, text: (p.text ?? '').trim(), highlight: p.highlight ?? null, language: ctx.headline?.language ?? screenLangOf(ctx) };
+    case 'CUT': {
+      const spans = ctx.blocks.filter((b) => (p.blockIndexes ?? []).includes(b.index)).map((b) => ({ startSec: b.startSec, endSec: b.endSec }));
+      return { type: 'CUT', targetSec: p.targetSec, blockIndexes: [...(p.blockIndexes ?? [])], timeline: mergeSpans(spans) };
+    }
+    case 'REVIEW': case 'NATIVE_SEARCH': return { ...p };
+    default: return null;
+  }
+}
+
+/** legenda-protegida-v1 §2.3/§3: a validação repete a conta do `allowed` com o texto real (função do build). */
+function captionViolation(it: PlanItem, i: number, ctx: PlanCtx): Violation | null {
+  if (!ctx.caption?.bands.length) return null;
+  const params = captionParamsOf(it, ctx);
+  if (!params) return null;
+  if (!ctx.caption.check({ type: it.type, params })) return null;
+  const what = it.params.type === 'FRAME' ? `the ${(it.params as AutoFrameDraft).template} frame` : `this ${it.type}`;
+  return { item: i, rule: 'burned_captions', detail: `${what} would cover or cut the champion's burned-in captions: leave it out` };
+}
+
 /** §6.1 + §6.2 sobre o rascunho. Violação com `item` = a peça sai no reparo; `item: null` = do plano. */
 export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedType[]): Violation[] {
   const byType = new Map(allowed.map((a) => [a.type, a]));
@@ -958,6 +1000,10 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
   items.forEach((it, i) => {
     const own = itemViolations(it, i, draft, ctx, byType);
     out.push(...own);
+    if (!own.length) {
+      const cv = captionViolation(it, i, ctx);
+      if (cv) out.push(cv);
+    }
     if (own.some((v) => v.rule === 'type_not_allowed' || v.rule === 'params_mismatch')) return;
     const n = (count.get(it.type) ?? 0) + 1;
     count.set(it.type, n);

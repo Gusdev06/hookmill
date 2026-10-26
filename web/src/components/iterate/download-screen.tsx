@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { AxisTag, Code, Dot, FORMAT_LABEL, FormatChip, Head, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, TypeThumb, canAsk, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
 import { PieceTextAlert, TextCheckChip, hasTextError, useStaticStage } from "./text-check"
+import { CaptionNote, NewBatchButton } from "./captions"
 import { useCanMakeFormats, useMakeFormatForAll, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
 
@@ -99,7 +100,10 @@ export function DownloadScreen({ batch }: { batch: IterateBatch }) {
         title={t("title", { n: inZip.length })}
         lede={t("lede")}
       />
-      <CaptionsBadge batch={batch} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <CaptionsBadge batch={batch} />
+        <NewBatchButton batch={batch} className="tablet:ml-auto" />
+      </div>
       {batch.downloadedAt && batch.zip.fileName ? (
         <Alert variant="success">
           <NavIcon name="check" size={20} strokeWidth={2.5} />
@@ -285,6 +289,7 @@ function PieceCard({ p, batchId, onPreview }: { p: IteratePiece; batchId: string
       {p.frame ? <PieceKind p={p} className="text-xs font-semibold text-fg-2" /> : null}
       <span className="text-xs leading-[1.35] text-fg-2">{p.change}</span>
       <HeadlineChange p={p} compact />
+      <CaptionNote p={p} className="self-start whitespace-normal" />
       <PieceTextAlert batchId={batchId} p={p} compact />
       {stage ? (
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-status-progress" role="status">

@@ -62,13 +62,27 @@ describe('buildFrameInput', () => {
     const em = {
       version: 1, width: 720, height: 1280, fps: 29.97, frameCount: 2544, mainSpeaker: { box: { x: 0, y: 187, w: 720, h: 933 } },
       faceTrack: [{ startFrame: 0, endFrame: 2544, region: { x: 0, y: 187, w: 720, h: 933 }, faceInRegion: [{ atFrame: 0, box: { x: 0.36, y: 0.1, w: 0.38, h: 0.4 } }] }],
-      layers: [{ box: { x: 58, y: 96, w: 605, h: 77 }, startFrame: 0, endFrame: 2544, kind: 'headline' }, { box: { x: 0, y: 624, w: 689, h: 194 }, startFrame: 0, endFrame: 2537, kind: 'caption' }],
+      layers: [{ box: { x: 58, y: 96, w: 605, h: 77 }, startFrame: 0, endFrame: 2544, kind: 'headline' }, { box: { x: 100, y: 624, w: 500, h: 194 }, startFrame: 0, endFrame: 2537, kind: 'caption' }],
     };
     const c = ctx({ source: { videoUrl: 'https://s3/c.mp4', width: 720, height: 1280, fps: 29.97, durationSec: 84.99, hasAudio: true }, editMap: em as never, language: 'zh-TW' });
     const i = buildFrameInput(spec('read_caption', { headline: '你夜晚的這個小細節，*決定了你醒來的感覺*', primaryText: 'x' }, { screenLanguage: 'zh' }), c, 'VERTICAL_9_16');
     expect(i.video.contentBox).toEqual({ x: 0, y: 187, w: 720, h: 933 });
-    expect(i.video.burnedTextBands).toEqual([{ y: 624, h: 194, startSec: 0, endSec: 84.651 }]);
+    // legenda: +1 linha em cima e embaixo (sem estilo medido, meia caixa): 624-97 .. 818+97 (bug 26/10)
+    expect(i.video.burnedTextBands).toEqual([{ y: 527, h: 388, startSec: 0, endSec: 84.651 }]);
     expect(i.language).toBe('zh-TW'); // 'zh' herda a região do lote (tradicional)
+    // legenda-protegida-v1: a legenda vira faixa protegida (folga 4 % / 2 %) e o layout desvia dela (passo 1)
+    expect(i.video.protectedBands).toEqual([{ x: 86, y: 573, w: 528, h: 296, startSec: 0, endSec: 84.651 }]);
+    expect(i.captionMode).toBe('avoid');
+  });
+
+  it('legenda protegida mais larga que a janela e em cima do rosto: nem desvia nem recorta = CAPTION_PROTECTED', () => {
+    const em = {
+      version: 1, width: 720, height: 1280, fps: 30, frameCount: 300, mainSpeaker: { box: { x: 0, y: 187, w: 720, h: 933 } },
+      faceTrack: [{ startFrame: 0, endFrame: 300, region: { x: 0, y: 187, w: 720, h: 933 }, faceInRegion: [{ atFrame: 0, box: { x: 0.3, y: 0.3, w: 0.4, h: 0.4 } }] }],
+      layers: [{ box: { x: 0, y: 560, w: 720, h: 120 }, startFrame: 0, endFrame: 300, kind: 'caption' }],
+    };
+    const c = ctx({ source: { videoUrl: 'https://s3/c.mp4', width: 720, height: 1280, fps: 30, durationSec: 10, hasAudio: true }, editMap: em as never });
+    expect(() => buildFrameInput(spec('live', {}), c, 'VERTICAL_9_16')).toThrow(/CAPTION_PROTECTED/);
   });
 
   it('rosto redondo só nas molduras com rosto: faceAtSec do spec, caixa do faceTrack (ou padrão sem rosto)', () => {

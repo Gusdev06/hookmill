@@ -95,7 +95,7 @@ export class IntegracoesModule {
           const model = cfg.get<string>('ANTHROPIC_MODEL') || 'claude-opus-5-5';
           if (mode === 'mock') return new FakeClaudeService(costs, { model });
           const apiKey = cfg.get<string>('ANTHROPIC_API_KEY');
-          if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText']);
+          if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption']);
           const transport = new SdkClaudeTransport(new Anthropic({ apiKey, maxRetries: 2 }), {
             model,
             effort: effortOf(cfg.get<string>('ANTHROPIC_EFFORT')),

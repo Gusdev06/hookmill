@@ -12,7 +12,8 @@
  */
 import type { VideoFormat } from '@prisma/client';
 import {
-  FRAME_SAFE, FRAME_USES_FACE, contentBoxDe, faixasQueimadasDe, frameLayout, layoutDaPeca, opcoesDeLayout, propsDeFrameInput, reframeNaCaixa,
+  FRAME_SAFE, FRAME_USES_FACE, contentBoxDe, decidirLegenda, faixasProtegidasDe, faixasQueimadasDe, frameLayout, layoutDaPeca, opcoesDeLayout,
+  faixasProtegidasNaSaida, propsDeFrameInput, reframeNaCaixa, unionBand,
   rostoPrincipal, textosQueNaoCouberam, type FrameTextsMap, type MolduraProps,
 } from '@maquina/video';
 import type { FrameSpec } from '../integracoes/contrato';
@@ -27,10 +28,42 @@ export class FrameTextOverflowError extends Error {
   }
 }
 
+/** legenda-protegida-v1 §3: nem desviar nem recortar sem cortar o rosto = a peça não sai (o plano já devia ter tirado). */
+export class CaptionProtectedError extends Error {
+  readonly code = 'CAPTION_PROTECTED' as const;
+  constructor(public readonly reason: 'face_cut' | 'no_room', public readonly hits: { element: string; atSec: number; overlapPx: number }[]) {
+    super(`CAPTION_PROTECTED (${reason}): ${hits.slice(0, 4).map((h) => `${h.element}@${h.atSec}s`).join(', ')}`);
+  }
+}
+
+/** A nossa legenda no estilo da legenda queimada original (§2.2): palavras da transcrição + estilo da camada `caption`. */
+export function legendaNoEstiloDaOriginal(ctx: AutoEditContext, highlight: string): MolduraProps['captions'] | null {
+  const m = ctx.editMap;
+  if (!m || !ctx.words.length) return null;
+  const capas = m.layers.filter((l) => l.kind === 'caption').sort((a, b) => b.endFrame - b.startFrame - (a.endFrame - a.startFrame));
+  const l = capas[0];
+  if (!l) return null;
+  const st = l.style;
+  const ey = ctx.source.height / m.height;
+  const size = Math.max(1, st.fontSizePx);
+  return {
+    words: ctx.words.map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: highlight, language: ctx.language,
+    style: {
+      fontId: st.fontId ?? null, uppercase: !!st.uppercase, color: st.color || '#ffffff', highlightColor: st.highlightColor ?? null,
+      strokeColor: st.strokeColor ?? null, strokeWidthRel: Math.round(((st.strokeWidthPx ?? 0) / size) * 1000) / 1000,
+      sizeRel: Math.round(((size * ey) / ctx.source.height) * 10000) / 10000, shadow: !!st.shadow, wordsPerPage: l.wordsPerPage ?? null,
+    },
+  };
+}
+
 /** Caixa do rosto pra foto redonda quando o faceTrack não tem rosto: terço de cima, ao centro. */
 const ROSTO_PADRAO = { x: 0.3, y: 0.08, w: 0.4, h: 0.4 };
 
-export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: VideoFormat): FrameRenderInput {
+/** Opções do build. `captionMode: 'replace'` (legenda-protegida-v1 §3, Retry depois de CAPTION_COVERED) pula o desvio e
+ *  vai direto pro recorte com a nossa legenda; recorte impossível = CAPTION_PROTECTED. */
+export interface OpcoesDeBuild { captionMode?: 'avoid' | 'replace' }
+
+export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: VideoFormat, opts: OpcoesDeBuild = {}): FrameRenderInput {
   const id = spec.template;
   const texts = spec.texts as FrameTextsMap[typeof id];
   // idioma da tela sem região ("zh") herda a do lote ("zh-TW"): decide tradicional × simplificado (fonte e rótulos)
@@ -43,6 +76,9 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
   const em = ctx.editMap as unknown as Parameters<typeof contentBoxDe>[1];
   const contentBox = contentBoxDe(src, em);
   const burnedTextBands = faixasQueimadasDe(src, em as never, contentBox);
+  // legenda-protegida-v1: legenda queimada do campeão = faixa protegida (nada por cima, nada cortando)
+  const protectedBands = faixasProtegidasDe(em as never, src);
+  const U = unionBand(protectedBands);
   const rosto = rostoPrincipal(src, ctx.editMap);
   const r3 = (v: number) => Math.round(v * 1000) / 1000;
 
@@ -50,7 +86,7 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
   // TRANSIÇÃO: `broll_track` entra no FrameSecondSource do contrato pelo arquiteto (25/10); até lá, forma local igual
   type BrollTrack = { kind: 'broll_track'; clips: { fromSec: number; toSec: number; fileUrl: string; srcStartSec: number; srcEndSec: number; segmentText?: string; provenance?: unknown }[] };
   const s = spec.second as FrameSpec['second'] | BrollTrack | null;
-  if (s?.kind === 'champion_segment') second = { kind: 'champion_segment', startSec: s.startSec, endSec: s.endSec, reframe: reframeNaCaixa(L.secondBox ?? L.videoBox, src, ctx.editMap, 1080, contentBox) };
+  if (s?.kind === 'champion_segment') second = { kind: 'champion_segment', startSec: s.startSec, endSec: s.endSec, reframe: reframeNaCaixa(L.secondBox ?? L.videoBox, src, ctx.editMap, 1080, contentBox, U) };
   else if (s?.kind === 'page_capture') second = { kind: 'page_capture', fileUrl: s.fileUrl, scroll: s.scroll };
   else if (s?.kind === 'product_photo') second = { kind: 'product_photo', fileUrl: s.fileUrl };
   else if (s?.kind === 'broll_track') {
@@ -73,17 +109,25 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
     kind: 'frame', renderId: ctx.renderId, templateId: 'frame', format, language: lang,
     frame: { id, texts, brand: spec.brand } as MolduraProps['frame'],
     video: {
-      source: src, timeline: [{ startSec: 0, endSec: src.durationSec }], joinFadeMs: 40, reframe: reframeNaCaixa(L.videoBox, src, ctx.editMap, 1080, contentBox),
-      ...(contentBox && { contentBox }), ...(burnedTextBands.length && { burnedTextBands }),
+      source: src, timeline: [{ startSec: 0, endSec: src.durationSec }], joinFadeMs: 40, reframe: reframeNaCaixa(L.videoBox, src, ctx.editMap, 1080, contentBox, U),
+      ...(contentBox && { contentBox }), ...(burnedTextBands.length && { burnedTextBands }), ...(protectedBands.length && { protectedBands }),
     },
     ...(second && { second }),
     ...(face && { face }),
     safeArea: FRAME_SAFE[format],
   };
+  // §3: desviar → recortar e legendar no estilo da original → não oferecer
+  let final: FrameRenderInput = input;
+  if (protectedBands.length) {
+    const { kind: _k, renderId: _r, templateId: _t, ...props } = input;
+    const d = decidirLegenda(props as MolduraProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, spec.brand.color), opts.captionMode === 'replace' ? 'replace' : undefined);
+    if (d.mode === 'blocked') throw new CaptionProtectedError(d.reason, d.check.hits);
+    final = { kind: 'frame', renderId: ctx.renderId, templateId: 'frame', ...d.input, outputProtectedBands: faixasProtegidasNaSaida(d.input) };
+  }
   // texto que não cabe, medido no layout FINAL (o mesmo da composição: com o desvio da legenda queimada)
-  const fora = textosQueNaoCouberam(layoutDaPeca(input));
+  const fora = textosQueNaoCouberam(layoutDaPeca(final));
   if (fora.length) throw new FrameTextOverflowError(fora, format);
   // mesma validação da composição (limites, timeline dentro do campeão): erro aqui = RENDER_ERROR antes de ir pra fila
-  propsDeFrameInput(input as never);
-  return input;
+  propsDeFrameInput(final as never);
+  return final;
 }

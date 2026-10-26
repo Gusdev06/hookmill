@@ -26,6 +26,19 @@ describe('headlineInfoOf (§1.1, §1.4)', () => {
   });
 });
 
+describe('bug 26/10: área do bloqueio = a do render', () => {
+  // lote cmvot8qxv000b22xlz0yrm60t: headline sobre o vídeo em y 125-250 (1080×1920), rosto começando em y 322
+  const rosto = [{ startFrame: 0, endFrame: 300, region: { x: 0, y: 280, w: 1080, h: 1400 }, fullFrame: false, faceInRegion: [{ box: { x: 0.28, y: 0.03, w: 0.33, h: 0.37 }, atFrame: 0 }] }];
+  const big = (layers: unknown[]) => ({ ...em(layers, rosto), width: 1080, height: 1920 }) as EditMap;
+  const o2 = { ...o, width: 1080, height: 1920 };
+  it('placa com 2 % de margem não encosta no rosto (antes 4 % bloqueava); faixa sólida usa a caixa da faixa', () => {
+    const sobreVideo = layer({ box: { x: 43, y: 125, w: 1004, h: 125 }, background: { kind: 'none', color: null, box: null } });
+    expect(headlineInfoOf(big([sobreVideo]), o2).blockedReason).toBeNull();
+    const faixaQueCobre = layer({ box: { x: 43, y: 125, w: 1004, h: 125 }, background: { kind: 'solid', color: '#000', box: { x: 0, y: 100, w: 1080, h: 400 } } });
+    expect(headlineInfoOf(big([faixaQueCobre]), o2).blockedReason).toBe('headline_over_face');
+  });
+});
+
 describe('captionsAutoOf (§2.1)', () => {
   const words = Array.from({ length: 20 }, (_, i) => ({ word: `w${i}`, startSec: i * 0.5, endSec: i * 0.5 + 0.4 }));
   it('sem legenda queimada = legenda automática; com legenda em ≥ 50 % da fala = não; sem fala = não', () => {

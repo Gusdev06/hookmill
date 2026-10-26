@@ -36,6 +36,6 @@ const Conteudo: React.FC<{ p: MolduraProps }> = ({ p }) => {
 export const Moldura: React.FC<MolduraProps> = (p) => {
   // todo texto que pode aparecer (textos da IA, marca, rótulos do idioma): os pedaços CJK que ele usa vêm antes do 1º frame
   const texto = useMemo(() => JSON.stringify(p.frame) + JSON.stringify(frameUi(p.language)) + (p.captions?.words.map((w) => w.word).join('') ?? ''), [p.frame, p.language, p.captions]);
-  const pronto = useFontesMolduras(texto, p.language);
+  const pronto = useFontesMolduras(texto, p.language, p.captions?.style?.fontId);
   return <AbsoluteFill style={{ backgroundColor: '#000' }}>{pronto ? <Conteudo p={p} /> : null}</AbsoluteFill>;
 };

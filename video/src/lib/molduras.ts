@@ -4,7 +4,7 @@ import { trechosEmFrames, type EditMapLike } from './autoEdit';
 import { corDeDestaque } from './cores';
 import { METRIC_CHARS, METRIC_FONTS, METRIC_UNITS } from './metricas-fontes';
 import { CJK_EXCECOES, CJK_UNITS } from './metricas-cjk';
-import { captionsAutoSchema } from './captionsSchema';
+import { captionsAutoSchema, outputProtectedBandSchema, protectedBandSchema } from './captionsSchema';
 
 // Molduras de vídeo (contrato docs/contratos/estatico-montado-e-molduras-v1.md §B2-§B4). Puro (sem React): a composição
 // `Moldura` (src/molduras/) e o buildFrameInput da API usam as mesmas funções. Promovido do protótipo aprovado em 25/10
@@ -373,12 +373,23 @@ export const contentBoxDe = (source: { width: number; height: number }, m: (Edit
 
 /** Faixas de texto queimado DENTRO da área do vídeo (legenda, texto solto), px do arquivo, com o intervalo em que aparecem. */
 export type BurnedBand = { y: number; h: number; startSec: number; endSec: number };
-export const faixasQueimadasDe = (source: { width: number; height: number }, m: (EditMapLike & { fps?: number; layers: { box: Rect; startFrame: number; endFrame: number; kind?: string }[] }) | null, contentBox: Rect | null): BurnedBand[] => {
+export const faixasQueimadasDe = (source: { width: number; height: number }, m: (EditMapLike & { fps?: number; layers: { box: Rect; startFrame: number; endFrame: number; kind?: string; style?: { fontSizePx?: number; lineHeight?: number } }[] }) | null, contentBox: Rect | null): BurnedBand[] => {
   if (!m) return [];
   const ex = source.width / m.width, ey = source.height / m.height, fps = m.fps ?? 30;
   const cb = contentBox ?? { x: 0, y: 0, w: source.width, h: source.height };
-  return m.layers
-    .map((l) => ({ y: l.box.y * ey, h: l.box.h * ey, startSec: l.startFrame / fps, endSec: l.endFrame / fps, x: l.box.x * ex, w: l.box.w * ex }))
+  type Camada = { box: Rect; startFrame: number; endFrame: number; kind?: string; style?: { fontSizePx?: number; lineHeight?: number } };
+  return (m.layers as Camada[])
+    .map((l) => {
+      // legenda queimada muda de altura ao longo do vídeo (1 ou 2 linhas por página) e a visão costuma medir uma página
+      // de 1 linha: a faixa ganha 1 linha do tamanho medido em cima e 1 embaixo (bug 26/10, Amnayalife: caixa de 75 px,
+      // legenda real de 2 linhas acima dela)
+      let y = l.box.y, h = l.box.h;
+      if (l.kind === 'caption') {
+        const linha = l.style?.fontSizePx ? l.style.fontSizePx * (l.style.lineHeight ?? 1.15) : h / 2;
+        y -= linha; h += 2 * linha;
+      }
+      return { y: y * ey, h: h * ey, startSec: l.startFrame / fps, endSec: l.endFrame / fps, x: l.box.x * ex, w: l.box.w * ex };
+    })
     .filter((l) => l.y + l.h > cb.y + 2 && l.y < cb.y + cb.h - 2) // headline nas faixas pretas sai com o recorte
     .map((l) => ({ y: Math.round(Math.max(l.y, cb.y)), h: Math.round(Math.min(l.y + l.h, cb.y + cb.h) - Math.max(l.y, cb.y)), startSec: r3(l.startSec), endSec: r3(l.endSec) }));
 };
@@ -388,20 +399,36 @@ export const faixasQueimadasDe = (source: { width: number; height: number }, m: 
  * máximo = o rosto (com folga) cabe na caixa; se nem no cover ele cabe, `scale` < 1 e sobra fundo na cor da marca (nunca
  * borrado). Sem faceTrack: cover com foco (0,5; 0,4).
  */
-export const reframeNaCaixa = (box: { w: number; h: number }, source: { width: number; height: number }, editMap: EditMapLike | null, _canvasW = 1080, contentBox: Rect | null = null): FrameReframe => {
+export const reframeNaCaixa = (box: { w: number; h: number }, source: { width: number; height: number }, editMap: EditMapLike | null, _canvasW = 1080, contentBox: Rect | null = null, protegida: Rect | null = null): FrameReframe => {
   const C = contentBox ?? { x: 0, y: 0, w: source.width, h: source.height };
   const rosto = rostoPrincipal(source, editMap);
-  if (!rosto) return { mode: 'cover', focus: { x: 0.5, y: 0.4 } };
   const cover = Math.max(box.w / C.w, box.h / C.h);
   const conter = Math.min(box.w / C.w, box.h / C.h);
-  const maxRosto = Math.min(box.w / (ROSTO_FOLGA * rosto.w), box.h / (ROSTO_FOLGA * rosto.h));
-  const s0 = clamp(maxRosto, conter, cover);
-  const scale = s0 / cover >= ESCALA_MIN_COM_FAIXA ? 1 : s0 / cover;
+  let scale = 1;
+  if (rosto) {
+    const maxRosto = Math.min(box.w / (ROSTO_FOLGA * rosto.w), box.h / (ROSTO_FOLGA * rosto.h));
+    const s0 = clamp(maxRosto, conter, cover);
+    scale = s0 / cover >= ESCALA_MIN_COM_FAIXA ? 1 : s0 / cover;
+  }
+  // legenda-protegida-v1 §2.1: a legenda queimada (faixa protegida, px do arquivo) inteira DENTRO da janela: se ela é mais
+  // larga/alta que a janela, afasta o zoom (até 85 % do cover, a faixa na cor da marca ainda é discreta)
+  const U = protegida ? { x: protegida.x - C.x, y: protegida.y - C.y, w: protegida.w, h: protegida.h } : null;
+  if (U) {
+    const precisa = Math.min(box.w / Math.min(U.w * 1.01, C.w), box.h / Math.min(U.h * 1.01, C.h));
+    if (cover * scale > precisa && precisa / cover >= ESCALA_MIN_COM_FAIXA) scale = Math.min(scale, precisa / cover);
+  }
   const s = cover * scale;
-  const wh = box.h / s; // altura da janela, px do arquivo
-  const fx = (rosto.cx - C.x) / C.w;
-  const fy = (rosto.cy - C.y + (0.5 - ROSTO_ALTURA_ALVO) * wh) / C.h;
-  return { mode: 'cover', focus: { x: r3(clamp(fx, 0, 1)), y: r3(clamp(fy, 0, 1)) }, ...(scale < 0.999 && { scale: r3(scale) }) };
+  const ww = box.w / s, wh = box.h / s; // janela, px da contentBox
+  let cx = rosto ? rosto.cx - C.x : 0.5 * C.w;
+  let cy = rosto ? rosto.cy - C.y + (0.5 - ROSTO_ALTURA_ALVO) * wh : 0.4 * C.h + (0.5 - 0.5) * wh;
+  if (!rosto) cy = 0.4 * C.h;
+  if (U) {
+    // centro da janela num intervalo que contém a faixa inteira (se ela cabe), o mais perto do enquadramento do rosto
+    if (U.w <= ww) cx = clamp(cx, U.x + U.w - ww / 2, U.x + ww / 2);
+    if (U.h <= wh) cy = clamp(cy, U.y + U.h - wh / 2, U.y + wh / 2);
+  }
+  if (!rosto && !U) return { mode: 'cover', focus: { x: 0.5, y: 0.4 } };
+  return { mode: 'cover', focus: { x: r3(clamp(cx / C.w, 0, 1)), y: r3(clamp(cy / C.h, 0, 1)) }, ...(scale < 0.999 && { scale: r3(scale) }) };
 };
 
 /**
@@ -429,8 +456,10 @@ export const pinturaNaCaixa = (box: { w: number; h: number }, source: { width: n
 };
 
 /** Faixas de texto queimado em px da SAÍDA (canvas), dada a caixa do vídeo e o reenquadramento. Só as que caem na caixa. */
-export const faixasNaSaida = (bands: BurnedBand[] | undefined, source: { width: number; height: number }, r: FrameReframe, videoBox: Rect, contentBox: Rect | null = null): { y0: number; y1: number }[] => {
+export const faixasNaSaida = (bands: BurnedBand[] | undefined, source: { width: number; height: number }, r: FrameReframe, videoBox: Rect, contentBox: Rect | null = null, minSec = 3): { y0: number; y1: number }[] => {
   if (!bands?.length) return [];
+  // texto que pisca por < 3 s (efeito de edição, não legenda) não empurra a moldura: só colidiria por um instante
+  bands = bands.filter((b) => b.endSec - b.startSec >= minSec);
   const p = pinturaNaCaixa(videoBox, source, r, contentBox);
   const C = contentBox ?? { x: 0, y: 0, w: source.width, h: source.height };
   return bands
@@ -508,12 +537,19 @@ export const molduraSchema = z.object({
     contentBox: z.object({ x: z.number().min(0), y: z.number().min(0), w: z.number().positive(), h: z.number().positive() }).nullable().optional(),
     /** faixas de texto queimado DENTRO da contentBox (px do arquivo): o texto da moldura não fica em cima delas */
     burnedTextBands: z.array(z.object({ y: z.number(), h: z.number().positive(), startSec: z.number().min(0), endSec: z.number().min(0) })).optional(),
+    /** legenda-protegida-v1: legenda queimada do campeão (px do arquivo, com folga), que nenhum elemento pode cobrir nem cortar */
+    protectedBands: z.array(protectedBandSchema).optional(),
   }),
   second: secondSourceSchema.optional(),
   face: faceSourceSchema.optional(),
   safeArea: z.object({ top: z.number().min(0), bottom: z.number().min(0) }),
-  /** legenda automática (campeão sem legenda queimada) */
+  /** legenda automática (campeão sem legenda queimada) ou, com captionMode 'replace', a NOSSA legenda no estilo da original */
   captions: captionsAutoSchema.optional(),
+  /** legenda-protegida-v1 §2: 'avoid' = o layout desvia da legenda queimada; 'replace' = o vídeo foi recortado sem ela
+   *  (contentBox − faixa) e a nossa legenda entra no estilo da original */
+  captionMode: z.enum(['avoid', 'replace']).optional(),
+  /** faixa da legenda no vídeo renderizado (checagem por visão); a composição ignora */
+  outputProtectedBands: z.array(outputProtectedBandSchema).optional(),
 });
 export type MolduraProps = z.infer<typeof molduraSchema>;
 export type SecondSourceProps = z.infer<typeof secondSourceSchema>;
@@ -591,7 +627,7 @@ export interface FrameLayout {
   bg: string;
 }
 
-type Faixa = { y0: number; y1: number };
+type Faixa = { y0: number; y1: number; protegida?: boolean };
 type Ctx = { f: VideoFormat; W: number; H: number; safe: { top: number; bottom: number }; ui: FrameUi; slideImage: boolean; cjk: CjkFont; faixas: Faixa[] };
 /** Faixa de texto queimado (px da saída) que encosta em [y0, y1], com 8 px de folga; a de maior sobreposição. */
 const colide = (c: Ctx, y0: number, y1: number): Faixa | null => {
@@ -600,7 +636,9 @@ const colide = (c: Ctx, y0: number, y1: number): Faixa | null => {
   return melhor;
 };
 /** [y0, y1] não encosta em faixa nenhuma, exceto as que ele cobre inteiras (bloco opaco). */
-const livre = (c: Ctx, y0: number, y1: number, opaco: boolean) => c.faixas.every((f) => f.y1 + 8 <= y0 || f.y0 - 8 >= y1 || (opaco && y0 <= f.y0 - 8 && y1 >= f.y1 + 8));
+/** Legenda queimada PROTEGIDA (legenda-protegida-v1, 26/10) nunca é coberta: bloco opaco só pode cobrir texto queimado
+ *  que não é legenda. */
+const livre = (c: Ctx, y0: number, y1: number, opaco: boolean) => c.faixas.every((f) => f.y1 + 8 <= y0 || f.y0 - 8 >= y1 || (opaco && !f.protegida && y0 <= f.y0 - 8 && y1 >= f.y1 + 8));
 /** fitText com a Noto do idioma da peça */
 const fitC = (c: Ctx, text: string, o: FitTextOptions) => fitText(text, { ...o, cjk: c.cjk });
 /** Rótulo de 1 linha (CTA, selo, nome da página, título do ranking): encolhe a fonte até caber em `width`, no mínimo
@@ -625,19 +663,37 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
       headTop: por(c, 92, 78, 70), headBottom: por(c, 34, 30, 26), headX: 40, bodyTop: por(c, 46, 38, 32), bodyBottom: por(c, 54, 46, 40), bodyX: por(c, 50, 40, 40),
       veil: por(c, 1100, 760, 620),
     };
-    const q = fitC(c, t.question, { font: 'montserrat-800', width: n.cardW - 2 * n.bodyX, maxLines: por(c, 4, 3, 3), max: por(c, 70, 60, 52), min: por(c, 44, 40, 38), lineHeight: 1.14 });
-    const cardH = n.headTop + alturaLinhaNormal('inter-800', n.titleSize) + n.headBottom + n.bodyTop + q.height + n.bodyBottom;
-    const x = (c.W - n.cardW) / 2;
+    const opQ = { font: 'montserrat-800' as const, width: n.cardW - 2 * n.bodyX, maxLines: por(c, 4, 3, 3), max: por(c, 70, 60, 52), min: por(c, 44, 40, 38), lineHeight: 1.14 };
+    let q = fitC(c, t.question, opQ);
+    const alturaCartao = (f: FittedText) => n.headTop + alturaLinhaNormal('inter-800', n.titleSize) + n.headBottom + n.bodyTop + f.height + n.bodyBottom;
+    let cardH = alturaCartao(q);
     let y = c.f === 'VERTICAL_9_16' ? 1010 : c.H - c.safe.bottom - 10 - cardH;
-    // legenda queimada do campeão encostando no cartão (decisão 25/10): desce o cartão pra baixo dela; sem espaço, o
-    // cartão (opaco) passa a COBRIR a faixa inteira; senão sobe pra cima dela
+    // legenda queimada do campeão encostando no cartão (25-26/10): 1º abaixo dela (a pergunta encolhe até caber no espaço
+    // até a área segura); 2º acima dela; por último o cartão (opaco) cobre a faixa. O cartão é mais estreito que a
+    // legenda, então cobrir deixa letra nas pontas: é a última opção
     const b = colide(c, y - n.avatar / 2, y + cardH);
     if (b) {
-      const topo = c.safe.top + n.avatar / 2 + 6, fundo = c.H - c.safe.bottom - cardH;
-      const opcoes = [b.y1 + n.avatar / 2 + 16, Math.round(b.y0 - (cardH - (b.y1 - b.y0)) / 2), b.y0 - 16 - cardH];
-      const ok = opcoes.map((v) => clamp(v, topo, fundo)).find((v) => livre(c, v - n.avatar / 2, v + cardH, true));
-      if (ok !== undefined) y = ok;
+      const topo = c.safe.top + n.avatar / 2 + 6, fundoMax = c.H - c.safe.bottom;
+      let feito = false;
+      const yAbaixo = b.y1 + n.avatar / 2 + 24;
+      for (let m = opQ.maxLines; m >= 1 && !feito; m--) {
+        const f = fitC(c, t.question, { ...opQ, maxLines: m });
+        if (f.fits && yAbaixo + alturaCartao(f) <= fundoMax && livre(c, yAbaixo - n.avatar / 2, yAbaixo + alturaCartao(f), true)) { q = f; cardH = alturaCartao(f); y = yAbaixo; feito = true; }
+      }
+      if (!feito) {
+        // cobrindo: cartão quase da largura da tela (a legenda queimada costuma ser mais larga que o cartão de 840)
+        const largo = c.W - 24;
+        const qL = fitC(c, t.question, { ...opQ, width: largo - 2 * n.bodyX });
+        const hL = alturaCartao(qL);
+        const yCobre = clamp(Math.round(b.y0 - (hL - (b.y1 - b.y0)) / 2), topo, fundoMax - hL);
+        if (hL >= b.y1 - b.y0 + 24 && livre(c, yCobre - n.avatar / 2, yCobre + hL, true)) { n.cardW = largo; q = qL; cardH = hL; y = yCobre; feito = true; }
+      }
+      if (!feito) {
+        const v = clamp(b.y0 - 24 - cardH, topo, fundoMax - cardH);
+        if (livre(c, v - n.avatar / 2, v + cardH, true)) y = v;
+      }
     }
+    const x = (c.W - n.cardW) / 2;
     return { videoBox: R(0, 0, c.W, c.H), faceBox: R(c.W / 2 - n.avatar / 2, y - n.avatar / 2, n.avatar, n.avatar), slots: { card: R(x, y - n.avatar / 2, n.cardW, cardH + n.avatar / 2) }, text: { question: q }, n: { ...n, cardX: x, cardY: y, cardH }, bg: '#000' };
   },
   // ── 3. Meme: POV em cima, vídeo no meio, CTA embaixo (o 1:1 corta o CTA).
@@ -692,13 +748,13 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
     // espaço até a pílula); não cabendo, pra cima dela
     const b = colide(c, hy, hy + h.height);
     if (b) {
-      const ini = b.y1 + 24, disp = pillY - 20 - ini;
+      const ini = b.y1 + 48, disp = pillY - 20 - ini; // 48 px: colada embaixo da legenda queimada parece continuação dela
       let feito = false;
       for (let m = opcoesH.maxLines; m >= 1 && !feito; m--) {
         const f = fitC(c, t.headline, { ...opcoesH, maxLines: m });
         if (f.fits && f.height <= disp && livre(c, ini, ini + f.height, false)) { h = f; hy = ini; feito = true; }
       }
-      if (!feito && b.y0 - 24 - h.height >= c.safe.top && livre(c, b.y0 - 24 - h.height, b.y0 - 24, false)) hy = b.y0 - 24 - h.height;
+      if (!feito && b.y0 - 48 - h.height >= c.safe.top && livre(c, b.y0 - 48 - h.height, b.y0 - 48, false)) hy = b.y0 - 48 - h.height;
     }
     return { videoBox: R(0, 0, c.W, c.H), slots: { headline: R(M, hy, c.W - 2 * M, h.height), pill: R(0, pillY, c.W, pillH) }, text: { headline: h }, n: { ...n, pillY, pillH, headlineY: hy }, bg: '#000' };
   },
@@ -764,10 +820,25 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
     items.forEach((it, i) => { text[`item${i}`] = fitC(c, it, { font: 'montserrat-800', width: itemW, maxLines: temCJK(it) ? 2 : 1, max: por(c, 50, 44, 40), min: 36, ...(temCJK(it) && { lineHeight: 1.08 }) }); });
     n.titleSize = encolher(c, 'inter-800', t.title, n.titleSize, c.W - 2 * n.cardX - 80);
     const itemH = Math.max(n.medal, ...items.map((_x, i) => text[`item${i}`].height)) + 2 * n.itemPadY + 2; // + borda de 1,5 px (o Chrome desenha 1 px)
-    const listH = items.length * itemH + (items.length - 1) * n.itemGap;
-    const listY = c.H - c.safe.bottom - n.bottomGap - listH;
+    let listH = items.length * itemH + (items.length - 1) * n.itemGap;
+    const fimLista = c.H - c.safe.bottom - n.bottomGap;
+    let listY = fimLista - listH;
     const cardH = n.cardPadT + Math.max(n.trophy, alturaLinhaNormal('montserrat-900', n.rankSize)) + 6 + alturaLinhaNormal('inter-800', n.titleSize) + n.cardPadB;
-    return { videoBox: R(0, 0, c.W, c.H), slots: { card: R(n.cardX, n.cardY, c.W - 2 * n.cardX, cardH), list: R(M, listY, c.W - 2 * M, listH) }, text, items, n: { ...n, itemW, itemH, listY }, bg: '#000' };
+    // legenda queimada no caminho da lista (bug 26/10): lista inteira abaixo da faixa; senão acima; senão a lista (linhas
+    // opacas, coladas) COBRE a faixa inteira; o texto dos itens nunca fica em cima da legenda queimada
+    let opaco = 0;
+    const b = colide(c, listY, listY + listH);
+    if (b) {
+      const topoMin = n.cardY + cardH + 16;
+      const listHColada = items.length * itemH + (items.length - 1) * 4;
+      const opcoes: { y: number; h: number; opaco: number }[] = [
+        { y: b.y1 + 16, h: listH, opaco: 0 }, { y: b.y0 - 16 - listH, h: listH, opaco: 0 },
+        { y: Math.max(topoMin, b.y0 - 8), h: listHColada, opaco: 1 }, { y: b.y1 + 8 - listHColada, h: listHColada, opaco: 1 },
+      ];
+      const ok = opcoes.find((o) => o.y >= topoMin && o.y + o.h <= fimLista && livre(c, o.y, o.y + o.h, o.opaco === 1));
+      if (ok) { listY = ok.y; listH = ok.h; opaco = ok.opaco; if (opaco) n.itemGap = 4; }
+    }
+    return { videoBox: R(0, 0, c.W, c.H), slots: { card: R(n.cardX, n.cardY, c.W - 2 * n.cardX, cardH), list: R(M, listY, c.W - 2 * M, listH) }, text, items, n: { ...n, itemW, itemH, listY, opaco }, bg: '#000' };
   },
   // ── 12. Tweet: cartão de post com o vídeo dentro. Feed: o vídeo ocupa o que sobra até o rodapé.
   post_card: (c, t) => {
@@ -916,7 +987,15 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
       if (t0 + greenH + 6 + copyH >= b.y1 + 8 && t0 + h2 <= fim && livre(c, t0, t0 + greenH + 6 + copyH, true)) { storyTop = t0; storyCobre = 1; }
       else if (b.y1 + 16 + grupoH <= fim) storyTop = b.y1 + 16;
     }
-    return { videoBox: R(0, 0, c.W, c.H), slots: { column: R(M, n.top, c.W - 2 * M, c.H - c.safe.bottom - n.top) }, text, n: { ...n, storyTop, storyCobre }, bg: '#000' };
+    // slots de verdade (pra checagem da legenda protegida): o cartão de cima e o bloco de baixo; `column` é só a coluna
+    const cartaoH = 2 * n.headPad + alturaLinhaNormal('inter-800', n.headSize) + 2 * n.bodyPadY + 6 + text.question.height;
+    const grupoY = storyTop >= 0 ? storyTop : topoNormal;
+    const grupoAlt = storyTop >= 0 && storyCobre ? greenH + 6 + copyH + (supH ? n.gap + supH : 0) : grupoH;
+    return {
+      videoBox: R(0, 0, c.W, c.H),
+      slots: { column: R(M, n.top, c.W - 2 * M, c.H - c.safe.bottom - n.top), cartao: R((c.W - n.cardW) / 2, n.top, n.cardW, cartaoH), grupo: R(M, grupoY, c.W - 2 * M, grupoAlt) },
+      text, n: { ...n, storyTop, storyCobre }, bg: '#000',
+    };
   },
 };
 
@@ -925,12 +1004,24 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
  * Puro e determinístico (a medida de texto é a tabela de src/lib/metricas-fontes.ts). O 9:16 é o protótipo aprovado;
  * 4:5 e 1:1 têm layout próprio (não é o 9:16 encolhido).
  */
+/** Faixas que se tocam (ou ficam a < 24 px) viram uma só: a legenda que muda de posição/altura ao longo do vídeo vira a
+ *  UNIÃO das posições, e o texto da moldura desvia do bloco inteiro (bug 26/10). */
+export const unirFaixas = (fs: Faixa[]) => {
+  const o = [...fs].sort((a, b) => a.y0 - b.y0);
+  const out: Faixa[] = [];
+  for (const f of o) {
+    const u = out[out.length - 1];
+    if (u && f.y0 <= u.y1 + 24) { u.y1 = Math.max(u.y1, f.y1); u.protegida = !!(u.protegida || f.protegida); } else out.push({ ...f });
+  }
+  return out;
+};
+
 /** Opções que dependem da mídia (não do texto). `slideImage`: a `call` tem 2ª fonte de imagem (product_photo /
  *  page_capture) pra mostrar dentro do slide da apresentação. */
 export interface FrameLayoutOptions {
   slideImage?: boolean;
   /** faixas de legenda queimada em px da SAÍDA (faixasNaSaida): os textos sobre o vídeo cheio desviam delas */
-  faixas?: { y0: number; y1: number }[];
+  faixas?: Faixa[];
 }
 /** As opções de layout a partir da 2ª fonte da peça (a composição e o buildFrameInput usam a mesma regra). */
 export const opcoesDeLayout = (second: { kind: string } | null | undefined): FrameLayoutOptions => ({
@@ -939,7 +1030,7 @@ export const opcoesDeLayout = (second: { kind: string } | null | undefined): Fra
 
 export const frameLayout = <K extends FrameTemplateId>(id: K, format: VideoFormat, texts: FrameTextsMap[K], language = 'pt', opts: FrameLayoutOptions = {}): FrameLayout => {
   const { width: W, height: H } = FORMATOS[format];
-  const c: Ctx = { f: format, W, H, safe: FRAME_SAFE[format], ui: frameUi(language), slideImage: !!opts.slideImage && id === 'call', cjk: cjkDe(language), faixas: opts.faixas ?? [] };
+  const c: Ctx = { f: format, W, H, safe: FRAME_SAFE[format], ui: frameUi(language), slideImage: !!opts.slideImage && id === 'call', cjk: cjkDe(language), faixas: unirFaixas(opts.faixas ?? []) };
   const l = (LAYOUTS[id] as (c: Ctx, t: FrameTextsMap[K]) => Lay)(c, texts);
   return { id, format, canvas: { w: W, h: H }, safe: c.safe, ...l };
 };
@@ -951,11 +1042,18 @@ export const textosQueNaoCouberam = (l: FrameLayout) => Object.entries(l.text).f
  * Layout da peça inteira (o que a composição desenha e o buildFrameInput valida): frameLayout com a imagem do slide
  * (call) e as faixas de legenda queimada do campeão já mapeadas pra saída (pelo reenquadramento da caixa do vídeo).
  */
-export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'frame' | 'video' | 'second'>): FrameLayout => {
+export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'frame' | 'video' | 'second' | 'captionMode'>): FrameLayout => {
   const id = p.frame.id;
   const texts = p.frame.texts as FrameTextsMap[typeof id];
   const base: FrameLayoutOptions = opcoesDeLayout(p.second);
   const L0 = frameLayout(id, p.format, texts, p.language, base);
-  const faixas = faixasNaSaida(p.video.burnedTextBands, p.video.source, p.video.reframe, L0.videoBox, p.video.contentBox ?? null);
+  // texto queimado (desvia, pode ser coberto por bloco opaco) + legenda protegida (desvia, nunca coberta); no modo
+  // 'replace' a legenda foi recortada pra fora e a nossa entra no lugar: as faixas protegidas não valem mais
+  const cb = p.video.contentBox ?? null;
+  const prot = p.captionMode === 'replace' ? [] : (p.video.protectedBands ?? []).map((b) => ({ y: b.y, h: b.h, startSec: b.startSec, endSec: b.endSec }));
+  const faixas: Faixa[] = [
+    ...faixasNaSaida(p.video.burnedTextBands, p.video.source, p.video.reframe, L0.videoBox, cb),
+    ...faixasNaSaida(prot, p.video.source, p.video.reframe, L0.videoBox, cb, 0).map((f) => ({ ...f, protegida: true })),
+  ];
   return faixas.length ? frameLayout(id, p.format, texts, p.language, { ...base, faixas }) : L0;
 };

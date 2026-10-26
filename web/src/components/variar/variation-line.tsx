@@ -1,12 +1,12 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import type { AutoVariationRef } from "@/lib/api/types"
+import type { VariationRef } from "@/lib/api/types"
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 
 /** "↳ Variation of <winner> · <kind>" (spec §2.12, §5.8): Home rows, waiting cards, Library, Final OK. */
-export function VariationLine({ v, className }: { v: AutoVariationRef; className?: string }) {
+export function VariationLine({ v, className }: { v: VariationRef; className?: string }) {
   const t = useTranslations("variar")
   return (
     <span className={cn("row-sub inline-flex min-w-0 items-center gap-1.5", className)}>

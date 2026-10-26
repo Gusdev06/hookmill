@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import {
   AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, isImagePiece, mmss, PieceKind, pieceType, Tag, TypeThumb, useIterFormat, useTypeName,
 } from "./parts"
+import { CaptionBlocked, CleanVersionStatus } from "./captions"
 import { usePriceLabel } from "./piece-actions"
 
 const STAGES: AnalysisStage[] = ["reading", "brain", "planning"]
@@ -204,6 +205,8 @@ function BatchPlan({ batch }: { batch: IterateBatch }) {
         <span className="text-[13px] text-fg-3">{t("planSub")}</span>
       </div>
       <CaptionsBadge batch={batch} />
+      <CleanVersionStatus batch={batch} />
+      <CaptionBlocked batch={batch} />
       <PlanGroup axis="ITERATION" pieces={stretch} />
       <PlanGroup axis="DIVERSITY" pieces={fresh} />
       <div className="border-t border-line-soft pt-2.5 text-xs text-fg-3">{t("formatsLine")}</div>

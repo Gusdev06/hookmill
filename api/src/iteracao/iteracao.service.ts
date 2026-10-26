@@ -101,13 +101,16 @@ export class IteracaoService {
   // ───────── criar (POST /iterate) ─────────
 
   async create(auth: AuthContext, dto: CreateIterateDto): Promise<IterateBatch> {
-    const given = [dto.uploadId && 'uploadId', dto.creativeId && 'creativeId', dto.metaAdId && 'metaAdId'].filter(Boolean) as string[];
+    const given = [dto.uploadId && 'uploadId', dto.creativeId && 'creativeId', dto.metaAdId && 'metaAdId', dto.championId && 'championId'].filter(Boolean) as string[];
     if (given.length !== 1) {
-      throw new AppException('VALIDATION_ERROR', { fields: [{ field: given[1] ?? 'uploadId', rule: 'exactlyOneOf:uploadId,creativeId,metaAdId' }] });
+      throw new AppException('VALIDATION_ERROR', { fields: [{ field: given[1] ?? 'uploadId', rule: 'exactlyOneOf:uploadId,creativeId,metaAdId,championId' }] });
     }
     const src = dto.uploadId ? await this.fromUpload(auth, dto.uploadId, dto.offerId)
+      : dto.championId ? await this.fromChampion(auth, dto.championId)
       : dto.metaAdId ? await this.metaImport.prepare(auth, dto.metaAdId, dto.offerId) // meta-v1 D13: Pick from Meta
         : await this.fromLibrary(auth, dto.creativeId!);
+    // legenda-protegida-v1 D-LP5: a versão sem legenda fica presa no lote e é conferida antes do plano (a análise precisa acabar)
+    const cleanFile = dto.cleanUploadId ? await this.uploads.readyFile(auth.workspaceId, dto.cleanUploadId) : null;
     const durationSec = num(src.champion.durationSec) ?? 30;
     const estimate = autoAnalysisEstimateUsd(this.catalog, durationSec, src.mode === 'reuse');
     await this.custos.assertWithinCap(auth.workspaceId, estimate);
@@ -121,7 +124,7 @@ export class IteracaoService {
         data: {
           workspaceId: auth.workspaceId, championId: champion.id, offerId: champion.offerId, mode: 'AUTO',
           status: src.mode === 'reuse' ? BATCH_ENTRY.AUTO_REUSE : BATCH_ENTRY.AUTO_ANALYZE,
-          language: champion.language ?? src.offerLanguage, requests: [], settings: {}, estimatedCostUsd: estimate, createdById: auth.userId,
+          language: champion.language ?? src.offerLanguage, requests: [], settings: cleanFile ? { cleanFileId: cleanFile.id } : {}, estimatedCostUsd: estimate, createdById: auth.userId,
         },
       });
       const job = src.mode === 'wait' ? null
@@ -154,6 +157,18 @@ export class IteracaoService {
    * READY com teardown e editMap = reaproveita (lote nasce PLANNING); ANALYZING = espera; FAILED ou READY sem mapa =
    * analisa de novo. Sem campeão: cria um (rights OWN, vídeo = render final 9:16, nome do criativo).
    */
+  /**
+   * 26/10 "Novo lote": campeão já analisado do workspace (READY, com teardown e mapa) → reaproveita a análise (nasce
+   * PLANNING, só o plano). Outro workspace/arquivado = 404; analisando/falhou = 409 INVALID_STATE `allowed: ['READY']`.
+   */
+  private async fromChampion(auth: AuthContext, championId: string) {
+    const c = await this.prisma.champion.findFirst({ where: { id: championId, workspaceId: auth.workspaceId, archivedAt: null }, include: { teardown: true, offer: true } });
+    if (!c || c.offer.archivedAt) throw new AppException('NOT_FOUND');
+    if (c.status !== 'READY' || !sectionsOf(c.teardown?.sections)) throw new AppException('INVALID_STATE', { state: c.status, allowed: ['READY'] });
+    const { teardown: _t, offer, ...champion } = c;
+    return { champion: champion as Champion, isNew: false, newData: null, mode: 'reuse' as Reuse, offerLanguage: offer.language };
+  }
+
   private async fromLibrary(auth: AuthContext, creativeId: string) {
     const c = await this.prisma.creative.findFirst({
       where: { id: creativeId, workspaceId: auth.workspaceId, archivedAt: null },
@@ -279,6 +294,33 @@ export class IteracaoService {
       return { mode, jobId, championId: c.id };
     });
     this.kick(id, kick.mode, kick.jobId, kick.championId, auth.userId);
+    return this.get(auth, id);
+  }
+
+  /**
+   * `POST /iterate/:id/replan` (legenda-protegida-v1 D-LP5): PLAN_READY → PLANNING com um job AUTO_PLAN novo sobre a análise
+   * pronta (não cobra a análise de novo; o teto confere só o plano). Os itens do plano antigo são descartados. Lote LAUNCHED
+   * = 409 INVALID_STATE `reason: 'launched'` (as peças já são criativos; o caminho é um lote novo do mesmo campeão);
+   * PLANNING/ANALYZING = 409 (já está planejando); ANALYSIS_FAILED = use `retry`.
+   */
+  async replan(auth: AuthContext, id: string): Promise<IterateBatch> {
+    const r = await this.locks.run(`batch:${id}`, async () => {
+      const b = await this.load(auth.workspaceId, id);
+      if (b.status !== 'PLAN_READY') {
+        throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'], ...(b.status === 'LAUNCHED' && { reason: 'launched' }) });
+      }
+      const c = await this.prisma.champion.findUniqueOrThrow({ where: { id: b.championId } });
+      const td = await this.prisma.teardown.findUnique({ where: { championId: c.id } });
+      if (c.status !== 'READY' || !sectionsOf(td?.sections)) throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'], reason: 'champion_not_ready' });
+      await this.custos.assertWithinCap(auth.workspaceId, autoAnalysisEstimateUsd(this.catalog, num(c.durationSec) ?? 30, true));
+      const jobId = await this.prisma.$transaction(async (tx) => {
+        await this.sm.transition({ tx, batchId: b.id, event: 'AUTO_REPLAN', from: 'PLAN_READY', to: 'PLANNING', data: { errorCode: null, failReason: null, failDetail: null, failStage: null } });
+        await tx.variationItem.deleteMany({ where: { batchId: b.id } });
+        return (await this.newPlanJob(tx, b.id, c, auth.userId)).id;
+      });
+      return { jobId, championId: c.id };
+    });
+    this.kick(id, 'reuse', r.jobId, r.championId, auth.userId);
     return this.get(auth, id);
   }
 

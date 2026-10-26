@@ -4,7 +4,7 @@
  * buildFrameInput (contentBox, burnedTextBands, cover sem borrado, rótulos zh) → still da composição `Moldura`.
  * Vídeo baixado do storage (STORAGE_*, hookmill-dev) e servido por HTTP local; Remotion na porta 3020 (nunca 3001).
  *
- * Uso (de api/): npx ts-node --transpile-only src/render/molduras-campeao-real.ts [saida-dir] [formato]
+ * Uso (de api/): npx ts-node --transpile-only src/render/molduras-campeao-real.ts [saida-dir] [formato] [lote] [templates,separados]
  */
 import 'dotenv/config';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -22,7 +22,8 @@ import { frameSpecOf } from '../edicao/frame-input';
 import type { AutoEditContext } from './auto-edit';
 import { buildFrameInput } from './frame';
 
-const LOTE = 'cmvnlm4yd000l22emdoob1j5a';
+const LOTE = process.argv[4] ?? 'cmvnlm4yd000l22emdoob1j5a';
+const SO = process.argv[5] ? process.argv[5].split(',') : null;
 const PORTA_REMOTION = 3020;
 const raizVideo = path.resolve(__dirname, '../../../video');
 
@@ -68,7 +69,7 @@ async function main() {
   for (const it of b.items.filter((i) => (i.autoType as string) === 'FRAME')) {
     const params = (it.payload as { params: Record<string, unknown> }).params;
     const tpl = String(params.template);
-    if (feitos.has(tpl)) continue;
+    if (feitos.has(tpl) || (SO && !SO.includes(tpl))) continue;
     feitos.add(tpl);
     try {
       const input = buildFrameInput(frameSpecOf(params), ctx, formato);

@@ -665,7 +665,10 @@
     "META_RATE_LIMITED": "A Meta pediu pra ir mais devagar. Tente de novo em um minuto.",
     "META_ERROR": "A Meta devolveu um erro. Tente de novo; se continuar, fale com o suporte.",
     "BROLL_SOURCE_NOT_SUPPORTED": "A fonte desse link ainda não é aceita. Cole um link do YouTube ou do TikTok.",
-    "BROLL_UNAVAILABLE": "O clipe de b-roll não está mais disponível. Refazer pega o próximo."
+    "BROLL_UNAVAILABLE": "O clipe de b-roll não está mais disponível. Refazer pega o próximo.",
+    "CLEAN_VERSION_MISMATCH": "Não é o mesmo vídeo sem legenda.",
+    "CAPTION_COVERED": "Algo tampou a legenda do vídeo. Refazer tenta outro layout.",
+    "CAPTION_PROTECTED": "Este formato tamparia a legenda do vídeo. Deixe de fora."
   },
   "template": {
     "clean": "Limpo",
@@ -2394,7 +2397,9 @@
         "HEADLINE_NO_ROOM": "Não há espaço livre pra headline neste vídeo. Deixe de fora.",
         "HEADLINE_OVER_FACE": "A headline cobriria o rosto. Deixe de fora.",
         "HEADLINE_LOW_CONFIDENCE": "Não conseguimos ler o estilo da headline original. Deixe de fora.",
-        "leaveOutHint": "Refazer não muda; deixe a peça de fora."
+        "leaveOutHint": "Refazer não muda; deixe a peça de fora.",
+        "CAPTION_COVERED": "Algo tampou a legenda do vídeo neste render. Refazer tenta outro layout; até lá a peça fica fora do zip.",
+        "CAPTION_PROTECTED": "Este formato tamparia a legenda do vídeo."
       },
       "failedBodyImage": "O Retry roda só esta peça. Peça de vídeo não custa nada pra tentar de novo; o estático faz uma imagem nova, então o retry dele mostra o preço.",
       "retriedPaid": "Fazendo uma imagem nova pra {code} · {usd}.",
@@ -3561,5 +3566,42 @@
         "body": "Falta uma permissão da conta de anúncios na conexão."
       }
     }
+  },
+  "captions": {
+    "blockedTitle": "{n, plural, one {# formato ficou de fora: o vídeo tem legenda queimada} other {# formatos ficaram de fora: o vídeo tem legenda queimada}}",
+    "blockedBody": "Esses tampariam a legenda. Com o mesmo vídeo sem legenda eles voltam.",
+    "needsClean": "Este formato precisa do vídeo sem legenda",
+    "frameNamed": "Moldura · {name}",
+    "afterSend": "Salvo. Os próximos lotes deste vídeo usam a versão sem legenda, então esses formatos podem entrar.",
+    "replaced": "Legenda refeita no estilo do original",
+    "clean": {
+      "send": "Enviar versão sem legenda",
+      "hint": "O mesmo vídeo, mesma duração e tamanho, só sem a legenda queimada.",
+      "uploading": "Enviando · {p}%",
+      "checking": "Conferindo se é o mesmo vídeo…",
+      "saved": "Versão sem legenda salva.",
+      "savedToast": "Versão sem legenda salva.",
+      "attached": "{name} vai junto com o vídeo.",
+      "change": "Trocar",
+      "fieldTitle": "Versão sem legenda (opcional)",
+      "fieldBody": "Se o vídeo tem legenda queimada, envie também sem ela: todos os formatos podem entrar e a gente refaz a legenda no estilo do original.",
+      "fieldButton": "Escolher o arquivo sem legenda",
+      "mismatch": {
+        "duration": "Não é o mesmo vídeo: a duração é diferente.",
+        "resolution": "Não é o mesmo vídeo: o tamanho (resolução) é diferente.",
+        "fps": "Não é o mesmo vídeo: a taxa de quadros é diferente.",
+        "content": "Não é o mesmo vídeo sem legenda: a imagem fora da legenda não bate."
+      },
+      "applied": "Usando a versão sem legenda.",
+      "mismatchTitle": "A versão sem legenda não bateu",
+      "usedOriginal": "Planejamos com o vídeo original.",
+      "sendAgain": "Enviar outra versão sem legenda"
+    },
+    "afterSendReplan": "Salvo. Replaneje este lote pra usar a versão sem legenda (cerca de US$ 0,03, a análise não é refeita).",
+    "replan": "Replanejar com a versão sem legenda",
+    "replanned": "Planejando de novo com a versão sem legenda.",
+    "launched": "Esse lote já foi lançado; gere um lote novo com a versão sem legenda.",
+    "newBatch": "Novo lote",
+    "anotherBatch": "Gerar outro lote com este campeão"
   }
 }

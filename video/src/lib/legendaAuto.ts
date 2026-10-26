@@ -1,6 +1,6 @@
 import { FPS } from './formatos';
 import { paginar } from './legenda';
-import { cjkDe, faixasNaSaida, fitText, temCJK, type FittedText, type FrameLayout, type MolduraProps, type Rect } from './molduras';
+import { cjkDe, faixasNaSaida, fitText, pinturaNaCaixa, temCJK, type FittedText, type FrameLayout, type MolduraProps, type Rect } from './molduras';
 import { FORMATOS, type VideoFormat } from './formatos';
 
 // Legenda automática (headline-e-legenda-v1 §2): quando o campeão não tem legenda queimada (`captionsAuto`), toda peça
@@ -104,18 +104,25 @@ export { temCJK };
 
 /** Caixa da legenda na Moldura (§2.2): dentro da videoBox (o vídeo com o áudio), no terço de baixo, fora de todo slot de
  *  texto da moldura, do rosto redondo e das faixas de texto queimado; acima da área segura. */
-export const caixaLegendaMoldura = (p: Pick<MolduraProps, 'format' | 'video' | 'safeArea'>, L: FrameLayout): CaixaLegenda | null => {
+export const caixaLegendaMoldura = (p: Pick<MolduraProps, 'format' | 'video' | 'safeArea' | 'captions'>, L: FrameLayout): CaixaLegenda | null => {
   const H = FORMATOS[p.format].height;
   const faixas = faixasNaSaida(p.video.burnedTextBands, p.video.source, p.video.reframe, L.videoBox, p.video.contentBox ?? null)
     .map((f) => ({ x: L.videoBox.x, y: f.y0, w: L.videoBox.w, h: f.y1 - f.y0 }));
   const obst = [...Object.values(L.slots), ...(L.faceBox ? [L.faceBox] : []), ...faixas];
-  const tamanho = Math.max(LEGENDA_MIN_PX, Math.min(LEGENDA_PX[p.format], Math.round(L.videoBox.w / 15)));
+  let tamanho = Math.max(LEGENDA_MIN_PX, Math.min(LEGENDA_PX[p.format], Math.round(L.videoBox.w / 15)));
+  // legenda refeita no estilo da original: o tamanho relativo dela, levado pra escala do vídeo na caixa
+  const st = (p as { captions?: { style?: { sizeRel: number } } }).captions?.style;
+  if (st) {
+    const pt = pinturaNaCaixa(L.videoBox, p.video.source, p.video.reframe, p.video.contentBox ?? null);
+    tamanho = Math.max(LEGENDA_MIN_PX, Math.min(Math.round(LEGENDA_PX[p.format] * 1.3), Math.round(st.sizeRel * p.video.source.height * pt.s)));
+  }
   return caixaDaLegenda(L.videoBox, H - L.safe.bottom, obst, tamanho);
 };
 
 /** Caixa da legenda no AutoEdit (§2.2): terço de baixo da área do vídeo, acima da UI do formato (safeArea). REVIEW: o
  *  vídeo é a parte de baixo; o resto é a tela toda. */
-export const caixaLegendaAutoEdit = (format: VideoFormat, safeArea: { top: number; bottom: number }, area?: Rect): CaixaLegenda | null => {
+export const caixaLegendaAutoEdit = (format: VideoFormat, safeArea: { top: number; bottom: number }, area?: Rect, tamanho?: number): CaixaLegenda | null => {
   const { width: W, height: H } = FORMATOS[format];
-  return caixaDaLegenda(area ?? { x: 0, y: 0, w: W, h: H }, H - safeArea.bottom, [], LEGENDA_PX[format]);
+  const t = tamanho ? Math.max(LEGENDA_MIN_PX, Math.min(Math.round(LEGENDA_PX[format] * 1.3), tamanho)) : LEGENDA_PX[format];
+  return caixaDaLegenda(area ?? { x: 0, y: 0, w: W, h: H }, H - safeArea.bottom, [], t);
 };

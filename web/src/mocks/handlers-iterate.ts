@@ -3,13 +3,14 @@
  */
 import { delay, http, HttpResponse } from "msw"
 import { API_URL } from "@/lib/api/client"
-import type { CreateIterateBody, LibraryItemV, RequestPieceFormatBody, RetryPieceBody, StartIterateBody, UpdatePieceBody } from "@/lib/api/types"
+import type { CreateIterateBody, LibraryItem, RequestPieceFormatBody, RetryPieceBody, StartIterateBody, UpdatePieceBody } from "@/lib/api/types"
 import { db, save as saveDb } from "./db"
 import { mockWorkspaceOf } from "./auth"
 import { adRows } from "./v2"
-import { f2 } from "./variar"
+import { cleanFileOf, cleanMismatch, f2, save as saveF2 } from "./variar"
+import { replanIter, replanPieces } from "./iterate"
 import { listScenario, scenario } from "./scenario"
-import { advanceIter, findPiece, formatStateOf, isUnsupportedFormat, iterConfig, iterView, it, launchIter, newIter, pieceView, requestFormat, retryIter, retryPiece, saveIter, STATIC_USD, startZip, textCapForced, type MIter } from "./iterate"
+import { advanceIter, batchOfChampion, findPiece, newIterFromChampion, setIterClean, formatStateOf, isUnsupportedFormat, iterConfig, iterView, it, launchIter, newIter, pieceView, requestFormat, retryIter, retryPiece, saveIter, STATIC_USD, startZip, textCapForced, type MIter } from "./iterate"
 
 const u = (p: string) => API_URL + p
 const ok = <D,>(data: D, status = 200) => HttpResponse.json({ success: true, data }, { status })
@@ -28,12 +29,66 @@ const capped = (b: MIter, estimateUsd: number, force = false) =>
     : null
 const roleOf = (r: Request) => (typeof window !== "undefined" && sessionStorage.getItem("mock:role")) || mockWorkspaceOf(r.headers.get("Authorization")).role
 
+/** 26/10: `cleanUploadId` on POST /iterate: upload errors now; the same-video check "after the analysis" (mock: right away, shown in insight) */
+function cleanUploadError(id: string | undefined) {
+  if (!id) return null
+  const up = f2.uploads.find((x) => x.id === id)
+  if (!up) return notFound()
+  if (up.status !== "READY") return fail("UPLOAD_INCOMPLETE", 409, "The upload isn't complete.", { expectedBytes: up.sizeBytes, actualBytes: null })
+  return null
+}
+function applyClean(nb: MIter, id: string | undefined) {
+  if (!id) return nb
+  const reason = cleanMismatch(id)
+  nb.cleanVersion = reason ? { status: "mismatch", reason } : { status: "applied", reason: null }
+  if (!reason) {
+    nb.cleanUploadId = id
+    nb.pieces = [] // re-plan below with the clean version (no blocked templates)
+  }
+  return nb
+}
+
+function withClean(nb: MIter, id: string | undefined) {
+  applyClean(nb, id)
+  if (!nb.pieces.length) replanPieces(nb)
+  saveIter()
+  return nb
+}
+
 function batch(id: unknown) {
   const b = it.batches.find((x) => x.id === id && !x.archived)
   return b ? advanceIter(b) : null
 }
 
 export const iterateHandlers = [
+  // legenda-protegida-v1 §2.3: POST /champions/:id/clean-version (the AUTO batch's champion; the variar champions answer in handlers-variar)
+  http.post(u("/champions/:id/clean-version"), async ({ params, request }) => {
+    const id = String(params.id)
+    const { uploadId } = await body<{ uploadId?: string }>(request)
+    const v = f2.champions.find((c) => c.id === id) ?? null
+    const b = v ? null : batchOfChampion(id)
+    if (!v && !b) return notFound()
+    const up = f2.uploads.find((x) => x.id === uploadId)
+    if (!uploadId || !up) return notFound()
+    if (up.status !== "READY") return fail("UPLOAD_INCOMPLETE", 409, "The upload isn't complete.", { expectedBytes: up.sizeBytes, actualBytes: null })
+    await delay(900) // the same-video check (duration, resolution, fps, PSNR outside the band)
+    const reason = cleanMismatch(uploadId)
+    if (reason) return fail("CLEAN_VERSION_MISMATCH", 422, "This isn't the same video without captions.", { reason })
+    if (v) {
+      v.cleanUploadId = uploadId
+      saveF2()
+    } else setIterClean(id, uploadId)
+    return ok({ id, cleanVideo: cleanFileOf(uploadId) })
+  }),
+  http.delete(u("/champions/:id/clean-version"), ({ params }) => {
+    const id = String(params.id)
+    const v = f2.champions.find((c) => c.id === id) ?? null
+    if (v) v.cleanUploadId = null
+    else if (batchOfChampion(id)) setIterClean(id, null)
+    else return notFound()
+    return ok({ id, cleanVideo: null })
+  }),
+
   http.get(u("/iterate/config"), async ({ request }) => {
     const s = await listScenario(request.url)
     return ok(iterConfig(s === "empty"))
@@ -41,8 +96,20 @@ export const iterateHandlers = [
 
   http.post(u("/iterate"), async ({ request }) => {
     const b = await body<CreateIterateBody>(request)
-    const given = [b.uploadId, b.creativeId, b.metaAdId].filter(Boolean).length
-    if (given !== 1) return fail("VALIDATION_ERROR", 400, "Send exactly one of uploadId / creativeId / metaAdId.", { fields: [{ field: "uploadId", rule: "exactly_one" }] })
+    const given = [b.uploadId, b.creativeId, b.metaAdId, b.championId].filter(Boolean).length
+    if (given !== 1) return fail("VALIDATION_ERROR", 400, "Send exactly one of uploadId / creativeId / metaAdId / championId.", { fields: [{ field: "uploadId", rule: "exactly_one" }] })
+    const cleanErr = cleanUploadError(b.cleanUploadId)
+    if (cleanErr) return cleanErr
+    // 26/10 "New batch": same champion, its analysis reused (the batch is born in PLANNING)
+    if (b.championId) {
+      const src = it.batches.find((x) => x.championId === b.championId && !x.archived)
+      if (!src) return notFound()
+      const st = iterView(src).status
+      if (st === "ANALYZING" || st === "ANALYSIS_FAILED") return invalid(st, ["READY"], "champion_not_ready")
+      await delay(300)
+      const nb = newIterFromChampion(src)
+      return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
+    }
     await delay(300)
     // meta-v1 D13: Pick from Meta = the ad's video downloaded as the champion (META_IMPORT), then the usual analysis
     if (b.metaAdId) {
@@ -58,14 +125,14 @@ export const iterateHandlers = [
       m.iterated = Array.from(new Set([...(m.iterated ?? []), ad.metaAdId]))
       saveDb()
       const nb = newIter({ offerId, uploadId: null, sourceCreativeId: null, name: ad.name, durationSec: 29, width: 1080, height: 1920, filename: "" })
-      return ok(iterView(nb), 202)
+      return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
     }
     if (b.creativeId) {
-      const lib = (db.library as LibraryItemV[]).find((l) => l.id === b.creativeId)
+      const lib = (db.library as LibraryItem[]).find((l) => l.id === b.creativeId)
       if (!lib) return notFound()
       if (lib.media === "image") return invalid("APPROVED", [], "not_a_video")
       const nb = newIter({ offerId: lib.offer.id, uploadId: null, sourceCreativeId: lib.id, name: lib.name, durationSec: lib.durationSec || 30, width: 1080, height: 1920, filename: "" })
-      return ok(iterView(nb), 202)
+      return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
     }
     const up = f2.uploads.find((x) => x.id === b.uploadId)
     if (!up) return notFound()
@@ -78,7 +145,7 @@ export const iterateHandlers = [
       offerId, uploadId: up.id, sourceCreativeId: null, name: up.filename.replace(/\.[^.]+$/, ""), durationSec: up.durationSec ?? 30,
       width: up.width ?? 1080, height: up.height ?? 1920, filename: up.filename,
     })
-    return ok(iterView(nb), 202)
+    return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
   }),
 
   http.get(u("/iterate/:id"), async ({ params }) => {
@@ -86,6 +153,19 @@ export const iterateHandlers = [
     const b = batch(params.id)
     if (!b) return notFound()
     return ok(iterView(b))
+  }),
+
+  // 26/10 (legenda-protegida D-LP5): replan over the finished analysis; only PLAN_READY
+  http.post(u("/iterate/:id/replan"), async ({ params, request }) => {
+    const b = batch(params.id)
+    if (!b) return notFound()
+    if (roleOf(request) === "CLIENT") return fail("FORBIDDEN", 403, "Clients can't replan.")
+    const v = iterView(b)
+    if (v.status === "LAUNCHED") return invalid(v.status, ["PLAN_READY"], "launched")
+    if (v.status !== "PLAN_READY") return invalid(v.status, ["PLAN_READY"])
+    replanIter(b)
+    await delay(250)
+    return ok(iterView(b), 202)
   }),
 
   http.post(u("/iterate/:id/retry"), async ({ params }) => {

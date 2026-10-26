@@ -23,6 +23,7 @@
 //                   dentro, metade fora da região do rosto; [mock:keep-overlay] → painel sobre o rosto no terço do meio;
 //                   [mock:hook-over-video] → headline sem fundo (texto direto sobre o vídeo).
 //                   headline-e-legenda-v1: [mock:headline-over-video] → idem, o vídeo todo; [mock:headline-none] → sem headline.
+//                   legenda-protegida-v1: [mock:burned-captions] → legenda queimada (karaokê) na fala; sem ele, nenhuma.
 import type {
   AdLibraryMeta,
   AutoPlanDraft,
@@ -60,6 +61,8 @@ import { hookTextSlot, spokenHookOf } from '../claude/edicao';
 import { seedOf, unit } from './midia';
 import { mockAutoPlan } from './fake-auto-plan';
 import type { CheckStaticTextInput, CheckStaticTextResult, StaticTextCheckPort } from '../contrato';
+import type { CaptionCheckPort, CheckCaptionInput } from '../contrato';
+import type { CheckCaptionInputAny, CheckCaptionVerdict } from '../claude/checagem-legenda';
 
 /** Erro de grafia determinístico do mock (o defeito real visto no 1k: "volta" → "vólta"). Tira o 1º acento, se houver;
  *  senão põe um agudo na 1ª vogal sem acento. */
@@ -159,7 +162,7 @@ function fill(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '').replace(/\s+/g, ' ').trim();
 }
 
-export class FakeClaudeService implements ClaudeService, StaticTextCheckPort {
+export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, CaptionCheckPort {
   constructor(
     private readonly costs: CostStore,
     private readonly opts: FakeClaudeOptions,
@@ -440,6 +443,24 @@ export class FakeClaudeService implements ClaudeService, StaticTextCheckPort {
     };
   }
 
+  /**
+   * legenda-protegida-v1 §4.2 mock: lê a legenda esperada em todo quadro (ok). `[mock:caption-covered]` nas notas = os
+   * quadros do meio com a legenda tampada (`covered`); `[mock:caption-fail]` = a checagem falha (o backend marca `skipped`).
+   */
+  async checkCaption(i: CheckCaptionInputAny): Promise<CheckCaptionVerdict & Usage> {
+    await this.pause();
+    const notes = i.notes ?? '';
+    if (notes.includes('[mock:caption-fail]')) throw new IntegracaoError('PROVIDER_UNAVAILABLE', 'mock caption check failure');
+    await this.costs.record({ workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0 });
+    const covered = notes.includes('[mock:caption-covered]');
+    const n = i.frames.length;
+    const frames = i.frames.map((f, k) => {
+      const hit = covered && k >= Math.floor(n / 3) && k < Math.max(Math.floor(n / 3) + 1, Math.ceil((2 * n) / 3));
+      return { atSec: f.atSec, ok: !hit, covered: hit, duplicated: false, seen: hit ? null : f.expectedWords?.join(' ') ?? 'mock caption', problem: hit ? ('covered' as const) : null };
+    });
+    return { status: covered ? 'covered' : 'ok', frames, costUsd: 0 };
+  }
+
   private async recordCost(workspaceId: string, jobId: string, creativeId: string | null) {
     await this.costs.record({ workspaceId, creativeId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0, jobId });
   }
@@ -626,7 +647,9 @@ export function mockEditMap(i: DescribeEditInput): EditMapDraft {
   ];
   if (noHeadline) layers.shift();
   const face = i.faceTrack[0]?.region ?? pxr(FX.face);
-  if (words.length) {
+  // legenda-protegida-v1 (26/10): legenda queimada só com [mock:burned-captions] nas notas (opt-in); sem o gatilho o
+  // campeão mock não tem legenda queimada (senão quase toda peça sairia bloqueada por `burned_captions`)
+  if (words.length && (notes.includes('[mock:burned-captions]') || notes.includes('[mock:keep-straddle]'))) { // keep-straddle é sobre a legenda: implica ela
     const capH = Math.round((50 / 960) * v.height);
     // keep-straddle: como a variante legenda-cruza da fixture (centrada na borda direita da caixa do rosto, cruzando a de baixo)
     const capBox = notes.includes('[mock:keep-straddle]')

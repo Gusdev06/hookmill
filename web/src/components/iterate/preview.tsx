@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { Bar, Dot, FORMAT_ASPECT, FORMAT_LABEL, FORMAT_PX, FrameIcon, HeadlineChange, canAsk, isImagePiece, isSupported, mmss, pieceFormats, pieceType, usePieceName } from "./parts"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { TextCheckPanel, useStaticStage } from "./text-check"
+import { CaptionNote } from "./captions"
 
 /**
  * Preview (spec §4.3): dark stage with the big player and Variation | Original; beside it the type, the one thing that
@@ -109,6 +110,7 @@ function Body({ batch, piece }: { batch: IterateBatch; piece: IteratePiece }) {
           <p className="mt-1 mb-0">{piece.change}</p>
           {isImagePiece(piece) ? <p className="mt-1.5 mb-0 text-xs text-fg-3">{t("stillOnly")}</p> : null}
           <HeadlineChange p={piece} className="mt-2" />
+          <CaptionNote p={piece} className="mt-2" />
           {pieceType(piece) === "HEADLINE" && formats.length < 3 ? <p className="mt-1.5 mb-0 text-xs text-fg-3">{t("formatOnlyChampion")}</p> : null}
         </div>
         {piece.frame?.second?.track?.length ? <BrollTrack track={piece.frame.second.track} /> : null}

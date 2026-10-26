@@ -13,10 +13,11 @@
  * Legenda automática (`captionsAuto`, §2.2): camada karaokê embaixo, nunca na faixa nova.
  */
 import type { EditLayer, EditMap, Rect } from '@maquina/contratos';
-import { SAFE_AREA, contraste, medirTexto, rostoPrincipal, semEspaco, tokensDoTexto, type CaptionsAuto, type FrameFontKey } from '@maquina/video';
+import { SAFE_AREA, contraste, faixasProtegidasDe, faixasProtegidasNaSaidaRemix, medirTexto, rostoPrincipal, semEspaco, tokensDoTexto, type CaptionsAuto, type FrameFontKey } from '@maquina/video';
 import type { HeadlineSpec } from '../integracoes/contrato';
 import type { AutoEditContext } from './auto-edit';
 import type { RemixKeepRenderInput } from './contrato';
+import { CaptionProtectedError, type OpcoesDeBuild } from './frame';
 
 /** Oficial em `integracoes/contrato.ts` (headline-e-legenda-v1 §1.2, fechado 25/10). */
 export type { HeadlineSpec };
@@ -98,7 +99,7 @@ function fracaoSobreRosto(m: EditMap | null, caixa: Rect, ex: number, ey: number
   return n / m.frameCount;
 }
 
-export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext): RemixKeepRenderInput {
+export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opts: OpcoesDeBuild = {}): RemixKeepRenderInput {
   const src = ctx.source;
   const W = src.width, H = src.height, fps = src.fps;
   const frameCount = Math.max(1, Math.round(src.durationSec * fps));
@@ -175,8 +176,15 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext): Re
     });
   }
 
-  // legenda automática (§2.2): karaokê embaixo, acima da área segura, nunca na faixa nova
-  const cap = spec.captions;
+  // legenda-protegida-v1 §2.1: a headline nova (faixa, placa ou faixa adicionada) não pode cruzar a legenda queimada
+  const protegidas = faixasProtegidasDe(m as never, src);
+  // remix-keep mantém o quadro inteiro do campeão: não dá pra recortar a legenda; 'replace' forçado = CAPTION_PROTECTED
+  if (opts.captionMode === 'replace' && protegidas.length) throw new CaptionProtectedError('no_room', [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }]);
+  const cruzou = protegidas.find((b) => cruza(caixaNova, b));
+  if (cruzou) throw new HeadlineError('HEADLINE_NO_ROOM', `a headline nova cruza a legenda queimada (y ${cruzou.y}-${cruzou.y + cruzou.h})`);
+
+  // legenda automática (§2.2): karaokê embaixo, acima da área segura, nunca na faixa nova; com legenda queimada, não entra
+  const cap = protegidas.length ? null : spec.captions;
   if (cap?.words.length) {
     const u = W / 1080;
     const size = Math.round(60 * u), hCap = Math.ceil(2 * size * 1.15);
@@ -199,5 +207,6 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext): Re
     kind: 'remix-keep', renderId: ctx.renderId, templateId: 'remix-keep',
     canvas: { width: W, height: H, fps, frameCount },
     baseVideoUrl: src.videoUrl, audioPassthroughUrl: src.videoUrl, overlays: [], textLayers: camadas, language: spec.language,
+    ...(protegidas.length && { outputProtectedBands: faixasProtegidasNaSaidaRemix(protegidas, { width: W, height: H, fps, frameCount }) }),
   };
 }

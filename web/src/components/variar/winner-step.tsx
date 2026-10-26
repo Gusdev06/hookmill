@@ -26,6 +26,7 @@ import { useChampionConfig, vk } from "@/hooks/use-variar"
 import { cn } from "@/lib/utils"
 import { VariarFrame } from "./frame"
 import { aspect, mb, uploadErrorDetails, useChampionUpload, type UploadState } from "./upload"
+import { CleanVersionField } from "@/components/iterate/captions"
 
 const AD_URL = /facebook\.com\/ads\/library\/?\?(?:[^#]*&)?id=\d+/
 
@@ -207,6 +208,7 @@ export function WinnerStep({ champion }: { champion: ChampionDetail | null }) {
   const config = useChampionConfig()
   const offers = useQuery({ queryKey: ["offers"], queryFn: () => api.offers.list() })
   const upload = useChampionUpload(config.data)
+  const [cleanUploadId, setCleanUploadId] = useState<string | null>(null)
   const [offerId, setOfferId] = useState<string | null>(champion?.offer.id ?? params.get("offer"))
   const [link, setLink] = useState(champion?.adLibraryUrl ?? "")
   const [mine, setMine] = useState(champion ? champion.rights === "OWN" : true)
@@ -232,6 +234,8 @@ export function WinnerStep({ champion }: { champion: ChampionDetail | null }) {
       api.champions.create({
         offerId: offer!.id,
         uploadId: mode === "upload" ? ready?.uploadId : undefined,
+        // legenda-protegida §2.3: optional version without the burned-in captions
+        cleanUploadId: mode === "upload" && cleanUploadId ? cleanUploadId : undefined,
         adLibraryUrl: link.trim() && AD_URL.test(link.trim()) ? link.trim() : mode === "link" ? link.trim() : undefined,
         rights: mine ? "OWN" : "THIRD_PARTY",
       }),
@@ -407,6 +411,7 @@ export function WinnerStep({ champion }: { champion: ChampionDetail | null }) {
                   />
                 ) : null}
                 <VideoDropzone config={config.data} state={upload.state} onFile={upload.start} onCancel={upload.cancel} emphasize={linkFailed} />
+                {!champion ? <CleanVersionField limits={config.data} onUploaded={setCleanUploadId} idPrefix="win" /> : null}
                 {!linkFailed ? (
                   <>
                     <div className="flex items-center gap-3 font-mono text-xs text-fg-3 uppercase" aria-hidden="true">

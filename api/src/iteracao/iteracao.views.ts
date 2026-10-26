@@ -2,7 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { AnalysisStage, AutoInsight, FileRef, IterateAnalysis, IterateBatch, IterateError, IteratePiece, IterateStatus } from '@maquina/contratos';
 import type { Job, Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
-import { measurementsOf } from '../campeoes/champion-views';
+import { editMapOf, measurementsOf } from '../campeoes/champion-views';
+import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
+import { CAPTION_CHECK_USD } from '../edicao/checagem-legenda';
 import { initials, num } from '../common/util/format';
 import { AppConfig } from '../config/app-config';
 import { PRIORITY_BATCH, estimateStaticUsd } from '../edicao/pecas';
@@ -213,10 +215,24 @@ export class IteracaoViews {
     });
   }
 
-  /** §14.4: "Generate N pieces" = nº de itens STATIC do plano × staticImageUsd (vídeo no Remotion = 0). */
+  /**
+   * §14.4: "Generate N pieces" = nº de itens STATIC do plano × staticImageUsd (vídeo no Remotion = 0). legenda-protegida-v1
+   * §4.2: campeão com legenda queimada (sem a versão sem legenda) soma a checagem por visão de cada peça de vídeo.
+   */
   async generateEstimateUsd(batchId: string): Promise<number> {
-    const n = await this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', autoType: 'STATIC' } });
-    return estimateStaticUsd(this.catalog, n);
+    const [n, videos, b] = await Promise.all([
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', autoType: 'STATIC' } }),
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', NOT: { autoType: 'STATIC' } } }),
+      this.prisma.variationBatch.findUnique({
+        where: { id: batchId },
+        select: { champion: { select: { cleanVideoFileId: true, videoFile: { select: { width: true, height: true } }, teardown: { select: { editMap: true } } } } },
+      }),
+    ]);
+    const ch = b?.champion;
+    const m = editMapOf(ch?.teardown?.editMap);
+    const burned = !!ch && !ch.cleanVideoFileId && faixasDoCampeao(m, { width: ch.videoFile?.width ?? m?.width ?? 0, height: ch.videoFile?.height ?? m?.height ?? 0 }).length > 0;
+    const captionUsd = burned ? videos * CAPTION_CHECK_USD : 0;
+    return Math.round((estimateStaticUsd(this.catalog, n) + captionUsd) * 10_000) / 10_000;
   }
 
   private error(b: IterateRow, chargedUsd: number): IterateError | null {

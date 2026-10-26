@@ -1,5 +1,5 @@
 import type {
-  AnalyzeChampionBody, AttachChampionVideoBody, ChampionRights, CreateChampionBody, ListChampionsQuery, UpdateChampionBody, UpdateTeardownBody,
+  AnalyzeChampionBody, AttachChampionVideoBody, ChampionRights, SetCleanVersionBody, CreateChampionBody, ListChampionsQuery, UpdateChampionBody, UpdateTeardownBody,
 } from '@maquina/contratos';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
@@ -27,6 +27,11 @@ export class UpdateChampionDto implements UpdateChampionBody {
 }
 
 export class AttachVideoDto implements AttachChampionVideoBody {
+  @IsString() @MinLength(1) @MaxLength(64) uploadId: string;
+}
+
+/** legenda-protegida-v1 §2.3: POST /champions/:id/clean-version (SetCleanVersionBody). */
+export class CleanVersionDto implements SetCleanVersionBody {
   @IsString() @MinLength(1) @MaxLength(64) uploadId: string;
 }
 

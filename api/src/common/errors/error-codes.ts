@@ -62,6 +62,8 @@ export const ERROR_HTTP_STATUS = {
   META_POLICY: 422,
   // molduras §B3.1 (25/10): URL colada na troca de b-roll de fonte desligada/fora da v1 (D15)
   BROLL_SOURCE_NOT_SUPPORTED: 422,
+  // legenda-protegida-v1 §2.3 (26/10): details { reason: 'duration' | 'resolution' | 'fps' | 'content' }
+  CLEAN_VERSION_MISMATCH: 422,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_HTTP_STATUS;
@@ -119,6 +121,7 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   META_BUDGET_STEP_TOO_LARGE: 'That raise is too big for one step. Raise it in smaller steps.',
   META_POLICY: 'Meta rejected this ad for a policy reason. Fix it in Ads Manager before turning it on.',
   BROLL_SOURCE_NOT_SUPPORTED: 'That link is from a source we cannot use. Paste a Pexels link or pick one of the suggested clips.',
+  CLEAN_VERSION_MISMATCH: 'This is not the same video without captions. Upload the exact same cut, only without the burned-in captions.',
 };
 
 /** Códigos de falha DENTRO de trabalho assíncrono (viram status FAILED + errorCode no recurso, nunca erro HTTP). */

@@ -70,10 +70,15 @@ export function headlineInfoOf(m: EditMap | null, o: { screenLanguage: string; o
     const mexe = outras.some((l) => l.box.x !== orig.box.x || l.box.y !== orig.box.y || l.box.w !== orig.box.w || l.box.h !== orig.box.h);
     if (mexe) blockedReason = 'headline_moves';
     else {
-      // placa cobre a caixa antiga + 4 % da altura do quadro de margem (§1.3)
-      const mg = 0.04 * m!.height;
-      const placa = { x: orig.box.x - mg, y: orig.box.y - mg, w: orig.box.w + 2 * mg, h: orig.box.h + 2 * mg };
-      if (fracaoSobreRosto(m!, placa) > 0.1) blockedReason = 'headline_over_face';
+      // a área que o render pinta, IGUAL ao buildHeadlineInput (api/src/render/headline.ts): faixa sólida = a caixa da
+      // faixa medida (repintada); sobre o vídeo = placa com margem de 2 % da altura do quadro. Bug 26/10 (lote
+      // cmvot8qxv000b22xlz0yrm60t): aqui estava 4 % sempre, a placa encostava 5 px no topo do rosto e bloqueava à toa.
+      const sobreVideo = orig.background?.kind === 'none' || !orig.background?.color;
+      const mg = Math.round(0.02 * m!.height);
+      const area = sobreVideo
+        ? { x: Math.max(0, orig.box.x - mg), y: Math.max(0, orig.box.y - mg), w: Math.min(m!.width, orig.box.w + 2 * mg), h: orig.box.h + 2 * mg }
+        : orig.background.box ?? orig.box;
+      if (fracaoSobreRosto(m!, area) > 0.1) blockedReason = 'headline_over_face';
     }
   }
   return { ...base, blockedReason };

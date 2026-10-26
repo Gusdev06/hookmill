@@ -6,7 +6,11 @@ export class CreateIterateDto implements CreateIterateBody {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) uploadId?: string;
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) creativeId?: string;
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) metaAdId?: string;
+  /** 26/10 "Novo lote": campeão já analisado (READY), sem subir o vídeo de novo */
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) championId?: string;
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) offerId?: string;
+  /** legenda-protegida-v1 D-LP5: versão sem legenda presa na criação (conferida antes do plano) */
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) cleanUploadId?: string;
 }
 
 export class StartIterateDto implements StartIterateBody {

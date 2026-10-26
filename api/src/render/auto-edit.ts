@@ -4,7 +4,8 @@
  * teardown, editMap, medidas, Brain) e chama ao tirar o render da fila. Mesmo ctx + mesmo formato = mesmo input.
  */
 import type { AutoVariationType, EditMap, EndcardVariant, Rect, TranscriptWord } from '@maquina/contratos';
-import { FORMATOS, SAFE_AREA, centroDoRosto, corEscura, mapearCaixa, reframeFor } from '@maquina/video';
+import { FORMATOS, SAFE_AREA, centroDoRosto, contentBoxDe, corDeDestaque, corEscura, decidirLegendaAutoEdit, faixasProtegidasDe, faixasProtegidasNaSaidaAutoEdit, mapearCaixa, reframeFor, reframeNaCaixa, unionBand, type AutoEditProps } from '@maquina/video';
+import { CaptionProtectedError, legendaNoEstiloDaOriginal, type OpcoesDeBuild } from './frame';
 import { snapSpans, snapSpansEmOrdem, writtenHookLayer, type Span } from '../medicao/auto-edit';
 import type { AutoEditParams, AutoEditRenderInput } from './contrato';
 import { TEASER_MIN_SEC } from './emendas';
@@ -112,7 +113,7 @@ function trechosDosBlocos(ctx: AutoEditContext, idx: number[]): Span[] {
   return snapSpans(bs.map((b) => ({ startSec: b.startSec, endSec: Math.min(b.endSec, ctx.source.durationSec) })), ctx.words, ctx.silences);
 }
 
-export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat): AutoEditRenderInput {
+export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat, opts: OpcoesDeBuild = {}): AutoEditRenderInput {
   const f = FORMATOS[format];
   const safe = SAFE_AREA[format];
   const dur = ctx.source.durationSec;
@@ -128,6 +129,16 @@ export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat)
     const c = centroDoRosto(ctx.editMap);
     const ex = ctx.editMap ? ctx.source.width / ctx.editMap.width : 1, ey = ctx.editMap ? ctx.source.height / ctx.editMap.height : 1;
     reframe = { mode: 'cover', focus: c ? { x: Math.round(((c.x * ex) / ctx.source.width) * 1000) / 1000, y: Math.round(((c.y * ey) / ctx.source.height) * 1000) / 1000 } : { x: 0.5, y: 0.4 } };
+  }
+  // 26/10 (Gusta reprovou o contain_blur em 25/10, vale pra tudo): CUT, NATIVE_SEARCH e REVIEW usam o mesmo
+  // reframeNaCaixa das molduras: cover com zoom no rosto, só a contentBox (sem letterbox), a legenda protegida inteira na
+  // janela; faixa na cor da marca só no caso extremo. Nunca borrado.
+  let contentBox: Rect | null = null;
+  if (p.type === 'CUT' || p.type === 'NATIVE_SEARCH' || p.type === 'REVIEW') {
+    const em = ctx.editMap as unknown as Parameters<typeof contentBoxDe>[1];
+    contentBox = contentBoxDe(ctx.source, em);
+    const r = p.type === 'REVIEW' ? Math.round(f.height * 0.42) : 0;
+    reframe = reframeNaCaixa({ w: f.width, h: f.height - r }, ctx.source, ctx.editMap, 1080, contentBox, unionBand(faixasProtegidasDe(em as never, ctx.source))) as AutoEditRenderInput['reframe'];
   }
 
   switch (p.type) {
@@ -198,11 +209,23 @@ export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat)
       throw new Error('STATIC não renderiza no Remotion (variacao-auto-v1 §14.3: imagem do GPT Image 2, engine IMAGE_GEN)');
   }
 
-  return {
+  const input: AutoEditRenderInput = {
     kind: 'auto-edit', renderId: ctx.renderId, templateId: 'auto-edit',
     format, language: ctx.language, source: ctx.source, reframe,
     timeline: timeline.map((t) => ({ startSec: t.startSec, endSec: Math.min(t.endSec, dur) })),
     joinFadeMs: 40, safeArea: safe, palette: ctx.palette, brandName: ctx.brandName,
-    type: ctx.type, params,
+    type: ctx.type, params, ...(contentBox && { contentBox }),
   };
+  // legenda-protegida-v1 (26/10): CUT, NATIVE_SEARCH e REVIEW nunca tampam nem cortam a legenda queimada do campeão.
+  // Desviar → recortar (sem cortar o rosto) e legendar no estilo da original → não oferecer (CAPTION_PROTECTED)
+  if (p.type === 'CUT' || p.type === 'NATIVE_SEARCH' || p.type === 'REVIEW') {
+    const protectedBands = faixasProtegidasDe(ctx.editMap as never, ctx.source);
+    if (protectedBands.length) {
+      const { kind: _k, renderId: _r, templateId: _t, ...props } = { ...input, protectedBands };
+      const d = decidirLegendaAutoEdit(props as AutoEditProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, corDeDestaque(ctx.palette, '#000000')) as AutoEditProps['captions'], opts.captionMode === 'replace' ? 'replace' : undefined);
+      if (d.mode === 'blocked') throw new CaptionProtectedError(d.reason, d.check.hits);
+      return { kind: 'auto-edit', renderId: ctx.renderId, templateId: 'auto-edit', ...d.input, outputProtectedBands: faixasProtegidasNaSaidaAutoEdit(d.input) } as AutoEditRenderInput;
+    }
+  }
+  return input;
 }

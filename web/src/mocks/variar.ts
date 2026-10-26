@@ -57,6 +57,8 @@ export interface MChampion {
   job: MStepJob | null; reached: number; errorCode: AsyncErrorCode | null; failReason: string | null; action: Action | null
   analyzedAt: number | null; overrides: Partial<TeardownSections>; wordFixes: Record<number, string>; editedSections: TeardownSectionKey[]
   costUsd: number; createdBy: UserRef; createdAt: number; updatedAt: number; archived: boolean
+  /** legenda-protegida-v1 §2.3: version without the burned-in captions */
+  cleanUploadId?: string | null
 }
 type MFace = Face & { t0: number; t1: number; tone: number; art: number; failCode: AsyncErrorCode | null }
 interface MCasting { id: string; scope: "SHARED" | "ITEM"; description: string; rounds: { batch: number; faces: MFace[] }[]; selectedFaceId: string | null }
@@ -482,7 +484,18 @@ export function championDetail(c: MChampion): ChampionDetail {
     errorCode: c.status === "FAILED" ? c.errorCode : null, failReason: c.status === "FAILED" ? c.failReason : null, action: c.status === "FAILED" ? c.action : null,
     teardown: teardownOf(c), availableKinds: availableKinds(c), keepEdit: keepEditOf(c), engineVoice: engineVoiceOf(c), costUsd: c.costUsd,
     metaAd: null,
+    cleanVideo: cleanFileOf(c.cleanUploadId),
   }
+}
+/** legenda-protegida §2.3: the clean version as a FileRef (null = none) */
+export function cleanFileOf(uploadId: string | null | undefined): FileRef | null {
+  const up = uploadId ? f2.uploads.find((x) => x.id === uploadId) : null
+  return up ? { ...uploadFile(up), id: `f_clean_${up.id}` } : null
+}
+/** web-mock: a file named `mock-mismatch…` is not the same video (422 CLEAN_VERSION_MISMATCH) */
+export const cleanMismatch = (uploadId: string) => {
+  const up = f2.uploads.find((x) => x.id === uploadId)
+  return up?.filename.includes("mock-mismatch") ? ("duration" as const) : null
 }
 
 // ───────────── batches ─────────────

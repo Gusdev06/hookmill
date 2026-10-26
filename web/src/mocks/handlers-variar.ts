@@ -10,7 +10,7 @@ import type {
 } from "@/lib/api/types"
 import { db, save as saveDb, toRow, VOICES } from "./db"
 import { listScenario } from "./scenario"
-import {
+import { cleanMismatch,
   adLibrary, advanceBatch, advanceChampion, batchView, castingView, championDetail, championRow, config, COUNT_RANGE, estimateOf, f2, itemView, keepBlob, keepEditOf,
   FACE_UNIT_USD, launch, LIMITS, missingFor, newBatch, newChampion, newFaceRound, newUpload, probe, regenerateItem, save, startAnalysis, swapSettingsError, uploadFile, uploadTarget,
   type MBatch, type MUpload,
@@ -140,7 +140,11 @@ export const variarHandlers = [
     const cap = capCheck(((up?.durationSec ?? 20) * config().analysisUsdPerSec))
     if (cap) return cap
     await delay(250)
-    return ok(championDetail(newChampion({ offerId: b.offerId, name: b.name, upload: up, adLibraryUrl: url, rights: b.rights, notes: b.notes ?? null })), undefined, 202)
+    const nc = newChampion({ offerId: b.offerId, name: b.name, upload: up, adLibraryUrl: url, rights: b.rights, notes: b.notes ?? null })
+    // legenda-protegida §2.3: optional clean version; a mismatch leaves the champion without it (it doesn't fail the champion)
+    if (b.cleanUploadId && !cleanMismatch(b.cleanUploadId)) nc.cleanUploadId = b.cleanUploadId
+    save()
+    return ok(championDetail(nc), undefined, 202)
   }),
   http.get(u("/champions/:id"), ({ params }) => {
     const c = champion(params.id)

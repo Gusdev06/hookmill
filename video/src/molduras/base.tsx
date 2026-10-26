@@ -21,15 +21,17 @@ export const FONTE = {
 
 /** Segura o primeiro frame até as fontes das molduras estarem carregadas. `texto` = todo o texto da peça: os pedaços CJK
  *  que ele usa (Noto do `language`) são baixados antes do 1º frame. */
-export const useFontesMolduras = (texto = '', language = 'en') => {
+export const useFontesMolduras = (texto = '', language = 'en', fonteExtra?: string | null) => {
   const [pronto, setPronto] = useState(false);
   const [handle] = useState(() => delayRender('fontes molduras'));
   useEffect(() => {
-    Promise.all([carregarFontes(), carregarFonteCatalogo('anton-400'), carregarFonteCatalogo('archivo-black-400')])
+    // fonteExtra: a da legenda original (legenda refeita no estilo dela, legenda-protegida-v1 §2.2)
+    const extra = fonteExtra && fonteExtra in FONT_CATALOG ? [carregarFonteCatalogo(fonteExtra as keyof typeof FONT_CATALOG)] : [];
+    Promise.all([carregarFontes(), carregarFonteCatalogo('anton-400'), carregarFonteCatalogo('archivo-black-400'), ...extra])
       .then(() => carregarFontesCJK(language, texto))
       .then(() => { setPronto(true); continueRender(handle); })
       .catch((e) => { console.error(e); setPronto(true); continueRender(handle); });
-  }, [handle]);
+  }, [handle, fonteExtra]);
   return pronto;
 };
 

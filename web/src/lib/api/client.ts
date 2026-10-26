@@ -255,8 +255,8 @@ export const api = {
   },
 
   library: {
-    list: (q: Omit<T.LibraryQueryV, "cursor"> & PageQuery = {}) =>
-      get<T.LibraryItemV[], T.LibraryMeta>("/library", { query: { ...q, winners: q.winners ? true : undefined } }),
+    list: (q: Omit<T.LibraryQuery, "cursor"> & PageQuery = {}) =>
+      get<T.LibraryItem[], T.LibraryMeta>("/library", { query: { ...q, winners: q.winners ? true : undefined } }),
     setWinner: (creativeId: string, isWinner: boolean) =>
       data(put<{ id: string; isWinner: boolean }>(`/library/${seg(creativeId)}/winner`, { isWinner })),
   },
@@ -287,6 +287,9 @@ export const api = {
     /** Autosave of the teardown sections and word fixes (times never change). */
     updateTeardown: (id: string, b: T.UpdateTeardownBody) => data(patch<T.Teardown>(`/champions/${seg(id)}/teardown`, b)),
     remove: (id: string) => data(del<Ok>(`/champions/${seg(id)}`)),
+    /** legenda-protegida-v1 §2.3: the same video without the burned-in captions (422 CLEAN_VERSION_MISMATCH { reason }) */
+    setCleanVersion: (id: string, b: T.SetCleanVersionBody) => data(post<Pick<T.ChampionDetail, "id" | "cleanVideo">>(`/champions/${seg(id)}/clean-version`, b)),
+    removeCleanVersion: (id: string) => data(del<Pick<T.ChampionDetail, "id" | "cleanVideo">>(`/champions/${seg(id)}/clean-version`)),
     batches: (id: string) => data(get<T.VariationBatch[]>(`/champions/${seg(id)}/batches`)),
     /** 202 PLANNING. 422 NO_SPEECH / KIND_NOT_ENABLED `{ kind }`, 409 champion not READY. */
     createBatch: (id: string, b: T.CreateBatchBody) => data(post<T.VariationBatch>(`/champions/${seg(id)}/batches`, b)),
@@ -323,6 +326,8 @@ export const api = {
     get: (id: string, o: Signal = {}) => data(get<T.IterateBatch>(`/iterate/${seg(id)}`, o)),
     /** Only from ANALYSIS_FAILED with action try_again. */
     retry: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/retry`)),
+    /** 26/10 (legenda-protegida D-LP5): plan again over the finished analysis; only PLAN_READY (409 INVALID_STATE reason 'launched') */
+    replan: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/replan`, {})),
     /** 409 PLAN_CHANGED `{ pieces }` when the plan differs from the number on the button. Rev. 23/10 (§14.4): `expectedCostUsd` =
      *  `cost.generateEstimateUsd` on the button; 409 ESTIMATE_CHANGED `{ estimateUsd }`, 409 SPEND_CAP_EXCEEDED. */
     start: (id: string, b: T.StartIterateBody) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/start`, b)),

@@ -15,6 +15,7 @@ import { AUTO_EDIT_BUILDER } from './auto-edit-input';
 import { FRAME_BUILDER, comConteudoDoCampeao } from './frame-input';
 import { HEADLINE_BUILDER } from './headline-input';
 import { buildHeadlineInput } from '../render/headline';
+import { ChecagemLegendaService } from './checagem-legenda';
 import { BROLL_PORT, IMAGENS_POR_TRILHA, SegundaFonteService, TRILHA_STORE, precisaSegundaFonte, type TrilhaStore } from './segunda-fonte';
 import { VARIANTES, type TrilhaDoLote } from './trilha-broll';
 import { CONCAT, baixarComEspera, chaveDaTrilha, chaveDoStorage, concatenarTrilha, trilhaNoArquivo } from './trilha-concat';
@@ -138,6 +139,7 @@ export function renderImpl(env: NodeJS.ProcessEnv = process.env): 'fake' | 'remo
       }),
     },
     SegundaFonteService,
+    ChecagemLegendaService,
     EditorSaves,
     EditorService,
     PecasAutoService,

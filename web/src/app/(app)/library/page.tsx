@@ -7,7 +7,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useFormatter, useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { api, type ApiResult } from "@/lib/api/client"
-import type { LibraryItemV as LibraryItem, LibraryMeta } from "@/lib/api/types"
+import type { LibraryItem as LibraryItem, LibraryMeta } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"

@@ -35,6 +35,12 @@ export class IteracaoController {
     return this.iteracao.retry(auth, id);
   }
 
+  /** legenda-protegida-v1 D-LP5: "Replanejar" (ex.: depois da versão sem legenda). Só PLAN_READY. */
+  @ExpensiveAction() @HttpCode(202) @Post(':id/replan')
+  replan(@Auth() auth: AuthContext, @Param('id') id: string, @Body() _dto: EmptyBodyDto) {
+    return this.iteracao.replan(auth, id);
+  }
+
   @HttpCode(202) @Post(':id/start')
   start(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: StartIterateDto) {
     return this.iteracao.start(auth, id, dto.expectedPieces, dto.expectedCostUsd);

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { NavIcon } from "@/components/shell/nav-icon"
 import { AdRow } from "@/components/meta/ad-row"
 import { metaReady, mk, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
+import { CleanVersionField } from "./captions"
 import { MetaLockCard, metaGateOf } from "@/components/meta/meta-gate"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { ik, useIterateConfig } from "@/hooks/use-iterate"
@@ -129,13 +130,18 @@ function Ready({ config }: { config: IterateConfig }) {
   const [offerAsked, setOfferAsked] = useState(false)
   const needsOffer = offers.length > 1 || offerAsked
 
+  // legenda-protegida §2.3: optional clean version picked here; POST /iterate has no cleanUploadId, so it waits for the batch
+  // 26/10: it goes in POST /iterate { cleanUploadId } (checked before the plan, result in insight.cleanVersion)
+  const [cleanUploadId, setCleanUploadId] = useState<string | null>(null)
+  const [cleanBusy, setCleanBusy] = useState(false)
   const go = (b: IterateBatch) => {
     qc.setQueryData(ik.batch(b.id), b)
     qc.invalidateQueries({ queryKey: ["creatives"] })
     router.replace(iterateHref(b.id))
   }
   const create = useMutation({
-    mutationFn: (b: { uploadId?: string; creativeId?: string; metaAdId?: string; offerId?: string }) => api.iterate.create(b),
+    mutationFn: (b: { uploadId?: string; creativeId?: string; metaAdId?: string; offerId?: string }) =>
+      api.iterate.create(b.uploadId && cleanUploadId ? { ...b, cleanUploadId } : b),
     onSuccess: go,
     onError: (e) => {
       // 422 OFFER_REQUIRED: the selector shows with the offers the API sent (spec D3)
@@ -153,12 +159,13 @@ function Ready({ config }: { config: IterateConfig }) {
   const tried = useRef<string | null>(null)
   const start = create.mutate
   useEffect(() => {
-    if (!ready || (needsOffer && !offerId)) return
+    // the clean version still uploading: wait so it goes in the same call
+    if (!ready || (needsOffer && !offerId) || cleanBusy) return
     const key = `${ready.uploadId}:${offerId ?? ""}`
     if (tried.current === key) return
     tried.current = key
     start({ uploadId: ready.uploadId, offerId: needsOffer ? offerId! : undefined })
-  }, [ready, offerId, needsOffer, start])
+  }, [ready, offerId, needsOffer, start, cleanBusy])
 
   const busy = upload.state.phase === "uploading" || upload.state.phase === "checking" || !!ready
   const fromLibrary = create.isPending && !!create.variables?.creativeId ? create.variables.creativeId : null
@@ -199,6 +206,7 @@ function Ready({ config }: { config: IterateConfig }) {
             </div>
           ) : null}
           <Source state={upload.state} config={config} onFile={upload.start} onCancel={() => { tried.current = null; create.reset(); upload.cancel() }} creating={create.isPending && !fromLibrary} />
+          <CleanVersionField limits={config} onUploaded={setCleanUploadId} onBusy={setCleanBusy} idPrefix="iter" />
           {createError ? (
             <Alert variant="destructive">
               <NavIcon name="alert" size={20} />

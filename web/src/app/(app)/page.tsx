@@ -8,7 +8,7 @@ import { useFormatter, useNow, useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
-import { STEPS, type CreativeFilter, type CreativeRow, type MetaPeriod, type MetaSummary, type Offer, type WaitingBatchRefV, type Workspace } from "@/lib/api/types"
+import { STEPS, type CreativeFilter, type CreativeRow, type MetaPeriod, type MetaSummary, type Offer, type WaitingBatchRef, type Workspace } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -123,7 +123,7 @@ export default function HomePage() {
   const counts = list.data?.meta.counts
   const rows = list.data?.data ?? []
   const waitingRows = waiting.data?.data ?? (filter === "all" && !q ? rows.filter((c) => c.status === "waiting" || c.status === "failed").slice(0, 6) : [])
-  const waitingBatches = (waiting.data?.meta.waitingBatches ?? []) as WaitingBatchRefV[]
+  const waitingBatches = (waiting.data?.meta.waitingBatches ?? []) as WaitingBatchRef[]
   const waitingCount = waiting.data ? (waiting.data.meta.waitingOnYou?.total ?? waiting.data.meta.counts.needs_you) : null
   const waitingCard = <WaitingOnYou rows={waitingRows} batches={waitingBatches} count={waitingCount} pending={waiting.isPending} />
   const brainCard = <BrainCard ws={ws.data} offers={offers.data?.data} />
@@ -577,7 +577,7 @@ function ListError({ error, cachedAt, onRetry }: { error: unknown; cachedAt: num
   )
 }
 
-function WaitingOnYou({ rows, batches, count, pending }: { rows: CreativeRow[]; batches: WaitingBatchRefV[]; count: number | null; pending: boolean }) {
+function WaitingOnYou({ rows, batches, count, pending }: { rows: CreativeRow[]; batches: WaitingBatchRef[]; count: number | null; pending: boolean }) {
   const t = useTranslations("home")
   return (
     <section id="t-wait" className={card}>
@@ -669,7 +669,7 @@ function WaitingCard({ c }: { c: CreativeRow }) {
 }
 
 /** A batch waiting on the person: AUTO opens /iterate/:id, the old manual batch opens its plan. */
-function WaitingBatchCard({ b }: { b: WaitingBatchRefV }) {
+function WaitingBatchCard({ b }: { b: WaitingBatchRef }) {
   const t = useTranslations("iterate.waiting")
   const rel = useRelative()
   const auto = b.mode === "AUTO"

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { FORMATOS, FPS, type VideoFormat } from './formatos';
 import { rectSchema } from './remix';
-import { captionsAutoSchema } from './captionsSchema';
+import { captionsAutoSchema, outputProtectedBandSchema, protectedBandSchema } from './captionsSchema';
 
 // Template `auto-edit` (variacao-auto-v1 §7.2): a peça da variação automática. Uma coisa muda por tipo; o resto é o
 // campeão recortado pelo `timeline`, reenquadrado pro formato. Props = AutoEditRenderInput sem renderId/kind/templateId.
@@ -58,7 +58,7 @@ export const autoEditSchema = z.object({
     durationSec: z.number().positive(), hasAudio: z.boolean(),
   }),
   reframe: z.discriminatedUnion('mode', [
-    z.object({ mode: z.literal('cover'), focus: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }) }),
+    z.object({ mode: z.literal('cover'), focus: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }), scale: z.number().positive().max(1).optional() }),
     z.object({ mode: z.literal('contain_blur') }),
   ]),
   timeline: z.array(z.object({ startSec: z.number().min(0), endSec: z.number().positive() })).min(1),
@@ -70,6 +70,14 @@ export const autoEditSchema = z.object({
   params: paramsSchema,
   /** legenda automática (headline-e-legenda-v1 §2, campeão sem legenda queimada): terço de baixo, acima da UI do formato */
   captions: captionsAutoSchema.optional(),
+  /** legenda-protegida-v1: legenda queimada do campeão (px do arquivo) e o modo ('replace' = recorte + a nossa legenda
+   *  no estilo da original, em `captions`) */
+  captionMode: z.enum(['avoid', 'replace']).optional(),
+  protectedBands: z.array(protectedBandSchema).optional(),
+  /** 'replace': o vídeo pinta só esta área do campeão (px do arquivo, = contentBox − faixa); o focus vale nela */
+  contentBox: rectSchema.nullable().optional(),
+  /** faixa da legenda no vídeo renderizado (checagem por visão); a composição ignora */
+  outputProtectedBands: z.array(outputProtectedBandSchema).optional(),
 });
 
 export type AutoEditProps = z.infer<typeof autoEditSchema>;

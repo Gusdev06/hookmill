@@ -8,14 +8,16 @@ import { handleDe } from '../render/auto-edit';
 import { paletaDoEstatico } from './paleta';
 import { captionsAutoOf, headlineInfoOf } from './headline-plano';
 import type { MediaRulesPort } from './portas';
-import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, brainEmpty, codeLanguageOf } from './regras';
+import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, allowedFrameIds, brainEmpty, codeLanguageOf, screenLangOf } from './regras';
+import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
+import { captionGuardOf, type CaptionGuardSource } from './legenda-protegida';
 
 export interface CtxSource {
   offer: OfferRow;
   /** 25/10: `brandColor` (D3) entra na cor da marca das molduras */
   workspace: { name: string; brandColor?: string | null };
-  /** 25/10: `language` = idioma da fala (textos de tela) */
-  champion: { durationSec: unknown; hasSpeech: boolean; language?: string | null };
+  /** 25/10: `language` = idioma da fala (textos de tela). 26/10: `cleanVideoFileId` = versão sem legenda (legenda-protegida-v1 §2.3) */
+  champion: { durationSec: unknown; hasSpeech: boolean; language?: string | null; cleanVideoFileId?: string | null };
   teardown: TeardownRow | null;
 }
 
@@ -84,8 +86,40 @@ export function planCtxOf(src: CtxSource, media: MediaRulesPort, page: { capture
       screenLanguage: src.champion.language || transcript?.language || src.offer.language, offerLanguage: src.offer.language,
       width: m?.width ?? editMap?.width ?? 0, height: m?.height ?? editMap?.height ?? 0,
     }),
-    captionsAuto: captionsAutoOf(editMap, transcript?.words ?? []),
+    // §2.3: com a versão sem legenda a legenda nossa liga (a original não está no vídeo que as peças usam)
+    captionsAuto: src.champion.cleanVideoFileId ? (transcript?.words.length ?? 0) > 0 : captionsAutoOf(editMap, transcript?.words ?? []),
   };
+}
+
+/**
+ * legenda-protegida-v1 §2.3/§3: liga a guarda da legenda queimada no contexto (`ctx.caption`). Os templates checados são
+ * os que passaram nas outras regras. Versão sem legenda = nada protegido (guarda vazia).
+ */
+export function withCaptionGuard(
+  ctx: PlanCtx,
+  src: CtxSource & { video: { width: number | null; height: number | null } | null; language: string },
+): PlanCtx {
+  const editMap = editMapOf(src.teardown?.editMap);
+  const m = measurementsOf(src.teardown?.measurements);
+  const width = src.video?.width ?? editMap?.width ?? m?.width ?? 1080;
+  const height = src.video?.height ?? editMap?.height ?? m?.height ?? 1920;
+  const bands = src.champion.cleanVideoFileId ? [] : faixasDoCampeao(editMap, { width, height });
+  const sections = sectionsOf(src.teardown?.sections);
+  const hookEnd = sections?.hook?.status === 'ok' ? (sections.hook.data as { endSec?: number } | null)?.endSec : undefined;
+  const source: CaptionGuardSource = {
+    editMap,
+    source: { width, height, fps: editMap?.fps ?? 30, durationSec: ctx.durationSec, hasAudio: src.champion.hasSpeech },
+    words: ctx.words, silences: ctx.silences, blocks: ctx.blocks.map((b) => ({ index: b.index, startSec: b.startSec, endSec: b.endSec })),
+    hookEndSec: typeof hookEnd === 'number' ? hookEnd : null, palette: m?.palette ?? [], brandName: src.workspace.name, language: src.language,
+    brandColor: src.workspace.brandColor ?? null,
+  };
+  const base = { ...ctx, caption: null };
+  const caption = captionGuardOf(source, bands, {
+    templates: allowedFrameIds(base),
+    frame: { brand: ctx.frame?.brand ?? frameBrandOf(src, m?.palette), screenLanguage: screenLangOf(ctx), faceAtSec: ctx.frame?.faceAtSec ?? null },
+    headline: ctx.headline ?? null,
+  });
+  return { ...ctx, caption };
 }
 
 export function flagsOf(ctx: PlanCtx): InsightFlags {

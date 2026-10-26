@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext } from '../common/auth/auth-context';
 import { Paginated } from '../common/http/envelope.interceptor';
 import { ExpensiveAction } from '../common/throttle/app-throttler.guard';
-import { AnalyzeChampionDto, AttachVideoDto, CreateChampionDto, ListChampionsQueryDto, UpdateChampionDto, UpdateTeardownDto } from './campeoes.dto';
+import { AnalyzeChampionDto, AttachVideoDto, CleanVersionDto, CreateChampionDto, ListChampionsQueryDto, UpdateChampionDto, UpdateTeardownDto } from './campeoes.dto';
 import { CampeoesService } from './campeoes.service';
 
 @ApiTags('champions')
@@ -51,6 +51,17 @@ export class CampeoesController {
   @Patch(':id/teardown')
   updateTeardown(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: UpdateTeardownDto) {
     return this.campeoes.updateTeardown(auth, id, dto);
+  }
+
+  /** legenda-protegida-v1 §2.3: versão sem legenda (o mesmo vídeo, sem a legenda queimada) */
+  @HttpCode(200) @Post(':id/clean-version')
+  setCleanVersion(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: CleanVersionDto) {
+    return this.campeoes.setCleanVersion(auth, id, dto.uploadId);
+  }
+
+  @Delete(':id/clean-version')
+  removeCleanVersion(@Auth() auth: AuthContext, @Param('id') id: string) {
+    return this.campeoes.removeCleanVersion(auth, id);
   }
 
   @Delete(':id')

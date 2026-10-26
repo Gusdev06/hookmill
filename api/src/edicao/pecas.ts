@@ -355,3 +355,17 @@ export function median(xs: number[]): number | null {
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
+
+// ───────── legenda-protegida-v1 ─────────
+
+/** §2.2 `IteratePiece.captionNote`: o render vigente saiu no modo `replace` (recorte + a nossa legenda no estilo da original). */
+export function captionNoteOf(renderInput: unknown): 'replaced' | null {
+  return (renderInput as { captionMode?: string } | null)?.captionMode === 'replace' ? 'replaced' : null;
+}
+
+/** §4.2: o 9:16 vigente falhou com a legenda tampada já num Retry (tentativa ≥ 2 deste formato) → a peça sugere Leave out.
+ *  Os renders antigos ficam `stale` no Retry; a tentativa vem do `captionCheck.attempt` gravado no input. */
+export function captionCoveredTwice(vertical: { errorCode?: string | null; input?: unknown } | undefined): boolean {
+  const attempt = (vertical?.input as { captionCheck?: { attempt?: number } } | null)?.captionCheck?.attempt ?? 1;
+  return vertical?.errorCode === 'CAPTION_COVERED' && attempt >= 2;
+}

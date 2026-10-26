@@ -26,11 +26,9 @@ describe('contentBox e burnedTextBands (feedback do Gusta 25/10)', () => {
     expect(contentBoxOf(REAL, { width: 720, height: 1280 })).toEqual({ contentBox: VIDEO, contentBoxSource: 'face_track' });
     const c = championContentOf(REAL, { width: 720, height: 1280 });
     // a headline (96-173) fica fora; a legenda e o CTA queimados ficam, como faixa da largura do vídeo
-    const s = (f: number) => Math.round((f / 29.97) * 1000) / 1000;
-    expect(c.burnedTextBands).toEqual([
-      { kind: 'caption', box: { x: 0, y: 624, w: 720, h: 194 }, startSec: 0, endSec: s(2537) },
-      { kind: 'text', box: { x: 0, y: 986, w: 720, h: 64 }, startSec: s(1828), endSec: s(2544) },
-    ]);
+    // regra do video (faixasQueimadasDe): a legenda ganha 1 linha em cima e embaixo (sem estilo: metade da caixa)
+    expect(c.burnedTextBands[0]).toMatchObject({ y: 527, h: 388, startSec: 0 });
+    expect(c.burnedTextBands[1]).toMatchObject({ y: 986, h: 64 });
   });
   it('sem rosto: maior célula do trecho mais longo; sem nada: quadro inteiro; célula pequena não conta', () => {
     expect(contentBoxOf({ ...REAL, faceTrack: [] }, { width: 720, height: 1280 })).toEqual({ contentBox: VIDEO, contentBoxSource: 'cells' });
@@ -38,5 +36,12 @@ describe('contentBox e burnedTextBands (feedback do Gusta 25/10)', () => {
     const soFaixa = { ...REAL, faceTrack: [], cells: [{ startFrame: 0, endFrame: 10, cells: [{ x: 0, y: 0, w: 720, h: 100 }] }] } as EditMap;
     expect(contentBoxOf(soFaixa, { width: 720, height: 1280 }).contentBoxSource).toBe('full_frame');
     expect(burnedTextBandsOf(null, VIDEO)).toEqual([]);
+  });
+  it('campeão cmvot8qxn000922xleltunm16 (26/10): legenda de 42 px × 1,15 vira faixa de 1004 a 1176 (2 linhas)', () => {
+    const am = { ...REAL, width: 1080, height: 1920, fps: 29.97, faceTrack: [{ region: { x: 0, y: 280, w: 1080, h: 1400 }, startFrame: 0, endFrame: 2630, fullFrame: false }],
+      layers: [{ id: 'c', kind: 'caption', startFrame: 0, endFrame: 2625, box: { x: 104, y: 1052, w: 847, h: 75 }, background: { kind: 'none', color: null, box: null }, style: { fontSizePx: 42, lineHeight: 1.15 }, text: null }] } as unknown as EditMap;
+    const c = championContentOf(am, { width: 1080, height: 1920 });
+    expect(c.contentBox).toEqual({ x: 0, y: 280, w: 1080, h: 1400 });
+    expect(c.burnedTextBands[0]).toMatchObject({ y: 1004, h: 172 });
   });
 });

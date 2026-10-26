@@ -4,7 +4,9 @@
 import type { VideoFormat } from '@prisma/client';
 import type { AutoEditContext } from '../render/auto-edit';
 import type { AutoEditRenderInput } from '../render/contrato';
+import type { OpcoesDeBuild } from '../render/frame';
 
 export const AUTO_EDIT_BUILDER = Symbol('AUTO_EDIT_BUILDER');
 export type { AutoEditContext };
-export type AutoEditBuilder = (ctx: AutoEditContext, format: VideoFormat) => AutoEditRenderInput;
+/** `opts.captionMode` (legenda-protegida §3, rev. 26/10): 'replace' = Retry depois de CAPTION_COVERED */
+export type AutoEditBuilder = (ctx: AutoEditContext, format: VideoFormat, opts?: OpcoesDeBuild) => AutoEditRenderInput;

@@ -157,6 +157,7 @@ enum FileKind {
   PAGE_CAPTURE // variacao-auto-v1 §7.5: print da página (SPLIT-LP)
   ZIP_ARCHIVE // variacao-auto-v1 §8: zip do lote AUTO (apagado em 72 h)
   PRODUCT_IMAGE // variacao-auto-v1 D4: foto opcional do produto na oferta (reserva do SPLIT-LP)
+  CHAMPION_CLEAN_VIDEO // legenda-protegida-v1 §2.3: o mesmo vídeo do campeão SEM a legenda queimada (libera os templates)
 }
 
 enum CostKind {
@@ -808,6 +809,7 @@ model File {
   championVideos        Champion[]        @relation("ChampionVideo")
   championAudios        Champion[]        @relation("ChampionAudio")
   championThumbs        Champion[]        @relation("ChampionThumbnail")
+  championCleanVideos   Champion[]        @relation("ChampionCleanVideo")
   productImageOf        Offer[]           @relation("OfferProductImage")
   pageCaptureOf         VariationBatch[]  @relation("BatchPageCapture")
   zipOf                 VariationBatch[]  @relation("BatchZip")
@@ -993,6 +995,7 @@ model Champion {
   videoFileId        String?        @map("video_file_id")
   audioFileId        String?        @map("audio_file_id")
   thumbnailFileId    String?        @map("thumbnail_file_id")
+  cleanVideoFileId   String?        @map("clean_video_file_id") // legenda-protegida-v1 §2.3: versão sem legenda (null = só a original)
   durationSec        Decimal?       @map("duration_sec") @db.Decimal(8, 3)
   language           String? // BCP 47 detectado na transcrição
   hasSpeech          Boolean        @default(false) @map("has_speech") // >= 5 palavras transcritas
@@ -1014,6 +1017,7 @@ model Champion {
   videoFile        File?            @relation("ChampionVideo", fields: [videoFileId], references: [id])
   audioFile        File?            @relation("ChampionAudio", fields: [audioFileId], references: [id])
   thumbnailFile    File?            @relation("ChampionThumbnail", fields: [thumbnailFileId], references: [id])
+  cleanVideoFile   File?            @relation("ChampionCleanVideo", fields: [cleanVideoFileId], references: [id])
   teardown         Teardown?
   batches          VariationBatch[]
   creatives        Creative[]

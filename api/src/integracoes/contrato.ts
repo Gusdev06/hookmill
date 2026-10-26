@@ -6,7 +6,7 @@ import type {
   AdLibraryMeta, CastingStyle, EditLayer, EditMap, FaceTrackSegment, FontId, HookMode, Measurements, PersonProfile, Rect, ScenePipeline,
   TakeKind, TeardownSections, TextStyle, TranscriptWord, VariationKind,
   SwapEngine, SwapFit, SwapQuote, SwapResolution, SwapVoiceSource,
-  AutoVariationType, BlockFn, BrainField, EndcardVariant,
+  AutoVariationType, BlockFn, BrainField, EndcardVariant, ProtectedBand,
 } from '@maquina/contratos';
 import type { CaptionsAuto } from '@maquina/video';
 export type {
@@ -211,6 +211,8 @@ export type HeadlineSpec = Pick<AutoHeadlineDraft, 'mode' | 'text' | 'highlight'
   plateColor?: string | null;
   /** legenda automática do lote (campeão sem legenda queimada, §2) */
   captions?: CaptionsAuto | null;
+  /** legenda-protegida-v1 §2 (26/10): faixas da legenda queimada que a placa/faixa não pode cruzar (vira HEADLINE_NO_ROOM) */
+  protectedBands?: ProtectedBand[];
 };
 /** @deprecated fusão B1 (25/10): igual a `AutoParamsDraft`. */
 export type AutoParamsDraftWithFrame = AutoParamsDraft;
@@ -470,6 +472,21 @@ export interface CheckStaticTextResult { items: { key: string; found: boolean; s
 /** Grava cost_entry LLM no lote. Falha (Claude fora) = o backend marca `textCheck.status = 'skipped'`; não segura a peça. */
 export interface StaticTextCheckPort {
   checkStaticText(i: CheckStaticTextInput): Promise<CheckStaticTextResult & Usage>;
+}
+/** legenda-protegida-v1 §4.2 (26/10): a legenda queimada (ou a nossa, no modo `replace`) está inteira, legível e sem nada por
+ *  cima? 4-6 quadros; cada um com o recorte da faixa em resolução cheia + o quadro inteiro reduzido (lado maior 768).
+ *  Haiku 4.5, ~US$ 0,008 por render; grava cost_entry LLM no lote. Falha do Claude = o backend marca `skipped`. */
+export interface CheckCaptionInput {
+  workspaceId: string; creativeId: string; variationBatchId: string; renderId: string;
+  mode: 'avoid' | 'replace';
+  language: string;
+  frames: { atSec: number; frameUrl: string; /** recorte da faixa em resolução cheia; null/ausente = só o quadro */ bandUrl?: string | null; /** `replace`: as palavras da transcrição nesse instante */ expectedWords: string[] | null }[];
+  /** notes da OFERTA: só o mock lê ([mock:caption-covered]) */
+  notes?: string | null;
+}
+export interface CheckCaptionResult { frames: { atSec: number; ok: boolean; covered: boolean; duplicated: boolean; seen: string | null }[] }
+export interface CaptionCheckPort {
+  checkCaption(i: CheckCaptionInput): Promise<CheckCaptionResult & Usage>;
 }
 
 // ---------- estatico-montado-e-molduras-v1 PARTE B: molduras (FRAME) ----------

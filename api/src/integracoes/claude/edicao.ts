@@ -59,11 +59,12 @@ const LAYER = obj({
   fontSizeRel: num('Height of one text line (cap height plus descenders) as a fraction of the FRAME height, e.g. 0.04.'),
   color: str('Text color, hex #RRGGBB.'),
   highlightColor: str('Captions: color of the word being spoken. Headline/text: color of the words shown in a different accent color (the highlighted part of the title). Hex; empty string if none.'),
+  highlightBoxColor: str('Captions only: color of the box drawn behind the word being spoken (karaoke box), hex. Empty string if none or not a caption.'),
   strokeColor: str('Outline color, hex. Empty string if no outline.'),
   strokeRel: num('Outline thickness as a fraction of the frame height (0 if none), e.g. 0.003.'),
   shadow: bool('Visible drop shadow behind the letters.'),
   align: en(['left', 'center', 'right']),
-  wordsPerPage: int('Captions only: how many words are shown at once. 0 for other kinds.'),
+  wordsPerPage: int('Captions only: how many words (or, for Chinese/Japanese, characters) are shown at once on one page. 0 for other kinds.'),
 });
 
 export const EDIT_SCHEMA = obj({
@@ -249,6 +250,8 @@ export function parseEditMap(text: string, g: VideoGrid, words: TranscriptWord[]
       strokeWidthPx: strokeColor ? Math.max(1, Math.round(strokeRel * g.height)) : 0,
       shadow: L.shadow === true,
       align: s(L.align) === 'left' || s(L.align) === 'right' ? (s(L.align) as 'left' | 'right') : 'center',
+      // legenda-protegida-v1 §6: a legenda refeita copia o estilo inteiro da original, inclusive a caixa da palavra atual
+      ...(kind === 'caption' && hex(L.highlightBoxColor) ? { highlightBackground: hex(L.highlightBoxColor)! } : {}),
     };
     counts[kind] = (counts[kind] ?? 0) + 1;
     const wpp = Math.round(n(L.wordsPerPage) ?? 0);

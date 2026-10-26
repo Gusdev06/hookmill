@@ -140,6 +140,18 @@ export interface AutoInsight {
   /** 25/10 (headline-e-legenda-v1 §2.1): o campeão não tem legenda queimada → toda peça de vídeo do lote ganha legenda
    *  palavra a palavra. Ausente = false (lotes antigos). */
   captionsAuto?: boolean;
+  /** legenda-protegida-v1 §2.3 (26/10): templates/tipos que o plano não ofereceu porque tampariam a legenda queimada.
+   *  O web mostra "Este formato precisa do vídeo sem legenda" + "Enviar versão sem legenda". Ausente = nenhum. */
+  captionBlocked?: { type: AutoVariationType; template: FrameTemplateId | null; reason: 'burned_captions' }[];
+  /** 26/10: resultado do `cleanUploadId` do `POST /iterate` (conferido antes do plano). `applied` = o plano já usou a versão
+   *  sem legenda; `mismatch` = não é o mesmo vídeo (`reason` igual ao 422 CLEAN_VERSION_MISMATCH). Ausente = não mandou. */
+  cleanVersion?: { status: 'applied' | 'mismatch'; reason: 'duration' | 'resolution' | 'fps' | 'content' | null };
+}
+/** legenda-protegida-v1 §4.2: veredito da checagem por visão (em `renders.input.captionCheck`). */
+export interface CaptionCheck {
+  status: 'ok' | 'covered' | 'skipped';
+  frames: { atSec: number; ok: boolean; seen: string | null }[];
+  attempt: number;
 }
 /** 25/10 (headline-e-legenda-v1 §1): "original → nova" na peça HEADLINE. `original` = texto da headline do campeão (null no `add`). */
 export interface PieceHeadline { mode: 'replace' | 'add'; original: string | null; text: string; highlight: string | null }
@@ -171,6 +183,8 @@ export interface IteratePiece {
   index: number; type: AutoVariationType; code: string; axis: VariationAxis;
   /** 25/10 (headline-e-legenda-v1 §1): só na peça HEADLINE; null/ausente nas outras */
   headline?: PieceHeadline | null;
+  /** legenda-protegida-v1 §2.2 (26/10): 'replaced' = a legenda queimada foi recortada e refeita no estilo do original */
+  captionNote?: 'replaced' | null;
   /** "a única coisa que muda" (idioma da interface) */
   change: string;
   status: PieceStatus;
@@ -268,7 +282,12 @@ export interface IterateBatch {
 
 // ───────────────────────── corpos ─────────────────────────
 /** Exatamente um de uploadId/creativeId/metaAdId. offerId: obrigatório só com > 1 oferta ativa (422 OFFER_REQUIRED). metaAdId: meta-v1 D13 (anúncio do snapshot; 404 se não estiver lá, 422 META_NOT_CONNECTED sem conexão). */
-export interface CreateIterateBody { uploadId?: string; creativeId?: string; metaAdId?: string; offerId?: string }
+/** 26/10 (legenda-protegida-v1 D-LP5): `cleanUploadId` = upload (purpose CHAMPION_VIDEO) da versão sem legenda, preso já na
+ *  criação; conferido quando a análise acaba (antes do plano). Não bateu = o lote segue com a original e o
+ *  `insight.cleanVersion` diz por quê. */
+/** 26/10 "Novo lote": `championId` = campeão JÁ analisado (READY) do workspace; reaproveita a análise (nasce PLANNING).
+ *  Exatamente um de uploadId/creativeId/metaAdId/championId. */
+export interface CreateIterateBody { uploadId?: string; creativeId?: string; metaAdId?: string; championId?: string; offerId?: string; cleanUploadId?: string }
 /** O nº mostrado no botão; diferente do plano = 409 PLAN_CHANGED. rev. 23/10: `expectedCostUsd` = `cost.generateEstimateUsd`
  *  mostrado no botão (TRANSIÇÃO: vira obrigatório); estimativa > expected × 1,10 = 409 ESTIMATE_CHANGED; teto = 409 SPEND_CAP_EXCEEDED. */
 export interface StartIterateBody { expectedPieces: number; expectedCostUsd?: number }
@@ -309,6 +328,9 @@ export type IterateAsyncErrorCode =
   | 'SAFETY_BLOCK' | 'DOWNLOAD_INVALID'
   /** 25/10: texto da moldura não coube no mínimo de 36 px (§B2); `BROLL_UNAVAILABLE`: 2ª fonte de b-roll sumiu/falhou (§B3.1) */
   | 'FRAME_TEXT_OVERFLOW' | 'BROLL_UNAVAILABLE'
+  /** legenda-protegida-v1 §3/§4.2 (26/10): a checagem por visão viu a legenda queimada tampada (`retryHint: 'retry'`, sai do zip)
+   *  / o build caiu em `blocked` (o plano errou; `leave_out`) */
+  | 'CAPTION_COVERED' | 'CAPTION_PROTECTED'
   /** 25/10 (headline-e-legenda-v1 §1.3-§1.4): a headline não coube na caixa e nas linhas (80-100 % do tamanho), a faixa/placa
    *  cobriria o rosto, não há lugar fora do rosto e do texto queimado (`add`, só no render), ou estilo/caixa não medidos.
    *  Todos com `retryHint: 'leave_out'` (refazer não adianta). */

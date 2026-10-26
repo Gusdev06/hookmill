@@ -160,10 +160,11 @@ export const Ranking: React.FC<PropsTpl<'ranking'>> = ({ p, L, ui }) => {
           </div>
         </Entra>
       </div>
-      <div style={{ position: 'absolute', left: M, width: L.canvas.w - 2 * M, top: n.listY, display: 'flex', flexDirection: 'column', gap: n.itemGap }}>
+      {/* cobrindo legenda queimada (n.opaco): linhas opacas da largura quase toda, pra não sobrar letra queimada nas pontas */}
+      <div style={{ position: 'absolute', left: n.opaco ? 12 : M, width: L.canvas.w - 2 * (n.opaco ? 12 : M), top: n.listY, display: 'flex', flexDirection: 'column', gap: n.itemGap }}>
         {items.map((_item, i) => (
           <Entra key={i} de="esquerda" dist={120} atraso={10 + i * 6}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24, backgroundColor: 'rgba(12,12,16,0.62)', border: '1.5px solid rgba(255,255,255,0.14)', borderRadius: 28, padding: `${n.itemPadY}px 30px ${n.itemPadY}px 14px`, boxShadow: SOMBRA.leve }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24, backgroundColor: n.opaco ? '#0C0C10' : 'rgba(12,12,16,0.62)', border: '1.5px solid rgba(255,255,255,0.14)', borderRadius: 28, padding: `${n.itemPadY}px 30px ${n.itemPadY}px 14px`, boxShadow: SOMBRA.leve }}>
               <Medalha n={i + 1} tam={n.medal} />
               <Texto fit={L.text[`item${i}`]} fonte="montserrat-800" largura={n.itemW} cor="#fff" style={{ textShadow: SOMBRA.texto }} />
             </div>

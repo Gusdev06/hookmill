@@ -42,9 +42,12 @@ import { AUTO_EDIT_TEMPLATE, frameTemplateOf, mockRenderFail, pieceOutcome, prim
 import { FRAME_BUILDER, frameSpecOf, type FrameBuilder } from './frame-input';
 import { capturaValida } from './captura-valida';
 import { HEADLINE_BUILDER, type HeadlineBuilder } from './headline-input';
+import type { OpcoesDeBuild } from '../render/frame';
 import { paletaDoEstatico } from '../iteracao/paleta';
 import type { CaptionsAuto } from '@maquina/video';
 import { SegundaFonteService, precisaSegundaFonte } from './segunda-fonte';
+import { ChecagemLegendaService } from './checagem-legenda';
+import { semLegendaQueimada } from '../campeoes/faixas-protegidas';
 import { blocksOf } from '../iteracao/contexto';
 import type { AutoVariationType } from '@maquina/contratos';
 
@@ -57,7 +60,9 @@ export type AutoFailCode =
   /** render-lambda-v1 §2.8: timeout depois das tentativas */
   | 'RENDER_TIMEOUT'
   /** headline-e-legenda-v1 §1.3/§1.4 (HeadlineError do buildHeadlineInput): refazer não adianta (Leave out) */
-  | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE';
+  | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE'
+  /** legenda-protegida-v1 §3/§4.2: o build caiu em `blocked` (Leave out) · a visão viu a legenda tampada (Retry, fora do zip) */
+  | 'CAPTION_PROTECTED' | 'CAPTION_COVERED';
 export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE'] as const;
 
 /** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do formato (e da peça, no 9:16). */
@@ -83,6 +88,8 @@ export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   HEADLINE_NO_ROOM: 'There is no free room for a headline in this video. Leave it out.',
   HEADLINE_OVER_FACE: 'The headline would cover the face. Leave it out.',
   HEADLINE_LOW_CONFIDENCE: "We couldn't read the original headline style. Leave it out.",
+  CAPTION_PROTECTED: 'This format would cover the original captions. It needs the video without captions. Leave it out.',
+  CAPTION_COVERED: 'The original captions came out covered or cut. Retry.',
 };
 const AD_NAME_ATTEMPTS = 5;
 /** render-lambda-v1 §2.7: 1 tentativa nova no timeout/retryable; finalize até 3x; submit sem externalId há 2 min = fila. */
@@ -123,6 +130,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     @Inject(FRAME_BUILDER) private readonly buildFrameInput: FrameBuilder,
     @Inject(HEADLINE_BUILDER) private readonly buildHeadline: HeadlineBuilder,
     private readonly segundas: SegundaFonteService,
+    private readonly legendas: ChecagemLegendaService,
   ) {}
 
   onModuleDestroy() {
@@ -627,6 +635,8 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const poster = still ? out : await this.storage.put(res.posterPath, {
       workspaceId: r.workspaceId, kind: 'THUMBNAIL', mimeType: res.posterPath.endsWith('.png') ? 'image/png' : 'image/jpeg', meta: { width: res.width, height: res.height },
     });
+    // legenda-protegida-v1 §4.2: a visão confere a legenda queimada (ou a nossa, no replace); `covered` = formato failed
+    if (!still && (await this.captionCovered(r, res, out.id))) return;
     await this.prisma.render.update({
       where: { id: r.id },
       data: { status: 'READY', stage: null, progress: 100, fileId: out.id, durationSec: res.durationSec, finishedAt: new Date(), finalizingAt: null },
@@ -635,6 +645,33 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     if (format === 'VERTICAL_9_16') await this.prisma.creative.update({ where: { id: r.creativeId }, data: { thumbnailFileId: poster.id } });
     await this.publish(r.id);
     await this.settleAuto(r.creativeId);
+  }
+
+  /**
+   * §4.2: checagem por visão da legenda queimada (só peças com faixa protegida). Grava `renders.input.captionCheck`;
+   * `covered` = render FAILED com CAPTION_COVERED (fileId fica pra diagnóstico; o zip só leva READY) e a peça assenta.
+   * `skipped` (Claude fora) não segura. true = a peça falhou aqui.
+   */
+  private async captionCovered(r: RenderRow, res: RenderResult, fileId: string): Promise<boolean> {
+    const c = r.creative;
+    if (!c.variationBatchId) return false;
+    const input = r.input as unknown as RenderInput;
+    const [batch, offer, attempt] = await Promise.all([
+      this.prisma.variationBatch.findUnique({ where: { id: c.variationBatchId }, select: { language: true } }),
+      this.prisma.offer.findUnique({ where: { id: c.offerId }, select: { notes: true } }),
+      this.prisma.render.count({ where: { creativeId: r.creativeId, format: r.format ?? 'VERTICAL_9_16' } }),
+    ]);
+    const check = await this.legendas.check({
+      renderId: r.id, workspaceId: r.workspaceId, creativeId: r.creativeId, variationBatchId: c.variationBatchId, championId: c.championId,
+      language: batch?.language ?? 'en', notes: offer?.notes ?? null, input, outputPath: res.outputPath, output: { width: res.width, height: res.height }, attempt,
+    });
+    if (!check) return false;
+    await this.prisma.render.update({ where: { id: r.id }, data: { input: { ...(r.input as object), captionCheck: check } as unknown as Prisma.InputJsonValue, ...(check.status === 'covered' && { fileId }) } });
+    if (check.status !== 'covered') return false;
+    this.log.warn(`render ${r.id}: legenda queimada tampada (${check.frames.filter((f) => !f.ok).map((f) => `${f.atSec}s`).join(', ')})`);
+    await this.prisma.render.updateMany({ where: { id: r.id }, data: { finalizingAt: null } });
+    await this.failAuto(r, 'CAPTION_COVERED', null);
+    return true;
   }
 
   /** §10: CostEntry AWS_LAMBDA/RENDER por tentativa (externalRef = externalId, único) + `renders.cost_usd`. Só lambda. */
@@ -791,13 +828,16 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   private async autoContext(renderId: string, c: Creative): Promise<AutoEditContext> {
     if (!c.championId || !c.variationItemId || !c.variationBatchId) throw new AutoPieceError('RENDER_ERROR', 'peça sem campeão/item/lote');
     const [ch, item, batch, ws] = await Promise.all([
-      this.prisma.champion.findUniqueOrThrow({ where: { id: c.championId }, include: { videoFile: true, teardown: true } }),
+      this.prisma.champion.findUniqueOrThrow({ where: { id: c.championId }, include: { videoFile: true, cleanVideoFile: true, teardown: true } }),
       this.prisma.variationItem.findUniqueOrThrow({ where: { id: c.variationItemId } }),
       this.prisma.variationBatch.findUniqueOrThrow({ where: { id: c.variationBatchId }, include: { pageCapture: true, offer: { include: { productImage: true } } } }),
       this.prisma.workspace.findUniqueOrThrow({ where: { id: c.workspaceId }, select: { name: true } }),
     ]);
-    if (!ch.videoFile || !(await this.storage.head(ch.videoFile.storageKey))) throw new AutoPieceError('SOURCE_UNAVAILABLE', 'vídeo do campeão sumiu do storage');
-    const editMap = editMapOf(ch.teardown?.editMap);
+    // legenda-protegida-v1 §2.3: com a versão sem legenda, ela é a fonte de TODAS as peças e a faixa deixa de ser protegida
+    const clean = ch.cleanVideoFile && (await this.storage.head(ch.cleanVideoFile.storageKey)) ? ch.cleanVideoFile : null;
+    const video = clean ?? ch.videoFile;
+    if (!video || !(await this.storage.head(video.storageKey))) throw new AutoPieceError('SOURCE_UNAVAILABLE', 'vídeo do campeão sumiu do storage');
+    const editMap = clean ? semLegendaQueimada(editMapOf(ch.teardown?.editMap)) : editMapOf(ch.teardown?.editMap);
     const sections = (ch.teardown?.sections ?? {}) as {
       structure?: { status?: string; data?: { blocks?: { startSec: number; endSec: number }[] } | null };
       hook?: { status?: string; data?: { endSec?: number } | null };
@@ -806,7 +846,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const insight = (batch.insight ?? null) as { blocks?: { index: number; startSec: number; endSec: number }[] } | null;
     const teardownBlocks = sections.structure?.data?.blocks?.map((b, index) => ({ index, startSec: b.startSec, endSec: b.endSec }));
     const payload = (item.payload ?? {}) as { params?: Record<string, unknown>; useProductPhoto?: boolean };
-    const durationSec = num(ch.durationSec) ?? num(ch.videoFile.durationSec) ?? (editMap ? editMap.frameCount / editMap.fps : 0);
+    const durationSec = num(ch.durationSec) ?? num(video.durationSec) ?? (editMap ? editMap.frameCount / editMap.fps : 0);
     // SPLIT-LP: foto do produto (D4, pedida no Retry) ou a captura da página tirada na análise
     const photo = payload.useProductPhoto && batch.offer.productImage ? batch.offer.productImage : null;
     const page = photo
@@ -820,8 +860,8 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       params: { type: item.autoType, ...(payload.params ?? {}) } as unknown as AutoEditContext['params'],
       language: batch.language,
       source: {
-        videoUrl: await this.storage.signedUrl(ch.videoFile),
-        width: ch.videoFile.width ?? editMap?.width ?? 1080, height: ch.videoFile.height ?? editMap?.height ?? 1920,
+        videoUrl: await this.storage.signedUrl(video),
+        width: video.width ?? editMap?.width ?? 1080, height: video.height ?? editMap?.height ?? 1920,
         fps: editMap?.fps ?? 30, durationSec, hasAudio: !!ch.audioFileId || ch.hasSpeech,
       },
       editMap, words: transcriptOf(ch.teardown?.transcript)?.words ?? [], silences: meas.silences ?? [],
@@ -839,24 +879,27 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       // headline-e-legenda-v1 §2: legenda automática do lote (campeão sem legenda queimada) em toda peça de vídeo
       const captions = await this.captionsDoLote(r, ctx);
       const tipo = ctx.type as string;
+      // legenda-protegida §4.2: o Retry depois de CAPTION_COVERED grava `captionForce` no item → vai direto pro recorte
+      const opts = await this.buildOpts(r);
       if (tipo === 'HEADLINE') {
         // §1.3: troca/acrescenta a headline pelo remix-keep (buildHeadlineInput do video), no aspecto do campeão
         const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string };
-        return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx);
+        return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx, opts);
       }
       if (tipo === 'FRAME') {
         // 25/10 §B2: moldura = composição `Moldura` do video (`kind 'frame'`), montada pelo buildFrameInput dele
         let params = ctx.params as unknown as Record<string, unknown>;
         if (precisaSegundaFonte(frameTemplateOf(params)) && !params.second) params = await this.segundaFonte(r, ctx, params);
-        const fi = this.buildFrameInput(frameSpecOf(params), ctx, format);
+        const fi = this.buildFrameInput(frameSpecOf(params), ctx, format, opts);
         return captions ? ({ ...fi, captions } as RenderInput) : fi;
       }
-      const ai = this.buildAutoInput(ctx, format);
+      const ai = this.buildAutoInput(ctx, format, opts);
       return captions && tipo !== 'STATIC' ? ({ ...ai, captions } as RenderInput) : ai;
     } catch (e) {
       const hc = (e as { code?: string })?.code;
       const code: AutoFailCode = e instanceof AutoPieceError ? e.code
         : hc === 'FRAME_TEXT_OVERFLOW' ? 'FRAME_TEXT_OVERFLOW'
+          : hc === 'CAPTION_PROTECTED' ? 'CAPTION_PROTECTED'
           : hc && (HEADLINE_FAIL_CODES as readonly string[]).includes(hc) ? (hc as AutoFailCode) : 'RENDER_ERROR';
       this.log.warn(`render AUTO ${r.id}: input falhou: ${(e as Error).message}`);
       await this.failAuto(r, code, null);
@@ -900,6 +943,12 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     if ((b?.insight as { captionsAuto?: boolean } | null)?.captionsAuto !== true || !ctx.words.length) return null;
     const { accent } = paletaDoEstatico({ brandColor: await this.brandColorOf(r), championPalette: ctx.palette });
     return { words: ctx.words.map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: accent, language: ctx.language };
+  }
+
+  private async buildOpts(r: RenderRow): Promise<OpcoesDeBuild> {
+    if (!r.creative.variationItemId) return {};
+    const item = await this.prisma.variationItem.findUnique({ where: { id: r.creative.variationItemId }, select: { payload: true } });
+    return (item?.payload as { captionForce?: string } | null)?.captionForce === 'replace' ? { captionMode: 'replace' } : {};
   }
 
   private async brandColorOf(r: RenderRow): Promise<string | null> {

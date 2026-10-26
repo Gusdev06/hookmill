@@ -248,6 +248,33 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     expect((await call('GET', `/iterate/${batchId}`, undefined, 'C')).status).toBe(200);
   });
 
+  it('legenda-protegida D-LP5: POST /iterate/:id/replan refaz o plano sobre a análise pronta (PLAN_READY → PLANNING → PLAN_READY)', async () => {
+    expect((await call('POST', `/iterate/${batchId}/replan`, {}, 'C')).status).toBe(403);
+    expect((await call('POST', `/iterate/${batchId}/replan`, {}, 'B')).status).toBe(404);
+    const jobs0 = await prisma.job.count({ where: { championId, type: 'CHAMPION_ANALYZE' } });
+    const r = await call('POST', `/iterate/${batchId}/replan`, {});
+    expect(r.status).toBe(202);
+    expect(r.data.status).toBe('PLANNING');
+    const done = await settled(batchId);
+    expect(done.data.status).toBe('PLAN_READY');
+    expect(done.data.pieces.length).toBeGreaterThanOrEqual(4);
+    expect(await prisma.job.count({ where: { championId, type: 'CHAMPION_ANALYZE' } })).toBe(jobs0); // análise não roda de novo
+  });
+
+  it('Novo lote: POST /iterate { championId } reaproveita a análise do campeão READY (nasce PLANNING, sem reanalisar)', async () => {
+    expect((await call('POST', '/iterate', { championId, uploadId })).error).toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect((await call('POST', '/iterate', { championId }, 'B')).status).toBe(404);
+    expect((await call('POST', '/iterate', { championId }, 'C')).status).toBe(403);
+    const jobs0 = await prisma.job.count({ where: { championId, type: 'CHAMPION_ANALYZE' } });
+    const r = await call('POST', '/iterate', { championId });
+    expect(r.status).toBe(202);
+    expect(r.data.status).toBe('PLANNING');
+    expect(r.data.source.championId).toBe(championId);
+    const done = await settled(r.data.id);
+    expect(done.data.status).toBe('PLAN_READY');
+    expect(await prisma.job.count({ where: { championId, type: 'CHAMPION_ANALYZE' } })).toBe(jobs0);
+  });
+
   it('lote MANUAL não abre em /iterate', async () => {
     const manual = await prisma.variationBatch.create({
       data: { workspaceId: ws.A.id, championId, offerId, status: 'PLAN_READY', language: 'en', requests: [], createdById: ws.A.userId },
@@ -276,6 +303,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     expect(ok.data.cost.generateEstimateUsd).toBeNull();
     expect((await call('POST', `/iterate/${batchId}/start`, { expectedPieces: n })).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'LAUNCHED' } });
     expect((await call('POST', `/iterate/${batchId}/retry`, {})).error.code).toBe('INVALID_STATE');
+    expect((await call('POST', `/iterate/${batchId}/replan`, {})).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'LAUNCHED', reason: 'launched' } });
   });
 
   let creativeId: string;
@@ -485,4 +513,25 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const del = await call('DELETE', `/offers/${offerId}/product-image`);
     expect(del.data.productImage).toBeNull();
   });
+
+  it('legenda-protegida: cleanUploadId no POST /iterate é conferido antes do plano; rotas clean-version do campeão', async () => {
+    const main = await upload(video30, 'main.mp4');
+    const clean = await upload(video30, 'clean.mp4');
+    const cr = await call('POST', '/iterate', { uploadId: main.id, cleanUploadId: clean.id, offerId });
+    expect(cr.status).toBe(202);
+    const done = await settled(cr.data.id);
+    expect(done.data.status).toBe('PLAN_READY');
+    expect(done.data.insight.cleanVersion).toEqual({ status: 'applied', reason: null });
+    const champ = done.data.source.championId;
+    const det = await call('GET', `/champions/${champ}`);
+    expect(det.data.cleanVideo).not.toBeNull();
+    // DELETE volta pra original; POST com um vídeo de outra duração = 422 CLEAN_VERSION_MISMATCH duration
+    expect((await call('DELETE', `/champions/${champ}/clean-version`)).data.cleanVideo).toBeNull();
+    const short = await upload(await makeVideo('v20.mp4', 20), 'short.mp4');
+    expect((await call('POST', `/champions/${champ}/clean-version`, { uploadId: short.id })).error).toMatchObject({ code: 'CLEAN_VERSION_MISMATCH', statusCode: 422, details: { reason: 'duration' } });
+    expect((await call('POST', `/champions/${champ}/clean-version`, { uploadId: clean.id }, 'B')).status).toBe(404);
+    const ok = await call('POST', `/champions/${champ}/clean-version`, { uploadId: clean.id });
+    expect(ok.status).toBe(200);
+    expect(ok.data.cleanVideo).not.toBeNull();
+  }, 600_000);
 });

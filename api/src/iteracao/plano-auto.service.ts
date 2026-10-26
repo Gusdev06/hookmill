@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { AnalysisStage, AutoVariationType } from '@maquina/contratos';
+import type { AnalysisStage, AutoInsight, AutoVariationType, FrameTemplateId } from '@maquina/contratos';
 import type { Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
-import { measurementsOf, sectionsOf, transcriptOf } from '../campeoes/champion-views';
+import { editMapOf, measurementsOf, sectionsOf, transcriptOf } from '../campeoes/champion-views';
+import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
+import { VersaoSemLegendaService, type CleanMismatch } from '../campeoes/versao-sem-legenda';
 import { failReasonFor, asAsyncErrorCode } from '../common/errors/falhas';
 import { CLAUDE_SERVICE, integracoesMode, isIntegracaoError, type AutoPlanDraft, type AutoPlanInput, type ClaudeService } from '../integracoes';
 import { JobsService } from '../jobs/jobs.service';
@@ -10,10 +12,10 @@ import { draftOf } from '../ofertas/ofertas.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BatchStateMachine } from '../variacoes/batch-state-machine';
 import { diagnosticarPagina } from '../medicao/pagina-quebrada';
-import { flagsOf, planCtxOf } from './contexto';
+import { flagsOf, planCtxOf, withCaptionGuard } from './contexto';
 import { MEDIA_RULES, PAGE_CAPTURE, type MediaRulesPort, type PageCapturePort } from './portas';
 import {
-  type Violation, allowedFor, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
+  type AllowedType, type PlanCtx, type Violation, allowedFor, allowedFrames, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
 } from './regras';
 
 /** Etapas do job AUTO_PLAN (JOB_CHECKLIST) e progresso do job. */
@@ -22,6 +24,27 @@ export const AUTO_PLAN_STAGES = { checking_brain: 20, planning: 50 } as const;
 const MAX_PLAN_KEYFRAMES = 8;
 const PAGE_TEXT_MAX = 4000;
 export const FROM_VIDEO = 'From the video';
+
+/** `insight.headlineBlocked` (TRANSIÇÃO, fora do AutoInsight até o arquiteto tipar): motivo e modo do HEADLINE fora do plano. */
+export function headlineBlockedOf(ctx: { headline?: { blockedReason: string | null; mode: string } | null }): { reason: string; mode: string } | null {
+  return ctx.headline?.blockedReason ? { reason: ctx.headline.blockedReason, mode: ctx.headline.mode } : null;
+}
+
+type CaptionBlockedEntry = { type: AutoVariationType; template: FrameTemplateId | null };
+const frameTemplateOfDraft = (it: unknown): FrameTemplateId | null => ((it as { params?: { template?: FrameTemplateId } } | null)?.params?.template ?? null);
+
+/**
+ * legenda-protegida-v1 §2.3: `insight.captionBlocked` = tipos e molduras que o plano não ofereceu (ou o reparo tirou) por
+ * tampar a legenda queimada. Vazio = o campo nem vai (lote sem legenda queimada).
+ */
+export function captionBlockedOf(ctx: PlanCtx, allowed: AllowedType[], removed: CaptionBlockedEntry[] = []): { captionBlocked?: AutoInsight['captionBlocked'] } {
+  const out: CaptionBlockedEntry[] = [
+    ...allowed.filter((a) => a.blockedReason === 'burned_captions').map((a) => ({ type: a.type, template: null })),
+    ...allowedFrames(ctx).filter((f) => f.blockedReason === 'burned_captions').map((f) => ({ type: 'FRAME' as const, template: f.template })),
+  ];
+  for (const r of removed) if (!out.some((o) => o.type === r.type && o.template === r.template)) out.push(r);
+  return out.length ? { captionBlocked: out.map((o) => ({ ...o, reason: 'burned_captions' as const })) } : {};
+}
 
 /** Frase humana dos códigos assíncronos do lote AUTO (fallback EN; o web traduz pelo code). */
 const REASON: Record<string, string> = {
@@ -64,14 +87,16 @@ export class PlanoAutoService {
     @Inject(CLAUDE_SERVICE) private readonly claude: ClaudeService,
     @Inject(PAGE_CAPTURE) private readonly pages: PageCapturePort,
     @Inject(MEDIA_RULES) private readonly media: MediaRulesPort,
+    private readonly semLegenda: VersaoSemLegendaService,
   ) {}
 
   async run(jobId: string, batchId: string): Promise<void> {
     let stage: AnalysisStage = 'brain';
     try {
+      const cleanVersion = await this.applyCleanVersion(batchId);
       const b = await this.prisma.variationBatch.findUniqueOrThrow({
         where: { id: batchId },
-        include: { offer: true, workspace: true, createdBy: { select: { uiLocale: true } }, champion: { include: { teardown: true } } },
+        include: { offer: true, workspace: true, createdBy: { select: { uiLocale: true } }, champion: { include: { teardown: true, videoFile: { select: { width: true, height: true } } } } },
       });
       const teardown = b.champion.teardown;
       if (!teardown || !sectionsOf(teardown.sections)) throw new AutoPlanError('PROVIDER_ERROR', 'brain', 'campeão sem teardown');
@@ -80,12 +105,16 @@ export class PlanoAutoService {
       await this.jobs.stage(jobId, 'checking_brain', AUTO_PLAN_STAGES.checking_brain);
       const page = await this.capturePage(b);
       await this.prisma.variationBatch.update({ where: { id: b.id }, data: { pageCaptureFileId: page.fileId } });
-      const ctx = planCtxOf({ offer: b.offer, workspace: b.workspace, champion: b.champion, teardown }, this.media, { captured: !!page.fileId });
+      const ctxSrc = { offer: b.offer, workspace: b.workspace, champion: b.champion, teardown };
+      // legenda-protegida-v1: o que tamparia a legenda queimada sai do `allowed` (burned_captions), e a validação repete
+      const ctx = withCaptionGuard(planCtxOf(ctxSrc, this.media, { captured: !!page.fileId }), {
+        ...ctxSrc, video: b.champion.videoFile, language: b.language,
+      });
       const allowed = allowedFor(ctx);
       const swaps = swapsFor(allowed);
       const flags = flagsOf(ctx);
       // régua parcial (blocos sem função) já na tela durante o plano
-      await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto } as unknown as Prisma.InputJsonValue } });
+      await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...captionBlockedOf(ctx, allowed), ...(cleanVersion && { cleanVersion }) } as unknown as Prisma.InputJsonValue } });
 
       // 2. planning: Claude → validação → 1 reparo pela ia → reparo determinístico
       stage = 'planning';
@@ -115,6 +144,8 @@ export class PlanoAutoService {
       const first = await this.plan(input);
       let draft: AutoPlanDraft = first;
       let violations: Violation[] = validatePlan(first, ctx, allowed);
+      let removedByCaption: CaptionBlockedEntry[] = [];
+      let rDraftItems: unknown[] = [];
       if (violations.length) {
         // 1 nova chamada com as violações (a ia corrige); se ela mesma falhar, o reparo determinístico parte da 1ª
         const second = await this.plan({ ...input, violations: violations.map((v) => violationText(v, first.items ?? [])) }).catch((e) => {
@@ -133,6 +164,7 @@ export class PlanoAutoService {
           }, FROM_VIDEO),
           kept: ctx.blocks.slice(0, 1).map((x) => ({ label: x.label, blockIndex: x.index })).concat(ctx.blocks.slice(-1).map((x) => ({ label: x.label, blockIndex: x.index }))),
         };
+        rDraftItems = (draft.items ?? []) as unknown[];
         const r = repairPlan(draft, ctx, allowed, fb);
         if (!r.ok) {
           const detail = violations.map((v) => violationText(v, draft.items ?? [])).join('; ').slice(0, 2000);
@@ -140,10 +172,12 @@ export class PlanoAutoService {
         }
         this.log.log(`lote ${b.id}: reparo determinístico tirou ${r.removed.length} peça(s): ${r.removed.map((x) => `${x.type}(${x.rules.join(',')})`).join(' ')}`);
         draft = r.draft;
+        removedByCaption = r.removed.filter((x) => x.rules.includes('burned_captions')).map((x) => ({ type: x.type, template: frameTemplateOfDraft(rDraftItems[x.index]) }));
       }
       const items = finalizePlan(draft, ctx, this.media);
       // §2.1: `captionsAuto` no insight (TRANSIÇÃO: fora do AutoInsight até o arquiteto tipar; o web já lê)
-      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto };
+      // 26/10: por que o HEADLINE ficou fora (o web mostra); null = entrou ou o campeão não tem dado pra ele
+      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...captionBlockedOf(ctx, allowed, removedByCaption), ...(cleanVersion && { cleanVersion }) };
 
       // 3. PLAN_READY: itens e insight na mesma transação da troca de estado
       await this.prisma.$transaction(async (tx) => {
@@ -166,6 +200,36 @@ export class PlanoAutoService {
       if (!(e instanceof AutoPlanError) && !isIntegracaoError(e)) this.log.error(`plano do lote ${batchId}: ${(e as Error)?.stack ?? e}`);
       await this.fail(batchId, jobId, err);
     }
+  }
+
+  /**
+   * legenda-protegida-v1 D-LP5: `cleanUploadId` do `POST /iterate` (em `settings.cleanFileId`) conferido agora que a análise
+   * acabou (a faixa protegida existe). Bateu = vira a versão sem legenda do campeão; não bateu = segue com a original. Sai do
+   * settings nos dois casos (o replan não confere de novo). null = não havia.
+   */
+  private async applyCleanVersion(batchId: string): Promise<{ status: 'applied' | 'mismatch'; reason: CleanMismatch | null } | null> {
+    const b = await this.prisma.variationBatch.findUniqueOrThrow({ where: { id: batchId }, select: { settings: true, champion: { include: { videoFile: true, teardown: { select: { editMap: true } } } } } });
+    const settings = (b.settings ?? {}) as Record<string, unknown>;
+    const fileId = typeof settings.cleanFileId === 'string' ? settings.cleanFileId : null;
+    if (!fileId) return null;
+    const { cleanFileId: _c, ...rest } = settings;
+    await this.prisma.variationBatch.update({ where: { id: batchId }, data: { settings: rest as Prisma.InputJsonValue } });
+    const ch = b.champion;
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file || !ch.videoFile) return { status: 'mismatch', reason: null };
+    try {
+      const m = editMapOf(ch.teardown?.editMap);
+      await this.semLegenda.assertSameVideo(ch.videoFile, file, faixasDoCampeao(m, { width: ch.videoFile.width ?? m?.width ?? 0, height: ch.videoFile.height ?? m?.height ?? 0 }));
+    } catch (e) {
+      const reason = (e as { details?: { reason?: CleanMismatch } })?.details?.reason ?? null; // AppException CLEAN_VERSION_MISMATCH
+      this.log.warn(`lote ${batchId}: versão sem legenda não conferiu (${reason ?? (e as Error).message})`);
+      return { status: 'mismatch', reason };
+    }
+    await this.prisma.$transaction([
+      this.prisma.file.update({ where: { id: file.id }, data: { kind: 'CHAMPION_CLEAN_VIDEO' } }),
+      this.prisma.champion.update({ where: { id: ch.id }, data: { cleanVideoFileId: file.id } }),
+    ]);
+    return { status: 'applied', reason: null };
   }
 
   /** planAutoBatch com 1 nova tentativa se a chamada falhar ("Claude falhou 2x" = falha do lote). */

@@ -28,6 +28,7 @@ export const CHAMPION_INCLUDE = {
   createdBy: { select: { id: true, name: true } },
   thumbnailFile: true,
   videoFile: true,
+  cleanVideoFile: true,
   teardown: true,
   _count: { select: { batches: true, creatives: { where: { archivedAt: null } } } },
 } satisfies Prisma.ChampionInclude;
@@ -137,6 +138,8 @@ export class ChampionViews {
     return {
       ...row,
       video: c.videoFile ? await this.storage.fileRef(c.videoFile) : null,
+      // legenda-protegida-v1 §2.3: a versão sem legenda (null = só a original)
+      cleanVideo: c.cleanVideoFile ? await this.storage.fileRef(c.cleanVideoFile) : null,
       adLibraryUrl: c.adLibraryUrl,
       adMeta: (c.adMeta as unknown as AdLibraryMeta | null) ?? null,
       notes: c.notes,

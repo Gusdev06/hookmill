@@ -329,12 +329,13 @@ describe('ClaudeLiveService.planVariations (§13)', () => {
 });
 
 describe('mock (§13)', () => {
-  it('describeEdit determinístico: 1 headline sólida + 1 karaokê; sem fala, só a headline', async () => {
+  it('describeEdit determinístico: 1 headline sólida + rodapé; karaokê queimado só com [mock:burned-captions] (26/10); sem fala, sem legenda', async () => {
     const svc = new FakeClaudeService(new MemoryCostStore(), { model: 'claude-opus-5-5', stepMs: 0 });
-    const a = await svc.describeEdit(editInput);
+    expect((await svc.describeEdit(editInput)).layers.map((l) => [l.kind, l.background.kind])).toEqual([['headline', 'solid'], ['text', 'solid']]);
+    const a = await svc.describeEdit({ ...editInput, notes: '[mock:burned-captions]' });
     expect(a.layers.map((l) => [l.kind, l.background.kind])).toEqual([['headline', 'solid'], ['text', 'solid'], ['caption', 'none']]);
     // na grade da fixture de painéis (720×960): faixa do topo 0-119, rodapé 840-960, karaokê fora do rosto
-    const fx = await svc.describeEdit({ ...editInput, video: { width: 720, height: 960, fps: 30, frameCount: 450, durationSec: 15 } });
+    const fx = await svc.describeEdit({ ...editInput, notes: '[mock:burned-captions]', video: { width: 720, height: 960, fps: 30, frameCount: 450, durationSec: 15 } });
     expect(fx.layers[0].box).toEqual({ x: 0, y: 0, w: 720, h: 119 });
     expect(fx.layers[0].background.color).toBe('#D40F0F');
     expect(fx.layers[1].box).toEqual({ x: 0, y: 840, w: 720, h: 120 });
@@ -344,9 +345,9 @@ describe('mock (§13)', () => {
       const inter = Math.max(0, Math.min(b.x + b.w, face.x + face.w) - Math.max(b.x, face.x)) * Math.max(0, Math.min(b.y + b.h, face.y + face.h) - Math.max(b.y, face.y));
       expect([l.id, inter]).toEqual([l.id, 0]); // nenhuma camada cruza a região do rosto sem gatilho
     }
-    expect(await svc.describeEdit(editInput)).toEqual(a);
+    expect(await svc.describeEdit({ ...editInput, notes: '[mock:burned-captions]' })).toEqual(a);
     expect(a.costUsd).toBe(0);
-    expect(mockEditMap({ ...editInput, transcript: { language: 'pt-BR', words: [] } }).layers.map((l) => l.kind)).toEqual(['headline', 'text']);
+    expect(mockEditMap({ ...editInput, notes: '[mock:burned-captions]', transcript: { language: 'pt-BR', words: [] } }).layers.map((l) => l.kind)).toEqual(['headline', 'text']);
   });
 
   it('gatilhos nas notes do campeão (nomes do mock do web): keep-straddle, keep-overlay, hook-over-video', () => {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useFormatter, useTranslations } from "next-intl"
-import type { AutoInsightV, AutoVariationTypeV, IteratePieceV, FileRef, FormatCode, FrameTemplateId, IterateBatch, IteratePiece, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
+import type { AutoInsight, AutoVariationType, IteratePiece, FileRef, FormatCode, FrameTemplateId, IterateBatch, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
 import { FlowBar } from "@/components/flow-bar"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useSession } from "@/components/providers/session-provider"
@@ -14,14 +14,14 @@ import "./iterate.css"
 
 /** 25/10 (estatico-montado-e-molduras-v1 §C.0, TRANSIÇÃO): the API sends `type: 'FRAME'` before the architect merges it into
  *  `AutoVariationType`; the web reads the superset so nothing breaks on either side of the merge. */
-export type PieceType = AutoVariationTypeV
+export type PieceType = AutoVariationType
 export const pieceType = (p: Pick<IteratePiece, "type">) => p.type as PieceType
 
 // ───────────── headline-e-legenda-v1 (25/10, TRANSIÇÃO) ─────────────
 /** HEADLINE piece: the champion's headline and the new one (`original: null` = the champion had none, mode `add`). */
-export const pieceHeadline = (p: IteratePiece) => (p as IteratePieceV).headline ?? null
+export const pieceHeadline = (p: IteratePiece) => (p as IteratePiece).headline ?? null
 /** §2.1: the champion has no burned-in captions, so every video piece of the batch gets word-by-word captions. */
-export const captionsAuto = (b: Pick<IterateBatch, "insight">) => (b.insight as AutoInsightV | null)?.captionsAuto === true
+export const captionsAuto = (b: Pick<IterateBatch, "insight">) => (b.insight as AutoInsight | null)?.captionsAuto === true
 
 /** "original → new" of a HEADLINE piece; the highlight of the new one in bold. `compact` = one block, smaller. */
 export function HeadlineChange({ p, compact, className }: { p: IteratePiece; compact?: boolean; className?: string }) {

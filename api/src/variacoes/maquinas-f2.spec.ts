@@ -103,6 +103,7 @@ describe('máquina do lote (§3.2): uma transição válida por teste', () => {
       AUTO_FAILED: { from: ['ANALYZING', 'PLANNING'], to: ['ANALYSIS_FAILED'] },
       AUTO_PLAN_DONE: { from: ['PLANNING'], to: ['PLAN_READY'] },
       AUTO_RETRY: { from: ['ANALYSIS_FAILED'], to: ['ANALYZING', 'PLANNING'] },
+      AUTO_REPLAN: { from: ['PLAN_READY'], to: ['PLANNING'] },
       AUTO_START: { from: ['PLAN_READY'], to: ['LAUNCHED'] },
     });
     // ANALYZING/ANALYSIS_FAILED só existem no AUTO; PLAN_FAILED só no MANUAL

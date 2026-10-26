@@ -21,12 +21,8 @@
  *   mock-onebeat → short video (one shot, smaller batch) · mock-page403 → SPLIT-LP fails with PAGE_FORBIDDEN (retry with photo)
  *   mock-planfail → PROVIDER_ERROR while planning (cents charged, try again)
  */
-import type {
-  AutoInsight, AutoVariationType, FrameTemplateId, StaticRenderStage, StaticTextCheck, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceFormat,
-  PieceFormatState, PieceStatus,
-  SwapReason, UserRef, VariationAxis, WhyLine,
-} from "@/lib/api/types"
-import type { AutoVariationTypeV, LibraryItemV, PieceHeadline, WaitingBatchRefV } from "@/lib/api/types"
+import type { AutoInsight, AutoVariationType, FrameTemplateId, StaticRenderStage, StaticTextCheck, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceFormat, PieceFormatState, PieceStatus, SwapReason, UserRef, VariationAxis, WhyLine } from "@/lib/api/types"
+import type { PieceHeadline, WaitingBatchRef } from "@/lib/api/types"
 import { db, mockArt, mockId, MOCK_VIDEO, save as saveDb } from "./db"
 import { blobUrl } from "./variar"
 
@@ -41,7 +37,7 @@ export const STATIC_USD = 0.4 // STATIC_IMAGE_MODEL.usdPerImage: GPT Image 2 hig
 const USD_PER_SEC = 0.01 // transcription + teardown with frames (mock)
 const PLAN_USD = 0.02
 const FORMATS: FormatCode[] = ["9x16", "4x5", "1x1"]
-const AXIS: Record<AutoVariationTypeV, VariationAxis> = {
+const AXIS: Record<AutoVariationType, VariationAxis> = {
   CUT: "ITERATION", COLD_OPEN: "ITERATION", HOOK_TEXT: "ITERATION", ENDCARD: "ITERATION",
   SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY", FRAME: "DIVERSITY", HEADLINE: "ITERATION",
 }
@@ -135,7 +131,7 @@ export const ITER_LIMITS = { maxBytes: 524_288_000, minSec: 4, maxSec: 180, mime
 
 // ───────────── model ─────────────
 interface MPiece {
-  id: string; index: number; type: AutoVariationTypeV; variant: string; n: number
+  id: string; index: number; type: AutoVariationType; variant: string; n: number
   /** FRAME only: the template (= variant) */
   frame?: FrameTemplateId
   /** true once the user set "In zip" (G1 default only applies before that) */
@@ -156,6 +152,10 @@ interface MIter {
   brainEmpty: boolean; shortVideo: boolean; pageCaptured: boolean; page403Render: boolean; renderFailType: AutoVariationType | null
   formatFailType?: AutoVariationType | null; formatFailUsed?: boolean
   frameFail?: { id: FrameTemplateId; code: string } | null
+  /** legenda-protegida-v1 §2.3: the champion's version without burned-in captions */
+  cleanUploadId?: string | null
+  /** 26/10: result of `cleanUploadId` sent with POST /iterate (insight.cleanVersion) */
+  cleanVersion?: { status: "applied" | "mismatch"; reason: "duration" | "resolution" | "fps" | "content" | null } | null
   t0: number; startIndex: number; failAt: { index: number; code: string } | null; retries: number
   pieces: MPiece[]; launchedAt: number | null; jobs: MRenderJob[]
   zip: { status: "none" | "building" | "ready"; t0: number; key: string; sizeBytes: number | null }
@@ -196,7 +196,7 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).
 const ratioLabel = (w: number, h: number) => { const r = h / w; return r > 1.6 ? "9:16" : r > 1.15 ? "4:5" : r > 0.9 ? "1:1" : "16:9" }
 
 /** codeFor(type, variant, n, lang) — the web never builds codes; this is the mock of the backend's pure function (§6.1). */
-function codeFor(type: AutoVariationTypeV, variant: string, n: number, lang: "EN" | "PT") {
+function codeFor(type: AutoVariationType, variant: string, n: number, lang: "EN" | "PT") {
   const P = lang === "PT"
   switch (type) {
     case "HEADLINE": return `HEADLINE-${n + 1}`
@@ -214,7 +214,7 @@ function codeFor(type: AutoVariationTypeV, variant: string, n: number, lang: "EN
 }
 const code = (b: MIter, p: MPiece) => codeFor(p.type, p.variant, p.n, b.codeLang)
 
-type Row = [AutoVariationTypeV, string, string, string, number?] // type, variant, change EN, change PT, n
+type Row = [AutoVariationType, string, string, string, number?] // type, variant, change EN, change PT, n
 const frameRow = (id: FrameTemplateId): Row => {
   const [en, ptName] = FRAME_NAME[id]
   return ["FRAME", id, `The champion plays inside a ${en} frame. Screen text from the Brain.`, `O campeão toca dentro de uma moldura de ${ptName}. Texto de tela do Brain.`]
@@ -279,7 +279,7 @@ function basePlanRowsOld(b: MIter): Row[] {
   return rows
 }
 function buildPieces(b: MIter): MPiece[] {
-  const counts: Partial<Record<AutoVariationTypeV, number>> = {}
+  const counts: Partial<Record<AutoVariationType, number>> = {}
   return planRows(b).map(([type, variant, en, ptText, n], index) => {
     const k = counts[type] ?? 0
     counts[type] = k + 1
@@ -337,6 +337,7 @@ const failText = (code: string, frames: number, host: string) =>
   code === "PAGE_FORBIDDEN" ? `The product page didn't load: ${host} blocked our browser (403).`
     : code === "SAFETY_BLOCK" ? "The image model refused this concept. Retry tries again; Leave out removes it."
     : code === "FRAME_TEXT_OVERFLOW" ? "The frame text didn't fit at the minimum size (36 px)."
+    : code === "CAPTION_COVERED" ? "Something covered the video's captions in this render."
     : `Rendering stopped at frame ${Math.round(frames * 0.6)}.`
 function formatsOf(b: MIter, p: MPiece, now: number, host: string): PieceFormat[] {
   return FORMATS.map((format) => {
@@ -385,7 +386,7 @@ function toLibrary(b: MIter, p: MPiece, now: number) {
   const files = pieceFiles(b, p, now)
   if (p.inLibrary) {
     // a format made later (§14.2) joins the Library item's formats
-    const item = (db.library as LibraryItemV[]).find((l) => l.id === p.creativeId)
+    const item = (db.library as LibraryItem[]).find((l) => l.id === p.creativeId)
     if (item && (item.formats?.length ?? 0) !== files.length) {
       item.formats = files.map((x) => ({ format: x.format, file: { id: `f_${p.id}_${x.format}`, url: x.url, mimeType: x.mimeType } }))
       saveDb()
@@ -399,7 +400,7 @@ function toLibrary(b: MIter, p: MPiece, now: number) {
   const of = offerOf(b)
   const adName = f916.name.replace(/_9x16\.(mp4|png)$/, "")
   const still = p.type === "STATIC"
-  const item: LibraryItemV = {
+  const item: LibraryItem = {
     id: p.creativeId, name: adName, offer: { id: b.offerId, name: of?.name ?? "—" }, engineLabel: L("Edited", "Editado"), durationSec: still ? 0 : p.sec,
     video: { id: `f_${p.id}_9x16`, url: f916.url, mimeType: f916.mimeType, width: 1080, height: 1920, durationSec: still ? undefined : p.sec },
     thumbnail: mockArt((b.tone + p.index) % 4, p.index % 4), isWinner: false, approvedAt: new Date(now).toISOString(), approvedBy: b.createdBy,
@@ -446,8 +447,13 @@ function insightOf(b: MIter, status: IterateStatus): AutoInsight | null {
   const kept = b.shortVideo ? [L("The opening shot", "O plano de abertura"), L("The spoken line", "A frase falada")]
     : [L("Hook words", "Palavras do gancho"), L("The creator", "O criador"), L("The demonstration", "A demonstração"), L("Spoken CTA", "CTA falado")]
   // headline-e-legenda §2.1: the champion has no burned-in captions → every video piece gets them ([mock:captions-burned] = it has)
-  const captionsAuto = !notesOf(b.offerId).includes("[mock:captions-burned]")
-  return { blocks, why, kept, flags, swaps, captionsAuto } as AutoInsight
+  // legenda-protegida §2.3: burned captions + no clean version = these templates/types aren't offered ([mock:captions-burned] or ?mockcaptions=burned)
+  const burned = burnedOf(b) && !b.cleanUploadId
+  const captionsAuto = !burnedOf(b) || !!b.cleanUploadId
+  const captionBlocked = burned
+    ? [{ type: "FRAME" as const, template: "cinema" as const, reason: "burned_captions" as const }, { type: "FRAME" as const, template: "question_box" as const, reason: "burned_captions" as const }, { type: "HEADLINE" as const, template: null, reason: "burned_captions" as const }]
+    : []
+  return { blocks, why, kept, flags, swaps, captionsAuto, captionBlocked, cleanVersion: b.cleanVersion ?? undefined } as AutoInsight
 }
 
 function analysisOf(b: MIter, status: IterateStatus, now: number): IterateBatch["analysis"] {
@@ -527,6 +533,8 @@ export function iterView(b: MIter, now = Date.now()): IterateBatch {
       frame: p.frame
         ? { template: p.frame, second: p.frame === "split_stack" ? { kind: "broll_track" as const, provenance: null, track: TRACK(p.sec) } : null, canSwapBroll: false }
         : null,
+      // legenda-protegida §2.2: the frame cropped the burned captions out and redrew ours in the original style
+      captionNote: p.frame === "meme" && burnedOf(b) && !b.cleanUploadId ? ("replaced" as const) : null,
       headline: p.type === "HEADLINE"
         ? { mode: p.variant as PieceHeadline["mode"], original: p.variant === "add" ? null : HEADLINE_ORIGINAL, ...HEADLINES[p.n % HEADLINES.length] }
         : null,
@@ -608,7 +616,7 @@ export function advanceIter(b: MIter, now = Date.now()) {
 export function iterConfig(empty: boolean): IterateConfig {
   const offers = db.offers.map((o) => ({ id: o.id, name: o.name, language: o.language }))
   const last = it.lastOfferId && offers.some((o) => o.id === it.lastOfferId) ? it.lastOfferId : null
-  const winners = (db.library as LibraryItemV[]).filter((l) => l.isWinner && l.media !== "image").slice(0, 3)
+  const winners = (db.library as LibraryItem[]).filter((l) => l.isWinner && l.media !== "image").slice(0, 3)
   return {
     ...ITER_LIMITS, analysisUsdPerSec: USD_PER_SEC, analysisTypicalUsd: Math.round((30 * USD_PER_SEC + PLAN_USD) * 100) / 100,
     types: ["CUT", "COLD_OPEN", "HOOK_TEXT", "ENDCARD", "SPLIT_LP", "STORY", "REVIEW", "NATIVE_SEARCH", "STATIC"], metaConnected: false,
@@ -616,6 +624,29 @@ export function iterConfig(empty: boolean): IterateConfig {
   }
 }
 
+/** 26/10 POST /iterate/:id/replan: a new plan over the finished analysis (PLANNING for one step, then PLAN_READY) */
+/** 26/10 POST /iterate { championId }: a new batch of the same champion, analysis reused (PLANNING, then PLAN_READY) */
+export function newIterFromChampion(src: MIter) {
+  const now = Date.now()
+  const b: MIter = {
+    ...src, id: mockId("ib"), t0: now, startIndex: KEYS.length - 1, failAt: null, retries: 0, pieces: [], launchedAt: null, jobs: [],
+    zip: { status: "none", t0: 0, key: "", sizeBytes: null }, downloadedAt: null, createdAt: now, archived: false,
+    cleanVersion: null, cleanUploadId: src.cleanUploadId ?? null, formatFailUsed: false,
+  }
+  b.pieces = buildPieces(b)
+  it.batches.unshift(b)
+  saveIter()
+  return b
+}
+export function replanPieces(b: MIter) {
+  b.pieces = buildPieces(b)
+}
+export function replanIter(b: MIter) {
+  b.startIndex = KEYS.length - 1
+  b.t0 = Date.now()
+  b.pieces = buildPieces(b)
+  saveIter()
+}
 export function newIter(p: { offerId: string; uploadId: string | null; sourceCreativeId: string | null; name: string; durationSec: number; width: number; height: number; filename: string }) {
   const now = Date.now()
   const notes = notesOf(p.offerId)
@@ -663,7 +694,9 @@ export function launchIter(b: MIter, at = Date.now()) {
   b.launchedAt = at
   let t = at + 400
   for (const p of b.pieces) {
-    const fail = p.failFirst && p.failFirst.format === "9x16" ? p.failFirst.code : null
+    // the batch's first frame: its 1st render fails CAPTION_COVERED, the retry passes
+    const covered = !!p.frame && p.id === b.pieces.find((x) => x.frame)?.id && (captionsFlag() === "covered" || notesOf(b.offerId).includes("[mock:caption-covered]"))
+    const fail = covered ? "CAPTION_COVERED" : p.failFirst && p.failFirst.format === "9x16" ? p.failFirst.code : null
     if (isStatic(p)) {
       const text = textModeFor(b.offerId)
       b.jobs.push({ pieceId: p.id, format: "9x16", startAt: at + 400, endAt: at + 400 + (fail ? STILL_MS : staticMs(text, p.slowFirst)), fail, priority: 0, image: true, text })
@@ -735,6 +768,18 @@ function frameFailOf(notes: string): MIter["frameFail"] {
   if (o && FRAME_IDS.includes(o as FrameTemplateId)) return { id: o as FrameTemplateId, code: "FRAME_TEXT_OVERFLOW" }
   return null
 }
+/** legenda-protegida (web-mock): ?mockcaptions=burned|covered (sessionStorage mock:captions) or [mock:captions-burned] in the notes */
+const captionsFlag = () => (typeof window === "undefined" ? null : sessionStorage.getItem("mock:captions"))
+function burnedOf(b: MIter) {
+  return notesOf(b.offerId).includes("[mock:captions-burned]") || captionsFlag() === "burned" || captionsFlag() === "covered"
+}
+export function batchOfChampion(championId: string) {
+  return it.batches.find((b) => b.championId === championId && !b.archived) ?? null
+}
+export function setIterClean(championId: string, uploadId: string | null) {
+  for (const b of it.batches) if (b.championId === championId) b.cleanUploadId = uploadId
+  saveIter()
+}
 /** web-mock: Retry of a STATIC with ?mocktext=cap answers SPEND_CAP_EXCEEDED */
 export const textCapForced = () => typeof window !== "undefined" && sessionStorage.getItem("mock:text") === "cap"
 export const isUnsupportedFormat = (p: MPiece, f: FormatCode) => unsupportedOf(p).includes(f)
@@ -756,9 +801,9 @@ export function startZip(b: MIter) {
 }
 
 /** Home "Waiting for you" (§5.4): Plan ready · Analysis failed · N pieces ready (all settled, not downloaded). */
-export function autoWaiting(): WaitingBatchRefV[] {
+export function autoWaiting(): WaitingBatchRef[] {
   const now = Date.now()
-  return it.batches.filter((b) => !b.archived).flatMap((b): WaitingBatchRefV[] => {
+  return it.batches.filter((b) => !b.archived).flatMap((b): WaitingBatchRef[] => {
     const v = iterView(advanceIter(b, now), now)
     const base = { id: b.id, championId: b.championId, championName: b.name, offer: { id: v.offer.id, name: v.offer.name }, mode: "AUTO" as const, updatedAt: new Date(b.launchedAt ?? b.t0).toISOString() }
     if (v.status === "PLAN_READY") return [{ ...base, status: "PLAN_READY" as const, readyCount: null }]

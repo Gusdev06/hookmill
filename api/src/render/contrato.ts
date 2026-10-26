@@ -1,7 +1,7 @@
 // Contrato do módulo render (maquina-video). docs/contratos/estrutura.md §2.2 + feature-2-variar-campeao.md §13.6.
 // Só o maquina-arquiteto muda o contrato; o backend importa os tipos daqui.
 import type { AutoVariationType, EndcardVariant, Rect, TextStyle } from '@maquina/contratos';
-import type { MolduraProps, ResolvedLayer } from '@maquina/video';
+import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, ResolvedLayer } from '@maquina/video';
 
 /** Criativo do zero (templates clean/bold/headline). `kind` opcional: ausente = scratch (compatível com o v1). */
 export interface ScratchRenderInput {
@@ -32,6 +32,8 @@ export interface RemixKeepRenderInput {
   audioPassthroughUrl: string;                         // render sai mudo; remux com -c:a copy deste arquivo
   /** 25/10 (headline-e-legenda-v1): idioma dos textos novos (headline/legenda): Noto CJK e o "sem espaço" do zh/ja */
   language?: string;
+  /** 26/10: faixa da legenda queimada no vídeo renderizado (px da saída, tempo da peça), pra checagem por visão */
+  outputProtectedBands?: FaixaNaSaida[];
   /** §13.15.4 (B) ENGINE_VOICE: áudio = campeão com cada span [start, end) trocado pela voz do arquivo `url` (do instante 0
    *  dele, cortada no tamanho do span), crossfade de `fadeMs` (10) nas bordas, AAC 192 kbps. Ausente = -c:a copy. */
   audioSplice?: { spans: { startFrame: number; endFrame: number; url: string }[]; fadeMs: number };
@@ -60,7 +62,7 @@ export interface AutoEditRenderInput {
   format: 'VERTICAL_9_16' | 'PORTRAIT_4_5' | 'SQUARE_1_1';     // 1080x1920 | 1080x1350 | 1080x1080, 30 fps
   language: string;                                            // dos textos de tela
   source: { videoUrl: string; width: number; height: number; fps: number; durationSec: number; hasAudio: boolean };
-  reframe: { mode: 'cover'; focus: { x: number; y: number } }  // corta centrado no rosto (0-1 do quadro)
+  reframe: { mode: 'cover'; focus: { x: number; y: number }; scale?: number }  // corta centrado no rosto (0-1 do quadro)
          | { mode: 'contain_blur' };                           // cabe inteiro, fundo = o próprio vídeo desfocado
   timeline: { startSec: number; endSec: number }[];            // trechos do campeão, em ordem
   joinFadeMs: 40;                                              // rampa de volume em cada emenda (sem clique)
@@ -69,6 +71,14 @@ export interface AutoEditRenderInput {
   brandName: string;
   type: AutoVariationType;
   params: AutoEditParams;
+  /** 26/10 (legenda-protegida-v1, headline-e-legenda-v1 §2): legenda nossa (automática ou refeita no estilo da original),
+   *  legenda queimada protegida, modo e área recortada do campeão. Opcionais: ausentes = como antes. */
+  captions?: CaptionsAuto;
+  captionMode?: 'avoid' | 'replace';
+  protectedBands?: ProtectedBand[];
+  contentBox?: Rect | null;
+  /** 26/10: faixa da legenda no vídeo renderizado (px da saída, tempo da peça), pra checagem por visão */
+  outputProtectedBands?: FaixaNaSaida[];
 }
 export type AutoEditParams =
   | { type: 'CUT'; targetSec: 15 | 20 }

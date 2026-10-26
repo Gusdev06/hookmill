@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { outputProtectedBandSchema } from './captionsSchema';
 
 // Template `remix-keep` (§13.6 da feature 2): o vídeo do campeão de fundo, o clipe novo colado nas regiões do rosto
 // nos frames exatos e as camadas de texto redesenhadas por cima. Tudo na grade do campeão (mesma largura, altura, fps e
@@ -80,6 +81,8 @@ export const remixKeepSchema = z.object({
   textLayers: z.array(textLayerSchema),
   /** idioma dos textos (headline nova / legenda): escolhe a Noto CJK (TC/SC/JP/KR) e o "sem espaço" do zh/ja */
   language: z.string().optional(),
+  /** faixa da legenda queimada no vídeo renderizado (checagem por visão); a composição ignora */
+  outputProtectedBands: z.array(outputProtectedBandSchema).optional(),
 });
 
 export type RemixKeepProps = z.infer<typeof remixKeepSchema>;

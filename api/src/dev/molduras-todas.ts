@@ -5,6 +5,9 @@
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --yes --ignorar-d10   # roda de verdade
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender            # 25/10: re-render das molduras do lote (dry-run)
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender --yes      # idem de verdade (teto US$ 2)
+//   26/10 (molduras de 1 fonte que colidiram com a legenda queimada, faixas novas do video) — lote cmvot8qxv000b22xlz0yrm60t:
+//   cd api && MOLDURAS_LOTE=cmvot8qxv000b22xlz0yrm60t MOLDURAS_WS=cmvosjusa0003220ogre6h0cf MOLDURAS_TEARDOWN=cmvotd0su000h22xlcy07t4vm \
+//     npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender --so-templates=ranking,read_caption,question_box,live,story [--yes]
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender --so-duas-fontes [--nova-trilha] [--sem-imagem] [--yes]  # 25/10: só as 6 de 2 fontes com a trilha de b-roll (teto US$ 1; --sem-imagem = trecho sem clipe estende o vizinho)
 //
 // O que faz, por template que ainda não existe no lote (ou cuja peça antiga falhou):
@@ -34,11 +37,11 @@ import {
 // ───────── alvo (pedido do Gusta, 25/10) ─────────
 
 export const ALVO = {
-  batchId: 'cmvnlm4yd000l22emdoob1j5a',
-  workspaceId: 'cmvnljsvj000122emb5rvumut',
-  teardownId: 'cmvnlm9ov000r22em47tqhtyf',
+  batchId: process.env.MOLDURAS_LOTE ?? 'cmvnlm4yd000l22emdoob1j5a',
+  workspaceId: process.env.MOLDURAS_WS ?? 'cmvnljsvj000122emb5rvumut',
+  teardownId: process.env.MOLDURAS_TEARDOWN ?? 'cmvnlm9ov000r22em47tqhtyf',
   /** língua da tela pedida pelo Gusta (a fala do campeão está gravada como "zh"; o lote e a oferta são zh-TW) */
-  screenLanguage: 'zh-TW',
+  screenLanguage: process.env.MOLDURAS_LANG ?? 'zh-TW',
 } as const;
 export const TETO_USD = 1.5;
 /** 2ª fonte: trecho do campeão com pelo menos isto (§B3: ≥ 3 s). */
@@ -112,7 +115,7 @@ export interface Deps {
   rerenderizar?(lote: LoteDados, linhas: LinhaRerender[], o?: { novaTrilha: boolean; semImagem?: boolean }): Promise<{ code: string; renderId: string }[]>;
   log(linha: string): void;
 }
-export interface Opcoes { yes: boolean; ignorarD10: boolean; rerender?: boolean; soDuasFontes?: boolean; novaTrilha?: boolean; semImagem?: boolean }
+export interface Opcoes { yes: boolean; ignorarD10: boolean; rerender?: boolean; soDuasFontes?: boolean; novaTrilha?: boolean; semImagem?: boolean; /** 26/10: só estes templates */ templates?: string[] }
 
 export interface Resultado {
   linhas: LinhaPlano[];
@@ -433,8 +436,11 @@ export interface LinhaRerender {
 }
 
 /** As peças FRAME do lote com criativo; render no ar = pular (não empilha). Puro. */
-export function planejarRerender(lote: LoteDados, o: { soDuasFontes?: boolean; novaTrilha?: boolean; semImagem?: boolean } = {}): { linhas: LinhaRerender[]; usd: number; trechos: number } {
-  const linhas = lote.existentes.filter((e) => !o.soDuasFontes || (FRAME_DUAS_FONTES as readonly string[]).includes(e.template)).map((e): LinhaRerender => {
+export function planejarRerender(lote: LoteDados, o: { soDuasFontes?: boolean; novaTrilha?: boolean; semImagem?: boolean; templates?: string[] } = {}): { linhas: LinhaRerender[]; usd: number; trechos: number } {
+  const linhas = lote.existentes
+    .filter((e) => !o.soDuasFontes || (FRAME_DUAS_FONTES as readonly string[]).includes(e.template))
+    .filter((e) => !o.templates?.length || o.templates.includes(e.template))
+    .map((e): LinhaRerender => {
     const base = {
       template: e.template, code: e.code, itemId: e.itemId ?? '', creativeId: e.creativeId ?? '', creativeState: e.creativeState ?? null,
       duasFontes: (FRAME_DUAS_FONTES as readonly string[]).includes(e.template),
@@ -466,7 +472,7 @@ export async function executarRerender(deps: Deps, opts: Opcoes): Promise<{ linh
   }
   if (!opts.yes) {
     deps.log('');
-    deps.log(`dry-run: nada chamado, nada criado. Re-renderizar de verdade: --rerender${opts.soDuasFontes ? ' --so-duas-fontes' : ''}${opts.semImagem ? ' --sem-imagem' : ''} --yes`);
+    deps.log(`dry-run: nada chamado, nada criado. Re-renderizar de verdade: --rerender${opts.soDuasFontes ? ' --so-duas-fontes' : ''}${opts.semImagem ? ' --sem-imagem' : ''}${opts.templates?.length ? ` --so-templates=${opts.templates.join(',')}` : ''} --yes`);
     return { linhas, usd, enfileirados: [] };
   }
   if (usd > teto) throw new Error(`estimativa ${fmt(usd)} acima do teto de ${fmt(teto)}: nada foi feito`);
@@ -482,7 +488,8 @@ export async function executarRerender(deps: Deps, opts: Opcoes): Promise<{ linh
 /* istanbul ignore next -- roda só pela linha de comando */
 async function main() {
   const args = new Set(process.argv.slice(2));
-  const opts: Opcoes = { yes: args.has('--yes'), ignorarD10: args.has('--ignorar-d10'), rerender: args.has('--rerender'), soDuasFontes: args.has('--so-duas-fontes'), novaTrilha: args.has('--nova-trilha'), semImagem: args.has('--sem-imagem') };
+  const opts: Opcoes = { yes: args.has('--yes'), ignorarD10: args.has('--ignorar-d10'), rerender: args.has('--rerender'), soDuasFontes: args.has('--so-duas-fontes'), novaTrilha: args.has('--nova-trilha'), semImagem: args.has('--sem-imagem'),
+    templates: [...args].find((a) => a.startsWith('--so-templates='))?.slice('--so-templates='.length).split(',').filter(Boolean) };
   const url = process.env.DATABASE_URL ?? require('dotenv').config({ path: '.env' }).parsed?.DATABASE_URL ?? '';
   const host = (() => { try { const u = new URL(url); return `${u.hostname}:${u.port}${u.pathname}`; } catch { return '?'; } })();
   if (!/^(localhost|127\.0\.0\.1):/.test(host)) throw new Error(`DATABASE_URL não é local (${host}): o script só roda no banco de desenvolvimento`);

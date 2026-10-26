@@ -665,7 +665,10 @@
     "META_RATE_LIMITED": "Meta asked us to slow down. Retry in a minute.",
     "META_ERROR": "Meta returned an error. Retry; if it keeps happening, contact support.",
     "BROLL_SOURCE_NOT_SUPPORTED": "This link's source isn't supported yet. Paste a YouTube or TikTok link.",
-    "BROLL_UNAVAILABLE": "The b-roll clip is no longer available. Retry picks the next one."
+    "BROLL_UNAVAILABLE": "The b-roll clip is no longer available. Retry picks the next one.",
+    "CLEAN_VERSION_MISMATCH": "This isn't the same video without captions.",
+    "CAPTION_COVERED": "Something covered the video's captions. Retry tries another layout.",
+    "CAPTION_PROTECTED": "This format would cover the video's captions. Leave it out."
   },
   "template": {
     "clean": "Clean",
@@ -2394,7 +2397,9 @@
         "HEADLINE_NO_ROOM": "There's no free room for a headline in this video. Leave it out.",
         "HEADLINE_OVER_FACE": "The headline would cover the face. Leave it out.",
         "HEADLINE_LOW_CONFIDENCE": "We couldn't read the original headline's style. Leave it out.",
-        "leaveOutHint": "Retrying won't change it; leave this piece out."
+        "leaveOutHint": "Retrying won't change it; leave this piece out.",
+        "CAPTION_COVERED": "Something covered the video's captions in this render. Retry tries another layout; it's out of the zip until then.",
+        "CAPTION_PROTECTED": "This format would cover the video's captions."
       },
       "failedBodyImage": "Retry runs only this piece. Video pieces cost nothing to retry; a static makes a new image, so its retry shows the price.",
       "retriedPaid": "Making a new image for {code} · {usd}.",
@@ -3561,5 +3566,42 @@
         "body": "The connection is missing a permission on the ad account."
       }
     }
+  },
+  "captions": {
+    "blockedTitle": "{n, plural, one {# format left out: the video has burned-in captions} other {# formats left out: the video has burned-in captions}}",
+    "blockedBody": "These would cover the captions. With the same video without captions they come back.",
+    "needsClean": "This format needs the video without captions",
+    "frameNamed": "Frame · {name}",
+    "afterSend": "Saved. The next batches from this video use the version without captions, so these formats can be offered.",
+    "replaced": "Captions redone in the original style",
+    "clean": {
+      "send": "Send version without captions",
+      "hint": "The same video, same length and size, just without the burned-in captions.",
+      "uploading": "Uploading · {p}%",
+      "checking": "Checking it's the same video…",
+      "saved": "Version without captions saved.",
+      "savedToast": "Version without captions saved.",
+      "attached": "{name} will go with the video.",
+      "change": "Change",
+      "fieldTitle": "Version without captions (optional)",
+      "fieldBody": "If the video has burned-in captions, send it without them too: every format can be offered and we redo the captions in the original style.",
+      "fieldButton": "Choose the file without captions",
+      "mismatch": {
+        "duration": "This isn't the same video: the length is different.",
+        "resolution": "This isn't the same video: the size (resolution) is different.",
+        "fps": "This isn't the same video: the frame rate is different.",
+        "content": "This isn't the same video without captions: the picture outside the captions doesn't match."
+      },
+      "applied": "Using the version without captions.",
+      "mismatchTitle": "The version without captions didn't match",
+      "usedOriginal": "We planned with the original video.",
+      "sendAgain": "Send another version without captions"
+    },
+    "afterSendReplan": "Saved. Replan this batch to use the version without captions (about US$ 0.03, the analysis isn't redone).",
+    "replan": "Replan with the version without captions",
+    "replanned": "Planning again with the version without captions.",
+    "launched": "This batch was already launched; make a new batch with the version without captions.",
+    "newBatch": "New batch",
+    "anotherBatch": "Make another batch with this champion"
   }
 }

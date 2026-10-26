@@ -4,6 +4,7 @@
 import React, { useMemo } from 'react';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { MONTSERRAT } from '../fontes';
+import { FONT_CATALOG } from '../lib/remix';
 import {
   ajusteDaPagina, espacoAntes, LEGENDA_LH, paginasLegendaAuto, palavrasNaPeca, textoDaPagina, type CaixaLegenda, type CaptionsAuto,
 } from '../lib/legendaAuto';
@@ -15,7 +16,7 @@ export const LegendaAuto: React.FC<{ captions: CaptionsAuto; timeline: { startSe
   const { fps } = useVideoConfig();
   const lang = captions.language;
   const paginas = useMemo(
-    () => paginasLegendaAuto(palavrasNaPeca(captions.words, timeline, fps), lang, ateSec, caixa.maxPalavras),
+    () => paginasLegendaAuto(palavrasNaPeca(captions.words, timeline, fps), lang, ateSec, Math.min(caixa.maxPalavras, captions.style?.wordsPerPage ?? caixa.maxPalavras)),
     [captions.words, timeline, fps, lang, ateSec, caixa.maxPalavras],
   );
   const t = f / fps;
@@ -24,21 +25,28 @@ export const LegendaAuto: React.FC<{ captions: CaptionsAuto; timeline: { startSe
   if (!pag || !ajuste) return null;
   let ativa = -1;
   pag.palavras.forEach((w, i) => { if (t >= w.startSec) ativa = i; });
-  const contorno = Math.max(3, Math.round(ajuste.size * 0.09));
+  // legenda-protegida-v1 §2.2: no modo 'replace' a nossa legenda usa o estilo da ORIGINAL (fonte do catálogo, cor,
+  // destaque, contorno, caixa alta, sombra); sem fonte do catálogo, Montserrat 800 com o resto da original (D-LP2)
+  const st = captions.style;
+  const fonte = st?.fontId && st.fontId in FONT_CATALOG ? FONT_CATALOG[st.fontId as keyof typeof FONT_CATALOG] : { family: MONTSERRAT, weight: 800 };
+  const contorno = st ? (st.strokeColor ? Math.max(1, Math.round(ajuste.size * st.strokeWidthRel)) : 0) : Math.max(3, Math.round(ajuste.size * 0.09));
+  const corTexto = st?.color ?? '#fff';
+  const corDestaque = st ? st.highlightColor ?? st.color : captions.highlightColor;
   return (
     <div data-layer="captions-auto" style={{
       position: 'absolute', left: caixa.box.x, top: caixa.box.y, width: caixa.box.w, height: caixa.box.h,
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none',
     }}>
       <div style={{
-        width: caixa.box.w, textAlign: 'center', fontFamily: MONTSERRAT, fontWeight: 800, fontSize: ajuste.size, lineHeight: LEGENDA_LH,
-        color: '#fff', WebkitTextStroke: `${contorno * 2}px #000`, paintOrder: 'stroke fill', lineBreak: 'strict',
-        wordBreak: /^ko/i.test(lang) ? 'keep-all' : 'normal', textShadow: '0 4px 14px rgba(0,0,0,0.45)',
+        width: caixa.box.w, textAlign: 'center', fontFamily: fonte.family, fontWeight: fonte.weight, fontSize: ajuste.size, lineHeight: LEGENDA_LH,
+        color: corTexto, WebkitTextStroke: contorno ? `${contorno * 2}px ${st?.strokeColor ?? '#000'}` : undefined, paintOrder: 'stroke fill', lineBreak: 'strict',
+        textTransform: st?.uppercase ? 'uppercase' : 'none',
+        wordBreak: /^ko/i.test(lang) ? 'keep-all' : 'normal', textShadow: !st || st.shadow ? '0 4px 14px rgba(0,0,0,0.45)' : undefined,
       }}>
         {pag.palavras.map((w, i) => (
           <React.Fragment key={i}>
             {espacoAntes(i ? pag.palavras[i - 1].word : null, w.word) ? ' ' : null}
-            <span style={{ color: i === ativa ? captions.highlightColor : '#fff' }}>{w.word}</span>
+            <span style={{ color: i === ativa ? corDestaque : corTexto }}>{w.word}</span>
           </React.Fragment>
         ))}
       </div>

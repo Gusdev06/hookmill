@@ -31,6 +31,10 @@ export function captureScenarioFromUrl() {
   const mf = new URLSearchParams(window.location.search).get("mockframes")
   if (mf === "off") sessionStorage.removeItem("mock:frames")
   else if (mf === "all") sessionStorage.setItem("mock:frames", "all")
+  // legenda-protegida-v1 (web-mock): ?mockcaptions=burned|covered (champion with burned-in captions; covered = the 1st FRAME's 1st render fails CAPTION_COVERED); =off clears
+  const mc = new URLSearchParams(window.location.search).get("mockcaptions")
+  if (mc === "off") sessionStorage.removeItem("mock:captions")
+  else if (mc === "burned" || mc === "covered") sessionStorage.setItem("mock:captions", mc)
   const a = new URLSearchParams(window.location.search).get("adlib")
   if (a === "off") sessionStorage.setItem("mock:adlib", "off")
   else if (a === "on") sessionStorage.removeItem("mock:adlib")

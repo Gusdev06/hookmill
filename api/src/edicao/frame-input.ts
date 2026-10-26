@@ -6,6 +6,7 @@ import type { FrameSpec } from '../integracoes/contrato';
 import type { FrameRenderInput } from '../render/contrato';
 import type { AutoEditContext } from './auto-edit-input';
 import { championContentOf, type ChampionContent } from './conteudo-campeao';
+import type { OpcoesDeBuild } from '../render/frame';
 
 export const FRAME_BUILDER = Symbol('FRAME_BUILDER');
 
@@ -13,7 +14,7 @@ export const FRAME_BUILDER = Symbol('FRAME_BUILDER');
  * (spec da peça, contexto do campeão, formato) → input do render. Erro com `code: 'FRAME_TEXT_OVERFLOW'` = o texto não
  * coube no mínimo de 36 px (peça `failed`, Leave out); qualquer outro erro = RENDER_ERROR.
  */
-export type FrameBuilder = (spec: FrameSpec, ctx: AutoEditContext, format: VideoFormat) => FrameRenderInput;
+export type FrameBuilder = (spec: FrameSpec, ctx: AutoEditContext, format: VideoFormat, opts?: OpcoesDeBuild) => FrameRenderInput;
 
 /** FrameSpec a partir do `payload.params` (= FinalParams FRAME do regras.ts, sem `type`/`sources`). */
 export function frameSpecOf(params: Record<string, unknown> | null | undefined): FrameSpec {
@@ -34,9 +35,10 @@ export function frameSpecOf(params: Record<string, unknown> | null | undefined):
 export type FrameRenderInputComConteudo = FrameRenderInput & ChampionContent;
 
 export function comConteudoDoCampeao(builder: FrameBuilder): FrameBuilder {
-  return (spec, ctx, format) => {
-    const input = builder(spec, ctx, format);
+  return (spec, ctx, format, opts) => {
+    const input = builder(spec, ctx, format, opts);
     const c = championContentOf(ctx.editMap ?? null, { width: ctx.source.width, height: ctx.source.height });
-    return { ...input, ...c } as FrameRenderInputComConteudo;
+    // o que o buildFrameInput do video já calcula (contentBox/burnedTextBands dele) vence; o nosso só preenche o que falta
+    return { ...c, ...input } as FrameRenderInputComConteudo;
   };
 }

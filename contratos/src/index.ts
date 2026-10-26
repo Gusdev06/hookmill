@@ -232,6 +232,8 @@ export type ApiErrorCode =
   | 'META_OBJECT_CHANGED' | 'META_OBJECT_GONE' | 'META_PARENT_PAUSED' | 'META_BUDGET_NOT_EDITABLE' | 'META_BUDGET_STEP_TOO_LARGE'
   // molduras §B3.1 (25/10): URL colada na troca de b-roll de fonte desligada/fora da v1 (D15)
   | 'BROLL_SOURCE_NOT_SUPPORTED'
+  // legenda-protegida-v1 §2.3 (26/10): a versão sem legenda não é o mesmo vídeo (duração, resolução, fps ou conteúdo)
+  | 'CLEAN_VERSION_MISMATCH'
   // campanhas-v1 §4.1 (22/10): 422 síncrono ao ativar anúncio DISAPPROVED/WITH_ISSUES (homônimo do assíncrono do publish)
   | 'META_POLICY'
   // variacao-auto-v1 §5.3
@@ -539,10 +541,16 @@ export interface ChampionDetail extends ChampionRow {
   costUsd: number;
   /** meta-v1 D13: campeão criado a partir de um anúncio da Meta (POST /iterate { metaAdId }); null nos outros */
   metaAd: { adId: string; adAccountId: string } | null;
+  /** legenda-protegida-v1 §2.3 (26/10): versão sem legenda queimada; com ela, todas as peças usam este vídeo. TRANSIÇÃO opcional. */
+  cleanVideo?: FileRef | null;
 }
+/** legenda-protegida-v1 §2.3: `POST /champions/:id/clean-version` (mesmo vídeo, sem a legenda; 422 CLEAN_VERSION_MISMATCH). */
+export interface SetCleanVersionBody { uploadId: string }
 export interface ListChampionsQuery { offerId?: string; limit?: number; cursor?: string }
 export interface CreateChampionBody {
   offerId: string; name?: string; uploadId?: string; adLibraryUrl?: string; rights: ChampionRights; notes?: string;
+  /** legenda-protegida-v1 §2.3 (26/10): upload opcional do mesmo vídeo sem a legenda queimada */
+  cleanUploadId?: string;
 }
 export interface UpdateChampionBody { name?: string; rights?: ChampionRights; notes?: string | null }
 export interface AttachChampionVideoBody { uploadId: string }
@@ -723,7 +731,12 @@ export interface EditMap {
   /** §13.14: = FaceTrackResult.timeline. Ausente em mapas antigos (aí tudo que está em faceTrack é main). */
   timeline?: FaceTimelineSpan[];
   keepEdit: { SWAP_AVATAR: KeepEditAvailability; NEW_HOOKS: KeepEditAvailability };
+  /** legenda-protegida-v1 §1 (26/10): faixas da legenda queimada que nenhum template pode tampar (px do arquivo, com folga).
+   *  Ausente em mapas antigos (o backend recalcula das `layers`); [] = campeão sem legenda queimada. */
+  protectedBands?: ProtectedBand[];
 }
+/** legenda-protegida-v1 §1: uma posição da legenda queimada num intervalo. Folga: 4 % da altura em cima/embaixo, 2 % nos lados (D-LP1). */
+export interface ProtectedBand { x: number; y: number; w: number; h: number; startSec: number; endSec: number }
 export type HookMode = 'TEXT' | 'VOICE_CLONE' | 'NEW_AVATAR';   // só 'TEXT' aceito até D6
 export type TakeKind = 'TTS_LIPSYNC' | 'AUDIO_LIPSYNC';
 /** O clipe contínuo de lipsync do criativo: 1 por geração, 1 chamada Pruna com o áudio inteiro (≤ 600 s). */

@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ChampionStateMachine } from './champion-state-machine';
 import { type StoredMeasurements, type StoredTranscript, measurementsOf, sectionsOf, transcriptOf, wpmOf } from './champion-views';
 import { type EditMapParts, buildEditMap, clampRect, pickMainSpeaker } from './mapa-edicao';
+import { comFaixasProtegidas } from './faixas-protegidas';
 import { KEYFRAME_MAX_SIDE, MAX_KEYFRAMES, MIN_SPEECH_WORDS } from './limites';
 import { AD_LIBRARY, MEDIA_ANALYSIS, MediaInvalidError, errorCodeOf, hasCaptionBox, type AdLibraryService, type MediaAnalysisService } from './portas';
 
@@ -286,7 +287,8 @@ export class AnaliseService {
           data: {
             sections: draft.sections as unknown as Prisma.InputJsonValue, editedSections: [], model: this.config.optional('ANTHROPIC_MODEL') ?? null, analyzedAt: new Date(),
             // o bloqueio do gancho precisa do fim do gancho (seção hook), por isso o mapa fecha aqui
-            editMap: parts ? (buildEditMap({ ...parts, hookEndSec: hookEndOfSections(draft.sections, measurements.durationSec) }) as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+            // legenda-protegida-v1 §1: a faixa protegida (legenda queimada, px do arquivo) fica gravada no mapa
+            editMap: parts ? (comFaixasProtegidas(buildEditMap({ ...parts, hookEndSec: hookEndOfSections(draft.sections, measurements.durationSec) }), probe) as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
           },
         });
         await this.sm.transition({

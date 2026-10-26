@@ -2,6 +2,10 @@
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**
 Fonte da verdade do banco: [`api/prisma/schema.prisma`](../../api/prisma/schema.prisma) (validado com Prisma 6.19). Este arquivo explica o porquê e as regras que o schema sozinho não diz.
 
+## Mudanças 26/10 (legenda queimada protegida; detalhe em [`legenda-protegida-v1.md`](legenda-protegida-v1.md)) · **aprovado pelo Gusta 26/10**
+- Migração aditiva `20261026000100_champion_clean_video`: `champions.clean_video_file_id` (FK `files`, SetNull) e `FileKind` + `CHAMPION_CLEAN_VIDEO`. Aplicada em `maquina` (backup `.infra/backups/maquina-2026-10-26-1554.sql.gz`) e `maquina_test` (backup `maquina_test-2026-10-26-1554.sql.gz`). `db:diff` vazio depois.
+- Regras que o schema não diz: com `clean_video_file_id`, **todas** as peças novas usam esse vídeo como fonte e a faixa deixa de ser protegida. `protectedBands` mora no `editMap` (JSON do teardown) e o veredito da checagem em `renders.input.captionCheck`, os dois sem coluna nova.
+
 ## Mudanças 25/10 noite (headline nova; detalhe em [`headline-e-legenda-v1.md`](headline-e-legenda-v1.md)) · **aprovado pelo Gusta 25/10**
 - Migração aditiva `20261025000300_auto_headline`: `AutoVariationType` + `HEADLINE` (ITERATION). Aplicada em `maquina` (backup `.infra/backups/maquina-2026-10-25-1952.sql.gz`) e `maquina_test`. `db:diff` vazio depois.
 - Regras que o schema não diz: os params da peça (`mode`, `text`, `highlight`, `sources`) ficam em `variation_items.payload.params`; o render é `remix-keep` (`renders.input`). O `captionsAuto` (legenda sempre) mora em `variation_batches.insight` (JSON), sem coluna nova. O contrato TS só funde `HEADLINE` no `AutoVariationType` quando ia, backend e frontend ligarem o tipo.

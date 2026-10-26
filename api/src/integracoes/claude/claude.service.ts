@@ -6,6 +6,8 @@ import type {
   AutoPlanDraft,
   AutoPlanInput,
   CastingStyle,
+  CheckCaptionInput,
+  CaptionCheckPort,
   CheckStaticTextInput,
   CheckStaticTextResult,
   StaticTextCheckPort,
@@ -67,6 +69,7 @@ import {
 import { IntegracaoError, isIntegracaoError } from '../erros';
 import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanUserMessage, parseAutoPlan, STATIC_REF_IMAGES, staticAllowed } from './auto-plano';
 import { allowedFramesOf } from './auto-plano-moldura';
+import { CAPTION_CHECK, CAPTION_CHECK_SCHEMA, CAPTION_CHECK_SYSTEM, captionCheckImages, captionCheckMessage, captionFramesFromInput, parseCaptionCheck, type CheckCaptionInputAny, type CheckCaptionVerdict } from './checagem-legenda';
 import { FRAMES_DETAIL_SCHEMA, STATIC_DETAIL_SCHEMA, detailTargets, framesByIndex, framesDetailMessage, mergeDetails, staticDetailMessage } from './auto-plano-detalhe';
 import { languageName } from './auto-plano';
 import { TEXT_CHECK_SCHEMA, TEXT_CHECK_SYSTEM, ffmpegRunner, parseTextCheck, prepareCheckImages, textCheckEffort, textCheckUserMessage, type RunFfmpeg } from './checagem-texto';
@@ -127,7 +130,7 @@ const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as co
 const MAX_TOKENS_MSG = 'claude hit max_tokens';
 const SCRIPT_FAIL_CODES = new Set(['RATE_LIMITED', 'SAFETY_BLOCK', 'PROVIDER_TIMEOUT', 'PROVIDER_ERROR']);
 
-export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort {
+export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, CaptionCheckPort {
   private readonly log = new Logger('ClaudeLive');
 
   constructor(
@@ -536,6 +539,35 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort {
       total += spent;
       this.assertFinished(res);
       return parseTextCheck(res.text, i.expected);
+    });
+    return { ...out, costUsd: round6(total) };
+  }
+
+  /**
+   * legenda-protegida-v1 §4.2: Haiku com visão nos quadros do render pronto confere se a legenda queimada está inteira
+   * (ou se a nossa está no lugar, no `replace`). Custo (LLM) no lote/criativo. Falha = erro (o backend marca `skipped`).
+   */
+  async checkCaption(i: CheckCaptionInputAny): Promise<CheckCaptionVerdict & Usage> {
+    const frames = captionFramesFromInput(i).slice(0, CAPTION_CHECK.maxFrames);
+    if (!frames.length) throw new IntegracaoError('INVALID_SCRIPT', 'caption check: no frame');
+    const run = this.opts.runFfmpeg === undefined ? ffmpegRunner(process.env.FFMPEG_PATH || 'ffmpeg') : this.opts.runFfmpeg;
+    let images: ClaudeImage[];
+    try {
+      images = await captionCheckImages({ frames }, run, this.opts.fetchImpl ?? fetch);
+    } catch (e) {
+      throw isIntegracaoError(e) ? e : new IntegracaoError('PROVIDER_ERROR', `caption check: could not read the frames (${(e as Error).message})`);
+    }
+    const model = this.opts.textCheckModel || CAPTION_CHECK.model;
+    let total = 0;
+    const out = await this.withRetry('caption check', async () => {
+      const res = await this.transport.run({
+        system: CAPTION_CHECK_SYSTEM, images, user: captionCheckMessage({ mode: i.mode, language: i.language, frames }), schema: CAPTION_CHECK_SCHEMA,
+        maxTokens: CAPTION_CHECK.maxTokens, model, effort: textCheckEffort(model),
+      });
+      const spent = await recordLlmCost(this.costs, { workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, model }, res.usage);
+      total += spent;
+      this.assertFinished(res);
+      return parseCaptionCheck(res.text, { mode: i.mode, frames });
     });
     return { ...out, costUsd: round6(total) };
   }

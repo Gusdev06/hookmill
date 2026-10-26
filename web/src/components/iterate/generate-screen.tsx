@@ -12,6 +12,7 @@ import { NavIcon } from "@/components/shell/nav-icon"
 import { cn } from "@/lib/utils"
 import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
 import { PieceTextAlert, TextCheckChip, useStaticStage } from "./text-check"
+import { CaptionBlocked, CaptionNote, CleanVersionStatus, NewBatchButton } from "./captions"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
 
@@ -54,6 +55,9 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
               title={allReady ? t("titleDone", { total }) : settled ? t("titleSettled", { ready: s.ready, total }) : t("titleRunning", { total, ready: s.ready })}
             />
             <CaptionsBadge batch={batch} />
+            {settled ? <NewBatchButton batch={batch} /> : null}
+            <CleanVersionStatus batch={batch} />
+            <CaptionBlocked batch={batch} />
             {failed.length ? (
               <Alert variant="destructive">
                 <NavIcon name="alert" size={20} />
@@ -173,7 +177,7 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
     )
   const reason = failed ? (
     <span className="text-[13px] font-semibold text-status-failed">
-      {p.failReason ?? (p.errorCode ? t(`err.${p.errorCode}` as never) : null)}{" "}
+      {p.errorCode && t.has(`err.${p.errorCode}` as never) ? t(`err.${p.errorCode}` as never) : p.failReason}{" "}
       {p.failReason && !noRetry ? null : p.retryHint === "use_product_photo" ? t("err.photoHint") : noRetry ? t("err.leaveOutHint") : p.retryHint ? t("err.retryHint") : null}
     </span>
   ) : null
@@ -199,6 +203,7 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
           <TextCheckChip p={p} />
         </div>
         <PieceKind p={p} className="text-xs text-fg-3" />
+        <CaptionNote p={p} className="self-start" />
         {reason}
         <PieceTextAlert batchId={batchId} p={p} />
         <span className="text-[13px] text-fg-2">{p.change}</span>

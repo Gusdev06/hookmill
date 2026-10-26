@@ -6,8 +6,10 @@
 //  - burnedTextBands: legenda/texto queimado DENTRO da contentBox (faixa da largura toda), com o tempo de cada um, pra a
 //    moldura não empilhar texto dela em cima.
 import type { EditMap, Rect } from '@maquina/contratos';
+import { faixasQueimadasDe, type BurnedBand } from '@maquina/video';
 
-export interface BurnedTextBand { kind: 'caption' | 'text' | 'headline'; box: Rect; startSec: number; endSec: number }
+/** = `BurnedBand` do @maquina/video (px do arquivo do campeão, faixa da largura do vídeo, com o intervalo). */
+export type BurnedTextBand = BurnedBand;
 export interface ChampionContent {
   /** px do campeão (mesmo espaço do editMap) */
   contentBox: Rect;
@@ -50,23 +52,18 @@ export function contentBoxOf(editMap: EditMap | null, size: { width: number; hei
   return { contentBox: full, contentBoxSource: 'full_frame' };
 }
 
-/** Legenda/texto queimado que cai DENTRO da contentBox (≥ 50 % da altura do texto lá dentro), como faixa da largura dela. */
-export function burnedTextBandsOf(editMap: EditMap | null, contentBox: Rect): BurnedTextBand[] {
-  if (!editMap?.layers?.length || !editMap.fps) return [];
-  const out: BurnedTextBand[] = [];
-  for (const l of editMap.layers) {
-    if (!l.box || l.endFrame <= l.startFrame) continue;
-    const i = inter(l.box, contentBox);
-    if (i.h < 0.5 * l.box.h || i.w <= 0) continue;
-    out.push({
-      kind: l.kind, box: { x: contentBox.x, y: i.y, w: contentBox.w, h: i.h },
-      startSec: r3(l.startFrame / editMap.fps), endSec: r3(l.endFrame / editMap.fps),
-    });
-  }
-  return out.sort((a, b) => a.box.y - b.box.y);
+/**
+ * Legenda/texto queimado DENTRO da contentBox: a MESMA regra do video (`faixasQueimadasDe` do @maquina/video: +1 linha
+ * em cima e embaixo na legenda, união de faixas que se tocam, texto com menos de 3 s ignorado). Pedido do video 26/10:
+ * a caixa da visão sem folga deixava a legenda real de 2 linhas fora da faixa.
+ */
+export function burnedTextBandsOf(editMap: EditMap | null, contentBox: Rect, size?: { width: number; height: number }): BurnedTextBand[] {
+  if (!editMap) return [];
+  const src = size ?? { width: editMap.width, height: editMap.height };
+  return faixasQueimadasDe(src, editMap as never, contentBox);
 }
 
 export function championContentOf(editMap: EditMap | null, size: { width: number; height: number }): ChampionContent {
   const b = contentBoxOf(editMap, size);
-  return { ...b, burnedTextBands: burnedTextBandsOf(editMap, b.contentBox) };
+  return { ...b, burnedTextBands: burnedTextBandsOf(editMap, b.contentBox, size) };
 }

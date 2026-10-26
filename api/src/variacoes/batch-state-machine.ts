@@ -30,6 +30,8 @@ export const BATCH_TRANSITIONS = {
   AUTO_RETRY: { from: ['ANALYSIS_FAILED'], to: ['ANALYZING', 'PLANNING'] },
   /** POST /iterate/:id/start (cria os criativos e os renders na mesma transação) */
   AUTO_START: { from: ['PLAN_READY'], to: ['LAUNCHED'] },
+  /** POST /iterate/:id/replan (legenda-protegida-v1 D-LP5): refaz o plano sobre a análise pronta; itens antigos descartados */
+  AUTO_REPLAN: { from: ['PLAN_READY'], to: ['PLANNING'] },
 } as const satisfies Record<string, { from: readonly VariationBatchStatus[]; to: readonly VariationBatchStatus[] }>;
 
 export type BatchEvent = keyof typeof BATCH_TRANSITIONS;
@@ -38,7 +40,7 @@ export const BATCH_EVENTS = Object.keys(BATCH_TRANSITIONS) as BatchEvent[];
 /** Modo em que cada evento vale (o CAS filtra por `mode`: evento AUTO nunca move lote MANUAL e vice-versa). */
 export const BATCH_EVENT_MODE: Record<BatchEvent, BatchMode> = {
   PLAN_SETTLED: 'MANUAL', REPLAN: 'MANUAL', LAUNCH: 'MANUAL',
-  AUTO_READING_DONE: 'AUTO', AUTO_FAILED: 'AUTO', AUTO_PLAN_DONE: 'AUTO', AUTO_RETRY: 'AUTO', AUTO_START: 'AUTO',
+  AUTO_READING_DONE: 'AUTO', AUTO_FAILED: 'AUTO', AUTO_PLAN_DONE: 'AUTO', AUTO_RETRY: 'AUTO', AUTO_START: 'AUTO', AUTO_REPLAN: 'AUTO',
 };
 
 /** Estado de nascimento (gravado no create). */

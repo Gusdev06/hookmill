@@ -16,7 +16,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { AnaliseService } from './analise.service';
 import { CHAMPION_ENTRY, ChampionStateMachine, assertChampionCan, championInvalidState } from './champion-state-machine';
-import { CHAMPION_INCLUDE, ChampionViews, SECTION_KEYS, sectionsOf, transcriptOf } from './champion-views';
+import { faixasDoCampeao } from './faixas-protegidas';
+import { VersaoSemLegendaService } from './versao-sem-legenda';
+import { CHAMPION_INCLUDE, ChampionViews, SECTION_KEYS, editMapOf, sectionsOf, transcriptOf } from './champion-views';
 import type { AnalyzeChampionDto, CreateChampionDto, ListChampionsQueryDto, UpdateChampionDto, UpdateTeardownDto } from './campeoes.dto';
 import { ALL_KINDS, CHAMPION_MIME_TYPES, ENABLED_KINDS, adArchiveIdOf, analysisEstimateUsd, analysisUsdPerSec } from './limites';
 import { AD_LIBRARY, errorCodeOf, type AdLibraryService } from './portas';
@@ -38,6 +40,7 @@ export class CampeoesService {
     private readonly cfg: AppConfig,
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
     @Inject(AD_LIBRARY) private readonly adlib: AdLibraryService,
+    private readonly semLegenda: VersaoSemLegendaService,
   ) {}
 
   private async full(auth: AuthContext, id: string) {
@@ -177,6 +180,34 @@ export class CampeoesService {
       return job.id;
     });
     void this.jobs.detach(jobId, 'análise do campeão', () => this.analise.runAnalyze(jobId, id));
+    return this.get(auth, id);
+  }
+
+  /**
+   * legenda-protegida-v1 §2.3: `POST /champions/:id/clean-version { uploadId }`. Confere que é o mesmo vídeo sem a legenda
+   * (422 CLEAN_VERSION_MISMATCH { reason }); campeão analisando/resolvendo = 409 INVALID_STATE. Os lotes já planejados não
+   * mudam sozinhos (D-LP5: "Replanejar com a versão sem legenda"); os próximos já usam ela.
+   */
+  async setCleanVersion(auth: AuthContext, id: string, uploadId: string): Promise<ChampionDetail> {
+    await this.locks.run(`champion:${id}`, async () => {
+      const c = await this.full(auth, id);
+      if (c.status === 'ANALYZING' || c.status === 'RESOLVING' || !c.videoFile) throw championInvalidState(c.status, ['READY', 'FAILED']);
+      const file = await this.uploads.readyFile(auth.workspaceId, uploadId);
+      const m = editMapOf(c.teardown?.editMap);
+      const bands = faixasDoCampeao(m, { width: c.videoFile.width ?? m?.width ?? 0, height: c.videoFile.height ?? m?.height ?? 0 });
+      await this.semLegenda.assertSameVideo(c.videoFile, file, bands);
+      await this.prisma.$transaction([
+        this.prisma.file.update({ where: { id: file.id }, data: { kind: 'CHAMPION_CLEAN_VIDEO' } }),
+        this.prisma.champion.update({ where: { id: c.id }, data: { cleanVideoFileId: file.id } }),
+      ]);
+    });
+    return this.get(auth, id);
+  }
+
+  /** `DELETE /champions/:id/clean-version`: volta pra original (idempotente; o arquivo fica, peças prontas podem usá-lo). */
+  async removeCleanVersion(auth: AuthContext, id: string): Promise<ChampionDetail> {
+    const c = await this.full(auth, id);
+    if (c.cleanVideoFileId) await this.prisma.champion.update({ where: { id: c.id }, data: { cleanVideoFileId: null } });
     return this.get(auth, id);
   }
 
