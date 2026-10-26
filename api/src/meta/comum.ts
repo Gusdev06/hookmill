@@ -32,6 +32,37 @@ export function assertUsable(conn: MetaConnection | null): MetaConnection {
   return conn;
 }
 
+/** Checagens que travam o dado de anúncio (igual ao `meta-gate.tsx` do web: token / scopes / account com `level: 'bad'`). */
+export const BLOCKING_CHECKS = ['token', 'scopes', 'account'] as const;
+export type BlockingCheck = (typeof BLOCKING_CHECKS)[number];
+
+/** A 1ª checagem bloqueante que falhou no último `lastHealth`; null = saudável (ou sem checagem ainda). */
+export function blockingCheckOf(lastHealth: unknown): BlockingCheck | null {
+  const checks = (lastHealth && typeof lastHealth === 'object' && Array.isArray((lastHealth as { checks?: unknown }).checks))
+    ? (lastHealth as { checks: { key?: string; level?: string }[] }).checks : [];
+  const bad = checks.find((c) => c.level === 'bad' && (BLOCKING_CHECKS as readonly string[]).includes(c.key ?? ''));
+  return (bad?.key as BlockingCheck | undefined) ?? null;
+}
+
+/**
+ * Pedido do Gusta 25/10: dado de anúncio (gasto, CPA, campanhas, anúncios, mudanças) SÓ com a conta conectada e
+ * saudável. Nunca conectou/desconectou = META_NOT_CONNECTED; login expirado = META_TOKEN_INVALID; checagem bloqueante
+ * falhando = token → META_TOKEN_INVALID, scopes → META_PERMISSION, account → META_ACCOUNT_UNUSABLE (com `{ check }`).
+ */
+export function assertHealthy(conn: MetaConnection | null): MetaConnection {
+  const c = assertUsable(conn);
+  const bad = blockingCheckOf(c.lastHealth);
+  if (bad === 'token') throw new AppException('META_TOKEN_INVALID', { check: bad });
+  if (bad === 'scopes') throw new AppException('META_PERMISSION', { check: bad });
+  if (bad === 'account') throw new AppException('META_ACCOUNT_UNUSABLE', { check: bad });
+  return c;
+}
+
+/** Mesma regra, sem lançar (Brain: omite os nós da Meta). */
+export function metaSaudavel(conn: Pick<MetaConnection, 'status' | 'lastHealth'> & { adAccountId: string | null } | null): boolean {
+  return !!conn && conn.status === 'ACTIVE' && !!conn.adAccountId && !blockingCheckOf(conn.lastHealth);
+}
+
 /** Conexão com conta e página escolhidas (422 META_SELECTION_MISSING { missing }). */
 export function assertSelected(conn: MetaConnection): MetaConnection & { adAccountId: string; pageId: string } {
   const missing: ('adAccount' | 'page')[] = [];

@@ -663,7 +663,9 @@
     "META_VIDEO_REJECTED": "Meta rejected the video file. Render it again.",
     "META_VIDEO_UNAVAILABLE": "The ad's video isn't available on Meta. Upload the file instead.",
     "META_RATE_LIMITED": "Meta asked us to slow down. Retry in a minute.",
-    "META_ERROR": "Meta returned an error. Retry; if it keeps happening, contact support."
+    "META_ERROR": "Meta returned an error. Retry; if it keeps happening, contact support.",
+    "BROLL_SOURCE_NOT_SUPPORTED": "This link's source isn't supported yet. Paste a YouTube or TikTok link.",
+    "BROLL_UNAVAILABLE": "The b-roll clip is no longer available. Retry picks the next one."
   },
   "template": {
     "clean": "Clean",
@@ -2252,7 +2254,8 @@
         "REVIEW": "Layout · review background",
         "NATIVE_SEARCH": "Native hook · search bar",
         "STATIC": "Static image",
-        "FRAME": "Frame"
+        "FRAME": "Frame",
+        "HEADLINE": "New headline"
       },
       "thisBatch": "This batch",
       "pieces": "{n, plural, one {piece} other {pieces}}",
@@ -2387,6 +2390,10 @@
         "PROVIDER_TIMEOUT": "The image service took too long.",
         "FRAME_TEXT_OVERFLOW": "The frame text didn't fit at the minimum size.",
         "BROLL_UNAVAILABLE": "The second clip is no longer available. Retry picks the next one.",
+        "HEADLINE_TOO_LONG": "The new headline doesn't fit the original box. Leave it out.",
+        "HEADLINE_NO_ROOM": "There's no free room for a headline in this video. Leave it out.",
+        "HEADLINE_OVER_FACE": "The headline would cover the face. Leave it out.",
+        "HEADLINE_LOW_CONFIDENCE": "We couldn't read the original headline's style. Leave it out.",
         "leaveOutHint": "Retrying won't change it; leave this piece out."
       },
       "failedBodyImage": "Retry runs only this piece. Video pieces cost nothing to retry; a static makes a new image, so its retry shows the price.",
@@ -2456,7 +2463,8 @@
       "suggestedText": "Suggested ad text",
       "suggestedTextNote": "Goes in as the primary text when you publish from HookMill, and in the zip README.",
       "copy": "Copy",
-      "copied": "Copied."
+      "copied": "Copied.",
+      "formatOnlyChampion": "This piece only exists in the champion's shape."
     },
     "lib": {
       "vary": "Vary",
@@ -2609,6 +2617,31 @@
         "more": "(+{n} more)"
       },
       "outSubExtra": "The image wrote text nobody asked for, after 2 tries, so it was left out. Put it back if that text is fine for you."
+    },
+    "headline": {
+      "none": "No headline in the champion",
+      "becomes": "becomes"
+    },
+    "captions": {
+      "badge": "Captions added",
+      "why": "The champion has no burned-in captions, so every video piece gets word-by-word captions."
+    },
+    "track": {
+      "title": "B-roll track",
+      "sub": "Each clip plays while this part of the speech is said.",
+      "generated": "Image we generated (GPT Image 2)",
+      "unverified": "License not verified",
+      "unknownLicense": "License unknown",
+      "open": "Open source",
+      "provider": {
+        "youtube": "YouTube",
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "pexels": "Pexels",
+        "pixabay": "Pixabay",
+        "wikimedia": "Wikimedia Commons",
+        "nasa": "NASA"
+      }
     }
   },
   "welcome": {
@@ -3482,5 +3515,51 @@
     "saved": "Brand color saved.",
     "cleared": "Brand color cleared.",
     "none": "Not set"
+  },
+  "metaGate": {
+    "connect": "Connect Meta",
+    "reconnect": "Reconnect",
+    "choose": "Choose the ad account",
+    "askAdmin": "Ask an admin to connect the ad account.",
+    "eyebrow": {
+      "locked": "Meta not connected",
+      "attention": "Meta needs attention"
+    },
+    "screen": {
+      "none": {
+        "title": "Connect your ad account",
+        "body": "Campaigns, ad sets and ads with their spend and results only show with your Meta ad account connected."
+      },
+      "choose": {
+        "title": "Choose your ad account",
+        "body": "Meta is connected, but no ad account and Page are chosen yet. Pick them to see campaigns here."
+      },
+      "expired": {
+        "title": "Reconnect your ad account",
+        "body": "The Meta login expired, so we can't read your campaigns. Reconnect to see them again."
+      },
+      "broken": {
+        "title": "Reconnect your ad account",
+        "body": "The connection is missing a permission on the ad account. Reconnect and accept every permission Meta asks for."
+      }
+    },
+    "metrics": {
+      "none": {
+        "title": "Connect your ad account to see CPA, ROAS and campaigns",
+        "body": "Everything else here works without it."
+      },
+      "choose": {
+        "title": "Choose your ad account to see CPA, ROAS and campaigns",
+        "body": "Meta is connected; the ad account and Page are still missing."
+      },
+      "expired": {
+        "title": "Reconnect your ad account to see CPA, ROAS and campaigns",
+        "body": "The Meta login expired. Numbers come back after you reconnect."
+      },
+      "broken": {
+        "title": "Reconnect your ad account to see CPA, ROAS and campaigns",
+        "body": "The connection is missing a permission on the ad account."
+      }
+    }
   }
 }

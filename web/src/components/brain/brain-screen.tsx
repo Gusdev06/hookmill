@@ -19,6 +19,20 @@ import { useTour } from "@/components/tour/tour-provider"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { brainCompleteness } from "@/lib/brain"
 import { canDraw3D, CATS, indexGraph, isVisible, type Cat } from "@/lib/brain-graph"
+import type { BrainGraph } from "@/lib/api/types"
+import { MetaLockCard, isLocked, useMetaGate } from "@/components/meta/meta-gate"
+
+/** The graph without the Meta ads (and their edges); `meta.connected` false so the empty slot says "connect". */
+function withoutMetaAds(g: BrainGraph): BrainGraph {
+  const gone = new Set(g.nodes.filter((n) => n.kind === "meta_ad").map((n) => n.id))
+  return {
+    ...g,
+    nodes: g.nodes.filter((n) => !gone.has(n.id)),
+    edges: g.edges.filter((e) => !gone.has(e.from) && !gone.has(e.to)),
+    counts: { ...g.counts, meta_ad: { total: 0, shown: 0 } },
+    meta: { ...g.meta, connected: false },
+  }
+}
 import { effectiveRole } from "@/lib/dev-role"
 import { cn } from "@/lib/utils"
 
@@ -61,7 +75,12 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
   const gl = gl0 !== null && gl0 && !glFailed
   const known = narrow !== null && gl0 !== null
 
-  const graph = useQuery({ queryKey: ["brain", "graph"], queryFn: ({ signal }) => api.brain.graph({}, { signal }), staleTime: 60_000 })
+  const graphQ = useQuery({ queryKey: ["brain", "graph"], queryFn: ({ signal }) => api.brain.graph({}, { signal }), staleTime: 60_000 })
+  // Gusta 25/10: the Meta ads (spend, CPA) only with the ad account usable. Locked = no meta_ad node at all and the lock card
+  const metaGate = useMetaGate()
+  const locked = isLocked(metaGate.state)
+  const graphData = useMemo(() => (graphQ.data && locked ? withoutMetaAds(graphQ.data) : graphQ.data), [graphQ.data, locked])
+  const graph = { ...graphQ, data: graphData } as typeof graphQ
   const [ws, offers] = useQueries({
     queries: [
       { queryKey: ["workspace"], queryFn: api.workspace.get },
@@ -307,6 +326,8 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
           </div>
         ) : null}
       </div>
+
+      {locked ? <MetaLockCard state={metaGate.state} compact /> : null}
 
       {!known ? (
         <span className="sk h-[660px] rounded-[var(--r-panel)] max-tablet:h-64" />

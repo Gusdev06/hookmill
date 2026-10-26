@@ -663,7 +663,9 @@
     "META_VIDEO_REJECTED": "A Meta recusou o arquivo de vídeo. Renderize de novo.",
     "META_VIDEO_UNAVAILABLE": "O vídeo do anúncio não está disponível na Meta. Suba o arquivo.",
     "META_RATE_LIMITED": "A Meta pediu pra ir mais devagar. Tente de novo em um minuto.",
-    "META_ERROR": "A Meta devolveu um erro. Tente de novo; se continuar, fale com o suporte."
+    "META_ERROR": "A Meta devolveu um erro. Tente de novo; se continuar, fale com o suporte.",
+    "BROLL_SOURCE_NOT_SUPPORTED": "A fonte desse link ainda não é aceita. Cole um link do YouTube ou do TikTok.",
+    "BROLL_UNAVAILABLE": "O clipe de b-roll não está mais disponível. Refazer pega o próximo."
   },
   "template": {
     "clean": "Limpo",
@@ -2252,7 +2254,8 @@
         "REVIEW": "Layout · fundo com review",
         "NATIVE_SEARCH": "Gancho nativo · busca",
         "STATIC": "Imagem estática",
-        "FRAME": "Moldura"
+        "FRAME": "Moldura",
+        "HEADLINE": "Headline nova"
       },
       "thisBatch": "Este lote",
       "pieces": "{n, plural, one {peça} other {peças}}",
@@ -2387,6 +2390,10 @@
         "PROVIDER_TIMEOUT": "O serviço de imagem demorou demais.",
         "FRAME_TEXT_OVERFLOW": "O texto da moldura não coube no tamanho mínimo.",
         "BROLL_UNAVAILABLE": "O segundo clipe não está mais disponível. Refazer pega o próximo.",
+        "HEADLINE_TOO_LONG": "A headline nova não coube na caixa da original. Deixe de fora.",
+        "HEADLINE_NO_ROOM": "Não há espaço livre pra headline neste vídeo. Deixe de fora.",
+        "HEADLINE_OVER_FACE": "A headline cobriria o rosto. Deixe de fora.",
+        "HEADLINE_LOW_CONFIDENCE": "Não conseguimos ler o estilo da headline original. Deixe de fora.",
         "leaveOutHint": "Refazer não muda; deixe a peça de fora."
       },
       "failedBodyImage": "O Retry roda só esta peça. Peça de vídeo não custa nada pra tentar de novo; o estático faz uma imagem nova, então o retry dele mostra o preço.",
@@ -2456,7 +2463,8 @@
       "suggestedText": "Texto do anúncio sugerido",
       "suggestedTextNote": "Entra como texto principal quando você publica pelo HookMill, e no README do zip.",
       "copy": "Copiar",
-      "copied": "Copiado."
+      "copied": "Copiado.",
+      "formatOnlyChampion": "Esta peça só existe no formato do campeão."
     },
     "lib": {
       "vary": "Variar",
@@ -2609,6 +2617,31 @@
         "more": "(+{n})"
       },
       "outSubExtra": "A imagem escreveu texto que ninguém pediu, depois de 2 tentativas, então a peça ficou de fora. Volte pro zip se esse texto estiver ok pra você."
+    },
+    "headline": {
+      "none": "O campeão não tinha headline",
+      "becomes": "vira"
+    },
+    "captions": {
+      "badge": "Legenda adicionada",
+      "why": "O campeão não tem legenda queimada, então toda peça de vídeo ganha legenda palavra a palavra."
+    },
+    "track": {
+      "title": "Trilha de b-roll",
+      "sub": "Cada clipe toca enquanto esse trecho da fala é dito.",
+      "generated": "Imagem que geramos (GPT Image 2)",
+      "unverified": "Licença não verificada",
+      "unknownLicense": "Licença desconhecida",
+      "open": "Abrir a fonte",
+      "provider": {
+        "youtube": "YouTube",
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "pexels": "Pexels",
+        "pixabay": "Pixabay",
+        "wikimedia": "Wikimedia Commons",
+        "nasa": "NASA"
+      }
     }
   },
   "welcome": {
@@ -3482,5 +3515,51 @@
     "saved": "Cor da marca salva.",
     "cleared": "Cor da marca removida.",
     "none": "Não definida"
+  },
+  "metaGate": {
+    "connect": "Conectar Meta",
+    "reconnect": "Reconectar",
+    "choose": "Escolher a conta de anúncios",
+    "askAdmin": "Peça pra um admin conectar a conta de anúncios.",
+    "eyebrow": {
+      "locked": "Meta não conectada",
+      "attention": "Meta precisa de atenção"
+    },
+    "screen": {
+      "none": {
+        "title": "Conecte sua conta de anúncios",
+        "body": "Campanhas, conjuntos e anúncios com gasto e resultados só aparecem com a sua conta de anúncios da Meta conectada."
+      },
+      "choose": {
+        "title": "Escolha sua conta de anúncios",
+        "body": "A Meta está conectada, mas falta escolher a conta de anúncios e a Página. Escolha pra ver as campanhas aqui."
+      },
+      "expired": {
+        "title": "Reconecte sua conta de anúncios",
+        "body": "O login da Meta expirou, então não conseguimos ler suas campanhas. Reconecte pra ver de novo."
+      },
+      "broken": {
+        "title": "Reconecte sua conta de anúncios",
+        "body": "Falta uma permissão da conta de anúncios na conexão. Reconecte e aceite todas as permissões que a Meta pedir."
+      }
+    },
+    "metrics": {
+      "none": {
+        "title": "Conecte sua conta de anúncios pra ver CPA, ROAS e campanhas",
+        "body": "O resto desta tela funciona sem ela."
+      },
+      "choose": {
+        "title": "Escolha sua conta de anúncios pra ver CPA, ROAS e campanhas",
+        "body": "A Meta está conectada; faltam a conta de anúncios e a Página."
+      },
+      "expired": {
+        "title": "Reconecte sua conta de anúncios pra ver CPA, ROAS e campanhas",
+        "body": "O login da Meta expirou. Os números voltam depois que você reconectar."
+      },
+      "broken": {
+        "title": "Reconecte sua conta de anúncios pra ver CPA, ROAS e campanhas",
+        "body": "Falta uma permissão da conta de anúncios na conexão."
+      }
+    }
   }
 }

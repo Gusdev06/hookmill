@@ -85,7 +85,7 @@ export class PlanoAutoService {
       const swaps = swapsFor(allowed);
       const flags = flagsOf(ctx);
       // régua parcial (blocos sem função) já na tela durante o plano
-      await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: partialInsight(ctx, flags, swaps) as unknown as Prisma.InputJsonValue } });
+      await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto } as unknown as Prisma.InputJsonValue } });
 
       // 2. planning: Claude → validação → 1 reparo pela ia → reparo determinístico
       stage = 'planning';
@@ -104,9 +104,13 @@ export class PlanoAutoService {
         teardown: sections, transcript: transcript?.words ?? [],
         media: { durationSec: ctx.durationSec, cuts: m?.cuts?.length ?? 0, silences: ctx.silences, hasWrittenHook: ctx.hasWrittenHook, hasEndCard: ctx.hasEndCard },
         keyframes,
-        allowed: allowed.map((a) => ({ type: a.type, max: a.max })),
+        // headline-e-legenda-v1: HEADLINE no `allowed` (TRANSIÇÃO: fora do AutoVariationType até a fusão) + o que a ia precisa
+        allowed: allowed.map((a) => ({ type: a.type, max: a.max })) as unknown as AutoPlanInput['allowed'],
         allowedFrames: allowedFrameIds(ctx),
         rules: rulesFor(allowed),
+        ...(ctx.headline && !ctx.headline.blockedReason && {
+          headline: { mode: ctx.headline.mode, original: ctx.headline.original, lines: ctx.headline.lines, maxChars: ctx.headline.maxChars, hasHighlight: ctx.headline.hasHighlight, language: ctx.headline.language },
+        }),
       };
       const first = await this.plan(input);
       let draft: AutoPlanDraft = first;
@@ -138,7 +142,8 @@ export class PlanoAutoService {
         draft = r.draft;
       }
       const items = finalizePlan(draft, ctx, this.media);
-      const insight = buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length);
+      // §2.1: `captionsAuto` no insight (TRANSIÇÃO: fora do AutoInsight até o arquiteto tipar; o web já lê)
+      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto };
 
       // 3. PLAN_READY: itens e insight na mesma transação da troca de estado
       await this.prisma.$transaction(async (tx) => {

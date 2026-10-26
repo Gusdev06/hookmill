@@ -56,8 +56,19 @@ const oauthStatusOf = (m: MetaState | undefined): MetaOAuthStatus => ({
 
 /** The connection of the token's workspace; a pending OAuth round trip is resolved here from what the fake dialog left. */
 export function metaOf(req: Request): MetaState | null {
+  // Meta gate (25/10): ?metamock=none = this workspace never connected (GET /meta/connection → null, reads → 422)
+  if (metaFlag() === "none") return null
   const id = wid(req)
-  const m = db.v2.meta[id]
+  let m = db.v2.meta[id]
+  // ?metamock=connected|expired|perm|… on a workspace that never connected: seed a connected, synced account (web-mock QA)
+  if (!m && metaFlag() && metaFlag() !== "off") {
+    const t = Date.now()
+    const acc = ACCOUNTS.find((a) => a.canManage) ?? ACCOUNTS[0]
+    m = db.v2.meta[id] = {
+      ...newMeta(), adAccountId: acc.id, pageId: PAGES[0].id, pixelId: PIXELS.find((x) => x.adAccountId === acc.id)?.id ?? null,
+      selectedAt: new Date(t - 120_000).toISOString(), syncT0: t - 90_000, syncT1: t - 60_000, lastSyncAt: new Date(t - 60_000).toISOString(),
+    }
+  }
   if (!m) return null
   if (m.pending && m.oauth?.remote) {
     // the other browser hasn't finished yet: the row stays pending (status comes from GET /meta/oauth/status)

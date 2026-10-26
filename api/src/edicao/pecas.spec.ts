@@ -1,7 +1,7 @@
 import {
   FRAME_FORMATS, LEGACY_STATIC_VISUAL, autoAdName, autoFileName, engineFor, estimateStaticUsd, expectedOutputSec, folderOf, isAssembled, latestByFormat,
   legacySpecOf, mockRenderFail, paramsOf, pieceFormats, pieceFrameOf, pieceOutcome, pieceStatus, renderOrder, screenRefSourceOf, staticFailCode,
-  staticLayoutOf, staticNextStep, staticSpecAnyOf, staticSpecOf, suggestedPrimaryTextOf, supportedFormatsOf, textCheckOf,
+  primaryFormatOf, staticLayoutOf, staticNextStep, staticSpecAnyOf, staticSpecOf, suggestedPrimaryTextOf, supportedFormatsOf, textCheckOf,
 } from './pecas';
 import { withCollisionSuffix } from '../biblioteca/ad-name';
 
@@ -159,5 +159,15 @@ describe('25/10 estatico-montado-e-molduras-v1: spec por layout (§A5), textChec
     expect(mockRenderFail('x [mock:frame-fail:news]', 'FRAME', 'VERTICAL_9_16', 2, 'news')).toBe(false);
     expect(mockRenderFail('x [mock:frame-fail:news]', 'FRAME', 'VERTICAL_9_16', 1, 'meme')).toBe(false);
     expect(engineFor('FRAME')).toBe('REMOTION');
+  });
+
+  it('HEADLINE: só no aspecto do campeão; a peça decide por ele', () => {
+    const params = { type: 'HEADLINE', format: 'PORTRAIT_4_5' };
+    expect(supportedFormatsOf('HEADLINE', params)).toEqual(['4x5']);
+    expect(primaryFormatOf('HEADLINE', params)).toBe('PORTRAIT_4_5');
+    expect(primaryFormatOf('CUT', params)).toBe('VERTICAL_9_16');
+    const R = (format: any, status: any) => ({ format, status, createdAt: new Date(0) });
+    expect(pieceOutcome([R('PORTRAIT_4_5', 'READY')], 'PORTRAIT_4_5')).toBe('ready');
+    expect(pieceOutcome([R('PORTRAIT_4_5', 'READY')])).toBeNull();
   });
 });

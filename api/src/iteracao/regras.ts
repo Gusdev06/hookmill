@@ -5,16 +5,17 @@
 //  4. finalizePlan(...): código (codeFor, com sufixo de repetição), eixo, tempos encaixados no silêncio, textos cortados.
 // 25/10 (estatico-montado-e-molduras-v1): STATIC V2 "anúncio montado" (§A3: fonte por bloco, invented_claim, reparo que
 // apaga o bloco opcional) e FRAME (molduras, §B2/§B5: allowedFrames, textos por template, preço literal, máx. 2 distintas).
-// TRANSIÇÃO (§C.0): FRAME ainda fora do AutoVariationType; aqui tudo é escrito contra `AutoVariationTypeWithFrame`.
+// TRANSIÇÃO (§C.0): FRAME ainda fora do AutoVariationType; aqui tudo é escrito contra `AutoVariationType`.
 import type {
-  AutoInsight, AutoVariationType, AutoVariationTypeWithFrame, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts,
+  AutoInsight, AutoVariationType, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts,
   SwapReason, TranscriptWord, VariationAxis, WhyLine,
 } from '@maquina/contratos';
 import type {
-  AutoFrameDraft, AutoItemDraft, AutoParamsDraft, AutoParamsDraftWithFrame, AutoPlanDraft, CopySource, FrameBrand, FrameSpec, StaticCopy,
+  AutoFrameDraft, AutoItemDraft, AutoParamsDraft, AutoPlanDraft, CopySource, FrameBrand, FrameSpec, StaticCopy,
   StaticIcon, StaticVisualDraft, StaticVisualV2,
 } from '../integracoes';
 import { inventedClaimsIn } from './afirmacoes';
+import type { HeadlineBlocked, HeadlineInfo } from './headline-plano';
 import { DEFAULT_ACCENT } from './paleta';
 import type { MediaRulesPort, Span } from './portas';
 
@@ -23,16 +24,18 @@ import type { MediaRulesPort, Span } from './portas';
 export const AUTO_TYPES: readonly AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
 
 /** Eixo fixo por tipo: ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". FRAME (§B2) = DIVERSITY. */
-export const AXIS_OF: Record<AutoVariationTypeWithFrame, VariationAxis> = {
+export const AXIS_OF: Record<AutoVariationType, VariationAxis> = {
   CUT: 'ITERATION', COLD_OPEN: 'ITERATION', HOOK_TEXT: 'ITERATION', ENDCARD: 'ITERATION',
   SPLIT_LP: 'DIVERSITY', STORY: 'DIVERSITY', REVIEW: 'DIVERSITY', NATIVE_SEARCH: 'DIVERSITY', STATIC: 'DIVERSITY', FRAME: 'DIVERSITY',
+  HEADLINE: 'ITERATION', // headline-e-legenda-v1 §1.1
 };
 
 /** Máximo por lote com a repetição da D2 (HOOK-TEXT ≤ 3, STATIC ≤ 2, NATIVE-SEARCH ≤ 2; CUT = um de 15 s e um de 20 s).
  *  25/10 (Gusta, D10 revista): FRAME ≤ 8, todas de templates diferentes. Os tipos que saíram do catálogo mantêm o número
  *  (só leitura de lote antigo). */
-export const TYPE_MAX: Record<AutoVariationTypeWithFrame, number> = {
+export const TYPE_MAX: Record<AutoVariationType, number> = {
   CUT: 2, COLD_OPEN: 1, HOOK_TEXT: 3, ENDCARD: 1, SPLIT_LP: 1, STORY: 1, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8,
+  HEADLINE: 3, // `replace` = 3; `add` = 2 (no allowedFor, H6)
 };
 
 /**
@@ -40,8 +43,8 @@ export const TYPE_MAX: Record<AutoVariationTypeWithFrame, number> = {
  * HOOK_TEXT, ENDCARD, STORY e SPLIT_LP saíram: nunca entram no `allowed` do plano; lote antigo com eles segue (leitura,
  * retry, formatos, zip), porque o render, a vista e o zip não olham o catálogo.
  */
-export const AUTO_TYPES_NOVOS: readonly AutoVariationTypeWithFrame[] = ['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
-export const AUTO_TYPES_FORA: readonly AutoVariationTypeWithFrame[] = ['COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'STORY', 'SPLIT_LP'];
+export const AUTO_TYPES_NOVOS: readonly AutoVariationType[] = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
+export const AUTO_TYPES_FORA: readonly AutoVariationType[] = ['COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'STORY', 'SPLIT_LP'];
 
 /** Lote (§6.2 + D2): 8 a 12; sem tipos que fechem 8, sai menor até o piso 4 (com aviso smallBatch). */
 export const BATCH_MAX = 12;
@@ -72,10 +75,10 @@ const STATIC_PLACEMENTS: readonly StaticVisualDraft['headlinePlacement'][] = ['t
 const QUOTE_RE = /["“”]/;
 
 /** Troca do §6.2.4: tipo que depende do Brain/da mídia sem o dado → um que não depende (STORY, STATIC, HOOK-TEXT). */
-const SWAP_TO: Record<AutoVariationTypeWithFrame, AutoVariationType> = {
+const SWAP_TO: Record<AutoVariationType, AutoVariationType> = {
   // 25/10: o que não entra vira moldura (o tipo que sobra pra qualquer campeão)
   CUT: 'FRAME', COLD_OPEN: 'FRAME', HOOK_TEXT: 'FRAME', ENDCARD: 'FRAME',
-  SPLIT_LP: 'FRAME', STORY: 'FRAME', REVIEW: 'FRAME', NATIVE_SEARCH: 'STATIC', STATIC: 'FRAME', FRAME: 'STATIC',
+  SPLIT_LP: 'FRAME', STORY: 'FRAME', REVIEW: 'FRAME', NATIVE_SEARCH: 'STATIC', STATIC: 'FRAME', FRAME: 'STATIC', HEADLINE: 'FRAME',
 };
 
 /** Código no idioma da oferta: `offer.language` começando com `pt` = PT; qualquer outro = EN. */
@@ -114,9 +117,11 @@ export const FRAME_CODE: Record<CodeLanguage, Record<FrameTemplateId, string>> =
  * A ÚNICA tabela EN/PT dos códigos (§6.1). `variant`: CUT = 15|20, ENDCARD = a variante; `n` = ocorrência do tipo no
  * lote (1, 2, 3): HOOK-TEXT começa no 2 (o "1" é o gancho do original), NATIVE-SEARCH ganha "-2" na 2ª, STATIC é F<n>.
  */
-export function codeFor(type: AutoVariationTypeWithFrame, variant: string | number | null, n: number, lang: CodeLanguage): string {
+export function codeFor(type: AutoVariationType, variant: string | number | null, n: number, lang: CodeLanguage): string {
   const pt = lang === 'PT';
   switch (type) {
+    case 'HEADLINE':
+      return `HEADLINE-${n}`; // headline-e-legenda-v1 §1.2: igual em EN e PT
     case 'FRAME':
       return FRAME_CODE[lang][(variant as FrameTemplateId) ?? 'question_box'] ?? `${pt ? 'MOLDURA' : 'FRAME'}-${String(variant ?? n).toUpperCase().replace(/_/g, '-')}`;
     case 'CUT':
@@ -171,10 +176,14 @@ export interface PlanCtx {
   offerKind?: string | null;
   /** 25/10 (§B2): marca e rosto das molduras (backend preenche; a IA não escreve) */
   frame?: { brand: FrameBrand; faceAtSec: number | null };
+  /** headline-e-legenda-v1: headline do campeão (modo, limites, bloqueio); ausente = sem HEADLINE */
+  headline?: HeadlineInfo | null;
+  /** §2.1: o campeão não tem legenda queimada → todas as peças de vídeo ganham legenda */
+  captionsAuto?: boolean;
 }
 
-export type BlockedReason = SwapReason | 'has_end_card';
-export interface AllowedType { type: AutoVariationTypeWithFrame; max: number; blockedReason: BlockedReason | null }
+export type BlockedReason = SwapReason | 'has_end_card' | HeadlineBlocked;
+export interface AllowedType { type: AutoVariationType; max: number; blockedReason: BlockedReason | null }
 
 const has = (s: string | null | undefined) => !!s && s.trim().length > 0;
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
@@ -196,14 +205,23 @@ export function hasQuotableProof(ctx: PlanCtx): boolean {
   return has(ctx.brain.proof) && ctx.brain.proof!.split(/[\n.!?]+/).some((s) => words(s) >= 4);
 }
 
+/** headline-e-legenda-v1 §1.1/§1.4: `replace` até 3, `add` até 2; bloqueio com motivo. Sem info do campeão = fora da lista. */
+function headlineRule(ctx: PlanCtx): AllowedType[] {
+  const h = ctx.headline;
+  if (!h) return [];
+  if (h.blockedReason) return [{ type: 'HEADLINE', max: 0, blockedReason: h.blockedReason }];
+  return [{ type: 'HEADLINE', max: h.mode === 'replace' ? 3 : 2, blockedReason: null }];
+}
+
 /** §6.3.1: o que pode entrar, com o máximo por tipo e o motivo do bloqueio (max 0). */
 export function allowedFor(ctx: PlanCtx): AllowedType[] {
   const short = ctx.durationSec < CUT_MIN_SEC || ctx.blocks.length < CUT_MIN_BLOCKS;
-  const rule = (type: AutoVariationTypeWithFrame, ok: boolean, reason: BlockedReason): AllowedType =>
+  const rule = (type: AutoVariationType, ok: boolean, reason: BlockedReason): AllowedType =>
     ({ type, max: ok ? TYPE_MAX[type] : 0, blockedReason: ok ? null : reason });
   // 25/10: FRAME até 8, mas nunca mais que os templates liberados (todas diferentes)
   const frames = allowedFrameIds(ctx).length;
   return [
+    ...headlineRule(ctx),
     rule('CUT', !short, 'short_video'),
     rule('REVIEW', hasQuotableProof(ctx), 'no_proof'),
     rule('NATIVE_SEARCH', ctx.hasSpeech, 'no_speech'),
@@ -302,7 +320,7 @@ export const minDiversity = (n: number) => Math.ceil((n * MIN_DIVERSITY_PCT) / 1
 /** §6.2.4: trocas registradas em insight.swaps (o alerta "no Brain" diz o que trocou). `has_end_card` não é troca. */
 export function swapsFor(allowed: AllowedType[]): AutoInsight['swaps'] {
   return allowed
-    .filter((a): a is AllowedType & { type: AutoVariationType } => a.type !== 'FRAME') // TRANSIÇÃO: AutoInsight.swaps sem FRAME até a fusão
+    .filter((a): a is AllowedType & { type: AutoVariationType } => a.type !== 'HEADLINE') // TRANSIÇÃO: AutoInsight.swaps sem HEADLINE até a fusão
     .filter((a) => a.max === 0 && a.blockedReason && a.blockedReason !== 'has_end_card')
     .map((a) => ({ from: a.type, to: SWAP_TO[a.type], reason: a.blockedReason as SwapReason }));
 }
@@ -352,7 +370,7 @@ export function inventedClaims(text: string, ctx: PlanCtx): string[] {
 export interface Violation { item: number | null; rule: string; detail: string; block?: string }
 
 /** Item do plano com FRAME (TRANSIÇÃO §C.0: o AutoItemDraft ainda não tem FRAME). */
-export type PlanItem = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationTypeWithFrame; params: AutoParamsDraftWithFrame };
+export type PlanItem = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationType; params: AutoParamsDraft };
 const itemsOf = (d: Pick<AutoPlanDraft, 'items'>): PlanItem[] => (d.items ?? []) as unknown as PlanItem[];
 
 /** Texto da violação mandado ao Claude na 2ª chamada. */
@@ -363,7 +381,7 @@ export function violationText(v: Violation, items: AutoItemDraft[]): string {
 
 const lenOver = (s: string | null | undefined, max: number) => !!s && s.trim().length > max;
 
-function screenTexts(p: AutoParamsDraftWithFrame): string[] {
+function screenTexts(p: AutoParamsDraft): string[] {
   switch (p.type) {
     case 'HOOK_TEXT': return [p.text];
     case 'ENDCARD': return [p.headline, p.subline ?? '', p.ctaText];
@@ -381,7 +399,7 @@ export function mustKeepBlocks(draft: Pick<AutoPlanDraft, 'blocks' | 'kept'>, ct
   return [...new Set([...(hook !== undefined ? [hook] : []), ...kept])].sort((a, b) => a - b);
 }
 
-function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: PlanCtx, allowed: Map<AutoVariationTypeWithFrame, AllowedType>): Violation[] {
+function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: PlanCtx, allowed: Map<AutoVariationType, AllowedType>): Violation[] {
   const out: Violation[] = [];
   const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
   const a = allowed.get(it.type);
@@ -483,6 +501,9 @@ function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: Plan
     case 'FRAME':
       out.push(...frameViolations(p, i, ctx));
       break;
+    case 'HEADLINE':
+      out.push(...headlineViolations(p, i, ctx));
+      break;
     default:
       break;
   }
@@ -532,7 +553,7 @@ const STATIC_REQUIRED_BLOCKS = new Set(['headline', 'cta.main']);
 export interface StaticV2 { copy: StaticCopy; visual: StaticVisualV2 }
 
 /** STATIC de plano novo (layout assembled): `copy` + visual V2 (`visualV2` na TRANSIÇÃO; `visual` com `mood` depois da fusão). */
-export function staticV2Of(p: AutoParamsDraftWithFrame | Record<string, unknown> | null | undefined): StaticV2 | null {
+export function staticV2Of(p: AutoParamsDraft | Record<string, unknown> | null | undefined): StaticV2 | null {
   const q = p as { layout?: unknown; copy?: unknown; visualV2?: unknown; visual?: unknown } | null | undefined;
   if (!q || !q.copy || typeof q.copy !== 'object') return null;
   if (q.layout !== undefined && q.layout !== 'assembled') return null;
@@ -732,7 +753,7 @@ export function repairStaticBlocks(items: PlanItem[], violations: Violation[]): 
       if (staticCopyLength(copy) <= STATIC_V2_LIMITS.copyTotal) break;
       ({ copy, visual } = dropBlock(copy, visual, b));
     }
-    const params = { ...it.params, copy, ...('visualV2' in it.params && it.params.visualV2 ? { visualV2: visual } : { visual }) } as AutoParamsDraftWithFrame;
+    const params = { ...it.params, copy, ...('visualV2' in it.params && it.params.visualV2 ? { visualV2: visual } : { visual }) } as AutoParamsDraft;
     return { ...it, params };
   });
 }
@@ -882,8 +903,37 @@ export function frameContentViolations(p: AutoFrameDraft, i: number, ctx: PlanCt
   return out;
 }
 
+/**
+ * headline-e-legenda-v1 §1.1: o modo é o do campeão; texto ≤ limite (replace = original × 1,2, mín. 20, máx. 90; add = 60);
+ * destaque só se a original tem e é trecho do texto; "nada inventado" (número/afirmação só do Brain ou da fala); diferente
+ * da original (comparação normalizada). As do lote diferentes entre si = `duplicateKey`.
+ */
+function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE' }>, i: number, ctx: PlanCtx): Violation[] {
+  const out: Violation[] = [];
+  const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
+  const h = ctx.headline;
+  if (!h) return [{ item: i, rule: 'type_not_allowed', detail: 'HEADLINE needs the champion headline info' }];
+  const text = (p.text ?? '').replace(/\s+/g, ' ').trim();
+  if (p.mode !== h.mode) v('headline_mode', `mode must be ${h.mode}`);
+  if (!text) v('text_empty', 'text is empty');
+  if (text.length > h.maxChars) v('headline_too_long', `text over ${h.maxChars} chars`);
+  if (p.highlight) {
+    if (!h.hasHighlight) v('headline_highlight', 'the original headline has no highlight: highlight must be null');
+    else if (!text.includes(p.highlight.trim())) v('headline_highlight', 'highlight must be a stretch of the text');
+  }
+  if (h.original && normalizeText(text) === normalizeText(h.original)) v('headline_same_as_original', 'write a new headline, not the original');
+  const n = inventedNumbers(text, ctx);
+  if (n.length) v('invented_number', `"${text}" has ${n.join(', ')}, not in the Brain nor the transcript`);
+  const cl = inventedClaims(text, ctx);
+  if (cl.length) v('invented_claim', `"${text}" claims "${cl.join('", "')}" with nothing in the Brain or the transcript to back it`);
+  for (const [path, src] of Object.entries(p.sources ?? {})) {
+    if (src && src !== 'generic' && !sourceFilled(src, ctx)) v('unsupported_source', `${path} cites ${src}, which is empty in the Brain`);
+  }
+  return out;
+}
+
 /** Repetição do mesmo tipo tem que mudar o conteúdo (D2): mesmo alvo de CUT, mesmo texto, mesma busca, mesmo frame. */
-function duplicateKey(p: AutoParamsDraftWithFrame): string | null {
+function duplicateKey(p: AutoParamsDraft): string | null {
   switch (p.type) {
     case 'CUT': return `CUT:${p.targetSec}`;
     case 'HOOK_TEXT': return `HOOK_TEXT:${normalizeText(p.text ?? '')}`;
@@ -893,6 +943,7 @@ function duplicateKey(p: AutoParamsDraftWithFrame): string | null {
       return `STATIC:${normalizeText(v2 ? `${v2.copy.headline?.lead ?? ''} ${v2.copy.headline?.highlight ?? ''}` : p.headline ?? '')}`;
     }
     case 'FRAME': return `FRAME:${p.template}`; // D10: templates diferentes
+    case 'HEADLINE': return `HEADLINE:${normalizeText(p.text ?? '')}`; // §1.1: as do lote diferentes entre si
     default: return null;
   }
 }
@@ -902,7 +953,7 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
   const byType = new Map(allowed.map((a) => [a.type, a]));
   const items = itemsOf(draft);
   const out: Violation[] = [];
-  const count = new Map<AutoVariationTypeWithFrame, number>();
+  const count = new Map<AutoVariationType, number>();
   const seen = new Set<string>();
   items.forEach((it, i) => {
     const own = itemViolations(it, i, draft, ctx, byType);
@@ -933,7 +984,7 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
 
 // ───────── reparo determinístico (§6.3.2) ─────────
 
-export interface RepairResult { draft: AutoPlanDraft; removed: { index: number; type: AutoVariationTypeWithFrame; rules: string[] }[]; ok: boolean; violations: Violation[] }
+export interface RepairResult { draft: AutoPlanDraft; removed: { index: number; type: AutoVariationType; rules: string[] }[]; ok: boolean; violations: Violation[] }
 
 /**
  * STATIC V2 primeiro apaga os blocos opcionais que violaram (§A3.2); depois tira as peças que ainda violam; acima de 12,
@@ -953,12 +1004,15 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
     removed.push({ index: i, type: it.type, rules: bad.get(i)! });
     return false;
   });
+  // headline-e-legenda-v1 §3.2: o reparo tira CUT (do fim) antes de HEADLINE; HEADLINE só se não sobrar outro ITERATION
   const dropLastIteration = (): boolean => {
-    for (let k = items.length - 1; k >= 0; k--) {
-      if (AXIS_OF[items[k].type] === 'ITERATION') {
-        removed.push({ index: all.indexOf(items[k]), type: items[k].type, rules: ['repair'] });
-        items = items.filter((_, j) => j !== k);
-        return true;
+    for (const poupar of [true, false]) {
+      for (let k = items.length - 1; k >= 0; k--) {
+        if (AXIS_OF[items[k].type] === 'ITERATION' && !(poupar && items[k].type === 'HEADLINE')) {
+          removed.push({ index: all.indexOf(items[k]), type: items[k].type, rules: ['repair'] });
+          items = items.filter((_, j) => j !== k);
+          return true;
+        }
       }
     }
     return false;
@@ -1004,11 +1058,13 @@ export type FinalParams =
   | { type: 'STATIC'; headline: string; refAtSec: number | null; visual: StaticVisualDraft } // rev. 23/10 §14.3 (sem atSec)
   /** 25/10 §A2/§A5: plano novo. `headline` = lead + highlight (rótulo/duplicado/legado); `visual` = V2 */
   | { type: 'STATIC'; layout: 'assembled'; headline: string; refAtSec: number | null; copy: StaticCopy; visual: StaticVisualV2 }
+  /** headline-e-legenda-v1: o que o `HeadlineSpec` do render precisa (+ a original, pra vista "original → nova") */
+  | { type: 'HEADLINE'; mode: 'replace' | 'add'; text: string; highlight: string | null; sources: Record<string, CopySource>; language: string; original: string | null; format: string | null }
   /** 25/10 §B2: = FrameSpec (lido pelo buildFrameInput do video) + as fontes de cada texto (rastreio) */
   | ({ type: 'FRAME'; sources: Record<string, CopySource> } & FrameSpec);
 
 export interface FinalItem {
-  index: number; type: AutoVariationTypeWithFrame; code: string; axis: VariationAxis;
+  index: number; type: AutoVariationType; code: string; axis: VariationAxis;
   change: string; rationale: string; whyKey: 'hook' | 'proof' | 'cta'; params: FinalParams;
 }
 
@@ -1093,7 +1149,7 @@ export function frameSpecOf(p: AutoFrameDraft, ctx: PlanCtx): Extract<FinalParam
 }
 
 export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<MediaRulesPort, 'snapSpans'>): FinalItem[] {
-  const nth = new Map<AutoVariationTypeWithFrame, number>();
+  const nth = new Map<AutoVariationType, number>();
   const hookEnd = hookTextEndSec(draft, ctx);
   return itemsOf(draft).map((it, index) => {
     const n = (nth.get(it.type) ?? 0) + 1;
@@ -1151,6 +1207,13 @@ export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<Med
       case 'FRAME':
         variant = p.template;
         params = frameSpecOf(p, ctx);
+        break;
+      case 'HEADLINE':
+        params = {
+          type: 'HEADLINE', mode: p.mode, text: p.text.replace(/\s+/g, ' ').trim(), highlight: p.highlight?.trim() || null, sources: { ...(p.sources ?? {}) },
+          language: ctx.headline?.language ?? screenLangOf(ctx), original: ctx.headline?.original ?? null,
+          format: ctx.headline?.format ?? null, // §1.5: a peça só existe no aspecto do campeão
+        };
         break;
     }
     return {

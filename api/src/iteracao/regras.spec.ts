@@ -118,7 +118,7 @@ describe('codeFor (§6.1): a única tabela EN/PT', () => {
   });
 
   it('eixo fixo por tipo', () => {
-    expect(Object.entries(AXIS_OF).filter(([, a]) => a === 'ITERATION').map(([t]) => t)).toEqual(['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD']);
+    expect(Object.entries(AXIS_OF).filter(([, a]) => a === 'ITERATION').map(([t]) => t)).toEqual(['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'HEADLINE']);
   });
 });
 
@@ -708,6 +708,42 @@ describe('catálogo 25/10 no validatePlan (lote novo)', () => {
     expect(nove.map((v) => `${v.item}:${v.rule}`)).toContain('11:over_max');
     const rep = validatePlan(draft([...base, ...frames.slice(0, 7), fr('meme', { pov: 'another one', cta: 'Download now' })]), c, allowedFor(c));
     expect(rep.map((v) => `${v.item}:${v.rule}`)).toContain('11:duplicate');
+  });
+});
+
+describe('HEADLINE (headline-e-legenda-v1)', () => {
+  const H = (over = {}) => ({ mode: 'replace' as const, original: 'Tired every morning?', lines: 1, maxChars: 24, hasHighlight: true, language: 'en', blockedReason: null, format: 'VERTICAL_9_16' as const, ...over });
+  const hd = (text: string, over: Record<string, unknown> = {}) => ({ ...item({ type: 'HEADLINE', mode: 'replace', text, highlight: null, sources: {}, ...over } as unknown as AutoItemDraft['params']), type: 'HEADLINE' }) as unknown as AutoItemDraft;
+  const run = (its: AutoItemDraft[], c: PlanCtx) => validatePlan(draft([...goodItems().slice(9), ...its]), c, allowedFor(c)).filter((v) => v.item !== null && v.item >= 2).map((v) => `${v.item}:${v.rule}`);
+  it('allowed: replace = 3, add = 2, bloqueado com motivo; sem info = fora da lista; código HEADLINE-<n>', () => {
+    expect(allowedFor(ctx({ headline: H() }))[0]).toEqual({ type: 'HEADLINE', max: 3, blockedReason: null });
+    expect(allowedFor(ctx({ headline: H({ mode: 'add', original: null }) }))[0]).toEqual({ type: 'HEADLINE', max: 2, blockedReason: null });
+    expect(allowedFor(ctx({ headline: H({ blockedReason: 'headline_over_face' }) }))[0]).toEqual({ type: 'HEADLINE', max: 0, blockedReason: 'headline_over_face' });
+    expect(allowedFor(ctx()).some((a) => a.type === 'HEADLINE')).toBe(false);
+    expect([codeFor('HEADLINE', null, 1, 'EN'), codeFor('HEADLINE', null, 3, 'PT')]).toEqual(['HEADLINE-1', 'HEADLINE-3']);
+    expect(AXIS_OF.HEADLINE).toBe('ITERATION');
+  });
+  it('validação: limite, destaque, diferente da original e entre si, nada inventado, modo', () => {
+    const c = ctx({ headline: H() });
+    expect(run([hd('Sleep in 10 minutes'), hd('Busy parents sleep too'), hd('Ana finally sleeps')], c)).toEqual([]);
+    expect(run([hd('x'.repeat(25))], c)).toEqual(['2:headline_too_long']);
+    expect(run([hd('tired every morning')], c)).toEqual(['2:headline_same_as_original']);
+    expect(run([hd('Sleep in 10 minutes'), hd('sleep in 10 minutes!')], c)).toEqual(['3:duplicate']);
+    expect(run([hd('Sleep in 75 minutes')], c)).toEqual(['2:invented_number']);
+    expect(run([hd('Sleep in 10 minutes', { highlight: '10 hours' })], c)).toEqual(['2:headline_highlight']);
+    expect(run([hd('Sleep in 10 minutes', { mode: 'add' })], c)).toEqual(['2:headline_mode']);
+    expect(run([hd('Sleep in 10 minutes', { highlight: '10 minutes' })], ctx({ headline: H({ hasHighlight: false }) }))).toEqual(['2:headline_highlight']);
+  });
+  it('reparo tira CUT antes de HEADLINE; finalize grava modo, idioma, original e o aspecto', () => {
+    const c = ctx({ headline: H() });
+    const fb = { why: fallbackWhy({ hookSpoken: 'h', proof: 'p', cta: 'c' }, 'v'), kept: [{ label: 'Hook', blockIndex: 0 }, { label: 'CTA', blockIndex: 4 }] };
+    // 8 peças: 3 HEADLINE + 2 CUT (ITERATION 5) + 3 STATIC/NS (DIVERSITY 3 < 4)
+    const its = [hd('Sleep in 10 minutes'), hd('Busy parents sleep too'), hd('Ana finally sleeps'), goodItems()[0], item({ type: 'CUT', targetSec: 20, blockIndexes: [0, 3, 4] }), goodItems()[9], goodItems()[10], item({ type: 'NATIVE_SEARCH', query: 'sleep tips for parents' })];
+    const r = repairPlan(draft(its), c, allowedFor(c), fb);
+    expect(r.draft.items.filter((x) => (x.type as string) === 'HEADLINE')).toHaveLength(3);
+    expect(r.draft.items.filter((x) => x.type === 'CUT')).toHaveLength(1);
+    const out = finalizePlan(draft([hd(' Sleep  in 10 minutes ')]), c, regrasDeMidiaFallback)[0];
+    expect(out).toMatchObject({ code: 'HEADLINE-1', axis: 'ITERATION', params: { type: 'HEADLINE', mode: 'replace', text: 'Sleep in 10 minutes', language: 'en', original: 'Tired every morning?', format: 'VERTICAL_9_16' } });
   });
 });
 

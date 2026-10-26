@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   type MetaCampaignAdRow, type RowCtx, countsOf, matchesStatus, periodMetrics, presentAdset, presentCampaign, sortRows, statusCounts,
 } from './campanhas.views';
-import { assertSelected } from './comum';
+import { assertHealthy, assertSelected } from './comum';
 import { MetaSyncService, aggregate, decodeOffset, encodeOffset, presentAd } from './sync.service';
 
 export const LEVEL_DB: Record<MetaLevel, MetaObjectLevel> = { campaign: 'CAMPAIGN', adset: 'ADSET', ad: 'AD' };
@@ -67,11 +67,9 @@ export class MetaCampanhasService {
     private readonly sync: MetaSyncService,
   ) {}
 
-  /** Conexão com conta escolhida (422 META_NOT_CONNECTED / META_SELECTION_MISSING); TOKEN_INVALID ainda lê o snapshot. */
+  /** Conexão saudável com conta escolhida (Gusta 25/10: login vencido ou permissão faltando = 422, nunca o snapshot guardado). */
   async connection(workspaceId: string): Promise<MetaConnection> {
-    const c = await this.prisma.metaConnection.findUnique({ where: { workspaceId } });
-    if (!c || c.status === 'DISCONNECTED') throw new AppException('META_NOT_CONNECTED');
-    return assertSelected(c);
+    return assertSelected(assertHealthy(await this.prisma.metaConnection.findUnique({ where: { workspaceId } })));
   }
 
   async load(auth: AuthContext, conn?: MetaConnection): Promise<AccountView> {
@@ -206,6 +204,7 @@ export class MetaCampanhasService {
   // ───────── GET /meta/changes ─────────
 
   async changes(auth: AuthContext, q: { level?: MetaLevel; objectId?: string; limit?: number; cursor?: string }): Promise<{ items: MetaChangeRow[]; nextCursor: string | null }> {
+    await this.connection(auth.workspaceId); // Gusta 25/10: histórico da conta também só com a conexão saudável
     const limit = q.limit ?? DEFAULT_LIMIT;
     const rows = await this.prisma.metaChange.findMany({
       where: {

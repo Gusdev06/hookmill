@@ -252,6 +252,8 @@ Assíncronos (no lote em `ANALYSIS_FAILED` ou na peça `failed`), com `failReaso
 
 ## 6. Regras do plano (o backend garante; a IA segue)
 ### 6.1 Catálogo v1: código, eixo, quando entra e o que precisa
+**Revisão 25/10 noite (aprovada pelo Gusta, `headline-e-legenda-v1.md`):** entra `HEADLINE` (ITERATION; código `HEADLINE-<n>` em EN e PT; 3 no campeão com headline, 2 sem), com a regra de 40 % mantida e o reparo tirando `CUT` antes de `HEADLINE`. As peças de vídeo ganham legenda palavra a palavra quando o campeão não tem legenda queimada (`captionsAuto`). Catálogo final dos lotes novos: HEADLINE 3/2, CUT 2, REVIEW 1, NATIVE_SEARCH 2, STATIC 2, FRAME 8.
+
 **Revisão 25/10 (decisão do Gusta depois do teste live das molduras; vale por cima da tabela e da §6.2):**
 - **Catálogo dos lotes novos:** `CUT` (ITERATION, até 2), `REVIEW` (1), `NATIVE_SEARCH` (até 2), `STATIC` (até 2) e **`FRAME` (até 8, todas de templates diferentes**, D10 revista; DIVERSITY). Máximo possível = 15, então o lote de 8 a 12 fecha.
 - **Saem dos lotes novos:** `COLD_OPEN`, `HOOK_TEXT`, `ENDCARD`, `STORY` (o layout antigo, não confundir com a moldura `story`) e `SPLIT_LP`. Continuam no enum do banco e no código de leitura: lote antigo segue abrindo, com Retry, formatos e zip. O `allowed` do plano nunca mais oferece esses tipos, e o `validatePlan` marca como violação se a IA mandar.

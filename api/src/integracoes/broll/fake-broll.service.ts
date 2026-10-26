@@ -2,14 +2,16 @@
 // Pexels de exemplo; `fetch` devolve o vídeo sintético do MockMediaController no tamanho do intervalo.
 // Gatilhos nas notas da OFERTA (`BrollSearchInputExt.notes`):
 //   [mock:broll-none]  nenhum candidato serve → BROLL_NO_MATCH (com fallbackSubject); o backend cai pro champion_segment.
+//   searchTrack: rodízio de 3 vídeos, com as 2 alternativas por trecho (variantes 1-2 da trilha).
 //   [mock:broll-fail]  o 1º `fetch` de cada candidato falha BROLL_UNAVAILABLE (o retry passa).
 // Social (youtube/tiktok/instagram) sem pexels = BROLL_SOURCE_NOT_SUPPORTED, como no live.
-import type { BrollProvenance, Usage } from '../contrato';
+import type { BrollProvenance, BrollTrackSearchInput, Usage } from '../contrato';
 import { IntegracaoError } from '../erros';
 import type { CostStore } from '../portas';
 import { mockMediaUrl, seedOf } from '../mock/midia';
 import { candidateIdOf, parseCandidateId, PEXELS_LICENSE, type BrollSearchInputExt, type BrollSearchResult } from './broll.service';
 import { socialSourceFor } from './social';
+import type { BrollPickAlt } from './trilha';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -62,6 +64,32 @@ export class FakeBrollService {
       fileUrl: mockMediaUrl(this.opts.publicApiUrl, { kind: 'video', seed: seedOf('broll', i.candidateId), format: 'VERTICAL_9_16', sec }),
       provenance: this.provenance(c.videoId, c.startSec, c.endSec),
     };
+  }
+
+  /** Trilha mock: 1 clipe por trecho, 3 vídeos em rodízio (nunca o mesmo em seguida), já "no storage" (vídeo sintético
+   *  na duração do trecho). [mock:broll-none] = todo trecho sem clipe; [mock:broll-gap] = todo 3º trecho sem clipe. */
+  async searchTrack(i: BrollTrackSearchInput): Promise<{ picks: (BrollPickAlt | { none: true; fallbackSubject: string })[] } & Usage> {
+    const notes = i.notes ?? '';
+    await this.costs.record({ workspaceId: i.workspaceId, variationBatchId: i.batchId, provider: 'ANTHROPIC', kind: 'LLM', model: 'mock', units: 0, unit: 'ktoken_out', amountUsd: 0 });
+    const base = Number.parseInt(seedOf(i.batchId, i.language).slice(0, 6), 16) % 900000 + 100000;
+    const picks = i.segments.map((seg, k) => {
+      const subject = `a person in an everyday moment about: ${seg.text.slice(0, 80)}`;
+      if (notes.includes('[mock:broll-none]') || (notes.includes('[mock:broll-gap]') && k % 3 === 2)) return { none: true as const, fallbackSubject: subject };
+      const len = r2(Math.max(0.5, seg.endSec - seg.startSec));
+      // principal = rodízio de 3 vídeos; alternativas = os outros 2 (variante v do trecho k = vídeo (k + v) % 3: nunca repete em seguida)
+      const make = (id: number, tag: string) => {
+        const candidateId = candidateIdOf(id, 0, len);
+        return {
+          candidateId,
+          fileUrl: mockMediaUrl(this.opts.publicApiUrl, { kind: 'video', seed: seedOf('broll-track', candidateId, String(k), tag), format: 'VERTICAL_9_16', sec: len }),
+          srcStartSec: 0, srcEndSec: len,
+          provenance: this.provenance(id, 0, len),
+          reason: `cells 1-4 show an everyday moment that matches stretch ${k + 1} (mock${tag ? `, ${tag}` : ''})`,
+        };
+      };
+      return { ...make(base + (k % 3), ''), alternatives: [make(base + ((k + 1) % 3), 'alternate 1'), make(base + ((k + 2) % 3), 'alternate 2')] };
+    });
+    return { picks, costUsd: 0 };
   }
 
   async fallbackImage(i: { workspaceId: string; variationBatchId: string; subject: string }): Promise<{ fileUrl: string; prompt: string; model: string; costUsd: number }> {

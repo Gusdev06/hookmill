@@ -471,8 +471,8 @@ describe(isLocal ? 'Campaigns v1 (integração local)' : 'Campaigns v1 [pulado: 
     expect(tok.error.code).toBe('META_TOKEN_INVALID');
     expect((await changes('abo_spare'))[0]).toMatchObject({ result: 'FAILED', errorCode: 'META_TOKEN_INVALID' });
     expect((await prisma.metaConnection.findUniqueOrThrow({ where: { workspaceId: w1 } })).status).toBe('TOKEN_INVALID');
-    // leitura continua; escrita = 422 até reconectar
-    expect((await call('GET', '/meta/campaigns', owner())).status).toBe(200);
+    // Gusta 25/10: com o login vencido, nem a leitura sai (dado só com a conexão saudável); escrita = 422 até reconectar
+    expect((await call('GET', '/meta/campaigns', owner())).error).toMatchObject({ code: 'META_TOKEN_INVALID' });
     expect((await status('campaigns', 'mock_cmp_cbo', { status: 'PAUSED', expected: 'ACTIVE' })).error.code).toBe('META_TOKEN_INVALID');
     await prisma.metaConnection.update({ where: { workspaceId: w1 }, data: { status: 'ACTIVE' } });
     fake.world.get('abo_spare')!.name = 'Spare set';
@@ -482,7 +482,7 @@ describe(isLocal ? 'Campaigns v1 (integração local)' : 'Campaigns v1 [pulado: 
   it('objeto apagado na Meta = 404 META_OBJECT_GONE, sai do snapshot (com os filhos), MetaChange FAILED', async () => {
     fake.world.delete('mock_img_2');
     const r = await status('ads', 'mock_img_2', { status: 'PAUSED', expected: 'ACTIVE' });
-    expect(r.status).toBe(404);
+    expect({ status: r.status, code: r.error?.code, details: r.error?.details }).toMatchObject({ status: 404 });
     expect(r.error.code).toBe('META_OBJECT_GONE');
     expect(await prisma.metaAdSnapshot.count({ where: { workspaceId: w1, metaAdId: 'mock_img_2' } })).toBe(0);
     expect((await changes('mock_img_2'))[0]).toMatchObject({ result: 'FAILED', errorCode: 'META_OBJECT_GONE' });

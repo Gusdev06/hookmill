@@ -5,6 +5,7 @@ import type {
 import type { Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import type { AuthContext } from '../common/auth/auth-context';
+import { metaSaudavel } from '../meta/comum';
 import { AppException } from '../common/errors/app-exception';
 import { num } from '../common/util/format';
 import { AppConfig } from '../config/app-config';
@@ -158,7 +159,7 @@ export class BrainService {
       metaOn
         ? this.prisma.metaConnection.findUnique({
             where: { workspaceId: wid },
-            select: { id: true, status: true, adAccountId: true, currency: true, lastSyncAt: true },
+            select: { id: true, status: true, adAccountId: true, currency: true, lastSyncAt: true, lastHealth: true },
           })
         : Promise.resolve(null),
     ]);
@@ -167,7 +168,9 @@ export class BrainService {
     let ads: DadosAnuncio[] = [];
     let publications: BrainDados['publications'] = [];
     let metaChampions: BrainDados['metaChampions'] = [];
-    if (conn && conn.status === 'ACTIVE' && conn.adAccountId) {
+    // Gusta 25/10: anúncio da Meta (gasto, CPA) só com a conexão saudável; checagem bloqueante falhando = sem nós da Meta
+    const saudavel = metaSaudavel(conn as Parameters<typeof metaSaudavel>[0]);
+    if (conn && conn.adAccountId && saudavel) {
       const [snaps, pubs, champs] = await Promise.all([
         this.prisma.metaAdSnapshot.findMany({
           where: { workspaceId: wid, connectionId: conn.id, adAccountId: conn.adAccountId },
@@ -221,7 +224,7 @@ export class BrainService {
         };
       }),
       metaChampions,
-      connection: conn,
+      connection: saudavel ? conn : null, // conexão com checagem falhando = como sem conexão (nós da Meta omitidos)
       ads,
       publications,
       loadedAt: new Date(),

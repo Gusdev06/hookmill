@@ -9,9 +9,16 @@
 // Redes sociais (YouTube/TikTok/Instagram) ficam desligadas por workspace (D15): só Pexels até o aceite do termo existir.
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { BrollProvenance, BrollProvider, EditMap, FrameTemplateId, TranscriptWord } from '@maquina/contratos';
-import type { BrollCandidateDraft, FrameSecondSource, Usage } from '../integracoes/contrato';
+import type { BrollCandidateDraft, BrollPick, BrollPort, FrameSecondSource, Usage } from '../integracoes/contrato';
 import type { BrollSearchInputExt } from '../integracoes/broll';
 import { isIntegracaoError } from '../integracoes/erros';
+import { cortarFala, montarTrilha, type BrollTrack, type TrilhaDoLote } from './trilha-broll';
+import { isNone, type BrollPickAlt, type TrackNone } from '../integracoes/broll';
+/** Imagens geradas por lote no lugar de trecho `none` da trilha (o resto estende o clipe vizinho; custo previsível). */
+export const IMAGENS_POR_TRILHA = 2;
+
+/** Preço da imagem de reserva (GPT Image 2 1k, §B3.1) pro teto antes de gerar. */
+export const IMAGEM_RESERVA_USD = 0.22;
 
 export const FRAME_DUAS_FONTES: readonly FrameTemplateId[] = ['split_stack', 'split_torn', 'call_dialog', 'gossip_page', 'gossip_white', 'gossip_pink'];
 export const precisaSegundaFonte = (t: string | null | undefined) => !!t && (FRAME_DUAS_FONTES as readonly string[]).includes(t);
@@ -27,7 +34,24 @@ export interface BrollServicePort {
   search(i: BrollSearchInputExt): Promise<{ candidates: BrollCandidateDraft[]; fallbackSubject?: string } & Usage>;
   fetch(i: { workspaceId: string; variationBatchId: string; candidateId: string }): Promise<{ fileUrl: string; provenance: BrollProvenance }>;
   fallbackImage?(i: { workspaceId: string; variationBatchId: string; subject: string }): Promise<{ fileUrl: string; prompt: string; model: string; costUsd: number }>;
+  /** 25/10 (trilha, §B3.1 item 9): `picks[i]` responde `segments[i]`; `{ none }` = sem b-roll bom (o backend tenta imagem). */
+  searchTrack?: BrollPort['searchTrack'];
 }
+
+/** Onde a trilha do lote mora (`variation_batches.settings.brollTrack`) + o teto do mês (imagem gerada) + a posição da
+ *  moldura entre as de 2 fontes do lote. Ligado no EdicaoModule; null nos testes que não usam trilha. */
+export interface TrilhaStore {
+  carregar(batchId: string): Promise<TrilhaDoLote | null>;
+  gravar(batchId: string, t: TrilhaDoLote): Promise<void>;
+  teto(workspaceId: string, usd: number): Promise<void>;
+  /** imagens geradas permitidas na trilha deste lote (`settings.brollTrackMaxImages`; padrão IMAGENS_POR_TRILHA) */
+  maxImagens?(batchId: string): Promise<number>;
+  /** variante da trilha desta moldura: posição dela entre as de 2 fontes do lote (por índice) % VARIANTES */
+  variante?(batchId: string, itemId: string | null): Promise<number>;
+  /** bug 429 (25/10): a trilha da variante em 1 MP4 só (cache no lote por variante); devolve o `broll_track` apontando pra ele */
+  juntar?(i: { batchId: string; workspaceId: string; variante: number; track: BrollTrack }): Promise<BrollTrack>;
+}
+export const TRILHA_STORE = Symbol('BACKEND_TRILHA_STORE');
 export const BROLL_PORT = Symbol('BACKEND_BROLL_PORT');
 
 export interface Span { startSec: number; endSec: number }
@@ -106,8 +130,12 @@ export interface SegundaFonteEntrada {
   /** tom e entidades da busca; `notes` = gatilhos do mock ([mock:broll-none] / [mock:broll-fail]) */
   offer?: { name?: string | null; kind?: string | null; what?: string | null; audience?: string | null } | null;
   notes?: string | null;
+  /** item da peça (posição entre as de 2 fontes do lote = qual variante da trilha ela usa) */
+  itemId?: string | null;
+  /** variante já gravada no item (retry repete a mesma) */
+  variante?: number | null;
 }
-export interface SegundaFonteSaida { second: FrameSecondSource; nota: string; costUsd: number }
+export interface SegundaFonteSaida { second: FrameSecondSource; nota: string; costUsd: number; /** só trilha */ variante?: number }
 
 /** Trechos com rosto principal do faceTrack (s). */
 export function rostosDe(editMap: EditMap | null): Span[] {
@@ -123,10 +151,99 @@ const r4 = (n: number) => Math.round(n * 10_000) / 10_000;
 export class SegundaFonteService {
   private readonly log = new Logger('SegundaFonte');
 
-  constructor(@Optional() @Inject(BROLL_PORT) private readonly broll: BrollServicePort | null = null) {}
+  private readonly emBusca = new Map<string, Promise<TrilhaDoLote | null>>();
+
+  constructor(
+    @Optional() @Inject(BROLL_PORT) private readonly broll: BrollServicePort | null = null,
+    @Optional() @Inject(TRILHA_STORE) private readonly store: TrilhaStore | null = null,
+  ) {}
+
+  /**
+   * Trilha do LOTE (25/10): 1 `searchTrack` por lote, gravada e reaproveitada por todas as molduras de 2 fontes e pelos
+   * retries. Duas molduras pedindo ao mesmo tempo = a mesma promessa. Falhou = null (cadeia de antes).
+   */
+  async trilhaDoLote(i: SegundaFonteEntrada): Promise<TrilhaDoLote | null> {
+    if (!this.store || !this.broll?.searchTrack || !i.variationBatchId) return null;
+    const salva = await this.store.carregar(i.variationBatchId);
+    if (salva && Math.abs(salva.durationSec - i.durationSec) < 0.5) return salva;
+    const viva = this.emBusca.get(i.variationBatchId);
+    if (viva) return viva;
+    const p = (async () => {
+      const segments = cortarFala(i.words, { startSec: 0, endSec: i.durationSec });
+      if (!segments.length) return null;
+      try {
+        const r = await this.broll!.searchTrack!({
+          workspaceId: i.workspaceId, batchId: i.variationBatchId, language: i.language, offer: i.offer ?? null, notes: i.notes ?? null,
+          segments: segments.map(({ startSec, endSec, text }) => ({ startSec, endSec, text })),
+        });
+        let costUsd = r.costUsd ?? 0;
+        let imagens = 0;
+        const maxImagens = (await this.store!.maxImagens?.(i.variationBatchId)) ?? IMAGENS_POR_TRILHA;
+        const picks: (BrollPickAlt | TrackNone)[] = [];
+        for (const [k, s] of segments.entries()) {
+          const pk = r.picks[k] as BrollPickAlt | TrackNone | undefined;
+          if (pk && !isNone(pk)) {
+            // só Pexels (D15), principal e alternativas
+            const ok = (x: BrollPick) => PROVEDORES_PADRAO.includes(x.provenance.provider as BrollProvider);
+            const opts = [pk, ...(pk.alternatives ?? [])].filter(ok);
+            picks.push(opts.length ? { ...opts[0], alternatives: opts.slice(1) } : { none: true, fallbackSubject: s.text });
+            continue;
+          }
+          // `none`: imagem gerada sobre o assunto (teto do mês; no máx. `maxImagens` por lote), senão estende o vizinho
+          const subject = pk && isNone(pk) ? pk.fallbackSubject : null;
+          if (subject && this.broll!.fallbackImage && imagens < maxImagens) {
+            try {
+              await this.store!.teto(i.workspaceId, IMAGEM_RESERVA_USD);
+              const g = await this.broll!.fallbackImage({ workspaceId: i.workspaceId, variationBatchId: i.variationBatchId, subject });
+              imagens++;
+              costUsd += g.costUsd;
+              picks.push({
+                candidateId: `generated:${k}`, fileUrl: g.fileUrl, srcStartSec: 0, srcEndSec: r4(s.endSec - s.startSec), reason: subject,
+                provenance: { provider: 'generated', model: g.model, prompt: g.prompt, subject, licenseCommercialOk: true } as unknown as BrollPick['provenance'],
+              });
+              continue;
+            } catch (e) {
+              this.log.warn(`lote ${i.variationBatchId}: imagem do trecho ${k} não saiu (${(e as Error).message}); estende o vizinho`);
+            }
+          }
+          picks.push({ none: true, fallbackSubject: subject ?? s.text });
+        }
+        const t: TrilhaDoLote = { version: 1, createdAt: new Date().toISOString(), language: i.language, durationSec: i.durationSec, segments, picks, costUsd: r4(costUsd) };
+        await this.store!.gravar(i.variationBatchId, t);
+        this.log.log(`lote ${i.variationBatchId}: trilha de b-roll com ${picks.filter((x) => !isNone(x)).length}/${segments.length} trechos (${imagens} imagem(ns), US$ ${t.costUsd})`);
+        return t;
+      } catch (e) {
+        this.log.warn(`lote ${i.variationBatchId}: searchTrack falhou (${(e as Error).message}); cadeia de antes`);
+        return null;
+      }
+    })();
+    this.emBusca.set(i.variationBatchId, p);
+    try {
+      return await p;
+    } finally {
+      this.emBusca.delete(i.variationBatchId);
+    }
+  }
 
   /** A ordem do Gusta (25/10). Nunca lança: o `champion_segment` é o último recurso (sem ele = null). */
   async resolver(i: SegundaFonteEntrada): Promise<SegundaFonteSaida | null> {
+    // 0. trilha de vários clipes que acompanham a fala (1 busca por lote)
+    const trilha = await this.trilhaDoLote(i);
+    if (trilha) {
+      // 25/10 (Gusta): cada moldura do lote numa variante (rodízio 0, 1, 2); a do item vale no retry
+      const variante = i.variante ?? (this.store?.variante ? await this.store.variante(i.variationBatchId, i.itemId ?? null) : 0);
+      let track = montarTrilha(trilha, variante);
+      if (track && this.store?.juntar) {
+        try {
+          track = await this.store.juntar({ batchId: i.variationBatchId, workspaceId: i.workspaceId, variante, track });
+        } catch (e) {
+          // sem o arquivo único o Lambda baixaria N arquivos por pedaço (429 do storage): melhor a cadeia de antes
+          this.log.warn(`lote ${i.variationBatchId}: não juntou a trilha da variante ${variante} (${(e as Error).message}); cadeia de antes`);
+          track = null;
+        }
+      }
+      if (track) return { second: track, nota: `trilha de b-roll: ${track.clips.length} clipe(s), variante ${variante}`, costUsd: 0, variante }; // o custo da busca é do lote
+    }
     const seg = trechoSemRepetir({ durationSec: i.durationSec, blocks: i.blocks, rostos: rostosDe(i.editMap), comRosto: i.template === 'call_dialog' });
     const speech = falaDe(i.words, seg) || falaDe(i.words, null);
     let costUsd = 0;
@@ -159,10 +276,9 @@ export class SegundaFonteService {
     // 2. imagem gerada (GPT Image 2 1k) sobre o assunto do trecho
     if (this.broll?.fallbackImage && subject) {
       try {
+        if (this.store) await this.store.teto(i.workspaceId, IMAGEM_RESERVA_USD); // a imagem é paga: passa pelo teto do mês
         const g = await this.broll.fallbackImage({ workspaceId: i.workspaceId, variationBatchId: i.variationBatchId, subject });
-        // TRANSIÇÃO: o kind de imagem gerada entra no FrameSecondSource (arquiteto); até lá vai como imagem parada
-        // (mesmo desenho do product_photo no render) com a marca `generated` pro rastreio
-        const second = { kind: 'product_photo', fileUrl: g.fileUrl, generated: { prompt: g.prompt, model: g.model, subject } } as unknown as FrameSecondSource;
+        const second: FrameSecondSource = { kind: 'generated_image', fileUrl: g.fileUrl, prompt: g.prompt, model: g.model, subject };
         return { second, nota: `imagem gerada: ${subject}`, costUsd: r4(costUsd + g.costUsd) };
       } catch (e) {
         this.log.warn(`imagem de reserva falhou (${(e as Error).message}); trecho do campeão`);

@@ -55,11 +55,68 @@ describe('ordem da 2ª fonte', () => {
       fallbackImage: async ({ subject }) => (gerou.push(subject), { fileUrl: 'https://st/img.png', prompt: 'p', model: 'gpt-image-2', costUsd: 0.22 }),
     };
     const img = await new SegundaFonteService(semClipe).resolver(entrada);
-    expect(img).toMatchObject({ second: { kind: 'product_photo', fileUrl: 'https://st/img.png' }, nota: 'imagem gerada: tired parent at night', costUsd: 0.23 });
+    expect(img).toMatchObject({ second: { kind: 'generated_image', fileUrl: 'https://st/img.png', subject: 'tired parent at night' }, nota: 'imagem gerada: tired parent at night', costUsd: 0.23 });
     expect(gerou).toEqual(['tired parent at night']);
     const semImagem = { ...semClipe, fallbackImage: async () => { throw new Error('wavespeed down'); } };
     expect((await new SegundaFonteService(semImagem).resolver(entrada))?.second.kind).toBe('champion_segment');
     expect((await new SegundaFonteService(null).resolver(entrada))?.second.kind).toBe('champion_segment');
     expect(await new SegundaFonteService(null).resolver({ ...entrada, blocks: [BLOCKS[0], BLOCKS[3]] })).toBeNull();
+  });
+
+  it('trilha por LOTE: 1 searchTrack, gravada e reaproveitada; `none` vira imagem pelo teto (máx. 2); sem trilha = cadeia de antes', async () => {
+    const gravadas: unknown[] = [];
+    let salva: any = null;
+    const tetos: number[] = [];
+    const store = {
+      carregar: async () => salva, gravar: async (_b: string, t: unknown) => { salva = t; gravadas.push(t); },
+      teto: async (_w: string, usd: number) => { tetos.push(usd); },
+    };
+    let buscas = 0;
+    const port: BrollServicePort = {
+      search: async () => ({ candidates: [], costUsd: 0 }), fetch: async () => { throw new Error('x'); },
+      fallbackImage: async ({ subject }) => ({ fileUrl: `https://st/${subject}.png`, prompt: 'p', model: 'gpt-image-2', costUsd: 0.22 }),
+      searchTrack: async (i) => (buscas++, {
+        costUsd: 0.05,
+        picks: i.segments.map((_, k) => (k % 2 ? { none: true as const, fallbackSubject: `s${k}` } : { candidateId: `c${k}`, fileUrl: `https://st/c${k}.mp4`, srcStartSec: 0, srcEndSec: 4, provenance: prov, reason: 'r' })),
+      }),
+    };
+    const svc = new SegundaFonteService(port, store);
+    const [a, b] = await Promise.all([svc.resolver(entrada), svc.resolver({ ...entrada, template: 'gossip_pink' })]);
+    expect(buscas).toBe(1); // as duas molduras do lote dividem a mesma busca
+    expect(gravadas).toHaveLength(1);
+    expect(a?.second.kind).toBe('broll_track');
+    expect(b?.second).toEqual(a?.second);
+    const t = a!.second as { clips: { fromSec: number; toSec: number; provenance: { provider: string } }[] };
+    expect(t.clips[0].fromSec).toBe(0);
+    expect(t.clips[t.clips.length - 1].toSec).toBe(30);
+    expect(t.clips.filter((c) => c.provenance.provider === 'generated')).toHaveLength(2); // IMAGENS_POR_TRILHA
+    expect(tetos).toEqual([0.22, 0.22]);
+    expect(salva.costUsd).toBe(0.49);
+    await svc.resolver(entrada); // retry: reaproveita a gravada
+    expect(buscas).toBe(1);
+    const falha = new SegundaFonteService({ ...port, searchTrack: async () => { throw new Error('pexels down'); } }, { ...store, carregar: async () => null });
+    expect((await falha.resolver(entrada))?.second.kind).toBe('champion_segment');
+  });
+
+  it('bug 429: a trilha da variante vira 1 arquivo (store.juntar); falhou ao juntar = cadeia de antes, nunca N arquivos', async () => {
+    let salva: any = null;
+    const juntadas: number[] = [];
+    const store = {
+      carregar: async () => salva, gravar: async (_b: string, t: unknown) => { salva = t; }, teto: async () => undefined,
+      variante: async () => 1,
+      juntar: async ({ variante, track }: { variante: number; track: any }) => (juntadas.push(variante), { kind: 'broll_track' as const, clips: track.clips.map((c: any) => ({ ...c, fileUrl: 'https://st/trilha-v1.mp4' })) }),
+    };
+    const port: BrollServicePort = {
+      search: async () => ({ candidates: [], costUsd: 0 }), fetch: async () => { throw new Error('x'); },
+      searchTrack: async (i) => ({ costUsd: 0, picks: i.segments.map((_, k) => ({ candidateId: `c${k}`, fileUrl: `https://st/c${k}.mp4`, srcStartSec: 0, srcEndSec: 4, provenance: { ...prov, sourceUrl: `https://pexels.com/v/${k}` }, reason: 'r' })) }),
+    };
+    const r = await new SegundaFonteService(port, store).resolver(entrada);
+    expect(juntadas).toEqual([1]);
+    expect(r).toMatchObject({ variante: 1 });
+    const clips = (r!.second as { clips: { fileUrl: string; provenance: { sourceUrl: string } }[] }).clips;
+    expect(new Set(clips.map((c) => c.fileUrl))).toEqual(new Set(['https://st/trilha-v1.mp4']));
+    expect(new Set(clips.map((c) => c.provenance.sourceUrl)).size).toBe(clips.length); // proveniência de cada clipe original
+    const quebra = new SegundaFonteService(port, { ...store, juntar: async () => { throw new Error('ffmpeg'); } });
+    expect((await quebra.resolver(entrada))?.second.kind).toBe('champion_segment');
   });
 });

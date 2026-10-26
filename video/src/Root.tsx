@@ -8,7 +8,7 @@ import { calcularMoldura, MolduraPrototipo } from './prototipos/molduras/Moldura
 import { DEMO_MOLDURAS } from './prototipos/molduras/demo';
 import { calcularMoldura as calcularMolduraProd, Moldura } from './molduras/Moldura';
 import { DEMO_ORDEM, demoProps } from './molduras/demo';
-import { CASOS } from './molduras/casos';
+import { CASOS, casoTrilha, TRILHA_TEMPLATES } from './molduras/casos';
 import { casosZhTw } from './molduras/casos-cjk';
 import { FRAME_COMPOSITION_ID, molduraSchema } from './lib/molduras';
 import { AUTO_EDIT_COMPOSITION_ID, autoEditSchema, duracaoAutoEdit, SAFE_AREA, type AutoEditProps, COMPOSITION_ID, criativoSchema, duracaoEmFrames, FORMATOS, FPS, REMIX_COMPOSITION_ID, remixKeepSchema, type CriativoProps, type RemixKeepProps } from './lib';
@@ -169,6 +169,14 @@ export const RemotionRoot: React.FC = () => (
         {DEMO_ORDEM.map((d) => (
           <Composition key={d.slug} id={`ZH-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}-${d.slug}`} component={Moldura}
             defaultProps={casosZhTw(d.id, f)} calculateMetadata={calcularMolduraProd} durationInFrames={240} fps={30} width={1080} height={1920} />
+        ))}
+      </Folder>
+    ))}
+    {(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1'] as const).map((f) => (
+      <Folder key={`tr-${f}`} name={`Molduras-Trilha-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}`}>
+        {TRILHA_TEMPLATES.map((id) => (
+          <Composition key={id} id={`TR-${f === 'VERTICAL_9_16' ? '9x16' : f === 'PORTRAIT_4_5' ? '4x5' : '1x1'}-${id.replace(/_/g, '-')}`} component={Moldura}
+            defaultProps={casoTrilha(id, f)} calculateMetadata={calcularMolduraProd} durationInFrames={300} fps={30} width={1080} height={1920} />
         ))}
       </Folder>
     ))}

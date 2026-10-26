@@ -8,7 +8,9 @@ import type { FileRef, LibraryItem, UserRef } from './index';
 
 // ───────────────────────── catálogo ─────────────────────────
 /** 25/10: `FRAME` (molduras, estatico-montado-e-molduras-v1 §B2) fundido na entrega B1. */
-export type AutoVariationType = 'CUT' | 'COLD_OPEN' | 'HOOK_TEXT' | 'ENDCARD' | 'SPLIT_LP' | 'STORY' | 'REVIEW' | 'NATIVE_SEARCH' | 'STATIC' | 'FRAME';
+export type AutoVariationType = 'CUT' | 'COLD_OPEN' | 'HOOK_TEXT' | 'ENDCARD' | 'SPLIT_LP' | 'STORY' | 'REVIEW' | 'NATIVE_SEARCH' | 'STATIC' | 'FRAME'
+  /** 25/10 (headline-e-legenda-v1 §1): headline nova (`replace`) ou acrescentada (`add`), mesma edição do campeão; ITERATION */
+  | 'HEADLINE';
 /** @deprecated fusão B1 (25/10): igual a `AutoVariationType`. Use `AutoVariationType`; o alias sai quando ninguém mais importar. */
 export type AutoVariationTypeWithFrame = AutoVariationType;
 /** Fixo por tipo (§6.1): ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". */
@@ -52,7 +54,9 @@ export interface FrameTexts {
 }
 /** Origem da 2ª mídia (B2, §B3/§B3.1). `stock_broll` = clipe de terceiro buscado pelo pipeline do get-brolls. */
 /** 25/10 (D Gusta): ordem da 2ª fonte = Pexels (`stock_broll`) → imagem gerada (`generated_image`, reserva) → trecho do campeão. */
-export type FrameSecondKind = 'champion_segment' | 'page_capture' | 'product_photo' | 'stock_broll' | 'generated_image';
+export type FrameSecondKind = 'champion_segment' | 'page_capture' | 'product_photo' | 'stock_broll' | 'generated_image'
+  /** 25/10 (Gusta): vários clipes que trocam conforme a fala (§B3.1 item 9). `stock_broll` fica pra compatibilidade. */
+  | 'broll_track';
 export type BrollProvider = 'youtube' | 'instagram' | 'tiktok' | 'pexels' | 'pixabay' | 'wikimedia' | 'nasa';
 /** Proveniência gravada por peça (§B3.1): mostrada na peça e no README do zip. `license` = texto da fonte, nunca inventado. */
 export interface BrollProvenance {
@@ -63,11 +67,15 @@ export interface BrollProvenance {
   licenseCommercialOk: boolean;
   startSec: number; endSec: number;
 }
+/** 25/10: proveniência de um trecho de `broll_track` que virou imagem de reserva (GPT Image 2; nossa, sem licença de terceiro). */
+export interface GeneratedProvenance { provider: 'generated'; model: string; prompt: string; subject: string; licenseCommercialOk: true }
+/** Um clipe da trilha de b-roll (§B3.1 item 9), na linha do tempo da peça. */
+export interface BrollTrackClipView { fromSec: number; toSec: number; segmentText: string; provenance: BrollProvenance | GeneratedProvenance }
 /** O que a peça FRAME mostra na vista (rótulo, 2ª fonte e troca de clipe). */
 export interface PieceFrame {
   template: FrameTemplateId;
   /** `provenance` só em `stock_broll`; `generated_image` = null (imagem nossa, GPT Image 2; o prompt fica em renders.input) */
-  second: { kind: FrameSecondKind; provenance: BrollProvenance | null } | null;
+  second: { kind: FrameSecondKind; provenance: BrollProvenance | null; /** 25/10, só `broll_track` (TRANSIÇÃO opcional) */ track?: BrollTrackClipView[] } | null;
   /** B2 com stock_broll: o usuário pode trocar o clipe (§B3.1). false nos outros */
   canSwapBroll: boolean;
 }
@@ -129,7 +137,12 @@ export interface AutoInsight {
   kept: string[];
   flags: { brainEmpty: boolean; shortVideo: boolean; metaConnected: false; pageCaptured: boolean; smallBatch: boolean };
   swaps: { from: AutoVariationType; to: AutoVariationType; reason: SwapReason }[];
+  /** 25/10 (headline-e-legenda-v1 §2.1): o campeão não tem legenda queimada → toda peça de vídeo do lote ganha legenda
+   *  palavra a palavra. Ausente = false (lotes antigos). */
+  captionsAuto?: boolean;
 }
+/** 25/10 (headline-e-legenda-v1 §1): "original → nova" na peça HEADLINE. `original` = texto da headline do campeão (null no `add`). */
+export interface PieceHeadline { mode: 'replace' | 'add'; original: string | null; text: string; highlight: string | null }
 
 // ───────────────────────── peça ─────────────────────────
 /** rev. 23/10: estado de um formato da peça (o render vigente daquele formato; sem render = `none`). */
@@ -156,6 +169,8 @@ export interface IteratePiece {
   /** = VariationItem.id (estável do plano ao download) */
   id: string;
   index: number; type: AutoVariationType; code: string; axis: VariationAxis;
+  /** 25/10 (headline-e-legenda-v1 §1): só na peça HEADLINE; null/ausente nas outras */
+  headline?: PieceHeadline | null;
   /** "a única coisa que muda" (idioma da interface) */
   change: string;
   status: PieceStatus;
@@ -293,7 +308,11 @@ export type IterateAsyncErrorCode =
   /** rev. 23/10: imagem do STATIC (peça ou formato) */
   | 'SAFETY_BLOCK' | 'DOWNLOAD_INVALID'
   /** 25/10: texto da moldura não coube no mínimo de 36 px (§B2); `BROLL_UNAVAILABLE`: 2ª fonte de b-roll sumiu/falhou (§B3.1) */
-  | 'FRAME_TEXT_OVERFLOW' | 'BROLL_UNAVAILABLE';
+  | 'FRAME_TEXT_OVERFLOW' | 'BROLL_UNAVAILABLE'
+  /** 25/10 (headline-e-legenda-v1 §1.3-§1.4): a headline não coube na caixa e nas linhas (80-100 % do tamanho), a faixa/placa
+   *  cobriria o rosto, não há lugar fora do rosto e do texto queimado (`add`, só no render), ou estilo/caixa não medidos.
+   *  Todos com `retryHint: 'leave_out'` (refazer não adianta). */
+  | 'HEADLINE_TOO_LONG' | 'HEADLINE_OVER_FACE' | 'HEADLINE_NO_ROOM' | 'HEADLINE_LOW_CONFIDENCE';
 
 // ───────────────────────── D4: foto do produto na oferta ─────────────────────────
 /** Upload purpose 'PRODUCT_IMAGE' (image/jpeg|png|webp, ≤ 10 MB). PUT /offers/:id/product-image { uploadId }; DELETE remove. */

@@ -25,3 +25,13 @@ export type WaitingBatchRefV = Omit<WaitingBatchRef, "status"> & {
   mode?: "MANUAL" | "AUTO"
   readyCount?: number | null
 }
+
+/*
+ * headline-e-legenda-v1 (25/10): os tipos já estão em @maquina/contratos (HEADLINE no AutoVariationType,
+ * IteratePiece.headline, AutoInsight.captionsAuto). Apelidos mantidos só pra não mexer nos imports do web; o frontend pode tirar.
+ */
+import type { AutoVariationType, AutoInsight, IteratePiece, PieceHeadline as PieceHeadlineC } from "@maquina/contratos"
+export type AutoVariationTypeV = AutoVariationType
+export type PieceHeadline = PieceHeadlineC
+export type IteratePieceV = IteratePiece
+export type AutoInsightV = AutoInsight

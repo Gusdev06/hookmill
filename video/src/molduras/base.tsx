@@ -9,7 +9,7 @@ import { FONT_CATALOG } from '../lib/remix';
 import { resolverSrc } from '../componentes/midia';
 import { trechosEmFrames } from '../lib/autoEdit';
 import {
-  FRAME_FONTS, corDaMarca, pinturaNaCaixa, reframeNaCaixa, type FittedText, type FrameFontKey, type FrameLayout, type FrameReframe, type MolduraProps, type Rect,
+  FRAME_FONTS, corDaMarca, pinturaNaCaixa, trilhaEmFrames, type BrollTrackClipProps, reframeNaCaixa, type FittedText, type FrameFontKey, type FrameLayout, type FrameReframe, type MolduraProps, type Rect,
 } from '../lib/molduras';
 
 export const FONTE = {
@@ -224,6 +224,7 @@ export const Segunda: React.FC<{ p: MolduraProps; caixa: Rect; raio?: number; es
   }
   if (s.kind === 'champion_segment') return pinta(p.video.source.videoUrl, p.video.source, s.startSec, s.endSec, s.reframe, cbCampeao);
   if (s.kind === 'clip') return pinta(s.videoUrl, s, s.startSec ?? 0, s.durationSec, s.reframe, null);
+  if (s.kind === 'broll_track') return <TrilhaBroll p={p} clips={s.clips} caixa={caixa} raio={raio} estilo={estilo} zoom={zoom} />;
   if (s.kind === 'stock_broll') {
     // b-roll (Pexels etc.): com medidas, o mesmo cover/push-in do campeão; sem elas, cover pelo CSS com o mesmo push-in
     if (s.width && s.height) return pinta(s.fileUrl, { width: s.width, height: s.height }, 0, s.durationSec ?? p.video.source.durationSec, undefined, null);
@@ -249,6 +250,55 @@ const Broll: React.FC<{ url: string; durationSec?: number; caixa: Rect; raio?: n
   return (
     <Caixa caixa={caixa} raio={raio} estilo={estilo}>
       <div style={{ position: 'absolute', inset: 0, transform: `scale(${escala})`, transformOrigin: '50% 40%' }}>{n >= durationInFrames ? v : <Loop durationInFrames={n} layout="none">{v}</Loop>}</div>
+    </Caixa>
+  );
+};
+
+/** Trilha de b-roll (vários clipes trocando conforme a fala): cada clipe numa Sequence no seu `fromSec`, mudo, em cover
+ *  (com medidas: o mesmo cover do campeão; sem: CSS) e o push-in da peça por cima de tudo. Na troca, um "punch" de 4
+ *  frames (1,06 → 1). Clipe curto: desacelera até 0,6x e segura o último quadro; nunca tela preta. */
+const TrilhaBroll: React.FC<{ p: MolduraProps; clips: BrollTrackClipProps[]; caixa: Rect; raio?: number; estilo?: React.CSSProperties; zoom: number }> = ({ p, clips, caixa, raio, estilo, zoom }) => {
+  const f = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+  const ci = interna(caixa, estilo);
+  const trechos = trilhaEmFrames(clips, durationInFrames, fps);
+  const escala = interpolate(f, [0, durationInFrames], [1, zoom]);
+  const quadro = (c: BrollTrackClipProps, extra: { trimBefore?: number; trimAfter?: number; playbackRate?: number }) => {
+    if (c.width && c.height) {
+      const r = reframeNaCaixa(ci, { width: c.width, height: c.height }, null);
+      const pt = pinturaNaCaixa(ci, { width: c.width, height: c.height }, r, null);
+      return (
+        <div style={{ position: 'absolute', left: pt.area.left, top: pt.area.top, width: pt.area.w, height: pt.area.h, overflow: 'hidden' }}>
+          <OffthreadVideo src={resolverSrc(c.fileUrl)} muted {...extra} style={{ position: 'absolute', left: pt.video.left, top: pt.video.top, width: pt.video.w, height: pt.video.h, objectFit: 'fill' }} />
+        </div>
+      );
+    }
+    return <OffthreadVideo src={resolverSrc(c.fileUrl)} muted {...extra} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 40%' }} />;
+  };
+  return (
+    <Caixa caixa={caixa} raio={raio} estilo={estilo} fundo={corDaMarca(p.frame.brand.color)}>
+      <div style={{ position: 'absolute', inset: 0, transform: `scale(${escala})`, transformOrigin: '50% 40%' }}>
+        {trechos.map((t, i) => {
+          const local = f - t.de;
+          const punch = i > 0 ? interpolate(local, [0, 4], [1.06, 1], clamp) : 1;
+          return (
+            <Sequence key={i} from={t.de} durationInFrames={t.frames} layout="none" name={`B-roll ${i + 1}`}>
+              <div style={{ position: 'absolute', inset: 0, transform: `scale(${punch})` }}>
+                <Sequence durationInFrames={t.tocando} layout="none">
+                  {quadro(t.clip, { trimBefore: t.inicio || undefined, trimAfter: t.fimArquivo, playbackRate: t.taxa })}
+                </Sequence>
+                {t.tocando < t.frames ? (
+                  <Sequence from={t.tocando} layout="none">
+                    <Freeze frame={Math.max(0, t.tocando - 1)}>
+                      {quadro(t.clip, { trimBefore: t.inicio || undefined, trimAfter: t.fimArquivo, playbackRate: t.taxa })}
+                    </Freeze>
+                  </Sequence>
+                ) : null}
+              </div>
+            </Sequence>
+          );
+        })}
+      </div>
     </Caixa>
   );
 };

@@ -4,6 +4,7 @@ import { trechosEmFrames, type EditMapLike } from './autoEdit';
 import { corDeDestaque } from './cores';
 import { METRIC_CHARS, METRIC_FONTS, METRIC_UNITS } from './metricas-fontes';
 import { CJK_EXCECOES, CJK_UNITS } from './metricas-cjk';
+import { captionsAutoSchema } from './captionsSchema';
 
 // Molduras de vídeo (contrato docs/contratos/estatico-montado-e-molduras-v1.md §B2-§B4). Puro (sem React): a composição
 // `Moldura` (src/molduras/) e o buildFrameInput da API usam as mesmas funções. Promovido do protótipo aprovado em 25/10
@@ -462,6 +463,17 @@ export const secondSourceSchema = z.discriminatedUnion('kind', [
     /** medidas do arquivo (com elas, cover com o mesmo push-in do campeão; sem elas, cover pelo CSS) */
     width: z.number().int().positive().optional(), height: z.number().int().positive().optional(),
   }),
+  /** trilha de b-roll (decisão 25/10): vários clipes que trocam conforme a fala, na linha do tempo da PEÇA, sem buraco.
+   *  Cada clipe toca `srcStartSec`–`srcEndSec` do arquivo a partir de `fromSec` até `toSec`. `provenance` passa direto. */
+  z.object({
+    kind: z.literal('broll_track'),
+    clips: z.array(z.object({
+      fromSec: z.number().min(0), toSec: z.number().positive(), fileUrl: z.string().min(1),
+      srcStartSec: z.number().min(0), srcEndSec: z.number().positive(),
+      segmentText: z.string().optional(), provenance: z.unknown().optional(),
+      width: z.number().int().positive().optional(), height: z.number().int().positive().optional(),
+    })).min(1),
+  }),
   /** local: outro arquivo de vídeo (mudo), em loop se curto */
   z.object({ kind: z.literal('clip'), videoUrl: z.string().min(1), width: z.number().int().positive(), height: z.number().int().positive(), durationSec: z.number().positive(), startSec: z.number().min(0).optional(), reframe: frameReframeSchema.optional() }),
 ]);
@@ -500,9 +512,28 @@ export const molduraSchema = z.object({
   second: secondSourceSchema.optional(),
   face: faceSourceSchema.optional(),
   safeArea: z.object({ top: z.number().min(0), bottom: z.number().min(0) }),
+  /** legenda automática (campeão sem legenda queimada) */
+  captions: captionsAutoSchema.optional(),
 });
 export type MolduraProps = z.infer<typeof molduraSchema>;
 export type SecondSourceProps = z.infer<typeof secondSourceSchema>;
+export type BrollTrackClipProps = Extract<SecondSourceProps, { kind: 'broll_track' }>['clips'][number];
+
+/** Trilha sem buraco na linha do tempo da peça: ordena, cada clipe vai até o início do próximo, o 1º começa em 0 e o
+ *  último vai até o fim da peça. Duração em frames e quanto do arquivo existe pra cada trecho. */
+export const trilhaEmFrames = (clips: BrollTrackClipProps[], totalFrames: number, fps: number = FPS) => {
+  const cs = [...clips].sort((a, b) => a.fromSec - b.fromSec);
+  return cs.map((c, i) => {
+    const de = i === 0 ? 0 : Math.round(c.fromSec * fps);
+    const ate = i === cs.length - 1 ? totalFrames : Math.round(cs[i + 1].fromSec * fps);
+    const frames = Math.max(1, ate - de);
+    const disponivel = Math.max(1, Math.round((c.srcEndSec - c.srcStartSec) * fps));
+    // clipe mais curto que o trecho: desacelera até 0,6x; o que ainda faltar segura o último quadro (nunca preto)
+    const taxa = disponivel >= frames ? 1 : Math.max(0.6, disponivel / frames);
+    const tocando = Math.min(frames, Math.floor(disponivel / taxa));
+    return { clip: c, de, frames, taxa, tocando, inicio: Math.round(c.srcStartSec * fps), fimArquivo: Math.round(c.srcEndSec * fps) };
+  }).filter((t) => t.de < totalFrames);
+};
 export type FaceSourceProps = z.infer<typeof faceSourceSchema>;
 export type FrameOf<K extends FrameTemplateId> = Extract<MolduraProps['frame'], { id: K }>;
 

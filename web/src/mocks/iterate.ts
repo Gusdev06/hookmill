@@ -22,11 +22,11 @@
  *   mock-planfail → PROVIDER_ERROR while planning (cents charged, try again)
  */
 import type {
-  AutoInsight, AutoVariationType, AutoVariationTypeWithFrame, FrameTemplateId, StaticRenderStage, StaticTextCheck, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceFormat,
+  AutoInsight, AutoVariationType, FrameTemplateId, StaticRenderStage, StaticTextCheck, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceFormat,
   PieceFormatState, PieceStatus,
   SwapReason, UserRef, VariationAxis, WhyLine,
 } from "@/lib/api/types"
-import type { LibraryItemV, WaitingBatchRefV } from "@/lib/api/types"
+import type { AutoVariationTypeV, LibraryItemV, PieceHeadline, WaitingBatchRefV } from "@/lib/api/types"
 import { db, mockArt, mockId, MOCK_VIDEO, save as saveDb } from "./db"
 import { blobUrl } from "./variar"
 
@@ -41,9 +41,9 @@ export const STATIC_USD = 0.4 // STATIC_IMAGE_MODEL.usdPerImage: GPT Image 2 hig
 const USD_PER_SEC = 0.01 // transcription + teardown with frames (mock)
 const PLAN_USD = 0.02
 const FORMATS: FormatCode[] = ["9x16", "4x5", "1x1"]
-const AXIS: Record<AutoVariationTypeWithFrame, VariationAxis> = {
+const AXIS: Record<AutoVariationTypeV, VariationAxis> = {
   CUT: "ITERATION", COLD_OPEN: "ITERATION", HOOK_TEXT: "ITERATION", ENDCARD: "ITERATION",
-  SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY", FRAME: "DIVERSITY",
+  SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY", FRAME: "DIVERSITY", HEADLINE: "ITERATION",
 }
 // ───────────── frames (§B2/§B7) ─────────────
 const FRAME_IDS: FrameTemplateId[] = [
@@ -65,6 +65,21 @@ const FRAME_NAME: Record<FrameTemplateId, [string, string]> = {
 }
 /** example data (§B4): a template without a format, so the hidden button can be checked */
 const FRAME_UNSUPPORTED: Partial<Record<FrameTemplateId, FormatCode[]>> = { meme: ["1x1"] }
+/** headline-e-legenda §1.5 (H2): HEADLINE only in the champion's aspect (the mock champion is 9:16) */
+const unsupportedOf = (p: MPiece): FormatCode[] => (p.type === "HEADLINE" ? ["4x5", "1x1"] : p.frame ? (FRAME_UNSUPPORTED[p.frame] ?? []) : [])
+/** headline-e-legenda §1 (example data, the language of the original headline) */
+const HEADLINE_ORIGINAL = "I tried everything for my back pain"
+const HEADLINES: Omit<PieceHeadline, "mode" | "original">[] = [
+  { text: "Your back pain isn't your mattress", highlight: "isn't your mattress" },
+  { text: "10 minutes at night, before bed", highlight: null },
+  { text: "What changed after week one", highlight: "week one" },
+]
+/** §B3.1 item 9: b-roll track of the 2-source frames (example data) */
+const TRACK = (d: number) => [
+  { fromSec: 0, toSec: Math.round(d * 0.3 * 10) / 10, segmentText: "I tried everything for my back pain", provenance: { provider: "pexels" as const, sourceUrl: "https://www.pexels.com/video/woman-holding-her-back-7298743/", creator: "Kampus Production", license: "Pexels License", licenseCommercialOk: true, startSec: 2, endSec: 8 } },
+  { fromSec: Math.round(d * 0.3 * 10) / 10, toSec: Math.round(d * 0.65 * 10) / 10, segmentText: "a physio showed me this 10-minute routine", provenance: { provider: "youtube" as const, sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", creator: "Example Channel", license: "Standard YouTube License", licenseCommercialOk: false, startSec: 41, endSec: 52 } },
+  { fromSec: Math.round(d * 0.65 * 10) / 10, toSec: d, segmentText: "now I wake up without pain", provenance: { provider: "generated" as const, model: "gpt-image-2", prompt: "person waking up relaxed in soft morning light", subject: "waking up without pain", licenseCommercialOk: true as const } },
+]
 const frameStill = (id: FrameTemplateId) => ({ id: `f_frame_${id}`, url: `/mock/frames/${id}.jpg`, mimeType: "image/jpeg" })
 // ───────────── STATIC text check (§A6) ─────────────
 /** extra = every item matches but the image wrote text nobody asked for (G3: critical; live finding 25/10) */
@@ -120,7 +135,7 @@ export const ITER_LIMITS = { maxBytes: 524_288_000, minSec: 4, maxSec: 180, mime
 
 // ───────────── model ─────────────
 interface MPiece {
-  id: string; index: number; type: AutoVariationTypeWithFrame; variant: string; n: number
+  id: string; index: number; type: AutoVariationTypeV; variant: string; n: number
   /** FRAME only: the template (= variant) */
   frame?: FrameTemplateId
   /** true once the user set "In zip" (G1 default only applies before that) */
@@ -181,9 +196,10 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).
 const ratioLabel = (w: number, h: number) => { const r = h / w; return r > 1.6 ? "9:16" : r > 1.15 ? "4:5" : r > 0.9 ? "1:1" : "16:9" }
 
 /** codeFor(type, variant, n, lang) — the web never builds codes; this is the mock of the backend's pure function (§6.1). */
-function codeFor(type: AutoVariationTypeWithFrame, variant: string, n: number, lang: "EN" | "PT") {
+function codeFor(type: AutoVariationTypeV, variant: string, n: number, lang: "EN" | "PT") {
   const P = lang === "PT"
   switch (type) {
+    case "HEADLINE": return `HEADLINE-${n + 1}`
     case "FRAME": return P ? `MOLDURA-${FRAME_PT[variant as FrameTemplateId]}` : `FRAME-${variant.toUpperCase().replace(/_/g, "-")}`
     case "CUT": return `${P ? "CORTE" : "CUT"}-${variant}S`
     case "COLD_OPEN": return "COLD-OPEN"
@@ -198,7 +214,7 @@ function codeFor(type: AutoVariationTypeWithFrame, variant: string, n: number, l
 }
 const code = (b: MIter, p: MPiece) => codeFor(p.type, p.variant, p.n, b.codeLang)
 
-type Row = [AutoVariationTypeWithFrame, string, string, string, number?] // type, variant, change EN, change PT, n
+type Row = [AutoVariationTypeV, string, string, string, number?] // type, variant, change EN, change PT, n
 const frameRow = (id: FrameTemplateId): Row => {
   const [en, ptName] = FRAME_NAME[id]
   return ["FRAME", id, `The champion plays inside a ${en} frame. Screen text from the Brain.`, `O campeão toca dentro de uma moldura de ${ptName}. Texto de tela do Brain.`]
@@ -207,10 +223,20 @@ function planRows(b: MIter): Row[] {
   const rows = basePlanRows(b)
   const all = typeof window !== "undefined" && sessionStorage.getItem("mock:frames") === "all"
   // D10: at most 2 frames per batch, different templates (all 18 only in the web-mock QA switch)
-  const frames: FrameTemplateId[] = all ? FRAME_IDS : b.shortVideo || b.brainEmpty ? ["meme"] : ["news", "meme"]
+  const frames: FrameTemplateId[] = all ? FRAME_IDS : b.shortVideo || b.brainEmpty ? ["meme"] : ["news", "meme", "split_stack"]
   return [...rows, ...frames.map(frameRow)]
 }
+/** headline-e-legenda §1.1: 3 HEADLINE (`replace`) or 2 (`add`, champion without a headline: [mock:headline-none]) */
+function headlineRows(b: MIter): Row[] {
+  const add = notesOf(b.offerId).includes("[mock:headline-none]")
+  return HEADLINES.slice(0, add ? 2 : 3).map((_, i): Row => add
+    ? ["HEADLINE", "add", "Adds a headline band in the brand color. The rest of the video stays the same.", "Põe uma faixa de headline na cor da marca. O resto do vídeo fica igual.", i]
+    : ["HEADLINE", "replace", "Only the headline changes: same place, same style. Cuts, voice and framing stay.", "Só a headline muda: mesmo lugar, mesmo estilo. Cortes, voz e enquadramento ficam.", i])
+}
 function basePlanRows(b: MIter): Row[] {
+  return [...headlineRows(b), ...basePlanRowsOld(b).filter((r) => r[0] !== "HOOK_TEXT" && r[0] !== "COLD_OPEN" && r[0] !== "ENDCARD")]
+}
+function basePlanRowsOld(b: MIter): Row[] {
   const d = b.durationSec
   if (b.shortVideo) {
     return [
@@ -253,7 +279,7 @@ function basePlanRows(b: MIter): Row[] {
   return rows
 }
 function buildPieces(b: MIter): MPiece[] {
-  const counts: Partial<Record<AutoVariationTypeWithFrame, number>> = {}
+  const counts: Partial<Record<AutoVariationTypeV, number>> = {}
   return planRows(b).map(([type, variant, en, ptText, n], index) => {
     const k = counts[type] ?? 0
     counts[type] = k + 1
@@ -314,7 +340,7 @@ const failText = (code: string, frames: number, host: string) =>
     : `Rendering stopped at frame ${Math.round(frames * 0.6)}.`
 function formatsOf(b: MIter, p: MPiece, now: number, host: string): PieceFormat[] {
   return FORMATS.map((format) => {
-    if (p.frame && FRAME_UNSUPPORTED[p.frame]?.includes(format))
+    if (unsupportedOf(p).includes(format))
       return { format, state: "none" as const, progress: null, errorCode: null, failReason: null, requestUsd: null, supported: false }
     const j = b.launchedAt ? lastJob(b, p.id, format) : null
     const state = formatState(j, now)
@@ -419,7 +445,9 @@ function insightOf(b: MIter, status: IterateStatus): AutoInsight | null {
   ]
   const kept = b.shortVideo ? [L("The opening shot", "O plano de abertura"), L("The spoken line", "A frase falada")]
     : [L("Hook words", "Palavras do gancho"), L("The creator", "O criador"), L("The demonstration", "A demonstração"), L("Spoken CTA", "CTA falado")]
-  return { blocks, why, kept, flags, swaps }
+  // headline-e-legenda §2.1: the champion has no burned-in captions → every video piece gets them ([mock:captions-burned] = it has)
+  const captionsAuto = !notesOf(b.offerId).includes("[mock:captions-burned]")
+  return { blocks, why, kept, flags, swaps, captionsAuto } as AutoInsight
 }
 
 function analysisOf(b: MIter, status: IterateStatus, now: number): IterateBatch["analysis"] {
@@ -496,7 +524,12 @@ export function iterView(b: MIter, now = Date.now()): IterateBatch {
       inZip: s === "ready" || (s === "rendering" && files.some((f) => f.format === "9x16")) ? zipDefault : false, creativeId: launched ? p.creativeId : null,
       poster, files,
       folder: AXIS[p.type] === "ITERATION" ? "1-stretch" : "2-new-audience",
-      frame: p.frame ? { template: p.frame, second: null, canSwapBroll: false } : null,
+      frame: p.frame
+        ? { template: p.frame, second: p.frame === "split_stack" ? { kind: "broll_track" as const, provenance: null, track: TRACK(p.sec) } : null, canSwapBroll: false }
+        : null,
+      headline: p.type === "HEADLINE"
+        ? { mode: p.variant as PieceHeadline["mode"], original: p.variant === "add" ? null : HEADLINE_ORIGINAL, ...HEADLINES[p.n % HEADLINES.length] }
+        : null,
       textCheck,
       suggestedPrimaryText: p.frame === "read_caption" ? L("Most people stretch in the morning. That's the mistake. Here is what 10 minutes at night does instead…", "Quase todo mundo alonga de manhã. Esse é o erro. Veja o que 10 minutos à noite fazem no lugar…") : null,
     } as IteratePiece
@@ -704,7 +737,7 @@ function frameFailOf(notes: string): MIter["frameFail"] {
 }
 /** web-mock: Retry of a STATIC with ?mocktext=cap answers SPEND_CAP_EXCEEDED */
 export const textCapForced = () => typeof window !== "undefined" && sessionStorage.getItem("mock:text") === "cap"
-export const isUnsupportedFormat = (p: MPiece, f: FormatCode) => !!p.frame && !!FRAME_UNSUPPORTED[p.frame]?.includes(f)
+export const isUnsupportedFormat = (p: MPiece, f: FormatCode) => unsupportedOf(p).includes(f)
 
 export function findPiece(pieceId: string) {
   for (const b of it.batches) {

@@ -224,6 +224,7 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     const r = await call('PUT', '/meta/selection', users.owner.token, { adAccountId: 'act_mock_1', pageId: 'page_mock', pixelId: 'pix_mock' });
     expect(r.status).toBe(200);
     expect(r.data).toMatchObject({ adAccount: { id: 'act_mock_1', currency: 'USD', accountStatus: 1 }, page: { id: 'page_mock' }, pixel: { id: 'pix_mock' } });
+    expect(r.data.health.checks.filter((c: any) => c.level === 'bad').map((c: any) => `${c.key}: ${c.detail ?? c.message ?? ''}`)).toEqual([]);
     expect(r.data.health).toMatchObject({ level: 'warn', canPublish: true });
     expect(r.data.health.checks.find((c: any) => c.key === 'verified').level).toBe('warn');
     expect(r.data.health.checks.find((c: any) => c.key === 'pixel').level).toBe('ok');
@@ -475,7 +476,8 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     expect((await call('GET', '/meta/options', users.owner.token)).error?.code).toBe('META_TOKEN_INVALID');
     expect((await call('POST', `/creatives/${c2.id}/meta/retry`, users.owner.token, {})).error?.code).toBe('META_TOKEN_INVALID');
     // leitura dos snapshots continua
-    expect((await call('GET', '/meta/ads', users.owner.token)).status).toBe(200);
+    // Gusta 25/10: dado de anúncio só com a conexão saudável: login vencido = 422 também na leitura
+    expect((await call('GET', '/meta/ads', users.owner.token)).error).toMatchObject({ code: 'META_TOKEN_INVALID' });
     // reconectar pelo callback volta a ACTIVE e mantém a seleção (mesmo usuário da Meta)
     expect((await callbackWith('mock')).location.searchParams.get('meta')).toBe('connected');
     expect((await conn())!).toMatchObject({ status: 'ACTIVE', adAccountId: 'act_mock_1', pageId: 'page_mock' });

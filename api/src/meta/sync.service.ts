@@ -12,7 +12,7 @@ import { META_SERVICE, type MetaService, compareAds, isEligible, isMetaError, me
 import { JobsService } from '../jobs/jobs.service';
 import { presentJob } from '../jobs/job.presenter';
 import { PrismaService } from '../prisma/prisma.service';
-import { assertSelected, assertUsable, isForeignToMode, markTokenInvalid, metaAuthOf, metricsOf, ownConnectionsWhere } from './comum';
+import { assertHealthy, assertSelected, assertUsable, isForeignToMode, markTokenInvalid, metaAuthOf, metricsOf, ownConnectionsWhere } from './comum';
 import { MetaConexaoService, storedHealthOf } from './conexao.service';
 import { type RowCtx, adsManagerObjectUrl, canToggleOf, canWriteOf, matchesStatus, periodMetrics, sortRows, statusCounts, toggleOf } from './campanhas.views';
 import { SyncBackoff } from './sync-backoff';
@@ -266,11 +266,9 @@ export class MetaSyncService {
     return { state: 'ok', syncedAt, progress: null, job: null };
   }
 
-  /** Conexão (mesmo TOKEN_INVALID: a leitura dos snapshots continua) ou 422 META_NOT_CONNECTED. */
+  /** Gusta 25/10: snapshot só com a conexão saudável (login vencido ou permissão faltando = 422, nunca o dado guardado). */
   private async readable(workspaceId: string): Promise<MetaConnection> {
-    const c = await this.prisma.metaConnection.findUnique({ where: { workspaceId } });
-    if (!c || c.status === 'DISCONNECTED') throw new AppException('META_NOT_CONNECTED');
-    return c;
+    return assertHealthy(await this.prisma.metaConnection.findUnique({ where: { workspaceId } }));
   }
 
   /** campanhas-v1 D2: o sync guarda todos os formatos; Home/summary/tour seguem só com vídeo (mesma mediana de antes). */

@@ -18,6 +18,7 @@ import { useErrorMessage } from "@/hooks/use-error-message"
 import { BRAIN_SECTIONS, brainCompleteness } from "@/lib/brain"
 import { ME_KEY } from "@/hooks/use-me"
 import { metaReady, mk, useMetaConnection, useMoney } from "@/hooks/use-meta"
+import { metaGateOf } from "@/components/meta/meta-gate"
 import { TOUR_STEP_KEY } from "@/components/tour/tour-state"
 import { cn } from "@/lib/utils"
 import { BackLink, BRAIN_ITEM_STEP, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
@@ -321,7 +322,8 @@ function PathCard({ href, eyebrow, title, body }: { href: string; eyebrow: strin
 function FromMeta() {
   const tb = useTranslations("onboarding.brain")
   const conn = useMetaConnection()
-  const ready = metaReady(conn.data)
+  // Gusta 25/10: numbers only with the ad account usable (expired / permission missing = the Soon block, no numbers)
+  const ready = metaReady(conn.data) && metaGateOf(conn.data) === "ready"
   const summary = useQuery({ queryKey: mk.summary("30d"), queryFn: ({ signal }) => api.meta.summary({ period: "30d" }, { signal }), enabled: ready })
   const winner = useQuery({ queryKey: mk.ads({ verdict: "WINNER", limit: 1 }), queryFn: ({ signal }) => api.meta.ads({ verdict: "WINNER", limit: 1 }, { signal }), enabled: ready })
   const money = useMoney(summary.data?.currency)

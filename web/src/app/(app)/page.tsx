@@ -23,6 +23,7 @@ import { useEngineLabel } from "@/hooks/use-engine-label"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { useAccountMode } from "@/hooks/use-me"
 import { isMetaOff, metaReady, mk, useMetaConnection, useMoney, useRelativeTime } from "@/hooks/use-meta"
+import { MetaLockCard, metaGateOf } from "@/components/meta/meta-gate"
 import { creativeHref, iterateHref, variarHref } from "@/lib/routes"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useStatusLabel } from "@/hooks/use-status-label"
@@ -86,8 +87,9 @@ export default function HomePage() {
   const off = conn.isError && isMetaOff(conn.error)
   const ready = metaReady(conn.data)
   const expired = conn.data?.status === "TOKEN_INVALID"
-  // QA 21/10 (bug 8, design §2.12): an expired login with an account chosen still shows the last numbers + Reconnect
-  const usable = ready || (expired && !!conn.data?.adAccount && !!conn.data?.page)
+  // Gusta 25/10 (replaces QA 21/10 bug 8): numbers only with the ad account usable; expired / permission missing = the lock
+  const gate = metaGateOf(conn.data)
+  const usable = ready && gate === "ready"
   const [period, setPeriod] = useState<MetaPeriod>("30d")
   const summary = useQuery({
     queryKey: mk.summary(period),
@@ -146,7 +148,14 @@ export default function HomePage() {
         <Cols main={waitingCard} side={brainCard} />
       </>
     )
-  } else if (!usable || sync === "never") {
+  } else if (!usable) {
+    results = (
+      <>
+        <MetaLockCard state={gate} />
+        <Cols main={waitingCard} side={brainCard} />
+      </>
+    )
+  } else if (sync === "never") {
     results = (
       <>
         <NoMeta name={name} chooseAccount={!!conn.data && conn.data.status === "ACTIVE"} />

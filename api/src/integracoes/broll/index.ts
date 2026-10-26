@@ -13,6 +13,7 @@ export * from './broll.service';
 export { FakeBrollService } from './fake-broll.service';
 export { PexelsClient } from './pexels';
 export { socialSourceFor } from './social';
+export { MAX_ALTERNATIVES, TRACK_LIMITS, isNone, noConsecutiveRepeats, trackClips, variantPicks, type BrollPickAlt, type BrollTrackPick, type TrackChoice, type TrackNone } from './trilha';
 
 export type BrollService = PexelsBrollService | FakeBrollService;
 

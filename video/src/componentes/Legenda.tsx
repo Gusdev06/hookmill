@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { alinhamento, ESCALA_TIPO, fonteDoEstilo, raioDoFundo, textoComContorno, type EstiloTemplate } from '../estilos';
-import { caixaHorizontal, paginar, palavrasGlobais, type CriativoProps, type LayerStyle, type LayerTransform } from '../lib';
+import { caixaHorizontal, paginar, paginasLegendaAuto, palavrasGlobais, semEspaco, type CriativoProps, type LayerStyle, type LayerTransform } from '../lib';
 
 type Props = Pick<CriativoProps, 'scenes' | 'captionStyle' | 'format'> & {
   estilo: EstiloTemplate;
@@ -12,21 +12,26 @@ type Props = Pick<CriativoProps, 'scenes' | 'captionStyle' | 'format'> & {
   janela?: { de: number; ate: number };
   /** Estilo da camada (editor). Ausente = visual do template (caminho de hoje). */
   estiloCamada?: LayerStyle;
+  /** idioma da fala: zh/ja = palavras sem espaço e página por caractere (≤ 8) */
+  language?: string;
 };
 
 /** Legenda a partir dos tempos por palavra da transcrição. 'word' = aparece palavra a palavra com destaque; 'line' = frase inteira. */
-export const Legenda: React.FC<Props> = ({ scenes, captionStyle, format, estilo, transformNoFrame, ateSec, janela, estiloCamada: s }) => {
+export const Legenda: React.FC<Props> = ({ scenes, captionStyle, format, estilo, transformNoFrame, ateSec, janela, estiloCamada: s, language = 'en' }) => {
+  const cjk = semEspaco(language);
   const frame = useCurrentFrame();
   const { fps, height } = useVideoConfig();
   const modo = captionStyle === 'line' ? 'line' : 'word';
   const paginas = useMemo(
     () =>
-      paginar(palavrasGlobais(scenes), {
-        maxPalavras: estilo.legenda.palavrasPorPagina[modo],
-        maxChars: estilo.legenda.charsPorPagina[modo],
-        ateSec,
-      }),
-    [scenes, estilo, modo, ateSec],
+      cjk
+        ? paginasLegendaAuto(palavrasGlobais(scenes), language, ateSec)
+        : paginar(palavrasGlobais(scenes), {
+          maxPalavras: estilo.legenda.palavrasPorPagina[modo],
+          maxChars: estilo.legenda.charsPorPagina[modo],
+          ateSec,
+        }),
+    [scenes, estilo, modo, ateSec, cjk, language],
   );
   if (captionStyle === 'off') return null;
   if (janela && (frame < janela.de || frame >= janela.ate)) return null;
@@ -67,7 +72,7 @@ export const Legenda: React.FC<Props> = ({ scenes, captionStyle, format, estilo,
       <div
         style={{
           display: 'flex', flexWrap: 'wrap', justifyContent: alinhamento(s!).justifyContent, alignItems: 'center',
-          columnGap: '0.26em', rowGap: '0.08em', backgroundColor: fundoBloco, padding: '0.2em 0.45em', borderRadius: raioDoFundo(s!, '0.28em'),
+          columnGap: cjk ? 0 : '0.26em', rowGap: '0.08em', backgroundColor: fundoBloco, padding: '0.2em 0.45em', borderRadius: raioDoFundo(s!, '0.28em'),
         }}
       >
         {palavras}
@@ -91,7 +96,7 @@ export const Legenda: React.FC<Props> = ({ scenes, captionStyle, format, estilo,
           flexWrap: 'wrap',
           justifyContent: s ? alinhamento(s).justifyContent : 'center',
           alignItems: 'center',
-          columnGap: '0.26em',
+          columnGap: cjk ? 0 : '0.26em',
           rowGap: '0.08em',
           fontFamily: L.fontFamily,
           fontWeight: L.fontWeight,

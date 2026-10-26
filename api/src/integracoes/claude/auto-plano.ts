@@ -18,18 +18,21 @@ import type {
 import { STATIC_V2_RULES, staticCopyOf, staticVisualV2Of } from './auto-plano-estatico';
 import { FRAME_RULES, allowedFramesOf, frameAllowed, frameParamsOf, framesRequestLine, type AutoPlanInputWithFrame } from './auto-plano-moldura';
 import { IntegracaoError } from '../erros';
+import type { AutoHeadlineDraft } from '../contrato';
+import { sourceOf } from './auto-plano-estatico';
 import { wordsBlock } from './prompts-campeao';
 import { parseJsonObject } from './validacao-campeao';
 
 export const AUTO_TYPES: AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
 /** 25/10 (§B2, TRANSIÇÃO): com FRAME. Vira o AUTO_TYPES na fusão do B1. */
-export const AUTO_TYPES_WITH_FRAME: AutoVariationTypeWithFrame[] = [...AUTO_TYPES, 'FRAME'];
+export const AUTO_TYPES_WITH_FRAME: AutoVariationType[] = [...AUTO_TYPES, 'FRAME', 'HEADLINE'];
 export type { AutoPlanInputWithFrame } from './auto-plano-moldura';
 /** Catálogo dos lotes NOVOS (decisão do Gusta 25/10): saem COLD_OPEN, HOOK_TEXT, ENDCARD, STORY e SPLIT_LP do esquema e
  *  do prompt; o parse dos tipos antigos continua (AUTO_TYPES_WITH_FRAME) pra plano já salvo e pro reparo. */
-export const PLAN_TYPES: AutoVariationTypeWithFrame[] = ['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
+export const PLAN_TYPES: AutoVariationType[] = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
 /** TRANSIÇÃO (§C.0): item/plano com FRAME. Na fusão do B1 viram o AutoItemDraft/AutoPlanDraft do contrato. */
-export type AutoItemDraftWithFrame = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationTypeWithFrame; params: AutoParamsDraftWithFrame };
+// headline-e-legenda-v1 (25/10, TRANSIÇÃO): o item também pode ser HEADLINE (AutoVariationType / AutoParamsDraft)
+export type AutoItemDraftWithFrame = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationType; params: AutoParamsDraft | AutoParamsDraftWithFrame };
 export type AutoPlanDraftWithFrame = Omit<AutoPlanDraft, 'items'> & { items: AutoItemDraftWithFrame[] };
 export const BLOCK_FNS: BlockFn[] = ['hook', 'problem', 'mechanism', 'proof', 'cta', 'other'];
 /** Campos do Brain que o porquê pode citar ('page' = texto capturado da LP). */
@@ -78,6 +81,9 @@ const PARAMS = obj({
   emotion: str('STATIC only: the hero emotion, one of pain, relief, desire, curiosity, pride (hook → pain or curiosity, proof → relief or pride, cta → desire). "none" for other types.'),
   concept: str('STATIC only, in English, max 160 characters: the concept of the assembled ad (who is in the hero photo, where, what the product shows, which pain or desire the headline names). No quotation marks, no brand. Empty otherwise.'),
   template: str('FRAME only: the frame template id, one of those listed in <frames> of the request. "none" for other types.'),
+  text: str('HEADLINE only: the new headline, in the headline language, within the character limit of <headline>. Empty otherwise.'),
+  highlight: str('HEADLINE only: the exact words of `text` shown in the accent color, only when <headline> says the original has a highlight. Empty otherwise.'),
+  textSource: str('HEADLINE only: the Brain field the headline rests on (pains, promise, proof, what, offerAndPrice, cta) or "transcript". "none" otherwise.'),
 }, 'Parameters of this piece. Fill only the fields of its type; the rest get the empty value (empty string, 0, empty list, "none").');
 
 export const AUTO_PLAN_SCHEMA = obj({
@@ -96,6 +102,7 @@ export const AUTO_PLAN_SCHEMA = obj({
 export const AUTO_PLAN_SYSTEM = `You plan a batch of edit-only variations of a winning short video ad (the "champion") for a performance team. Every video piece reuses the champion's own footage and audio; nothing is filmed or generated (the one exception is STATIC, a new image ad). Each piece changes exactly ONE thing so the test reads clean.
 
 Piece types (axis in brackets; ITERATION keeps the first frame, DIVERSITY changes it):
+- HEADLINE [ITERATION]: a new headline for the whole video, drawn in the same box and style as the original title (or a new band when the champion has none). Only the headline changes. Details in "HEADLINE" below.
 - CUT [ITERATION]: a 15 s (or 20 s) cut made of whole blocks, in order. The hook block (index 0) and every kept block always stay. Use 20 s only when hook + proof + CTA do not fit in 15 s.
 - REVIEW [DIVERSITY]: a customer review card above the video. The quote is copied character for character from the Brain proof field.
 - NATIVE_SEARCH [DIVERSITY]: opens on a generic search screen typing the problem the hook names, then the video. No brand in the query.
@@ -106,12 +113,19 @@ Batch rules:
 - Use only the types in <allowed>, never more of a type than its max. Stay within the requested piece count and keep at least the requested share of DIVERSITY pieces. Within diversity, prefer FRAME and STATIC, then REVIEW and NATIVE_SEARCH.
 - One variable per piece. Never two types in the same piece.
 - What is listed in "kept" never changes in any piece: kept blocks never leave a CUT and the spoken hook is always in a CUT.
-- Nothing invented on screen: every number, price, time span or percentage in STATIC, FRAME or NATIVE_SEARCH text must already appear in the Brain or in the transcript. When unsure, write the text without numbers.
+- Nothing invented on screen: every number, price, time span or percentage in HEADLINE, STATIC, FRAME or NATIVE_SEARCH text must already appear in the Brain or in the transcript. When unsure, write the text without numbers.
 - The why line cites the Brain only when that field is filled; otherwise its source is the video.
 - Offer-agnostic: describe mechanics (hook, proof, CTA), never label the niche. Describe any person only generically; never a name, handle or distinctive trait.
 - Times come from the transcript and the silences; never place a boundary inside a word.
 - On-screen texts (headlines, CTA, query, quote) are in the screen language given in the request, as people really write: short, concrete, no emojis, no hashtags. Interface texts (why, kept, change, rationale) are in the interface language given in the request.
 - Metrics are unknown: never claim results; reasons are hypotheses.
+
+HEADLINE:
+- When HEADLINE is in <allowed>, write exactly as many HEADLINE pieces as its max (3 when the champion has a headline, 2 when it has none), each with a different angle: the pain, the promise, the proof. Each one must differ from the others and from the original headline.
+- Same language as given in <headline>. Same number of lines as the original and no more characters than its limit (a full-width character counts as 1 here); short, concrete, as people write on a video; no emojis, no hashtags, no brand name.
+- Keep the voice of the original (if it asks a question, a question works; if it is all caps on screen, the render shows it in caps: write it normally).
+- highlight: only when <headline> says the original has a highlight: the strongest 1-4 words of your text, copied exactly; otherwise empty.
+- Nothing invented: every number, price, time span or percentage must be in the Brain or the transcript; textSource names where the claim comes from.
 
 Two steps: in the plan, a STATIC piece only gets refAtSec, emotion and a one-line concept, and a FRAME piece only its template; their on-screen texts are written right after (each STATIC on its own, all FRAME pieces together), with the rules below.
 
@@ -169,6 +183,24 @@ export function staticAllowed(i: Pick<AutoPlanInputWithFrame, 'allowed'>): boole
 
 /** Pedido desta chamada: idiomas, tipos permitidos, regras numéricas e (no reparo) as violações. */
 /** `refImages` = quantos frames-chave foram anexados como referência do STATIC (0 = nenhum). */
+/** Bloco do pedido com a headline original (headline-e-legenda-v1 §1.2); null sem HEADLINE em `allowed`. No reparo com
+ *  `headline_too_long`, repete o limite de forma explícita. */
+export function headlineRequest(i: Pick<AutoPlanInputWithFrame, 'allowed' | 'headline' | 'violations'>): string | null {
+  const max = i.allowed.find((a) => a.type === 'HEADLINE')?.max ?? 0;
+  const h = i.headline;
+  if (!h || max <= 0) return null;
+  const out = [
+    `<headline mode="${h.mode}" pieces="${max}" lines="${h.lines}" max_chars="${h.maxChars}" highlight="${h.hasHighlight ? 'yes' : 'no'}" language="${h.language}">`,
+    h.mode === 'replace' && h.original ? `Original headline: "${h.original.replace(/"/g, '”')}"` : 'The champion has no headline: the new one goes on a band at the top.',
+    `Write exactly ${max} HEADLINE pieces, each at most ${h.maxChars} characters in ${h.lines} line(s), in ${languageName(h.language)}.`,
+    '</headline>',
+  ];
+  if (i.violations?.some((v) => /headline_too_long/.test(v))) {
+    out.push(`Some HEADLINE texts did not fit the original box (headline_too_long): rewrite them shorter, at most ${Math.max(10, Math.floor(h.maxChars * 0.85))} characters, same number of lines, same meaning.`);
+  }
+  return out.join('\n');
+}
+
 export function autoPlanUserMessage(i: AutoPlanInputWithFrame, refImages = 0): string {
   // catálogo novo (25/10): tipo antigo que ainda venha no `allowed` não é oferecido ao modelo
   const allowed = i.allowed.filter((a) => a.max > 0 && PLAN_TYPES.includes(a.type));
@@ -187,6 +219,8 @@ export function autoPlanUserMessage(i: AutoPlanInputWithFrame, refImages = 0): s
       : 'STATIC is allowed: no key frame image could be attached, so lean on the hook, layout and why-it-sells descriptions for the STATIC concepts. refAtSec may still name a key frame time you leaned on, or -1.');
   }
   if (frameAllowed(i)) lines.push(framesRequestLine(allowedFramesOf(i)));
+  const hl = headlineRequest(i);
+  if (hl) lines.push(hl);
   lines.push('Write the plan.');
   return lines.join('\n\n');
 }
@@ -216,6 +250,19 @@ export interface AutoPlanParseCtx {
   pageCaptured: boolean;
   /** FRAME (TRANSIÇÃO): moldura só entra se o template estiver aqui. Ausente/vazio = nenhuma FRAME passa. */
   allowedFrames?: FrameTemplateId[];
+  /** HEADLINE (headline-e-legenda-v1): sem isto nenhuma HEADLINE passa */
+  headline?: AutoPlanInput['headline'];
+}
+
+/** HEADLINE (só forma): texto aparado e sem aspas; destaque só se a original tem e se é trecho literal do texto. O
+ *  comprimento NÃO é cortado aqui (cortar mutila a frase): passou do limite = `headline_too_long` no backend e reparo. */
+export function headlineParamsOf(p: Record<string, unknown>, h: NonNullable<AutoPlanInput['headline']>): AutoHeadlineDraft | null {
+  const text = s(p.text).replace(/^["“”']+|["“”']+$/g, '').trim().slice(0, 90);
+  if (!text) return null;
+  const hl = s(p.highlight).replace(/^["“”']+|["“”']+$/g, '').trim();
+  const highlight = h.hasHighlight && hl && hl !== text && text.includes(hl) ? hl : null;
+  const src = sourceOf(p.textSource) ?? 'generic';
+  return { type: 'HEADLINE', mode: h.mode, text, highlight, sources: highlight ? { text: src, highlight: src } : { text: src } };
 }
 
 export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraftWithFrame {
@@ -258,12 +305,17 @@ export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraf
 
   const items: AutoItemDraftWithFrame[] = [];
   for (const it of a(root.items).map(o)) {
-    const type = s(it.type) as AutoVariationTypeWithFrame;
+    const type = s(it.type) as AutoVariationType;
     if (!AUTO_TYPES_WITH_FRAME.includes(type)) continue;
     const whyKey = (['hook', 'proof', 'cta'] as const).find((k) => k === s(it.whyKey)) ?? 'hook';
     const change = clip(s(it.change), AUTO_LIMITS.change);
     if (!change) continue;
     const rationale = clip(s(it.rationale), AUTO_LIMITS.rationale);
+    if (type === 'HEADLINE') {
+      const params = ctx.headline ? headlineParamsOf(o(it.params), ctx.headline) : null;
+      if (params) items.push({ type, change, rationale, whyKey, params });
+      continue;
+    }
     if (type === 'FRAME') {
       // moldura fora das permitidas ou sem texto obrigatório: a peça sai (o backend completa o lote no reparo)
       const params = frameParamsOf(o(it.params), ctx.allowedFrames ?? [], ctx.offer);
@@ -290,7 +342,7 @@ export function visualOf(v: Record<string, unknown>): StaticVisualDraft {
   };
 }
 
-function paramsOf(type: Exclude<AutoVariationType, 'FRAME'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
+function paramsOf(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
   const orNull = (v: string) => (v ? v : null);
   switch (type) {
     case 'CUT': {

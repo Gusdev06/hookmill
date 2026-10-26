@@ -300,3 +300,23 @@ describe('CJK (zh-TW, 25/10)', () => {
     expect(m.lines.some((l) => l.includes('HookMill'))).toBe(true);
   });
 });
+
+describe('trilha de b-roll (25/10)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { trilhaEmFrames, molduraSchema: schema } = require('../src/lib') as typeof import('../src/lib');
+  const c = (fromSec: number, toSec: number, src: number) => ({ fromSec, toSec, fileUrl: 'https://x/c.mp4', srcStartSec: 0, srcEndSec: src });
+  it('cobre a peça toda sem buraco; clipe curto desacelera até 0,6x e segura o último quadro', () => {
+    const t = trilhaEmFrames([c(2.2, 4.1, 3), c(0.3, 2.2, 3), c(4.5, 9, 1)], 300, 30);
+    expect(t.map((x) => [x.de, x.frames])).toEqual([[0, 66], [66, 69], [135, 165]]); // 1º começa em 0, sem vão, último até o fim
+    expect(t[2].taxa).toBeCloseTo(0.6, 5);
+    expect(t[2].tocando).toBe(50); // 30 frames de arquivo a 0,6x; o resto (115) é quadro congelado
+  });
+  it('schema aceita a trilha (e o stock_broll antigo continua)', () => {
+    const base = { format: 'VERTICAL_9_16', language: 'pt', frame: { id: 'split_stack', texts: { headline: 'Dor' }, brand: { name: 'A', handle: '@a', initials: 'A', color: '#000000' } },
+      video: { source: { videoUrl: 'https://x/v.mp4', width: 720, height: 1280, fps: 30, durationSec: 10, hasAudio: true }, timeline: [{ startSec: 0, endSec: 10 }], joinFadeMs: 40, reframe: { mode: 'cover', focus: { x: 0.5, y: 0.4 } } },
+      safeArea: { top: 96, bottom: 192 } };
+    expect(schema.safeParse({ ...base, second: { kind: 'broll_track', clips: [c(0, 5, 5), c(5, 10, 5)] } }).success).toBe(true);
+    expect(schema.safeParse({ ...base, second: { kind: 'stock_broll', fileUrl: 'https://x/b.mp4', durationSec: 5 } }).success).toBe(true);
+    expect(schema.safeParse({ ...base, second: { kind: 'broll_track', clips: [] } }).success).toBe(false);
+  });
+});

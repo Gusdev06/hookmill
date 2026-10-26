@@ -11,11 +11,11 @@ export function captureScenarioFromUrl() {
   if (v === "off") sessionStorage.removeItem(KEY)
   else if (v === "empty" || v === "loading" || v === "error") sessionStorage.setItem(KEY, v)
   // feature 2: ?adlib=off simulates the Ad Library reader at its limit (GET /champions/config); ?adlib=on clears it
-  // meta-v1 mock states: ?metamock=stale|failed|expired|off (sessionStorage mock:meta); ?metamock=on clears it
+  // meta-v1 mock states: ?metamock=stale|failed|expired|off|none (never connected)|perm (permission missing) (sessionStorage mock:meta); ?metamock=on clears it
   const mm = new URLSearchParams(window.location.search).get("metamock")
   if (mm === "on") sessionStorage.removeItem("mock:meta")
   // campanhas-v1: + unusable (account disabled) · trunc (500+ per level) · nocamp (no campaigns in the account)
-  else if (mm && ["stale", "failed", "expired", "off", "unusable", "trunc", "nocamp"].includes(mm)) sessionStorage.setItem("mock:meta", mm)
+  else if (mm && ["stale", "failed", "expired", "off", "unusable", "trunc", "nocamp", "none", "perm", "connected"].includes(mm)) sessionStorage.setItem("mock:meta", mm)
   // campanhas-v1 QA: ?mockrole=member|client shows the Campaigns screen (and the write handlers) as that role; =off clears
   const mp = new URLSearchParams(window.location.search).get("mockpage")
   if (mp === "off") sessionStorage.removeItem("mock:page")

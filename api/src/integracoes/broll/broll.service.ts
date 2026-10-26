@@ -25,10 +25,10 @@ import { cellTimes, intervalFromCells, type Ffmpeg } from './folha';
 import { finalFile, previewFile, rankVideos, type PexelsClient, type PexelsVideo } from './pexels';
 import { PICK_SCHEMA, PICK_SYSTEM, QUERY_SCHEMA, QUERY_SYSTEM, fallbackImagePrompt, parsePick, parseQueries, pickUserMessage, queryUserMessage, type Pick } from './prompts';
 import { socialSourceFor } from './social';
+import { BROLL_MODEL, candidateIdOf, parseCandidateId, provenanceOf } from './ids';
+import { searchTrack, type BrollTrackInput } from './trilha';
+export { BROLL_MODEL, PEXELS_LICENSE, candidateIdOf, parseCandidateId, provenanceOf } from './ids';
 
-export const PEXELS_LICENSE = 'Pexels License';
-/** Modelo barato das duas chamadas (buscas e escolha por visão). */
-export const BROLL_MODEL = 'claude-haiku-4-5';
 export const BROLL_LIMITS = { maxCandidates: 6, perQuery: 8 };
 /** Imagem de reserva: GPT Image 2 text-to-image high 1k (painel pequeno; página 25/10: US$ 0,22). */
 export const BROLL_FALLBACK_IMAGE = { providerModel: FACE_MODEL_GPT_IMAGE_2.providerModel, quality: 'high', resolution: '1k', usd: 0.22, timeoutMs: 4 * 60_000 } as const;
@@ -65,17 +65,6 @@ export interface PexelsBrollOptions {
   sleepMs?: number;
 }
 
-export function candidateIdOf(videoId: number, startSec: number, endSec: number): string {
-  return `pexels:${videoId}:${startSec.toFixed(2)}-${endSec.toFixed(2)}`;
-}
-export function parseCandidateId(id: string): { videoId: number; startSec: number; endSec: number } {
-  const m = id.match(/^pexels:(\d+):(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
-  if (!m) throw new IntegracaoError('BROLL_SOURCE_NOT_SUPPORTED', `unknown b-roll candidate "${id}"`, { reason: 'unknown_candidate' });
-  return { videoId: Number(m[1]), startSec: Number(m[2]), endSec: Number(m[3]) };
-}
-export function provenanceOf(v: PexelsVideo, startSec: number, endSec: number): BrollProvenance {
-  return { provider: 'pexels', sourceUrl: v.url, creator: v.user?.name || null, license: PEXELS_LICENSE, licenseCommercialOk: true, startSec, endSec };
-}
 
 const STOCK_DONE: BrollProvider[] = ['pexels'];
 
@@ -217,6 +206,11 @@ export class PexelsBrollService implements BrollPort {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+
+  /** Trilha (25/10): 1 clipe por trecho da fala, já baixado e cortado no storage (trilha.ts). */
+  searchTrack(i: BrollTrackInput) {
+    return searchTrack(this.o, (url, path) => this.download(url, path), i);
   }
 
   /** Baixa e valida decodificando inteiro; até 3 tentativas (download truncado sem erro). */

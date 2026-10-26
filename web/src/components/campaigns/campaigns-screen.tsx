@@ -19,7 +19,8 @@ import { Page } from "@/components/page"
 import { useSession } from "@/components/providers/session-provider"
 import { SoonPage } from "@/components/soon-pages"
 import { useErrorMessage } from "@/hooks/use-error-message"
-import { isMetaOff, metaReady, mk, useMetaConnection } from "@/hooks/use-meta"
+import { metaReady, mk, useMetaConnection } from "@/hooks/use-meta"
+import { MetaLockScreen, isLocked, useMetaGate } from "@/components/meta/meta-gate"
 import { effectiveRole } from "@/lib/dev-role"
 import { cn } from "@/lib/utils"
 import { CardsSkeleton, PhoneList, type Drill } from "./cards"
@@ -36,8 +37,11 @@ import { TableSkeleton, TreeTable, type TableCtx } from "./tree-table"
  * swapped by the returned object and blinks; History (GET /meta/changes) in a drawer for everyone.
  */
 export function CampaignsScreen() {
-  const conn = useMetaConnection()
-  if (conn.isError && isMetaOff(conn.error)) return <SoonPage section="campaigns" />
+  const t = useTranslations("campaigns")
+  const { state, conn } = useMetaGate()
+  if (state === "off") return <SoonPage section="campaigns" />
+  // Gusta 25/10: no ad account usable (never connected, account not chosen, expired, permission missing) = the lock, no data
+  if (isLocked(state)) return <MetaLockScreen state={state} section={t("title")} />
   return <Campaigns conn={conn} />
 }
 

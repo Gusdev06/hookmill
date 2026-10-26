@@ -17,7 +17,7 @@ import { useErrorMessage } from "@/hooks/use-error-message"
 import { ik, useIterateConfig } from "@/hooks/use-iterate"
 import { cn } from "@/lib/utils"
 import {
-  AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, isImagePiece, mmss, PieceKind, pieceType, Tag, TypeThumb, useIterFormat, useTypeName,
+  AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, isImagePiece, mmss, PieceKind, pieceType, Tag, TypeThumb, useIterFormat, useTypeName,
 } from "./parts"
 import { usePriceLabel } from "./piece-actions"
 
@@ -170,6 +170,7 @@ function PlanRow({ p }: { p: IteratePiece }) {
           {cost ? <Tag tone="neutral" className="font-mono">{t("imageCost", { usd: cost })}</Tag> : null}
         </div>
         <span className="text-[13px] text-fg-2 text-pretty">{p.change}</span>
+        <HeadlineChange p={p} compact className="mt-1" />
       </div>
     </div>
   )
@@ -202,6 +203,7 @@ function BatchPlan({ batch }: { batch: IterateBatch }) {
         <h2 id="planh">{t("planTitle", { n: batch.pieces.length })}</h2>
         <span className="text-[13px] text-fg-3">{t("planSub")}</span>
       </div>
+      <CaptionsBadge batch={batch} />
       <PlanGroup axis="ITERATION" pieces={stretch} />
       <PlanGroup axis="DIVERSITY" pieces={fresh} />
       <div className="border-t border-line-soft pt-2.5 text-xs text-fg-3">{t("formatsLine")}</div>

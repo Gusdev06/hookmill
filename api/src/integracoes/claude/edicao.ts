@@ -58,7 +58,7 @@ const LAYER = obj({
   uppercase: bool('All letters uppercase on screen.'),
   fontSizeRel: num('Height of one text line (cap height plus descenders) as a fraction of the FRAME height, e.g. 0.04.'),
   color: str('Text color, hex #RRGGBB.'),
-  highlightColor: str('Captions only: color of the word being spoken, hex. Empty string if none or not a caption.'),
+  highlightColor: str('Captions: color of the word being spoken. Headline/text: color of the words shown in a different accent color (the highlighted part of the title). Hex; empty string if none.'),
   strokeColor: str('Outline color, hex. Empty string if no outline.'),
   strokeRel: num('Outline thickness as a fraction of the frame height (0 if none), e.g. 0.003.'),
   shadow: bool('Visible drop shadow behind the letters.'),
@@ -243,7 +243,8 @@ export function parseEditMap(text: string, g: VideoGrid, words: TranscriptWord[]
       fontSizePx: Math.max(8, Math.round(sizeRel * g.height)),
       lineHeight: 1.15,
       color: hex(L.color) ?? '#FFFFFF',
-      highlightColor: kind === 'caption' ? hex(L.highlightColor) : null,
+      // headline-e-legenda-v1 §1.3: a headline também traz a cor do destaque (o render repinta o trecho em destaque)
+      highlightColor: hex(L.highlightColor),
       strokeColor,
       strokeWidthPx: strokeColor ? Math.max(1, Math.round(strokeRel * g.height)) : 0,
       shadow: L.shadow === true,

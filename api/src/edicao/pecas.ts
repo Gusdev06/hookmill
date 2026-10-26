@@ -1,6 +1,6 @@
 // Peças do lote AUTO (variacao-auto-v1 §3.2, §5.1, §8 e Revisão 23/10 §14): regras puras, sem banco. Testadas em pecas.spec.ts.
 import type {
-  BrollProvenance, FormatCode, FrameSecondKind, FrameTemplateId, PieceFormat, PieceFrame, PieceStatus, StaticTextCheck, VariationAxis,
+  BrollProvenance, FormatCode, FrameSecondKind, GeneratedProvenance, FrameTemplateId, PieceFormat, PieceFrame, PieceStatus, StaticTextCheck, VariationAxis,
 } from '@maquina/contratos';
 import type { RenderEngine, VideoFormat } from '@prisma/client';
 import type {
@@ -67,11 +67,18 @@ export function pieceStatus(p: {
  * Desfecho da peça (§14.2): olha só o 9:16. null = 9:16 ainda na fila/renderizando (nada muda no criativo). Formato sob
  * demanda (4:5/1:1) nunca decide a peça: falhou = só aquele formato `failed`.
  */
-export function pieceOutcome(renders: PieceRenderState[]): 'ready' | 'failed' | null {
+export function pieceOutcome(renders: PieceRenderState[], primary: VideoFormat = 'VERTICAL_9_16'): 'ready' | 'failed' | null {
+  // headline-e-legenda-v1 §1.5: o HEADLINE decide pelo aspecto do campeão (o único que ele tem)
   const latest = latestByFormat(renders);
-  const all = AUTO_FORMATS.map((f) => latest.get(f));
-  if (all.some((r) => !r || r.status === 'QUEUED' || r.status === 'RENDERING')) return null;
-  return all.every((r) => r!.status === 'READY') ? 'ready' : 'failed';
+  const r = latest.get(primary);
+  if (!r || r.status === 'QUEUED' || r.status === 'RENDERING') return null;
+  return r.status === 'READY' ? 'ready' : 'failed';
+}
+
+/** Formato que decide a peça: HEADLINE = aspecto do campeão (`params.format`); o resto = 9:16 (§14.2). */
+export function primaryFormatOf(type: string | null | undefined, params: Record<string, unknown> | null | undefined): VideoFormat {
+  const f = params?.format;
+  return type === 'HEADLINE' && (f === 'VERTICAL_9_16' || f === 'PORTRAIT_4_5' || f === 'SQUARE_1_1') ? f : 'VERTICAL_9_16';
 }
 
 export interface PieceFormatRender extends PieceRenderState { progress: number; errorCode: string | null; failReason: string | null }
@@ -174,6 +181,8 @@ export function frameTemplateOf(params: Record<string, unknown> | null | undefin
 
 /** Formatos suportados de uma peça: FRAME = tabela; outros tipos = undefined (todos). */
 export function supportedFormatsOf(type: string | null, params: Record<string, unknown> | null | undefined): readonly FormatCode[] | undefined {
+  // headline-e-legenda-v1 §1.5: o HEADLINE só existe no aspecto do campeão (remix-keep sai no tamanho dele)
+  if (type === 'HEADLINE') return [FORMAT_CODE[primaryFormatOf(type, params)]];
   if (type !== 'FRAME') return undefined;
   const t = frameTemplateOf(params);
   return t ? FRAME_FORMATS[t] : ['9x16'];
@@ -183,10 +192,19 @@ export function supportedFormatsOf(type: string | null, params: Record<string, u
 export function pieceFrameOf(params: Record<string, unknown> | null | undefined): PieceFrame | null {
   const template = frameTemplateOf(params);
   if (!template) return null;
-  const second = (params?.second ?? null) as { kind?: FrameSecondKind; provenance?: BrollProvenance | null } | null;
+  const second = (params?.second ?? null) as {
+    kind?: FrameSecondKind; provenance?: BrollProvenance | null;
+    clips?: { fromSec: number; toSec: number; segmentText: string; provenance: BrollProvenance | GeneratedProvenance }[];
+  } | null;
   return {
     template,
-    second: second?.kind ? { kind: second.kind, provenance: second.kind === 'stock_broll' ? second.provenance ?? null : null } : null,
+    second: second?.kind
+      ? {
+        kind: second.kind, provenance: second.kind === 'stock_broll' ? second.provenance ?? null : null,
+        // 25/10: trilha de b-roll = cada clipe com o trecho da fala e a proveniência (§B3.1 item 9)
+        ...(second.kind === 'broll_track' && { track: (second.clips ?? []).map((c) => ({ fromSec: c.fromSec, toSec: c.toSec, segmentText: c.segmentText, provenance: c.provenance })) }),
+      }
+      : null,
     canSwapBroll: second?.kind === 'stock_broll',
   };
 }

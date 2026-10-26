@@ -133,6 +133,34 @@ if (modo === 'zh') {
   }
 }
 
+if (modo === 'trilha') {
+  // trilha de b-roll: os 6 templates de 2 fontes x 3 formatos, um still por clipe (meio de cada trecho) + 1 MP4 do split_stack 9:16
+  const TPL = ['split-stack', 'split-torn', 'gossip-page', 'gossip-white', 'gossip-pink', 'call-dialog'];
+  const FRAMES = [33, 95, 150, 210, 275]; // meio dos 5 trechos (s * 30)
+  const dir = path.join(saida, 'trilha');
+  mkdirSync(dir, { recursive: true });
+  for (const [nome] of Object.entries(FMT)) {
+    const itens = [];
+    for (const t of TPL) {
+      const id = `TR-${nome}-${t}`;
+      for (const fr of FRAMES) {
+        const f = path.join(dir, `${nome}-${t}-${fr}.png`);
+        await still(id, f, fr);
+        itens.push({ file: f, label: `${t} ${(fr / 30).toFixed(1)}s` });
+      }
+    }
+    await folha(itens, path.join(saida, `trilha-${nome}.png`), { cols: 10, cw: 220 });
+    console.log(`trilha ${nome} ok`);
+  }
+  const composition = await selectComposition({ port: PORTA, serveUrl, id: 'TR-9x16-split-stack' });
+  const t0 = Date.now();
+  await renderMedia({
+    port: PORTA, composition, serveUrl, codec: 'h264', pixelFormat: 'yuv420p', imageFormat: 'jpeg', jpegQuality: 90, concurrency: 2,
+    offthreadVideoCacheSizeInBytes: 256 * 1024 * 1024, outputLocation: path.join(dir, 'split-stack-9x16-trilha.mp4'),
+  });
+  console.log(`mp4 ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
+
 if (modo === 'video') {
   const tempos = {};
   for (const [nome] of Object.entries(FMT)) {

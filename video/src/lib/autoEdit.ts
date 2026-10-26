@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { FORMATOS, FPS, type VideoFormat } from './formatos';
 import { rectSchema } from './remix';
+import { captionsAutoSchema } from './captionsSchema';
 
 // Template `auto-edit` (variacao-auto-v1 §7.2): a peça da variação automática. Uma coisa muda por tipo; o resto é o
 // campeão recortado pelo `timeline`, reenquadrado pro formato. Props = AutoEditRenderInput sem renderId/kind/templateId.
@@ -67,6 +68,8 @@ export const autoEditSchema = z.object({
   brandName: z.string(),
   type: z.enum(AUTO_TYPES),
   params: paramsSchema,
+  /** legenda automática (headline-e-legenda-v1 §2, campeão sem legenda queimada): terço de baixo, acima da UI do formato */
+  captions: captionsAutoSchema.optional(),
 });
 
 export type AutoEditProps = z.infer<typeof autoEditSchema>;

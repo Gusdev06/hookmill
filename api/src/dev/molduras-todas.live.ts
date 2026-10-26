@@ -91,6 +91,7 @@ export async function reais(): Promise<{ deps: Deps; fechar: () => Promise<void>
       whys: Object.fromEntries(whyRows.map((w) => [w.key, w.text])),
       existentes, codigos: items.map((i) => i.code).filter((c): c is string => !!c),
       maxIndex: items.reduce((a, i) => Math.max(a, i.index), -1),
+      trilhaSalva: !!(b.settings as { brollTrack?: unknown } | null)?.brollTrack,
       renderUsd: num(renderCost._max.amountUsd) ?? RENDER_USD_PADRAO,
       model,
     };
@@ -163,8 +164,19 @@ export async function reais(): Promise<{ deps: Deps; fechar: () => Promise<void>
     gravar,
     // --rerender (25/10): 2ª fonte zerada nas de 2 fontes (a API resolve na ordem nova: Pexels › imagem › trecho do
     // campeão), renders antigos ficam stale, 9:16 novo QUEUED prioridade 10; peça falha volta pra RENDERING (assenta sozinha)
-    rerenderizar: async (lote, linhas) => prisma.$transaction(async (tx) => {
+    rerenderizar: async (lote, linhas, o) => prisma.$transaction(async (tx) => {
       const out: { code: string; renderId: string }[] = [];
+      if (o?.semImagem) {
+        // 25/10: trecho sem clipe estende o vizinho (nenhuma imagem gerada na trilha deste lote)
+        const b = await tx.variationBatch.findUniqueOrThrow({ where: { id: lote.batchId }, select: { settings: true } });
+        await tx.variationBatch.update({ where: { id: lote.batchId }, data: { settings: { ...((b.settings ?? {}) as Record<string, unknown>), brollTrackMaxImages: 0 } as Prisma.InputJsonValue } });
+      }
+      if (o?.novaTrilha) {
+        // 25/10: apaga a trilha gravada do lote: a próxima moldura de 2 fontes que renderizar faz 1 busca nova
+        const b = await tx.variationBatch.findUniqueOrThrow({ where: { id: lote.batchId }, select: { settings: true } });
+        const { brollTrack: _, ...rest } = (b.settings ?? {}) as Record<string, unknown>;
+        await tx.variationBatch.update({ where: { id: lote.batchId }, data: { settings: rest as Prisma.InputJsonValue } });
+      }
       for (const l of linhas) {
         const item = await tx.variationItem.findUniqueOrThrow({ where: { id: l.itemId }, select: { payload: true } });
         const payload = (item.payload ?? {}) as { params?: Record<string, unknown> };

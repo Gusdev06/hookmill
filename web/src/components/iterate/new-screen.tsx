@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { NavIcon } from "@/components/shell/nav-icon"
 import { AdRow } from "@/components/meta/ad-row"
 import { metaReady, mk, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
+import { MetaLockCard, metaGateOf } from "@/components/meta/meta-gate"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { ik, useIterateConfig } from "@/hooks/use-iterate"
 import { useUploadMessage } from "@/components/variar/winner-step"
@@ -351,7 +352,9 @@ function MetaPick({ busy, running, onPick, needsOffer, readOnly }: { busy: boole
   const errorMessage = useErrorMessage()
   const rel = useRelativeTime()
   const conn = useMetaConnection()
-  const ready = metaReady(conn.data)
+  // Gusta 25/10: the ads (with spend / verdict) only with the ad account usable; expired / permission missing = the lock
+  const gate = metaGateOf(conn.data)
+  const ready = metaReady(conn.data) && gate === "ready"
   const preselected = useSearchParams().get("metaAdId")
   const [all, setAll] = useState(false)
   const ads = useQuery({
@@ -370,22 +373,7 @@ function MetaPick({ busy, running, onPick, needsOffer, readOnly }: { busy: boole
   const pinned = picked.data?.data.find((a) => a.metaAdId === preselected) ?? null
   const rows = ads.data ? (pinned ? [pinned, ...ads.data.data.filter((a) => a.metaAdId !== pinned.metaAdId)] : ads.data.data) : []
   if (conn.isPending || (conn.isError && !ready)) return null
-  if (!ready) {
-    return (
-      <Alert>
-        <NavIcon name="plug" size={20} />
-        <AlertBody>
-          <AlertTitle>{t("notConnectedTitle")}</AlertTitle>
-          <AlertDescription>{t("notConnectedBody")}</AlertDescription>
-        </AlertBody>
-        <AlertActions>
-          <Link href="/settings/connections" className={buttonVariants({ size: "sm" })}>
-            {t("connect")}
-          </Link>
-        </AlertActions>
-      </Alert>
-    )
-  }
+  if (!ready) return <MetaLockCard state={gate} compact />
   const summary = ads.data?.meta.summary
   const first = summary?.sync.state === "first_sync" || summary?.sync.state === "never"
   return (

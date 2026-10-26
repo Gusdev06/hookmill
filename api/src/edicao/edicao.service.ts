@@ -38,9 +38,12 @@ import { EditorSaves, anunciarEdicao } from './editor-saves';
 import { integracoesMode } from '../integracoes';
 import { computeAdName, isAdNameConflict } from '../biblioteca/ad-names';
 import { AUTO_EDIT_BUILDER, type AutoEditBuilder, type AutoEditContext } from './auto-edit-input';
-import { AUTO_EDIT_TEMPLATE, frameTemplateOf, mockRenderFail, pieceOutcome } from './pecas';
+import { AUTO_EDIT_TEMPLATE, frameTemplateOf, mockRenderFail, pieceOutcome, primaryFormatOf } from './pecas';
 import { FRAME_BUILDER, frameSpecOf, type FrameBuilder } from './frame-input';
 import { capturaValida } from './captura-valida';
+import { HEADLINE_BUILDER, type HeadlineBuilder } from './headline-input';
+import { paletaDoEstatico } from '../iteracao/paleta';
+import type { CaptionsAuto } from '@maquina/video';
 import { SegundaFonteService, precisaSegundaFonte } from './segunda-fonte';
 import { blocksOf } from '../iteracao/contexto';
 import type { AutoVariationType } from '@maquina/contratos';
@@ -52,7 +55,10 @@ export type AutoFailCode =
   /** 25/10 (molduras §B2/§B3.1) */
   | 'FRAME_TEXT_OVERFLOW' | 'BROLL_UNAVAILABLE'
   /** render-lambda-v1 §2.8: timeout depois das tentativas */
-  | 'RENDER_TIMEOUT';
+  | 'RENDER_TIMEOUT'
+  /** headline-e-legenda-v1 §1.3/§1.4 (HeadlineError do buildHeadlineInput): refazer não adianta (Leave out) */
+  | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE';
+export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE'] as const;
 
 /** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do formato (e da peça, no 9:16). */
 class AutoPieceError extends Error {
@@ -73,6 +79,10 @@ export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   FRAME_TEXT_OVERFLOW: 'The frame text does not fit. Leave it out.',
   BROLL_UNAVAILABLE: 'The b-roll clip is no longer available. Retry picks the next one.',
   RENDER_TIMEOUT: 'The render took too long. Render again.',
+  HEADLINE_TOO_LONG: "The new headline doesn't fit the original box. Leave it out.",
+  HEADLINE_NO_ROOM: 'There is no free room for a headline in this video. Leave it out.',
+  HEADLINE_OVER_FACE: 'The headline would cover the face. Leave it out.',
+  HEADLINE_LOW_CONFIDENCE: "We couldn't read the original headline style. Leave it out.",
 };
 const AD_NAME_ATTEMPTS = 5;
 /** render-lambda-v1 §2.7: 1 tentativa nova no timeout/retryable; finalize até 3x; submit sem externalId há 2 min = fila. */
@@ -111,6 +121,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     private readonly saves: EditorSaves,
     @Inject(AUTO_EDIT_BUILDER) private readonly buildAutoInput: AutoEditBuilder,
     @Inject(FRAME_BUILDER) private readonly buildFrameInput: FrameBuilder,
+    @Inject(HEADLINE_BUILDER) private readonly buildHeadline: HeadlineBuilder,
     private readonly segundas: SegundaFonteService,
   ) {}
 
@@ -346,7 +357,10 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   /** `kind` de roteamento de um render que ainda não tem input (RENDER_LAMBDA_KINDS). */
   private kindOf(r: { settings: Prisma.JsonValue; creative: { variationItem: { autoType: string | null } | null } }): RenderKind {
     const t = (r.settings as { templateId?: string } | null)?.templateId;
-    if (t === AUTO_EDIT_TEMPLATE) return r.creative.variationItem?.autoType === 'FRAME' ? 'frame' : 'auto-edit';
+    if (t === AUTO_EDIT_TEMPLATE) {
+      const at = r.creative.variationItem?.autoType as string | null | undefined;
+      return at === 'FRAME' ? 'frame' : at === 'HEADLINE' ? 'remix-keep' : 'auto-edit'; // HEADLINE = remix-keep (§1.3)
+    }
     if (t === REMIX_KEEP_TEMPLATE) return 'remix-keep';
     return 'scratch';
   }
@@ -649,7 +663,9 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     this.lastWrite.delete(r.id);
     await this.recordCost(r, snap.costUsd);
     const timeout = snap.state === 'timeout';
-    if ((timeout || snap.error?.retryable) && r.attempt < RENDER_MAX_ATTEMPTS) {
+    // bug 25/10: 429/5xx do storage ao baixar mídia dentro do render = transitório (o Lambda bateu no rate limit): 1 tentativa nova
+    const transitorio = /status code of (429|50[234])|\b429\b|Too Many Requests/i.test(snap.error?.message ?? '');
+    if ((timeout || snap.error?.retryable || transitorio) && r.attempt < RENDER_MAX_ATTEMPTS) {
       const back = await this.prisma.render.updateMany({
         where: { id: r.id, status: 'RENDERING', externalId: r.externalId },
         data: { status: 'QUEUED', stage: null, progress: 0, startedAt: null, impl: null, externalId: null, externalBucket: null, submittedAt: null, finalizingAt: null },
@@ -820,15 +836,28 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const format = r.format ?? 'VERTICAL_9_16';
     try {
       const ctx = await this.autoContext(r.id, r.creative);
-      if ((ctx.type as string) === 'FRAME') {
+      // headline-e-legenda-v1 §2: legenda automática do lote (campeão sem legenda queimada) em toda peça de vídeo
+      const captions = await this.captionsDoLote(r, ctx);
+      const tipo = ctx.type as string;
+      if (tipo === 'HEADLINE') {
+        // §1.3: troca/acrescenta a headline pelo remix-keep (buildHeadlineInput do video), no aspecto do campeão
+        const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string };
+        return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx);
+      }
+      if (tipo === 'FRAME') {
         // 25/10 §B2: moldura = composição `Moldura` do video (`kind 'frame'`), montada pelo buildFrameInput dele
         let params = ctx.params as unknown as Record<string, unknown>;
         if (precisaSegundaFonte(frameTemplateOf(params)) && !params.second) params = await this.segundaFonte(r, ctx, params);
-        return this.buildFrameInput(frameSpecOf(params), ctx, format);
+        const fi = this.buildFrameInput(frameSpecOf(params), ctx, format);
+        return captions ? ({ ...fi, captions } as RenderInput) : fi;
       }
-      return this.buildAutoInput(ctx, format);
+      const ai = this.buildAutoInput(ctx, format);
+      return captions && tipo !== 'STATIC' ? ({ ...ai, captions } as RenderInput) : ai;
     } catch (e) {
-      const code: AutoFailCode = e instanceof AutoPieceError ? e.code : (e as { code?: string })?.code === 'FRAME_TEXT_OVERFLOW' ? 'FRAME_TEXT_OVERFLOW' : 'RENDER_ERROR';
+      const hc = (e as { code?: string })?.code;
+      const code: AutoFailCode = e instanceof AutoPieceError ? e.code
+        : hc === 'FRAME_TEXT_OVERFLOW' ? 'FRAME_TEXT_OVERFLOW'
+          : hc && (HEADLINE_FAIL_CODES as readonly string[]).includes(hc) ? (hc as AutoFailCode) : 'RENDER_ERROR';
       this.log.warn(`render AUTO ${r.id}: input falhou: ${(e as Error).message}`);
       await this.failAuto(r, code, null);
       this.kick();
@@ -850,17 +879,32 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       workspaceId: r.workspaceId, variationBatchId: c.variationBatchId ?? '', template: frameTemplateOf(params)!, language: ctx.language,
       durationSec: ctx.source.durationSec, blocks: blocksOf(td, ctx.source.durationSec), words: ctx.words, editMap: ctx.editMap,
       offer: offer ? { name: offer.name, kind: offer.kind, what: offer.what, audience: offer.audience } : null, notes: offer?.notes ?? null,
+      itemId: c.variationItemId, variante: typeof params.brollVariant === 'number' ? params.brollVariant : null,
     });
     if (!res) throw new AutoPieceError('RENDER_ERROR', 'moldura de 2 fontes sem 2ª fonte (sem b-roll e sem trecho de prova ≥ 3 s)');
-    const next: Record<string, unknown> = { ...params, second: res.second, secondNote: res.nota };
+    const next: Record<string, unknown> = { ...params, second: res.second, secondNote: res.nota, ...(res.variante != null && { brollVariant: res.variante }) };
     if (c.variationItemId) {
       const item = await this.prisma.variationItem.findUnique({ where: { id: c.variationItemId }, select: { payload: true } });
       const payload = (item?.payload ?? {}) as Record<string, unknown>;
-      const saved = { ...((payload.params as Record<string, unknown>) ?? {}), second: res.second, secondNote: res.nota };
+      const saved = { ...((payload.params as Record<string, unknown>) ?? {}), second: res.second, secondNote: res.nota, ...(res.variante != null && { brollVariant: res.variante }) };
       await this.prisma.variationItem.update({ where: { id: c.variationItemId }, data: { payload: { ...payload, params: saved } as unknown as Prisma.InputJsonValue } });
     }
     this.log.log(`moldura ${r.id}: 2ª fonte = ${res.nota}`);
     return next;
+  }
+
+  /** §2.1/§2.2: `captionsAuto` do lote → palavras do campeão (tempo do arquivo), destaque na cor da marca e idioma da fala. */
+  private async captionsDoLote(r: RenderRow, ctx: AutoEditContext): Promise<CaptionsAuto | null> {
+    if (!r.creative.variationBatchId) return null;
+    const b = await this.prisma.variationBatch.findUnique({ where: { id: r.creative.variationBatchId }, select: { insight: true } });
+    if ((b?.insight as { captionsAuto?: boolean } | null)?.captionsAuto !== true || !ctx.words.length) return null;
+    const { accent } = paletaDoEstatico({ brandColor: await this.brandColorOf(r), championPalette: ctx.palette });
+    return { words: ctx.words.map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: accent, language: ctx.language };
+  }
+
+  private async brandColorOf(r: RenderRow): Promise<string | null> {
+    const ws = await this.prisma.workspace.findUnique({ where: { id: r.workspaceId }, select: { brandColor: true } });
+    return ws?.brandColor ?? null;
   }
 
   /** §14.7 / §B6: gatilhos de mock por oferta (só INTEGRACOES_MODE=mock), valem com qualquer adaptador (antes do submit). */
@@ -902,13 +946,15 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       const c = await this.prisma.creative.findUnique({ where: { id: creativeId } });
       if (!c || c.state !== 'RENDERING' || c.archivedAt) return;
       const renders = await this.prisma.render.findMany({ where: { creativeId, stale: false } });
-      const outcome = pieceOutcome(renders);
+      const item = c.variationItemId ? await this.prisma.variationItem.findUnique({ where: { id: c.variationItemId }, select: { autoType: true, payload: true } }) : null;
+      const primary = primaryFormatOf(item?.autoType ?? null, ((item?.payload ?? {}) as { params?: Record<string, unknown> }).params ?? null);
+      const outcome = pieceOutcome(renders, primary);
       if (!outcome) return;
       if (outcome === 'failed') {
         await this.sm.transition({ creativeId, event: 'RENDER_FINISHED', from: 'RENDERING', to: 'RENDER_FAILED' });
         return;
       }
-      const vertical = renders.filter((x) => x.format === 'VERTICAL_9_16' && x.status === 'READY').sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+      const vertical = renders.filter((x) => x.format === primary && x.status === 'READY').sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
       const approvedAt = new Date();
       for (let attempt = 1; ; attempt++) {
         const adName = await computeAdName(this.prisma, creativeId);

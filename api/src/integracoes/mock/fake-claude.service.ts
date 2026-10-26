@@ -22,6 +22,7 @@
 //                   Gatilhos nas notes do campeão (mesmos nomes do mock do web): [mock:keep-straddle] → legenda metade
 //                   dentro, metade fora da região do rosto; [mock:keep-overlay] → painel sobre o rosto no terço do meio;
 //                   [mock:hook-over-video] → headline sem fundo (texto direto sobre o vídeo).
+//                   headline-e-legenda-v1: [mock:headline-over-video] → idem, o vídeo todo; [mock:headline-none] → sem headline.
 import type {
   AdLibraryMeta,
   AutoPlanDraft,
@@ -597,7 +598,11 @@ export function mockEditMap(i: DescribeEditInput): EditMapDraft {
   const f = (sec: number) => Math.max(0, Math.min(v.frameCount, Math.round(sec * v.fps)));
   const px = (x: number, y: number, w: number, h: number) => ({ x: Math.round(x * v.width), y: Math.round(y * v.height), w: Math.round(w * v.width), h: Math.round(h * v.height) });
   const notes = i.notes ?? '';
-  const overVideo = notes.includes('[mock:hook-over-video]');
+  // headline-e-legenda-v1 (25/10): [mock:headline-over-video] = alias do [mock:hook-over-video] mas com a headline o vídeo
+  // todo (placa no render); [mock:headline-none] = campeão sem camada de headline (modo `add`)
+  const overVideo = notes.includes('[mock:hook-over-video]') || notes.includes('[mock:headline-over-video]');
+  const fullOver = notes.includes('[mock:headline-over-video]');
+  const noHeadline = notes.includes('[mock:headline-none]');
   const red = '#D40F0F';
   const full = f(v.durationSec);
   const pxr = (r: { x: number; y: number; w: number; h: number }) => px(r.x, r.y, r.w, r.h);
@@ -607,9 +612,9 @@ export function mockEditMap(i: DescribeEditInput): EditMapDraft {
   const layers: EditLayer[] = [
     {
       // hook-over-video: sem faixa, texto direto sobre o vídeo só nos 3 s do gancho (variante gancho-sem-fundo da fixture)
-      id: 'headline-1', kind: 'headline', startFrame: 0, endFrame: overVideo ? Math.max(1, f(Math.min(3, v.durationSec))) : Math.max(1, full), box: headBox,
+      id: 'headline-1', kind: 'headline', startFrame: 0, endFrame: overVideo && !fullOver ? Math.max(1, f(Math.min(3, v.durationSec))) : Math.max(1, full), box: headBox,
       background: overVideo ? { kind: 'none', color: null, box: null } : { kind: 'solid', color: red, box: { ...headBox } },
-      style: { ...white, fontId: 'archivo-black-400', uppercase: true, fontSizePx: Math.round((40 / 960) * v.height), color: '#FFFFFF', shadow: false, ...(overVideo ? { strokeColor: '#000000', strokeWidthPx: 3 } : {}) },
+      style: { ...white, fontId: 'archivo-black-400', uppercase: true, fontSizePx: Math.round((40 / 960) * v.height), color: '#FFFFFF', highlightColor: '#FFD400', shadow: false, ...(overVideo ? { strokeColor: '#000000', strokeWidthPx: 3 } : {}) },
       text: HEADLINE[lg], wordsPerPage: null, source: 'vision',
     },
     {
@@ -619,6 +624,7 @@ export function mockEditMap(i: DescribeEditInput): EditMapDraft {
       text: FOOTER[lg], wordsPerPage: null, source: 'vision',
     },
   ];
+  if (noHeadline) layers.shift();
   const face = i.faceTrack[0]?.region ?? pxr(FX.face);
   if (words.length) {
     const capH = Math.round((50 / 960) * v.height);

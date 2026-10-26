@@ -3,7 +3,8 @@
 // reaproveita; 72 h depois o cron apaga e o próximo pedido refaz.
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import type { BrollProvenance, IterateZip, VariationAxis } from '@maquina/contratos';
+import type { BrollProvenance, GeneratedProvenance, IterateZip, VariationAxis } from '@maquina/contratos';
+import { proveniencias } from '../edicao/trilha-broll';
 import type { File as FileRow, VideoFormat } from '@prisma/client';
 import archiver from 'archiver';
 import { createWriteStream } from 'node:fs';
@@ -23,7 +24,7 @@ interface ZipEntry {
   /** D14: FRAME read_caption = texto do anúncio sugerido (vai no README da pasta) */
   primaryText: string | null;
   /** §B3.1: proveniência do b-roll da 2ª fonte (molduras de 2 fontes) */
-  provenance: BrollProvenance | null;
+  provenance: (BrollProvenance | GeneratedProvenance)[];
   files: { name: string; format: VideoFormat; file: FileRow }[];
 }
 
@@ -67,7 +68,7 @@ export class ZipService {
         out.push({
           pieceId: i.id, axis: (i.axis ?? 'ITERATION') as VariationAxis, change: i.change ?? '', files,
           primaryText: i.autoType === 'FRAME' ? suggestedPrimaryTextOf(paramsOf(i.payload)) : null, // D14
-          provenance: i.autoType === 'FRAME' ? ((paramsOf(i.payload)?.second as { provenance?: BrollProvenance } | null)?.provenance ?? null) : null, // §B3.1
+          provenance: i.autoType === 'FRAME' ? proveniencias(paramsOf(i.payload)?.second) : [], // §B3.1 (1 clipe, trilha ou imagem gerada)
         });
       }
     }
@@ -154,7 +155,7 @@ export class ZipService {
             await this.jobs.stage(jobId, 'zipping', Math.min(95, Math.round((n / total) * 90)));
           }
         }
-        const lines = list.flatMap((e) => e.files.map((f) => ({ file: f.name, change: e.change, primaryText: e.primaryText, credit: creditoDoBroll(e.provenance, locale) })));
+        const lines = list.flatMap((e) => e.files.map((f) => ({ file: f.name, change: e.change, primaryText: e.primaryText, credit: e.provenance.map((p) => creditoDoBroll(p, locale)).filter((c): c is string => !!c) })));
         archive.append(readmeFor(axis, lines, locale), { name: `${folder}/README.txt` });
       }
       await archive.finalize();

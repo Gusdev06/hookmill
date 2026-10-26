@@ -6,7 +6,8 @@ import { EndCard } from './componentes/EndCard';
 import { Gancho } from './componentes/Gancho';
 import { Legenda } from './componentes/Legenda';
 import { ESTILOS, ZONAS } from './estilos';
-import { carregarFonteCatalogo, carregarFontes } from './fontes';
+import { carregarFonteCatalogo, carregarFontes, carregarFontesCJK } from './fontes';
+import { temCJK } from './lib/molduras';
 import { framesCta, framesDasCenas, framesEndCard, framesGancho, layoutPadrao, linhaDoTempo, templatePorId, type CriativoProps, type FontId, type LayerTransform } from './lib';
 
 void carregarFontes();
@@ -20,6 +21,15 @@ const FontesDasCamadas: React.FC<{ ids: FontId[] }> = ({ ids }) => {
       .catch((e) => console.error(e))
       .finally(() => continueRender(handle));
   }, [chave, handle]);
+  return null;
+};
+
+/** Texto CJK (legenda, gancho, CTA): registra a Noto do idioma e baixa os pedaços antes do 1º frame (headline-e-legenda-v1 §2.2). */
+const FontesCJK: React.FC<{ language: string; texto: string }> = ({ language, texto }) => {
+  const [handle] = useState(() => delayRender('fontes CJK'));
+  useEffect(() => {
+    carregarFontes().then(() => carregarFontesCJK(language, texto)).catch((e) => console.error(e)).finally(() => continueRender(handle));
+  }, [handle, language, texto]);
   return null;
 };
 
@@ -44,6 +54,7 @@ export const Criativo: React.FC<CriativoProps> = (props) => {
 
   const linha = linhaDoTempo(props.scenes, fps);
   const ultima = linha[linha.length - 1];
+  const textoCJK = props.scenes.map((c) => c.words.map((w) => w.word).join('')).join('') + (props.headline ?? '') + props.ctaText;
   const fontesDoEditor = [L.hook?.style?.fontId, L.caption?.style?.fontId, L.cta?.style?.fontId].filter((f): f is FontId => !!f);
 
   // Legenda sem transform no doc: posição pela zona; a "top" desce pro meio enquanto o gancho ocupa o topo.
@@ -56,6 +67,7 @@ export const Criativo: React.FC<CriativoProps> = (props) => {
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {fontesDoEditor.length ? <FontesDasCamadas ids={fontesDoEditor} /> : null}
+      {temCJK(textoCJK) ? <FontesCJK language={props.language} texto={textoCJK} /> : null}
       <Cenas scenes={props.scenes} estilo={estilo} />
       <Sequence name="Legenda" durationInFrames={totalCenas}>
         <Legenda
@@ -67,6 +79,7 @@ export const Criativo: React.FC<CriativoProps> = (props) => {
           ateSec={totalCenas / fps}
           janela={janela}
           estiloCamada={L.caption?.style}
+          language={props.language}
         />
       </Sequence>
       {gancho && hook.visivel ? (

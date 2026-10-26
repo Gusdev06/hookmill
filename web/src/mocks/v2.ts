@@ -135,7 +135,8 @@ export function healthOf(m: MetaState, adsCount: number, activeCount: number): M
   const flag = metaFlag()
   const checks: MetaHealthCheck[] = []
   checks.push(check("token", flag === "expired" ? "bad" : "ok", flag === "expired" ? "Your Meta login expired" : null))
-  checks.push(check("scopes", "ok"))
+  // ?metamock=perm: a permission missing on the ad account (live finding 25/10, account 7518)
+  checks.push(flag === "perm" ? check("scopes", "bad", "Missing permission: ads_read") : check("scopes", "ok"))
   if (flag === "unusable") checks.push(check("account", "bad", "Account disabled, choose another"))
   else if (a && !a.canManage) checks.push(check("account", "bad", "Your profile has view access only. Ask the account owner to give you Advertiser (or higher) in Meta Business settings → Ad accounts → People. Then press Check again."))
   else checks.push(check("account", "ok", "No restrictions, spending allowed"))

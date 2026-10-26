@@ -74,3 +74,18 @@ export const CASOS: Caso[] = [
   }),
   caso('cinema-limite-4x5', 'cinema', { question: noLimite('E se essa dor não fosse da idade nem do colchão', 60), subtitle: noLimite('Dez minutos antes de dormir mudam o jeito que você acorda.', 80) }, { format: 'PORTRAIT_4_5' }),
 ];
+
+// Trilha de b-roll (decisão 25/10): 5 clipes que trocam conforme a fala, cobrindo a peça de 10 s. O 4º é curto
+// (1 s pra 2,3 s: desacelera e segura o último quadro); o 3º vai sem medidas (cover pelo CSS).
+export const TRILHA_FALSA: MolduraProps['second'] = {
+  kind: 'broll_track',
+  clips: [
+    { fromSec: 0, toSec: 2.2, fileUrl: 'fixtures/broll-pexels.mp4', srcStartSec: 0, srcEndSec: 2.2, segmentText: 'acordo travado', width: 1012, height: 1920 },
+    { fromSec: 2.2, toSec: 4.1, fileUrl: 'fixtures/real-kling-1.mp4', srcStartSec: 0.5, srcEndSec: 2.4, segmentText: 'dor nas costas', width: 1080, height: 1920 },
+    { fromSec: 4.1, toSec: 6, fileUrl: 'fixtures/cena-3.mp4', srcStartSec: 1, srcEndSec: 2.9, segmentText: 'antes de dormir' },
+    { fromSec: 6, toSec: 8.3, fileUrl: 'fixtures/broll-pexels.mp4', srcStartSec: 8, srcEndSec: 9, segmentText: 'dez minutos', width: 1012, height: 1920 },
+    { fromSec: 8.3, toSec: 10, fileUrl: 'fixtures/real-kling-3.mp4', srcStartSec: 3, srcEndSec: 5, segmentText: 'acorda leve', width: 1080, height: 1920 },
+  ],
+};
+export const TRILHA_TEMPLATES = ['split_stack', 'split_torn', 'gossip_page', 'gossip_white', 'gossip_pink', 'call_dialog'] as const;
+export const casoTrilha = (id: (typeof TRILHA_TEMPLATES)[number], format: VideoFormat): MolduraProps => ({ ...demoProps(id, format, { durSec: 10 }), second: TRILHA_FALSA });

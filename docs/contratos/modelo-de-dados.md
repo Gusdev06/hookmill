@@ -2,6 +2,10 @@
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**
 Fonte da verdade do banco: [`api/prisma/schema.prisma`](../../api/prisma/schema.prisma) (validado com Prisma 6.19). Este arquivo explica o porquê e as regras que o schema sozinho não diz.
 
+## Mudanças 25/10 noite (headline nova; detalhe em [`headline-e-legenda-v1.md`](headline-e-legenda-v1.md)) · **aprovado pelo Gusta 25/10**
+- Migração aditiva `20261025000300_auto_headline`: `AutoVariationType` + `HEADLINE` (ITERATION). Aplicada em `maquina` (backup `.infra/backups/maquina-2026-10-25-1952.sql.gz`) e `maquina_test`. `db:diff` vazio depois.
+- Regras que o schema não diz: os params da peça (`mode`, `text`, `highlight`, `sources`) ficam em `variation_items.payload.params`; o render é `remix-keep` (`renders.input`). O `captionsAuto` (legenda sempre) mora em `variation_batches.insight` (JSON), sem coluna nova. O contrato TS só funde `HEADLINE` no `AutoVariationType` quando ia, backend e frontend ligarem o tipo.
+
 ## Mudanças 25/10 tarde (render no Remotion Lambda; detalhe em [`render-lambda-v1.md` §2.7, §6.2](render-lambda-v1.md)) · **aprovado pelo Gusta 25/10**
 - Migração aditiva `20261025000200_render_lambda`, aplicada em `maquina` (backup `.infra/backups/maquina-2026-10-25-1537.sql.gz`) e `maquina_test`. `db:diff` vazio depois.
 - `renders` + `impl` ('local' | 'lambda' | 'fake'; null = renders antigos, local), `external_id` (renderId do Remotion), `external_bucket`, `serve_url` (site `hookmill-<sha>` usado), `attempt` (0), `submitted_at`, `not_before` (espera depois de throttling), `finalizing_at` (trava do settle), `cost_usd` (Decimal 12,4); índice `(impl, status)` pro poller. `Provider` + `AWS_LAMBDA`; `CostKind` + `RENDER`; `cost_entries` + `external_ref` (UNIQUE, = `renders.external_id`: custo do Lambda gravado 1x por tentativa).

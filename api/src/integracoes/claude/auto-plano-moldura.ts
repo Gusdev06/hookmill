@@ -9,6 +9,7 @@ import type {
   AutoFrameDraft, AutoPlanInput, AutoVariationTypeWithFrame, CopySource, FrameTemplateId, FrameTexts, FrameTwoSourceId, OfferBriefDraft,
 } from '../contrato';
 import { sourceOf } from './auto-plano-estatico';
+import type { AutoVariationType } from '@maquina/contratos';
 
 /** Os 18 ids do protótipo (= FrameTemplateId). */
 export const FRAME_TEMPLATES: FrameTemplateId[] = [
@@ -32,7 +33,7 @@ export const FRAME_LIMITS = {
 /** Entrada do plano com moldura (TRANSIÇÃO): `allowed` aceita FRAME; `allowedFrames` = o que o `allowedFrames` do backend
  *  liberou pra este lote. Ausente = padrão conservador (`defaultAllowedFrames`, só B1). */
 export type AutoPlanInputWithFrame = Omit<AutoPlanInput, 'allowed'> & {
-  allowed: { type: AutoVariationTypeWithFrame; max: number }[];
+  allowed: { type: AutoVariationType; max: number }[];
   allowedFrames?: FrameTemplateId[];
 };
 

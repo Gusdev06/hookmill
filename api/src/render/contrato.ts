@@ -30,6 +30,8 @@ export interface RemixKeepRenderInput {
   canvas: { width: number; height: number; fps: number; frameCount: number };  // = campeão (sem reescalar pra 1080)
   baseVideoUrl: string;                                // vídeo do campeão (fundo de tudo)
   audioPassthroughUrl: string;                         // render sai mudo; remux com -c:a copy deste arquivo
+  /** 25/10 (headline-e-legenda-v1): idioma dos textos novos (headline/legenda): Noto CJK e o "sem espaço" do zh/ja */
+  language?: string;
   /** §13.15.4 (B) ENGINE_VOICE: áudio = campeão com cada span [start, end) trocado pela voz do arquivo `url` (do instante 0
    *  dele, cortada no tamanho do span), crossfade de `fadeMs` (10) nas bordas, AAC 192 kbps. Ausente = -c:a copy. */
   audioSplice?: { spans: { startFrame: number; endFrame: number; url: string }[]; fadeMs: number };
@@ -39,7 +41,8 @@ export interface RemixKeepRenderInput {
   textLayers: { id: string; startFrame: number; endFrame: number; box: Rect;
                 /** solid/pill: pinta a caixa inteira antes do texto. color = hex, ou `linear-gradient(...)` CSS quando a
                  *  faixa medida é um degradê (MediaAnalysisService.solidBackground) */
-                background: { kind: 'solid' | 'pill' | 'none'; color: string | null; box: Rect | null };
+                /** radius (25/10, headline-e-legenda-v1 §1.3): cantos do `solid` em px (placa sobre o vídeo); ausente = 0 */
+                background: { kind: 'solid' | 'pill' | 'none'; color: string | null; box: Rect | null; radius?: number };
                 /** highlightBackground (opcional, §13.15): caixa atrás da palavra atual do karaokê (estilo "palavra na
                  *  pílula roxa"). Ainda não existe no TextStyle do @maquina/contratos: o arquiteto decide se sobe pra lá. */
                 style: TextStyle & { highlightBackground?: string | null };

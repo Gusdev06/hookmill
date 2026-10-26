@@ -5,6 +5,7 @@
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --yes --ignorar-d10   # roda de verdade
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender            # 25/10: re-render das molduras do lote (dry-run)
 //   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender --yes      # idem de verdade (teto US$ 2)
+//   cd api && npx ts-node --transpile-only src/dev/molduras-todas.ts --rerender --so-duas-fontes [--nova-trilha] [--sem-imagem] [--yes]  # 25/10: só as 6 de 2 fontes com a trilha de b-roll (teto US$ 1; --sem-imagem = trecho sem clipe estende o vizinho)
 //
 // O que faz, por template que ainda não existe no lote (ou cuja peça antiga falhou):
 //  1. textos pela MESMA chamada de detalhe da moldura do planAutoBatch (sistema AUTO_PLAN_SYSTEM + contexto do lote +
@@ -16,7 +17,8 @@
 // Fora da regra do produto, SÓ aqui e com flag explícita (--ignorar-d10): o máx. de 2 FRAME por lote (D10) e o bloqueio
 // `two_sources` das 6 de 2 fontes (o B2 ainda não liberou no allowedFrames). O resto da validação vale igual.
 import 'reflect-metadata';
-import { FRAME_DUAS_FONTES, semRepetirDentro } from '../edicao/segunda-fonte';
+import { FRAME_DUAS_FONTES, IMAGEM_RESERVA_USD, IMAGENS_POR_TRILHA, semRepetirDentro } from '../edicao/segunda-fonte';
+import { VARIANTES, cortarFala } from '../edicao/trilha-broll';
 import type { EditMap, TranscriptWord } from '@maquina/contratos';
 import type { FrameTemplateId } from '@maquina/contratos';
 import type { AutoFrameDraft, AutoPlanDraft, AutoPlanInput, FrameSecondSource, OfferBriefDraft } from '../integracoes/contrato';
@@ -71,6 +73,8 @@ export interface LoteDados {
   existentes: FrameExistente[];
   codigos: string[];
   maxIndex: number;
+  /** 25/10: o lote já tem a trilha de b-roll gravada (settings.brollTrack) */
+  trilhaSalva?: boolean;
   /** US$ de 1 render 9:16 (maior custo de render já gravado neste lote, ou o padrão) */
   renderUsd: number;
   model: string;
@@ -105,10 +109,10 @@ export interface Deps {
   tetoDoWorkspace(workspaceId: string, estimateUsd: number): Promise<void>;
   gravar(lote: LoteDados, pecas: PecaPronta[]): Promise<{ code: string; itemId: string; creativeId: string; renderId: string }[]>;
   /** --rerender: zera a 2ª fonte das de 2 fontes (a API resolve na ordem nova) e enfileira um 9:16 novo de cada peça */
-  rerenderizar?(lote: LoteDados, linhas: LinhaRerender[]): Promise<{ code: string; renderId: string }[]>;
+  rerenderizar?(lote: LoteDados, linhas: LinhaRerender[], o?: { novaTrilha: boolean; semImagem?: boolean }): Promise<{ code: string; renderId: string }[]>;
   log(linha: string): void;
 }
-export interface Opcoes { yes: boolean; ignorarD10: boolean; rerender?: boolean }
+export interface Opcoes { yes: boolean; ignorarD10: boolean; rerender?: boolean; soDuasFontes?: boolean; novaTrilha?: boolean; semImagem?: boolean }
 
 export interface Resultado {
   linhas: LinhaPlano[];
@@ -418,6 +422,10 @@ export async function executar(deps: Deps, opts: Opcoes): Promise<Resultado> {
 export const TETO_RERENDER_USD = 2;
 /** Seleção do b-roll por visão (Haiku, ~6 folhas de quadros × US$ 0,004, §B3.1) por moldura de 2 fontes. */
 export const BROLL_USD_POR_PECA = 0.03;
+/** 25/10 (trilha): só as 6 de 2 fontes, teto US$ 1 (pedido do Gusta). */
+export const TETO_RERENDER_DUAS_FONTES_USD = 1;
+/** Sonda da ia (25/10): ~US$ 0,013 por trecho escolhido; imagem de reserva US$ 0,22 (no máx. IMAGENS_POR_TRILHA por lote). */
+export const TRILHA_USD_POR_TRECHO = 0.013;
 
 export interface LinhaRerender {
   template: FrameTemplateId; code: string; itemId: string; creativeId: string; creativeState: string | null;
@@ -425,8 +433,8 @@ export interface LinhaRerender {
 }
 
 /** As peças FRAME do lote com criativo; render no ar = pular (não empilha). Puro. */
-export function planejarRerender(lote: LoteDados): { linhas: LinhaRerender[]; usd: number } {
-  const linhas = lote.existentes.map((e): LinhaRerender => {
+export function planejarRerender(lote: LoteDados, o: { soDuasFontes?: boolean; novaTrilha?: boolean; semImagem?: boolean } = {}): { linhas: LinhaRerender[]; usd: number; trechos: number } {
+  const linhas = lote.existentes.filter((e) => !o.soDuasFontes || (FRAME_DUAS_FONTES as readonly string[]).includes(e.template)).map((e): LinhaRerender => {
     const base = {
       template: e.template, code: e.code, itemId: e.itemId ?? '', creativeId: e.creativeId ?? '', creativeState: e.creativeState ?? null,
       duasFontes: (FRAME_DUAS_FONTES as readonly string[]).includes(e.template),
@@ -436,26 +444,35 @@ export function planejarRerender(lote: LoteDados): { linhas: LinhaRerender[]; us
     return { ...base, acao: 'refazer', motivo: null };
   });
   const refazer = linhas.filter((l) => l.acao === 'refazer');
-  const usd = r4(refazer.length * lote.renderUsd + refazer.filter((l) => l.duasFontes).length * BROLL_USD_POR_PECA);
-  return { linhas, usd };
+  // trilha: 1 busca por LOTE (reaproveitada); já gravada e sem --nova-trilha = custo 0; pior caso com as imagens de reserva
+  const trechos = cortarFala(lote.ctx.words, { startSec: 0, endSec: lote.ctx.durationSec }).length;
+  const comTrilha = refazer.some((l) => l.duasFontes) && (o.novaTrilha || !lote.trilhaSalva);
+  const trilhaUsd = comTrilha ? trechos * TRILHA_USD_POR_TRECHO + (o.semImagem ? 0 : IMAGENS_POR_TRILHA * IMAGEM_RESERVA_USD) : 0;
+  const usd = r4(refazer.length * lote.renderUsd + trilhaUsd);
+  return { linhas, usd, trechos };
 }
 
 export async function executarRerender(deps: Deps, opts: Opcoes): Promise<{ linhas: LinhaRerender[]; usd: number; enfileirados: { code: string; renderId: string }[] }> {
   const lote = await deps.carregar();
-  const { linhas, usd } = planejarRerender(lote);
-  deps.log(`lote ${lote.batchId}: ${linhas.filter((l) => l.acao === 'refazer').length} moldura(s) pra re-renderizar · estimativa ${fmt(usd)} (teto ${fmt(TETO_RERENDER_USD)})`);
+  const { linhas, usd, trechos } = planejarRerender(lote, opts);
+  const teto = opts.soDuasFontes ? TETO_RERENDER_DUAS_FONTES_USD : TETO_RERENDER_USD;
+  deps.log(`lote ${lote.batchId}: ${linhas.filter((l) => l.acao === 'refazer').length} moldura(s) pra re-renderizar · estimativa ${fmt(usd)} (teto ${fmt(teto)})`);
+  deps.log(`  trilha de b-roll: ${trechos} trechos de 2-5 s; ${lote.trilhaSalva && !opts.novaTrilha ? 'a gravada no lote é reaproveitada (US$ 0)' : '1 busca nova pro lote'}`);
+  let k = 0;
   for (const l of linhas) {
-    deps.log(`  ${l.code} (${l.template}): ${l.acao}${l.motivo ? ` · ${l.motivo}` : ''}${l.acao === 'refazer' && l.duasFontes ? ' · 2ª fonte: Pexels pela ia › imagem › trecho do campeão sem repetir' : ''} · contentBox do editMap`);
+    // 25/10 (Gusta): cada moldura de 2 fontes numa variante da trilha (rodízio 0, 1, 2), mesma busca do lote
+    const variante = l.duasFontes ? ` · trilha variante ${k++ % VARIANTES}` : '';
+    deps.log(`  ${l.code} (${l.template}): ${l.acao}${l.motivo ? ` · ${l.motivo}` : ''}${l.acao === 'refazer' && l.duasFontes ? ' · 2ª fonte: trilha de b-roll Pexels › imagem › trecho do campeão sem repetir' : ''}${variante} · contentBox do editMap`);
   }
   if (!opts.yes) {
     deps.log('');
-    deps.log('dry-run: nada chamado, nada criado. Re-renderizar de verdade: --rerender --yes');
+    deps.log(`dry-run: nada chamado, nada criado. Re-renderizar de verdade: --rerender${opts.soDuasFontes ? ' --so-duas-fontes' : ''}${opts.semImagem ? ' --sem-imagem' : ''} --yes`);
     return { linhas, usd, enfileirados: [] };
   }
-  if (usd > TETO_RERENDER_USD) throw new Error(`estimativa ${fmt(usd)} acima do teto de ${fmt(TETO_RERENDER_USD)}: nada foi feito`);
+  if (usd > teto) throw new Error(`estimativa ${fmt(usd)} acima do teto de ${fmt(teto)}: nada foi feito`);
   if (!deps.rerenderizar) throw new Error('rerenderizar não ligado');
   await deps.tetoDoWorkspace(lote.workspaceId, usd);
-  const enfileirados = await deps.rerenderizar(lote, linhas.filter((l) => l.acao === 'refazer'));
+  const enfileirados = await deps.rerenderizar(lote, linhas.filter((l) => l.acao === 'refazer'), { novaTrilha: !!opts.novaTrilha, semImagem: !!opts.semImagem });
   for (const e of enfileirados) deps.log(`  ${e.code}: render ${e.renderId} QUEUED (9:16, prioridade 10)`);
   return { linhas, usd, enfileirados };
 }
@@ -465,7 +482,7 @@ export async function executarRerender(deps: Deps, opts: Opcoes): Promise<{ linh
 /* istanbul ignore next -- roda só pela linha de comando */
 async function main() {
   const args = new Set(process.argv.slice(2));
-  const opts: Opcoes = { yes: args.has('--yes'), ignorarD10: args.has('--ignorar-d10'), rerender: args.has('--rerender') };
+  const opts: Opcoes = { yes: args.has('--yes'), ignorarD10: args.has('--ignorar-d10'), rerender: args.has('--rerender'), soDuasFontes: args.has('--so-duas-fontes'), novaTrilha: args.has('--nova-trilha'), semImagem: args.has('--sem-imagem') };
   const url = process.env.DATABASE_URL ?? require('dotenv').config({ path: '.env' }).parsed?.DATABASE_URL ?? '';
   const host = (() => { try { const u = new URL(url); return `${u.hostname}:${u.port}${u.pathname}`; } catch { return '?'; } })();
   if (!/^(localhost|127\.0\.0\.1):/.test(host)) throw new Error(`DATABASE_URL não é local (${host}): o script só roda no banco de desenvolvimento`);

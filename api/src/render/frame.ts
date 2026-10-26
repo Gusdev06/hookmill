@@ -47,11 +47,16 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
   const r3 = (v: number) => Math.round(v * 1000) / 1000;
 
   let second: MolduraProps['second'];
-  const s = spec.second;
+  // TRANSIÇÃO: `broll_track` entra no FrameSecondSource do contrato pelo arquiteto (25/10); até lá, forma local igual
+  type BrollTrack = { kind: 'broll_track'; clips: { fromSec: number; toSec: number; fileUrl: string; srcStartSec: number; srcEndSec: number; segmentText?: string; provenance?: unknown }[] };
+  const s = spec.second as FrameSpec['second'] | BrollTrack | null;
   if (s?.kind === 'champion_segment') second = { kind: 'champion_segment', startSec: s.startSec, endSec: s.endSec, reframe: reframeNaCaixa(L.secondBox ?? L.videoBox, src, ctx.editMap, 1080, contentBox) };
   else if (s?.kind === 'page_capture') second = { kind: 'page_capture', fileUrl: s.fileUrl, scroll: s.scroll };
   else if (s?.kind === 'product_photo') second = { kind: 'product_photo', fileUrl: s.fileUrl };
-  else if (s?.kind === 'stock_broll') second = { kind: 'stock_broll', fileUrl: s.fileUrl, durationSec: Math.max(0.5, s.provenance.endSec - s.provenance.startSec) };
+  else if (s?.kind === 'broll_track') {
+    // trilha de b-roll: clipes na linha do tempo da peça (a composição fecha buracos e segura o último quadro)
+    second = { kind: 'broll_track', clips: s.clips.map((c) => ({ fromSec: c.fromSec, toSec: c.toSec, fileUrl: c.fileUrl, srcStartSec: c.srcStartSec, srcEndSec: c.srcEndSec, ...(c.segmentText && { segmentText: c.segmentText }), ...(c.provenance !== undefined && { provenance: c.provenance }) })) };
+  } else if (s?.kind === 'stock_broll') second = { kind: 'stock_broll', fileUrl: s.fileUrl, durationSec: Math.max(0.5, s.provenance.endSec - s.provenance.startSec) };
 
   let face: MolduraProps['face'];
   if (FRAME_USES_FACE.includes(id)) {

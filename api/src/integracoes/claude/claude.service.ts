@@ -446,6 +446,7 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort {
       uiLocale: i.uiLocale, durationSec: i.media.durationSec, offer: i.offer, pageCaptured: i.page.captured,
       blockCount: t.structure.status === 'ok' && t.structure.data ? t.structure.data.blocks.length : 0,
       allowedFrames: allowedFramesOf(i),
+      headline: i.headline,
     };
     // §14.3: com STATIC em `allowed`, até 4 frames-chave vão como REFERÊNCIA visual (baixados uma vez; o reparo reusa)
     const refs = staticAllowed(i) && i.keyframes.length ? await this.loadFrames(i.keyframes.slice(0, 8), STATIC_REF_IMAGES) : { images: [], failed: 0 };

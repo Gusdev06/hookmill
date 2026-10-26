@@ -35,7 +35,7 @@ export function zipFileName(i: { shortCode: string; launchedAt: Date; championNa
  * README.txt de cada pasta: a instrução do conjunto + `arquivo → o que mudou`. 25/10 (D14): peça com texto do anúncio
  * sugerido (moldura "Leia a legenda") ganha a linha seguinte com ele, recuada (sem publicar pelo HookMill, é daqui que sai).
  */
-export function readmeFor(axis: VariationAxis, lines: { file: string; change: string; primaryText?: string | null; credit?: string | null }[], locale: ZipLocale): string {
+export function readmeFor(axis: VariationAxis, lines: { file: string; change: string; primaryText?: string | null; credit?: string | string[] | null }[], locale: ZipLocale): string {
   const head = axis === 'ITERATION'
     ? locale === 'PT_BR'
       ? 'Conjunto de teste do mesmo conceito, separado do conjunto do campeão (que segue rodando). A peça que ganhar migra pro conjunto principal.'
@@ -48,7 +48,7 @@ export function readmeFor(axis: VariationAxis, lines: { file: string; change: st
   const body = lines.flatMap((l) => [
     `${l.file} → ${l.change}`,
     ...(l.primaryText?.trim() ? [`    ${label}: ${l.primaryText.trim().replace(/\s*\n\s*/g, ' ')}`] : []),
-    ...(l.credit?.trim() ? [`    B-roll: ${l.credit.trim()}`] : []),
+    ...(Array.isArray(l.credit) ? l.credit : l.credit ? [l.credit] : []).filter((c) => c.trim()).map((c) => `    B-roll: ${c.trim()}`),
   ]);
   return [head, '', title, ...body, ''].join('\n');
 }
@@ -70,11 +70,15 @@ export const ZIP_TTL_MS = 72 * 3_600_000;
  * aparece como desconhecida (nunca vira domínio público); sem permissão comercial = aviso.
  */
 export function creditoDoBroll(p: {
-  provider: string; sourceUrl: string; creator: string | null; license: string | null; licenseCommercialOk: boolean; startSec: number; endSec: number;
+  provider: string; sourceUrl?: string; creator?: string | null; license?: string | null; licenseCommercialOk: boolean; startSec?: number; endSec?: number;
+  model?: string; subject?: string;
 } | null | undefined, locale: ZipLocale): string | null {
-  if (!p?.sourceUrl) return null;
+  if (!p) return null;
   const pt = locale === 'PT_BR';
+  // 25/10: trecho sem clipe bom vira imagem nossa (GPT Image 2): sem licença de terceiro
+  if (p.provider === 'generated') return `${pt ? 'imagem gerada' : 'generated image'} (${p.model ?? '?'}) · ${p.subject ?? ''}`.trim();
+  if (!p.sourceUrl) return null;
   const lic = p.license ?? (pt ? 'licença desconhecida' : 'unknown license');
   const aviso = p.licenseCommercialOk ? '' : pt ? ' · LICENÇA NÃO VERIFICADA pra uso comercial' : ' · LICENSE NOT VERIFIED for commercial use';
-  return `${p.provider} · ${p.creator ?? (pt ? 'autor desconhecido' : 'unknown author')} · ${lic} · ${p.sourceUrl} · ${p.startSec.toFixed(1)}-${p.endSec.toFixed(1)} s${aviso}`;
+  return `${p.provider} · ${p.creator ?? (pt ? 'autor desconhecido' : 'unknown author')} · ${lic} · ${p.sourceUrl} · ${(p.startSec ?? 0).toFixed(1)}-${(p.endSec ?? 0).toFixed(1)} s${aviso}`;
 }

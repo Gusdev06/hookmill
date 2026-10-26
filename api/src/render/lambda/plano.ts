@@ -61,7 +61,8 @@ export async function montarPlano(input: RenderInput, o: { ffmpeg: string; aviso
   };
   // Moldura (estatico-montado-e-molduras-v1 §B2): composição `Moldura`, campeão inteiro com o áudio dele, sem refino de
   // emenda (timeline de um trecho só), mesma codificação do local (remotion-render.service renderAutoEdit). A 2ª fonte
-  // (`second.fileUrl`) e o rosto (`face`: face_crop do próprio campeão ou `url` de imagem) passam pela checagem de mídia do submit.
+  // (`second.fileUrl`, e na trilha `broll_track` cada `second.clips[i].fileUrl`) e o rosto (`face`: face_crop do próprio
+  // campeão ou `url` de imagem) passam pela checagem de mídia do submit (problemasDeMidia percorre arrays e objetos).
   if (isFrame(input)) {
     let props: Record<string, unknown>;
     try { props = propsDeFrameInput(input as never) as unknown as Record<string, unknown>; } catch (e) { throw entradaInvalida(e); }

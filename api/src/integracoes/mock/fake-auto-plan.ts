@@ -13,14 +13,14 @@
 // FRAME (25/10 §B2, B1-I): com FRAME em `allowed`, escolhe até 2 templates diferentes entre os permitidos (`allowedFrames`
 // do backend, ou o padrão conservador), na ordem FRAME_PICK; textos do Brain/fala com a fonte de cada um.
 import type {
-  AutoFrameDraft, AutoItemDraft, AutoParamsDraft, AutoVariationTypeWithFrame, BlockFn, BrainField, CopySource, FrameTemplateId, OfferBriefDraft,
+  AutoFrameDraft, AutoHeadlineDraft, AutoItemDraft, AutoParamsDraft, AutoVariationTypeWithFrame, BlockFn, BrainField, CopySource, FrameTemplateId, OfferBriefDraft,
   StaticCopy, StaticVisualV2, WhyDraft,
 } from '../contrato';
 import { IntegracaoError } from '../erros';
 import { AUTO_LIMITS, PLAN_TYPES, brainFieldsFilled, clip, type AutoItemDraftWithFrame, type AutoPlanDraftWithFrame } from '../claude/auto-plano';
 import { STATIC_V2_LIMITS, staticCopyLength } from '../claude/auto-plano-estatico';
 import { FRAME_LIMITS, FRAME_MAX_PER_BATCH, PRICE_RE, allowedFramesOf, cutWidth, frameTextPaths, type AutoPlanInputWithFrame } from '../claude/auto-plano-moldura';
-type AutoVariationType = AutoVariationTypeWithFrame;
+type AutoVariationType = AutoVariationTypeWithFrame | 'HEADLINE';
 
 type Lang = 'en' | 'pt';
 const DIVERSITY: AutoVariationType[] = ['SPLIT_LP', 'STORY', 'REVIEW', 'STATIC', 'FRAME', 'NATIVE_SEARCH'];
@@ -29,7 +29,7 @@ export const FRAME_PICK: FrameTemplateId[] = [
   'news', 'question_box', 'pov_testimonial', 'meme', 'read_caption', 'direct_offer', 'cinema', 'story', 'post_card', 'ranking', 'call', 'live',
   'split_stack', 'split_torn', 'gossip_page', 'gossip_white', 'gossip_pink', 'call_dialog',
 ];
-const ITERATION: AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD'];
+const ITERATION: AutoVariationType[] = ['HEADLINE', 'CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD'];
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 const UI = {
@@ -38,7 +38,7 @@ const UI = {
     fromVideo: 'From the video', keptHook: 'Spoken hook', keptProof: 'Proof moment', keptCta: 'Closing CTA', keptVoice: 'Original voice',
     change: {
       CUT: 'Cut to {n} s, whole blocks', COLD_OPEN: 'Opens on a teaser from {t} s', HOOK_TEXT: 'New written hook: "{x}"', ENDCARD: 'End card ({v}) added',
-      SPLIT_LP: 'Landing page on top, video below', STORY: 'Framed as a story', REVIEW: 'Review card above the video', NATIVE_SEARCH: 'Opens on a search for "{x}"', STATIC: 'Assembled ad: {x}', FRAME: 'Inside the {x} frame',
+      SPLIT_LP: 'Landing page on top, video below', STORY: 'Framed as a story', REVIEW: 'Review card above the video', NATIVE_SEARCH: 'Opens on a search for "{x}"', STATIC: 'Assembled ad: {x}', FRAME: 'Inside the {x} frame', HEADLINE: 'New headline: "{x}"',
     },
     rationale: { hook: 'Attacks the hook: a new first impression for the same pitch.', proof: 'Attacks the proof: shows it earlier or in a new frame.', cta: 'Attacks the CTA: makes the ask clearer.' },
   },
@@ -47,7 +47,7 @@ const UI = {
     fromVideo: 'Do vídeo', keptHook: 'Gancho falado', keptProof: 'Momento da prova', keptCta: 'CTA final', keptVoice: 'Voz original',
     change: {
       CUT: 'Corte de {n} s, blocos inteiros', COLD_OPEN: 'Abre com teaser de {t} s', HOOK_TEXT: 'Gancho escrito novo: "{x}"', ENDCARD: 'End card ({v}) no fim',
-      SPLIT_LP: 'Página em cima, vídeo embaixo', STORY: 'Enquadrado como story', REVIEW: 'Card de review em cima do vídeo', NATIVE_SEARCH: 'Abre numa busca por "{x}"', STATIC: 'Anúncio montado: {x}', FRAME: 'Dentro da moldura {x}',
+      SPLIT_LP: 'Página em cima, vídeo embaixo', STORY: 'Enquadrado como story', REVIEW: 'Card de review em cima do vídeo', NATIVE_SEARCH: 'Abre numa busca por "{x}"', STATIC: 'Anúncio montado: {x}', FRAME: 'Dentro da moldura {x}', HEADLINE: 'Headline nova: "{x}"',
     },
     rationale: { hook: 'Ataca o gancho: primeira impressão nova pro mesmo discurso.', proof: 'Ataca a prova: mostra antes ou num quadro novo.', cta: 'Ataca o CTA: deixa o pedido mais claro.' },
   },
@@ -151,11 +151,17 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   for (const ty of [...max.keys()]) if (!PLAN_TYPES.includes(ty)) max.delete(ty);
   const frames = FRAME_PICK.filter((f) => allowedFramesOf(i).includes(f));
   if (max.has('FRAME')) max.set('FRAME', Math.min(max.get('FRAME') ?? 0, FRAME_MAX_PER_BATCH, frames.length));
+  // HEADLINE (headline-e-legenda-v1): só com `headline` no input; 3 (replace) ou 2 (add), o que o backend mandar
+  if (!i.headline) max.delete('HEADLINE');
   const used = new Map<AutoVariationType, number>();
   const can = (ty: AutoVariationType) => (used.get(ty) ?? 0) < (max.get(ty) ?? 0);
   const order: AutoVariationType[] = [];
   const target = Math.min(i.rules.max, Math.max(i.rules.min, 10));
-  // 1ª passada: um de cada tipo (diversidade primeiro); depois repetições na mesma ordem até o alvo
+  // HEADLINE entra inteira (3 ou 2: é a alavanca pedida); depois 1 de cada tipo (diversidade primeiro) e repetições
+  while (can('HEADLINE')) {
+    order.push('HEADLINE');
+    used.set('HEADLINE', (used.get('HEADLINE') ?? 0) + 1);
+  }
   for (let pass = 0; pass < 10 && order.length < target; pass++) {
     for (const ty of [...DIVERSITY, ...ITERATION]) {
       if (order.length >= target) break;
@@ -168,7 +174,9 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   // diversidade ≥ minDiversityPct: tira ITERATION do fim enquanto faltar e sobrar acima do mínimo
   const divCount = () => order.filter((ty) => DIVERSITY.includes(ty)).length;
   while (order.length > i.rules.min && divCount() < Math.ceil((order.length * i.rules.minDiversityPct) / 100)) {
-    const last = order.map((ty, k) => [ty, k] as const).reverse().find(([ty]) => ITERATION.includes(ty));
+    // tira CUT antes de HEADLINE (headline-e-legenda-v1 §3.2)
+    const rev = order.map((ty, k) => [ty, k] as const).reverse();
+    const last = rev.find(([ty]) => ITERATION.includes(ty) && ty !== 'HEADLINE') ?? rev.find(([ty]) => ty === 'HEADLINE');
     if (!last) break;
     order.splice(last[1], 1);
   }
@@ -180,6 +188,10 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   const items = plan.map((type): AutoItemDraftWithFrame => {
     const k = nth.get(type) ?? 0;
     nth.set(type, k + 1);
+    if (type === 'HEADLINE') {
+      const params = headlineFor(k);
+      return { type, change: clip(fill(ui.change.HEADLINE, { x: clip(params.text, 40) }), AUTO_LIMITS.change), rationale: ui.rationale.hook, whyKey: 'hook', params };
+    }
     if (type === 'FRAME') {
       const params = frameFor(frames[k]);
       return { type, change: clip(fill(ui.change.FRAME, { x: params.template }), AUTO_LIMITS.change), rationale: ui.rationale.hook, whyKey: 'hook', params };
@@ -198,7 +210,21 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   });
   return { blocks, why, kept, items };
 
-  function paramsFor(type: Exclude<AutoVariationType, 'FRAME'>, k: number): AutoParamsDraft {
+  /** HEADLINE k: ângulo dor / promessa / prova, do Brain (sem dígito), no limite de caracteres; destaque = as 2
+   *  últimas palavras quando a original tem destaque. Sem dado no Brain = a fala do gancho. */
+  function headlineFor(k: number): AutoHeadlineDraft {
+    const h = i.headline!;
+    const angles: [CopySource, string | null][] = [['pains', i.offer.pains], ['promise', i.offer.promise], ['proof', i.offer.proof]];
+    const [src, raw] = angles[k % angles.length];
+    const base = noDigits((raw ?? '').replace(/["“”]/g, '').split(/[.!?\n]/)[0] ?? '') || noDigits(hookSpoken);
+    const text = clip(base, h.maxChars) || clip(noDigits(hookSpoken), h.maxChars);
+    const w = text.split(' ');
+    const highlight = h.hasHighlight && w.length > 3 ? w.slice(-2).join(' ') : null;
+    const source: CopySource = raw && noDigits(raw) ? src : 'transcript';
+    return { type: 'HEADLINE', mode: h.mode, text, highlight, sources: highlight ? { text: source, highlight: source } : { text: source } };
+  }
+
+  function paramsFor(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE'>, k: number): AutoParamsDraft {
     switch (type) {
       case 'CUT': {
         const targetSec = k === 0 ? 15 : 20;

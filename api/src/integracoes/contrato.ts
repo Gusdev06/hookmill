@@ -8,6 +8,7 @@ import type {
   SwapEngine, SwapFit, SwapQuote, SwapResolution, SwapVoiceSource,
   AutoVariationType, BlockFn, BrainField, EndcardVariant,
 } from '@maquina/contratos';
+import type { CaptionsAuto } from '@maquina/video';
 export type {
   AutoVariationType, BlockFn, BrainField, EndcardVariant,
   AdLibraryMeta, CastingStyle, EditLayer, EditMap, FaceTrackSegment, FontId, HookMode, Measurements, PersonProfile, Rect, ScenePipeline,
@@ -150,6 +151,8 @@ export interface AutoPlanInput {
    *  conservador da ia (`defaultAllowedFrames`, só B1). Só tem efeito com FRAME em `allowed`. */
   allowedFrames?: FrameTemplateId[];
   rules: { min: number; max: number; minDiversityPct: 40 };
+  /** 25/10 (headline-e-legenda-v1 §1.2): o que a IA precisa pra escrever as headlines (backend, do editMap). Ausente = sem HEADLINE no `allowed`. */
+  headline?: { mode: 'replace' | 'add'; original: string | null; lines: number; maxChars: number; hasHighlight: boolean; language: string };
   /** 2ª chamada (reparo) */
   violations?: string[];
 }
@@ -189,7 +192,26 @@ export type AutoParamsDraft =
   | { type: 'STATIC'; atSec: number; headline: string; refAtSec?: number | null; visual?: StaticVisualDraft;
       layout?: StaticLayout; copy?: StaticCopy; visualV2?: StaticVisualV2 } // headline ≤ 50 (legado)
   // 25/10: FRAME (molduras §B2), fundido na entrega B1
-  | AutoFrameDraft;
+  | AutoFrameDraft
+  // 25/10 (headline-e-legenda-v1 §1.2)
+  | AutoHeadlineDraft;
+/** 25/10 (headline-e-legenda-v1 §1.2): headline do vídeo inteiro. `text` = a headline toda; `highlight` = trecho do `text`
+ *  na cor de destaque (null = nenhum; só se a original tem destaque). Limite: replace = nº de caracteres da original × 1,2
+ *  (mín. 20, máx. 90); add = 60. Nada inventado (§6.2.5); as do lote diferentes entre si e da original. */
+export type AutoHeadlineDraft = { type: 'HEADLINE'; mode: 'replace' | 'add'; text: string; highlight: string | null; sources: Record<string, CopySource> };
+/** Params final da peça HEADLINE (variation_items.payload.params validado + o que o backend mede/sabe), lido pelo
+ *  `buildHeadlineInput` (api/src/render/headline.ts). */
+export type HeadlineSpec = Pick<AutoHeadlineDraft, 'mode' | 'text' | 'highlight'> & {
+  /** idioma da headline (H4) */
+  language: string;
+  /** cor da marca (workspace.brandColor); null = 1ª cor da paleta medida */
+  brandColor: string | null;
+  /** `replace` sobre o vídeo: cor mediana do fundo dentro da caixa da original. Hoje vem pronta (medição do backend sobre o
+   *  editMap); medir no quadro real do campeão é pendência do video (§1.3). null/ausente = cor de contraste (H1). */
+  plateColor?: string | null;
+  /** legenda automática do lote (campeão sem legenda queimada, §2) */
+  captions?: CaptionsAuto | null;
+};
 /** @deprecated fusão B1 (25/10): igual a `AutoParamsDraft`. */
 export type AutoParamsDraftWithFrame = AutoParamsDraft;
 
@@ -380,9 +402,9 @@ export interface StaticImageCatalog {
 // passa a `StaticImageSpecAny` e `specV2` sai; `ClaudeService extends StaticTextCheckPort`.
 import type {
   AutoVariationTypeWithFrame,
-  BrollProvenance, BrollProvider, FrameSecondKind, FrameTemplateId, FrameTexts, FrameTwoSourceId, StaticTextCheck,
+  BrollProvenance, BrollProvider, FrameSecondKind, FrameTemplateId, FrameTexts, FrameTwoSourceId, StaticTextCheck, GeneratedProvenance, PieceHeadline,
 } from '@maquina/contratos';
-export type { AutoVariationTypeWithFrame, BrollProvenance, BrollProvider, FrameSecondKind, FrameTemplateId, FrameTexts, FrameTwoSourceId, StaticTextCheck };
+export type { AutoVariationTypeWithFrame, PieceHeadline, BrollProvenance, BrollProvider, FrameSecondKind, FrameTemplateId, FrameTexts, FrameTwoSourceId, StaticTextCheck, GeneratedProvenance };
 
 /** `assembled` = único layout de plano novo (D7). `photo_headline` (23-25/10) e `poster` (antes de 23/10) só pra legado (§A5). */
 export type StaticLayout = 'assembled';
@@ -466,7 +488,39 @@ export type FrameSecondSource =
   | { kind: 'stock_broll'; fileUrl: string; provenance: BrollProvenance }
   /** 25/10 (D Gusta): reserva quando o Pexels não tem clipe bom. Imagem nossa (GPT Image 2, `BrollPort.fallbackImage`),
    *  já no storage; `prompt`/`model` = proveniência (vai pro README do zip como "imagem gerada"). Sem licença de terceiro. */
-  | { kind: 'generated_image'; fileUrl: string; prompt: string; model: string; subject: string };
+  | { kind: 'generated_image'; fileUrl: string; prompt: string; model: string; subject: string }
+  /** 25/10 (Gusta): trilha de b-roll que troca conforme a fala (§B3.1 item 9). Substitui o `stock_broll` (1 clipe pro vídeo
+   *  todo), que fica só pra compatibilidade com peças antigas. */
+  | { kind: 'broll_track'; clips: BrollTrackClip[] };
+/** Um clipe da trilha. `fromSec`/`toSec` na linha do tempo da PEÇA: os clipes cobrem a duração toda, em ordem, sem buraco
+ *  nem sobreposição; trecho de 2-5 s cortado nas pausas/fim de frase; nunca o mesmo clipe duas vezes seguidas.
+ *  `srcStartSec`/`srcEndSec` = trecho do arquivo de origem (mudo; = 0 e a duração do trecho quando é imagem gerada). */
+export interface BrollTrackClip {
+  fromSec: number; toSec: number;
+  fileUrl: string; srcStartSec: number; srcEndSec: number;
+  /** a fala que ele ilustra */
+  segmentText: string;
+  provenance: BrollProvenance | GeneratedProvenance;
+}
+/** Trecho da fala a ilustrar (segundos do campeão = da peça, a moldura toca o campeão inteiro). */
+export interface BrollSegment { startSec: number; endSec: number; text: string }
+/** Escolha de um trecho: o clipe já baixado e cortado no nosso storage. */
+export interface BrollPick {
+  candidateId: string; fileUrl: string; srcStartSec: number; srcEndSec: number;
+  provenance: BrollProvenance;
+  /** ≤ 160, por que esse clipe ilustra a fala (visão) */
+  reason: string;
+  /** 25/10: próximos candidatos do mesmo trecho, na ordem da visão (troca de clipe e reserva sem nova busca). Sem aninhar. */
+  alternatives?: BrollPick[];
+}
+/** 1 busca da trilha por LOTE (§B3.1 item 9), reaproveitada por todas as molduras de 2 fontes do lote. */
+export interface BrollTrackSearchInput {
+  workspaceId: string; batchId: string;
+  segments: BrollSegment[];
+  offer?: BrollSearchInput['offer'];
+  language: string;
+  notes?: string | null;
+}
 /** Params final da peça FRAME (variation_items.payload.params depois da validação), lido pelo buildFrameInput (api/src/render/frame.ts). */
 export interface FrameSpec {
   template: FrameTemplateId; texts: FrameTexts[FrameTemplateId]; screenLanguage: string;
@@ -501,6 +555,9 @@ export interface BrollPort {
   /** 25/10: reserva sem clipe bom (`BROLL_NO_MATCH`): imagem do `subject` no GPT Image 2 → FrameSecondSource `generated_image`.
    *  Grava cost_entry IMAGE no lote. Sem WaveSpeed configurada = NOT_CONFIGURED (o backend cai pro champion_segment). */
   fallbackImage?(i: { workspaceId: string; variationBatchId: string; subject: string }): Promise<{ fileUrl: string; prompt: string; model: string; costUsd: number }>;
+  /** 25/10: trilha por fala. `picks[i]` responde `segments[i]` (mesmo tamanho e ordem); `{ none }` = sem b-roll bom →
+   *  o backend pede `fallbackImage(fallbackSubject)`; se o teto barrar, estende o clipe vizinho. TRANSIÇÃO opcional até a ia entregar. */
+  searchTrack?(i: BrollTrackSearchInput): Promise<{ picks: (BrollPick | { none: true; fallbackSubject: string })[] } & Usage>;
   /** baixa o intervalo, verifica (ffprobe) e ingere no storage; devolve o fileUrl pra FrameSecondSource */
   fetch(i: { workspaceId: string; variationBatchId: string; candidateId: string }): Promise<{ fileUrl: string; provenance: BrollProvenance }>;
 }

@@ -6,7 +6,7 @@
 import 'dotenv/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
-import { measurementsOf, sectionsOf, transcriptOf } from '../../campeoes/champion-views';
+import { editMapOf, measurementsOf, sectionsOf, transcriptOf } from '../../campeoes/champion-views';
 import { planCtxOf } from '../../iteracao/contexto';
 import { regrasDeMidiaFallback } from '../../iteracao/portas';
 import { allowedFor, allowedFrameIds, rulesFor, validatePlan } from '../../iteracao/regras';
@@ -32,10 +32,24 @@ async function main() {
     const ctx = planCtxOf({ offer: b.offer, workspace: b.workspace, champion: b.champion, teardown }, regrasDeMidiaFallback, { captured });
     // catálogo novo (25/10): CUT, REVIEW, NATIVE_SEARCH, STATIC (2) e FRAME (8, templates diferentes, com as 6 de 2 fontes).
     // A sonda aplica isso por cima do allowedFor do backend (que muda em paralelo); --catalogo-backend usa o dele cru.
-    const NEW: Record<string, number> = { CUT: 2, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8 };
+    // headline-e-legenda-v1 §1.2: a sonda monta o `headline` do input do editMap como o backend fará (maior camada
+    // headline; senão `text` ≥ 50 % da duração fora do terço de baixo); sem camada = modo add
+    const em = editMapOf(teardown.editMap);
+    const mm = measurementsOf(teardown.measurements);
+    const total = Math.max(1, Math.round((mm?.durationSec ?? 1) * (mm?.fps ?? 30)));
+    const frameH = mm?.height ?? 1920;
+    const cands = (em?.layers ?? []).filter((l) => l.text && (l.kind === 'headline' || (l.kind === 'text' && (l.endFrame - l.startFrame) / total >= 0.5 && l.box.y < frameH * 0.66)));
+    const hlLayer = cands.sort((a, b) => b.box.w * b.box.h - a.box.w * a.box.h)[0] ?? null;
+    const language = b.champion.language || transcriptOf(teardown.transcript)?.language || b.offer.language;
+    const headline = hlLayer
+      ? { mode: 'replace' as const, original: hlLayer.text, lines: Math.max(1, Math.round(hlLayer.box.h / (hlLayer.style.fontSizePx * hlLayer.style.lineHeight))), maxChars: Math.min(90, Math.max(20, Math.round((hlLayer.text ?? '').length * 1.2))), hasHighlight: !!hlLayer.style.highlightColor, language }
+      : { mode: 'add' as const, original: null, lines: 2, maxChars: 60, hasHighlight: false, language: b.offer.language };
+    if (hlLayer) console.log(`headline lida: "${hlLayer.text}" estilo=${JSON.stringify(hlLayer.style)} fundo=${JSON.stringify(hlLayer.background)} frames ${hlLayer.startFrame}-${hlLayer.endFrame}/${total}`);
+    console.log(`input.headline=${JSON.stringify(headline)}`);
+    const NEW: Record<string, number> = { HEADLINE: headline.mode === 'replace' ? 3 : 2, CUT: 2, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8 };
     const allowed = process.argv.includes('--catalogo-backend')
       ? allowedFor(ctx)
-      : allowedFor(ctx).filter((a) => a.type in NEW).map((a) => ({ ...a, max: Math.min(NEW[a.type], a.max > 0 ? NEW[a.type] : 0) }));
+      : [{ type: 'HEADLINE', max: NEW.HEADLINE } as unknown as ReturnType<typeof allowedFor>[number], ...allowedFor(ctx).filter((a) => a.type in NEW && (a.type as string) !== 'HEADLINE').map((a) => ({ ...a, max: Math.min(NEW[a.type], a.max > 0 ? NEW[a.type] : 0) }))];
     const m = measurementsOf(teardown.measurements);
     const transcript = transcriptOf(teardown.transcript);
     const input = {
@@ -51,6 +65,7 @@ async function main() {
       allowed: allowed.map((a) => ({ type: a.type, max: a.max })),
       allowedFrames: [...new Set([...allowedFrameIds(ctx), ...(process.argv.includes('--catalogo-backend') ? [] : FRAME_TWO_SOURCE)])],
       rules: rulesFor(allowed),
+      headline,
     } as unknown as AutoPlanInput;
     console.log(`lote ${b.id} status=${b.status} teardown=${teardown.id} allowed=${JSON.stringify(input.allowed)} frames=${JSON.stringify((input as unknown as { allowedFrames: string[] }).allowedFrames)}`);
     if (!process.argv.includes('--yes')) return console.log('nada rodou (passe --yes)');
@@ -65,6 +80,7 @@ async function main() {
     console.log(`OK em ${((Date.now() - t0) / 1000).toFixed(0)}s, custo US$ ${out.costUsd}, ${costs.entries.length / 2} chamada(s)`);
     for (const it of out.items) console.log(`  ${it.type.padEnd(13)} ${JSON.stringify(it.params).slice(0, 220)}`);
     const frames = out.items.filter((x) => (x.type as string) === 'FRAME').map((x) => x.params as unknown as { template: string; texts: Record<string, unknown>; sources: Record<string, string> });
+    for (const h of out.items.filter((x) => (x.type as string) === 'HEADLINE')) console.log(`HEADLINE: ${JSON.stringify(h.params)} (${(h.params as unknown as { text: string }).text.length}/${headline.maxChars} caracteres)`);
     console.log(`molduras: ${frames.length} → ${frames.map((f) => f.template).join(', ')}`);
     for (const f of frames.filter((x) => x.template === 'ranking')) console.log(`ranking: items=${JSON.stringify(f.texts.items)} sources=${JSON.stringify(f.sources)}`);
     const v = validatePlan(out, ctx, allowed);

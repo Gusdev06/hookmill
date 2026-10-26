@@ -19,7 +19,7 @@ import { ImagemEstaticaService } from './imagem-estatica.service';
 import {
   ALL_FORMATS, AUTO_EDIT_TEMPLATE, FORMAT_CODE, criticalErrorsOf, latestReadyByFormat, FORMAT_OF_CODE, FRAME_TEXT_OVERFLOW, PRIORITY_BATCH, PRIORITY_ON_DEMAND, STATIC_IMAGE_ETA_SEC,
   autoFileName, engineFor, estimateStaticUsd, expectedOutputSec, folderOf, latestByFormat, median, paramsOf, pieceFormats, pieceFrameOf, pieceStatus,
-  renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, textCheckOf,
+  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, textCheckOf,
 } from './pecas';
 
 const ITEM_INCLUDE = {
@@ -83,7 +83,8 @@ export class PecasAutoService {
     }
     // a fila tira o QUEUED mais antigo primeiro (mesma prioridade): createdAt = launchedAt + posição (ms) = ordem do plano
     await tx.render.createMany({
-      data: renderOrder(batch.items).map(({ item, format, seq }) => ({
+      // headline-e-legenda-v1 §1.5: HEADLINE nasce no aspecto do campeão (o resto, no 9:16)
+      data: renderOrder(batch.items).map(({ item, seq }) => ({ item, seq, format: primaryFormatOf(item.autoType, paramsOf(item.payload)) })).map(({ item, format, seq }) => ({
         workspaceId: batch.workspaceId, creativeId: ids.get(item.id)!, status: 'QUEUED' as const, format,
         engine: engineFor(item.autoType), priority: PRIORITY_BATCH,
         settings: { templateId: AUTO_EDIT_TEMPLATE }, input: {}, createdAt: new Date(input.launchedAt.getTime() + seq),
@@ -141,12 +142,12 @@ export class PecasAutoService {
     }
     const params = paramsOf(i.payload);
     const retryHint: IteratePiece['retryHint'] = !failedish || errorCode === 'SOURCE_UNAVAILABLE' ? null
-      : errorCode === FRAME_TEXT_OVERFLOW ? 'leave_out' // §B2: o texto não coube; refazer não adianta
+      : errorCode === FRAME_TEXT_OVERFLOW || errorCode?.startsWith('HEADLINE_') ? 'leave_out' // §B2 / headline §1.3-1.4: refazer não adianta
         : i.autoType === 'SPLIT_LP' && errorCode?.startsWith('PAGE_') ? 'use_product_photo' : 'retry';
     const vertical = readyBy.get('VERTICAL_9_16');
     return {
       id: i.id, index: i.index, type: i.autoType!, code: i.code ?? '', axis: i.axis as VariationAxis, change: i.change ?? '',
-      status, previewReady: vertical?.status === 'READY',
+      status, previewReady: (primaryFormatOf(i.autoType, params) === 'VERTICAL_9_16' ? vertical : readyBy.get(primaryFormatOf(i.autoType, params)))?.status === 'READY',
       media: isStatic ? 'image' : 'video',
       render: now ? {
         format: FORMAT_CODE[(now.format ?? 'VERTICAL_9_16') as VideoFormat], progress: now.progress, frame: now.frame, frames: now.totalFrames,
@@ -169,7 +170,11 @@ export class PecasAutoService {
       // §A6: só STATIC assembled com a imagem do 9:16 pronta
       textCheck: isStatic && vertical?.status === 'READY' ? textCheckOf(vertical.input) : null,
       suggestedPrimaryText: i.autoType === 'FRAME' ? suggestedPrimaryTextOf(params) : null,
-    };
+      // headline-e-legenda-v1 (TRANSIÇÃO, nomes do web/types.ts): "original → nova" na peça HEADLINE
+      ...((i.autoType as string) === 'HEADLINE' && {
+        headline: { mode: params?.mode === 'add' ? 'add' : 'replace', original: (params?.original as string | null) ?? null, text: String(params?.text ?? ''), highlight: (params?.highlight as string | null) ?? null },
+      }),
+    } as IteratePiece;
   }
 
   /**

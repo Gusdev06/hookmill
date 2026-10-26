@@ -10,7 +10,7 @@ import { Alert, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/
 import { Button, buttonVariants } from "@/components/ui/button"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { cn } from "@/lib/utils"
-import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
+import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
 import { PieceTextAlert, TextCheckChip, useStaticStage } from "./text-check"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
@@ -53,6 +53,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
               eyebrow={settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
               title={allReady ? t("titleDone", { total }) : settled ? t("titleSettled", { ready: s.ready, total }) : t("titleRunning", { total, ready: s.ready })}
             />
+            <CaptionsBadge batch={batch} />
             {failed.length ? (
               <Alert variant="destructive">
                 <NavIcon name="alert" size={20} />
@@ -201,6 +202,7 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
         {reason}
         <PieceTextAlert batchId={batchId} p={p} />
         <span className="text-[13px] text-fg-2">{p.change}</span>
+        <HeadlineChange p={p} />
         {running && stage ? (
           <span className="text-xs text-fg-3" role="status">{stage}</span>
         ) : running && p.render ? (

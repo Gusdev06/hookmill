@@ -4,7 +4,9 @@ import {
 } from 'remotion';
 import { resolverSrc } from './componentes/midia';
 import { Seta } from './componentes/Seta';
-import { carregarFontes, INTER, MONTSERRAT } from './fontes';
+import { carregarFontes, carregarFontesCJK, INTER, MONTSERRAT } from './fontes';
+import { LegendaAuto } from './componentes/LegendaAuto';
+import { caixaLegendaAutoEdit } from './lib/legendaAuto';
 import { ajustarTexto } from './RemixKeep';
 import { endCardFrames, janelaCover, trechosEmFrames, type AutoEditProps, type AutoReframe } from './lib/autoEdit';
 import { corDeDestaque, corClara, contraste } from './lib/cores';
@@ -18,12 +20,13 @@ const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 const saida = Easing.bezier(0.16, 1, 0.3, 1);
 
 /** Segura o frame até as fontes do template estarem prontas (o texto é medido com elas). */
-const useFontes = () => {
+const useFontes = (language: string, texto: string) => {
   const [pronto, setPronto] = useState(false);
   const [handle] = useState(() => delayRender('fontes auto-edit'));
   useEffect(() => {
-    carregarFontes().then(() => { setPronto(true); continueRender(handle); }).catch((e) => { console.error(e); continueRender(handle); });
-  }, [handle]);
+    // CJK (headline-e-legenda-v1 §2.2): os pedaços da Noto que a legenda/os textos usam vêm antes do 1º frame
+    carregarFontes().then(() => carregarFontesCJK(language, texto)).then(() => { setPronto(true); continueRender(handle); }).catch((e) => { console.error(e); continueRender(handle); });
+  }, [handle, language, texto]);
   return pronto;
 };
 
@@ -287,14 +290,24 @@ const Busca: React.FC<{ p: AutoEditProps & { params: { type: 'NATIVE_SEARCH' } }
 /** Estimativa barata (Inter 600 ≈ 0,55 em por caractere) só pra decidir se o texto rola pra esquerda. */
 const measureFits = (t: string, size: number, w: number) => t.length * size * 0.55 < w;
 
+/** A Sequence zera o frame; a legenda conta o tempo da PEÇA. Repõe o deslocamento com uma Sequence negativa. */
+const DeslocadaNoTempo: React.FC<{ de: number; children: React.ReactNode }> = ({ de, children }) => (
+  <Sequence from={-de} layout="none">{children}</Sequence>
+);
+
 // ───────────────────────── composição ─────────────────────────
 export const AutoEdit: React.FC<AutoEditProps> = (p) => {
-  const prontas = useFontes();
+  const prontas = useFontes(p.language, JSON.stringify(p.params) + (p.captions?.words.map((w) => w.word).join('') ?? ''));
   const { fps, width, height } = useVideoConfig();
   if (!prontas) return null;
   const tela = { x: 0, y: 0, w: width, h: height };
   const corpo = trechosEmFrames(p.timeline, fps).reduce((n, t) => n + t.frames, 0);
   const pr = p.params;
+  // legenda automática (§2.2): terço de baixo da área do vídeo, acima da UI; some na busca de abertura e no end card
+  const areaVideo = pr.type === 'REVIEW' ? { x: 0, y: Math.round(height * pr.ratio), w: width, h: height - Math.round(height * pr.ratio) }
+    : pr.type === 'SPLIT_LP' ? { x: 0, y: Math.round(height * pr.ratio), w: width, h: height - Math.round(height * pr.ratio) } : tela;
+  const caixaLeg = p.captions?.words.length ? caixaLegendaAutoEdit(p.format, p.safeArea, areaVideo) : null;
+  const legendaDe = pr.type === 'NATIVE_SEARCH' ? Math.round(pr.introSec * fps) : 0;
   return (
     <AbsoluteFill style={{ backgroundColor: '#000', overflow: 'hidden' }}>
       {pr.type === 'SPLIT_LP' ? <SplitPagina p={p as never} />
@@ -309,6 +322,13 @@ export const AutoEdit: React.FC<AutoEditProps> = (p) => {
       ) : null}
       {pr.type === 'ENDCARD' ? (
         <Sequence name="End card" from={corpo} durationInFrames={endCardFrames(p, fps)}><CartaoFinal p={p as never} /></Sequence>
+      ) : null}
+      {p.captions && caixaLeg && corpo > legendaDe ? (
+        <Sequence name="Legenda automática" from={legendaDe} durationInFrames={corpo - legendaDe} layout="none">
+          <AbsoluteFill style={{ translate: `0 0` }}>
+            <DeslocadaNoTempo de={legendaDe}><LegendaAuto captions={p.captions} timeline={p.timeline} caixa={caixaLeg} ateSec={corpo / fps} /></DeslocadaNoTempo>
+          </AbsoluteFill>
+        </Sequence>
       ) : null}
     </AbsoluteFill>
   );

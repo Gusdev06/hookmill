@@ -4,13 +4,13 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import type { FormatCode, IterateBatch, IteratePiece, PieceFormat } from "@/lib/api/types"
+import type { BrollTrackClipView, FormatCode, IterateBatch, IteratePiece, PieceFormat } from "@/lib/api/types"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { VideoPlayer } from "@/components/video-player"
 import { cn } from "@/lib/utils"
-import { Bar, Dot, FORMAT_ASPECT, FORMAT_LABEL, FORMAT_PX, FrameIcon, canAsk, isImagePiece, isSupported, pieceFormats, usePieceName } from "./parts"
+import { Bar, Dot, FORMAT_ASPECT, FORMAT_LABEL, FORMAT_PX, FrameIcon, HeadlineChange, canAsk, isImagePiece, isSupported, mmss, pieceFormats, pieceType, usePieceName } from "./parts"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { TextCheckPanel, useStaticStage } from "./text-check"
 
@@ -51,7 +51,8 @@ function Body({ batch, piece }: { batch: IterateBatch; piece: IteratePiece }) {
   const ta = useTranslations("iterate.analyze")
   const pieceName = usePieceName()
   const [view, setView] = useState<"var" | "orig">("var")
-  const [tab, setTab] = useState<FormatCode>("9x16")
+  // HEADLINE (§1.5) / frames (§B4): the first tab is the first format the piece has (a 1:1 champion has no 9:16)
+  const [tab, setTab] = useState<FormatCode>(() => pieceFormats(piece).find(isSupported)?.format ?? "9x16")
   const { inZip } = usePieceActions(batch.id)
   const formats = pieceFormats(piece).filter(isSupported)
   const current = formats.find((f) => f.format === tab) ?? formats[0]
@@ -107,7 +108,10 @@ function Body({ batch, piece }: { batch: IterateBatch; piece: IteratePiece }) {
           <span className="text-xs text-fg-3">{t("changed")}</span>
           <p className="mt-1 mb-0">{piece.change}</p>
           {isImagePiece(piece) ? <p className="mt-1.5 mb-0 text-xs text-fg-3">{t("stillOnly")}</p> : null}
+          <HeadlineChange p={piece} className="mt-2" />
+          {pieceType(piece) === "HEADLINE" && formats.length < 3 ? <p className="mt-1.5 mb-0 text-xs text-fg-3">{t("formatOnlyChampion")}</p> : null}
         </div>
+        {piece.frame?.second?.track?.length ? <BrollTrack track={piece.frame.second.track} /> : null}
         {isImagePiece(piece) ? <TextCheckPanel batch={batch} piece={piece} format={orig ? undefined : current} /> : null}
         {piece.suggestedPrimaryText ? <SuggestedText text={piece.suggestedPrimaryText} /> : null}
         <div className="flex flex-col gap-1.5">
@@ -119,7 +123,7 @@ function Body({ batch, piece }: { batch: IterateBatch; piece: IteratePiece }) {
               </li>
             ))}
           </ul>
-          {names.length < 3 ? <span className="text-xs text-fg-3">{t("filesMore")}</span> : null}
+          {names.length < formats.length ? <span className="text-xs text-fg-3">{t("filesMore")}</span> : null}
         </div>
         <div className="flex justify-between gap-2.5 border-t border-line-soft py-2 text-[13px]">
           <span className="text-fg-3">{t("folder")}</span>
@@ -138,6 +142,48 @@ function Body({ batch, piece }: { batch: IterateBatch; piece: IteratePiece }) {
         ) : null}
       </div>
     </>
+  )
+}
+
+/** §B3.1 item 9: the 2nd source of a 2-source frame = clips that change with the speech. Each: when, what is said, source + link. */
+function BrollTrack({ track }: { track: BrollTrackClipView[] }) {
+  const t = useTranslations("iterate.track")
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby="track-h">
+      <div className="flex flex-col gap-0.5">
+        <span id="track-h" className="text-xs font-semibold text-fg-2">{t("title")}</span>
+        <span className="text-xs text-fg-3">{t("sub")}</span>
+      </div>
+      <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
+        {track.map((c, i) => {
+          const pv = c.provenance
+          const gen = pv.provider === "generated"
+          return (
+            <li key={i} className="flex flex-col gap-1 rounded-md border border-line-soft bg-card-2 px-2.5 py-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <span className="font-mono text-fg-3 tabular-nums">{mmss(c.fromSec)}–{mmss(c.toSec)}</span>
+                {!gen && !pv.licenseCommercialOk ? (
+                  <span className="rounded-full bg-status-waiting-bg px-2 py-0.5 text-[11px] font-bold text-status-waiting">{t("unverified")}</span>
+                ) : null}
+              </div>
+              <span className="text-[13px] text-fg [overflow-wrap:anywhere]">“{c.segmentText}”</span>
+              {gen ? (
+                <span className="text-fg-3">{t("generated")}</span>
+              ) : (
+                <span className="flex flex-wrap items-center gap-x-1.5 text-fg-3">
+                  <span className="font-semibold text-fg-2">{t(`provider.${pv.provider}`)}</span>
+                  {pv.creator ? <span>· {pv.creator}</span> : null}
+                  <span>· {pv.license ?? t("unknownLicense")}</span>
+                  <a href={pv.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-6 items-center font-semibold text-fg underline underline-offset-2">
+                    {t("open")}
+                  </a>
+                </span>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </section>
   )
 }
 

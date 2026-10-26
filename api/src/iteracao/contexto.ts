@@ -6,6 +6,7 @@ import { initials, num } from '../common/util/format';
 import type { FrameBrand } from '../integracoes';
 import { handleDe } from '../render/auto-edit';
 import { paletaDoEstatico } from './paleta';
+import { captionsAutoOf, headlineInfoOf } from './headline-plano';
 import type { MediaRulesPort } from './portas';
 import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, brainEmpty, codeLanguageOf } from './regras';
 
@@ -78,6 +79,12 @@ export function planCtxOf(src: CtxSource, media: MediaRulesPort, page: { capture
     offerName: src.offer.name,
     offerKind: src.offer.kind ?? null,
     frame: { brand: frameBrandOf(src, m?.palette), faceAtSec: faceAtSecOf(editMap) },
+    // headline-e-legenda-v1: modo/limites/bloqueio da headline e se o lote ganha legenda automática
+    headline: headlineInfoOf(editMap, {
+      screenLanguage: src.champion.language || transcript?.language || src.offer.language, offerLanguage: src.offer.language,
+      width: m?.width ?? editMap?.width ?? 0, height: m?.height ?? editMap?.height ?? 0,
+    }),
+    captionsAuto: captionsAutoOf(editMap, transcript?.words ?? []),
   };
 }
 

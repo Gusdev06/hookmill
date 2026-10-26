@@ -182,7 +182,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const r = await call('GET', '/iterate/config');
     expect(r.status).toBe(200);
     expect(r.data).toMatchObject({ maxBytes: 524288000, minSec: 4, maxSec: 180, metaConnected: false, defaultOfferId: offerId, recentWinners: [] });
-    expect(r.data.types).toEqual(['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']); // catálogo 25/10
+    expect(r.data.types).toEqual(['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']); // catálogo 25/10 + headline-e-legenda-v1
     expect(r.data.offers).toEqual([{ id: offerId, name: 'Sleep app', language: 'en' }]);
     expect(r.data.analysisTypicalUsd).toBeGreaterThan(0);
     expect((await call('GET', '/iterate/config', undefined, 'C')).status).toBe(403);
@@ -409,7 +409,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const done = await settled(cr.data.id);
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { websiteUrl: 'https://example.com/lp' } });
     expect(done.data.status).toBe('PLAN_READY');
-    expect(spy.mock.calls[0][0].allowed.map((a) => a.type)).toEqual(['CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']);
+    expect(spy.mock.calls[0][0].allowed.map((a) => a.type)).toEqual(['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']);
     expect(done.data.insight.swaps.some((x: any) => x.from === 'SPLIT_LP')).toBe(false);
     expect(done.data.insight.flags.pageCaptured).toBe(false);
     expect(done.data.pieces.some((p: any) => p.type === 'SPLIT_LP')).toBe(false);

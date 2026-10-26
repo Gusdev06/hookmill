@@ -195,13 +195,19 @@ describe('dev/molduras-todas', () => {
     expect(p.linhas.map((x) => [x.code, x.acao, x.duasFontes])).toEqual([
       ['FRAME-NEWS', 'refazer', false], ['FRAME-SPLIT-STACK', 'refazer', true], ['FRAME-MEME', 'pular', false], ['FRAME-CINEMA', 'pular', false],
     ]);
-    expect(p.usd).toBe(0.13); // 2 × 0,05 + 1 × 0,03 (seleção do b-roll)
+    // 2 renders × 0,05 + trilha nova do lote (trechos × 0,013 + até 2 imagens × 0,22); com a trilha gravada, só os renders
+    expect(p.usd).toBe(Math.round((0.1 + p.trechos * 0.013 + 0.44) * 10_000) / 10_000);
+    expect(p.trechos).toBeGreaterThan(10); // 80 s de vídeo em trechos de 2-5 s
+    expect(planejarRerender(lote({ existentes, renderUsd: 0.05, trilhaSalva: true })).usd).toBe(0.1);
+    expect(planejarRerender(lote({ existentes, renderUsd: 0.05, trilhaSalva: true }), { novaTrilha: true }).usd).toBe(p.usd);
+    // --so-duas-fontes: só as 6 de 2 fontes (aqui, o split_stack)
+    expect(planejarRerender(lote({ existentes, renderUsd: 0.05 }), { soDuasFontes: true }).linhas.map((x) => x.code)).toEqual(['FRAME-SPLIT-STACK']);
     const rerenderizar = jest.fn(async () => [{ code: 'FRAME-NEWS', renderId: 'r1' }]);
     const { d } = deps(l, { rerenderizar });
     expect((await executarRerender(d, { yes: false, ignorarD10: false, rerender: true })).enfileirados).toEqual([]);
     expect(rerenderizar).not.toHaveBeenCalled();
     await executarRerender(d, { yes: true, ignorarD10: false, rerender: true });
-    expect(rerenderizar).toHaveBeenCalledWith(l, p.linhas.filter((x) => x.acao === 'refazer'));
+    expect(rerenderizar).toHaveBeenCalledWith(l, p.linhas.filter((x) => x.acao === 'refazer'), { novaTrilha: false, semImagem: false });
     const caro = lote({ existentes, renderUsd: TETO_RERENDER_USD });
     await expect(executarRerender(deps(caro, { rerenderizar }).d, { yes: true, ignorarD10: false, rerender: true })).rejects.toThrow(/teto/);
   });

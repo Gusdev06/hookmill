@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useFormatter, useTranslations } from "next-intl"
-import type { AutoVariationTypeWithFrame, FileRef, FormatCode, FrameTemplateId, IterateBatch, IteratePiece, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
+import type { AutoInsightV, AutoVariationTypeV, IteratePieceV, FileRef, FormatCode, FrameTemplateId, IterateBatch, IteratePiece, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
 import { FlowBar } from "@/components/flow-bar"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useSession } from "@/components/providers/session-provider"
@@ -14,8 +14,62 @@ import "./iterate.css"
 
 /** 25/10 (estatico-montado-e-molduras-v1 §C.0, TRANSIÇÃO): the API sends `type: 'FRAME'` before the architect merges it into
  *  `AutoVariationType`; the web reads the superset so nothing breaks on either side of the merge. */
-export type PieceType = AutoVariationTypeWithFrame
+export type PieceType = AutoVariationTypeV
 export const pieceType = (p: Pick<IteratePiece, "type">) => p.type as PieceType
+
+// ───────────── headline-e-legenda-v1 (25/10, TRANSIÇÃO) ─────────────
+/** HEADLINE piece: the champion's headline and the new one (`original: null` = the champion had none, mode `add`). */
+export const pieceHeadline = (p: IteratePiece) => (p as IteratePieceV).headline ?? null
+/** §2.1: the champion has no burned-in captions, so every video piece of the batch gets word-by-word captions. */
+export const captionsAuto = (b: Pick<IterateBatch, "insight">) => (b.insight as AutoInsightV | null)?.captionsAuto === true
+
+/** "original → new" of a HEADLINE piece; the highlight of the new one in bold. `compact` = one block, smaller. */
+export function HeadlineChange({ p, compact, className }: { p: IteratePiece; compact?: boolean; className?: string }) {
+  const t = useTranslations("iterate.headline")
+  const h = pieceHeadline(p)
+  if (!h) return null
+  const i = h.highlight ? h.text.indexOf(h.highlight) : -1
+  const fresh =
+    i >= 0 ? (
+      <>
+        {h.text.slice(0, i)}
+        <b className="font-extrabold">{h.highlight}</b>
+        {h.text.slice(i + h.highlight!.length)}
+      </>
+    ) : (
+      h.text
+    )
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-1 rounded-md border border-line-soft bg-card-2 px-2.5 py-2", compact ? "text-xs" : "text-[13px]", className)}>
+      <span className="text-fg-3 [overflow-wrap:anywhere]">
+        {h.original ? <s className="decoration-fg-3/60">“{h.original}”</s> : <i>{t("none")}</i>}
+      </span>
+      <span className="flex min-w-0 items-start gap-1.5 font-semibold text-fg [overflow-wrap:anywhere]">
+        <span aria-hidden="true" className="text-fg-3">→</span>
+        <span className="sr-only">{t("becomes")}</span>
+        <span>“{fresh}”</span>
+      </span>
+    </div>
+  )
+}
+
+/** Batch badge (§2): "Captions added" when `captionsAuto` is on; a one-line why under it. */
+export function CaptionsBadge({ batch }: { batch: Pick<IterateBatch, "insight"> }) {
+  const t = useTranslations("iterate.captions")
+  if (!captionsAuto(batch)) return null
+  return (
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      <Tag tone="info">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M7 12h3M12 12h5M7 15.5h6M15 15.5h2" />
+        </svg>
+        {t("badge")}
+      </Tag>
+      <span className="text-xs text-fg-3">{t("why")}</span>
+    </div>
+  )
+}
 
 // ───────────── layout ─────────────
 /** mockup .wrap: one column of 1160 px; extra bottom room for the sticky / fixed action bar. */
@@ -261,6 +315,16 @@ function Art({ type, tone }: { type: PieceType | "orig"; tone: string }) {
           <V tone="ink" />
           <div className="hl"><i style={{ width: "96%" }} /><i style={{ width: "88%" }} /><i style={{ width: "54%" }} /></div>
           <span className="chipf" style={{ bottom: "5%", right: "6%" }}>PNG</span>
+        </>
+      )
+    case "HEADLINE":
+      return (
+        <>
+          <V tone={tone} />
+          <div className="capt" style={{ top: "4%", left: "4%", right: "4%", padding: "2cqw 0", background: "#f7e04b", borderRadius: "1.5cqw" }}>
+            <i style={{ width: "86%", background: "#17191c" }} />
+            <i style={{ width: "58%", background: "#17191c" }} />
+          </div>
         </>
       )
     case "FRAME":
