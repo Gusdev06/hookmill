@@ -151,3 +151,22 @@ export function hasClaimTerm(text: string, lang: string | null | undefined): boo
   const l = claimLangOf(lang) ?? 'en';
   return claimsIn(text, l).length > 0;
 }
+
+// ───────── iterate-v2 F1.3: quem pergunta no chat (prospect) nunca relata resultado ─────────
+/** Termos de RESULTADO em 1ª pessoa (pt/en/es): mensagem do `prospect` com um deles = `prospect_testimonial` (vira depoimento
+ *  inventado). Outras línguas: só a regra do `kind` (question/objection). Frase literal, casada como as afirmações. */
+export const RESULT_TERMS: Record<ClaimLang, string[]> = {
+  pt: ['perdi', 'ganhei', 'emagreci', 'consegui', 'funcionou', 'deu certo', 'mudou minha vida', 'mudou a minha vida', 'faturei', 'lucrei', 'curei', 'resolvi', 'aprendi', 'passei a', 'finalmente consegui', 'meus resultados', 'meu resultado'],
+  en: ['i lost', 'i gained', 'i made', 'i earned', 'it worked', 'worked for me', 'changed my life', 'i finally', 'i managed to', 'my results', 'i got results', 'i learned', 'i fixed', 'i cured', 'i passed'],
+  es: ['perdí', 'gané', 'adelgacé', 'logré', 'funcionó', 'me funcionó', 'cambió mi vida', 'facturé', 'por fin', 'mis resultados', 'aprendí', 'resolví'],
+};
+const NORM_RESULT: Record<ClaimLang, string[]> = Object.fromEntries((['pt', 'en', 'es'] as ClaimLang[]).map((l) => [l, RESULT_TERMS[l].map(claimNorm)])) as Record<ClaimLang, string[]>;
+
+/** Primeiro termo de resultado no texto (idioma da tela); null = nenhum ou idioma fora de pt/en/es. */
+export function resultTermIn(text: string, lang: string | null | undefined): string | null {
+  const l = claimLangOf(lang);
+  if (!l || !text?.trim()) return null;
+  const hay = claimNorm(text);
+  const i = NORM_RESULT[l].findIndex((t) => hay.includes(t));
+  return i >= 0 ? RESULT_TERMS[l][i] : null;
+}

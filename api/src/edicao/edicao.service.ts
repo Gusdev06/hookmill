@@ -43,6 +43,9 @@ import { FRAME_BUILDER, frameSpecOf, type FrameBuilder } from './frame-input';
 import { capturaValida } from './captura-valida';
 import { HEADLINE_BUILDER, type HeadlineBuilder } from './headline-input';
 import type { OpcoesDeBuild } from '../render/frame';
+import { TemplateTextOverflowError, buildTemplateInput } from '../render/template';
+import { palavrasNaEscrita } from '../render/escrita-chinesa';
+import type { TemplateSpec } from '../integracoes/contrato';
 import { paletaDoEstatico } from '../iteracao/paleta';
 import type { CaptionsAuto } from '@maquina/video';
 import { SegundaFonteService, precisaSegundaFonte } from './segunda-fonte';
@@ -62,7 +65,9 @@ export type AutoFailCode =
   /** headline-e-legenda-v1 §1.3/§1.4 (HeadlineError do buildHeadlineInput): refazer não adianta (Leave out) */
   | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE'
   /** legenda-protegida-v1 §3/§4.2: o build caiu em `blocked` (Leave out) · a visão viu a legenda tampada (Retry, fora do zip) */
-  | 'CAPTION_PROTECTED' | 'CAPTION_COVERED';
+  | 'CAPTION_PROTECTED' | 'CAPTION_COVERED'
+  /** iterate-v2 F1.7: texto do template não coube (Leave out) */
+  | 'TEMPLATE_TEXT_OVERFLOW';
 export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE'] as const;
 
 /** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do formato (e da peça, no 9:16). */
@@ -90,6 +95,7 @@ export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   HEADLINE_LOW_CONFIDENCE: "We couldn't read the original headline style. Leave it out.",
   CAPTION_PROTECTED: 'This format would cover the original captions. It needs the video without captions. Leave it out.',
   CAPTION_COVERED: 'The original captions came out covered or cut. Retry.',
+  TEMPLATE_TEXT_OVERFLOW: 'The template text does not fit. Leave it out.',
 };
 const AD_NAME_ATTEMPTS = 5;
 /** render-lambda-v1 §2.7: 1 tentativa nova no timeout/retryable; finalize até 3x; submit sem externalId há 2 min = fila. */
@@ -367,6 +373,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const t = (r.settings as { templateId?: string } | null)?.templateId;
     if (t === AUTO_EDIT_TEMPLATE) {
       const at = r.creative.variationItem?.autoType as string | null | undefined;
+      if (at === 'CHAT_DM' || at === 'PERSON_MOTION') return 'template'; // iterate-v2 F1.4: composição `Template`
       return at === 'FRAME' ? 'frame' : at === 'HEADLINE' ? 'remix-keep' : 'auto-edit'; // HEADLINE = remix-keep (§1.3)
     }
     if (t === REMIX_KEEP_TEMPLATE) return 'remix-keep';
@@ -902,6 +909,11 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
         const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string };
         return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx, opts);
       }
+      if (tipo === 'CHAT_DM' || tipo === 'PERSON_MOTION') {
+        // iterate-v2 F1.4: template grátis (composição `Template`, buildTemplateInput do video); só 9:16
+        if (await this.mockTemplateOverflow(r, tipo)) throw new TemplateTextOverflowError([{ slot: 'mock', overflow: 'lines', size: 0, lines: 0 }]);
+        return buildTemplateInput(ctx.params as unknown as TemplateSpec, ctx, format);
+      }
       if (tipo === 'FRAME') {
         // 25/10 §B2: moldura = composição `Moldura` do video (`kind 'frame'`), montada pelo buildFrameInput dele
         let params = ctx.params as unknown as Record<string, unknown>;
@@ -915,6 +927,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       const hc = (e as { code?: string })?.code;
       const code: AutoFailCode = e instanceof AutoPieceError ? e.code
         : hc === 'FRAME_TEXT_OVERFLOW' ? 'FRAME_TEXT_OVERFLOW'
+          : hc === 'TEMPLATE_TEXT_OVERFLOW' ? 'TEMPLATE_TEXT_OVERFLOW'
           : hc === 'CAPTION_PROTECTED' ? 'CAPTION_PROTECTED'
           : hc && (HEADLINE_FAIL_CODES as readonly string[]).includes(hc) ? (hc as AutoFailCode) : 'RENDER_ERROR';
       this.log.warn(`render AUTO ${r.id}: input falhou: ${(e as Error).message}`);
@@ -958,7 +971,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const b = await this.prisma.variationBatch.findUnique({ where: { id: r.creative.variationBatchId }, select: { insight: true } });
     if ((b?.insight as { captionsAuto?: boolean } | null)?.captionsAuto !== true || !ctx.words.length) return null;
     const { accent } = paletaDoEstatico({ brandColor: await this.brandColorOf(r), championPalette: ctx.palette });
-    return { words: ctx.words.map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: accent, language: ctx.language };
+    return { words: palavrasNaEscrita(ctx.words, ctx.language).map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: accent, language: ctx.language }; // zh-TW/HK = tradicional (escrita-chinesa.ts)
   }
 
   private async buildOpts(r: RenderRow): Promise<OpcoesDeBuild> {
@@ -970,6 +983,13 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   private async brandColorOf(r: RenderRow): Promise<string | null> {
     const ws = await this.prisma.workspace.findUnique({ where: { id: r.workspaceId }, select: { brandColor: true } });
     return ws?.brandColor ?? null;
+  }
+
+  /** iterate-v2 F1.7: `[mock:template-overflow:<TYPE>]` nas notes da oferta (só INTEGRACOES_MODE=mock) = o texto não coube. */
+  private async mockTemplateOverflow(r: RenderRow, tipo: string): Promise<boolean> {
+    if (integracoesMode() !== 'mock') return false;
+    const offer = await this.prisma.offer.findUnique({ where: { id: r.creative.offerId }, select: { notes: true } });
+    return !!offer?.notes?.includes(`[mock:template-overflow:${tipo}]`);
   }
 
   /** §14.7 / §B6: gatilhos de mock por oferta (só INTEGRACOES_MODE=mock), valem com qualquer adaptador (antes do submit). */

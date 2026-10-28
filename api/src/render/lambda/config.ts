@@ -62,7 +62,7 @@ export function faltandoNoLambda(c: LambdaConfig): string[] {
   return f;
 }
 
-const KINDS: RenderKind[] = ['scratch', 'auto-edit', 'remix-keep', 'frame'];
+const KINDS: RenderKind[] = ['scratch', 'auto-edit', 'remix-keep', 'frame', 'template'];
 
 /** RENDER_IMPL (padrão) + RENDER_LAMBDA_KINDS (quais kind vão pro lambda quando RENDER_IMPL=lambda). `remotion` = `local`. */
 export function escolhaDeImpl(get: (k: string) => string | undefined, padraoSemEnv: RenderImpl = 'local'): { impl: RenderImpl; lambdaKinds: Set<RenderKind> } {

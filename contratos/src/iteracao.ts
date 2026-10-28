@@ -10,7 +10,10 @@ import type { FileRef, LibraryItem, UserRef } from './index';
 /** 25/10: `FRAME` (molduras, estatico-montado-e-molduras-v1 §B2) fundido na entrega B1. */
 export type AutoVariationType = 'CUT' | 'COLD_OPEN' | 'HOOK_TEXT' | 'ENDCARD' | 'SPLIT_LP' | 'STORY' | 'REVIEW' | 'NATIVE_SEARCH' | 'STATIC' | 'FRAME'
   /** 25/10 (headline-e-legenda-v1 §1): headline nova (`replace`) ou acrescentada (`add`), mesma edição do campeão; ITERATION */
-  | 'HEADLINE';
+  | 'HEADLINE'
+  /** 28/10 (iterate-v2-quiz-templates-ia F1.1): templates grátis, DIVERSITY, só 9:16. CHAT_DM = conversa estilo Direct desenhada
+   *  a partir do anúncio (nenhuma pessoa); PERSON_MOTION = palco de motion + rosto e voz do próprio campeão numa caixa. */
+  | 'CHAT_DM' | 'PERSON_MOTION';
 /** @deprecated fusão B1 (25/10): igual a `AutoVariationType`. Use `AutoVariationType`; o alias sai quando ninguém mais importar. */
 export type AutoVariationTypeWithFrame = AutoVariationType;
 /** Fixo por tipo (§6.1): ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". */
@@ -220,7 +223,14 @@ export interface IteratePiece {
   textCheck?: StaticTextCheck | null;
   /** 25/10 (D14, TRANSIÇÃO): FRAME read_caption = texto do anúncio sugerido (padrão do Meta publish e README do zip); null nos outros */
   suggestedPrimaryText?: string | null;
+  /** 28/10 (iterate-v2 F1.7, TRANSIÇÃO): true em CHAT_DM e PERSON_MOTION (o web mostra o selo "New template" e "Free") */
+  isNewTemplate?: boolean;
+  /** 28/10 (iterate-v2 F1.7, TRANSIÇÃO): o template e, no person-motion, os trechos do campeão usados; null nos outros */
+  template?: PieceTemplate | null;
 }
+/** 28/10 (iterate-v2 F1.7): o que a peça de template mostra. */
+export type TemplatePieceId = 'chat-dm' | 'person-motion';
+export interface PieceTemplate { id: TemplatePieceId; spans: { startSec: number; endSec: number }[] | null }
 
 // ───────────────────────── §5.1 GET /iterate/:id ─────────────────────────
 export interface IterateAnalysis {
@@ -340,7 +350,10 @@ export type IterateAsyncErrorCode =
   /** 25/10 (headline-e-legenda-v1 §1.3-§1.4): a headline não coube na caixa e nas linhas (80-100 % do tamanho), a faixa/placa
    *  cobriria o rosto, não há lugar fora do rosto e do texto queimado (`add`, só no render), ou estilo/caixa não medidos.
    *  Todos com `retryHint: 'leave_out'` (refazer não adianta). */
-  | 'HEADLINE_TOO_LONG' | 'HEADLINE_OVER_FACE' | 'HEADLINE_NO_ROOM' | 'HEADLINE_LOW_CONFIDENCE';
+  | 'HEADLINE_TOO_LONG' | 'HEADLINE_OVER_FACE' | 'HEADLINE_NO_ROOM' | 'HEADLINE_LOW_CONFIDENCE'
+  /** 28/10 (iterate-v2 F1.7): texto do template não coube no mínimo de 36 px (`leave_out`) / a checagem por visão não achou o
+   *  texto esperado inteiro (`retry`; o 2º vira `leave_out`) */
+  | 'TEMPLATE_TEXT_OVERFLOW' | 'TEMPLATE_TEXT_MISMATCH';
 
 // ───────────────────────── D4: foto do produto na oferta ─────────────────────────
 /** Upload purpose 'PRODUCT_IMAGE' (image/jpeg|png|webp, ≤ 10 MB). PUT /offers/:id/product-image { uploadId }; DELETE remove. */

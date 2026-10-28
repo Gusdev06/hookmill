@@ -249,6 +249,8 @@ enum AutoVariationType {
   STATIC
   FRAME // 25/10 (estatico-montado-e-molduras-v1 §B2): moldura do pack; textos em variation_items.payload / renders.input
   HEADLINE // 25/10 (headline-e-legenda-v1 §1): headline nova (replace) ou acrescentada (add) no remix-keep; ITERATION
+  CHAT_DM // 28/10 (iterate-v2 F1.6): template grátis, conversa estilo Direct (composição `Template`); DIVERSITY
+  PERSON_MOTION // 28/10 (iterate-v2 F1.6): template grátis, motion + rosto/voz do campeão (composição `Template`); DIVERSITY
 }
 
 // Fixo por tipo (§6.1): ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo"

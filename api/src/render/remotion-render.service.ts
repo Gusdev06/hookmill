@@ -14,8 +14,10 @@ import {
   TEMPLATES,
   propsDeRemixInput,
   propsDeRenderInput,
+  propsDeTemplateInput,
+  TEMPLATE_COMPOSITION_ID,
 } from '@maquina/video';
-import { RenderError, RenderValidationError, isAutoEdit, isFrame, isRemixKeep, type AutoEditRenderInput, type FrameRenderInput, type RemixKeepRenderInput, type RenderInput, type RenderProgress, type RenderResult, type RenderService } from './contrato';
+import { RenderError, RenderValidationError, isAutoEdit, isFrame, isRemixKeep, isTemplate, type AutoEditRenderInput, type FrameRenderInput, type TemplateRenderInput, type RemixKeepRenderInput, type RenderInput, type RenderProgress, type RenderResult, type RenderService } from './contrato';
 import { FilaLimitada } from './fila';
 import { frameDoErro, limitarProgresso, mapearProgresso } from './progresso';
 import { conferirSplice } from './troca-motor';
@@ -104,7 +106,7 @@ export class RemotionRenderService implements RenderService {
   }
 
   private async renderAgora(input: RenderInput, onProgress: (p: RenderProgress) => void): Promise<RenderResult> {
-    if (isAutoEdit(input) || isFrame(input)) return this.renderAutoEdit(input, onProgress);
+    if (isAutoEdit(input) || isFrame(input) || isTemplate(input)) return this.renderAutoEdit(input, onProgress);
     const avisar = limitarProgresso(onProgress);
     // uma pasta por render: o backend apaga dirname(outputPath) depois de subir (não pode levar o RENDER_TMP_DIR junto)
     const dir = path.join(this.cfg.tmpDir, input.renderId);
@@ -115,7 +117,7 @@ export class RemotionRenderService implements RenderService {
     const mudoPath = path.join(dir, 'remotion.mudo.mp4');
     let props: Record<string, unknown>;
     try {
-      props = remix ? propsDeRemixInput(input) : propsDeRenderInput(input as Exclude<RenderInput, RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput>);
+      props = remix ? propsDeRemixInput(input) : propsDeRenderInput(input as Exclude<RenderInput, RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput | TemplateRenderInput>);
       if (remix && input.audioSplice) conferirSplice(input.audioSplice, input.canvas.frameCount);
     } catch (e) {
       throw new RenderError('RENDER_ERROR', null, `entrada inválida: ${e instanceof Error ? e.message : String(e)}`);
@@ -209,26 +211,29 @@ export class RemotionRenderService implements RenderService {
    * Moldura (kind 'frame', estatico-montado-e-molduras-v1 §B2) usa o mesmo caminho: composição `Moldura`, campeão inteiro
    * com o áudio dele (sem refino de emenda: o timeline é um trecho só).
    */
-  private async renderAutoEdit(input: AutoEditRenderInput | FrameRenderInput, onProgress: (p: RenderProgress) => void): Promise<RenderResult> {
+  private async renderAutoEdit(input: AutoEditRenderInput | FrameRenderInput | TemplateRenderInput, onProgress: (p: RenderProgress) => void): Promise<RenderResult> {
+    // iterate-v2 F1.4: template grátis (composição `Template`) pelo mesmo caminho; tem som (SFX/voz do campeão)
+    const tpl = isTemplate(input) ? input : null;
     const moldura = isFrame(input);
-    const fonte = moldura ? input.video.source : input.source;
-    const rotulo = moldura ? `frame ${input.frame.id}` : `auto-edit ${input.type}`;
+    const fonte = tpl ? { hasAudio: true } : moldura ? (input as FrameRenderInput).video.source : (input as AutoEditRenderInput).source;
+    const rotulo = tpl ? `template ${tpl.templateId}` : moldura ? `frame ${(input as FrameRenderInput).frame.id}` : `auto-edit ${(input as AutoEditRenderInput).type}`;
     const avisar = limitarProgresso(onProgress);
     const dir = path.join(this.cfg.tmpDir, input.renderId);
     const outputPath = path.join(dir, 'video.mp4');
     const posterPath = path.join(dir, 'poster.jpg');
     let props: Record<string, unknown>;
     try {
-      props = moldura ? propsDeFrameInput(input as never) : propsDeAutoEditInput(input as never);
+      props = tpl ? (propsDeTemplateInput(input as never) as unknown as Record<string, unknown>) : moldura ? propsDeFrameInput(input as never) : propsDeAutoEditInput(input as never);
     } catch (e) {
       throw new RenderError('RENDER_ERROR', null, `entrada inválida: ${e instanceof Error ? e.message : String(e)}`);
     }
     // emendas no silêncio medido do áudio (o Whisper erra a borda da palavra em 0,1-0,2 s); só com mais de um trecho
-    if (!moldura && input.source.hasAudio && input.timeline.length > 1) {
+    if (!moldura && !tpl && (input as AutoEditRenderInput).source.hasAudio && (input as AutoEditRenderInput).timeline.length > 1) {
+      const ae = input as AutoEditRenderInput;
       try {
         // COLD-OPEN: o teaser (trecho 0) nunca fica abaixo de 1,5 s (regra do §7.1)
-        const minSec = input.params.type === 'COLD_OPEN' ? [Math.min(TEASER_MIN_SEC, input.timeline[0].endSec - input.timeline[0].startSec)] : [];
-        const r = await emendasNoSilencio(this.cfg.ffmpeg || 'ffmpeg', input.source.videoUrl, input.timeline, input.source.durationSec, { minSec });
+        const minSec = ae.params.type === 'COLD_OPEN' ? [Math.min(TEASER_MIN_SEC, ae.timeline[0].endSec - ae.timeline[0].startSec)] : [];
+        const r = await emendasNoSilencio(this.cfg.ffmpeg || 'ffmpeg', ae.source.videoUrl, ae.timeline, ae.source.durationSec, { minSec });
         props = { ...props, timeline: r.timeline };
         this.ultimasEmendas = r.movidas;
       } catch (e) {
@@ -248,7 +253,7 @@ export class RemotionRenderService implements RenderService {
       await this.navegador;
       const serveUrl = await this.obterServeUrl((pct) => avisar({ stage: 'bundling', progress: Math.floor(pct), frame: 0, totalFrames: 0 }));
       const composition = await this.remotion.selectComposition({
-        serveUrl, id: moldura ? FRAME_COMPOSITION_ID : AUTO_EDIT_COMPOSITION_ID, inputProps: props, browserExecutable,
+        serveUrl, id: tpl ? TEMPLATE_COMPOSITION_ID : moldura ? FRAME_COMPOSITION_ID : AUTO_EDIT_COMPOSITION_ID, inputProps: props, browserExecutable,
       });
       totalFrames = composition.durationInFrames;
       avisar({ stage: 'rendering', progress: 0, frame: 0, totalFrames });

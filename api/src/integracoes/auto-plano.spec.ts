@@ -261,7 +261,7 @@ describe('esquema e prompt do planAutoBatch', () => {
     };
     walk(AUTO_PLAN_SCHEMA);
     const types = (AUTO_PLAN_SCHEMA.properties.items as { items: { properties: { type: { enum: string[] } } } }).items.properties.type.enum;
-    expect(types).toEqual(['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME']); // catálogo novo 25/10 + HEADLINE (PLAN_TYPES)
+    expect(types).toEqual(['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME', 'CHAT_DM', 'PERSON_MOTION']); // catálogo novo 25/10 + HEADLINE + templates grátis (iterate-v2 F1)
   });
 
   it('sistema não muda por lote (cache) e não nomeia nicho; contexto não leva a pessoa do campeão', () => {

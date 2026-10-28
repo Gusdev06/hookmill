@@ -22,14 +22,15 @@ import type { AutoHeadlineDraft } from '../contrato';
 import { sourceOf } from './auto-plano-estatico';
 import { wordsBlock } from './prompts-campeao';
 import { parseJsonObject } from './validacao-campeao';
+import { TEMPLATE_RULES, templateParamsOf } from './auto-plano-template';
 
 export const AUTO_TYPES: AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
 /** 25/10 (§B2, TRANSIÇÃO): com FRAME. Vira o AUTO_TYPES na fusão do B1. */
-export const AUTO_TYPES_WITH_FRAME: AutoVariationType[] = [...AUTO_TYPES, 'FRAME', 'HEADLINE'];
+export const AUTO_TYPES_WITH_FRAME: AutoVariationType[] = [...AUTO_TYPES, 'FRAME', 'HEADLINE', 'CHAT_DM', 'PERSON_MOTION'];
 export type { AutoPlanInputWithFrame } from './auto-plano-moldura';
 /** Catálogo dos lotes NOVOS (decisão do Gusta 25/10): saem COLD_OPEN, HOOK_TEXT, ENDCARD, STORY e SPLIT_LP do esquema e
  *  do prompt; o parse dos tipos antigos continua (AUTO_TYPES_WITH_FRAME) pra plano já salvo e pro reparo. */
-export const PLAN_TYPES: AutoVariationType[] = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
+export const PLAN_TYPES: AutoVariationType[] = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME', 'CHAT_DM', 'PERSON_MOTION'];
 /** TRANSIÇÃO (§C.0): item/plano com FRAME. Na fusão do B1 viram o AutoItemDraft/AutoPlanDraft do contrato. */
 // headline-e-legenda-v1 (25/10, TRANSIÇÃO): o item também pode ser HEADLINE (AutoVariationType / AutoParamsDraft)
 export type AutoItemDraftWithFrame = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationType; params: AutoParamsDraft | AutoParamsDraftWithFrame };
@@ -80,7 +81,7 @@ const PARAMS = obj({
   // bug live 25/10: os textos do STATIC e da moldura saem numa 2ª etapa (auto-plano-detalhe.ts); aqui só a escolha
   emotion: str('STATIC only: the hero emotion, one of pain, relief, desire, curiosity, pride (hook → pain or curiosity, proof → relief or pride, cta → desire). "none" for other types.'),
   concept: str('STATIC only, in English, max 160 characters: the concept of the assembled ad (who is in the hero photo, where, what the product shows, which pain or desire the headline names). No quotation marks, no brand. Empty otherwise.'),
-  template: str('FRAME only: the frame template id, one of those listed in <frames> of the request. "none" for other types.'),
+  template: str('FRAME only: the frame template id, one of those listed in <frames> of the request. "none" for other types (CHAT_DM and PERSON_MOTION scripts are written in the second step).'),
   text: str('HEADLINE only: the new headline, in the headline language, within the character limit of <headline>. Empty otherwise.'),
   highlight: str('HEADLINE only: the exact words of `text` shown in the accent color, only when <headline> says the original has a highlight. Empty otherwise.'),
   textSource: str('HEADLINE only: the Brain field the headline rests on (pains, promise, proof, what, offerAndPrice, cta) or "transcript". "none" otherwise.'),
@@ -108,6 +109,8 @@ Piece types (axis in brackets; ITERATION keeps the first frame, DIVERSITY change
 - NATIVE_SEARCH [DIVERSITY]: opens on a generic search screen typing the problem the hook names, then the video. No brand in the query.
 - STATIC [DIVERSITY]: a NEW single-image ad, created from scratch by an image model (never a frame of the video), laid out as an assembled direct-response poster. Details in "STATIC assembled ads" below.
 - FRAME [DIVERSITY]: the whole champion video inside a social-format frame (news, meme, story, live, review caption, split screen, gossip page, video call…). Up to 8 per batch, each with a different template. Only when FRAME is in <allowed>. Details in "FRAME" below.
+- CHAT_DM [DIVERSITY]: the champion retold as a Direct-message conversation drawn in code. At most 1. Only when in <allowed>. Details in "TEMPLATES" below.
+- PERSON_MOTION [DIVERSITY]: motion graphics above the champion's own face and voice (stretches cut from it). At most 1. Only when in <allowed>. Details in "TEMPLATES" below.
 
 Batch rules:
 - Use only the types in <allowed>, never more of a type than its max. Stay within the requested piece count and keep at least the requested share of DIVERSITY pieces. Within diversity, prefer FRAME and STATIC, then REVIEW and NATIVE_SEARCH.
@@ -127,11 +130,13 @@ HEADLINE:
 - highlight: only when <headline> says the original has a highlight: the strongest 1-4 words of your text, copied exactly; otherwise empty.
 - Nothing invented: every number, price, time span or percentage must be in the Brain or the transcript; textSource names where the claim comes from.
 
-Two steps: in the plan, a STATIC piece only gets refAtSec, emotion and a one-line concept, and a FRAME piece only its template; their on-screen texts are written right after (each STATIC on its own, all FRAME pieces together), with the rules below.
+Two steps: in the plan, a STATIC piece only gets refAtSec, emotion and a one-line concept, a FRAME piece only its template, and a CHAT_DM or PERSON_MOTION piece only its type, change and rationale; their on-screen texts are written right after (each STATIC on its own, all FRAME pieces together, each template on its own), with the rules below.
 
 ${STATIC_V2_RULES}
 
-${FRAME_RULES}`;
+${FRAME_RULES}
+
+${TEMPLATE_RULES}`;
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const LOCALE_NAME = { EN: 'English', PT_BR: 'Brazilian Portuguese' } as const;
@@ -252,6 +257,8 @@ export interface AutoPlanParseCtx {
   allowedFrames?: FrameTemplateId[];
   /** HEADLINE (headline-e-legenda-v1): sem isto nenhuma HEADLINE passa */
   headline?: AutoPlanInput['headline'];
+  /** iterate-v2 F1.2: transcrição (o PERSON_MOTION manda segundos; o parse converte pra índice de palavra) */
+  words?: AutoPlanInput['transcript'];
 }
 
 /** HEADLINE (só forma): texto aparado e sem aspas; destaque só se a original tem e se é trecho literal do texto. O
@@ -316,6 +323,12 @@ export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraf
       if (params) items.push({ type, change, rationale, whyKey, params });
       continue;
     }
+    if (type === 'CHAT_DM' || type === 'PERSON_MOTION') {
+      // iterate-v2 F1.2: roteiro do template (2ª etapa encaixada em params.template); sem roteiro a peça sai
+      const params = templateParamsOf(type, o(it.params), ctx.words ?? []);
+      if (params) items.push({ type, change, rationale, whyKey, params });
+      continue;
+    }
     if (type === 'FRAME') {
       // moldura fora das permitidas ou sem texto obrigatório: a peça sai (o backend completa o lote no reparo)
       const params = frameParamsOf(o(it.params), ctx.allowedFrames ?? [], ctx.offer);
@@ -342,7 +355,7 @@ export function visualOf(v: Record<string, unknown>): StaticVisualDraft {
   };
 }
 
-function paramsOf(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
+function paramsOf(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE' | 'CHAT_DM' | 'PERSON_MOTION'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
   const orNull = (v: string) => (v ? v : null);
   switch (type) {
     case 'CUT': {

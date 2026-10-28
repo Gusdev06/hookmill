@@ -1,7 +1,7 @@
 // Contrato do módulo render (maquina-video). docs/contratos/estrutura.md §2.2 + feature-2-variar-campeao.md §13.6.
 // Só o maquina-arquiteto muda o contrato; o backend importa os tipos daqui.
 import type { AutoVariationType, EndcardVariant, Rect, TextStyle } from '@maquina/contratos';
-import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, ResolvedLayer } from '@maquina/video';
+import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, ResolvedLayer, TemplateProps } from '@maquina/video';
 
 /** Criativo do zero (templates clean/bold/headline). `kind` opcional: ausente = scratch (compatível com o v1). */
 export interface ScratchRenderInput {
@@ -95,10 +95,17 @@ export type AutoEditParams =
  *  campeão com reenquadramento na caixa, 2ª fonte, rosto, safeArea). */
 export type FrameRenderInput = { kind: 'frame'; renderId: string; templateId: 'frame' } & MolduraProps;
 
-export type RenderInput = ScratchRenderInput | RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput;
+/** iterate-v2-quiz-templates-ia F1.4 (28/10): template grátis (composição `Template` do @maquina/video), montado pelo
+ *  `buildTemplateInput` (./template.ts). Corpo = TemplateProps do video: `templateId` 'chat-dm' | 'person-motion', só 9:16,
+ *  marca (monograma, nunca logo), paleta, safeArea, SFX do bundle, duração calculada e os `checkpoints` da checagem por visão.
+ *  `chat-dm` não baixa mídia nenhuma; `person-motion` usa a URL assinada do campeão (rosto e voz dele). */
+export type TemplateRenderInput = { kind: 'template'; renderId: string } & TemplateProps;
+
+export type RenderInput = ScratchRenderInput | RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput | TemplateRenderInput;
 export const isRemixKeep = (i: RenderInput): i is RemixKeepRenderInput => i.kind === 'remix-keep';
 export const isAutoEdit = (i: RenderInput): i is AutoEditRenderInput => i.kind === 'auto-edit';
 export const isFrame = (i: RenderInput): i is FrameRenderInput => i.kind === 'frame';
+export const isTemplate = (i: RenderInput): i is TemplateRenderInput => i.kind === 'template';
 
 export interface RenderProgress { stage: 'bundling'|'rendering'|'encoding'; progress: number; frame: number; totalFrames: number }
 /** mimeType ausente = 'video/mp4'. 'image/png' fica pro contrato (o Remotion não gera mais PNG desde a rev. 23/10). */
@@ -123,7 +130,7 @@ export interface RenderService {
 
 export type RenderImpl = 'fake' | 'local' | 'lambda';
 /** `kind` de roteamento (RENDER_LAMBDA_KINDS). `frame` = Moldura (estatico-montado-e-molduras-v1), quando entrar no RenderInput. */
-export type RenderKind = 'scratch' | 'auto-edit' | 'remix-keep' | 'frame';
+export type RenderKind = 'scratch' | 'auto-edit' | 'remix-keep' | 'frame' | 'template';
 export const kindDe = (i: RenderInput | { kind?: string }): RenderKind => ((i as { kind?: string }).kind ?? 'scratch') as RenderKind;
 
 /** O que o backend grava no `Render` depois do submit (§6.2: impl, external_id, external_bucket, serve_url, attempt). */

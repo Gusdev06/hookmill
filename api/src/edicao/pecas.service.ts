@@ -19,7 +19,7 @@ import { ImagemEstaticaService } from './imagem-estatica.service';
 import {
   ALL_FORMATS, AUTO_EDIT_TEMPLATE, FORMAT_CODE, criticalErrorsOf, latestReadyByFormat, FORMAT_OF_CODE, FRAME_TEXT_OVERFLOW, PRIORITY_BATCH, PRIORITY_ON_DEMAND, STATIC_IMAGE_ETA_SEC,
   autoFileName, engineFor, estimateStaticUsd, expectedOutputSec, folderOf, latestByFormat, median, paramsOf, pieceFormats, pieceFrameOf, pieceStatus,
-  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, textCheckOf, captionCoveredTwice, captionNoteOf,
+  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, pieceTemplateOf, textCheckOf, captionCoveredTwice, captionNoteOf,
 } from './pecas';
 
 const ITEM_INCLUDE = {
@@ -142,7 +142,7 @@ export class PecasAutoService {
     }
     const params = paramsOf(i.payload);
     const retryHint: IteratePiece['retryHint'] = !failedish || errorCode === 'SOURCE_UNAVAILABLE' ? null
-      : errorCode === FRAME_TEXT_OVERFLOW || errorCode?.startsWith('HEADLINE_') || errorCode === 'CAPTION_PROTECTED' ? 'leave_out' // §B2 / headline §1.3-1.4 / legenda §3: refazer não adianta
+      : errorCode === FRAME_TEXT_OVERFLOW || errorCode === 'TEMPLATE_TEXT_OVERFLOW' || errorCode?.startsWith('HEADLINE_') || errorCode === 'CAPTION_PROTECTED' ? 'leave_out' // §B2 / headline §1.3-1.4 / legenda §3: refazer não adianta
         // legenda-protegida-v1 §4.2: tampada de novo depois de um Retry = Leave out
         : errorCode === 'CAPTION_COVERED' && captionCoveredTwice(latest.get('VERTICAL_9_16')) ? 'leave_out'
         : i.autoType === 'SPLIT_LP' && errorCode?.startsWith('PAGE_') ? 'use_product_photo' : 'retry';
@@ -172,6 +172,9 @@ export class PecasAutoService {
       // §A6: só STATIC assembled com a imagem do 9:16 pronta
       textCheck: isStatic && vertical?.status === 'READY' ? textCheckOf(vertical.input) : null,
       suggestedPrimaryText: i.autoType === 'FRAME' ? suggestedPrimaryTextOf(params) : null,
+      // iterate-v2 F1.7: selo "New template" + "Free" no web; trechos do campeão no person-motion
+      isNewTemplate: i.autoType === 'CHAT_DM' || i.autoType === 'PERSON_MOTION',
+      template: pieceTemplateOf(i.autoType, params),
       // legenda-protegida-v1 §2.2: "Legenda refeita no estilo do original" (o 9:16 saiu com o recorte + a nossa legenda)
       captionNote: captionNoteOf(latest.get('VERTICAL_9_16')?.input),
       // headline-e-legenda-v1 (TRANSIÇÃO, nomes do web/types.ts): "original → nova" na peça HEADLINE
