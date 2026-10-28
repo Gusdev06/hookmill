@@ -8,7 +8,7 @@ export type { Action } from '@maquina/contratos';
 /** Etapas do checklist por tipo de job (api.md §4 e §7). */
 export const JOB_CHECKLIST: Record<JobType, string[]> = {
   // briefing-leitura-v2 §4.3 (22/10): etapa que não precisou rodar é emitida e concluída na hora (texto colado: só as 2 últimas)
-  OFFER_EXTRACT: ['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language'],
+  OFFER_EXTRACT: ['fetching_page', 'rendering_page', 'walking_quiz', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language'],
   SCRIPTS_GENERATE: ['reading_brief', 'studying_winners', 'writing'],
   SCRIPT_REGENERATE: ['reading_brief', 'studying_winners', 'writing'],
   CHAMPION_RESOLVE: ['fetching_ad', 'downloading_video'],

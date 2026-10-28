@@ -73,7 +73,7 @@ describe('extractOutput (§4.2)', () => {
 describe('runExtraction: etapas e falhas (§4.3)', () => {
   it('6 etapas com progress e etaSec do contrato; etapa desconhecida passa sem número; estimativa 0,25', async () => {
     expect([...EXTRACT_STAGES]).toEqual(JOB_CHECKLIST.OFFER_EXTRACT);
-    expect(EXTRACT_STAGES.map((s) => [STAGE_PROGRESS[s], STAGE_ETA_SEC[s]])).toEqual([[10, 5], [25, 20], [45, 25], [60, 10], [80, 20], [95, 1]]);
+    expect(EXTRACT_STAGES.map((s) => [STAGE_PROGRESS[s], STAGE_ETA_SEC[s]])).toEqual([[10, 5], [25, 20], [35, 30], [45, 25], [60, 10], [80, 20], [95, 1]]);
     expect(EXTRACT_ESTIMATE_USD).toBe(0.25);
     const { svc, stage, finish } = service(jest.fn().mockResolvedValue({}), jest.fn().mockResolvedValue({}));
     (svc as unknown as { claude: unknown }).claude = {
@@ -84,7 +84,7 @@ describe('runExtraction: etapas e falhas (§4.3)', () => {
     };
     await svc.runExtraction('j1', 'w1', { url: 'https://x.com/' });
     expect(stage.mock.calls.map((c) => c.slice(1))).toEqual([
-      ['fetching_page', 10, 5], ['rendering_page', 25, 20], ['reading_subpages', 45, 25], ['reading_images', 60, 10], ['extracting', 80, 20], ['detecting_language', 95, 1], ['future_stage', undefined, null],
+      ['fetching_page', 10, 5], ['rendering_page', 25, 20], ['walking_quiz', 35, 30], ['reading_subpages', 45, 25], ['reading_images', 60, 10], ['extracting', 80, 20], ['detecting_language', 95, 1], ['future_stage', undefined, null],
     ]);
     expect(finish).toHaveBeenCalledWith('j1', { status: 'SUCCEEDED', output: expect.objectContaining({ readMode: 'http', readMeta: expect.any(Object) }) });
   });
@@ -115,7 +115,7 @@ describe('runExtraction: etapas e falhas (§4.3)', () => {
     const view = presentJob(row);
     expect(view.action).toBe('paste_page_text');
     expect(view.checklist).toEqual([
-      { key: 'fetching_page', done: true }, { key: 'rendering_page', done: false }, { key: 'reading_subpages', done: false },
+      { key: 'fetching_page', done: true }, { key: 'rendering_page', done: false }, { key: 'walking_quiz', done: false }, { key: 'reading_subpages', done: false },
       { key: 'reading_images', done: false }, { key: 'extracting', done: false }, { key: 'detecting_language', done: false },
     ]);
   });

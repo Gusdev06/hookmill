@@ -183,7 +183,8 @@
       "detecting_language": "Detectando o idioma do conteúdo",
       "rendering_page": "Abrindo a página num navegador",
       "reading_subpages": "Lendo checkout, preço e página sobre",
-      "reading_images": "Lendo imagens e banners"
+      "reading_images": "Lendo imagens e banners",
+      "walking_quiz": "Percorrendo o quiz até a oferta final"
     },
     "fields": {
       "name": "Nome da oferta",
@@ -207,7 +208,9 @@
       "testimonials": "depoimentos",
       "terms": "termos e garantia",
       "thankyou": "página de obrigado",
-      "other": "outra página"
+      "other": "outra página",
+      "quiz_step": "etapa do quiz",
+      "offer": "página da oferta"
     }
   },
   "library": {
@@ -406,7 +409,9 @@
         "testimonials": "depoimentos",
         "terms": "termos e garantia",
         "thankyou": "página de obrigado",
-        "other": "outra página"
+        "other": "outra página",
+        "quiz_step": "etapa do quiz",
+        "offer": "página da oferta"
       }
     },
     "scripts": {

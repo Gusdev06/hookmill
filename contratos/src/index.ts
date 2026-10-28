@@ -95,7 +95,8 @@ export interface Offer extends OfferBrief {
 // ───────── briefing-leitura-v2 (22/10, §4): leitura em camadas ─────────
 /** O mais "fundo" que precisou rodar: texto colado, HTTP puro, render headless, subpáginas, imagens com visão. */
 export type ReadMode = 'pasted' | 'http' | 'rendered' | 'crawled' | 'vision';
-export type PageRole = 'main' | 'checkout' | 'pricing' | 'about' | 'faq' | 'testimonials' | 'terms' | 'thankyou' | 'other';
+/** 28/10 (A1, caminhante de funil): `quiz_step` = tela de quiz percorrida; `offer` = tela final de oferta do funil. */
+export type PageRole = 'main' | 'checkout' | 'pricing' | 'about' | 'faq' | 'testimonials' | 'terms' | 'thankyou' | 'other' | 'quiz_step' | 'offer';
 /** Imagem que entrou na chamada do briefing (sem base64: só referência + o que o modelo leu). */
 export interface PageImageRef {
   index: number; src: string; alt: string | null; kind: 'screenshot' | 'img' | 'poster'; widthPx: number; heightPx: number;

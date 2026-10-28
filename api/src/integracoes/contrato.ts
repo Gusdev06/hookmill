@@ -36,7 +36,8 @@ export interface Usage { costUsd: number }                  // a ia já gravou a
 // ---- briefing-leitura-v2 (22/10) §4.1: de onde veio o briefing
 /** O mais "fundo" que a leitura precisou ir. */
 export type ReadMode = 'pasted'|'http'|'rendered'|'crawled'|'vision';
-export type PageRole = 'main'|'checkout'|'pricing'|'about'|'faq'|'testimonials'|'terms'|'thankyou'|'other';
+/** 28/10 (A1): `quiz_step` = tela de quiz/funil percorrida pelo caminhante; `offer` = tela final de oferta do funil (caminhante.ts). */
+export type PageRole = 'main'|'checkout'|'pricing'|'about'|'faq'|'testimonials'|'terms'|'thankyou'|'other'|'quiz_step'|'offer';
 export type BriefField = 'name'|'kind'|'what'|'audience'|'promise'|'pains'|'proof'|'offerAndPrice'|'cta'|'notes';
 /** Imagem que entrou na chamada do Claude; `read` = o que o modelo viu (imageNotes). Nunca carrega base64. */
 export interface PageImage { index: number; src: string; alt: string|null; kind: 'screenshot'|'img'|'poster'; widthPx: number; heightPx: number; read?: string }
@@ -51,7 +52,8 @@ export interface ExtractSources {
   relatedUrls: string[];
 }
 /** Etapas do checklist (§4.3). Texto colado só emite as duas últimas; etapa pulada é emitida mesmo assim (o backend marca feita). */
-export type ExtractStage = 'fetching_page'|'rendering_page'|'reading_subpages'|'reading_images'|'extracting'|'detecting_language';
+/** `walking_quiz` (28/10, A1) só é emitido quando o caminhante de funil roda ("Walking the quiz to the final offer…"), entre `rendering_page` e `reading_subpages`. */
+export type ExtractStage = 'fetching_page'|'rendering_page'|'walking_quiz'|'reading_subpages'|'reading_images'|'extracting'|'detecting_language';
 
 /** 25/10: `extends StaticTextCheckPort` (checkStaticText, estatico-montado-e-molduras-v1 §A6), ligado no fechamento do A-I. */
 export interface ClaudeService extends StaticTextCheckPort {

@@ -5,7 +5,8 @@
 // alt das imagens + texto de <noscript>, os links internos (href + âncora + se é botão), as maiores <img> (tamanho
 // natural), o player de vídeo da primeira tela e se há senha visível (muro de login, §7).
 // `openPage` é a sessão reutilizável: imagens.ts usa pra tirar as telas e redimensionar imagens (canvas, sem lib nativa).
-// Nunca clica, digita ou envia formulário (§6/§7). SSRF: quem chama já validou o host (pagina.ts); aqui ainda
+// A leitura (b) nunca clica, digita ou envia formulário (§6/§7); quem clica é só o caminhante de funil (caminhante.ts),
+// que reaproveita esta sessão com `requestFilter` (barra POST, pixel e saída do domínio) e `sessionMs`. SSRF: quem chama já validou o host (pagina.ts); aqui ainda
 // barramos redirect pra host privado e sub-recurso pra IP privado.
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
@@ -14,7 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { Logger } from '@nestjs/common';
 import { getDomain } from 'tldts';
-import type { Browser, Page } from 'puppeteer-core';
+import type { Browser, HTTPRequest, Page } from 'puppeteer-core';
 import { acharNavegador } from '../../common/util/navegador';
 import { IntegracaoError } from '../erros';
 import { isPrivateIp } from './pagina';
@@ -65,6 +66,10 @@ export interface RenderPageOptions {
   /** só testes: libera localhost */
   allowPrivate?: boolean;
   resolve?: (host: string) => Promise<string[]>;
+  /** caminhante: `true` = aborta a requisição (roda antes da trava de SSRF; liga a interceptação mesmo com allowPrivate) */
+  requestFilter?: (r: HTTPRequest) => boolean;
+  /** relógio de segurança da sessão inteira (padrão: navegação + rolagem + 15 s) */
+  sessionMs?: number;
 }
 
 /** Leitor injetável no fetchPage: `null` = não deu pra renderizar (sem binário), o chamador segue como antes. */
@@ -131,17 +136,20 @@ export async function openPage<T>(rawUrl: string, opts: RenderPageOptions, fn: (
   });
   // relógio de segurança: nada aqui pode passar de navegação + rolagem + folga (telas e imagens cabem na folga)
   let estourou = false;
-  const relogio = setTimeout(() => { estourou = true; void browser.close().catch(() => undefined); }, navTimeout + scrollTimeout + 15_000);
+  const teto = opts.sessionMs ?? navTimeout + scrollTimeout + 15_000;
+  const relogio = setTimeout(() => { estourou = true; void browser.close().catch(() => undefined); }, teto);
   try {
     const page = await browser.newPage();
     await page.setUserAgent(UA);
     await page.setViewport({ width: CSS_W, height: CSS_H, deviceScaleFactor: DPR, isMobile: true, hasTouch: true });
-    if (!opts.allowPrivate) {
+    if (!opts.allowPrivate || opts.requestFilter) {
       // documento (inclusive redirect) pra host privado e qualquer sub-recurso pra IP privado literal: fora
       await page.setRequestInterception(true);
       page.on('request', (r) => {
         void (async () => {
           try {
+            if (opts.requestFilter?.(r)) return void (await r.abort('blockedbyclient'));
+            if (opts.allowPrivate) return void (await r.continue());
             const u = new URL(r.url());
             if (u.protocol === 'http:' || u.protocol === 'https:') {
               const h = u.hostname.replace(/^\[|\]$/g, '');
@@ -189,7 +197,7 @@ export async function openPage<T>(rawUrl: string, opts: RenderPageOptions, fn: (
     return await fn({ browser, page, status, finalUrl: page.url() || alvo.href });
   } catch (e) {
     if (e instanceof IntegracaoError) throw e;
-    if (estourou) throw new IntegracaoError('PAGE_UNREADABLE', `render passed ${navTimeout + scrollTimeout} ms`);
+    if (estourou) throw new IntegracaoError('PAGE_UNREADABLE', `render passed ${teto} ms`);
     const msg = (e as Error).message ?? String(e);
     throw new IntegracaoError('PAGE_UNREADABLE', `render failed: ${msg.slice(0, 200)}`);
   } finally {

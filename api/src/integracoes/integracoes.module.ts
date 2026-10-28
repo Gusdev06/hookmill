@@ -18,6 +18,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { ClaudeLiveService } from './claude/claude.service';
 import { SdkClaudeTransport, type SdkTransportOptions } from './claude/transporte';
 import { makePageRenderer } from './claude/render-pagina';
+import { makeFunnelWalker } from './claude/caminhante';
 import { ffmpegRunner } from './claude/checagem-texto';
 import { HiggsfieldClient } from './higgsfield/cliente';
 import { WaveSpeedClient } from './wavespeed/cliente';
@@ -112,6 +113,8 @@ export class IntegracoesModule {
             pageOptions: {
               renderMain: makePageRenderer(browser),
               render: makePageRenderer({ ...browser, timeoutMs: 8_000, scrollTimeoutMs: 5_000 }),
+              // A1 (28/10): quiz/funil → caminha até a oferta final e para (nunca paga; POST/pixel barrados)
+              walk: makeFunnelWalker(browser),
               browser,
             },
           });

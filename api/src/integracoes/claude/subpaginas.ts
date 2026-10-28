@@ -79,12 +79,12 @@ export function normalizeUrl(raw: string): string {
 }
 
 /** Host da oferta: domínio registrável ou, em plataforma (vercel.app, hotmart.com…), só o host colado. */
-function offerScope(mainUrl: string): { domain: string | null; host: string } {
+export function offerScope(mainUrl: string): { domain: string | null; host: string } {
   const host = bare(new URL(mainUrl).hostname);
   return { domain: offerDomain(host), host };
 }
 
-function inOffer(url: string, scope: { domain: string | null; host: string }): boolean {
+export function inOffer(url: string, scope: { domain: string | null; host: string }): boolean {
   let h: string;
   try { h = bare(new URL(url).hostname); } catch { return false; }
   if (scope.domain) return h === scope.domain || h.endsWith(`.${scope.domain}`);

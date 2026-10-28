@@ -182,6 +182,8 @@ export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, Ca
       if (input.url.includes('mock-login')) throw new IntegracaoError('PAGE_UNREADABLE', 'login wall', { reason: 'login_wall' });
       // leitura v2 §4.3: etapas de leitura sempre emitidas (o backend marca feita a que não precisou rodar)
       onStage('rendering_page');
+      // A1 (28/10): `mock-quiz` na URL simula o caminhante de funil (etapa só aparece quando ele roda)
+      if (input.url.includes('mock-quiz')) { onStage('walking_quiz'); await this.pause(); }
       onStage('reading_subpages');
       onStage('reading_images');
       if (vision) await this.pause();

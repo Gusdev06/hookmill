@@ -19,9 +19,9 @@ import { BRIEF_FIELDS, CreateOfferDto, SOURCE_KEYS, UpdateOfferDto, isReadMeta }
 export type Offer = OfferBase & { productImage: FileRef | null };
 
 /** briefing-leitura-v2 §4.3: progress e etaSec por etapa do OFFER_EXTRACT (a ia emite as 6; etapa pulada é emitida e concluída na hora). */
-export const EXTRACT_STAGES = ['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language'] as const;
-export const STAGE_PROGRESS: Record<string, number> = { fetching_page: 10, rendering_page: 25, reading_subpages: 45, reading_images: 60, extracting: 80, detecting_language: 95 };
-export const STAGE_ETA_SEC: Record<string, number> = { fetching_page: 5, rendering_page: 20, reading_subpages: 25, reading_images: 10, extracting: 20, detecting_language: 1 };
+export const EXTRACT_STAGES = ['fetching_page', 'rendering_page', 'walking_quiz', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language'] as const;
+export const STAGE_PROGRESS: Record<string, number> = { fetching_page: 10, rendering_page: 25, walking_quiz: 35, reading_subpages: 45, reading_images: 60, extracting: 80, detecting_language: 95 };
+export const STAGE_ETA_SEC: Record<string, number> = { fetching_page: 5, rendering_page: 20, walking_quiz: 30, reading_subpages: 25, reading_images: 10, extracting: 20, detecting_language: 1 };
 
 /**
  * O que a porta `extractOffer` pode devolver além do briefing (briefing-leitura-v2 §4.1). Lido de forma TOLERANTE: a ia

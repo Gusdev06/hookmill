@@ -36,6 +36,8 @@ export interface ImageTriggerInput {
   bigImgs: number;
   /** player de vídeo na primeira tela (ou, sem render, no HTML) */
   hasVideo: boolean;
+  /** o caminhante de funil percorreu um quiz (gatilho 4 do §3.1) */
+  quiz?: boolean;
 }
 
 /** §3.1: motivo do gatilho ou null. */
@@ -43,7 +45,7 @@ export function imageTrigger(i: ImageTriggerInput): 'little_text' | 'banner_page
   if (i.totalText.length < IMAGE_LIMITS.triggerTextChars) return 'little_text';
   if (i.bigImgs >= IMAGE_LIMITS.bannerImgs && i.mainText.length < IMAGE_LIMITS.bannerTextChars) return 'banner_page';
   if (!PRICE.test(i.totalText) && BUY.test(i.totalText)) return 'no_price';
-  if (QUIZ_VSL.test(`${i.url} ${i.title ?? ''}`) || i.hasVideo) return 'quiz_or_vsl';
+  if (QUIZ_VSL.test(`${i.url} ${i.title ?? ''}`) || i.hasVideo || i.quiz) return 'quiz_or_vsl';
   return null;
 }
 

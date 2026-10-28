@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress"
  * `pages`/`imagesRead`/`readMode`, origin per field from `fieldOrigins`.
  */
 const TERMINAL: Job["status"][] = ["SUCCEEDED", "PARTIAL", "FAILED"]
-const STAGES = ["fetching_page", "rendering_page", "reading_subpages", "reading_images", "extracting", "detecting_language"] as const
+const STAGES = ["fetching_page", "rendering_page", "walking_quiz", "reading_subpages", "reading_images", "extracting", "detecting_language"] as const
 const DEFAULT_CHECKLIST = STAGES.map((key) => ({ key, done: false }))
 
 export const hostOf = (url: string) => {

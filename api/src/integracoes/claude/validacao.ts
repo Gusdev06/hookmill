@@ -38,7 +38,7 @@ export interface ParsedBrief {
   imageNotes: { index: number; text: string }[];
 }
 
-const ROLES = new Set<string>(['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other']);
+const ROLES = new Set<string>(['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other', 'quiz_step', 'offer']);
 const FIELDS: BriefField[] = ['name', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'];
 
 /** Briefing + sources + imageNotes. Tolerante: sources/imageNotes ausentes ou fora do formato viram vazios. */

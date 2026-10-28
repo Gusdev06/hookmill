@@ -183,7 +183,8 @@
       "detecting_language": "Detecting content language",
       "rendering_page": "Loading the page in a browser",
       "reading_subpages": "Reading checkout, pricing and about pages",
-      "reading_images": "Reading images and banners"
+      "reading_images": "Reading images and banners",
+      "walking_quiz": "Walking the quiz to the final offer"
     },
     "fields": {
       "name": "Offer name",
@@ -207,7 +208,9 @@
       "testimonials": "testimonials",
       "terms": "terms and guarantee",
       "thankyou": "thank-you page",
-      "other": "another page"
+      "other": "another page",
+      "quiz_step": "quiz step",
+      "offer": "offer page"
     }
   },
   "library": {
@@ -406,7 +409,9 @@
         "testimonials": "testimonials",
         "terms": "terms and guarantee",
         "thankyou": "thank-you page",
-        "other": "another page"
+        "other": "another page",
+        "quiz_step": "quiz step",
+        "offer": "offer page"
       }
     },
     "scripts": {

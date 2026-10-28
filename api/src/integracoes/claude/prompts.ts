@@ -9,7 +9,7 @@ import { WORDS_PER_SECOND, countWords } from '../catalogo/precos';
 
 const nullableString = { anyOf: [{ type: 'string' }, { type: 'null' }] };
 
-export const PAGE_ROLES: readonly PageRole[] = ['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other'];
+export const PAGE_ROLES: readonly PageRole[] = ['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other', 'quiz_step', 'offer'];
 export const BRIEF_SOURCE_FIELDS: readonly BriefField[] = ['name', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'];
 
 export const BRIEF_SCHEMA = {
@@ -70,6 +70,7 @@ Rules:
 - The page text was extracted automatically and may include navigation, cookie banners or repeated footer text: ignore those.
 - Pages come labeled by role: "main" (the page the user gave), then "checkout", "pricing", "about", "faq", "testimonials", "terms", "thankyou" or "other" pages of the same offer. The main page leads for what the offer is, who it is for and the promise; "language" comes from the main page.
 - "checkout" and "pricing" pages are the preferred source for "offerAndPrice" (price, installments, guarantee, bonuses, what the buyer gets), even when they contradict the main page: that is where people pay. "terms" pages count only for guarantee and refund terms. "thankyou" pages count only for upsells and bonuses, which go in "notes". Ignore pages that are clearly about something else (a blog post, a login wall, a different product).
+- "offer" and "quiz_step" pages come from a multi-step quiz or funnel that a reader clicked through with neutral answers (first option or skip) until the final offer screen. "offer" is that final screen (plans, price, guarantee, buy button): treat it like "checkout"/"pricing" — the preferred source for "offerAndPrice" and "cta" — and it weighs more than every quiz question. "quiz_step" pages are the funnel's questions, in order: use them only for "audience" (who the funnel speaks to), "pains" (the problems its questions and answer options name) and tone in "notes". Questions are not the promise and not proof; the answers on screen were picked by the reader, not by a customer, so never treat them as facts about the audience's results.
 - Images, when present, are screenshots of the page and its banners, each preceded by a label with its number, page role and source. Transcribe literally the text that appears in them (price, promise, social proof, button text); describe the product in one sentence; never invent what is not legible. Fill "imageNotes" with one entry per image, at most 40 words each.
 - "sources": for every field you filled, list where it came from as { role, imageIndex }: the page role, and the image number when the information was read from an image (0 when it came from page text). Leave the array empty for fields you returned as null.`;
 
@@ -83,13 +84,14 @@ export function briefUserMessage(r: {
   const pages: PromptPage[] = r.pages?.length
     ? r.pages
     : [{ url: r.url ?? '', role: 'main', title: r.title ?? null, text: r.text, truncated: !!r.truncated, via: r.url ? 'http' : 'pasted' }];
-  const subs = pages.filter((p) => p.role !== 'main').length;
+  const subs = pages.filter((p) => p.role !== 'main' && p.role !== 'quiz_step').length;
+  const quizSteps = pages.filter((p) => p.role === 'quiz_step').length;
   const images = r.imageCount ?? 0;
   const mode = r.readMode ?? (r.url ? 'http' : 'pasted');
   // "vision" é o mais fundo; no cabeçalho mostramos a leitura de texto + "vision" (ex.: crawled+vision)
   const base = mode === 'vision' ? (subs ? 'crawled' : pages[0].via === 'rendered' ? 'rendered' : 'http') : mode;
   const head = [
-    `Read mode: ${base}${images ? '+vision' : ''} — 1 main page, ${subs} subpage${subs === 1 ? '' : 's'}, ${images} image${images === 1 ? '' : 's'}`,
+    `Read mode: ${base}${images ? '+vision' : ''} — 1 main page, ${subs} subpage${subs === 1 ? '' : 's'}${quizSteps ? `, ${quizSteps} quiz screen${quizSteps === 1 ? '' : 's'} walked` : ''}, ${images} image${images === 1 ? '' : 's'}`,
     r.url ? `URL: ${r.url}` : 'Source: text pasted by the user',
     r.title ? `Title: ${r.title}` : null,
     r.description ? `Meta description: ${r.description}` : null,
