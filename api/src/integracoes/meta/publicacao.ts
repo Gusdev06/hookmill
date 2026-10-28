@@ -1,7 +1,7 @@
 // Publicação (meta-v1.md §3.3): as 6 chamadas da Marketing API, cada uma devolvendo só o id da etapa (o backend grava
 // antes de chamar a próxima; retry não repete etapa com id). Upload do vídeo por file_url (prod) ou resumable
 // (start/transfer/finish em pedaços de 8 MB) quando o render não é público.
-import type { MetaObjective } from '@maquina/contratos';
+import type { MetaObjective, MetaPixelEvent } from '@maquina/contratos';
 import type { MetaPublishIds, MetaPublishInput } from '../contrato';
 import { GraphClient, type Raw } from './cliente';
 import { MetaError, isMetaError } from './erros';
@@ -10,9 +10,10 @@ export const CHUNK_BYTES = 8 * 1024 * 1024;
 export const VIDEO_POLL_MS = 3000;
 export const VIDEO_TIMEOUT_MS = 10 * 60_000;
 
-export function optimizationFor(objective: MetaObjective, pixelId: string | null): { optimization_goal: string; promoted_object?: Raw } {
-  if (objective === 'OUTCOME_SALES' && pixelId) return { optimization_goal: 'OFFSITE_CONVERSIONS', promoted_object: { pixel_id: pixelId, custom_event_type: 'PURCHASE' } };
-  if (objective === 'OUTCOME_LEADS' && pixelId) return { optimization_goal: 'OFFSITE_CONVERSIONS', promoted_object: { pixel_id: pixelId, custom_event_type: 'LEAD' } };
+/** resultado-v1 (28/10): `pixelEvent` (settings, do resultType) troca o custom_event_type; ausente = PURCHASE/LEAD como antes. */
+export function optimizationFor(objective: MetaObjective, pixelId: string | null, pixelEvent?: MetaPixelEvent | null): { optimization_goal: string; promoted_object?: Raw } {
+  if (objective === 'OUTCOME_SALES' && pixelId) return { optimization_goal: 'OFFSITE_CONVERSIONS', promoted_object: { pixel_id: pixelId, custom_event_type: pixelEvent ?? 'PURCHASE' } };
+  if (objective === 'OUTCOME_LEADS' && pixelId) return { optimization_goal: 'OFFSITE_CONVERSIONS', promoted_object: { pixel_id: pixelId, custom_event_type: pixelEvent ?? 'LEAD' } };
   // APP exige application_id + object_store_url: v1 só com app registrado; sem isso o backend já trocou pra TRAFFIC (§3.3 passo 4)
   return { optimization_goal: 'LINK_CLICKS' };
 }
@@ -26,7 +27,7 @@ export function adSetBody(i: MetaPublishInput, campaignId: string): Raw {
     name: i.adName, campaign_id: campaignId, daily_budget: s.dailyBudgetMinor,
     billing_event: 'IMPRESSIONS', bid_strategy: 'LOWEST_COST_WITHOUT_CAP', status: 'PAUSED',
     targeting: { geo_locations: { countries: s.countries }, age_min: s.ageMin, age_max: s.ageMax, targeting_automation: { advantage_audience: 1 } },
-    ...optimizationFor(s.objective, i.pixelId),
+    ...optimizationFor(s.objective, i.pixelId, s.pixelEvent),
   };
 }
 export function creativeBody(i: MetaPublishInput, videoId: string): Raw {

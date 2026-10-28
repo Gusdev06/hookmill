@@ -17,6 +17,7 @@ import { IMAGE_LIMITS, captureImages, imageTrigger, type CapturedImage, type Ima
 import { LOGIN_WALL_CHARS, MIN_TEXT_CHARS, NO_TEXT_DETAIL, RENDER_BELOW_CHARS, fetchHtmlPage, loginWall, mergeRendered, type HttpPage, type PageText } from './pagina';
 import type { FunnelWalker, WalkResult } from './caminhante';
 import type { RenderPageOptions, RenderedPage } from './render-pagina';
+import { brandColorOf, type BrandColorPick } from './cor-marca';
 import { pickCandidates, readSubpages, type SubpageOptions } from './subpaginas';
 
 /** §1: relógio da leitura inteira (a+b+c+d). */
@@ -33,6 +34,11 @@ export interface ReadOfferOptions extends SubpageOptions {
   browser?: RenderPageOptions;
   /** (b'): caminhante de funil (A1, 28/10); null/ausente = não caminha */
   walk?: FunnelWalker | null;
+  /**
+   * resultado-v1 (A2): quando a principal NÃO passou pelo render (HTTP bastou), abre ela no navegador só pra ler a cor dos
+   * CTAs, em paralelo com (c)/(d). null/ausente = sem sonda (a cor sai do theme-color, se houver). Custo zero.
+   */
+  colorProbe?: ((url: string) => Promise<string | null>) | null;
 }
 
 /** Dica de quiz/funil na URL ou no título (o caminhante confirma dentro do navegador). */
@@ -54,7 +60,12 @@ export interface OfferReading {
   readMs: number;
   /** o que o caminhante de funil fez (null = não rodou) */
   walk?: { screens: number; stoppedBy: WalkResult['stoppedBy']; actions: number; ms: number; blocked: number } | null;
+  /** resultado-v1 (A2): cor de destaque (CTA renderizado > theme-color); null = não achou */
+  brandColor?: BrandColorPick | null;
 }
+
+/** Teto da sonda de cor depois que a leitura acabou (ela roda em paralelo; aqui só espera o resto). */
+export const COLOR_PROBE_WAIT_MS = 12_000;
 
 const log = new Logger('LeituraOferta');
 
@@ -105,6 +116,11 @@ export async function readOffer(url: string, opts: ReadOfferOptions, onStage: (s
     .map((sc) => ({ url: `${sc.url.replace(/#.*$/, '')}#step-${sc.step}`, role: sc.role, title: sc.title, text: sc.text, truncated: sc.truncated, via: 'rendered' as const, images: [] }));
   const walkFinal = walkPages.filter((p) => p.role !== 'quiz_step');
   const walkSteps = walkPages.filter((p) => p.role === 'quiz_step');
+  // resultado-v1 (A2): cor dos CTAs. Renderizou = já tem; senão a sonda abre a principal em paralelo com (c)/(d)
+  const ctaFromRender = rendered?.ctaColor ?? null;
+  const probe = !ctaFromRender && !rendered && opts.colorProbe
+    ? opts.colorProbe(http.url).catch((e) => { log.warn(`cor de ${http.url} falhou (${(e as Error).message})`); return null; })
+    : null;
 
   // (c) subpáginas
   onStage('reading_subpages');
@@ -156,7 +172,9 @@ export async function readOffer(url: string, opts: ReadOfferOptions, onStage: (s
   const readMode: ReadMode = images.length ? 'vision' : page.pages.length > 1 ? 'crawled' : page.rendered ? 'rendered' : 'http';
   const walk = walked ? { screens: walked.screens.length, stoppedBy: walked.stoppedBy, actions: walked.actions, ms: walked.ms, blocked: walked.blocked } : null;
   if (walk) log.log(`caminhante ${page.url}: ${walk.screens} telas, ${walk.actions} ações, parou por ${walk.stoppedBy}, ${walk.blocked} requisições barradas, ${walk.ms} ms`);
-  return { page: { ...page, readMode }, images, imageReason, readMs: now() - start, walk };
+  const probed = probe ? await Promise.race([probe, new Promise<null>((r) => setTimeout(() => r(null), COLOR_PROBE_WAIT_MS).unref?.())]) : null;
+  const brandColor = brandColorOf(ctaFromRender ?? probed, http.themeColor ?? null);
+  return { page: { ...page, readMode }, images, imageReason, readMs: now() - start, walk, brandColor };
 }
 
 function stripHttp(h: HttpPage): PageText {

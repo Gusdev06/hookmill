@@ -215,7 +215,12 @@ describe(isLocal ? 'Fase 2 agência (integração local)' : 'Fase 2 agência [pu
 
     // a sessão nova já aponta pro cliente novo
     const me = await call('GET', '/workspace', s.accessToken);
-    expect(me.body.data).toMatchObject({ id: s.client.id, status: 'SETUP', defaultResult: 'PURCHASES' });
+    expect(me.body.data).toMatchObject({ id: s.client.id, status: 'SETUP', resultType: 'PURCHASE', defaultResult: 'PURCHASES' }); // businessType antigo migra
+
+    const sub = await call('POST', '/workspaces', users.owner.token, { name: 'Sub Box', resultType: 'SUBSCRIPTION', brandColor: '#e4572e' });
+    created.push(sub.body.data.client.id);
+    expect(sub.body.data.client).toMatchObject({ resultType: 'SUBSCRIPTION', businessType: 'ONLINE_STORE' });
+    expect((await call('POST', '/workspaces', users.owner.token, { name: 'Outro', resultType: 'OTHER' })).status).toBe(400);
 
     const solo = await call('POST', '/workspaces', users.owner.token, { name: 'Solo', shortCode: 'SOLO', copyTeam: false });
     created.push(solo.body.data.client.id);
@@ -232,10 +237,25 @@ describe(isLocal ? 'Fase 2 agência (integração local)' : 'Fase 2 agência [pu
 
     const inc = await call('POST', '/workspace/onboarding/complete', t, {});
     expect(inc.status).toBe(422);
-    expect(inc.body.error).toMatchObject({ code: 'ONBOARDING_INCOMPLETE', details: { missing: ['businessType', 'offer'] } });
+    expect(inc.body.error).toMatchObject({ code: 'ONBOARDING_INCOMPLETE', details: { missing: ['resultType', 'offer'] } });
 
     const p = await call('PATCH', '/workspace', t, { onboardingStep: 3, businessType: 'LOCAL_BUSINESS', market: 'Brasil', websiteUrl: 'https://dental.example' });
-    expect(p.body.data).toMatchObject({ onboarding: { step: 3 }, defaultResult: 'LEADS', market: 'Brasil', status: 'SETUP' });
+    expect(p.body.data).toMatchObject({ onboarding: { step: 3 }, resultType: 'LEAD', businessType: 'LOCAL_BUSINESS', defaultResult: 'LEADS', market: 'Brasil', status: 'SETUP' });
+
+    // resultado-v1 (28/10): OTHER exige texto no estado final; trocar de tipo limpa; business_type gravado derivado (compat)
+    const noText = await call('PATCH', '/workspace', t, { resultType: 'OTHER' });
+    expect(noText.status).toBe(400);
+    expect(noText.body.error).toMatchObject({ code: 'VALIDATION_ERROR', details: { fields: [{ field: 'resultTypeOther' }] } });
+    expect((await call('PATCH', '/workspace', t, { resultType: 'BOGUS' })).status).toBe(400);
+    const other = await call('PATCH', '/workspace', t, { resultType: 'OTHER', resultTypeOther: '  Doações ' });
+    expect(other.body.data).toMatchObject({ resultType: 'OTHER', resultTypeOther: 'Doações', businessType: null, defaultResult: 'RESULTS' });
+    expect((await call('PATCH', '/workspace', t, { resultTypeOther: '' })).status).toBe(400); // OTHER sem texto de novo
+    const appt = await call('PATCH', '/workspace', t, { resultType: 'APPOINTMENT' });
+    expect(appt.body.data).toMatchObject({ resultType: 'APPOINTMENT', resultTypeOther: null, businessType: 'LOCAL_BUSINESS', defaultResult: 'APPOINTMENTS' });
+    expect(await prisma.workspace.findUniqueOrThrow({ where: { id }, select: { resultType: true, resultTypeOther: true, businessType: true } }))
+      .toEqual({ resultType: 'APPOINTMENT', resultTypeOther: null, businessType: 'LOCAL_BUSINESS' });
+    const cards = await call('GET', '/workspaces', t);
+    expect(cards.body.data.find((c: { id: string }) => c.id === id)).toMatchObject({ resultType: 'APPOINTMENT', businessType: 'LOCAL_BUSINESS' });
     expect((await call('PATCH', '/workspace', t, { websiteUrl: 'ftp://x' })).status).toBe(400);
     expect((await call('PATCH', '/workspace', t, { onboardingStep: 7 })).status).toBe(400);
 

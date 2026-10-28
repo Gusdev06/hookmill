@@ -223,7 +223,15 @@ export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, Ca
       notes: null,
     };
     await this.recordCost(input.workspaceId, input.jobId, null);
-    return { ...brief, costUsd: 0, ...this.readSources(input, brief, vision) };
+    // resultado-v1 (A2/A3): sugestões determinísticas; `mock-lead`/`mock-app` na url trocam o resultado, texto colado = sem cor
+    const resultType = input.url?.includes('mock-lead') ? 'LEAD' : input.url?.includes('mock-app') ? 'APP_INSTALL' : 'PURCHASE';
+    const business = {
+      industry: lg === 'pt' ? 'Produto digital' : lg === 'es' ? 'Producto digital' : 'Digital product',
+      market: lg === 'pt' ? 'Brasil' : lg === 'es' ? null : 'United States',
+      resultType,
+    } as const;
+    const brandColor = input.url && !input.url.includes('mock-nocolor') ? { hex: '#E4572E', source: 'cta' as const } : null;
+    return { ...brief, costUsd: 0, ...this.readSources(input, brief, vision), business, brandColor };
   }
 
   /** ExtractSources do mock (§4.1): texto colado = pasted; url = http; mock-vision = principal + checkout + 2 imagens. */

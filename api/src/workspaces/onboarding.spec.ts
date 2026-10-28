@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { NO_FACTS, OnboardingService, onboardingCalc, onboardingFull, onboardingPercent, onboardingSteps, type OnboardingFacts, type OnboardingWs } from './onboarding';
 
 const ws = (over: Partial<OnboardingWs> = {}): OnboardingWs => ({
-  name: 'New client', businessType: null, monthlySpendCapUsd: null, onboardingStep: 1, onboardingCompletedAt: null, ...over,
+  name: 'New client', resultType: null, monthlySpendCapUsd: null, onboardingStep: 1, onboardingCompletedAt: null, ...over,
 });
 const facts = (over: Partial<OnboardingFacts> = {}): OnboardingFacts => ({ ...NO_FACTS, ...over });
 const states = (steps: ReturnType<typeof onboardingSteps>) => Object.fromEntries(steps.map((s) => [s.key, s.state]));
@@ -20,8 +20,8 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
     expect(onboardingPercent(steps, null, 1)).toBe(0);
   });
 
-  it('business done = businessType + nome próprio; goals done = teto informado; percent (D10) só conta passo done já alcançado', () => {
-    const row = ws({ name: 'Mooncloth', businessType: 'ONLINE_STORE', monthlySpendCapUsd: 10 as unknown as Prisma.Decimal, onboardingStep: 3 });
+  it('business done = resultType + nome próprio; goals done = teto informado; percent (D10) só conta passo done já alcançado', () => {
+    const row = ws({ name: 'Mooncloth', resultType: 'PURCHASE', monthlySpendCapUsd: 10 as unknown as Prisma.Decimal, onboardingStep: 3 });
     const steps = onboardingSteps(row, facts(), true);
     expect(states(steps)).toMatchObject({ business: 'done', goals: 'done', offer: 'current' });
     expect(onboardingPercent(steps, null, 3)).toBe(17); // business (1 < 3) conta; goals (5 < 3) ainda não
@@ -57,7 +57,7 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
   });
 
   it('META_MODE=off: meta enabled=false e o percent divide por 5', () => {
-    const steps = onboardingSteps(ws({ name: 'Mooncloth', businessType: 'APP', onboardingStep: 3 }), facts({ offerComplete: true }), false);
+    const steps = onboardingSteps(ws({ name: 'Mooncloth', resultType: 'APP_INSTALL', onboardingStep: 3 }), facts({ offerComplete: true }), false);
     const meta = steps.find((s) => s.key === 'meta')!;
     expect(meta.enabled).toBe(false);
     expect(steps.filter((s) => s.enabled)).toHaveLength(5);
@@ -66,7 +66,7 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
   });
 
   it('concluído: percent 100 mesmo com passo vazio; brain done; nenhum current', () => {
-    const steps = onboardingSteps(ws({ name: 'Mooncloth', businessType: 'APP', onboardingStep: 6, onboardingCompletedAt: new Date() }), facts({ offerComplete: true }), true);
+    const steps = onboardingSteps(ws({ name: 'Mooncloth', resultType: 'APP_INSTALL', onboardingStep: 6, onboardingCompletedAt: new Date() }), facts({ offerComplete: true }), true);
     expect(states(steps)).toEqual({ business: 'done', meta: 'skipped', offer: 'done', audience: 'todo', goals: 'todo', brain: 'done' });
     expect(onboardingPercent(steps, new Date(), 6)).toBe(100);
     expect(onboardingCalc(ws({ onboardingCompletedAt: new Date() }), facts(), true).percent).toBe(100);

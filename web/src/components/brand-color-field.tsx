@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,8 +24,8 @@ export function normalizeBrandColor(v: string): string | null | "" {
  * `onCommit` fires on blur / Enter / picker change with the normalized value (null clears), only when it is valid.
  */
 export function BrandColorField({
-  id, value, onChange, onCommit, disabled, className,
-}: { id: string; value: string; onChange: (v: string) => void; onCommit?: (v: string | null) => void; disabled?: boolean; className?: string }) {
+  id, value, onChange, onCommit, disabled, className, badge,
+}: { id: string; value: string; onChange: (v: string) => void; onCommit?: (v: string | null) => void; disabled?: boolean; className?: string; badge?: ReactNode }) {
   const t = useTranslations("brandColor")
   const norm = normalizeBrandColor(value)
   const invalid = norm === null
@@ -36,7 +37,10 @@ export function BrandColorField({
   }
   return (
     <div className={cn("grid min-w-0 gap-1.5", className)}>
-      <Label htmlFor={id}>{t("label")}</Label>
+      <div className="flex items-center gap-2">
+        <Label htmlFor={id}>{t("label")}</Label>
+        {badge}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <label
           className={cn(

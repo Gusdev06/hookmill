@@ -8,10 +8,12 @@ describe('cliente (fase2-agencia.md §1-§2)', () => {
     expect(clientStatusOf({ pausedAt: d, onboardingCompletedAt: null })).toBe('PAUSED');
     expect(clientStatusOf({ pausedAt: d, onboardingCompletedAt: d })).toBe('PAUSED');
   });
-  it('resultado padrão derivado do tipo de negócio', () => {
-    expect(defaultResultOf('ONLINE_STORE')).toBe('PURCHASES');
-    expect(defaultResultOf('LOCAL_BUSINESS')).toBe('LEADS');
-    expect(defaultResultOf('APP')).toBe('INSTALLS');
+  it('resultado padrão derivado do resultType (resultado-v1)', () => {
+    expect(defaultResultOf('PURCHASE')).toBe('PURCHASES');
+    expect(defaultResultOf('LEAD')).toBe('LEADS');
+    expect(defaultResultOf('APP_INSTALL')).toBe('INSTALLS');
+    expect(defaultResultOf('MESSAGE')).toBe('MESSAGES');
+    expect(defaultResultOf('OTHER')).toBe('RESULTS');
     expect(defaultResultOf(null)).toBeNull();
   });
   it('shortCode do nome: iniciais, senão 2 primeiras letras, senão WS', () => {
@@ -26,13 +28,19 @@ describe('cliente (fase2-agencia.md §1-§2)', () => {
     const now = new Date('2026-10-12T00:00:00Z');
     const v = presentWorkspace({
       id: 'w', name: 'N', uiLocale: 'EN', monthlySpendCapUsd: null, createdAt: now, updatedAt: now,
-      shortCode: 'NN', industry: null, market: 'US', businessType: 'APP', websiteUrl: null,
+      shortCode: 'NN', industry: null, market: 'US', businessType: 'APP', resultType: 'APP_INSTALL', resultTypeOther: 'stale', websiteUrl: null,
       onboardingStep: 3, onboardingCompletedAt: null, pausedAt: null,
     } as never);
     expect(v).toEqual({
       id: 'w', name: 'N', uiLocale: 'EN', monthlySpendCapUsd: null, shortCode: 'NN', industry: null, market: 'US',
-      businessType: 'APP', defaultResult: 'INSTALLS', websiteUrl: null, brandColor: null, status: 'SETUP',
+      resultType: 'APP_INSTALL', resultTypeOther: null, businessType: 'APP', defaultResult: 'INSTALLS', websiteUrl: null, brandColor: null, status: 'SETUP',
       onboarding: { step: 3, totalSteps: 6, completedAt: null },
     });
+  });
+
+  it('presentWorkspace: OTHER devolve o texto livre e businessType null', () => {
+    const v = presentWorkspace({ id: 'w', name: 'N', uiLocale: 'EN', monthlySpendCapUsd: null, shortCode: 'NN', industry: null, market: null,
+      businessType: null, resultType: 'OTHER', resultTypeOther: 'Doações', websiteUrl: null, onboardingStep: 1, onboardingCompletedAt: null, pausedAt: null } as never);
+    expect(v).toMatchObject({ resultType: 'OTHER', resultTypeOther: 'Doações', businessType: null, defaultResult: 'RESULTS' });
   });
 });

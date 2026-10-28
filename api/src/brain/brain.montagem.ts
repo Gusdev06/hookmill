@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import type {
   BrainCategory, BrainCounts, BrainCreativeOrigin, BrainCreativeStatus, BrainEdge, BrainEdgeKind, BrainGraph, BrainNode, BrainNodeKind,
-  BrainNodeMeta, BrainPublicationEdgeMeta, BusinessType, CreativeState, DefaultResult, Engine, MetaAdTrend, MetaAdVerdict, MetaPublicationStatus,
+  BrainNodeMeta, BrainPublicationEdgeMeta, ResultType, CreativeState, DefaultResult, Engine, MetaAdTrend, MetaAdVerdict, MetaPublicationStatus,
 } from '@maquina/contratos';
 
 // contratos/src/brain.ts (o pacote é só tipos; os valores ficam espelhados aqui)
@@ -25,7 +25,7 @@ export const SETUP_STEP = { business: 1, offer: 3, proof: 3, audience: 4, instru
 
 // ───────────────────────── entrada (linhas já lidas) ─────────────────────────
 export interface DadosWorkspace {
-  id: string; name: string; businessType: BusinessType | null; industry: string | null; market: string | null;
+  id: string; name: string; /** resultado-v1: o ResultType do cliente */ resultType: ResultType | null; industry: string | null; market: string | null;
   websiteUrl: string | null; monthlySpendCapUsd: number | null; defaultResult: DefaultResult | null;
 }
 export interface DadosOferta {
@@ -183,8 +183,8 @@ export function montarGrafo(d: BrainDados, opts: OpcoesMontagem): Montado {
   const teardownHooks = (adId: string) => (champsByAd.get(adId) ?? []).map((c) => c.hookSpoken).filter(filled);
 
   // ── totais reais
-  const businessOn = ws.businessType != null || filled(ws.industry) || filled(ws.market) || filled(ws.websiteUrl);
-  const goalOn = ws.monthlySpendCapUsd != null || ws.businessType != null;
+  const businessOn = ws.resultType != null || filled(ws.industry) || filled(ws.market) || filled(ws.websiteUrl);
+  const goalOn = ws.monthlySpendCapUsd != null || ws.resultType != null;
   counts.workspace.total = 1;
   counts.business.total = businessOn ? 1 : 0;
   counts.goal.total = goalOn ? 1 : 0;
@@ -262,8 +262,8 @@ export function montarGrafo(d: BrainDados, opts: OpcoesMontagem): Montado {
   // 1. centro, negócio, metas
   tenta([mk('workspace', ws.id, ws.id, corta(ws.name, 80) ?? ws.id, null, 1, { kind: 'workspace' })]);
   if (businessOn) {
-    tenta([mk('business', ws.id, ws.id, corta(ws.industry ?? ws.businessType ?? ws.market ?? ws.websiteUrl, 80)!,
-      corta([ws.businessType, ws.industry, ws.market, ws.websiteUrl].filter(filled).join(' · '), 200), 0.5, { kind: 'business', setupStep: SETUP_STEP.business })]);
+    tenta([mk('business', ws.id, ws.id, corta(ws.industry ?? ws.resultType ?? ws.market ?? ws.websiteUrl, 80)!,
+      corta([ws.resultType, ws.industry, ws.market, ws.websiteUrl].filter(filled).join(' · '), 200), 0.5, { kind: 'business', setupStep: SETUP_STEP.business })]);
   }
   if (goalOn) {
     const label = [ws.defaultResult, ws.monthlySpendCapUsd != null ? `US$ ${ws.monthlySpendCapUsd}` : null].filter(filled).join(' · ');

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { FieldOrigin, FieldOrigins, FieldSources, FileRef, Job, Offer as OfferBase, OfferBrief, OfferExtractOutput, OfferReadMeta, PageImageRef, PageRole, ReadMode, ReadPageRef } from '@maquina/contratos';
+import type { FieldOrigin, FieldOrigins, FieldSources, FileRef, Job, Offer as OfferBase, OfferBrief, OfferExtractOutput, OfferReadMeta, PageImageRef, PageRole, ReadMode, ReadPageRef, ResultType } from '@maquina/contratos';
 import { Prisma, type Offer as OfferRow } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../arquivos/storage.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { OnboardingService } from '../workspaces/onboarding';
+import { suggestShortCode } from '../workspaces/cliente';
 import { BRIEF_FIELDS, CreateOfferDto, SOURCE_KEYS, UpdateOfferDto, isReadMeta } from './ofertas.dto';
 
 /** variacao-auto-v1 D4 (api.md "Mudanças 13/10"): `Offer` ganha `productImage`. O tipo do @maquina/contratos ainda não
@@ -35,6 +36,9 @@ interface ExtractExtras {
   fieldOrigins?: FieldOrigins;
   sources?: Partial<Record<string, { role: PageRole; imageIndex?: number }[]>>;
   relatedUrls?: string[];
+  // resultado-v1 (28/10, A2/A3)
+  business?: { industry: string | null; market: string | null; resultType: ResultType | null };
+  brandColor?: { hex: string; source: 'cta' | 'theme_color' } | null;
 }
 
 export function readMetaOf(json: Prisma.JsonValue | null | undefined): OfferReadMeta | null {
@@ -267,7 +271,8 @@ export class OfertasService {
         },
       );
       await stages;
-      const output = this.extractOutput(brief, input);
+      // resultado-v1 (A2): prefixo sugerido sem repetir o de outro cliente dos membros deste workspace
+      const output = this.extractOutput(brief, input, await this.takenShortCodes(workspaceId).catch(() => new Set<string>()));
       await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: output as unknown as Prisma.InputJsonValue });
     } catch (e) {
       await stages;
@@ -280,7 +285,18 @@ export class OfertasService {
   }
 
   /** Briefing + Usage + ExtractSources (tolerante, §4.1) → `Job.output` do OFFER_EXTRACT (§4.2) com `readMeta` pronto pro POST /offers. */
-  extractOutput(brief: OfferBriefDraft & { costUsd?: number } & ExtractExtras, input: { url?: string; pageText?: string }): OfferExtractOutput {
+  /** shortCodes dos OUTROS clientes (workspaces) de quem é membro deste; o próprio fica de fora. */
+  async takenShortCodes(workspaceId: string): Promise<Set<string>> {
+    const members = await this.prisma.membership.findMany({ where: { workspaceId }, select: { userId: true } });
+    if (!members.length) return new Set();
+    const rows = await this.prisma.workspace.findMany({
+      where: { id: { not: workspaceId }, memberships: { some: { userId: { in: members.map((m) => m.userId) } } } },
+      select: { shortCode: true },
+    });
+    return new Set(rows.map((r) => r.shortCode));
+  }
+
+  extractOutput(brief: OfferBriefDraft & { costUsd?: number } & ExtractExtras, input: { url?: string; pageText?: string }, takenCodes: ReadonlySet<string> = new Set()): OfferExtractOutput {
     const fieldSources: FieldSources = { name: 'page', language: 'page' };
     for (const k of BRIEF_FIELDS) if (brief[k] != null && brief[k] !== '') fieldSources[k] = 'page';
     const pasted = !!input.pageText;
@@ -296,6 +312,14 @@ export class OfertasService {
       name: brief.name, language: brief.language, sourceUrl: input.url ?? null,
       brief: briefOf(brief), fieldSources,
       readMode, pages, imagesRead, fieldOrigins, costUsd, readMeta, relatedUrls,
+      business: {
+        industry: brief.business?.industry ?? null,
+        market: brief.business?.market ?? null,
+        brandColor: brief.brandColor?.hex ?? null,
+        brandColorSource: brief.brandColor?.source ?? null,
+        resultType: brief.business?.resultType ?? null,
+        shortCode: suggestShortCode(brief.name, takenCodes),
+      },
     };
   }
 }

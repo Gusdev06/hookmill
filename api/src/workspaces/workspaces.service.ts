@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { ClientCard, ClientsMeta, CreateClientResponse, TourCompleteResponse, TourState, TourStop, Workspace as WorkspaceView } from '@maquina/contratos';
-import type { MemberRole, Prisma, Workspace } from '@prisma/client';
+import type { BusinessType, MemberRole, Prisma, ResultType, Workspace } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import { AppConfig } from '../config/app-config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,6 +11,7 @@ import { initials, normalizeEmail, num } from '../common/util/format';
 import { CreateClientDto, CreateInviteDto, UpdateWorkspaceDto } from './dto/workspaces.dto';
 import { clientStatusOf, presentWorkspace, shortCodeFromName } from './cliente';
 import { normalizeHex } from '../iteracao/paleta';
+import { legacyBusinessTypeOf, resultPatchOf, resultStateError } from './resultado';
 import { NO_FACTS, OnboardingService, onboardingCalc, onboardingFull, type OnboardingCalc, type UpdatedByRow } from './onboarding';
 import { waitingOnYou, ZERO_WAITING } from './waiting';
 
@@ -50,6 +51,7 @@ export class WorkspacesService {
     if (dto.onboardingStep !== undefined && cur.onboardingCompletedAt) {
       throw new AppException('INVALID_STATE', { state: clientStatusOf(cur), allowed: ['SETUP'], reason: 'onboarding_completed' });
     }
+    const result = resultDataOf(dto, cur);
     const ws = await this.prisma.workspace.update({
       where: { id: auth.workspaceId },
       include: WS_WITH_UPDATED_BY,
@@ -63,7 +65,7 @@ export class WorkspacesService {
         ...(dto.shortCode !== undefined && { shortCode: dto.shortCode }),
         ...(dto.industry !== undefined && { industry: text(dto.industry) }),
         ...(dto.market !== undefined && { market: text(dto.market) }),
-        ...(dto.businessType !== undefined && { businessType: dto.businessType }),
+        ...result,
         ...(dto.websiteUrl !== undefined && { websiteUrl: text(dto.websiteUrl) }),
         // D3: `#RRGGBB` maiúsculo; null limpa (a paleta volta a ser derivada, §A3.3)
         ...(dto.brandColor !== undefined && { brandColor: dto.brandColor === null ? null : normalizeHex(dto.brandColor) }),
@@ -80,8 +82,8 @@ export class WorkspacesService {
     const ws = await this.load(auth.workspaceId);
     if (ws.onboardingCompletedAt) return this.present(ws);
     const offers = await this.prisma.offer.count({ where: { workspaceId: ws.id, archivedAt: null } });
-    const missing: ('businessType' | 'offer')[] = [];
-    if (!ws.businessType) missing.push('businessType');
+    const missing: ('resultType' | 'offer')[] = [];
+    if (!ws.resultType) missing.push('resultType');
     if (!offers) missing.push('offer');
     if (missing.length) throw new AppException('ONBOARDING_INCOMPLETE', { missing });
     await this.prisma.workspace.updateMany({
@@ -163,7 +165,8 @@ export class WorkspacesService {
           websiteUrl: text(dto.websiteUrl),
           industry: text(dto.industry),
           market: text(dto.market),
-          businessType: dto.businessType ?? null,
+          ...resultDataOf(dto, { resultType: null, resultTypeOther: null }),
+          ...(dto.brandColor && { brandColor: normalizeHex(dto.brandColor) }),
           onboardingStep: 1,
         },
       });
@@ -318,10 +321,28 @@ function card(ws: Workspace, role: MemberRole, isActive: boolean, waiting: Clien
   return {
     id: ws.id, name: ws.name, shortCode: ws.shortCode, role, isActive,
     status: clientStatusOf(ws), onboarding: onboardingFull(ws, calc, updatedBy),
-    industry: ws.industry, businessType: ws.businessType, websiteUrl: ws.websiteUrl,
+    industry: ws.industry, businessType: legacyBusinessTypeOf(ws.resultType), websiteUrl: ws.websiteUrl,
+    resultType: ws.resultType,
     waitingOnYou: waiting,
     updatedAt: ws.updatedAt.toISOString(),
   };
+}
+
+/**
+ * resultado-v1: colunas de resultado do PATCH/POST (resultType manda; businessType antigo migra), com o estado final
+ * validado (OTHER exige texto → 400) e a coluna business_type gravada derivada (compat por 1 versão).
+ */
+function resultDataOf(
+  dto: { resultType?: ResultType | null; resultTypeOther?: string | null; businessType?: BusinessType | null },
+  cur: { resultType: ResultType | null; resultTypeOther: string | null },
+): { resultType?: ResultType | null; resultTypeOther?: string | null; businessType?: BusinessType | null } {
+  const patch = resultPatchOf(dto);
+  if (patch.resultType === undefined && patch.resultTypeOther === undefined) return {};
+  const finalType = patch.resultType !== undefined ? patch.resultType : cur.resultType;
+  const finalOther = finalType === 'OTHER' ? (patch.resultTypeOther !== undefined ? patch.resultTypeOther : cur.resultTypeOther) : null;
+  const why = resultStateError(finalType, finalOther);
+  if (why) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'resultTypeOther', rule: why }] });
+  return { resultType: finalType, resultTypeOther: finalOther, businessType: legacyBusinessTypeOf(finalType) };
 }
 
 /** Texto livre opcional: aparado; vazio vira null. */

@@ -208,7 +208,7 @@ describe(isLocal ? 'Campaigns v1 (integração local)' : 'Campaigns v1 [pulado: 
     const role = { owner: 'OWNER', admin: 'ADMIN', member: 'MEMBER', client: 'CLIENT' } as const;
     w1 = (await prisma.workspace.create({
       data: {
-        name: `${PREFIX}loja`, shortCode: 'CP', businessType: 'ONLINE_STORE', market: 'United States', onboardingStep: 6, onboardingCompletedAt: new Date(),
+        name: `${PREFIX}loja`, shortCode: 'CP', businessType: 'ONLINE_STORE', resultType: 'PURCHASE', market: 'United States', onboardingStep: 6, onboardingCompletedAt: new Date(),
         memberships: { create: (['owner', 'admin', 'member', 'client'] as Who[]).map((k) => ({ userId: users[k].id, role: role[k], tourCompletedAt: new Date() })) },
       },
     })).id;

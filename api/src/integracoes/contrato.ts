@@ -50,6 +50,10 @@ export interface ExtractSources {
   fieldOrigins: Partial<Record<BriefField, FieldOrigin[]>>;
   /** @deprecated = pages.filter(p => p.role !== 'main').map(p => p.url); mantido 1 versão pro web atual */
   relatedUrls: string[];
+  /** resultado-v1 (28/10, A2/A3): o que o Claude sugeriu sobre o negócio (null = não soube). Opcional pra porta antiga. */
+  business?: { industry: string | null; market: string | null; resultType: ResultType | null };
+  /** resultado-v1 (A2): cor de destaque lida do DOM (CTA) ou do theme-color; null = não achou. Nunca vem do modelo. */
+  brandColor?: { hex: string; source: 'cta' | 'theme_color' } | null;
 }
 /** Etapas do checklist (§4.3). Texto colado só emite as duas últimas; etapa pulada é emitida mesmo assim (o backend marca feita). */
 /** `walking_quiz` (28/10, A1) só é emitido quando o caminhante de funil roda ("Walking the quiz to the final offer…"), entre `rendering_page` e `reading_subpages`. */
@@ -588,9 +592,9 @@ export interface BrollPort {
 // (integracoes/meta/erros.ts) com `code` META_* do contrato, `action`, `details` e `failDetail` (code/subcode/fbtrace).
 import type {
   BusinessType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions,
-  MetaPublishSettings, MetaSpecialAdCategory,
+  MetaPublishSettings, MetaSpecialAdCategory, ResultType,
 } from '@maquina/contratos';
-export type { BusinessType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions, MetaPublishSettings, MetaSpecialAdCategory };
+export type { BusinessType, ResultType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions, MetaPublishSettings, MetaSpecialAdCategory };
 
 export type MetaMode = 'mock' | 'live' | 'off';
 export type MetaReturnTo = '/onboarding/meta' | '/settings/connections' | '/settings' | '/meta/done';
@@ -702,8 +706,10 @@ export interface MetaSyncInput {
   adAccountId: string;
   /** moeda da conta (pra converter o mínimo em USD da regra) */
   currency: string;
-  /** decide o action_type do "resultado" (§3.2); null = link_click */
+  /** decide o action_type do "resultado" (§3.2); null = link_click. @deprecated: vale só sem `resultType` */
   businessType: BusinessType | null;
+  /** resultado-v1 (28/10): quando presente, manda no action_type (tabela RESULT_ACTIONS em meta/leitura.ts) */
+  resultType?: ResultType | null;
   /** sem pixel = resultado por clique, resultType diz isso */
   hasPixel: boolean;
   /** teto de anúncios lidos (padrão 500) */

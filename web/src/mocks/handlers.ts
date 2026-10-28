@@ -5,6 +5,7 @@ import type {
   UpdateEngineBody, UpdateScriptBody, VideoFormat, OfferReadMeta } from "@/lib/api/types"
 import { ENGINES, ME, SERVICES, SPEND, WORKSPACES } from "./fixtures"
 import { mockSetupCard, mockWorkspaceOf } from "./auth"
+import { patchResult } from "./resultado"
 import { f2 } from "./variar"
 import {
   advance, advanceAll, advanceJob, db, duration, ENGINE_LABEL, estimateFor, FACE_UNIT_USD, latestRender, newCreative, newExtractJob, offerOf, regenerateScene, regenerateTake, takeView,
@@ -689,12 +690,12 @@ export const handlers = [
       rest.brandColor = `#${h.toUpperCase()}`
     }
     if (onboardingStep && target.onboarding.completedAt) return fail("INVALID_STATE", 409, "Onboarding already completed.", { reason: "onboarding_completed" })
-    Object.assign(target, rest)
+    // resultado-v1: resultType is the source of truth; legacy businessType migrates; OTHER needs the free text
+    const result = patchResult({ resultType: target.resultType ?? null, resultTypeOther: target.resultTypeOther ?? null, businessType: target.businessType, defaultResult: target.defaultResult }, rest)
+    if (typeof result === "string") return fail("VALIDATION_ERROR", 400, result, { fields: [{ field: "resultTypeOther", rule: result }] })
+    const plain = Object.fromEntries(Object.entries(rest).filter(([k]) => k !== "resultType" && k !== "resultTypeOther" && k !== "businessType"))
+    Object.assign(target, plain, result ?? {})
     if (onboardingStep) target.onboarding = { ...target.onboarding, step: onboardingStep as 1 }
-    if (typeof rest.businessType !== "undefined") {
-      const bt = target.businessType
-      target.defaultResult = bt === "ONLINE_STORE" ? "PURCHASES" : bt === "LOCAL_BUSINESS" ? "LEADS" : bt === "APP" ? "INSTALLS" : null
-    }
     if (typeof paused === "boolean") target.status = paused ? "PAUSED" : target.onboarding.completedAt ? "LIVE" : "SETUP"
     if (target.status === "SETUP") touchSetup(st)
     save()
@@ -706,7 +707,7 @@ export const handlers = [
     const st = wsStateOf(token)
     const target = st ?? db.workspace
     if (!target.onboarding.completedAt) {
-      const missing = [target.businessType ? null : "businessType", db.offers.length ? null : "offer"].filter(Boolean)
+      const missing = [target.resultType ? null : "resultType", db.offers.length ? null : "offer"].filter(Boolean)
       if (missing.length) return fail("ONBOARDING_INCOMPLETE", 422, "Onboarding incomplete.", { missing })
       target.onboarding = { step: 6, totalSteps: 6, completedAt: new Date().toISOString() }
       if (target.status === "SETUP") target.status = "LIVE"
@@ -725,14 +726,14 @@ export const handlers = [
         const needs = db.creatives.map(toRow).filter(NEEDS_YOU).length
         return {
           id: w.id, name: db.workspace.name, shortCode: db.workspace.shortCode, role: w.role, isActive: w.id === active.id,
-          status: db.workspace.status, onboarding: { ...db.workspace.onboarding, percent: onboardingSummaryOf(w.id).onboarding.percent }, industry: db.workspace.industry, businessType: db.workspace.businessType,
+          status: db.workspace.status, onboarding: { ...db.workspace.onboarding, percent: onboardingSummaryOf(w.id).onboarding.percent }, industry: db.workspace.industry, businessType: db.workspace.businessType, resultType: db.workspace.resultType ?? null,
           websiteUrl: db.workspace.websiteUrl, waitingOnYou: { creatives: needs, batches: 0, total: needs }, updatedAt: new Date().toISOString(),
         }
       }
       const st = db.v2.ws[w.id] ?? newWs(w.id, w.name)
       const sum = onboardingSummaryOf(w.id)
       return {
-        ...mockSetupCard({ ...w, name: st.name }, { businessType: st.businessType ?? undefined, industry: st.industry ?? undefined, websiteUrl: st.websiteUrl ?? undefined, shortCode: st.shortCode }, st.onboarding.step),
+        ...mockSetupCard({ ...w, name: st.name }, { businessType: st.businessType ?? undefined, resultType: st.resultType ?? undefined, industry: st.industry ?? undefined, websiteUrl: st.websiteUrl ?? undefined, shortCode: st.shortCode }, st.onboarding.step),
         status: st.status, onboarding: { ...st.onboarding, percent: sum.onboarding.percent }, isActive: w.id === active.id,
       }
     })

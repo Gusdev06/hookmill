@@ -21,10 +21,10 @@ export const BRAIN_SECTIONS: Record<BrainSection, readonly BrainItem[]> = {
 const filled = (v: string | null | undefined) => !!v && v.trim().length > 0
 type BriefItem = "what" | "promise" | "offerAndPrice" | "cta" | "audience" | "pains" | "proof" | "notes"
 
-export function brainItemDone(item: BrainItem, ws: Pick<Workspace, "businessType" | "industry" | "market" | "monthlySpendCapUsd">, offers: Pick<Offer, BriefItem>[]): boolean {
+export function brainItemDone(item: BrainItem, ws: Pick<Workspace, "resultType" | "industry" | "market" | "monthlySpendCapUsd">, offers: Pick<Offer, BriefItem>[]): boolean {
   switch (item) {
     case "businessType":
-      return ws.businessType != null
+      return ws.resultType != null // resultado-v1: the item key stayed "businessType"
     case "industry":
       return filled(ws.industry)
     case "market":
@@ -38,7 +38,7 @@ export function brainItemDone(item: BrainItem, ws: Pick<Workspace, "businessType
   }
 }
 
-export function brainCompleteness(ws: Pick<Workspace, "businessType" | "industry" | "market" | "monthlySpendCapUsd">, offers: Pick<Offer, BriefItem>[]): BrainCompleteness {
+export function brainCompleteness(ws: Pick<Workspace, "resultType" | "industry" | "market" | "monthlySpendCapUsd">, offers: Pick<Offer, BriefItem>[]): BrainCompleteness {
   const done = new Set(BRAIN_ITEMS.filter((i) => brainItemDone(i, ws, offers)))
   const sections = Object.fromEntries(
     (Object.entries(BRAIN_SECTIONS) as [BrainSection, readonly BrainItem[]][]).map(([k, items]) => {

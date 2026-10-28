@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useFormatter, useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
-import type { BusinessType, Offer, OfferBrief, OfferExtractOutput, UiLocale, UpdateOfferBody, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
+import type { BusinessSuggestion, Offer, OfferBrief, OfferExtractOutput, ResultType, UiLocale, UpdateOfferBody, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
 import { BrandColorField, normalizeBrandColor } from "@/components/brand-color-field"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,11 @@ import { cn } from "@/lib/utils"
 import { Card, isMetaEnabled, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
 
 type Ctx = ReturnType<typeof useOnboarding>
-const BUSINESS_TYPES: BusinessType[] = ["ONLINE_STORE", "LOCAL_BUSINESS", "APP"]
+/** resultado-v1 (A3): "What counts as a result?" — each maps to the Meta optimization (fase2-agencia §1.1). */
+const RESULT_TYPES: ResultType[] = ["PURCHASE", "LEAD", "MESSAGE", "APPOINTMENT", "SIGNUP", "SUBSCRIPTION", "APP_INSTALL", "OTHER"]
+/** Fields the site reading can pre-fill (A2); the "from your site" tag shows while the value is still the suggested one. */
+type SiteKey = "name" | "industry" | "market" | "brandColor" | "result" | "code"
+const DEFAULT_NAMES = new Set(["", "New client", "Workspace"])
 const BRIEF_KEYS: (keyof OfferBrief)[] = ["what", "promise", "offerAndPrice", "proof", "cta", "audience", "pains"]
 const CODE_RE = /^[A-Z0-9]{2,6}$/
 
@@ -69,8 +73,12 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const [name, setName] = useState(ws.name)
   const [industry, setIndustry] = useState(ws.industry ?? "")
   const [market, setMarket] = useState(ws.market ?? "")
-  const [type, setType] = useState<BusinessType | null>(ws.businessType)
+  const [goal, setGoal] = useState<ResultType | null>(ws.resultType ?? null)
+  const [resultOther, setResultOther] = useState(ws.resultTypeOther ?? "")
   const [code, setCode] = useState(ws.shortCode)
+  // A2: what the last reading filled (key → suggested value); the tag goes away once the person edits the field
+  const [fromSite, setFromSite] = useState<Partial<Record<SiteKey, string>>>({})
+  const [codeTouched, setCodeTouched] = useState(false)
   const [locale, setLocale] = useState<UiLocale>(ws.uiLocale)
   const [brandColor, setBrandColor] = useState(ws.brandColor ?? "")
   const [found, setFound] = useState<string[] | null>(null)
@@ -88,6 +96,33 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       }
     },
   })
+  /** A2: the reading pre-fills only EMPTY fields (the code only while nobody typed it), all still editable. */
+  const prefill = (out: OfferExtractOutput) => {
+    if (!canEdit) return
+    const b: BusinessSuggestion | undefined = out.business
+    const filled: Partial<Record<SiteKey, string>> = {}
+    const take = (key: SiteKey, empty: boolean, value: string | null | undefined, set: (v: string) => void) => {
+      if (!empty || !value) return
+      set(value)
+      filled[key] = value
+    }
+    take("name", DEFAULT_NAMES.has(name.trim()), out.name?.slice(0, 80), setName)
+    take("industry", !industry.trim(), b?.industry, setIndustry)
+    take("market", !market.trim(), b?.market, setMarket)
+    take("brandColor", !brandColor.trim(), b?.brandColor, setBrandColor)
+    take("result", goal === null, b?.resultType, (v) => setGoal(v as ResultType))
+    take("code", !codeTouched && (!ws.onboarding.completedAt || !CODE_RE.test(code)), b?.shortCode, setCode)
+    setFromSite(filled)
+  }
+  const prefillRef = useRef(prefill)
+  useEffect(() => {
+    prefillRef.current = prefill
+  })
+  const siteTag = (key: SiteKey, current: string | null) =>
+    fromSite[key] !== undefined && fromSite[key] === current ? (
+      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-ink">{t("business.fromSite")}</span>
+    ) : null
+
   // apply each finished reading once
   const applied = useRef<unknown>(null)
   const { result } = ex
@@ -95,6 +130,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   useEffect(() => {
     if (result && applied.current !== result) {
       applied.current = result
+      prefillRef.current(result)
       applyMutate({ out: result, url: normalizeUrl(site) })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs per reading, not per keystroke in the URL field
@@ -110,18 +146,20 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const codeOk = CODE_RE.test(code)
   const brandColorNorm = normalizeBrandColor(brandColor)
   const nameOk = name.trim().length > 0 && name.trim().length <= 80
+  const otherOk = goal !== "OTHER" || (resultOther.trim().length > 0 && resultOther.trim().length <= 80)
   const body = (): UpdateWorkspaceBody => ({
     name: name.trim(),
     websiteUrl: normalizeUrl(site) || null,
     industry: industry.trim() || null,
     market: market.trim() || null,
-    businessType: type,
+    resultType: goal,
+    resultTypeOther: goal === "OTHER" ? resultOther.trim() : null,
     shortCode: code,
     uiLocale: locale,
     // estatico-montado D3: sent only when it changed (an API without the field ignores nothing it didn't get)
     ...((brandColorNorm || null) !== (ws.brandColor ?? null) ? { brandColor: brandColorNorm || null } : {}),
   })
-  const valid = nameOk && codeOk && brandColorNorm !== null
+  const valid = nameOk && codeOk && brandColorNorm !== null && otherOk
   const go = (step: number, to: string) => (valid || !canEdit ? move.mutate({ body: canEdit ? body() : undefined, step, to }) : undefined)
 
   const mmdd = format.dateTime(new Date(), { month: "2-digit", day: "2-digit", timeZone: "UTC" }).replace(/\D/g, "").slice(0, 4)
@@ -138,7 +176,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       saving={move.isPending}
       onSaveExit={() => go(1, ctx.exitTo)}
       hintWarn={!valid}
-      hint={!valid ? t("business.fixFirst") : t("savedAsYouGo")}
+      hint={!valid ? t(otherOk ? "business.fixFirst" : "business.fixOther") : t("savedAsYouGo")}
       back={null}
       primary={
         <Button variant="brand" size="lg" disabled={move.isPending || (canEdit && !valid) || reading} onClick={() => go(ctx.nextStep(1), ctx.next(1))}>
@@ -208,15 +246,24 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       <Card title={t("business.details")}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3.5 tablet:grid-cols-2">
           <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor="ob-name">{t("business.name")}</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="ob-name">{t("business.name")}</Label>
+              {siteTag("name", name)}
+            </div>
             <Input id="ob-name" value={name} maxLength={80} disabled={!canEdit} aria-invalid={!nameOk} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor="ob-industry">{t("business.industry")}</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="ob-industry">{t("business.industry")}</Label>
+              {siteTag("industry", industry)}
+            </div>
             <Input id="ob-industry" value={industry} maxLength={80} disabled={!canEdit} onChange={(e) => setIndustry(e.target.value)} placeholder={t("business.industryPh")} />
           </div>
           <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor="ob-market">{t("business.market")}</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="ob-market">{t("business.market")}</Label>
+              {siteTag("market", market)}
+            </div>
             <Input id="ob-market" value={market} maxLength={80} disabled={!canEdit} onChange={(e) => setMarket(e.target.value)} placeholder={t("business.marketPh")} />
           </div>
           <div className="grid min-w-0 gap-1.5">
@@ -233,32 +280,53 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
           </div>
         </div>
 
-        <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} />
+        <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} badge={siteTag("brandColor", brandColor)} />
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className="mb-2 p-0 text-[13px] font-semibold">{t("business.typeLegend")}</legend>
-          <div className="flex flex-wrap gap-2">
-            {BUSINESS_TYPES.map((bt) => (
+          <legend className="mb-2 flex items-center gap-2 p-0 text-[13px] font-semibold">
+            {t("business.resultLegend")}
+            {siteTag("result", goal)}
+          </legend>
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-2 tablet:grid-cols-2">
+            {RESULT_TYPES.map((rt) => (
               <button
-                key={bt}
+                key={rt}
                 type="button"
-                aria-pressed={type === bt}
+                aria-pressed={goal === rt}
                 disabled={!canEdit}
-                onClick={() => setType(bt)}
+                onClick={() => setGoal(rt)}
                 className={cn(
-                  "inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-45",
-                  type === bt ? "border-fg bg-fg text-white" : "border-line-strong bg-card text-fg hover:border-fg"
+                  "flex min-h-11 min-w-0 flex-col items-start rounded-lg border px-3.5 py-2 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-45",
+                  goal === rt ? "border-fg bg-fg text-white" : "border-line-strong bg-card text-fg hover:border-fg"
                 )}
               >
-                {t(`businessType.${bt}`)}
+                <span className="font-semibold">{t(`resultType.${rt}.label`)}</span>
+                <span className={cn("text-xs", goal === rt ? "text-white/75" : "text-fg-3")}>{t(`resultType.${rt}.hint`)}</span>
               </button>
             ))}
           </div>
-          <span className="text-xs text-fg-3">{t("business.typeHint")}</span>
+          {goal === "OTHER" ? (
+            <div className="grid gap-1.5">
+              <Label htmlFor="ob-result-other">{t("business.resultOtherLabel")}</Label>
+              <Input
+                id="ob-result-other"
+                value={resultOther}
+                maxLength={80}
+                disabled={!canEdit}
+                aria-invalid={!otherOk}
+                onChange={(e) => setResultOther(e.target.value)}
+                placeholder={t("business.resultOtherPh")}
+              />
+            </div>
+          ) : null}
+          <span className="text-xs text-fg-3">{t("business.resultHint")}</span>
         </fieldset>
 
         <div className="grid gap-1.5 border-t border-line-soft pt-3.5">
-          <Label htmlFor="ob-code">{t("business.code")}</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="ob-code">{t("business.code")}</Label>
+            {siteTag("code", code)}
+          </div>
           <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
             <Input
               id="ob-code"
@@ -267,7 +335,10 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
               disabled={!canEdit}
               aria-invalid={!codeOk}
               aria-describedby="ob-code-hint"
-              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+              onChange={(e) => {
+                setCodeTouched(true)
+                setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+              }}
               className="w-full font-mono tablet:w-32"
             />
             <span className="min-w-0 truncate font-mono text-xs text-fg-2">

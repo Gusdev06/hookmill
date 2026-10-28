@@ -11,6 +11,7 @@ import { AppConfig } from '../config/app-config';
 import { META_SERVICE, type MetaService, compareAds, isEligible, isMetaError, medianCpaOf } from '../integracoes';
 import { JobsService } from '../jobs/jobs.service';
 import { presentJob } from '../jobs/job.presenter';
+import { legacyBusinessTypeOf } from '../workspaces/resultado';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertHealthy, assertSelected, assertUsable, isForeignToMode, markTokenInvalid, metaAuthOf, metricsOf, ownConnectionsWhere } from './comum';
 import { MetaConexaoService, storedHealthOf } from './conexao.service';
@@ -109,9 +110,9 @@ export class MetaSyncService {
     };
     try {
       assertSelected(assertUsable(c));
-      const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: c.workspaceId }, select: { businessType: true } });
+      const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: c.workspaceId }, select: { resultType: true } });
       stage('listing_ads', STAGE_PROGRESS.listing_ads);
-      const r = await this.meta.syncAds(metaAuthOf(c, this.config), { adAccountId: c.adAccountId!, currency: c.currency ?? 'USD', businessType: ws.businessType, hasPixel: !!c.pixelId }, (p) => {
+      const r = await this.meta.syncAds(metaAuthOf(c, this.config), { adAccountId: c.adAccountId!, currency: c.currency ?? 'USD', businessType: legacyBusinessTypeOf(ws.resultType), resultType: ws.resultType, hasPixel: !!c.pixelId }, (p) => {
         if (p.stage === 'reading_insights') stage('reading_insights', 10 + Math.round((p.total ? p.done / p.total : 1) * 80), { done: p.done, total: p.total });
         else stage(p.stage, STAGE_PROGRESS[p.stage] ?? 50, { done: p.done, total: p.total });
       });

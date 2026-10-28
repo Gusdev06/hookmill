@@ -23,12 +23,12 @@ import { MetaConexaoService, storedHealthOf } from './conexao.service';
 import { MetaEscritaService } from './escrita.service';
 import { POLICY_BLOCKED } from './campanhas.views';
 import type { MetaPublishDto } from './meta.dto';
+import { RESULT_PROFILE, pixelEventFor } from '../workspaces/resultado';
 
 const PUB_INCLUDE = { createdBy: { select: { id: true, name: true } } } satisfies Prisma.MetaPublicationInclude;
 type PubRow = Prisma.MetaPublicationGetPayload<{ include: typeof PUB_INCLUDE }>;
 
 const STAGE_PROGRESS: Record<string, number> = { uploading_video: 5, processing_video: 25, creating_campaign: 50, creating_adset: 65, creating_creative: 80, creating_ad: 92 };
-const OBJECTIVE_BY_TYPE: Record<string, MetaObjective> = { ONLINE_STORE: 'OUTCOME_SALES', LOCAL_BUSINESS: 'OUTCOME_LEADS', APP: 'OUTCOME_APP_PROMOTION' };
 const CTA_BY_OBJECTIVE: Record<MetaObjective, MetaCallToAction> = { OUTCOME_SALES: 'SHOP_NOW', OUTCOME_LEADS: 'SIGN_UP', OUTCOME_APP_PROMOTION: 'DOWNLOAD', OUTCOME_TRAFFIC: 'LEARN_MORE' };
 const NEEDS_PIXEL: MetaObjective[] = ['OUTCOME_SALES', 'OUTCOME_LEADS', 'OUTCOME_APP_PROMOTION'];
 
@@ -148,15 +148,18 @@ export class MetaPublicacaoService {
 
   /** Defaults pré-preenchidos (§2 MetaPublishDefaults). */
   defaults(c: Awaited<ReturnType<MetaPublicacaoService['creative']>>, conn: MetaConnection): MetaPublishDefaults {
-    const byType = c.workspace.businessType ? OBJECTIVE_BY_TYPE[c.workspace.businessType] : 'OUTCOME_TRAFFIC';
+    // resultado-v1 (28/10): objetivo e evento do pixel saem do resultType do cliente (workspaces/resultado.ts)
+    const rt = c.workspace.resultType;
+    const byType: MetaObjective = rt ? RESULT_PROFILE[rt].objective : 'OUTCOME_TRAFFIC';
     const noPixel = !conn.pixelId && NEEDS_PIXEL.includes(byType);
     const objective: MetaObjective = noPixel ? 'OUTCOME_TRAFFIC' : byType;
+    const pixelEvent = conn.pixelId ? pixelEventFor(objective, rt) : null;
     const health = storedHealthOf(conn.lastHealth);
     const firstSpeech = c.selectedScript ? blocksOf(c.selectedScript.blocks)[0]?.speech?.trim() : '';
     const settings = (c.editSettings ?? {}) as { headline?: string | null };
     const headline = (settings.headline?.trim() || c.offer.what?.trim() || null)?.slice(0, 40) ?? null;
     return {
-      objective, objectiveReason: noPixel ? 'no_pixel' : 'business_type',
+      objective, objectiveReason: noPixel ? 'no_pixel' : 'business_type', pixelEvent,
       countries: countriesOf(c.workspace.market), ageMin: 18, ageMax: 65,
       dailyBudgetMinor: health?._account?.minimumDailyBudgetMinor ?? null, currency: conn.currency,
       page: conn.pageId ? { id: conn.pageId, name: conn.pageName ?? conn.pageId } : null,
@@ -205,6 +208,8 @@ export class MetaPublicacaoService {
         headline: dto.headline?.trim() || null, description: dto.description?.trim() || null, callToAction: dto.callToAction, link: dto.link,
         specialAdCategories: dto.specialAdCategories ?? [], ageMin: dto.ageMin ?? 18, ageMax: dto.ageMax ?? 65,
         objectiveReason: dto.objective && dto.objective !== d.objective ? 'business_type' : d.objectiveReason,
+        // resultado-v1: o evento do resultType quando o objetivo é o dele; trocou o objetivo = evento padrão do objetivo
+        pixelEvent: fresh.pixelId ? pixelEventFor(objective, c.workspace.resultType) : null,
       };
       const { pub } = await this.prisma.$transaction(async (tx) => {
         const pub = await tx.metaPublication.create({

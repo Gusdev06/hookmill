@@ -101,7 +101,7 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     const role = (k: Who): 'OWNER' | 'ADMIN' | 'MEMBER' | 'CLIENT' => (k === 'owner' ? 'OWNER' : k === 'admin' ? 'ADMIN' : k === 'member' ? 'MEMBER' : 'CLIENT');
     w1 = (await prisma.workspace.create({
       data: {
-        name: `${PREFIX}loja`, shortCode: 'MC', businessType: 'ONLINE_STORE', market: 'United States', websiteUrl: 'https://example.com', onboardingStep: 6, onboardingCompletedAt: new Date(),
+        name: `${PREFIX}loja`, shortCode: 'MC', businessType: 'ONLINE_STORE', resultType: 'PURCHASE', market: 'United States', websiteUrl: 'https://example.com', onboardingStep: 6, onboardingCompletedAt: new Date(),
         memberships: { create: (['owner', 'admin', 'member', 'client'] as Who[]).map((k) => ({ userId: users[k].id, role: role(k), tourCompletedAt: new Date() })) },
       },
     })).id;
@@ -368,8 +368,21 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     expect(r.status).toBe(200);
     expect(r.data).toMatchObject({
       publication: null, history: [], connection: { status: 'ACTIVE', canPublish: true },
-      defaults: { objective: 'OUTCOME_SALES', objectiveReason: 'business_type', countries: ['US'], ageMin: 18, ageMax: 65, dailyBudgetMinor: 500, currency: 'USD', page: { id: 'page_mock' }, pixel: { id: 'pix_mock' }, name: `MC_NEW_1021_A_${RUN}`, callToAction: 'SHOP_NOW', link: 'https://example.com/sheets', primaryText: 'Sleep cooler', headline: 'Bamboo sheets' },
+      defaults: { objective: 'OUTCOME_SALES', objectiveReason: 'business_type', pixelEvent: 'PURCHASE', countries: ['US'], ageMin: 18, ageMax: 65, dailyBudgetMinor: 500, currency: 'USD', page: { id: 'page_mock' }, pixel: { id: 'pix_mock' }, name: `MC_NEW_1021_A_${RUN}`, callToAction: 'SHOP_NOW', link: 'https://example.com/sheets', primaryText: 'Sleep cooler', headline: 'Bamboo sheets' },
     });
+  });
+
+  it('resultado-v1: o resultType do cliente decide objetivo e evento do pixel (APPOINTMENT → LEADS/SCHEDULE, MESSAGE → TRAFFIC)', async () => {
+    try {
+      await prisma.workspace.update({ where: { id: w1 }, data: { resultType: 'APPOINTMENT', businessType: 'LOCAL_BUSINESS' } });
+      const a = await call('GET', `/creatives/${creativeId}/meta`, users.member.token);
+      expect(a.data.defaults).toMatchObject({ objective: 'OUTCOME_LEADS', pixelEvent: 'SCHEDULE', callToAction: 'SIGN_UP' });
+      await prisma.workspace.update({ where: { id: w1 }, data: { resultType: 'MESSAGE' } });
+      const m = await call('GET', `/creatives/${creativeId}/meta`, users.member.token);
+      expect(m.data.defaults).toMatchObject({ objective: 'OUTCOME_TRAFFIC', pixelEvent: null, callToAction: 'LEARN_MORE' });
+    } finally {
+      await prisma.workspace.update({ where: { id: w1 }, data: { resultType: 'PURCHASE', businessType: 'ONLINE_STORE' } });
+    }
   });
 
   it('publish: 422 META_BUDGET_TOO_LOW / META_PIXEL_REQUIRED, 403 CLIENT, 409 not_approved; job falha em creating_creative com META_POLICY (ids anteriores gravados)', async () => {
@@ -393,7 +406,7 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
 
     const r = await call('POST', `/creatives/${creativeId}/meta/publish`, users.member.token, { ...body, primaryText: 'Sleep cooler [mock:meta-policy]' });
     expect(r.status).toBe(202);
-    expect(r.data).toMatchObject({ status: 'PUBLISHING', creativeId, adAccountId: 'act_mock_1', job: { type: 'META_PUBLISH' }, settings: { objective: 'OUTCOME_SALES', dailyBudgetMinor: 1000, specialAdCategories: [], ageMin: 18, ageMax: 65 } });
+    expect(r.data).toMatchObject({ status: 'PUBLISHING', creativeId, adAccountId: 'act_mock_1', job: { type: 'META_PUBLISH' }, settings: { objective: 'OUTCOME_SALES', pixelEvent: 'PURCHASE', dailyBudgetMinor: 1000, specialAdCategories: [], ageMin: 18, ageMax: 65 } });
     expect((await call('POST', `/creatives/${creativeId}/meta/publish`, users.member.token, body)).error?.details).toMatchObject({ reason: 'publish_in_progress' });
     const failed = await until(() => call('GET', `/creatives/${creativeId}/meta`, users.member.token), (x) => x.data?.publication?.status !== 'PUBLISHING');
     expect(failed.data.publication).toMatchObject({ status: 'FAILED', errorCode: 'META_POLICY', action: 'edit_ad_text', ids: { videoId: expect.any(String), campaignId: expect.any(String), adsetId: expect.any(String), creativeId: null, adId: null } });

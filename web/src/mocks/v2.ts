@@ -16,6 +16,7 @@ import type {
 export interface WsState {
   id: string; name: string; shortCode: string; status: ClientStatus
   onboarding: { step: OnboardingStep; totalSteps: 6; completedAt: string | null }
+  resultType: Workspace["resultType"]; resultTypeOther: string | null
   businessType: Workspace["businessType"]; defaultResult: Workspace["defaultResult"]; industry: string | null; market: string | null; websiteUrl: string | null
   monthlySpendCapUsd: number | null; uiLocale: "EN" | "PT_BR"
   updatedBy: UserRef | null; updatedAt: string | null
@@ -56,8 +57,8 @@ export function seedV2(): V2State {
     accountMode: "AGENCY",
     newAccountMode: null,
     ws: {
-      ws_mooncloth: ws("ws_mooncloth", "Mooncloth", "MC", 3, { businessType: "ONLINE_STORE", defaultResult: "PURCHASES", industry: "Sleep products", market: "United States", websiteUrl: "https://mooncloth.com", updatedBy: TORDAN, updatedAt: iso(now - 40 * 60_000) }),
-      ws_northpeak: ws("ws_northpeak", "Northpeak Dental", "NP", 2, { businessType: "LOCAL_BUSINESS", defaultResult: "LEADS", industry: "Dental clinic", market: "Canada", updatedBy: TORDAN, updatedAt: iso(now - 3 * 3_600_000) }),
+      ws_mooncloth: ws("ws_mooncloth", "Mooncloth", "MC", 3, { resultType: "PURCHASE", businessType: "ONLINE_STORE", defaultResult: "PURCHASES", industry: "Sleep products", market: "United States", websiteUrl: "https://mooncloth.com", updatedBy: TORDAN, updatedAt: iso(now - 40 * 60_000) }),
+      ws_northpeak: ws("ws_northpeak", "Northpeak Dental", "NP", 2, { resultType: "APPOINTMENT", businessType: "LOCAL_BUSINESS", defaultResult: "APPOINTMENTS", industry: "Dental clinic", market: "Canada", updatedBy: TORDAN, updatedAt: iso(now - 3 * 3_600_000) }),
     },
     // backfill D4: everyone who already uses the app has the tour done in ws_1; the other workspaces have it pending
     tour: { ws_1: "2026-10-05T12:00:00.000Z" },
@@ -68,7 +69,7 @@ export function seedV2(): V2State {
 function ws(id: string, name: string, shortCode: string, step: OnboardingStep, extra: Partial<WsState> = {}): WsState {
   return {
     id, name, shortCode, status: "SETUP", onboarding: { step, totalSteps: 6, completedAt: null },
-    businessType: null, defaultResult: null, industry: null, market: null, websiteUrl: null, monthlySpendCapUsd: null, uiLocale: "EN",
+    resultType: null, resultTypeOther: null, businessType: null, defaultResult: null, industry: null, market: null, websiteUrl: null, monthlySpendCapUsd: null, uiLocale: "EN",
     updatedBy: null, updatedAt: null, ...extra,
   }
 }
@@ -80,10 +81,10 @@ export function newWs(id: string, name: string): WsState {
 // ───────────── onboarding steps (contract §2) ─────────────
 const KEYS: OnboardingStepInfo["key"][] = ["business", "meta", "offer", "audience", "goals", "brain"]
 const DEFAULT_NAMES = new Set(["Workspace", "New client", ""])
-export function onboardingSteps(w: { name: string; businessType: unknown; monthlySpendCapUsd: number | null; onboarding: { step: number; completedAt: string | null } }, offers: Offer[], meta: MetaState | null, metaOff: boolean): OnboardingStepInfo[] {
+export function onboardingSteps(w: { name: string; resultType: unknown; monthlySpendCapUsd: number | null; onboarding: { step: number; completedAt: string | null } }, offers: Offer[], meta: MetaState | null, metaOff: boolean): OnboardingStepInfo[] {
   const active = offers
   const done: Record<OnboardingStepInfo["key"], boolean> = {
-    business: w.businessType != null && !DEFAULT_NAMES.has(w.name),
+    business: w.resultType != null && !DEFAULT_NAMES.has(w.name),
     meta: !!meta && meta.status === "ACTIVE" && !!meta.adAccountId && !!meta.pageId,
     offer: active.some((o) => !!o.what && !!o.promise),
     audience: active.some((o) => !!o.audience),

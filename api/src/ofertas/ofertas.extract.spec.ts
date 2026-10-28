@@ -20,6 +20,30 @@ function service(stage = jest.fn(), finish = jest.fn()) {
   return { svc, stage, finish, prisma };
 }
 
+describe('extractOutput: sugestões do negócio (resultado-v1, A2/A3)', () => {
+  it('ramo, mercado, cor, resultado e prefixo sem colidir com outro cliente', () => {
+    const { svc } = service();
+    const out = svc.extractOutput(
+      draft({ name: 'Heirloom Jar', business: { industry: 'Faith gifts', market: 'United States', resultType: 'PURCHASE' }, brandColor: { hex: '#E4572E', source: 'cta' } }),
+      { url: 'https://x.com/' }, new Set(['HJ']),
+    );
+    expect(out.business).toEqual({ industry: 'Faith gifts', market: 'United States', brandColor: '#E4572E', brandColorSource: 'cta', resultType: 'PURCHASE', shortCode: 'HEI' });
+  });
+  it('porta antiga (sem business/brandColor): tudo null menos o prefixo, que sai do nome', () => {
+    const { svc } = service();
+    expect(svc.extractOutput(draft(), { url: 'https://x.com/' }).business).toEqual({ industry: null, market: null, brandColor: null, brandColorSource: null, resultType: null, shortCode: 'OR' });
+  });
+  it('takenShortCodes: shortCodes dos outros workspaces dos membros deste', async () => {
+    const prisma = {
+      membership: { findMany: jest.fn().mockResolvedValue([{ userId: 'u1' }, { userId: 'u2' }]) },
+      workspace: { findMany: jest.fn().mockResolvedValue([{ shortCode: 'HJ' }, { shortCode: 'MC' }]) },
+    };
+    const svc = new OfertasService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+    expect([...(await svc.takenShortCodes('w1'))]).toEqual(['HJ', 'MC']);
+    expect(prisma.workspace.findMany).toHaveBeenCalledWith({ where: { id: { not: 'w1' }, memberships: { some: { userId: { in: ['u1', 'u2'] } } } }, select: { shortCode: true } });
+  });
+});
+
 describe('extractOutput (§4.2)', () => {
   it('porta antiga (só briefing + costUsd): url → readMode http, 1 página main, fieldSources page, readMeta pronto', () => {
     const { svc } = service();

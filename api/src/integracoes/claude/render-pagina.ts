@@ -19,6 +19,7 @@ import type { Browser, HTTPRequest, Page } from 'puppeteer-core';
 import { acharNavegador } from '../../common/util/navegador';
 import { IntegracaoError } from '../erros';
 import { isPrivateIp } from './pagina';
+import { pickCtaColor } from './cor-marca';
 
 export interface RenderedLink { href: string; text: string; cta?: boolean }
 /** `<img>` da página com tamanho natural (candidata da camada d). */
@@ -41,6 +42,8 @@ export interface RenderedPage {
   video: { firstScreen: boolean; poster: string | null; ogImage: string | null };
   /** `<input type=password>` visível (muro de login) */
   passwordVisible: boolean;
+  /** resultado-v1: cor de destaque dos CTAs (`#RRGGBB`, computed style); null = nenhum CTA com cor */
+  ctaColor?: string | null;
   /** telas 390×844 @2x já redimensionadas (lado maior ≤ 1 568), JPEG base64 — só com `screens > 0` */
   screens?: RenderedShot[];
   /** print da página inteira (só com `screenshot: true`) */
@@ -255,6 +258,19 @@ export async function readDom(s: PageSession, opts: { maxChars?: number } = {}):
       const yt = /(?:youtube(?:-nocookie)?\.com\/embed\/|youtu\.be\/)([\w-]{6,})/i.exec(src)?.[1];
       if (yt) { poster = `https://img.youtube.com/vi/${yt}/hqdefault.jpg`; break; }
     }
+    // resultado-v1 (A2): fundo dos CTAs como o navegador pintou (cor de destaque da marca; o Node escolhe em cor-marca.ts)
+    const ctaColors: { color: string; area: number }[] = [];
+    const ctaSel = 'button, [role="button"], input[type="submit"], input[type="button"], a[class*="btn" i], a[class*="button" i], a[class*="cta" i]';
+    for (const el of document.querySelectorAll(ctaSel)) {
+      if (ctaColors.length >= 40) break;
+      if (!visible(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 60 || r.height < 24) continue;
+      const st = getComputedStyle(el);
+      const grad = /rgba?\([^)]+\)/.exec(st.backgroundImage || '')?.[0];
+      const color = grad ?? st.backgroundColor;
+      if (color) ctaColors.push({ color, area: Math.round(r.width * r.height) });
+    }
     const passwordVisible = [...document.querySelectorAll('input[type="password"]')].some(visible);
     return {
       title: document.title || null,
@@ -262,7 +278,7 @@ export async function readDom(s: PageSession, opts: { maxChars?: number } = {}):
       text: document.body?.innerText ?? '',
       alts, noscript, links, images: topImages, bigImgs,
       video: { firstScreen, poster, ogImage: meta('meta[property="og:image"]') },
-      passwordVisible,
+      passwordVisible, ctaColors,
     };
   }, MAX_LINKS, MAX_IMAGES, CSS_H);
 
@@ -290,6 +306,7 @@ export async function readDom(s: PageSession, opts: { maxChars?: number } = {}):
     images: info.images, bigImgs: info.bigImgs,
     video: { firstScreen: info.video.firstScreen, poster: abs(info.video.poster), ogImage: abs(info.video.ogImage) },
     passwordVisible: info.passwordVisible,
+    ctaColor: pickCtaColor(info.ctaColors ?? []),
   };
 }
 

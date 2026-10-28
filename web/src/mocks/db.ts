@@ -700,8 +700,20 @@ function extractOutput(j: MJob): OfferExtractOutput {
         costUsd: 0.1,
         relatedUrls: [`${base}/checkout`, `${base}/pricing`],
       }
+  // resultado-v1 (A2/A3): suggestions for step 1 (pasted text has no DOM, so no color)
+  const suggestion = (name: string): OfferExtractOutput["business"] => {
+    const words = name.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean)
+    const initials = words.map((w) => w[0]).join("").slice(0, 6)
+    return {
+      industry: "Digital product", market: "United States",
+      brandColor: j.pageText ? null : "#E4572E", brandColorSource: j.pageText ? null : "cta",
+      resultType: /lead|clinic|dental/i.test(host) ? "LEAD" : "PURCHASE",
+      shortCode: initials.length >= 2 ? initials : words.join("").slice(0, 2) || null,
+    }
+  }
   if (known) {
     return {
+      business: suggestion(known.name),
       name: known.name, language: known.language, sourceUrl: known.sourceUrl,
       brief: { kind: known.kind, what: known.what, audience: known.audience, promise: j.offerId ? known.promise?.replace(/\.$/, ", without a spreadsheet.") ?? null : known.promise, pains: known.pains, proof: known.proof, offerAndPrice: known.offerAndPrice, cta: known.cta, notes: known.notes },
       fieldSources: fromPage,
@@ -710,6 +722,7 @@ function extractOutput(j: MJob): OfferExtractOutput {
   }
   const name = host ? host.replace(/^www\./, "").split(".")[0].replace(/[-_]/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : "New offer"
   return {
+    business: suggestion(name),
     name, language: "en", sourceUrl: j.url ?? null,
     brief: {
       kind: "Digital product",

@@ -14,6 +14,7 @@ import { signState, verifyState } from './estado';
 import { buildHealth } from './saude';
 import { objectUrl as liveObjectUrl } from './campanhas';
 import { scoreAllAds } from './vencedor';
+import { resultActionTypes } from './leitura';
 
 export const MOCK_GRAPH_VERSION = 'v25.0';
 export const MOCK_MIN_DAILY_BUDGET_MINOR = 500;
@@ -202,7 +203,8 @@ export function mockStructure(ads: Omit<MetaAdSnapshotDraft, 'verdict' | 'trend'
   return { campaigns, adsets };
 }
 
-export function resultTypeFor(businessType: MetaSyncInput['businessType'], hasPixel: boolean): string {
+export function resultTypeFor(businessType: MetaSyncInput['businessType'], hasPixel: boolean, resultType?: MetaSyncInput['resultType']): string {
+  if (resultType) return resultActionTypes(businessType, hasPixel, resultType).primary;
   if (!hasPixel) return 'link_click';
   if (businessType === 'ONLINE_STORE') return 'omni_purchase';
   if (businessType === 'LOCAL_BUSINESS') return 'lead';
@@ -329,7 +331,7 @@ export class FakeMetaService implements MetaService {
     this.assertToken(auth);
     this.findAccount(i.adAccountId);
     const now = i.now ?? this.now();
-    const resultType = resultTypeFor(i.businessType, i.hasPixel);
+    const resultType = resultTypeFor(i.businessType, i.hasPixel, i.resultType);
     const st = this.scope(auth, i.adAccountId);
     const raw = mockAds(this.opts.publicApiUrl, { resultType, now, state: st });
     const { campaigns, adsets } = mockStructure(raw, { resultType, now, state: st });

@@ -4,9 +4,38 @@ import type { AuthSession, Role, UserRef } from './index';
 import type { OnboardingStepInfo } from './onboarding-v2';
 
 // ───────────────────────── cliente (workspace) ─────────────────────────
+/**
+ * @deprecated resultado-v1 (28/10): substituído por `ResultType`. Continua na resposta (derivado do `resultType`, pra quem ainda lê)
+ * e na entrada (`businessType` sem `resultType` migra: ONLINE_STORE → PURCHASE, LOCAL_BUSINESS → LEAD, APP → APP_INSTALL).
+ */
 export type BusinessType = 'ONLINE_STORE' | 'LOCAL_BUSINESS' | 'APP';
-/** Derivado de BusinessType: ONLINE_STORE → PURCHASES, LOCAL_BUSINESS → LEADS, APP → INSTALLS. Não é salvo. */
-export type DefaultResult = 'PURCHASES' | 'LEADS' | 'INSTALLS';
+/**
+ * resultado-v1 (28/10, teste manual A3): "What counts as a result?". Fonte da verdade do resultado do cliente; decide o
+ * objetivo e o evento de otimização da Meta na publicação e o que o sync conta como resultado (tabela em fase2-agencia.md §1.1).
+ * OTHER exige `resultTypeOther` (texto livre ≤ 80).
+ */
+export type ResultType = 'PURCHASE' | 'LEAD' | 'MESSAGE' | 'APPOINTMENT' | 'SIGNUP' | 'SUBSCRIPTION' | 'APP_INSTALL' | 'OTHER';
+/** Derivado de ResultType (não é salvo): PURCHASE → PURCHASES, LEAD → LEADS, MESSAGE → MESSAGES, APPOINTMENT → APPOINTMENTS,
+ *  SIGNUP → SIGNUPS, SUBSCRIPTION → SUBSCRIPTIONS, APP_INSTALL → INSTALLS, OTHER → RESULTS. */
+export type DefaultResult = 'PURCHASES' | 'LEADS' | 'INSTALLS' | 'MESSAGES' | 'APPOINTMENTS' | 'SIGNUPS' | 'SUBSCRIPTIONS' | 'RESULTS';
+/**
+ * resultado-v1 (28/10, A2): o que a leitura do site sugere pro passo 1 (OfferExtractOutput.business). Tudo sugestão: o web
+ * pré-preenche só campo VAZIO e o usuário edita. null = a leitura não achou.
+ */
+export interface BusinessSuggestion {
+  /** ramo curto, 1-4 palavras, no idioma da página (ex.: "Skincare", "Clínica odontológica") */
+  industry: string | null;
+  /** país/região principal (ex.: "United States", "Brasil"); só quando a página deixa claro */
+  market: string | null;
+  /** cor de destaque `#RRGGBB` lida do DOM renderizado (fundo dos CTAs) ou do `<meta name=theme-color>`; nunca chutada */
+  brandColor: string | null;
+  /** de onde saiu a cor: 'cta' (computed style dos botões) | 'theme_color' (meta) | null */
+  brandColorSource: 'cta' | 'theme_color' | null;
+  /** resultado sugerido pela leitura */
+  resultType: ResultType | null;
+  /** 2-6 [A-Z0-9] a partir do nome, sem repetir o shortCode de outro cliente dos membros deste workspace */
+  shortCode: string | null;
+}
 /** Derivado: pausedAt → PAUSED; senão onboardingCompletedAt → LIVE; senão SETUP. */
 export type ClientStatus = 'SETUP' | 'LIVE' | 'PAUSED';
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
@@ -53,6 +82,8 @@ export interface ClientCard {
   isActive: boolean;
   status: ClientStatus; onboarding: Onboarding;
   industry: string | null; businessType: BusinessType | null; websiteUrl: string | null;
+  /** resultado-v1 (28/10) */
+  resultType: ResultType | null;
   waitingOnYou: WaitingOnYou;
   updatedAt: string;
 }
@@ -69,7 +100,12 @@ export interface CreateClientBody {
   /** 2-6 [A-Z0-9]; sem = derivado do nome */
   shortCode?: string;
   uiLocale?: 'EN' | 'PT_BR';
-  websiteUrl?: string; industry?: string; market?: string; businessType?: BusinessType;
+  websiteUrl?: string; industry?: string; market?: string;
+  /** resultado-v1: OTHER exige `resultTypeOther` */
+  resultType?: ResultType; resultTypeOther?: string;
+  /** @deprecated use `resultType` (migra pelo mapa do BusinessType; ignorado se vier `resultType`) */
+  businessType?: BusinessType;
+  brandColor?: string;
   /** padrão true: OWNER/ADMIN do workspace ativo entram com o mesmo papel (D3) */
   copyTeam?: boolean;
 }
@@ -88,6 +124,7 @@ export interface CreativeDownload {
 }
 
 // ───────────────────────── §5 Brain v0 (sem rota; cálculo em web/src/lib/brain.ts) ─────────────────────────
+/** `businessType` = o resultado do cliente (`resultType != null`); a chave ficou pelo mapa do Brain no web. */
 export type BrainItem =
   | 'businessType' | 'industry' | 'market' | 'offer'
   | 'what' | 'promise' | 'offerAndPrice' | 'cta' | 'audience' | 'pains' | 'proof' | 'notes'

@@ -1,10 +1,11 @@
 import type {
-  BusinessType, CreateClientBody, CreateInviteBody, OnboardingStep, Role, UpdateMemberBody, UpdateWorkspaceBody,
+  BusinessType, CreateClientBody, ResultType, CreateInviteBody, OnboardingStep, Role, UpdateMemberBody, UpdateWorkspaceBody,
 } from '@maquina/contratos';
 import {
   IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength, ValidateIf,
 } from 'class-validator';
 import { SHORT_CODE_RE } from '../cliente';
+import { RESULT_OTHER_MAX, RESULT_TYPES } from '../resultado';
 
 const BUSINESS_TYPES: BusinessType[] = ['ONLINE_STORE', 'LOCAL_BUSINESS', 'APP'];
 const URL_OPTS = { protocols: ['http', 'https'], require_protocol: true };
@@ -23,6 +24,10 @@ export class UpdateWorkspaceDto implements UpdateWorkspaceBody {
   /** null limpa */
   @IsOptional() @IsString() @MaxLength(80) industry?: string | null;
   @IsOptional() @IsString() @MaxLength(80) market?: string | null;
+  /** resultado-v1 (28/10): null limpa; OTHER exige resultTypeOther (conferido no service, no estado final) */
+  @IsOptional() @IsIn(RESULT_TYPES) resultType?: ResultType | null;
+  @IsOptional() @IsString() @MaxLength(RESULT_OTHER_MAX) resultTypeOther?: string | null;
+  /** @deprecated: sem resultType no corpo, migra pelo RESULT_FROM_LEGACY */
   @IsOptional() @IsIn(BUSINESS_TYPES) businessType?: BusinessType | null;
   @IsOptional() @IsUrl(URL_OPTS) @MaxLength(2048) websiteUrl?: string | null;
   /** 25/10 (estatico-montado-e-molduras-v1 D3): `#RGB`/`#RRGGBB` (o service normaliza pra 6 dígitos maiúsculos); null limpa */
@@ -39,7 +44,11 @@ export class CreateClientDto implements CreateClientBody {
   @IsOptional() @IsUrl(URL_OPTS) @MaxLength(2048) websiteUrl?: string;
   @IsOptional() @IsString() @MaxLength(80) industry?: string;
   @IsOptional() @IsString() @MaxLength(80) market?: string;
+  @IsOptional() @IsIn(RESULT_TYPES) resultType?: ResultType;
+  @IsOptional() @IsString() @MaxLength(RESULT_OTHER_MAX) resultTypeOther?: string;
+  /** @deprecated */
   @IsOptional() @IsIn(BUSINESS_TYPES) businessType?: BusinessType;
+  @IsOptional() @IsString() @Matches(BRAND_COLOR_RE, { message: 'brandColor must be #RGB or #RRGGBB' }) brandColor?: string;
   /** padrão true (D3) */
   @IsOptional() @IsBoolean() copyTeam?: boolean;
 }
