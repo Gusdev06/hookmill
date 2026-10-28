@@ -538,3 +538,8 @@ Todo gasto real (render Lambda de teste, troca real, sonda) é pedido antes, com
 | D7 | Preparo (rostos + roteiro) conta como crédito | não |
 | D8 | Retry de etapa de IA | grátis até 2 por peça |
 | D9 | **Preço / créditos** | segue aberto; o contrato guarda US$ e `credits: null` |
+
+## Decisões do Gusta (28/10)
+- D1/D2 sim (protótipo, só 9:16) · D3 fora + "Add back" · D4 respostas salvas pré-marcadas · D5 limite em US$.
+- **D6 (substitui a recomendação "Pruna padrão, Kling opção"):** o motor não é escolha do usuário. A análise classifica o campeão: **talking head/podcast (pouco movimento) → Pruna (lipsync)**; qualquer outro → **Kling 3.0**. O Pruna só aparece disponível quando a classificação for talking head/podcast. Fluxo: **gera as imagens primeiro** (rosto/cena de cada take) e o usuário **aprova take a take** antes de qualquer vídeo.
+- **D7/D8 (substitui "preparo não conta; retry grátis até 2"):** "o combo todo" = o crédito cobre o formato inteiro (preparo, imagens, vídeo e refações) numa cobrança só. O custo interno segue gravado por etapa em US$ pro teto e pra medir margem. Ainda é preciso definir um teto interno de refações pra não estourar a margem: propor no F3.
