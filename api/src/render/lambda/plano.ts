@@ -11,16 +11,20 @@ import {
   propsDeFrameInput,
   propsDeRemixInput,
   propsDeRenderInput,
+  propsDeTemplateInput,
+  TEMPLATE_COMPOSITION_ID,
 } from '@maquina/video';
 import {
   RenderError,
   isAutoEdit,
   isFrame,
   isRemixKeep,
+  isTemplate,
   kindDe,
   type AutoEditRenderInput,
   type FrameRenderInput,
   type RemixKeepRenderInput,
+  type TemplateRenderInput,
   type RenderInput,
   type RenderKind,
 } from '../contrato';
@@ -72,6 +76,17 @@ export async function montarPlano(input: RenderInput, o: { ffmpeg: string; aviso
     };
   }
 
+  // iterate-v2 F1.4: template grátis (composição `Template`), mesma codificação do local; chat-dm não baixa mídia, o
+  // person-motion usa a URL assinada do campeão (passa pela checagem de mídia do submit como a 2ª fonte da moldura).
+  if (isTemplate(input)) {
+    let props: Record<string, unknown>;
+    try { props = propsDeTemplateInput(input as never) as unknown as Record<string, unknown>; } catch (e) { throw entradaInvalida(e); }
+    return {
+      kind, compositionId: TEMPLATE_COMPOSITION_ID, props, arquivoBaixado: 'video.mp4',
+      codificacao: { ...base, imageFormat: RENDER_PADRAO.imageFormat, jpegQuality: 90, audioCodec: 'aac', muted: false },
+    };
+  }
+
   if (isAutoEdit(input)) {
     let props: Record<string, unknown>;
     try { props = propsDeAutoEditInput(input as never) as unknown as Record<string, unknown>; } catch (e) { throw entradaInvalida(e); }
@@ -107,7 +122,7 @@ export async function montarPlano(input: RenderInput, o: { ffmpeg: string; aviso
 
   let props: Record<string, unknown>;
   try {
-    props = propsDeRenderInput(input as Exclude<RenderInput, RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput>) as unknown as Record<string, unknown>;
+    props = propsDeRenderInput(input as Exclude<RenderInput, RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput | TemplateRenderInput>) as unknown as Record<string, unknown>;
   } catch (e) { throw entradaInvalida(e); }
   return { kind, compositionId: COMPOSITION_ID, props, arquivoBaixado: 'video.mp4', codificacao: { ...base, imageFormat: RENDER_PADRAO.imageFormat } };
 }

@@ -1,3 +1,4 @@
+import { TEMPLATE_TYPES, templatesLigados } from './templates-plano';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Interval } from '@nestjs/schedule';
@@ -85,7 +86,8 @@ export class IteracaoService {
     return {
       maxBytes: this.cfg.uploadMaxBytes, minSec: this.cfg.championMinSec, maxSec: this.cfg.championMaxSec, mimeTypes: [...CHAMPION_MIME_TYPES],
       analysisUsdPerSec: Math.round((typical / 30) * 10_000) / 10_000, analysisTypicalUsd: typical,
-      types: [...AUTO_TYPES_NOVOS] as AutoVariationType[], metaConnected: false, offers, defaultOfferId,
+      // iterate-v2 F1.7: os 2 templates grátis só com ITERATE_TEMPLATES=on (padrão off até o QA passar)
+      types: [...AUTO_TYPES_NOVOS, ...(templatesLigados() ? TEMPLATE_TYPES : [])] as AutoVariationType[], metaConnected: false, offers, defaultOfferId,
       staticImageUsd: this.pecas.staticImageUsd(), // rev. 23/10 §14.4
       recentWinners: await this.recentWinners(auth),
     };

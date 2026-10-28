@@ -33,7 +33,7 @@ const o = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' &
 /** Item cru do plano que precisa da 2ª etapa. `live` não tem texto: dispensa. */
 export interface DetailTarget {
   index: number;
-  kind: 'STATIC' | 'FRAME';
+  kind: 'STATIC' | 'FRAME' | 'CHAT_DM' | 'PERSON_MOTION';
   whyKey: string; change: string; rationale: string;
   concept: string; emotion: StaticEmotion | null; template: FrameTemplateId | null;
 }
@@ -50,6 +50,9 @@ export function detailTargets(root: Record<string, unknown>, allowedFrames: Fram
     } else if (type === 'FRAME') {
       const template = FRAME_TEMPLATES.find((t) => t === s(p.template)) ?? null;
       if (template && template !== 'live' && allowedFrames.includes(template)) out.push({ ...base, kind: 'FRAME', concept: '', emotion: null, template });
+    } else if (type === 'CHAT_DM' || type === 'PERSON_MOTION') {
+      // iterate-v2 F1.2: o roteiro do template sai na 2ª etapa (1 chamada por template)
+      out.push({ ...base, kind: type, concept: '', emotion: null, template: null });
     }
   });
   return out;
@@ -130,6 +133,8 @@ export function mergeDetails(root: Record<string, unknown>, targets: DetailTarge
     if (t.kind === 'STATIC') {
       p.copy = d.copy;
       p.visualV2 = d.visualV2;
+    } else if (t.kind === 'CHAT_DM' || t.kind === 'PERSON_MOTION') {
+      p.template = d.template;
     } else {
       p.frame = d.frame;
     }

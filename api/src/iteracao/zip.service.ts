@@ -17,7 +17,7 @@ import { AppException } from '../common/errors/app-exception';
 import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ALL_FORMATS, autoFileName, latestByFormat, paramsOf, pieceStatus, suggestedPrimaryTextOf } from '../edicao/pecas';
-import { ZIP_TTL_MS, creditoDoBroll, folderFor, readmeFor, zipFileName, zipFolders, zipKeyOf, type ZipLocale } from './zip';
+import { ZIP_TTL_MS, creditoDoBroll, folderFor, notaDoTemplate, readmeFor, zipFileName, zipFolders, zipKeyOf, type ZipLocale } from './zip';
 
 interface ZipEntry {
   pieceId: string; axis: VariationAxis; change: string;
@@ -25,6 +25,8 @@ interface ZipEntry {
   primaryText: string | null;
   /** §B3.1: proveniência do b-roll da 2ª fonte (molduras de 2 fontes) */
   provenance: (BrollProvenance | GeneratedProvenance)[];
+  /** iterate-v2 F1.8: tipo da peça (a nota do template no README) */
+  autoType: string | null;
   files: { name: string; format: VideoFormat; file: FileRow }[];
 }
 
@@ -69,6 +71,7 @@ export class ZipService {
           pieceId: i.id, axis: (i.axis ?? 'ITERATION') as VariationAxis, change: i.change ?? '', files,
           primaryText: i.autoType === 'FRAME' ? suggestedPrimaryTextOf(paramsOf(i.payload)) : null, // D14
           provenance: i.autoType === 'FRAME' ? proveniencias(paramsOf(i.payload)?.second) : [], // §B3.1 (1 clipe, trilha ou imagem gerada)
+          autoType: i.autoType ?? null,
         });
       }
     }
@@ -155,7 +158,7 @@ export class ZipService {
             await this.jobs.stage(jobId, 'zipping', Math.min(95, Math.round((n / total) * 90)));
           }
         }
-        const lines = list.flatMap((e) => e.files.map((f) => ({ file: f.name, change: e.change, primaryText: e.primaryText, credit: e.provenance.map((p) => creditoDoBroll(p, locale)).filter((c): c is string => !!c) })));
+        const lines = list.flatMap((e) => e.files.map((f) => ({ file: f.name, change: e.change, primaryText: e.primaryText, credit: e.provenance.map((p) => creditoDoBroll(p, locale)).filter((c): c is string => !!c), note: notaDoTemplate(e.autoType, locale) })));
         archive.append(readmeFor(axis, lines, locale), { name: `${folder}/README.txt` });
       }
       await archive.finalize();

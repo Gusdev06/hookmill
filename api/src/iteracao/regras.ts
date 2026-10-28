@@ -12,13 +12,14 @@ import type {
 } from '@maquina/contratos';
 import type {
   AutoFrameDraft, AutoItemDraft, AutoParamsDraft, AutoPlanDraft, CopySource, FrameBrand, FrameSpec, StaticCopy,
-  StaticIcon, StaticVisualDraft, StaticVisualV2,
+  StaticIcon, StaticVisualDraft, StaticVisualV2, TemplateSpec,
 } from '../integracoes';
 import { inventedClaimsIn } from './afirmacoes';
 import type { HeadlineBlocked, HeadlineInfo } from './headline-plano';
 import type { CaptionGuard } from './legenda-protegida';
 import { DEFAULT_ACCENT } from './paleta';
 import type { MediaRulesPort, Span } from './portas';
+import { templateCode, templateRules, templateSpecOf, templateViolations, type TemplateCtx } from './templates-plano';
 
 // ───────── catálogo (§6.1) ─────────
 
@@ -29,6 +30,7 @@ export const AXIS_OF: Record<AutoVariationType, VariationAxis> = {
   CUT: 'ITERATION', COLD_OPEN: 'ITERATION', HOOK_TEXT: 'ITERATION', ENDCARD: 'ITERATION',
   SPLIT_LP: 'DIVERSITY', STORY: 'DIVERSITY', REVIEW: 'DIVERSITY', NATIVE_SEARCH: 'DIVERSITY', STATIC: 'DIVERSITY', FRAME: 'DIVERSITY',
   HEADLINE: 'ITERATION', // headline-e-legenda-v1 §1.1
+  CHAT_DM: 'DIVERSITY', PERSON_MOTION: 'DIVERSITY', // iterate-v2 F1.1
 };
 
 /** Máximo por lote com a repetição da D2 (HOOK-TEXT ≤ 3, STATIC ≤ 2, NATIVE-SEARCH ≤ 2; CUT = um de 15 s e um de 20 s).
@@ -37,6 +39,7 @@ export const AXIS_OF: Record<AutoVariationType, VariationAxis> = {
 export const TYPE_MAX: Record<AutoVariationType, number> = {
   CUT: 2, COLD_OPEN: 1, HOOK_TEXT: 3, ENDCARD: 1, SPLIT_LP: 1, STORY: 1, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8,
   HEADLINE: 3, // `replace` = 3; `add` = 2 (no allowedFor, H6)
+  CHAT_DM: 1, PERSON_MOTION: 1, // iterate-v2 F1.1
 };
 
 /**
@@ -80,6 +83,7 @@ const SWAP_TO: Record<AutoVariationType, AutoVariationType> = {
   // 25/10: o que não entra vira moldura (o tipo que sobra pra qualquer campeão)
   CUT: 'FRAME', COLD_OPEN: 'FRAME', HOOK_TEXT: 'FRAME', ENDCARD: 'FRAME',
   SPLIT_LP: 'FRAME', STORY: 'FRAME', REVIEW: 'FRAME', NATIVE_SEARCH: 'STATIC', STATIC: 'FRAME', FRAME: 'STATIC', HEADLINE: 'FRAME',
+  CHAT_DM: 'FRAME', PERSON_MOTION: 'FRAME',
 };
 
 /** Código no idioma da oferta: `offer.language` começando com `pt` = PT; qualquer outro = EN. */
@@ -143,6 +147,9 @@ export function codeFor(type: AutoVariationType, variant: string | number | null
       return `${pt ? 'NATIVO-BUSCA' : 'NATIVE-SEARCH'}${n > 1 ? `-${n}` : ''}`;
     case 'STATIC':
       return `${pt ? 'ESTATICO' : 'STATIC'}-F${n}`;
+    case 'CHAT_DM':
+    case 'PERSON_MOTION':
+      return templateCode(type, lang); // iterate-v2 F1.1 (máx. 1 por lote)
   }
 }
 
@@ -183,10 +190,14 @@ export interface PlanCtx {
   captionsAuto?: boolean;
   /** legenda-protegida-v1 §2.3: o que tamparia a legenda queimada (backend preenche; ausente = nada protegido) */
   caption?: CaptionGuard | null;
+  /** iterate-v2 F1.1: rosto e legenda queimada pros templates grátis; ausente ou `enabled: false` = sem templates */
+  templates?: TemplateCtx | null;
 }
 
 /** `burned_captions` (legenda-protegida-v1 §2.3): o tipo/template tamparia ou cortaria a legenda queimada do campeão. */
-export type BlockedReason = SwapReason | 'has_end_card' | HeadlineBlocked | 'burned_captions';
+export type BlockedReason = SwapReason | 'has_end_card' | HeadlineBlocked | 'burned_captions'
+  /** iterate-v2 F1.1: PERSON_MOTION sem rosto em ≥ 40 % do vídeo */
+  | 'no_face';
 export interface AllowedType { type: AutoVariationType; max: number; blockedReason: BlockedReason | null }
 
 const has = (s: string | null | undefined) => !!s && s.trim().length > 0;
@@ -241,6 +252,8 @@ export function allowedFor(ctx: PlanCtx): AllowedType[] {
     rule('STATIC', true, 'no_page'),
     // sem moldura liberada porque todas as que sobravam tampam a legenda = o motivo é a legenda
     { ...rule('FRAME', frames > 0, allowedFrames(ctx).some((f) => f.blockedReason === 'burned_captions') ? 'burned_captions' : 'no_page'), max: Math.min(TYPE_MAX.FRAME, frames) },
+    // iterate-v2 F1.1: templates grátis (só com ITERATE_TEMPLATES=on)
+    ...templateRules(ctx),
   ];
 }
 
@@ -521,6 +534,10 @@ function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: Plan
     case 'HEADLINE':
       out.push(...headlineViolations(p, i, ctx));
       break;
+    case 'CHAT_DM':
+    case 'PERSON_MOTION':
+      out.push(...templateViolations(p, i, ctx, draft));
+      break;
     default:
       break;
   }
@@ -604,7 +621,7 @@ export function staticCopyLength(c: StaticCopy): number {
 }
 
 /** A fonte existe no Brain? 'transcript' = há fala; 'name' sempre; 'generic' = sem fonte (a tabela decide se pode). */
-function sourceFilled(src: CopySource, ctx: PlanCtx): boolean {
+export function sourceFilled(src: CopySource, ctx: PlanCtx): boolean {
   if (src === 'generic') return true;
   if (src === 'transcript') return ctx.words.length > 0;
   if (src === 'name') return ctx.offerName === undefined ? true : has(ctx.offerName);
@@ -961,6 +978,7 @@ function duplicateKey(p: AutoParamsDraft): string | null {
     }
     case 'FRAME': return `FRAME:${p.template}`; // D10: templates diferentes
     case 'HEADLINE': return `HEADLINE:${normalizeText(p.text ?? '')}`; // §1.1: as do lote diferentes entre si
+    case 'CHAT_DM': case 'PERSON_MOTION': return p.type; // iterate-v2: 1 por lote
     default: return null;
   }
 }
@@ -1107,7 +1125,9 @@ export type FinalParams =
   /** headline-e-legenda-v1: o que o `HeadlineSpec` do render precisa (+ a original, pra vista "original → nova") */
   | { type: 'HEADLINE'; mode: 'replace' | 'add'; text: string; highlight: string | null; sources: Record<string, CopySource>; language: string; original: string | null; format: string | null }
   /** 25/10 §B2: = FrameSpec (lido pelo buildFrameInput do video) + as fontes de cada texto (rastreio) */
-  | ({ type: 'FRAME'; sources: Record<string, CopySource> } & FrameSpec);
+  | ({ type: 'FRAME'; sources: Record<string, CopySource> } & FrameSpec)
+  /** iterate-v2 F1.3: = TemplateSpec (lido pelo buildTemplateInput do video) */
+  | TemplateSpec;
 
 export interface FinalItem {
   index: number; type: AutoVariationType; code: string; axis: VariationAxis;
@@ -1260,6 +1280,10 @@ export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<Med
           language: ctx.headline?.language ?? screenLangOf(ctx), original: ctx.headline?.original ?? null,
           format: ctx.headline?.format ?? null, // §1.5: a peça só existe no aspecto do campeão
         };
+        break;
+      case 'CHAT_DM':
+      case 'PERSON_MOTION':
+        params = templateSpecOf(p, ctx, media, ctx.frame?.brand ?? fallbackBrand(ctx));
         break;
     }
     return {

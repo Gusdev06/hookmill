@@ -2306,7 +2306,9 @@
         "NATIVE_SEARCH": "Native hook · search bar",
         "STATIC": "Static image",
         "FRAME": "Frame",
-        "HEADLINE": "New headline"
+        "HEADLINE": "New headline",
+        "CHAT_DM": "Chat · Direct conversation",
+        "PERSON_MOTION": "Person + motion"
       },
       "thisBatch": "This batch",
       "pieces": "{n, plural, one {piece} other {pieces}}",
@@ -2445,6 +2447,8 @@
         "HEADLINE_NO_ROOM": "There's no free room for a headline in this video. Leave it out.",
         "HEADLINE_OVER_FACE": "The headline would cover the face. Leave it out.",
         "HEADLINE_LOW_CONFIDENCE": "We couldn't read the original headline's style. Leave it out.",
+        "TEMPLATE_TEXT_OVERFLOW": "The template text didn't fit at the minimum size.",
+        "TEMPLATE_TEXT_MISMATCH": "The template text didn't come out whole. Retry.",
         "leaveOutHint": "Retrying won't change it; leave this piece out.",
         "CAPTION_COVERED": "Something covered the video's captions in this render. Retry tries another layout; it's out of the zip until then.",
         "CAPTION_PROTECTED": "This format would cover the video's captions."
@@ -2574,6 +2578,9 @@
       "confirmAction": "Make them · {usd}",
       "cancel": "Cancel",
       "notSupported": "This frame doesn't come in that format."
+    },
+    "template": {
+      "badge": "New template · Free"
     },
     "frame": {
       "named": "Frame · {name}",

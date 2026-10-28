@@ -17,13 +17,14 @@ import type {
   StaticCopy, StaticVisualV2, WhyDraft,
 } from '../contrato';
 import { IntegracaoError } from '../erros';
+import { mockChatDm, mockPersonMotion } from './fake-template';
 import { AUTO_LIMITS, PLAN_TYPES, brainFieldsFilled, clip, type AutoItemDraftWithFrame, type AutoPlanDraftWithFrame } from '../claude/auto-plano';
 import { STATIC_V2_LIMITS, staticCopyLength } from '../claude/auto-plano-estatico';
 import { FRAME_LIMITS, FRAME_MAX_PER_BATCH, PRICE_RE, allowedFramesOf, cutWidth, frameTextPaths, type AutoPlanInputWithFrame } from '../claude/auto-plano-moldura';
 type AutoVariationType = AutoVariationTypeWithFrame | 'HEADLINE';
 
 type Lang = 'en' | 'pt';
-const DIVERSITY: AutoVariationType[] = ['SPLIT_LP', 'STORY', 'REVIEW', 'STATIC', 'FRAME', 'NATIVE_SEARCH'];
+const DIVERSITY: AutoVariationType[] = ['CHAT_DM', 'PERSON_MOTION', 'SPLIT_LP', 'STORY', 'REVIEW', 'STATIC', 'FRAME', 'NATIVE_SEARCH'];
 /** Ordem de escolha das molduras no mock (as 2 primeiras permitidas). */
 export const FRAME_PICK: FrameTemplateId[] = [
   'news', 'question_box', 'pov_testimonial', 'meme', 'read_caption', 'direct_offer', 'cinema', 'story', 'post_card', 'ranking', 'call', 'live',
@@ -39,6 +40,7 @@ const UI = {
     change: {
       CUT: 'Cut to {n} s, whole blocks', COLD_OPEN: 'Opens on a teaser from {t} s', HOOK_TEXT: 'New written hook: "{x}"', ENDCARD: 'End card ({v}) added',
       SPLIT_LP: 'Landing page on top, video below', STORY: 'Framed as a story', REVIEW: 'Review card above the video', NATIVE_SEARCH: 'Opens on a search for "{x}"', STATIC: 'Assembled ad: {x}', FRAME: 'Inside the {x} frame', HEADLINE: 'New headline: "{x}"',
+      CHAT_DM: 'The story becomes a Direct conversation', PERSON_MOTION: 'Motion graphics over the same face and voice',
     },
     rationale: { hook: 'Attacks the hook: a new first impression for the same pitch.', proof: 'Attacks the proof: shows it earlier or in a new frame.', cta: 'Attacks the CTA: makes the ask clearer.' },
   },
@@ -48,6 +50,7 @@ const UI = {
     change: {
       CUT: 'Corte de {n} s, blocos inteiros', COLD_OPEN: 'Abre com teaser de {t} s', HOOK_TEXT: 'Gancho escrito novo: "{x}"', ENDCARD: 'End card ({v}) no fim',
       SPLIT_LP: 'Página em cima, vídeo embaixo', STORY: 'Enquadrado como story', REVIEW: 'Card de review em cima do vídeo', NATIVE_SEARCH: 'Abre numa busca por "{x}"', STATIC: 'Anúncio montado: {x}', FRAME: 'Dentro da moldura {x}', HEADLINE: 'Headline nova: "{x}"',
+      CHAT_DM: 'A história vira uma conversa no Direct', PERSON_MOTION: 'Motion por cima do mesmo rosto e voz',
     },
     rationale: { hook: 'Ataca o gancho: primeira impressão nova pro mesmo discurso.', proof: 'Ataca a prova: mostra antes ou num quadro novo.', cta: 'Ataca o CTA: deixa o pedido mais claro.' },
   },
@@ -185,12 +188,17 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
 
   const nth = new Map<AutoVariationType, number>();
   const promise = noDigits(i.offer.promise ?? '') || noDigits(hookSpoken);
-  const items = plan.map((type): AutoItemDraftWithFrame => {
+  // iterate-v2 F1.2: roteiro dos templates grátis na mesma resposta (sem dado = a peça não entra)
+  const templates = { CHAT_DM: plan.includes('CHAT_DM') ? mockChatDm(i) : null, PERSON_MOTION: plan.includes('PERSON_MOTION') ? mockPersonMotion(i) : null };
+  const items = plan.filter((type) => (type !== 'CHAT_DM' && type !== 'PERSON_MOTION') || templates[type]).map((type): AutoItemDraftWithFrame => {
     const k = nth.get(type) ?? 0;
     nth.set(type, k + 1);
     if (type === 'HEADLINE') {
       const params = headlineFor(k);
       return { type, change: clip(fill(ui.change.HEADLINE, { x: clip(params.text, 40) }), AUTO_LIMITS.change), rationale: ui.rationale.hook, whyKey: 'hook', params };
+    }
+    if (type === 'CHAT_DM' || type === 'PERSON_MOTION') {
+      return { type, change: ui.change[type], rationale: ui.rationale.proof, whyKey: 'proof', params: templates[type]! };
     }
     if (type === 'FRAME') {
       const params = frameFor(frames[k]);
@@ -224,7 +232,7 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
     return { type: 'HEADLINE', mode: h.mode, text, highlight, sources: highlight ? { text: source, highlight: source } : { text: source } };
   }
 
-  function paramsFor(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE'>, k: number): AutoParamsDraft {
+  function paramsFor(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE' | 'CHAT_DM' | 'PERSON_MOTION'>, k: number): AutoParamsDraft {
     switch (type) {
       case 'CUT': {
         const targetSec = k === 0 ? 15 : 20;

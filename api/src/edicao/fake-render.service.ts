@@ -3,7 +3,7 @@ import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { RenderInput, RenderProgress, RenderResult, RenderService, ScratchRenderInput } from '../render/contrato';
-import { RenderError, isAutoEdit, isFrame, isRemixKeep, type AutoEditRenderInput } from '../render/contrato';
+import { RenderError, isAutoEdit, isFrame, isRemixKeep, isTemplate, type AutoEditRenderInput } from '../render/contrato';
 
 const run = promisify(execFile);
 
@@ -53,6 +53,8 @@ export class FakeRenderService implements RenderService {
   private async doRender(input: RenderInput, onProgress: (p: RenderProgress) => void): Promise<RenderResult> {
     if (isAutoEdit(input)) return this.doAutoEdit(input, onProgress);
     if (isFrame(input)) return this.doFrame(input as unknown as FakeFrameInput, onProgress);
+    // iterate-v2 F1.4: template grátis = vídeo sintético com a duração calculada pelo builder
+    if (isTemplate(input)) return this.doFrame({ kind: 'frame', renderId: input.renderId, format: input.format, video: { timeline: [{ startSec: 0, endSec: input.durationInFrames / 30 }] } }, onProgress);
     // remix-keep: duração/fps/tamanho do campeão (1/4 da resolução); scratch: soma das cenas
     const remix = isRemixKeep(input);
     const fps = remix ? input.canvas.fps : input.fps;

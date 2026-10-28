@@ -2306,7 +2306,9 @@
         "NATIVE_SEARCH": "Gancho nativo · busca",
         "STATIC": "Imagem estática",
         "FRAME": "Moldura",
-        "HEADLINE": "Headline nova"
+        "HEADLINE": "Headline nova",
+        "CHAT_DM": "Chat · conversa no Direct",
+        "PERSON_MOTION": "Pessoa + motion"
       },
       "thisBatch": "Este lote",
       "pieces": "{n, plural, one {peça} other {peças}}",
@@ -2445,6 +2447,8 @@
         "HEADLINE_NO_ROOM": "Não há espaço livre pra headline neste vídeo. Deixe de fora.",
         "HEADLINE_OVER_FACE": "A headline cobriria o rosto. Deixe de fora.",
         "HEADLINE_LOW_CONFIDENCE": "Não conseguimos ler o estilo da headline original. Deixe de fora.",
+        "TEMPLATE_TEXT_OVERFLOW": "O texto do template não coube no tamanho mínimo.",
+        "TEMPLATE_TEXT_MISMATCH": "O texto do template não saiu inteiro. Tente de novo.",
         "leaveOutHint": "Refazer não muda; deixe a peça de fora.",
         "CAPTION_COVERED": "Algo tampou a legenda do vídeo neste render. Refazer tenta outro layout; até lá a peça fica fora do zip.",
         "CAPTION_PROTECTED": "Este formato tamparia a legenda do vídeo."
@@ -2574,6 +2578,9 @@
       "confirmAction": "Fazer · {usd}",
       "cancel": "Cancelar",
       "notSupported": "Esta moldura não sai nesse formato."
+    },
+    "template": {
+      "badge": "Template novo · Grátis"
     },
     "frame": {
       "named": "Moldura · {name}",

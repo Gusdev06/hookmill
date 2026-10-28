@@ -69,6 +69,7 @@ import {
 import { IntegracaoError, isIntegracaoError } from '../erros';
 import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanUserMessage, parseAutoPlan, STATIC_REF_IMAGES, staticAllowed } from './auto-plano';
 import { allowedFramesOf } from './auto-plano-moldura';
+import { CHAT_DM_SCHEMA, PERSON_MOTION_SCHEMA, templateDetailMessage } from './auto-plano-template';
 import { CAPTION_CHECK, CAPTION_CHECK_SCHEMA, CAPTION_CHECK_SYSTEM, captionCheckImages, captionCheckMessage, captionFramesFromInput, parseCaptionCheck, type CheckCaptionInputAny, type CheckCaptionVerdict } from './checagem-legenda';
 import { FRAMES_DETAIL_SCHEMA, STATIC_DETAIL_SCHEMA, detailTargets, framesByIndex, framesDetailMessage, mergeDetails, staticDetailMessage } from './auto-plano-detalhe';
 import { languageName } from './auto-plano';
@@ -452,6 +453,7 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       blockCount: t.structure.status === 'ok' && t.structure.data ? t.structure.data.blocks.length : 0,
       allowedFrames: allowedFramesOf(i),
       headline: i.headline,
+      words: i.transcript,
     };
     // §14.3: com STATIC em `allowed`, até 4 frames-chave vão como REFERÊNCIA visual (baixados uma vez; o reparo reusa)
     const refs = staticAllowed(i) && i.keyframes.length ? await this.loadFrames(i.keyframes.slice(0, 8), STATIC_REF_IMAGES) : { images: [], failed: 0 };
@@ -481,6 +483,7 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     const screenLanguage = languageName(i.screenLanguage);
     const statics = targets.filter((x) => x.kind === 'STATIC');
     const frames = targets.filter((x) => x.kind === 'FRAME');
+    const templates = targets.filter((x) => x.kind === 'CHAT_DM' || x.kind === 'PERSON_MOTION');
     const detailCall = async (what: string, call: () => Promise<Record<string, unknown>>) => {
       try {
         return await this.withRetry(what, call);
@@ -496,14 +499,20 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       this.assertFinished(res);
       return parseJsonObject(res.text);
     };
-    const [staticDetails, framesDetail] = await Promise.all([
+    const [staticDetails, framesDetail, templateDetails] = await Promise.all([
       Promise.all(statics.map((tg) => detailCall(`auto plan STATIC ${tg.index}`, () =>
         runDetail(staticDetailMessage(tg, { screenLanguage, whys, others: statics.filter((x) => x.index !== tg.index), violations: i.violations, refImages: images.length }), STATIC_DETAIL_SCHEMA, true)))),
       frames.length ? detailCall('auto plan FRAMES', () => runDetail(framesDetailMessage(frames, { screenLanguage, whys, violations: i.violations }), FRAMES_DETAIL_SCHEMA, false, 'low')) : Promise.resolve(null),
+      // iterate-v2 F1.2: 1 chamada por template (CHAT_DM / PERSON_MOTION), mesmo sistema + contexto (cache)
+      Promise.all(templates.map((tg) => detailCall(`auto plan ${tg.kind}`, () =>
+        runDetail(templateDetailMessage(tg.kind as 'CHAT_DM' | 'PERSON_MOTION', tg, { screenLanguage, whys, violations: i.violations }), tg.kind === 'CHAT_DM' ? CHAT_DM_SCHEMA : PERSON_MOTION_SCHEMA, false)))),
     ]);
     const details = framesByIndex(framesDetail, frames);
     statics.forEach((tg, k) => {
       if (staticDetails[k]) details.set(tg.index, staticDetails[k]!);
+    });
+    templates.forEach((tg, k) => {
+      if (templateDetails[k]) details.set(tg.index, templateDetails[k]!);
     });
     const draft = parseAutoPlan(mergeDetails(root, targets, details), ctx);
     // TRANSIÇÃO (§C.0): itens FRAME só existem quando o backend põe FRAME em `allowed` (alias WithFrame); na fusão do B1

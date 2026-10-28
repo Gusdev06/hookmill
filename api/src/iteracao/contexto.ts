@@ -11,6 +11,8 @@ import type { MediaRulesPort } from './portas';
 import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, allowedFrameIds, brainEmpty, codeLanguageOf, screenLangOf } from './regras';
 import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
 import { captionGuardOf, type CaptionGuardSource } from './legenda-protegida';
+import { fracaoComRosto, type FaceMapLike } from '@maquina/video';
+import { templatesLigados } from './templates-plano';
 
 export interface CtxSource {
   offer: OfferRow;
@@ -88,6 +90,18 @@ export function planCtxOf(src: CtxSource, media: MediaRulesPort, page: { capture
     }),
     // §2.3: com a versão sem legenda a legenda nossa liga (a original não está no vídeo que as peças usam)
     captionsAuto: src.champion.cleanVideoFileId ? (transcript?.words.length ?? 0) > 0 : captionsAutoOf(editMap, transcript?.words ?? []),
+    // iterate-v2 F1.1: rosto e legenda queimada pros templates grátis (atrás da flag ITERATE_TEMPLATES)
+    templates: templatesCtxOf(src, editMap, m),
+  };
+}
+
+/** Contexto dos templates grátis: flag, fração com rosto, faceTrack e legenda queimada (px do arquivo). */
+function templatesCtxOf(src: CtxSource, editMap: EditMap | null, m: ReturnType<typeof measurementsOf>): NonNullable<PlanCtx['templates']> {
+  const source = { width: m?.width ?? editMap?.width ?? 1080, height: m?.height ?? editMap?.height ?? 1920 };
+  const faceMap = editMap ? (editMap as unknown as FaceMapLike) : null;
+  return {
+    enabled: templatesLigados(), faceShare: fracaoComRosto(faceMap), faceMap, source,
+    bands: src.champion.cleanVideoFileId ? [] : faixasDoCampeao(editMap, source),
   };
 }
 

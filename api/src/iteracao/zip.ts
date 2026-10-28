@@ -35,7 +35,14 @@ export function zipFileName(i: { shortCode: string; launchedAt: Date; championNa
  * README.txt de cada pasta: a instrução do conjunto + `arquivo → o que mudou`. 25/10 (D14): peça com texto do anúncio
  * sugerido (moldura "Leia a legenda") ganha a linha seguinte com ele, recuada (sem publicar pelo HookMill, é daqui que sai).
  */
-export function readmeFor(axis: VariationAxis, lines: { file: string; change: string; primaryText?: string | null; credit?: string | string[] | null }[], locale: ZipLocale): string {
+/** iterate-v2 F1.8: nota do README das peças de template (null nos outros tipos). */
+export function notaDoTemplate(type: string | null | undefined, locale: ZipLocale): string | null {
+  if (type === 'CHAT_DM') return locale === 'PT_BR' ? 'Conversa desenhada a partir do anúncio; nenhuma pessoa gerada.' : 'Conversation drawn from the ad; no generated person.';
+  if (type === 'PERSON_MOTION') return locale === 'PT_BR' ? 'O rosto e a voz são do anúncio original; o motion é desenhado em código.' : 'The face and voice are from the original ad; the motion is drawn in code.';
+  return null;
+}
+
+export function readmeFor(axis: VariationAxis, lines: { file: string; change: string; primaryText?: string | null; credit?: string | string[] | null; note?: string | null }[], locale: ZipLocale): string {
   const head = axis === 'ITERATION'
     ? locale === 'PT_BR'
       ? 'Conjunto de teste do mesmo conceito, separado do conjunto do campeão (que segue rodando). A peça que ganhar migra pro conjunto principal.'
@@ -47,6 +54,7 @@ export function readmeFor(axis: VariationAxis, lines: { file: string; change: st
   const label = locale === 'PT_BR' ? 'Texto do anúncio' : 'Ad primary text';
   const body = lines.flatMap((l) => [
     `${l.file} → ${l.change}`,
+    ...(l.note ? [`    ${l.note}`] : []),
     ...(l.primaryText?.trim() ? [`    ${label}: ${l.primaryText.trim().replace(/\s*\n\s*/g, ' ')}`] : []),
     ...(Array.isArray(l.credit) ? l.credit : l.credit ? [l.credit] : []).filter((c) => c.trim()).map((c) => `    B-roll: ${c.trim()}`),
   ]);

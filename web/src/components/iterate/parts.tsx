@@ -338,6 +338,29 @@ function Art({ type, tone }: { type: PieceType | "orig"; tone: string }) {
           <V tone={tone} style={{ top: "26%", left: "8%", right: "8%", bottom: "16%", borderRadius: "3cqw" }} />
         </>
       )
+    case "CHAT_DM":
+      // iterate-v2 F1.9: conversa do Direct desenhada (sem pessoa)
+      return (
+        <>
+          <div className="v" style={{ background: "#0b0b0d" }} />
+          <div className="capt" style={{ top: "5%" }}><i style={{ width: "80%", background: "#f2c14e" }} /></div>
+          <div style={{ position: "absolute", right: "8%", top: "26%", width: "58%", height: "12%", borderRadius: "3cqw", background: "linear-gradient(135deg,#7b3ff2,#3797f0)" }} />
+          <div style={{ position: "absolute", left: "8%", top: "42%", width: "62%", height: "12%", borderRadius: "3cqw", background: "#262626" }} />
+          <div style={{ position: "absolute", left: "8%", top: "58%", width: "50%", height: "9%", borderRadius: "3cqw", background: "#262626" }} />
+          <div style={{ position: "absolute", left: "6%", right: "6%", bottom: "6%", height: "7%", borderRadius: "4cqw", background: "#1c1c1e" }} />
+        </>
+      )
+    case "PERSON_MOTION":
+      // iterate-v2 F1.9: palco de motion em cima, rosto do próprio anúncio na caixa redonda embaixo
+      return (
+        <>
+          <div className="v" style={{ background: "#0b0a10" }} />
+          <div className="capt" style={{ top: "12%" }}><i style={{ width: "84%" }} /><i style={{ width: "56%", background: "#f2c14e" }} /></div>
+          <div style={{ position: "absolute", left: "50%", bottom: "8%", width: "38%", aspectRatio: "1", translate: "-50% 0", borderRadius: "50%", border: "1cqw solid #f2c14e", overflow: "hidden" }}>
+            <V tone={tone} />
+          </div>
+        </>
+      )
     default:
       return <V tone={tone} />
   }
@@ -502,12 +525,15 @@ export function usePieceName() {
 }
 
 /** Type line of a piece: the template icon for a FRAME, then its name. */
-export function PieceKind({ p, className }: { p: Pick<IteratePiece, "type" | "frame">; className?: string }) {
+export function PieceKind({ p, className }: { p: Pick<IteratePiece, "type" | "frame"> & { isNewTemplate?: boolean }; className?: string }) {
   const name = usePieceName()
+  const t = useTranslations("iterate")
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
       {pieceType(p) === "FRAME" && p.frame ? <FrameIcon id={p.frame.template} className="flex-none" /> : null}
       <span className="min-w-0">{name(p)}</span>
+      {/* iterate-v2 F1.9: selo dos templates grátis */}
+      {p.isNewTemplate ? <span className="flex-none rounded-full border border-current px-1.5 text-[10px] leading-4 opacity-80">{t("template.badge")}</span> : null}
     </span>
   )
 }

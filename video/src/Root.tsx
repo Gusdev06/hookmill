@@ -4,6 +4,7 @@ import amostra from '../public/fixtures/amostra.json';
 import { Criativo } from './Criativo';
 import { RemixKeep } from './RemixKeep';
 import { AutoEdit } from './AutoEdit';
+import { TemplatesRegistrados } from './templates/registro';
 import { calcularMoldura, MolduraPrototipo } from './prototipos/molduras/Moldura';
 import { DEMO_MOLDURAS } from './prototipos/molduras/demo';
 import { calcularMoldura as calcularMolduraProd, Moldura } from './molduras/Moldura';
@@ -82,6 +83,8 @@ const autoExemplo: AutoEditProps = {
 
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* iterate-v2 F1.4: templates grátis chat-dm e person-motion (composição de produto `Template`) */}
+    <TemplatesRegistrados />
     <Composition
       id={AUTO_EDIT_COMPOSITION_ID}
       component={AutoEdit}

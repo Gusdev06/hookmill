@@ -200,7 +200,10 @@ export type AutoParamsDraft =
   // 25/10: FRAME (molduras §B2), fundido na entrega B1
   | AutoFrameDraft
   // 25/10 (headline-e-legenda-v1 §1.2)
-  | AutoHeadlineDraft;
+  | AutoHeadlineDraft
+  // 28/10 (iterate-v2-quiz-templates-ia F1.2): templates grátis
+  | AutoChatDmDraft
+  | AutoPersonMotionDraft;
 /** 25/10 (headline-e-legenda-v1 §1.2): headline do vídeo inteiro. `text` = a headline toda; `highlight` = trecho do `text`
  *  na cor de destaque (null = nenhum; só se a original tem destaque). Limite: replace = nº de caracteres da original × 1,2
  *  (mín. 20, máx. 90); add = 60. Nada inventado (§6.2.5); as do lote diferentes entre si e da original. */
@@ -834,3 +837,84 @@ export interface MetaService {
   /** Último uso de cota da Meta visto pelo cliente Graph (null antes da 1ª chamada / mock). O backend bloqueia escrita com pct ≥ META_WRITE_USAGE_CEILING (90). */
   usage(): MetaUsage | null;
 }
+
+// ---------- iterate-v2-quiz-templates-ia F1.2 (28/10): templates grátis CHAT_DM e PERSON_MOTION ----------
+// O roteiro do template sai do planAutoBatch (ia escreve; arquiteto revisa). Todo texto que aparece na tela vem no idioma
+// da fala (`screenLanguage`) e leva a sua `source` (CopySource). Limites em caracteres visíveis; em CJK, 1 caractere = 1.
+export type TemplatePreserve = 'hook' | 'pain' | 'proof' | 'mechanism' | 'objection' | 'offer' | 'cta' | 'promise';
+export interface TemplateText { text: string; source: CopySource; /** trecho do campeão de onde veio (rastreio; obrigatório se source = 'transcript') */ srcSpan?: { startSec: number; endSec: number } | null }
+/** número real do Brain › proof (≤ 3). value + label literais (comparação normalizada); prefix/suffix só se estão lá ("+", "%", "★") */
+export interface ProofStatDraft { value: number; decimals: 0 | 1 | 2; prefix: string; suffix: string; label: string /* ≤ 24 */; source: 'proof' }
+/** catálogo fixo de ícones desenhados em código (video). A IA não inventa ícone. */
+export type TemplateIconId = 'check' | 'x' | 'arrow' | 'brain' | 'globe' | 'chat' | 'clock' | 'star' | 'gift' | 'lock' | 'heart' | 'bolt';
+export type ChatMessageKind = 'question' | 'objection' | 'answer' | 'correction' | 'offer';
+export interface AutoChatDmMessage {
+  from: 'prospect' | 'brand';
+  /** 'prospect' só aceita 'question' | 'objection' (nunca relato de resultado); 'brand' aceita 'answer' | 'correction' | 'offer' */
+  kind: ChatMessageKind;
+  text: TemplateText;                         // ≤ 90 ('correction'/'offer': título ≤ 24)
+  /** 'correction': linhas riscadas (≤ 2) e certas (≤ 3), ≤ 40 cada; 'offer': benefícios (≤ 3, ≤ 40) */
+  wrong?: TemplateText[]; right?: TemplateText[];
+  preserves: TemplatePreserve[];
+}
+export interface AutoChatDmDraft {
+  type: 'CHAT_DM';
+  /** manchete fixa no topo: o gancho do campeão (texto queimado ou falado), ≤ 40; highlight = trecho do text (≤ 16) */
+  hook: TemplateText & { highlight: string | null };
+  /** textos da interface do chat no idioma da tela (≤ 24 cada): "digitando…", placeholder da barra, status do perfil */
+  chrome: { typing: string; inputPlaceholder: string; profileStatus: string };
+  /** 6-12 mensagens, na ordem */
+  messages: AutoChatDmMessage[];
+  /** cena final de motion: até 3 linhas ≤ 32 (promessa + chamada) */
+  close: { lines: TemplateText[] };
+  /** botão e nota do CTA (≤ 28 / ≤ 40). source tem que ser 'cta' | 'offerAndPrice' | 'page' | 'transcript' */
+  cta: { button: TemplateText; note: TemplateText | null };
+  /** 0-3 números reais do Brain › proof pra cena final */
+  proof: ProofStatDraft[];
+}
+export type PersonBeatContent =
+  | { kind: 'kinetic'; words: TemplateText[] }                                   // 1-4 palavras/termos ≤ 24, entram no tempo da fala
+  | { kind: 'wrong_right'; wrong: TemplateText; right: TemplateText[] }           // ≤ 32; right ≤ 3
+  | { kind: 'steps'; steps: TemplateText[] }                                      // 2-4 passos ≤ 16 (esquema com setas)
+  | { kind: 'icon_list'; items: { icon: TemplateIconId; text: TemplateText }[] }  // 2-4, ≤ 20
+  | { kind: 'badge'; text: TemplateText }                                         // selo ≤ 20
+  | { kind: 'cta'; button: TemplateText; note: TemplateText | null };
+export type PersonBeatDraft = { spanIndex: number; atWord: number; untilWord: number | null } & PersonBeatContent;
+export interface AutoPersonMotionDraft {
+  type: 'PERSON_MOTION';
+  /** 2-6 trechos do campeão, em ordem, sem sobrepor; soma 18-40 s; os blocos `kept` dentro. O backend encaixa no silêncio (snapSpans). */
+  spans: { startSec: number; endSec: number; preserves: TemplatePreserve[] }[];
+  /** cenas do palco: 1 ou mais por trecho, cada uma ancorada numa palavra da transcrição (índice global de TranscriptWord) */
+  beats: PersonBeatDraft[];
+  /** cena final depois da última fala (2-4 s): só números do Brain › proof e o CTA */
+  endCard: { proof: ProofStatDraft[]; cta: { button: TemplateText; note: TemplateText | null } } | null;
+}
+export type AutoTemplateDraft = AutoChatDmDraft | AutoPersonMotionDraft;
+
+/** Conteúdo do palco no spec final (textos limpos, sem fonte). */
+export type PersonBeatSpec = { spanIndex: number; atWord: number; untilWord: number | null } & (
+  | { kind: 'kinetic'; words: string[] } | { kind: 'wrong_right'; wrong: string; right: string[] } | { kind: 'steps'; steps: string[] }
+  | { kind: 'icon_list'; items: { icon: TemplateIconId; text: string }[] } | { kind: 'badge'; text: string }
+  | { kind: 'cta'; button: string; note: string | null });
+/** Params final da peça de template (`variation_items.payload.params`), lido pelo `buildTemplateInput` (api/src/render/template.ts).
+ *  Textos já limpos (sem caractere que a fonte não desenha), marca do backend; `sources` = rastreio (caminho do texto → fonte). */
+export type TemplateSpec =
+  | {
+    type: 'CHAT_DM'; templateId: 'chat-dm'; screenLanguage: string; brand: FrameBrand;
+    hook: { text: string; highlight: string | null };
+    chrome: AutoChatDmDraft['chrome'];
+    messages: { from: 'prospect' | 'brand'; kind: ChatMessageKind; text: string; wrong: string[]; right: string[]; preserves: TemplatePreserve[] }[];
+    close: { lines: string[] };
+    cta: { button: string; note: string | null };
+    proof: Omit<ProofStatDraft, 'source'>[];
+    sources: Record<string, CopySource>;
+  }
+  | {
+    type: 'PERSON_MOTION'; templateId: 'person-motion'; screenLanguage: string; brand: FrameBrand;
+    /** trechos encaixados no silêncio (snapSpans), tempo do campeão */
+    timeline: { startSec: number; endSec: number }[];
+    /** palavras em índice global da transcrição (o build converte pro tempo de saída) */
+    beats: PersonBeatSpec[];
+    endCard: { proof: Omit<ProofStatDraft, 'source'>[]; cta: { button: string; note: string | null } } | null;
+    sources: Record<string, CopySource>;
+  };

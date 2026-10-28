@@ -183,6 +183,8 @@ export function frameTemplateOf(params: Record<string, unknown> | null | undefin
 export function supportedFormatsOf(type: string | null, params: Record<string, unknown> | null | undefined): readonly FormatCode[] | undefined {
   // headline-e-legenda-v1 §1.5: o HEADLINE só existe no aspecto do campeão (remix-keep sai no tamanho dele)
   if (type === 'HEADLINE') return [FORMAT_CODE[primaryFormatOf(type, params)]];
+  // iterate-v2 F1.1 (D2 do Gusta): os templates grátis só existem em 9:16 na v1
+  if (type === 'CHAT_DM' || type === 'PERSON_MOTION') return ['9x16'];
   if (type !== 'FRAME') return undefined;
   const t = frameTemplateOf(params);
   return t ? FRAME_FORMATS[t] : ['9x16'];
@@ -368,4 +370,12 @@ export function captionNoteOf(renderInput: unknown): 'replaced' | null {
 export function captionCoveredTwice(vertical: { errorCode?: string | null; input?: unknown } | undefined): boolean {
   const attempt = (vertical?.input as { captionCheck?: { attempt?: number } } | null)?.captionCheck?.attempt ?? 1;
   return vertical?.errorCode === 'CAPTION_COVERED' && attempt >= 2;
+}
+
+/** iterate-v2 F1.7: `IteratePiece.template` (id e, no person-motion, os trechos do campeão usados); null nos outros tipos. */
+export function pieceTemplateOf(type: string | null | undefined, params: Record<string, unknown> | null | undefined): { id: 'chat-dm' | 'person-motion'; spans: { startSec: number; endSec: number }[] | null } | null {
+  if (type === 'CHAT_DM') return { id: 'chat-dm', spans: null };
+  if (type !== 'PERSON_MOTION') return null;
+  const tl = Array.isArray(params?.timeline) ? (params!.timeline as { startSec: number; endSec: number }[]) : [];
+  return { id: 'person-motion', spans: tl.map((t) => ({ startSec: t.startSec, endSec: t.endSec })) };
 }

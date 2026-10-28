@@ -180,3 +180,18 @@ Script: `api/src/render/auto-edit-real.ts <saida> [tipos] [formatos]` (RemotionR
 - **Pendente pro deploy:** `video/dist/bundle` NÃO foi recompilado (a API da 3001 lê dele e o Gusta estava testando); sem `npm run build:bundle -w video` o render `auto-edit` falha em `selectComposition`. `dist/lib` já está recompilado.
 - Captura da página (`capturarPagina`): 1,6 s pro HTML de fixture, PNG 1080x3458 (3 telas de celular). Sem `allowPrivateHosts`, localhost dá `PAGE_FORBIDDEN` (SSRF).
 - Folhas de frames: `video/out/auto-edit-v1/folha-{VERTICAL_9_16,PORTRAIT_4_5,SQUARE_1_1}.jpg`.
+
+## Templates grátis do Iterate v2 (F1, 28/10): `CHAT_DM` e `PERSON_MOTION`
+
+- **Composição:** `Template` (`video/src/templates/`, registrada em `templates/registro.tsx`), schema `templateSchema`, funções puras em `video/src/lib/templatesFormato.ts` (`chatTimeline`, `fitTemplateText`, `personMotionLayout`, `chatLayout`/`personLayout`). Builder puro `buildTemplateInput` em `api/src/render/template.ts`, `kind: 'template'` (local, fake e Lambda). Só 9:16.
+- **Texto:** medido com a mesma tabela do `fitText` das molduras (CJK quebra por caractere, Noto da língua, mínimo 36 px). Caractere sem glifo nas fontes do bundle (emoji, seta, estrela, check) sai do texto (`limparTexto`); seta/estrela/check são SVG. Cor da marca escura é clareada até contraste 4,5:1 no fundo escuro.
+- **Pessoa + motion:** rosto e voz do PRÓPRIO campeão (2-6 trechos), caixa redonda; a janela do rosto por trecho nunca mostra legenda nem headline queimadas (faixa protegida; sem lugar, fecha no close olhos-boca como o protótipo; sem lugar nem assim = `CAPTION_PROTECTED`). Legenda palavra a palavra na escrita do idioma (zh-TW/HK = tradicional via OpenCC, `api/src/render/escrita-chinesa.ts`; vale também pra legenda automática do lote e pra refeita no estilo da original).
+- **Medido (Mac, render local, concurrency 4, campeão Amnayalife zh-TW, mídia real):**
+
+| peça | vídeo | render | pico RSS do Node |
+|---|---|---|---|
+| `MC_1028_CHAT-DM_9x16` | 26,4 s (792 frames) | 17 s | ~650 MB |
+| `MC_1028_PERSON-MOTION_9x16` | 31,1 s (932 frames) | 39 s | ~370 MB |
+
+  Prova: `ITERATE_TEMPLATES=on npx ts-node --transpile-only src/render/templates-campeao-real.ts` (de `api/`, banco dev só leitura). Saída em `video/out/f1-templates-2026-10-28/` (MP4, `contact-sheet.png`, `stills/`, `relatorio.json`).
+- **Lambda (NÃO feito; rodar com ok do Gusta, depois do merge, do checkout principal):** o bundle ganhou a composição `Template` e `public/sfx/*.wav`, então o site precisa ser republicado: `npm run build:bundle -w video && set -a; source <(grep '^REMOTION_AWS_' api/.env); set +a; SITE=hookmill-dev BUNDLE_DIR=video/dist/bundle node scripts/sonda-lambda-l1.mjs deploy` (mesmo `REMOTION_SERVE_URL`; a função é idempotente). Depois, no `api/.env`/EasyPanel: `RENDER_LAMBDA_KINDS=...,template` e `ITERATE_TEMPLATES=on`, e reiniciar a API. Custo esperado: ~US$ 0,011 por render de 30 s (sonda L1).

@@ -17,6 +17,7 @@ import {
   rostoPrincipal, textosQueNaoCouberam, type FrameTextsMap, type MolduraProps,
 } from '@maquina/video';
 import type { FrameSpec } from '../integracoes/contrato';
+import { palavrasNaEscrita } from './escrita-chinesa';
 import type { AutoEditContext } from './auto-edit';
 import type { FrameRenderInput } from './contrato';
 
@@ -47,7 +48,7 @@ export function legendaNoEstiloDaOriginal(ctx: AutoEditContext, highlight: strin
   const ey = ctx.source.height / m.height;
   const size = Math.max(1, st.fontSizePx);
   return {
-    words: ctx.words.map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: highlight, language: ctx.language,
+    words: palavrasNaEscrita(ctx.words, ctx.language).map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: highlight, language: ctx.language,
     style: {
       fontId: st.fontId ?? null, uppercase: !!st.uppercase, color: st.color || '#ffffff', highlightColor: st.highlightColor ?? null,
       strokeColor: st.strokeColor ?? null, strokeWidthRel: Math.round(((st.strokeWidthPx ?? 0) / size) * 1000) / 1000,
