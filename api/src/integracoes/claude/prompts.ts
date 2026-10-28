@@ -34,25 +34,23 @@ export const BRIEF_SCHEMA = {
     // nova no schema (limite de 16 uniões da API, bug live 22/10)
     industry: { type: 'string', description: 'The business industry or niche, 1-4 words, in the page language (e.g. "Skincare", "Dental clinic", "Online course"). Empty string if unclear.' },
     market: { type: 'string', description: 'Main country or region the page sells to, in the page language (e.g. "United States", "Brasil"). Only when the page makes it clear (currency, phone format, address, shipping, explicit country); empty string otherwise.' },
-    resultType: { type: 'string', enum: [...RESULT_TYPE_GUESSES], description: 'What counts as a result for this business: the main action the page asks the visitor to take.' },
+    resultType: { type: 'string', description: `What counts as a result for this business: the main action the page asks the visitor to take. One of: ${RESULT_TYPE_GUESSES.join(', ')}.` },
+    // lista única {field, role, imageIndex} em vez de 10 listas por campo: as 10 cópias do mesmo objeto estouravam a
+    // gramática da API ("compiled grammar is too large", live 28/10). A validação aceita os dois formatos.
     sources: {
-      type: 'object',
-      additionalProperties: false,
-      description: 'Where each filled field came from: the page role(s) and, when it was read from an image, the image number. Empty array for null fields.',
-      required: [...BRIEF_SOURCE_FIELDS],
-      properties: Object.fromEntries(BRIEF_SOURCE_FIELDS.map((f) => [f, {
-        type: 'array',
-        items: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['role', 'imageIndex'],
-          properties: {
-            role: { type: 'string', enum: [...PAGE_ROLES] },
-            // inteiro simples (0 = texto), nunca anyOf/null: a API limita a 16 parâmetros com união no schema todo (bug live 22/10)
-            imageIndex: { type: 'integer', description: 'Image number when the information was read from an image; 0 when it came from page text.' },
-          },
+      type: 'array',
+      description: `Where each filled field came from: one entry per (field, page role, image). field is one of: ${BRIEF_SOURCE_FIELDS.join(', ')}. No entries for null fields.`,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['field', 'role', 'imageIndex'],
+        properties: {
+          field: { type: 'string' },
+          role: { type: 'string', description: `Page role, one of: ${PAGE_ROLES.join(', ')}.` },
+          // inteiro simples (0 = texto), nunca anyOf/null: a API limita a 16 parâmetros com união no schema todo (bug live 22/10)
+          imageIndex: { type: 'integer', description: 'Image number when the information was read from an image; 0 when it came from page text.' },
         },
-      }])),
+      },
     },
     imageNotes: {
       type: 'array',
@@ -80,7 +78,7 @@ Rules:
 - "offer" and "quiz_step" pages come from a multi-step quiz or funnel that a reader clicked through with neutral answers (first option or skip) until the final offer screen. "offer" is that final screen (plans, price, guarantee, buy button): treat it like "checkout"/"pricing" — the preferred source for "offerAndPrice" and "cta" — and it weighs more than every quiz question. "quiz_step" pages are the funnel's questions, in order: use them only for "audience" (who the funnel speaks to), "pains" (the problems its questions and answer options name) and tone in "notes". Questions are not the promise and not proof; the answers on screen were picked by the reader, not by a customer, so never treat them as facts about the audience's results.
 - Images, when present, are screenshots of the page and its banners, each preceded by a label with its number, page role and source. Transcribe literally the text that appears in them (price, promise, social proof, button text); describe the product in one sentence; never invent what is not legible. Fill "imageNotes" with one entry per image, at most 40 words each.
 - "industry", "market" and "resultType" describe the business behind the offer. "resultType" is the main conversion the page asks for: PURCHASE (buy now, checkout, one-time price: stores, digital products, courses, low ticket), SUBSCRIPTION (recurring plan as the main offer), LEAD (form to leave contact details or get a quote), MESSAGE (talk on WhatsApp, Instagram Direct or Messenger), APPOINTMENT (book a time, schedule a visit or call), SIGNUP (create an account or start a free trial), APP_INSTALL (download from an app store), OTHER (something else), UNKNOWN (cannot tell). A quiz that ends in a checkout is PURCHASE.
-- "sources": for every field you filled, list where it came from as { role, imageIndex }: the page role, and the image number when the information was read from an image (0 when it came from page text). Leave the array empty for fields you returned as null.`;
+- "sources": one entry { field, role, imageIndex } per place a filled field came from: the field name, the page role, and the image number when the information was read from an image (0 when it came from page text). No entries for fields you returned as null.`;
 
 /** Página como vai pro prompt (§5): a principal primeiro, subpáginas na ordem de prioridade. */
 export interface PromptPage { url: string; role: PageRole; title: string | null; text: string; truncated: boolean; via: 'http' | 'rendered' | 'pasted' }

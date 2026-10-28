@@ -56,7 +56,14 @@ export function parseBriefFull(text: string): ParsedBrief {
   const o = parseJson(text);
   const brief = briefOf(o);
   const sources: ParsedBrief['sources'] = {};
-  const rawSources = o.sources && typeof o.sources === 'object' ? (o.sources as Record<string, unknown>) : {};
+  // formato atual (28/10): lista única [{ field, role, imageIndex }]; formato antigo: { campo: [{ role, imageIndex }] }
+  const rawSources: Record<string, unknown> = Array.isArray(o.sources)
+    ? (o.sources as unknown[]).reduce<Record<string, unknown[]>>((acc, e) => {
+        const f = e && typeof e === 'object' ? (e as { field?: unknown }).field : undefined;
+        if (typeof f === 'string') (acc[f] ??= []).push(e);
+        return acc;
+      }, {})
+    : o.sources && typeof o.sources === 'object' ? (o.sources as Record<string, unknown>) : {};
   for (const f of FIELDS) {
     const list = Array.isArray(rawSources[f]) ? (rawSources[f] as unknown[]) : [];
     const out: BriefSource[] = [];
