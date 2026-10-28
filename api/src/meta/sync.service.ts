@@ -112,7 +112,7 @@ export class MetaSyncService {
       assertSelected(assertUsable(c));
       const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: c.workspaceId }, select: { resultType: true } });
       stage('listing_ads', STAGE_PROGRESS.listing_ads);
-      const r = await this.meta.syncAds(metaAuthOf(c, this.config), { adAccountId: c.adAccountId!, currency: c.currency ?? 'USD', businessType: legacyBusinessTypeOf(ws.resultType), resultType: ws.resultType, hasPixel: !!c.pixelId }, (p) => {
+      let r = await this.meta.syncAds(metaAuthOf(c, this.config), { adAccountId: c.adAccountId!, currency: c.currency ?? 'USD', businessType: legacyBusinessTypeOf(ws.resultType), resultType: ws.resultType, hasPixel: !!c.pixelId }, (p) => {
         if (p.stage === 'reading_insights') stage('reading_insights', 10 + Math.round((p.total ? p.done / p.total : 1) * 80), { done: p.done, total: p.total });
         else stage(p.stage, STAGE_PROGRESS[p.stage] ?? 50, { done: p.done, total: p.total });
       });
@@ -128,6 +128,9 @@ export class MetaSyncService {
       }
       const json = (m: unknown) => m as Prisma.InputJsonValue;
       const date = (s: string | null | undefined) => (s ? new Date(s) : null);
+      // a Graph pode repetir objeto entre páginas: duplicata derrubava a transação inteira (live 28/10, conta do Tordan, 500 ads)
+      const uniq = <T,>(xs: T[] | undefined, key: (x: T) => string) => (xs ? [...new Map(xs.map((x) => [key(x), x])).values()] : xs);
+      r = { ...r, ads: uniq(r.ads, (a) => a.metaAdId)!, campaigns: uniq(r.campaigns, (k) => k.campaignId), adsets: uniq(r.adsets, (k) => k.adsetId) };
       await this.prisma.$transaction(async (tx) => {
         // campanhas-v1 §2: as 3 tabelas substituídas inteiras no MESMO instante; porta antiga (sem campaigns/adsets) = vazias
         await tx.metaCampaignSnapshot.deleteMany({ where: { connectionId: c.id } });
@@ -182,7 +185,7 @@ export class MetaSyncService {
           ? ({ ...health, adsCount: r.ads.filter((a) => !!a.videoId).length, activeCount: r.ads.filter((a) => !!a.videoId && a.effectiveStatus === 'ACTIVE').length } as unknown as Prisma.InputJsonValue)
           : undefined;
         await tx.metaConnection.update({ where: { id: c.id }, data: { lastSyncAt: syncedAt, lastSyncJobId: jobId, lastSyncError: null, ...(lastHealth && { lastHealth }) } });
-      });
+      }, { maxWait: 15_000, timeout: 120_000 }); // padrão de 5 s estourava com centenas de anúncios entre a VPS e o Supabase
       this.backoff.succeed(c.id);
       await this.jobs.finish(jobId, {
         status: 'SUCCEEDED',
