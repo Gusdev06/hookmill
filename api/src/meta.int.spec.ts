@@ -320,7 +320,7 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     expect((await call('POST', '/iterate', users.member.token, { metaAdId: 'mock_ad_999' })).status).toBe(404);
     const both = await call('POST', '/iterate', users.member.token, { metaAdId: 'mock_ad_1', creativeId: creativeId });
     expect(both.status).toBe(400);
-    expect(both.error.details.fields[0].rule).toBe('exactlyOneOf:uploadId,creativeId,metaAdId');
+    expect(both.error.details.fields[0].rule).toBe('exactlyOneOf:uploadId,creativeId,metaAdId,championId');
 
     const r = await call('POST', '/iterate', users.member.token, { metaAdId: 'mock_ad_1' });
     expect(r.status).toBe(202);

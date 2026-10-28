@@ -26,8 +26,8 @@ test.beforeEach(async () => {
 test.afterEach(async () => { await esperarJobsQuietos(120_000); });
 
 const L = {
-  en: { textErr: /text (with an )?error|wrong text|typo/i, expected: /expected/i, retry: /^Retry/, leave: /^Leave out/, brand: /brand colou?r/i, save: /^Save/, news: /^News$/, frame: /frame/i },
-  pt: { textErr: /texto com erro|erro no texto/i, expected: /esperado/i, retry: /^Tentar de novo/, leave: /^(Deixar de fora|Tirar)/, brand: /cor da marca/i, save: /^Salvar/, news: /^Notícia$/, frame: /moldura/i },
+  en: { textErr: /text (with an )?error|wrong text|typo/i, expected: /expected/i, retry: /^Retry/, leave: /^(Leave out|Put back)/, brand: /^Brand color, hex$/i, save: /^Save/, news: /^News$/, frame: /frame/i },
+  pt: { textErr: /texto com erro|erro no texto/i, expected: /esperado/i, retry: /^(Tentar de novo|Refazer)/, leave: /^(Deixar de fora|Tirar|Voltar pro zip)/, brand: /^Cor da marca, hex$/i, save: /^Salvar/, news: /^Notícia$/, frame: /moldura/i },
 };
 type Lang = keyof typeof L;
 const idioma = async (page: Page, info: any, lang: Lang) => {
@@ -74,12 +74,12 @@ for (const lang of ['en', 'pt'] as Lang[]) {
     const campo = page.getByLabel(L[lang].brand);
     await expect(campo).toBeVisible(LONGO);
     await campo.fill('azul');
-    await page.getByRole('button', { name: L[lang].save }).first().click();
+    await campo.press('Tab'); // 27/10: o campo salva sozinho no blur (settings/page.tsx › onCommit), sem botão Save
     await page.waitForTimeout(800);
     await tela(page, info, `em-${lang}-03-cor-invalida`);
     expect((await q(`select brand_color from workspaces where id = 'qa_ws_alfa'`))[0].brand_color, 'inválido não grava').toBeNull();
     await campo.fill('#3d8bff');
-    await page.getByRole('button', { name: L[lang].save }).first().click();
+    await campo.press('Tab');
     await expect.poll(async () => (await q(`select brand_color from workspaces where id = 'qa_ws_alfa'`))[0].brand_color, { timeout: 15_000 }).toBe('#3D8BFF');
     await page.reload();
     await expect(page.getByLabel(L[lang].brand)).toHaveValue(/#3D8BFF/i);

@@ -49,7 +49,7 @@ test('EA-01 custo 2k: staticImageUsd = 0,40; generateEstimateUsd = nº STATIC ×
   expect(b.cost.generateEstimateUsd).toBeCloseTo(n * PRECO, 4);
   expectErro(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd * 0.85 }), 409, 'ESTIMATE_CHANGED');
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of estaticos(fim)) expect(fmtDe(p, '4x5').requestUsd, `${p.code} 4:5`).toBeCloseTo(PRECO, 4);
   await nadaPago(b.id);
 });
@@ -132,7 +132,7 @@ test('EA-05 brandColor: PATCH /workspace (#RGB/#RRGGBB, normaliza maiúsculo; in
   const o = await oferta('A');
   const b = await lotePronto('donoA', PODCAST, o.id);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const plano = await paramsStatic(b.id);
   for (const p of estaticos(fim)) {
     const { r, prompt } = await promptsDe(p.creativeId, 'VERTICAL_9_16');
@@ -157,7 +157,7 @@ test('EA-06 sem brandColor: accent cai na cadeia (página › campeão › #FF8A
   await oferta('A');
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of estaticos(fim)) {
     const spec = specDoRender((await renderVigente(p.creativeId)).input);
     expect(spec.palette.accent).toMatch(/^#[0-9A-F]{6}$/i);
@@ -170,7 +170,7 @@ test('EA-07 prompt por aspecto (§A4): 9:16 escreve todo bloco presente + TEXT C
   await oferta('A');
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const st = estaticos(fim)[0];
   expect(st?.status).toBe('ready');
   for (const f of ['4x5', '1x1']) expectOk(await as('donoA').post(`/iterate/pieces/${st.id}/formats`, { format: f }), 202);
@@ -184,13 +184,20 @@ test('EA-07 prompt por aspecto (§A4): 9:16 escreve todo bloco presente + TEXT C
     expect(prompt, `${aspect}: TEXT CHECKLIST`).toMatch(/TEXT CHECKLIST/);
     expect(specDoRender(r.input).copy, `${aspect}: copy salvo é o mesmo`).toEqual(copy);
     const quer = blocosEsperados(aspect, copy);
-    const tem = (s: string | null | undefined) => !!s && prompt.includes(s);
+    // 27/10: o prompt põe tagline/marca/confiança/CTA em CAIXA ALTA e a tagline em 2 linhas (prompts-estatico › upper/twoLines):
+    // compara só letras e dígitos, sem caixa
+    const so = (x: string) => x.toLocaleUpperCase().replace(/[^\p{L}\p{N}]+/gu, '');
+    const pr = so(prompt);
+    const tem = (s: string | null | undefined) => !!s && pr.includes(so(s));
     expect(tem(copy.headline.lead) && tem(copy.headline.highlight), `${aspect}: headline`).toBe(true);
-    expect(tem(copy.cta.main), `${aspect}: CTA`).toBe(true);
+    // o prompt escreve o CTA em caixa alta (prompts-estatico.ts › upper): compara sem caixa
+    expect(prompt.toLocaleUpperCase().includes(String(copy.cta.main).toLocaleUpperCase()), `${aspect}: CTA`).toBe(true);
     if (copy.tagline) expect(tem(copy.tagline), `${aspect}: tagline`).toBe(quer.includes('tagline'));
     if (copy.handwritten) expect(tem(copy.handwritten), `${aspect}: manuscrito`).toBe(quer.includes('handwritten'));
     if (copy.closing) expect(tem(copy.closing), `${aspect}: fechamento`).toBe(quer.includes('closing'));
-    for (const t of copy.trust ?? []) expect(tem(t.text), `${aspect}: confiança "${t.text}"`).toBe(quer.includes('trust'));
+    // o mesmo texto pode estar em outro bloco (ex. cta.sub = trust do offerAndPrice): aí a ausência não se prova pelo texto
+    const outros = [copy.cta?.main, copy.cta?.sub, copy.headline?.lead, copy.headline?.highlight, copy.subheadline].filter(Boolean).map((x: string) => so(x));
+    for (const t of copy.trust ?? []) if (quer.includes('trust') || !outros.includes(so(t.text))) expect(tem(t.text), `${aspect}: confiança "${t.text}"`).toBe(quer.includes('trust'));
     const cards = (copy.benefits ?? []).filter((x: any) => tem(x.title)).length;
     expect(cards, `${aspect}: cards`).toBeLessThanOrEqual(Math.min(maxCards(aspect), copy.benefits?.length ?? 0));
     if (aspect === '1:1') for (const x of copy.benefits ?? []) if (x.line) expect(tem(x.line), '1:1 card compacto (só título)').toBe(false);
@@ -204,7 +211,7 @@ test('EA-08 textCheck ok: STATIC pronto com textCheck {status ok} (headline e CT
   await oferta('A');
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of fim.pieces) {
     if (p.type !== 'STATIC') { expect(p.textCheck ?? null, `${p.code}: vídeo sem textCheck`).toBeNull(); continue; }
     expect(p.status).toBe('ready');
@@ -221,7 +228,7 @@ test('EA-09 [mock:static-text-mismatch]: 1ª imagem com erro crítico → refaz 
   await oferta('A', { notes: '[mock:static-text-mismatch]' });
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of estaticos(fim)) {
     expect(p.status).toBe('ready');
     const tks = await tasksDo((await renderVigente(p.creativeId)).id);
@@ -235,10 +242,11 @@ test('EA-10 [mock:static-text-mismatch-all]: as 2 erradas → ready com textChec
   await oferta('A', { notes: '[mock:static-text-mismatch-all]' });
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of estaticos(fim)) {
     expect(p.status, 'entrega com aviso, não falha').toBe('ready');
-    expect(p.inZip).toBe(true);
+    // G1 (25/10): texto crítico errado depois das 2 tentativas → ready, mas FORA do zip por padrão (o usuário devolve)
+    expect(p.inZip).toBe(false);
     expect(p.textCheck?.status).toBe('mismatch');
     const erros = p.textCheck.items.filter((i: any) => i.seen !== i.expected);
     expect(erros.length).toBeGreaterThan(0);
@@ -250,7 +258,7 @@ test('EA-10 [mock:static-text-mismatch-all]: as 2 erradas → ready com textChec
   const z = await as('donoA').post(`/iterate/${b.id}/zip`, {});
   expect([200, 202]).toContain(z.status);
   const pz = await ateLote('donoA', b.id, (x) => ['ready', 'failed'].includes(x.zip.status), { oQue: 'zip' });
-  expect(pz.zip.files).toBe(fim.pieces.length);
+  expect(pz.zip.files, 'os STATIC com erro crítico ficam fora (G1)').toBe(fim.pieces.length - estaticos(fim).length);
 });
 
 test('EA-11 teto na refação: [mock:static-text-mismatch] com teto baixado logo depois do start → não refaz (1 task), entrega mismatch', async () => {
@@ -258,7 +266,7 @@ test('EA-11 teto na refação: [mock:static-text-mismatch] com teto baixado logo
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
   await q(`update workspaces set monthly_spend_cap_usd = 0.01 where id = $1`, [WS.A]);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of estaticos(fim)) {
     const tks = await tasksDo((await renderVigente(p.creativeId)).id);
     expect(tks.length, `${p.code}: refação passa pelo teto (assertWithinCap 0,40 > 0,01). Se deu 2, ou o teto não foi checado ou a 1ª checagem rodou antes do UPDATE (fake < 1 s)`).toBe(1);
@@ -271,7 +279,7 @@ test('EA-12 recusa + texto dividem o limite de 2 tasks: [mock:static-reject] [mo
   await oferta('A', { notes: '[mock:static-reject] [mock:static-text-mismatch]' });
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of estaticos(fim)) {
     const tks = await tasksDo((await renderVigente(p.creativeId)).id);
     expect(tks.length, `${p.code}: ${tks.map((t) => `${t.status}/${t.error_code}`).join(' → ')}`).toBe(2);
@@ -308,7 +316,7 @@ test('EA-15 legado: item com visual v1 → photo_headline (builder de 23/10, sem
   else test.info().annotations.push({ type: 'poster', description: 'plano com 1 STATIC só: caso poster não exercitado nesta rodada' });
   const b2 = expectOk(await as('donoA').get(`/iterate/${b.id}`));
   expectOk(await start(b2), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const peca = (code: string) => fim.pieces.find((p: any) => p.code === code);
   const p0 = peca(its[0].code);
   expect(p0.status).toBe('ready');
@@ -340,7 +348,7 @@ test('EA-16 isolamento: cor da marca de B nunca entra no spec de A; PATCH de B n
   await oferta('A');
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const st = estaticos(fim)[0];
   const spec = specDoRender((await renderVigente(st.creativeId)).input);
   expect(spec.palette.accent).toBe('#3D8BFF');
@@ -361,7 +369,7 @@ test('EA-17 nada pago no caminho todo: tasks só do fake (STATIC_IMAGE + TRANSCR
   await oferta('A', { notes: '[mock:static-text-mismatch]' });
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await start(b), 202);
-  await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const kinds = await q(`select kind, count(*)::int n from provider_tasks group by kind`);
   test.info().annotations.push({ type: 'provider_tasks', description: JSON.stringify(kinds) });
   expect(kinds.map((k) => k.kind).filter((k) => !['TRANSCRIBE', 'STATIC_IMAGE'].includes(k)), 'nenhum outro provider').toEqual([]);

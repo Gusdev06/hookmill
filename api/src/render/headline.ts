@@ -5,7 +5,7 @@
  * - `replace`, faixa sólida/pílula (inclusive degradê medido): a faixa é repintada inteira com a cor medida e o texto novo
  *   vai na caixa da original, no estilo dela.
  * - `replace`, texto sobre o vídeo: placa sólida (cor mediana do fundo medida = `spec.plateColor`; contraste < 3 com o
- *   texto → preto 85 % ou branco 90 %, H1) cobrindo a caixa antiga + margem, cantos 0,15 em.
+ *   texto → preto ou branco, H1) OPACA (F11, 28/10) cobrindo a caixa antiga + margem, cantos 0,15 em.
  * - `add` (campeão sem headline): faixa na cor da marca no topo da área segura, Montserrat 800 caixa alta centralizada;
  *   cobrindo o rosto em > 10 % dos frames desce pra logo abaixo dele; ainda colidindo = `HEADLINE_NO_ROOM`.
  * Texto: mesma caixa e mesmo nº de linhas da original (até +1), tamanho entre 80 % e 100 % do original; não coube =
@@ -71,6 +71,34 @@ const hexRgb = (h: string): [number, number, number] | null => {
 const lum = (c: [number, number, number]) => { const l = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }; return 0.2126 * l(c[0]) + 0.7152 * l(c[1]) + 0.0722 * l(c[2]); };
 export const razaoContraste = (a: string, b: string) => { const x = hexRgb(a), y = hexRgb(b); if (!x || !y) return 21; const p = lum(x), q = lum(y); return (Math.max(p, q) + 0.05) / (Math.min(p, q) + 0.05); };
 
+/**
+ * F11 (28/10): a mesma cor com alpha 1. No `replace` a placa/faixa apaga a headline original; com alpha < 1 (era
+ * `rgba(0,0,0,0.85)`) 15 % do texto antigo atravessava em cinza. Vale pra `rgba()`/`hsla()`, `#rrggbbaa`/`#rgba`, `transparent`
+ * e cada parada de um degradê.
+ */
+export function corOpaca(cor: string): string {
+  return cor
+    .replace(/\b(rgb|hsl)a?\(\s*([^,()\s]+)[\s,]+([^,()\s]+)[\s,]+([^,()\s/]+)(?:\s*[,/]\s*[^)]+)?\)/gi, (_m, f: string, a: string, b: string, c: string) => `${f.toLowerCase()}(${a}, ${b}, ${c})`)
+    .replace(/#([0-9a-f]{6})[0-9a-f]{2}\b/gi, '#$1')
+    .replace(/#([0-9a-f]{3})[0-9a-f]\b/gi, '#$1')
+    .replace(/\btransparent\b/gi, '#000000');
+}
+
+/** Alpha de uma cor simples (1 = opaca); degradê = menor alpha das paradas. Pra teste e diagnóstico. */
+export function alphaDaCor(cor: string): number {
+  const as: number[] = [];
+  for (const m of cor.matchAll(/\b(?:rgb|hsl)a?\(([^)]*)\)/gi)) {
+    const partes = m[1].split(/[\s,/]+/).filter(Boolean);
+    if (partes.length >= 4) as.push(partes[3].endsWith('%') ? parseFloat(partes[3]) / 100 : parseFloat(partes[3]));
+  }
+  for (const m of cor.matchAll(/#([0-9a-f]{8}|[0-9a-f]{4})\b/gi)) {
+    const h = m[1];
+    as.push(h.length === 8 ? parseInt(h.slice(6), 16) / 255 : parseInt(h[3] + h[3], 16) / 255);
+  }
+  if (/\btransparent\b/i.test(cor)) as.push(0);
+  return as.length ? Math.min(...as) : 1;
+}
+
 /** Texto com o destaque marcado (*trecho*) a partir do `highlight` (1ª ocorrência; ausente no texto = sem destaque). */
 export const marcarDestaque = (text: string, highlight: string | null) => {
   if (!highlight) return text;
@@ -99,12 +127,20 @@ function fracaoSobreRosto(m: EditMap | null, caixa: Rect, ex: number, ey: number
   return n / m.frameCount;
 }
 
+/** Quadros do vídeo do campeão: os do mapa (stream de vídeo, reescalado se o fps diferir); sem mapa, pela duração. */
+export function quadrosDoCampeao(src: { fps: number; durationSec: number }, m: Pick<EditMap, 'fps' | 'frameCount'> | null): number {
+  if (m && m.frameCount > 0 && m.fps > 0) return Math.max(1, Math.round(m.frameCount * (src.fps / m.fps)));
+  return Math.max(1, Math.round(src.durationSec * src.fps));
+}
+
 export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opts: OpcoesDeBuild = {}): RemixKeepRenderInput {
   const src = ctx.source;
   const W = src.width, H = src.height, fps = src.fps;
-  const frameCount = Math.max(1, Math.round(src.durationSec * fps));
   const m = ctx.editMap;
   const ex = m ? W / m.width : 1, ey = m ? H / m.height : 1, ef = m ? fps / m.fps : 1;
+  // F7 (27/10): nº de quadros = o do STREAM de vídeo (editMap.frameCount = pacotes contados pelo ffprobe na análise).
+  // `durationSec` é a do contêiner: com o áudio mais longo que o vídeo dava 2547 contra 2544 reais, e o finalize recusava.
+  const frameCount = quadrosDoCampeao(src, m);
   const texto = marcarDestaque(spec.text.trim(), spec.highlight);
   const camadas: TextLayer[] = [];
   let caixaNova: Rect;
@@ -125,14 +161,17 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
     let fundo: TextLayer['background'];
     if (orig.background.kind !== 'none' && orig.background.color) {
       const fb = escala(orig.background.box ?? orig.box, ex, ey);
-      fundo = { kind: orig.background.kind, color: orig.background.color, box: fb };
+      fundo = { kind: orig.background.kind, color: corOpaca(orig.background.color), box: fb };
       caixaNova = fb.h >= caixaTexto.h ? fb : caixaTexto;
     } else {
-      // placa sobre o vídeo (H1): cor mediana do fundo; contraste baixo com o texto → preto 85 % / branco 90 %
+      // placa sobre o vídeo (H1): cor mediana do fundo; contraste baixo com o texto → preto / branco. F11 (28/10): sempre
+      // OPACA (alpha 1) e cobrindo a caixa da original + margem: com 85 % a headline antiga vazava em cinza por trás da nova.
       const mg = Math.round(0.02 * H);
-      const placa = { x: Math.max(0, caixaTexto.x - mg), y: Math.max(0, caixaTexto.y - mg), w: Math.min(W, caixaTexto.w + 2 * mg), h: caixaTexto.h + 2 * mg };
+      const x0 = Math.max(0, Math.min(caixaTexto.x, box.x) - mg), y0 = Math.max(0, Math.min(caixaTexto.y, box.y) - mg);
+      const x1 = Math.min(W, Math.max(caixaTexto.x + caixaTexto.w, box.x + box.w) + mg), y1 = Math.min(H, Math.max(caixaTexto.y + caixaTexto.h, box.y + box.h) + mg);
+      const placa = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
       const claro = razaoContraste(st.color, '#000000') > razaoContraste(st.color, '#ffffff');
-      const cor = spec.plateColor && razaoContraste(spec.plateColor, st.color) >= 3 ? spec.plateColor : claro ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)';
+      const cor = corOpaca(spec.plateColor && razaoContraste(spec.plateColor, st.color) >= 3 ? spec.plateColor : claro ? '#000000' : '#ffffff');
       fundo = { kind: 'solid', color: cor, box: placa, radius: Math.round(0.15 * aj.size) };
       caixaNova = placa;
       if (fracaoSobreRosto(m, placa, ex, ey, frameCount) > 0.1) throw new HeadlineError('HEADLINE_OVER_FACE', 'a placa cobre o rosto em mais de 10 % dos frames');

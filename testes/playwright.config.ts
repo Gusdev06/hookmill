@@ -31,14 +31,14 @@ export default defineConfig({
     {
       name: 'fluxo-1440',
       testDir: './specs/fluxo',
-      use: { baseURL: ENV.webUrl, browserName: 'chromium', viewport: { width: 1440, height: 900 } },
+      use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 1440, height: 900 } },
     },
     {
       // Playwright aplica a viewport via Emulation.setDeviceMetricsOverride (não pelo tamanho da janela),
       // então 390 funciona no headless mesmo com o piso de 500 px da janela do Chrome.
       name: 'fluxo-390',
       testDir: './specs/fluxo',
-      use: { baseURL: ENV.webUrl, browserName: 'chromium', viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+      use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
     },
     // Editor no vídeo v1 (F2d, 09/10): `npm run editor` (API), `npm run editor:navegador` (1440 + 390), `npm run editor:render`
     { name: 'editor', testDir: './specs/editor', timeout: 180_000 },

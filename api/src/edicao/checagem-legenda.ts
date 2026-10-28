@@ -155,6 +155,26 @@ export function cropOf(t: CaptionCheckTarget, out: { width: number; height: numb
   return w > 8 && h > 8 ? { x, y, w: w - (w % 2), h: h - (h % 2) } : null;
 }
 
+/** O que a porta devolve por quadro; `problem`/`reason` só vêm do Haiku (F9, superconjunto do `CheckCaptionResult`). */
+type QuadroDaPorta = { atSec: number; ok: boolean; covered: boolean; duplicated: boolean; seen: string | null; problem?: CaptionFrameProblem | null; reason?: string | null };
+type CaptionFrameProblem = NonNullable<CaptionCheck['frames'][number]['problem']>;
+
+/**
+ * F10 (28/10): o veredito que vai pro `renders.input.captionCheck`, com o `problem` e o `reason` de cada quadro (antes só
+ * atSec/ok/seen). Sem `status` da porta (mock antigo): `covered` se algum quadro veio tampado ou duplicado.
+ */
+export function captionCheckOf(res: { status?: 'ok' | 'covered'; frames: QuadroDaPorta[] }, attempt: number): CaptionCheck {
+  const status = res.status ?? (res.frames.some((f) => f.covered || f.duplicated) ? 'covered' : 'ok');
+  const frames = res.frames.map((f) => ({ atSec: f.atSec, ok: f.ok, seen: f.seen, problem: f.problem ?? null, reason: f.reason ?? null }));
+  return { status, frames, attempt };
+}
+
+/** "21.29s missing", "40s covered: card cobre 'você'" ou "77.39s ok". */
+export function quadroNoLog(f: CaptionCheck['frames'][number]): string {
+  if (f.ok) return `${f.atSec}s ok`;
+  return `${f.atSec}s ${f.problem ?? 'ruim'}${f.reason ? `: ${f.reason}` : ''}`;
+}
+
 export interface CaptionCheckJob {
   renderId: string; workspaceId: string; creativeId: string; variationBatchId: string;
   championId: string | null; language: string; notes: string | null;
@@ -217,8 +237,9 @@ export class ChecagemLegendaService {
         workspaceId: j.workspaceId, creativeId: j.creativeId, variationBatchId: j.variationBatchId, renderId: j.renderId,
         mode: target.mode, language: j.language, frames, notes: j.notes,
       });
-      const status = (res as { status?: 'ok' | 'covered' }).status ?? (res.frames.some((f) => f.covered || f.duplicated) ? 'covered' : 'ok');
-      return { status, frames: res.frames.map((f) => ({ atSec: f.atSec, ok: f.ok, seen: f.seen })), attempt: j.attempt };
+      const check = captionCheckOf(res, j.attempt);
+      this.log.log(`render ${j.renderId}: legenda ${check.status} (${check.frames.map(quadroNoLog).join('; ')})`);
+      return check;
     } catch (e) {
       this.log.warn(`render ${j.renderId}: checagem da legenda pulada (${(e as Error).message})`);
       return { status: 'skipped', frames: [], attempt: j.attempt };

@@ -13,7 +13,7 @@ const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
 const FRAMES = [2, 16, 30, 44, 58, 72].map((t) => ({ atSec: t, image: JPG, crop: JPG, expectedText: '我不方便' }));
 const INPUT: CheckCaptionInput = { workspaceId: 'w1', renderId: 'r1', variationBatchId: 'b1', creativeId: 'c1', mode: 'avoid', language: 'zh-TW', frames: FRAMES.map((f) => ({ atSec: f.atSec, frameUrl: `https://s/f${f.atSec}.png`, bandUrl: `https://s/b${f.atSec}.png`, expectedWords: ['我不方便'] })) };
 const jpgFetch = (async () => new Response(JPG, { status: 200 })) as unknown as typeof fetch;
-const row = (frame: number, over: Record<string, unknown> = {}) => ({ frame, captionVisible: true, intact: true, duplicated: false, seen: '我不方便', problem: 'none', ...over });
+const row = (frame: number, over: Record<string, unknown> = {}) => ({ frame, captionVisible: true, intact: true, duplicated: false, seen: '我不方便', problem: 'none', reason: '', ...over });
 
 class T implements ClaudeTransport {
   calls: ClaudeCall[] = [];
@@ -36,7 +36,7 @@ describe('checkCaption', () => {
     expect(t.calls[0].user).toContain('Expected: the ORIGINAL subtitle of the video, whole and uncovered.');
     expect(t.calls[0].user).toContain('Frame 2 at 16.0 s (full frame, then the subtitle area crop); speech at this moment: "我不方便"');
     expect(out.status).toBe('ok');
-    expect(out.frames[0]).toEqual({ atSec: 2, ok: true, covered: false, duplicated: false, seen: '我不方便', problem: null });
+    expect(out.frames[0]).toEqual({ atSec: 2, ok: true, covered: false, duplicated: false, seen: '我不方便', problem: null, reason: null });
     expect(out.costUsd).toBeCloseTo(0.0073, 4);
     expect(out.costUsd).toBeLessThanOrEqual(CAPTION_CHECK.estimatedUsd);
     expect(costs.entries.every((e) => e.variationBatchId === 'b1' && e.creativeId === 'c1' && e.kind === 'LLM')).toBe(true);
@@ -51,18 +51,43 @@ describe('checkCaption', () => {
     expect(t.calls[0].user).toContain('Frame 1 at 2.0 s (full frame);');
   });
 
-  it('veredito: tampada/cortada/duplicada em 1 quadro = covered; 1 quadro sem legenda tolera, 2 não; replace confere o texto', () => {
+  it('veredito: 1 quadro tampado/cortado/duplicado COM motivo = covered; 1 quadro sem legenda tolera, 2 não; replace confere o texto', () => {
     const v = (rows: unknown[], mode: 'avoid' | 'replace' = 'avoid') => parseCaptionCheck(JSON.stringify({ frames: rows }), { mode, frames: FRAMES });
     const all = FRAMES.map((_, k) => row(k + 1));
+    const motivo = 'the title card hides the last two characters';
     expect(v(all).status).toBe('ok');
-    expect(v(all.map((r, k) => (k === 2 ? { ...r, intact: false, problem: 'covered' } : r)))).toMatchObject({ status: 'covered', frames: expect.arrayContaining([expect.objectContaining({ atSec: 30, ok: false, problem: 'covered' })]) });
-    expect(v(all.map((r, k) => (k === 2 ? { ...r, intact: false, problem: 'cut' } : r))).frames[2].problem).toBe('cut');
-    expect(v(all.map((r, k) => (k === 4 ? { ...r, duplicated: true } : r))).status).toBe('covered');
+    expect(v(all.map((r, k) => (k === 2 ? { ...r, intact: false, problem: 'covered', reason: motivo } : r)))).toMatchObject({ status: 'covered', frames: expect.arrayContaining([expect.objectContaining({ atSec: 30, ok: false, problem: 'covered', reason: motivo })]) });
+    expect(v(all.map((r, k) => (k === 2 ? { ...r, intact: false, problem: 'cut', reason: 'cut by the right edge' } : r)))).toMatchObject({ status: 'covered', frames: expect.arrayContaining([expect.objectContaining({ problem: 'cut' })]) });
+    expect(v(all.map((r, k) => (k === 4 ? { ...r, duplicated: true, problem: 'duplicated', reason: 'old subtitle leaks at the bottom edge' } : r))).status).toBe('covered');
     expect(v(all.map((r, k) => (k === 1 ? { ...r, captionVisible: false, seen: '' } : r))).status).toBe('ok');
     expect(v(all.map((r, k) => (k === 1 || k === 3 ? { ...r, captionVisible: false, seen: '' } : r))).status).toBe('covered');
     expect(v(all.map((r, k) => (k === 0 ? { ...r, seen: 'completely different' } : r)), 'replace').frames[0].problem).toBe('wrong_text');
     expect(v(all.slice(0, 4)).frames[5]).toMatchObject({ ok: false, problem: 'missing' }); // quadro esquecido
     expect(textOverlap('I am not convenient', 'i am NOT convenient!')).toBe(1);
+  });
+
+  it('F9 (falso positivo do lote live 27/10): 1 quadro ruim sem motivo não derruba a peça; 2 ruins derrubam', async () => {
+    // Haiku mockado: o quadro de 77,39 s veio "não inteiro" lendo a legenda inteira, sem dizer o que tampa
+    const lida = '這堂免費公開課會完整解釋 台灣人最常見的英文盲點';
+    const frames = [13, 26, 39, 52, 65, 77.39].map((t) => ({ atSec: t, image: JPG, crop: JPG, expectedText: null }));
+    const input: CheckCaptionInput = { ...INPUT, frames: frames.map((f) => ({ atSec: f.atSec, frameUrl: `https://s/f${f.atSec}.png`, bandUrl: `https://s/b${f.atSec}.png`, expectedWords: null })) };
+    const linhas = frames.map((_, k) => row(k + 1, { seen: lida }));
+    const falso = linhas.map((r, k) => (k === 5 ? { ...r, intact: false, problem: 'none', reason: '' } : r));
+    const t = new T({ frames: falso });
+    const svc = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'claude-opus-5-5', runFfmpeg: async () => JPG, fetchImpl: jpgFetch });
+    const out = await svc.checkCaption(input);
+    expect(t.calls[0].schema).toBe(CAPTION_CHECK_SCHEMA);
+    expect(out.status).toBe('ok');
+    expect(out.frames[5]).toMatchObject({ atSec: 77.39, ok: false, covered: false, problem: 'illegible', reason: null, seen: lida });
+
+    const v = (rows: unknown[]) => parseCaptionCheck(JSON.stringify({ frames: rows }), { mode: 'avoid', frames });
+    // "covered" dito sem motivo (ou motivo vazio de conteúdo) em 1 quadro: tolerado
+    expect(v(linhas.map((r, k) => (k === 5 ? { ...r, intact: false, problem: 'covered', reason: 'none' } : r))).status).toBe('ok');
+    expect(v(linhas.map((r, k) => (k === 5 ? { ...r, intact: false, problem: 'illegible', reason: 'blurry' } : r))).status).toBe('ok');
+    // 2 quadros ruins, mesmo sem motivo = covered
+    expect(v(linhas.map((r, k) => (k >= 4 ? { ...r, intact: false, problem: 'covered', reason: '' } : r))).status).toBe('covered');
+    // o schema pede o motivo (strict: obrigatório)
+    expect((CAPTION_CHECK_SCHEMA.properties.frames as { items: { required: string[] } }).items.required).toContain('reason');
   });
 
   it('fake: ok por padrão; [mock:caption-covered] tampa os quadros do meio; [mock:caption-fail] lança', async () => {

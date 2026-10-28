@@ -14,7 +14,7 @@ test('trava recusa banco de dev, banco remoto e bucket que não é de teste', ()
 });
 
 test('conecta no maquina_test com o schema do contrato aplicado', async () => {
-  expect(await currentDatabase()).toBe('maquina_test');
+  expect(await currentDatabase()).toMatch(/^maquina(_[a-z0-9]+)?_test$/); // 27/10: banco de teste próprio do QA (maquina_e2e_test) também vale
   const tables = await businessTables();
   for (const t of ['users', 'workspaces', 'memberships', 'offers', 'creatives', 'scripts', 'faces', 'scenes', 'renders', 'files', 'jobs', 'provider_tasks', 'cost_entries', 'change_requests', 'invites', 'refresh_tokens']) {
     expect(tables).toContain(t);
@@ -39,7 +39,7 @@ test('reset por teste: o teste seguinte começa limpo e com as identidades intac
   expect(await q('select * from memberships order by id')).toEqual(snap.memberships);
   const ws = await q<{ workspace_id: string; n: string }>('select workspace_id, count(*) n from memberships group by 1 order by 1');
   expect(ws).toEqual([
-    { workspace_id: WS.A, n: '4' },
+    { workspace_id: WS.A, n: '5' }, // 27/10: + clienteA (fase2-agencia),
     { workspace_id: WS.B, n: '2' },
   ]);
   expect((await q('select id from users')).length).toBe(Object.keys(PERSONAS).length);

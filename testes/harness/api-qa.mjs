@@ -8,7 +8,7 @@
 // Uso: node testes/harness/api-qa.mjs            → compila e roda (webServer do Playwright)
 //      node testes/harness/api-qa.mjs --so-build → só compila (pra conferir o build antes de rodar a suíte)
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,7 +38,9 @@ function build() {
     process.exit(1);
   }
   // o testes/package.json é "type": "module"; a API compilada é CommonJS (como no api/)
-  writeFileSync(join(QA_API_DIR, 'package.json'), JSON.stringify({ private: true, type: 'commonjs' }) + '\n');
+  // 27/10: o /health lê `version` de ../../package.json (= este arquivo no build do QA): copia a do api/package.json
+  const version = JSON.parse(readFileSync(join(API, 'package.json'), 'utf8')).version;
+  writeFileSync(join(QA_API_DIR, 'package.json'), JSON.stringify({ private: true, type: 'commonjs', version }) + '\n');
   process.stdout.write(`[qa] API compilada em ${relative(ROOT, DIST)} (${((Date.now() - t0) / 1000).toFixed(1)} s)\n`);
 }
 

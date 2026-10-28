@@ -16,9 +16,9 @@ test.afterEach(async () => { await esperarJobsQuietos(120_000); });
 const LONGO = { timeout: 180_000 };
 
 const L = {
-  en: { generate: /^Generate \d+ pieces$/, failed: /LAYOUT-STORY failed\. The other \d+ keep going\./, retry: 'Retry', leaveOut: 'Leave out', cont: 'Continue to download',
+  en: { generate: /^Generate \d+ pieces$/, failed: /LAYOUT-REVIEW failed\. The other \d+ keep going\./, retry: 'Retry', leaveOut: 'Leave out', cont: 'Continue to download',
         inZip: 'In zip', zip: 'Download zip', downloaded: /Downloaded · \d+ files/, offer: 'Which offer is this ad for?', why: 'Why this ad works', preview: (c: string) => `Preview ${c}`, close: 'Close preview' },
-  pt: { generate: /^Gerar \d+ peças$/, failed: /LAYOUT-STORY falhou\. As outras \d+ continuam\./, retry: 'Tentar de novo', leaveOut: 'Deixar de fora', cont: 'Continuar pro download',
+  pt: { generate: /^Gerar \d+ peças$/, failed: /LAYOUT-REVIEW falhou\. As outras \d+ continuam\./, retry: 'Tentar de novo', leaveOut: 'Deixar de fora', cont: 'Continuar pro download',
         inZip: 'No zip', zip: 'Baixar zip', downloaded: /Baixado · \d+ arquivos/, offer: 'De qual oferta é este anúncio?', why: /Por que esse anúncio funciona|Por que este anúncio funciona/, preview: (c: string) => `Prévia de ${c}`, close: 'Fechar prévia' },
 };
 
@@ -37,7 +37,7 @@ function espiao(page: Page) {
 async function fluxoCompleto(page: Page, info: any, lang: 'en' | 'pt') {
   const t = L[lang];
   const tag = `iter-${lang}`;
-  await oferta('A', { language: lang === 'pt' ? 'pt-BR' : 'en', notes: '[mock:render-fail:STORY]' });
+  await oferta('A', { language: lang === 'pt' ? 'pt-BR' : 'en', notes: '[mock:render-fail:REVIEW]' });
   const spy = espiao(page);
   await loginRapido(page, 'adminA');
   // o login (BFF) grava o NEXT_LOCALE do usuário; o idioma da interface troca depois, como no seletor EN/PT
@@ -62,7 +62,7 @@ async function fluxoCompleto(page: Page, info: any, lang: 'en' | 'pt') {
   await expect(gerar).toHaveText(new RegExp(`${plano.pieces.length}`));
   for (const p of plano.pieces) await expect(page.getByText(p.code, { exact: true }).first(), `código ${p.code} na tela`).toBeVisible();
   // códigos no idioma da OFERTA
-  if (lang === 'pt') expect(plano.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(['GANCHO-TEXTO-2', 'ESTATICO-F1']));
+  if (lang === 'pt') expect(plano.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(['HEADLINE-1', 'ESTATICO-F1']));
   await gerar.click();
   // 1 falha não para as outras; alerta com o código; Retry
   const alerta = page.getByText(t.failed);
@@ -71,7 +71,7 @@ async function fluxoCompleto(page: Page, info: any, lang: 'en' | 'pt') {
   await tela(page, info, `${tag}-04-falhou`);
   await semRolagemHorizontal(page, 'generate failed');
   await page.getByRole('button', { name: t.retry, exact: true }).first().click();
-  await ateLote('adminA', batchId, (b) => assentou(b) && b.summary.failed === 0, { timeoutMs: 180_000, oQue: 'retry da STORY' });
+  await ateLote('adminA', batchId, (b) => assentou(b) && b.summary.failed === 0, { timeoutMs: 600_000, oQue: 'retry da REVIEW' });
   // com tudo pronto a tela passa sozinha pro Download (phase=download); se ainda estiver no Generate, "Continue to download"
   const cont = page.getByRole('link', { name: t.cont }).or(page.getByRole('button', { name: t.cont })).first();
   const zipBtn = page.getByRole('button', { name: t.zip });
@@ -84,14 +84,14 @@ async function fluxoCompleto(page: Page, info: any, lang: 'en' | 'pt') {
   await tela(page, info, `${tag}-06-download`);
   // preview de uma peça
   const final = (await as('adminA').get(`/iterate/${batchId}`)).data;
-  const peca = final.pieces.find((p: any) => p.type === 'STORY');
+  const peca = final.pieces.find((p: any) => p.type === 'REVIEW');
   await page.getByRole('button', { name: t.preview(peca.code) }).click();
   await expect(page.getByText(peca.files[0].name).first()).toBeVisible();
   await page.waitForTimeout(800);
   await tela(page, info, `${tag}-07-preview`);
   await page.getByRole('button', { name: t.close }).first().click();
-  // In zip: tira 1 peça (a 1ª HOOK_TEXT)
-  const hook = final.pieces.find((p: any) => p.type === 'HOOK_TEXT');
+  // In zip: tira 1 peça (a 1ª HEADLINE; HOOK_TEXT saiu do catálogo em 25/10)
+  const hook = final.pieces.find((p: any) => p.type === 'HEADLINE');
   const caixa = page.locator(`[aria-label="${t.preview(hook.code)}"]`).locator('xpath=ancestor::*[.//button[@role="checkbox"]][1]').getByRole('checkbox');
   await caixa.click();
   await expect.poll(async () => (await as('adminA').get(`/iterate/${batchId}`)).data.pieces.find((p: any) => p.id === hook.id).inZip, { timeout: 15_000 }).toBe(false);
@@ -147,7 +147,7 @@ test('IU-03 >1 oferta: seletor acima do dropzone; Leave out numa peça falha; Li
   await page.waitForTimeout(800);
   await tela(page, info, 'iter-10-deixou-de-fora');
   // vencedor da Library (peça pronta marcada como vencedora) → "Use this" na tela vazia
-  await ateLote('donoA', batchId, assentou, { timeoutMs: 180_000 });
+  await ateLote('donoA', batchId, assentou, { timeoutMs: 600_000 });
   const pronta = (await as('donoA').get(`/iterate/${batchId}`)).data.pieces.find((p: any) => p.status === 'ready' && p.type !== 'STATIC');
   await q(`update creatives set is_winner = true where id = $1`, [pronta.creativeId]);
   await page.goto('/iterate/new');
@@ -161,7 +161,7 @@ test('IU-03 >1 oferta: seletor acima do dropzone; Leave out numa peça falha; Li
 });
 
 test('IU-04 CLIENT: abre o lote; o que a tela oferece pra gerar/refazer, e In zip + zip liberados', async ({ page }, info) => {
-  await oferta('A', { notes: '[mock:render-fail:STORY]' });
+  await oferta('A', { notes: '[mock:render-fail:REVIEW]' });
   const b = await lotePronto('donoA', PODCAST);
   const spy = espiao(page);
   await loginRapido(page, 'clienteA');
@@ -180,18 +180,18 @@ test('IU-04 CLIENT: abre o lote; o que a tela oferece pra gerar/refazer, e In zi
   expect((await as('donoA').get(`/iterate/${b.id}`)).data.status, 'CLIENT não lança o lote').toBe('PLAN_READY');
   // dono gera; o CLIENT faz In zip e baixa
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length }), 202);
-  await ateLote('donoA', b.id, assentou, { timeoutMs: 180_000 });
+  await ateLote('donoA', b.id, assentou, { timeoutMs: 600_000 });
   await page.goto(`/iterate/${b.id}?view=download`);
   await expect(page.getByRole('button', { name: L.en.zip })).toBeVisible(LONGO);
   await tela(page, info, 'iter-15-cliente-download');
-  const hook = (await as('donoA').get(`/iterate/${b.id}`)).data.pieces.find((p: any) => p.type === 'HOOK_TEXT');
+  const hook = (await as('donoA').get(`/iterate/${b.id}`)).data.pieces.find((p: any) => p.type === 'HEADLINE');
   await page.locator(`[aria-label="Preview ${hook.code}"]`).locator('xpath=ancestor::*[.//button[@role="checkbox"]][1]').getByRole('checkbox').click();
   await expect.poll(async () => (await as('donoA').get(`/iterate/${b.id}`)).data.pieces.find((p: any) => p.id === hook.id).inZip, { timeout: 15_000 }).toBe(false);
   const [dl] = await Promise.all([page.waitForEvent('download', LONGO), page.getByRole('button', { name: L.en.zip }).click()]);
   expect(dl.suggestedFilename()).toMatch(/^QA_\d{4}_.+_variations\.zip$/);
   // a peça falha: o que o CLIENT vê no Generate
   await page.goto(`/iterate/${b.id}?view=generate`);
-  await expect(page.getByText(/LAYOUT-STORY failed/)).toBeVisible(LONGO);
+  await expect(page.getByText(/LAYOUT-REVIEW failed/)).toBeVisible(LONGO);
   const retryVisivel = await page.getByRole('button', { name: 'Retry', exact: true }).first().isVisible();
   await tela(page, info, 'iter-16-cliente-falha');
   info.annotations.push({ type: 'CLIENT retry', description: `Retry visível pro CLIENT: ${retryVisivel}` });

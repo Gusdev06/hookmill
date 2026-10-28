@@ -15,7 +15,7 @@ import {
   propsDeRemixInput,
   propsDeRenderInput,
 } from '@maquina/video';
-import { RenderError, isAutoEdit, isFrame, isRemixKeep, type AutoEditRenderInput, type FrameRenderInput, type RemixKeepRenderInput, type RenderInput, type RenderProgress, type RenderResult, type RenderService } from './contrato';
+import { RenderError, RenderValidationError, isAutoEdit, isFrame, isRemixKeep, type AutoEditRenderInput, type FrameRenderInput, type RemixKeepRenderInput, type RenderInput, type RenderProgress, type RenderResult, type RenderService } from './contrato';
 import { FilaLimitada } from './fila';
 import { frameDoErro, limitarProgresso, mapearProgresso } from './progresso';
 import { conferirSplice } from './troca-motor';
@@ -162,7 +162,7 @@ export class RemotionRenderService implements RenderService {
         await this.comporSobreOCampeao(input, mudoPath, outputPath);
         const n = await this.contarFrames(outputPath);
         if (n !== input.canvas.frameCount) {
-          throw new RenderError('RENDER_ERROR', null, `nb_frames ${n} != campeão ${input.canvas.frameCount}`);
+          throw new RenderValidationError('RENDER_ERROR', null, `nb_frames ${n} != campeão ${input.canvas.frameCount}`);
         }
       }
 

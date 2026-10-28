@@ -7,6 +7,7 @@ import path from 'node:path';
 import {
   RenderError,
   RenderThrottledError,
+  RenderValidationError,
   isAutoEdit,
   isFrame,
   isRemixKeep,
@@ -129,10 +130,10 @@ export class LambdaRenderPort implements RenderPort {
       if (remix) {
         await this.pos.comporSobreOCampeao(this.ff, input, baixado, outputPath);
         const n = await this.pos.contarFrames(this.ff, outputPath);
-        if (n !== input.canvas.frameCount) throw new RenderError('RENDER_ERROR', null, `nb_frames ${n} != campeão ${input.canvas.frameCount}`);
+        if (n !== input.canvas.frameCount) throw new RenderValidationError('RENDER_ERROR', null, `nb_frames ${n} != campeão ${input.canvas.frameCount}`);
       }
       const v = await this.pos.sondarVideo(this.ff, outputPath);
-      if ((isAutoEdit(input) || isFrame(input)) && total > 0 && v.frames !== total) throw new RenderError('RENDER_ERROR', null, `nb_frames ${v.frames} != ${total} calculados`);
+      if ((isAutoEdit(input) || isFrame(input)) && total > 0 && v.frames !== total) throw new RenderValidationError('RENDER_ERROR', null, `nb_frames ${v.frames} != ${total} calculados`);
       const fps = v.fps > 0 ? v.fps : 30;
       const frames = total > 0 && !remix ? total : v.frames;
       await this.pos.posterPorFfmpeg(this.ff, outputPath, posterPath, Math.min(1.5, Math.max(0, (frames - 1) / fps)));

@@ -64,7 +64,8 @@ test('C-OF-05 POST /offers/extract → 202 Job OFFER_EXTRACT; mock termina em SU
   const fim = await aguardar(() => as('membroA').get(`/jobs/${j.id}`), (r) => ['SUCCEEDED', 'FAILED'].includes(r.data?.status), { oQue: 'job de extração' });
   expect(fim.data.status).toBe('SUCCEEDED');
   expect(fim.data.output).toHaveProperty('brief');
-  expect(fim.data.checklist.map((c: any) => c.key)).toEqual(['fetching_page', 'extracting', 'detecting_language']);
+  // briefing-leitura-v2 §4.3 (22/10): 6 etapas
+  expect(fim.data.checklist.map((c: any) => c.key)).toEqual(['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language']);
 });
 
 test('C-OF-06 extract: sem url nem pageText → 400; url inválida → 400', async () => {

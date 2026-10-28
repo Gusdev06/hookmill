@@ -25,7 +25,7 @@ import { join } from 'node:path';
 /** §13.6: template que reaproveita o vídeo do campeão (manter a edição). */
 export const REMIX_KEEP_TEMPLATE = 'remix-keep';
 import {
-  RenderError, RenderThrottledError, type RenderImpl, type RenderInput, type RenderKind, type RenderPort, type RenderResult, type RenderSnapshot,
+  RenderError, RenderThrottledError, RenderValidationError, type RenderImpl, type RenderInput, type RenderKind, type RenderPort, type RenderResult, type RenderSnapshot,
   type RenderSubmission, type ScratchRenderInput,
 } from '../render/contrato';
 import { RENDER_PORTS } from '../render/render.module';
@@ -552,7 +552,9 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   /**
    * §6.1.1 passo 5: claim por finalizingAt (webhook × poller × evento) → `uploading` → `finalize` → `storage.put` → READY
    * (e a transição do criativo, igual antes) → `release` → apaga a pasta → CostEntry AWS_LAMBDA/RENDER (1 por tentativa).
-   * Falha no finalize/upload: lambda tenta de novo no próximo ciclo (até 3x); depois FAILED.
+   * Falha no finalize/upload: lambda tenta de novo no próximo ciclo (até 3x); depois FAILED. F8 (27/10): erro
+   * determinístico (`RenderValidationError`: nº de quadros) = FAILED na 1ª; e a falha definitiva também chama `release`
+   * (apaga a saída no bucket do Remotion) e grava o custo do Lambda (o teto do mês vê a peça que falhou).
    */
   async settle(renderId: string): Promise<void> {
     const r = await this.prisma.render.findUnique({ where: { id: renderId }, include: { creative: true } });
@@ -566,15 +568,19 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const port = this.ports.porImpl(r.impl);
     const input = r.input as unknown as RenderInput;
     const sub = this.subOf(r);
-    let res: RenderResult & { costUsd?: number | null };
+    let res: (RenderResult & { costUsd?: number | null }) | null = null;
     try {
       res = await port.finalize(input, sub);
       const auto = (r.settings as { templateId?: string } | null)?.templateId === AUTO_EDIT_TEMPLATE;
       if (auto) await this.completeAuto(r, res);
       else await this.completeScratch(r, res);
     } catch (e) {
+      if (res) await rm(dirname(res.outputPath), { recursive: true, force: true }).catch(() => undefined);
       if (await this.retryFinalize(r, e)) return;
       this.log.warn(`render ${r.id}: finalize falhou: ${(e as Error).message}`);
+      // falha definitiva: o custo entra antes de a peça assentar (o teto e o total do lote já o veem) e a saída sai do bucket
+      await this.recordCost(r, res?.costUsd ?? (await this.custoDoSnapshot(port, sub, r))).catch((x: unknown) => this.log.warn(`custo ${r.id}: ${(x as Error).message}`));
+      await port.release(input, sub).catch((x: unknown) => this.log.warn(`release ${r.id}: ${(x as Error).message}`));
       await this.failRender(r.id, 'RENDER_ERROR', e instanceof RenderError ? e.failedFrame : null, (e as Error).message, true);
       return;
     }
@@ -586,11 +592,21 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     this.kick();
   }
 
-  /** Lambda: throttling ou falha de rede/upload = solta o claim pro próximo ciclo do poller (até 3 tentativas, §2.7). */
+  /** F8: custo do Lambda quando o finalize não devolveu (falhou): o snapshot traz o acumulado; sem ele, o último gravado. */
+  private async custoDoSnapshot(port: RenderPort, sub: RenderSubmission, r: { costUsd: Prisma.Decimal | null }): Promise<number | null> {
+    const snap = await port.snapshot(sub).catch(() => null);
+    if (snap?.costUsd != null) return snap.costUsd;
+    return r.costUsd != null ? Number(r.costUsd) : null;
+  }
+
+  /**
+   * Lambda: throttling ou falha de rede/upload = solta o claim pro próximo ciclo do poller (até 3 tentativas, §2.7).
+   * F8: `RenderValidationError` (nº de quadros errado) é determinístico: não repete.
+   */
   private async retryFinalize(r: { id: string; impl: string | null }, e: unknown): Promise<boolean> {
     const n = (this.finalizeTries.get(r.id) ?? 0) + 1;
     const throttled = e instanceof RenderThrottledError;
-    if (r.impl !== 'lambda' || (!throttled && n >= FINALIZE_MAX_TRIES)) {
+    if (r.impl !== 'lambda' || e instanceof RenderValidationError || (!throttled && n >= FINALIZE_MAX_TRIES)) {
       this.finalizeTries.delete(r.id);
       return false;
     }

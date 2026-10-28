@@ -32,7 +32,7 @@ import { configureApp } from '../main';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecuperacaoService } from '../recuperacao/recuperacao.service';
 import {
-  RENDER_PORTS, RenderPorts, RenderThrottledError, ServicoComoPorta,
+  RENDER_PORTS, RenderError, RenderPorts, RenderThrottledError, RenderValidationError, ServicoComoPorta,
   type RenderInput, type RenderPort, type RenderSnapshot, type RenderSubmission, type RenderWebhookEvent,
 } from '../render';
 import { FakeRenderService } from './fake-render.service';
@@ -46,6 +46,8 @@ const run = promisify(execFile);
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
 type Mode = 'ok' | 'throttle' | 'timeout-once' | 'timeout' | 'slow';
+/** F8: como o finalize falha (por tipo de peça). mismatch = determinístico; flaky = 1 falha de rede; broken = sempre. */
+type FinalizeMode = 'mismatch' | 'flaky' | 'broken';
 /** Modo por tipo de peça (o input auto-edit traz `type`). */
 const MODE: Record<string, Mode> = { CUT: 'throttle', HOOK_TEXT: 'timeout-once', STORY: 'timeout', COLD_OPEN: 'slow', NATIVE_SEARCH: 'ok' };
 
@@ -57,12 +59,16 @@ class FakeLambdaPort implements RenderPort {
   readonly submits: { renderId: string; attempt: number; webhookUrl: string | null }[] = [];
   readonly released: string[] = [];
   readonly throttled = new Set<string>();
+  /** modo do submit por tipo (o 2º teste zera) e falha do finalize por tipo (F8) */
+  modes: Record<string, Mode> = MODE;
+  finalizeModes: Record<string, FinalizeMode> = {};
+  readonly finalizeCalls = new Map<string, number>();
   maxActive = 0;
   constructor(tmpDir: string) { this.fake = new FakeRenderService({ tmpDir, minMs: 150 }); }
   templates() { return this.fake.templates(); }
   private active() { return [...this.runs.values()].filter((r) => !r.over).length; }
   async submit(input: RenderInput, o: { attempt: number; webhookUrl: string | null }): Promise<RenderSubmission> {
-    const mode = MODE[(input as { type?: string }).type ?? ''] ?? 'ok';
+    const mode = this.modes[(input as { type?: string }).type ?? ''] ?? 'ok';
     if (mode === 'throttle' && !this.throttled.has(input.renderId)) {
       this.throttled.add(input.renderId);
       throw new RenderThrottledError(300, 'Rate Exceeded');
@@ -86,6 +92,11 @@ class FakeLambdaPort implements RenderPort {
     return { state: 'done', progress: { ...progress, stage: 'encoding', progress: 99 }, costUsd: 0.011, error: null };
   }
   async finalize(input: RenderInput) {
+    const n = (this.finalizeCalls.get(input.renderId) ?? 0) + 1;
+    this.finalizeCalls.set(input.renderId, n);
+    const fm = this.finalizeModes[(input as { type?: string }).type ?? ''];
+    if (fm === 'mismatch') throw new RenderValidationError('RENDER_ERROR', null, 'nb_frames 60 != campeão 63');
+    if (fm === 'broken' || (fm === 'flaky' && n === 1)) throw new RenderError('RENDER_ERROR', null, 'finalize: socket hang up');
     return { ...(await this.fake.render(input, () => undefined)), costUsd: 0.011 };
   }
   async release(_input: RenderInput, sub: RenderSubmission) { this.released.push(sub.externalId); }
@@ -243,5 +254,43 @@ describe(isLocal ? 'Render no Lambda: despachante, poller, webhook, settle (inte
     await new Promise((r) => setTimeout(r, 500));
     expect(await prisma.costEntry.count({ where: { workspaceId: ws.id, provider: 'AWS_LAMBDA' } })).toBe(7);
     expect((await prisma.render.findUniqueOrThrow({ where: { id: hookR.id } })).status).toBe('READY');
+  });
+  it('F8: finalize que falha grava o custo do Lambda e apaga a saída; nº de quadros errado falha na 1ª, rede tenta até 3x', async () => {
+    lambda.modes = {};
+    lambda.finalizeModes = { CUT: 'mismatch', NATIVE_SEARCH: 'flaky', HOOK_TEXT: 'broken' };
+    const champ = await prisma.variationBatch.findUniqueOrThrow({ where: { id: batchId } });
+    const items = PLAN.filter((p) => ['CUT', 'NATIVE_SEARCH', 'HOOK_TEXT'].includes(p.type));
+    const b2 = await prisma.variationBatch.create({
+      data: {
+        workspaceId: ws.id, championId: champ.championId, offerId: champ.offerId, status: 'PLAN_READY', mode: 'AUTO', language: 'en', requests: [], createdById: ws.userId,
+        items: { create: items.map((p, index) => ({ workspaceId: ws.id, kind: 'AUTO_EDIT' as const, index, status: 'READY' as const, autoType: p.type, code: `F8-${p.code}`, axis: p.axis, change: 'c', rationale: 'r', payload: { params: { type: p.type, ...p.params } } })) },
+      },
+    });
+    const svc = app.get(PecasAutoService);
+    const launchedAt = new Date();
+    const launched = await app.get(PrismaService).$transaction(async (tx) => {
+      await tx.variationBatch.update({ where: { id: b2.id }, data: { status: 'LAUNCHED', launchedAt } });
+      return svc.createPieces(tx, { batchId: b2.id, userId: ws.userId, launchedAt });
+    });
+    svc.launched(launched);
+    const done = await until(() => svc.pieces({ id: b2.id, workspaceId: ws.id, status: 'LAUNCHED' }), (ps) => ps.every((p) => ['ready', 'failed'].includes(p.status)));
+    const by = Object.fromEntries(done.map((p) => [p.code, p]));
+    expect(by['F8-CUT-15S']).toMatchObject({ status: 'failed', errorCode: 'RENDER_ERROR' });
+    expect(by['F8-NATIVE-SEARCH'].status).toBe('ready');
+    expect(by['F8-HOOK-TEXT-2']).toMatchObject({ status: 'failed', errorCode: 'RENDER_ERROR' });
+
+    const renders = await prisma.render.findMany({ where: { workspaceId: ws.id, format: 'VERTICAL_9_16', stale: false, creative: { variationBatchId: b2.id } }, include: { creative: { select: { variationCode: true } } } });
+    const of = (code: string) => renders.find((r) => r.creative.variationCode === code)!;
+    const [mis, flaky, broken] = [of('F8-CUT-15S'), of('F8-NATIVE-SEARCH'), of('F8-HOOK-TEXT-2')];
+    expect(lambda.finalizeCalls.get(mis.id)).toBe(1);      // determinístico: sem as outras 2 tentativas
+    expect(lambda.finalizeCalls.get(flaky.id)).toBe(2);    // 1 falha de rede, 2ª passa
+    expect(lambda.finalizeCalls.get(broken.id)).toBe(3);   // FINALIZE_MAX_TRIES
+    // saída apagada do bucket também na falha (1 vez por render) e custo de cada um no registro (o teto vê)
+    for (const r of [mis, flaky, broken]) expect(lambda.released.filter((x) => x === r.externalId)).toHaveLength(1);
+    const costs = await prisma.costEntry.findMany({ where: { workspaceId: ws.id, provider: 'AWS_LAMBDA', kind: 'RENDER', externalRef: { in: [mis, flaky, broken].map((r) => r.externalId!) } } });
+    expect(costs).toHaveLength(3);
+    expect(costs.every((c) => Math.abs(Number(c.amountUsd) - 0.011) < 1e-6)).toBe(true);
+    expect(costs.find((c) => c.externalRef === mis.externalId)).toMatchObject({ creativeId: mis.creativeId, variationBatchId: b2.id });
+    expect(Number((await prisma.render.findUniqueOrThrow({ where: { id: mis.id } })).costUsd)).toBeCloseTo(0.011, 4);
   });
 });

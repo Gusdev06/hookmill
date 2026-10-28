@@ -13,7 +13,7 @@ import { WS, q } from '../../harness/db.ts';
 import { esperarJobsQuietos } from '../../harness/f2.ts';
 import { PODCAST, assentou, ateLote, getLote, lotePronto, oferta } from '../../harness/iterate.ts';
 
-test.describe.configure({ timeout: 300_000 });
+test.describe.configure({ timeout: 900_000 }); // 27/10: HEADLINE compõe em CPU (~90 s/peça) mesmo no render fake
 test.afterEach(async () => {
   await q(`update workspaces set monthly_spend_cap_usd = 200 where id = $1`, [WS.A]);
   await esperarJobsQuietos(120_000);
@@ -76,7 +76,7 @@ test('R-01 config + custo: staticImageUsd, generateEstimateUsd = nº STATIC × p
   const ok = await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: n, expectedCostUsd: b.cost.generateEstimateUsd * 0.92 });
   expect(ok.status, JSON.stringify(ok.body)).toBe(202);
   expect(ok.data.cost.generateEstimateUsd).toBeNull();
-  await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
 });
 
 test('R-02 lote só 9:16: N peças → N renders 9:16 (vídeo REMOTION p0, STATIC IMAGE_GEN); ready pelo 9:16; zip só 9:16; formats[] com 3 entradas', async () => {
@@ -84,7 +84,7 @@ test('R-02 lote só 9:16: N peças → N renders 9:16 (vídeo REMOTION p0, STATI
   const b = await lotePronto('donoA', PODCAST);
   const n = b.pieces.length;
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: n, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const rs = await q(`select r.format, r.engine, r.priority, vi.auto_type from renders r join creatives c on c.id = r.creative_id join variation_items vi on vi.id = c.variation_item_id where c.variation_batch_id = $1`, [b.id]);
   expect(rs.length, 'um render por peça').toBe(n);
   expect(new Set(rs.map((r) => r.format))).toEqual(new Set(['VERTICAL_9_16']));
@@ -137,8 +137,8 @@ test('R-03 rota de formatos: 400 (9x16/valor ruim/sem body), 409 peça não read
   const nr = expectErro(await as('donoA').post(`/iterate/pieces/${ultima.id}/formats`, { format: '4x5' }), 409, 'INVALID_STATE');
   expect(nr.allowed).toEqual(['ready']);
   // espera a 1ª peça de vídeo ficar pronta com o lote ainda rodando
-  const cedo = await ateLote('donoA', b.id, (x) => x.pieces.some((p: any) => p.status === 'ready' && p.type !== 'STATIC'), { oQue: '1ª pronta' });
-  const pronta = pecaPor(cedo, (p) => p.status === 'ready' && p.type !== 'STATIC');
+  const cedo = await ateLote('donoA', b.id, (x) => x.pieces.some((p: any) => p.status === 'ready' && p.type !== 'STATIC' && p.type !== 'HEADLINE'), { oQue: '1ª pronta', timeoutMs: 700_000 });
+  const pronta = pecaPor(cedo, (p) => p.status === 'ready' && p.type !== 'STATIC' && p.type !== 'HEADLINE'); // 27/10: HEADLINE só no aspecto do campeão
   const pend = cedo.pieces.filter((p: any) => p.type !== 'STATIC' && ['queued', 'rendering'].includes(p.status)).length;
   test.info().annotations.push({ type: 'peças de vídeo ainda pendentes no pedido do 4:5', description: String(pend) });
   for (const body of [{ format: '9x16' }, { format: '16x9' }, {}, { format: '4x5', x: 1 }]) {
@@ -155,7 +155,7 @@ test('R-03 rota de formatos: 400 (9x16/valor ruim/sem body), 409 peça não read
   // concorrência: dois 1:1 ao mesmo tempo = um 202 e um 200, 1 render só
   const [c1, c2] = await Promise.all([as('donoA').post(`/iterate/pieces/${pronta.id}/formats`, { format: '1x1' }), as('adminA').post(`/iterate/pieces/${pronta.id}/formats`, { format: '1x1' })]);
   expect([c1.status, c2.status].sort()).toEqual([200, 202]);
-  const fim = await ateLote('donoA', b.id, (x) => assentou(x) && fmt(pecaPor(x, (p: any) => p.id === pronta.id), '1x1').state === 'ready' && fmt(pecaPor(x, (p: any) => p.id === pronta.id), '4x5').state === 'ready', { timeoutMs: 240_000, oQue: '4:5 e 1:1 prontos' });
+  const fim = await ateLote('donoA', b.id, (x) => assentou(x) && fmt(pecaPor(x, (p: any) => p.id === pronta.id), '1x1').state === 'ready' && fmt(pecaPor(x, (p: any) => p.id === pronta.id), '4x5').state === 'ready', { timeoutMs: 700_000, oQue: '4:5 e 1:1 prontos' });
   const rs = await rendersDe(pronta.creativeId);
   expect(rs.map((r) => r.format).sort()).toEqual(['PORTRAIT_4_5', 'SQUARE_1_1', 'VERTICAL_9_16']);
   const r45 = rs.find((r) => r.format === 'PORTRAIT_4_5')!;
@@ -188,13 +188,13 @@ test('R-03 rota de formatos: 400 (9x16/valor ruim/sem body), 409 peça não read
   expect(d.fileName ?? d.filename).toMatch(new RegExp(`${pronta.code}_4x5\\.mp4$`));
 });
 
-test('R-04 [mock:format-fail:HOOK_TEXT] 4:5 falha (RENDER_ERROR), peça segue ready e no zip sem o 4:5; pedir de novo passa (antigo vira stale)', async () => {
-  await oferta('A', { notes: '[mock:format-fail:HOOK_TEXT]' });
+test('R-04 [mock:format-fail:NATIVE_SEARCH] 4:5 falha (RENDER_ERROR), peça segue ready e no zip sem o 4:5; pedir de novo passa (antigo vira stale)', async () => {
+  await oferta('A', { notes: '[mock:format-fail:NATIVE_SEARCH]' });
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
-  const cut = pecaPor(fim, (p) => p.type === 'HOOK_TEXT');
-  expect(cut, 'plano com HOOK_TEXT').toBeTruthy();
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
+  const cut = pecaPor(fim, (p) => p.type === 'NATIVE_SEARCH'); // 27/10: HOOK_TEXT saiu do catálogo (HEADLINE não tem 4:5)
+  expect(cut, 'plano com NATIVE_SEARCH').toBeTruthy();
   expect(cut.status, 'format-fail não mexe no 9:16').toBe('ready');
   expectOk(await as('donoA').post(`/iterate/pieces/${cut.id}/formats`, { format: '4x5' }), 202);
   const f1 = await ateLote('donoA', b.id, (x) => ['failed', 'ready'].includes(fmt(pecaPor(x, (p: any) => p.id === cut.id), '4x5').state), { oQue: '4:5 do CUT' });
@@ -225,9 +225,9 @@ test('R-05 STATIC sob demanda: 4:5 cria IMAGE_GEN p10 + 1 task STATIC_IMAGE aspe
   await oferta('A');
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const st = pecaPor(fim, (p) => p.type === 'STATIC');
-  const vid = pecaPor(fim, (p) => p.type !== 'STATIC');
+  const vid = pecaPor(fim, (p) => p.type !== 'STATIC' && p.type !== 'HEADLINE'); // 27/10: HEADLINE só no aspecto do campeão
   // teto: gasto 0, teto 0,10 < preço da imagem → STATIC = 409; vídeo passa (grátis)
   await q(`update workspaces set monthly_spend_cap_usd = 0.1 where id = $1`, [WS.A]);
   expectErro(await as('donoA').post(`/iterate/pieces/${st.id}/formats`, { format: '4x5' }), 409, 'SPEND_CAP_EXCEEDED');
@@ -260,7 +260,7 @@ test('R-06 [mock:static-reject]: 1ª recusa, reenvio safe passa (2 tasks no rend
     const o = await oferta('A', { notes: gat });
     const b = await lotePronto('donoA', PODCAST, o.id);
     expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-    const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+    const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
     for (const st of fim.pieces.filter((p: any) => p.type === 'STATIC')) {
       expect(st.status, `${gat} ${st.code}`).toBe('ready');
       const [r] = await rendersDe(st.creativeId);
@@ -278,7 +278,7 @@ test('R-07 [mock:static-reject-all]: STATIC failed SAFETY_BLOCK (2 tasks), retry
   await oferta('A', { notes: '[mock:static-reject-all]' });
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const sts = fim.pieces.filter((p: any) => p.type === 'STATIC');
   expect(fim.summary.failed).toBe(sts.length);
   expect(fim.summary.ready).toBe(fim.pieces.length - sts.length);
@@ -310,12 +310,12 @@ test('R-07 [mock:static-reject-all]: STATIC failed SAFETY_BLOCK (2 tasks), retry
   expect(lo.inZip).toBe(false);
 });
 
-test('R-08 retry do 9:16 de vídeo ([mock:render-fail:STORY]) é grátis e não passa pelo teto', async () => {
-  await oferta('A', { notes: '[mock:render-fail:STORY]' });
+test('R-08 retry do 9:16 de vídeo ([mock:render-fail:REVIEW]) é grátis e não passa pelo teto', async () => {
+  await oferta('A', { notes: '[mock:render-fail:REVIEW]' }); // 27/10: STORY saiu do catálogo
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
-  const story = pecaPor(fim, (p) => p.type === 'STORY');
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
+  const story = pecaPor(fim, (p) => p.type === 'REVIEW');
   expect(story.status).toBe('failed');
   expect(story.retryUsd ?? 0).toBe(0);
   expect(fmt(story, '9x16').state).toBe('failed');
@@ -329,7 +329,7 @@ test('R-09 retomada no boot: IMAGE_GEN QUEUED órfão é submetido por uma 2ª A
   await oferta('A');
   const b = await lotePronto('donoA', PODCAST);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, expectedCostUsd: b.cost.generateEstimateUsd }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const st = pecaPor(fim, (p) => p.type === 'STATIC');
   // render IMAGE_GEN 1:1 QUEUED inserido direto (como se a API tivesse caído antes do dispatch)
   const id = `qa_r_${Date.now()}`;

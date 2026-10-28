@@ -20,7 +20,7 @@ test('C-WS-02 PATCH /workspace: OWNER/ADMIN mudam teto (número ou null); MEMBER
 
 test('C-WS-03 membros: lista só do workspace; só OWNER muda papel; último OWNER → 409 LAST_OWNER', async () => {
   const d = expectOk(await as('membroA').get('/workspace/members'));
-  expect(d.members.map((m: any) => m.userId).sort()).toEqual([PERSONAS.donoA.id, PERSONAS.adminA.id, PERSONAS.membroA.id, PERSONAS.duplo.id].sort());
+  expect(d.members.map((m: any) => m.userId).sort()).toEqual([PERSONAS.donoA.id, PERSONAS.adminA.id, PERSONAS.membroA.id, PERSONAS.duplo.id, PERSONAS.clienteA.id].sort()); // CLIENT (fase2-agencia)
   expect(Array.isArray(d.invites)).toBe(true);
   expectErro(await as('adminA').patch(`/workspace/members/${PERSONAS.membroA.id}`, { role: 'ADMIN' }), 403, 'FORBIDDEN');
   expect(expectOk(await as('donoA').patch(`/workspace/members/${PERSONAS.membroA.id}`, { role: 'ADMIN' })).role).toBe('ADMIN');
@@ -31,7 +31,7 @@ test('C-WS-03 membros: lista só do workspace; só OWNER muda papel; último OWN
 
 test('C-WS-04 services mostra chave mascarada, nunca a chave inteira', async () => {
   const d = expectOk(await as('membroA').get('/workspace/services'));
-  expect(d.map((s: any) => s.provider).sort()).toEqual(['ANTHROPIC', 'STORAGE', 'WAVESPEED']);
+  expect(d.map((s: any) => s.provider).sort()).toEqual(['ANTHROPIC', 'APIFY', 'HIGGSFIELD', 'META', 'STORAGE', 'WAVESPEED']); // feature 2 + meta-v1
   for (const s of d) if (s.keyMasked) expect(s.keyMasked.length).toBeLessThan(16);
 });
 
@@ -60,6 +60,7 @@ test('C-CAT-02 GET /voices filtra por idioma e traz gênero e amostra', async ()
 
 test('C-CAT-03 GET /templates lista clean, bold, headline', async () => {
   const d = expectOk(await as('membroA').get('/templates'));
-  expect(d.map((t: any) => t.id).sort()).toEqual(['bold', 'clean', 'headline']);
+  expect(d.map((t: any) => t.id).sort()).toEqual(['bold', 'clean', 'headline', 'remix-keep']); // remix-keep (feature 2): kind remix, o wizard filtra
+  expect(d.find((t: any) => t.id === 'remix-keep').kind).toBe('remix');
   expect(d.find((t: any) => t.id === 'headline').supportsHeadline).toBe(true);
 });

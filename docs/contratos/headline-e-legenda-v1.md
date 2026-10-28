@@ -125,7 +125,7 @@ O `generateEstimateUsd` não muda por causa do HEADLINE (vídeo = 0 no botão, c
 ## 6. Decisões abertas (com recomendação)
 | # | decisão | recomendação |
 |---|---|---|
-| **H1** | Placa sobre o vídeo: cor | Mediana do fundo dentro da caixa, opacidade 100 %, com cantos. Se a mediana tiver contraste < 3 com a cor do texto original, usa preto 85 % (texto claro) ou branco 90 % (texto escuro). |
+| **H1** | Placa sobre o vídeo: cor | Mediana do fundo dentro da caixa, opacidade 100 %, com cantos. Se a mediana tiver contraste < 3 com a cor do texto original, usa preto (texto claro) ou branco (texto escuro). **28/10 (F11): no `replace` a placa e a faixa repintada são sempre opacas (alpha 1, `rgba`/`#rrggbbaa` medidos viram a mesma cor opaca) e cobrem a caixa da headline original + margem** — com 85 % a headline antiga vazava em cinza. |
 | **H2** | Formatos do HEADLINE | Só o aspecto do campeão. Reenquadrar pra outro aspecto mudaria a edição, que é o que o tipo promete não mudar. |
 | **H3** | Faixa adicionada colide com o rosto | Desce pra logo abaixo do rosto; se ainda colidir, não oferece (`no_room`), e o lote completa com outro tipo. |
 | **H4** | Idioma da headline nova | O da headline original (replace) ou `offer.language` (add). |

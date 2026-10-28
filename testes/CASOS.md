@@ -369,3 +369,24 @@ IT-08 esperava 3 renders por peça, ordem 9:16→4:5→1:1, `files` com 3 format
 1. `[mock:static-text-check-fail]` (Claude fora na checagem → `skipped`), EA-13.
 2. Gatilho pra forçar o template no fake, ex. `[mock:frame-pick:direct_offer,read_caption]`: hoje MO-05/MO-11 dependem do fake cair nesses templates.
 3. Sondas S2/S3 gravando `<nome>.json` ao lado do PNG (spec, brief, transcript, textCheck, prompt, custo) — formato no cabeçalho de `ferramentas/roteiro-estatico.mjs`.
+
+## Rodada pré-L5 · 27/10 (61fb4f2 + 648ba99 + be68d98) · relatório: `qa-pre-l5-2026-10-27.md`
+Bancos próprios: `maquina_e2e_test` (criado 27/10, migrações via `prisma migrate deploy`) e `maquina_test`. Integrações em mock, render fake, `RENDER_REMIX_IMPL=fake` por padrão (novo no harness), chaves pagas novas em branco na API do QA (Lambda/Pexels). Nada pago.
+Rodar (de `testes/`): `E2E_DATABASE_URL=…/maquina_e2e_test E2E_API_PORT=3121 E2E_SKIP_SCHEMA=1 E2E_LIMITES_V2=1 npx playwright test --project=iterate specs/iterate/rev-2610.spec.ts` · navegador: `+ E2E_COM_WEB=1 E2E_WEB_PORT=3216 --project=iterate-1440 --project=iterate-390 specs/iterate-ui/rev-2610.spec.ts` · render real da HEADLINE (Remotion local, grátis): `E2E_REMIX_REAL=1 … -g R26-10`.
+| id | arquivo | o quê | estado 27/10 |
+|---|---|---|---|
+| R26-01 | `iterate/rev-2610.spec.ts` | HEADLINE replace: 3 peças HEADLINE-1..3, distintas, ≠ original, nada inventado, limite; captionsAuto; gerar; 4:5/1:1 `supported:false` + 409 `format_not_supported`; render remix-keep; legenda no input de toda peça de vídeo; custo 0 | passa |
+| R26-02 | idem | `[mock:headline-none]` → 2 HEADLINE `add` (original null, ≤ 60) | passa |
+| R26-03 | idem | `[mock:headline-over-video]` → replace (placa), lote assenta | passa |
+| R26-04 | idem | `[mock:burned-captions]`: `protectedBands` no editMap, captionsAuto false, checagem por visão `ok` gravada, nada falha | passa (captionBlocked vazio: o desvio/recorte resolve tudo) |
+| R26-05 | idem | + oferta `[mock:caption-covered]` → `CAPTION_COVERED`, retry, fora do zip | passa |
+| R26-06 | idem | clean-version: 422 `duration`, 400, 404 (upload inexistente, de B, campeão de B), CLIENT 403, 200 → `CHAMPION_CLEAN_VIDEO`, lote novo liga captionsAuto, DELETE idempotente | passa |
+| R26-07 | idem | `POST /iterate { cleanUploadId }` applied / mismatch duration / 404 | passa |
+| R26-08 | idem | replan: CLIENT 403, B 404, PLANNING → PLAN_READY sem reanalisar, itens novos, duplo clique 409, LAUNCHED 409 `launched` | passa |
+| R26-09 | idem | `POST /iterate { championId }`: 400 exactlyOneOf, 404 (B/inexistente/arquivado), CLIENT 403, 409 não-READY, nasce PLANNING, oferta do campeão | passa |
+| R26-10 | idem | HEADLINE com render REAL local: nb_frames igual, áudio md5 = campeão, PSNR ≥ 40 dB fora das camadas novas (texto + `background.box` + legenda), faixa mudou | passa (E2E_REMIX_REAL=1) |
+| R26-UI-01 | `iterate-ui/rev-2610.spec.ts` | bloqueio sem Meta: Home/Campaigns/Iterate › New = cadeado + Connect Meta; TOKEN_INVALID = Reconnect (e `GET /meta/campaigns` 422 `META_TOKEN_INVALID`); scopes bad = permissão; MEMBER "Ask an admin" | passa 1440 + 390 |
+| R26-UI-02 | idem | plano com HEADLINE "original → nova", "Captions added", gerar, Download, "Make another batch with this champion" → lote novo sem upload | passa 1440 + 390 |
+| R26-UI-03 | idem | "N formats left out" + "Send version without captions" + Replan | **não exercitado** (nenhum gatilho do mock deixa formato bloqueado) |
+Specs antigos atualizados pro catálogo de 25/10 (HOOK_TEXT/STORY/SPLIT_LP saíram; HEADLINE/FRAME entraram): IT-01..08, R-03/04/05/08, iterate-ui (iterate + rev-2310), EA-07/10, MO-07/10, C-OF-05, C-WS-03/04, C-CAT-03, fumaça. IT-11 (foto do produto) = skip: `useProductPhoto` só vale pra SPLIT_LP, que saiu do catálogo.
+Pendência QA (27/10): `fluxo/fluxo-inteiro.spec.ts` (05/10) está velho desde o onboarding v2: espera "Creatives" na Home e não marca onboarding/tour. Os projetos `fluxo-*` agora usam o Chrome instalado (`channel`). Reescrever antes da próxima rodada completa.

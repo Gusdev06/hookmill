@@ -66,7 +66,7 @@ for (const lang of ['en', 'pt'] as Lang[]) {
     test.setTimeout(1_800_000);
     const t = L[lang];
     const tag = `r23-${lang}`;
-    await oferta('A', { language: lang === 'pt' ? 'pt-BR' : 'en', notes: '[mock:format-fail:HOOK_TEXT] [mock:static-reject]', sourceUrl: process.env.E2E_SEM_PAGINA === '1' ? null : 'https://example.com/' });
+    await oferta('A', { language: lang === 'pt' ? 'pt-BR' : 'en', notes: '[mock:format-fail:NATIVE_SEARCH] [mock:static-reject]', sourceUrl: process.env.E2E_SEM_PAGINA === '1' ? null : 'https://example.com/' });
     const spy = espiao(page);
     await loginRapido(page, 'adminA');
     await idioma(page, info, lang);
@@ -107,7 +107,7 @@ for (const lang of ['en', 'pt'] as Lang[]) {
     await semRolagemHorizontal(page, 'download');
     await tela(page, info, `${tag}-02-download-so-9x16`);
     const b1 = await lote(batchId);
-    const cut = b1.pieces.find((p: any) => p.type === 'HOOK_TEXT');
+    const cut = b1.pieces.find((p: any) => p.type === 'NATIVE_SEARCH'); // 27/10: HOOK_TEXT saiu do catálogo; HEADLINE não tem 4:5
     const st = b1.pieces.find((p: any) => p.type === 'STATIC');
     expect(st.status, 'static-reject: reenvio safe passou').toBe('ready');
     // chips da peça: 9:16 pronto, 4:5 e 1:1 com botão (STATIC mostra o preço)
@@ -193,7 +193,7 @@ test('R23-UI-02 static-reject-all: STATIC failed com o motivo e Retry com preço
   const sts = fim.pieces.filter((p: any) => p.type === 'STATIC');
   expect(sts.every((p: any) => p.status === 'failed' && p.errorCode === 'SAFETY_BLOCK')).toBe(true);
   // um vídeo com 4:5 pronto pra ver o que o CLIENT baixa
-  const vid = fim.pieces.find((p: any) => p.type !== 'STATIC');
+  const vid = fim.pieces.find((p: any) => p.type !== 'STATIC' && p.type !== 'HEADLINE');
   expectOk(await as('donoA').post(`/iterate/pieces/${vid.id}/formats`, { format: '4x5' }), 202);
   await ateLote('donoA', b.id, (x) => fmtDe(x.pieces.find((p: any) => p.id === vid.id), '4x5').state === 'ready', { oQue: '4:5', timeoutMs: 900_000 });
 

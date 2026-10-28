@@ -1,5 +1,5 @@
 // legenda-protegida-v1 §4.2: instantes da checagem por visão, palavras esperadas, recorte e o alvo de cada tipo de input.
-import { captionCheckTimes, captionTargetOf, cropOf, wordsAt } from './checagem-legenda';
+import { captionCheckOf, captionCheckTimes, captionTargetOf, cropOf, quadroNoLog, wordsAt } from './checagem-legenda';
 import { captionCoveredTwice, captionNoteOf } from './pecas';
 
 const band = { x: 80, y: 1000, w: 900, h: 220, startSec: 0, endSec: 30 };
@@ -83,5 +83,29 @@ describe('faixas na saída (rev. 26/10: outputProtectedBands)', () => {
   it('captionTargetOf leva as faixas na saída quando o input tem', () => {
     const frame = { kind: 'frame', video: { protectedBands: [band], timeline: [{ startSec: 0, endSec: 30 }], source: { width: 1080, height: 1920 } }, outputProtectedBands: out };
     expect(captionTargetOf(frame as never)?.output).toHaveLength(3);
+  });
+});
+
+describe('captionCheckOf (F10, 28/10)', () => {
+  const q = (o: Record<string, unknown>) => ({ atSec: 1, ok: true, covered: false, duplicated: false, seen: 'oi', ...o });
+  it('grava problem e reason de cada quadro e mantém o status da porta', () => {
+    const c = captionCheckOf({
+      status: 'covered',
+      frames: [q({ atSec: 21.29, ok: false, seen: null, problem: 'missing', reason: null }), q({ atSec: 40, ok: false, covered: true, problem: 'covered', reason: 'o card do topo tampa "você"' }), q({ atSec: 77.39, problem: null })],
+    }, 2);
+    expect(c).toEqual({
+      status: 'covered', attempt: 2,
+      frames: [
+        { atSec: 21.29, ok: false, seen: null, problem: 'missing', reason: null },
+        { atSec: 40, ok: false, seen: 'oi', problem: 'covered', reason: 'o card do topo tampa "você"' },
+        { atSec: 77.39, ok: true, seen: 'oi', problem: null, reason: null },
+      ],
+    });
+    expect(c.frames.map(quadroNoLog)).toEqual(['21.29s missing', '40s covered: o card do topo tampa "você"', '77.39s ok']);
+  });
+  it('porta sem status/problem (mock antigo): covered pelo flag, problem/reason null', () => {
+    const c = captionCheckOf({ frames: [q({ ok: false, duplicated: true })] }, 1);
+    expect(c.status).toBe('covered');
+    expect(c.frames[0]).toEqual({ atSec: 1, ok: false, seen: 'oi', problem: null, reason: null });
   });
 });

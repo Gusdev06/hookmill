@@ -104,6 +104,9 @@ export interface RenderProgress { stage: 'bundling'|'rendering'|'encoding'; prog
 /** mimeType ausente = 'video/mp4'. 'image/png' fica pro contrato (o Remotion não gera mais PNG desde a rev. 23/10). */
 export interface RenderResult { outputPath: string; posterPath: string; durationSec: number; width: number; height: number; sizeBytes: number; mimeType?: 'video/mp4' | 'image/png' }
 export class RenderError extends Error { constructor(public code: 'RENDER_ERROR', public failedFrame: number|null, message: string) { super(message) } }
+/** F8 (27/10): saída que nunca vai passar (nº de quadros ≠ campeão/calculado). Refazer o finalize daria o mesmo resultado:
+ *  o backend falha na 1ª, sem gastar as outras tentativas. É um RenderError (quem só conhece o pai continua igual). */
+export class RenderValidationError extends RenderError {}
 
 export interface RenderService {
   /** kind 'remix' (remix-keep) não aparece na escolha de template do criativo do zero. */

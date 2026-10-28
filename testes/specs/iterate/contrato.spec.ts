@@ -15,11 +15,14 @@ import {
   BRAIN_VAZIO, CURTO3, CURTO6, PODCAST, PRODUTO_PNG, assentou, ateLote, getLote, iterarUpload, lotePronto, oferta, ordemDosRenders, subirArquivo,
 } from '../../harness/iterate.ts';
 
-test.describe.configure({ timeout: 240_000 });
+// 27/10: HEADLINE (remix-keep) compõe sobre o campeão em CPU mesmo no render fake (~90 s/peça): lote inteiro passa de 4 min
+test.describe.configure({ timeout: 900_000 });
 test.afterEach(async () => { await esperarJobsQuietos(120_000); });
 
-const ITER = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD'];
-const DIV = ['SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
+// 27/10: catálogo da rev. 25/10 (variacao-auto §6.1 + headline-e-legenda §3.1). Os antigos ficam pra ler lotes velhos.
+const ITER = ['HEADLINE', 'CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD'];
+const DIV = ['SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
+const CATALOGO = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
 /** rev. 23/10 §14.9(6): o `start` manda a estimativa que a tela mostrou (0 sem STATIC). */
 const custo = (b: any) => ({ expectedCostUsd: b.cost?.generateEstimateUsd ?? 0 });
 const fmtDe = (p: any, f: string) => p.formats?.find((x: any) => x.format === f);
@@ -44,7 +47,8 @@ function conferePlano(b: any, opts: { min?: number } = {}) {
     expect(p.creativeId).toBeNull();
   }
   // máximos por tipo (§6.1 + D2)
-  const max: Record<string, number> = { CUT: 2, COLD_OPEN: 1, HOOK_TEXT: 3, ENDCARD: 1, SPLIT_LP: 1, STORY: 1, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2 };
+  const max: Record<string, number> = { HEADLINE: 3, CUT: 2, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8 };
+  for (const p of b.pieces) expect(CATALOGO, `${p.code}: tipo fora do catálogo de 25/10`).toContain(p.type);
   for (const [t, m] of Object.entries(max)) expect(b.pieces.filter((p: any) => p.type === t).length, `máx ${t}`).toBeLessThanOrEqual(m);
   expect(b.insight.why.map((w: any) => w.key)).toEqual(['hook', 'proof', 'cta']);
   expect(b.insight.kept.length).toBeGreaterThanOrEqual(2);
@@ -76,7 +80,7 @@ test('IT-01 GET /iterate/config: limites da spec, 9 tipos, ofertas, custo típic
   const o = await oferta('A');
   const cfg = expectOk(await as('donoA').get('/iterate/config'));
   expect(cfg).toMatchObject({ maxBytes: 524288000, minSec: 4, maxSec: 180, metaConnected: false, defaultOfferId: o.id });
-  expect(cfg.types).toEqual(['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC']);
+  expect(cfg.types).toEqual(CATALOGO);
   expect(cfg.offers).toEqual([{ id: o.id, name: o.name, language: 'en' }]);
   expect(cfg.analysisTypicalUsd).toBeGreaterThan(0);
   expect(cfg.mimeTypes).toEqual(expect.arrayContaining(['video/mp4', 'video/quicktime']));
@@ -129,7 +133,7 @@ test('IT-03 upload → análise sozinha → PLAN_READY com as regras (Brain chei
   conferePlano(b);
   expect(b.insight.flags).toMatchObject({ brainEmpty: false, shortVideo: false, pageCaptured: true });
   const tipos = new Set(b.pieces.map((p: any) => p.type));
-  for (const t of ['SPLIT_LP', 'REVIEW', 'STORY', 'STATIC', 'HOOK_TEXT', 'NATIVE_SEARCH']) expect(tipos.has(t), `${t} no plano com Brain cheio`).toBe(true);
+  for (const t of ['HEADLINE', 'REVIEW', 'STATIC', 'NATIVE_SEARCH', 'FRAME']) expect(tipos.has(t), `${t} no plano com Brain cheio`).toBe(true);
   // CUT: o mock propõe e o reparo tira (cut_too_long) — bug devolvido à ia/backend; registrado, não bloqueia o caso
   test.info().annotations.push({ type: 'plano', description: b.pieces.map((p: any) => p.code).join(', ') });
   expect(b.insight.why.some((w: any) => w.refSource === 'brain' && w.brainField), 'porquê cita o Brain').toBe(true);
@@ -155,9 +159,9 @@ test('IT-04 Brain vazio: não bloqueia; flags.brainEmpty, swaps (página/prova/o
   expect(b.insight.flags.pageCaptured).toBe(false);
   expect(b.insight.why.every((w: any) => w.refSource === 'video' && w.brainField === null)).toBe(true);
   const sw = b.insight.swaps.map((s: any) => `${s.from}>${s.to}:${s.reason}`);
-  expect(sw).toEqual(expect.arrayContaining(['SPLIT_LP>STORY:no_page', 'REVIEW>STATIC:no_proof']));
+  test.info().annotations.push({ type: 'swaps', description: sw.join(' ') });
+  expect(sw.some((x: string) => x.startsWith('REVIEW>') && x.endsWith(':no_proof')), 'REVIEW sem prova troca (no_proof)').toBe(true);
   const tipos = b.pieces.map((p: any) => p.type);
-  expect(tipos).not.toContain('SPLIT_LP');
   expect(tipos).not.toContain('REVIEW');
   // ENDCARD sem Brain só com o CTA falado (variante cta)
   const end = b.pieces.find((p: any) => p.type === 'ENDCARD');
@@ -187,8 +191,9 @@ test('IT-06 PT: oferta em português → códigos PT (CORTE-15S, GANCHO-TEXTO-2,
   expect(b.status).toBe('PLAN_READY');
   expect(b.codeLanguage).toBe('PT');
   const codes = b.pieces.map((p: any) => p.code);
-  expect(codes).toEqual(expect.arrayContaining(['GANCHO-TEXTO-2', 'ESTATICO-F1', 'NATIVO-BUSCA']));
-  expect(codes.join(' ')).not.toMatch(/\bCUT-|HOOK-TEXT|STATIC-F/);
+  expect(codes).toEqual(expect.arrayContaining(['HEADLINE-1', 'ESTATICO-F1', 'NATIVO-BUSCA']));
+  expect(codes.some((c: string) => c.startsWith('MOLDURA-')), 'moldura com código PT').toBe(true);
+  expect(codes.join(' ')).not.toMatch(/\bCUT-|HOOK-TEXT|STATIC-F|\bFRAME-/);
 });
 
 // ───────────────────────── falhas da análise ─────────────────────────
@@ -233,17 +238,19 @@ test('IT-07 gatilhos: auto-fail:reading → ANALYSIS_FAILED reading + retry; aut
   const f = await lotePronto('donoA', PODCAST, o4.id);
   expect(f.status).toBe('PLAN_READY');
   expect(f.insight.flags.pageCaptured).toBe(false);
-  expect(f.pieces.map((x: any) => x.type)).not.toContain('SPLIT_LP');
-  expect(f.insight.swaps).toEqual(expect.arrayContaining([expect.objectContaining({ from: 'SPLIT_LP', reason: 'no_page' })]));
+  test.info().annotations.push({ type: 'page-403 swaps', description: JSON.stringify(f.insight.swaps) });
 });
 
 // ───────────────────────── gerar, falha, retry, leave-out, In zip, zip ─────────────────────────
 
 test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem do plano, falha + retry, leave-out, In zip, zip com 2 pastas e README, 4:5/1:1 sob demanda na Library, Home', async () => {
-  const o = await oferta('A', { notes: '[mock:render-fail:STORY] [mock:render-fail:REVIEW]' });
+  const o = await oferta('A', { notes: '[mock:render-fail:NATIVE_SEARCH] [mock:render-fail:REVIEW]' });
   const b = await lotePronto('donoA', PODCAST, o.id);
   expect(b.status).toBe('PLAN_READY');
   const n = b.pieces.length;
+  const alvo = b.pieces.filter((p: any) => ['NATIVE_SEARCH', 'REVIEW'].includes(p.type)).map((p: any) => p.type).sort();
+  const k = alvo.length;
+  expect(alvo, 'REVIEW + NATIVE_SEARCH no plano').toContain('REVIEW');
   // Home: "Plan ready" 1 vez
   const h1 = await as('donoA').get('/creatives?filter=needs_you');
   expect(h1.body.meta.waitingBatches.filter((w: any) => w.id === b.id).map((w: any) => w.status)).toEqual(['PLAN_READY']);
@@ -285,9 +292,9 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   test.info().annotations.push({ type: 'previewReady cedo', description: comPreview.pieces.filter((p: any) => p.previewReady).map((p: any) => `${p.code}:${p.status}`).join(' ') });
   for (const p of comPreview.pieces) expect(p.previewReady, `${p.code}: previewReady ⇔ ready`).toBe(p.status === 'ready');
 
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000, oQue: 'todas as peças assentadas' });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000, oQue: 'todas as peças assentadas' });
   const falhas = fim.pieces.filter((p: any) => p.status === 'failed');
-  expect(falhas.map((p: any) => p.type).sort()).toEqual(['REVIEW', 'STORY']);
+  expect(falhas.map((p: any) => p.type).sort()).toEqual(alvo);
   for (const f of falhas) {
     expect(f.errorCode).toBe('RENDER_ERROR');
     expect(f.retryHint).toBe('retry');
@@ -295,10 +302,11 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
     expect(f.formatsReady).toBe(0);
     expect(f.formats.map((x: any) => x.state)).toEqual(['failed', 'none', 'none']);
   }
-  expect(fim.pieces.filter((p: any) => p.status === 'ready').length).toBe(n - 2);
+  expect(fim.pieces.filter((p: any) => p.status === 'ready').length).toBe(n - k);
   for (const p of fim.pieces.filter((x: any) => x.status === 'ready')) {
     expect(p.formats.map((x: any) => x.format), `${p.code}: formats[] sempre os 3`).toEqual(['9x16', '4x5', '1x1']);
-    expect(p.formats.map((x: any) => x.state)).toEqual(['ready', 'none', 'none']);
+    expect(p.formats[0].state).toBe('ready');
+    for (const f of p.formats.slice(1)) expect(f.state, `${p.code} ${f.format}`).toBe('none');
     expect(p.formatsReady).toBe(1);
   }
   // ordem da fila do Remotion: os 9:16 de vídeo na ordem do plano (o STATIC é IMAGE_GEN, fora da fila)
@@ -312,11 +320,12 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   // Home: "N pieces ready" (lote AUTO conta 1 vez; criativos AUTO não entram no needs_you)
   const h2 = await as('donoA').get('/creatives?filter=needs_you');
   const w2 = h2.body.meta.waitingBatches.filter((w: any) => w.id === b.id);
-  expect(w2.map((w: any) => [w.status, w.mode, w.readyCount])).toEqual([['PIECES_READY', 'AUTO', n - 2]]);
+  expect(w2.map((w: any) => [w.status, w.mode, w.readyCount])).toEqual([['PIECES_READY', 'AUTO', n - k]]);
   expect(h2.data.filter((c: any) => fim.pieces.some((p: any) => p.creativeId === c.id)).length, 'peças AUTO fora do needs_you').toBe(0);
 
   // leave-out: CLIENT 403; peça ready = 409; a falha vira left_out/inZip false
-  const [story, review] = [falhas.find((p: any) => p.type === 'STORY'), falhas.find((p: any) => p.type === 'REVIEW')];
+  const [story, review] = [falhas.find((p: any) => p.type === 'NATIVE_SEARCH'), falhas.find((p: any) => p.type === 'REVIEW')];
+  const outrasNS = falhas.filter((p: any) => p.type === 'NATIVE_SEARCH' && p.id !== story.id);
   const pronta = fim.pieces.find((p: any) => p.status === 'ready');
   expectErro(await as('clienteA').post(`/iterate/pieces/${review.id}/leave-out`, {}), 403, 'FORBIDDEN');
   expectErro(await as('donoA').post(`/iterate/pieces/${pronta.id}/leave-out`, {}), 409, 'INVALID_STATE');
@@ -329,13 +338,14 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   expect(['queued', 'rendering']).toContain(rt.status);
   const novos = (await ordemDosRenders(b.id)).filter((r) => r.code === story.code && !r.stale);
   expect(novos.map((r) => r.format), 'retry re-enfileira só o 9:16 (o falho vira stale)').toEqual(['VERTICAL_9_16']);
-  const fim2 = await ateLote('donoA', b.id, (x) => assentou(x) && x.pieces.find((p: any) => p.id === story.id).status === 'ready', { oQue: 'retry da STORY' });
+  for (const ns of outrasNS) expectOk(await as('donoA').post(`/iterate/pieces/${ns.id}/retry`, {}), 202);
+  const fim2 = await ateLote('donoA', b.id, (x) => assentou(x) && x.pieces.filter((p: any) => p.type === 'NATIVE_SEARCH').every((p: any) => p.status === 'ready'), { oQue: 'retry da NATIVE_SEARCH', timeoutMs: 400_000 });
   expect(fim2.summary).toMatchObject({ ready: n - 1, failed: 0, leftOut: 1 });
 
   // In zip: CLIENT pode; peça left_out/não-ready = 409; body inválido 400
   expectErro(await as('donoA').patch(`/iterate/pieces/${review.id}`, { inZip: true }), 409, 'INVALID_STATE');
   expectErro(await as('donoA').patch(`/iterate/pieces/${pronta.id}`, { inZip: 'sim' }), 400, 'VALIDATION_ERROR');
-  const fora = fim2.pieces.find((p: any) => p.status === 'ready' && p.type === 'HOOK_TEXT');
+  const fora = fim2.pieces.find((p: any) => p.status === 'ready' && p.type === 'HEADLINE');
   expect(expectOk(await as('clienteA').patch(`/iterate/pieces/${fora.id}`, { inZip: false })).inZip).toBe(false);
 
   // arquivos da peça: nomes CLIENTE_MMDD_CODIGO_FMT.ext
@@ -359,7 +369,7 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   expect([200, 202], JSON.stringify(z1.body)).toContain(z1.status);
   const pronto = await ateLote('clienteA', b.id, (x) => x.zip.status === 'ready' || x.zip.status === 'failed', { oQue: 'zip' });
   expect(pronto.zip.status).toBe('ready');
-  const nZip = n - 2; // REVIEW fora (left_out), HOOK_TEXT fora (In zip)
+  const nZip = n - 2; // REVIEW fora (left_out), HEADLINE fora (In zip)
   expect(pronto.zip).toMatchObject({ pieces: nZip, files: nZip, folders: { stretch: '1-stretch-its-life', newAudience: '2-new-audience' } });
   expect(pronto.zip.fileName).toMatch(new RegExp(`^QA_${launched_at}_[A-Z0-9-]{1,24}_variations\\.zip$`));
   const z2 = await as('donoA').post(`/iterate/${b.id}/zip`, {});
@@ -397,13 +407,13 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   expect(h3.body.meta.waitingBatches.filter((w: any) => w.id === b.id)).toEqual([]);
 
   // Library: peças entram como variação; filtro por código; formatos = só os prontos; download ?format
-  const cut = pronto.pieces.find((p: any) => p.status === 'ready' && p.axis === 'ITERATION' && p.type !== 'STATIC');
+  const cut = pronto.pieces.find((p: any) => p.status === 'ready' && p.type !== 'STATIC' && p.type !== 'HEADLINE' && p.inZip); // 27/10: HEADLINE só no aspecto do campeão (H2)
   const lib = expectOk(await as('clienteA').get(`/library?variationCode=${cut.code}`));
   const itens = lib.items ?? lib;
   expect(itens.map((i: any) => i.id)).toEqual([cut.creativeId]);
   expect(itens[0].media).toBe('video');
   expect(itens[0].formats.map((f: any) => f.format)).toEqual(['9x16']);
-  expect(itens[0].variation).toMatchObject({ code: cut.code, axis: 'ITERATION' });
+  expect(itens[0].variation).toMatchObject({ code: cut.code, axis: cut.axis });
   // 4:5 ainda não pedido = 409 format_not_ready; pedir (MEMBER, grátis no vídeo) → pronto → Library e download
   expect(expectErro(await as('clienteA').get(`/creatives/${cut.creativeId}/download?format=4x5`), 409, 'INVALID_STATE')?.reason).toBe('format_not_ready');
   const st1 = pronto.pieces.find((p: any) => p.type === 'STATIC');
@@ -429,14 +439,14 @@ test('IT-09 zip: nothing_to_zip; colisão do adName no mesmo dia → _2', async 
   const o = await oferta('A');
   const b = await lotePronto('donoA', CURTO6, o.id);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   for (const p of fim.pieces) expectOk(await as('donoA').patch(`/iterate/pieces/${p.id}`, { inZip: false }));
   const z = expectErro(await as('donoA').post(`/iterate/${b.id}/zip`, {}), 409, 'INVALID_STATE');
   expect(z.reason).toBe('nothing_to_zip');
   // 2º lote no mesmo dia, mesmo código → sufixo _2
   const b2 = await lotePronto('donoA', CURTO6, o.id);
   expectOk(await as('donoA').post(`/iterate/${b2.id}/start`, { expectedPieces: b2.pieces.length, ...custo(b2) }), 202);
-  const fim2 = await ateLote('donoA', b2.id, assentou, { timeoutMs: 200_000 });
+  const fim2 = await ateLote('donoA', b2.id, assentou, { timeoutMs: 700_000 });
   const comum = fim2.pieces.find((p: any) => fim.pieces.some((x: any) => x.code === p.code));
   const [c1] = await q(`select ad_name from creatives where variation_batch_id = $1 and variation_code = $2`, [b.id, comum.code]);
   const [c2] = await q(`select ad_name from creatives where variation_batch_id = $1 and variation_code = $2`, [b2.id, comum.code]);
@@ -448,7 +458,7 @@ test('IT-10 Library → Vary: 1ª vez cria campeão (OWN, sourceCreativeId) e an
   const o = await oferta('A');
   const b = await lotePronto('donoA', CURTO6, o.id);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const peca = fim.pieces.find((p: any) => p.status === 'ready' && p.type !== 'STATIC');
   const img = fim.pieces.find((p: any) => p.status === 'ready' && p.type === 'STATIC');
   if (img) {
@@ -474,13 +484,13 @@ test('IT-10 Library → Vary: 1ª vez cria campeão (OWN, sourceCreativeId) e an
   expect(r2.cost.analysisEstimateUsd, 'reaproveitado: estimativa = só o plano').toBeLessThan(r1.cost.analysisEstimateUsd);
 });
 
-test('IT-11 D4 foto do produto: retry {useProductPhoto} sem foto = 422 NO_PRODUCT_PHOTO; com foto passa', async () => {
+test.skip('IT-11 D4 foto do produto [27/10: SPLIT_LP saiu do catálogo em 25/10; useProductPhoto só vale pra SPLIT_LP]: retry {useProductPhoto} sem foto = 422 NO_PRODUCT_PHOTO; com foto passa', async () => {
   const o = await oferta('A', { notes: '[mock:render-fail:SPLIT_LP]' });
   const b = await lotePronto('donoA', PODCAST, o.id);
   const split = b.pieces.find((p: any) => p.type === 'SPLIT_LP');
   expect(split, 'SPLIT_LP no plano (página capturada)').toBeTruthy();
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const f = fim.pieces.find((p: any) => p.id === split.id);
   expect(f.status).toBe('failed');
   expectErro(await as('donoA').post(`/iterate/pieces/${split.id}/retry`, { useProductPhoto: true }), 422, 'NO_PRODUCT_PHOTO');
@@ -507,7 +517,7 @@ test('IT-12 isolamento: lote/peças/zip de A com token de B = 404; lote MANUAL e
   const o = await oferta('A', { notes: '[mock:render-fail:STORY]' });
   const b = await lotePronto('donoA', CURTO6, o.id);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
-  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 200_000 });
+  const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 700_000 });
   const p = fim.pieces[0];
   const antes = JSON.stringify(await q(`select id, status, in_zip, left_out_at from variation_items where batch_id = $1 order by id`, [b.id]));
   for (const persona of ['donoB'] as const) {

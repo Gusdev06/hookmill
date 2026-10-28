@@ -159,7 +159,7 @@ test('MO-07 gerar: FRAME → 9:16 renderizado (REMOTION, kind frame), textos = o
     expect(fin.frame?.id).toBe(it.params.template);
     expect(fin.frame?.texts, 'render escreve o texto do plano').toEqual(it.params.texts);
     expect(fin.frame?.brand?.name).toBe(o.name);
-    expect(fin.frame?.brand?.handle).toMatch(/^[a-z0-9._]+$/);
+    expect(fin.frame?.brand?.handle).toMatch(/^@?[a-z0-9._]+$/); // 27/10: o backend já manda com @ (§B2 live: "o @ é do backend")
     expect(fin.frame?.brand?.color).toMatch(/^#[0-9A-F]{6}$/i);
     expect(JSON.stringify(fin), 'nada do workspace B').not.toMatch(/QA Beta|qa_ws_beta/);
     if (['question_box', 'live'].includes(it.params.template)) expect(typeof fin.face?.atSec, 'rosto do campeão').toBe('number');
@@ -225,7 +225,10 @@ test('MO-10 texto que não cabe (36 px): FRAME_TEXT_OVERFLOW → failed com retr
   const it = fr[0];
   const chave = Object.keys(it.params.texts).find((k) => typeof it.params.texts[k] === 'string');
   test.skip(!chave, `template ${it.params.template} sem texto simples pra estourar`);
-  const longo = 'Palavrasuperlongaquenãocabeemlugarnenhum '.repeat(30).trim();
+  // 27/10: dentro do limite de caracteres do schema (senão o render recusa antes do fitText = RENDER_ERROR, não overflow):
+  // uma palavra só, maior que a linha a 36 px, cortada no limite do slot
+  const limite = Number(process.env.E2E_MO10_LIMITE ?? 26);
+  const longo = 'Palavrasuperlongaquenaocabeemlugarnenhumjamais'.slice(0, Math.min(limite, String(it.params.texts[chave!]).length + 18));
   await q(`update variation_items set payload = jsonb_set(payload, $2::text[], to_jsonb($3::text)) where id = $1`, [it.id, `{params,texts,${chave}}`, longo]);
   expectOk(await start(expectOk(await as('donoA').get(`/iterate/${b.id}`))), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 240_000 });

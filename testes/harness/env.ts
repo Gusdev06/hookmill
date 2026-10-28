@@ -128,5 +128,18 @@ export function apiTestEnv(): Record<string, string> {
     META_CRON: 'off',
     // editor F2d: fake (ffmpeg sintético) por padrão; E2E_RENDER_REAL=1 = RemotionRenderService de verdade (local, grátis)
     RENDER_IMPL: ENV.renderReal ? 'remotion' : 'fake',
+    // 27/10: com RENDER_IMPL=fake o remix-keep ainda vai pro Remotion LOCAL de verdade (edicao.service › portFor), e desde
+    // 25/10 todo lote AUTO tem 3 HEADLINE (remix-keep): ~90 s de CPU por peça, lote de 5+ min. Fake por padrão;
+    // E2E_REMIX_REAL=1 (ou E2E_RENDER_REAL=1) volta ao render real (grátis, local) pra conferir a HEADLINE de verdade.
+    RENDER_REMIX_IMPL: ENV.renderReal || process.env.E2E_REMIX_REAL === '1' ? 'remotion' : 'fake',
+    // 27/10: o api/.env do dev passou a ter RENDER_IMPL=lambda + credenciais AWS do Remotion Lambda, PEXELS_API_KEY e
+    // META_MODE=live. Tudo que custa ou fala com fora vai em branco na API do QA (nada pago, regra 3 do TIME.md).
+    RENDER_LAMBDA_KINDS: '',
+    REMOTION_AWS_ACCESS_KEY_ID: '',
+    REMOTION_AWS_SECRET_ACCESS_KEY: '',
+    REMOTION_LAMBDA_FUNCTION: '',
+    REMOTION_SERVE_URL: '',
+    PEXELS_API_KEY: '',
+    // META_APP_ID/SECRET ficam: o mock da Meta usa (sem eles o META_SYNC do mock falha; conferido no meta.int 27/10)
   };
 }

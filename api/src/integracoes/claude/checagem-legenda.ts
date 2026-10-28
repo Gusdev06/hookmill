@@ -16,7 +16,8 @@ export type CaptionProblem = 'covered' | 'cut' | 'missing' | 'illegible' | 'dupl
 export type { CheckCaptionInput, CheckCaptionResult };
 /** Quadro como a checagem usa por dentro (bytes ou caminho também valem, pra sonda e pro backend que já extraiu). */
 export interface CaptionFrame { atSec: number; image: string | Buffer; crop?: string | Buffer | null; expectedText?: string | null }
-export interface CaptionFrameVerdict { atSec: number; ok: boolean; covered: boolean; duplicated: boolean; seen: string | null; problem: CaptionProblem | null }
+/** `reason` (F9, 27/10): o motivo que o modelo deu pro quadro (o que tampa/corta e qual parte); null = não disse. */
+export interface CaptionFrameVerdict { atSec: number; ok: boolean; covered: boolean; duplicated: boolean; seen: string | null; problem: CaptionProblem | null; reason?: string | null }
 /** `CheckCaptionResult` + veredito da peça (`covered` = vai pro Retry e sai do zip). */
 export interface CheckCaptionVerdict extends CheckCaptionResult { status: 'ok' | 'covered'; frames: CaptionFrameVerdict[] }
 
@@ -55,11 +56,12 @@ export const CAPTION_CHECK_SCHEMA = obj({
       duplicated: { type: 'boolean', description: 'Two different subtitles of the same speech appear at once (for example an old one leaking at the edge of the video plus a new one).' },
       seen: { type: 'string', description: 'The subtitle text you read, exactly as drawn. Empty string if none.' },
       problem: { type: 'string', description: 'One of: covered, cut, missing, illegible, duplicated, none.' },
+      reason: { type: 'string', description: 'When problem is not none: what hides or cuts the subtitle (which layout element, or the edge of the video area) and which letters or words are hidden, as specific as you can. Empty string when problem is none.' },
     }),
   },
 });
 
-export const CAPTION_CHECK_SYSTEM = `You check finished vertical video ads. The source video has speech subtitles burned into it (captions). Our editor placed the video inside a layout (cards, titles, bands, panels) and must NEVER cover those subtitles. For each frame you get the full frame (reduced) and, when available, a full-resolution crop of the area where the subtitle should be. Say whether a subtitle is visible, whether it is whole and legible with nothing on top of it and not cut by the edge of the video area, whether two different subtitles of the same speech appear at once, and transcribe exactly what you read. Titles, headlines, list items and buttons of the layout are NOT the subtitle: the subtitle is the line(s) of speech text that belongs to the video. Only describe what is visible.`;
+export const CAPTION_CHECK_SYSTEM = `You check finished vertical video ads. The source video has speech subtitles burned into it (captions). Our editor placed the video inside a layout (cards, titles, bands, panels) and must NEVER cover those subtitles. For each frame you get the full frame (reduced) and, when available, a full-resolution crop of the area where the subtitle should be. Say whether a subtitle is visible, whether it is whole and legible with nothing on top of it and not cut by the edge of the video area, whether two different subtitles of the same speech appear at once, and transcribe exactly what you read. Titles, headlines, list items and buttons of the layout are NOT the subtitle: the subtitle is the line(s) of speech text that belongs to the video. A subtitle you can read in full, with every letter visible, is intact: mark it not intact only when you can point to the letters that are hidden or cut and say by what, and give that as the reason. Only describe what is visible.`;
 
 export function captionCheckMessage(i: { mode: CheckCaptionInput['mode']; language: string; frames: CaptionFrame[] }): string {
   return [
@@ -90,10 +92,18 @@ export function textOverlap(expected: string, seen: string): number {
 }
 
 const PROBLEMS: CaptionProblem[] = ['covered', 'cut', 'missing', 'illegible', 'duplicated'];
+/** Motivo que não diz nada ("none", "n/a", "-", vazio) não conta como motivo. */
+const SEM_MOTIVO = /^(none|n\/?a|no|ok|null|-+|\.+)?$/i;
+const motivoDe = (x: unknown) => (typeof x === 'string' && !SEM_MOTIVO.test(x.trim()) ? x.trim().slice(0, 300) : null);
 
-/** Veredito: quadro ok = legenda visível, inteira e sem duplicata (+ no `replace`, ≥ 50 % do texto esperado). A peça é
- *  `covered` se algum quadro tem a legenda tampada/cortada/duplicada, ou se 2+ quadros não mostram legenda (1 quadro sem
- *  legenda é tolerado: pode ser a troca de página do karaokê). */
+/**
+ * Veredito por quadro: ok = legenda visível, inteira e sem duplicata (+ no `replace`, ≥ 50 % do texto esperado).
+ * F9 (27/10, falso positivo do lote live: 1 quadro de 6 `ok: false` com a legenda inteira lida pelo próprio Haiku):
+ * - "não inteira" sem problema dito (`problem: none`) é contraditório: o quadro sai `illegible` (ruim, mas sem prova);
+ * - a peça é `covered` com **2+ quadros ruins** (tampada, cortada, duplicada, ilegível, texto errado), ou com **1 quadro
+ *   tampado/cortado/duplicado COM motivo** (o que tampa e qual parte). 1 quadro ruim sem motivo é tolerado;
+ * - 2+ quadros sem legenda também = `covered` (1 é tolerado: pode ser a troca de página do karaokê).
+ */
 export function parseCaptionCheck(text: string, i: { mode: CheckCaptionInput['mode']; frames: CaptionFrame[] }): CheckCaptionVerdict {
   const r = parseJsonObject(text);
   const rows = new Map<number, Record<string, unknown>>();
@@ -104,17 +114,18 @@ export function parseCaptionCheck(text: string, i: { mode: CheckCaptionInput['mo
   }
   const frames: CaptionFrameVerdict[] = i.frames.map((f, k) => {
     const x = rows.get(k);
-    if (!x) return { atSec: f.atSec, ok: false, covered: false, duplicated: false, seen: null, problem: 'missing' };
+    if (!x) return { atSec: f.atSec, ok: false, covered: false, duplicated: false, seen: null, problem: 'missing', reason: null };
     const seen = typeof x.seen === 'string' && x.seen.trim() ? x.seen.trim().slice(0, 300) : null;
     const said = PROBLEMS.find((p) => p === x.problem) ?? null;
     let problem: CaptionProblem | null =
-      x.captionVisible !== true ? 'missing' : x.duplicated === true ? 'duplicated' : x.intact !== true ? (said === 'cut' || said === 'illegible' ? said : 'covered') : null;
+      x.captionVisible !== true ? 'missing' : x.duplicated === true ? 'duplicated' : x.intact !== true ? (said === 'missing' || said === 'duplicated' || !said ? 'illegible' : said) : null;
     if (!problem && i.mode === 'replace' && f.expectedText && textOverlap(f.expectedText, seen ?? '') < 0.5) problem = 'wrong_text';
-    return { atSec: f.atSec, ok: !problem, covered: problem === 'covered' || problem === 'cut', duplicated: problem === 'duplicated', seen, problem };
+    return { atSec: f.atSec, ok: !problem, covered: problem === 'covered' || problem === 'cut', duplicated: problem === 'duplicated', seen, problem, reason: problem ? motivoDe(x.reason) : null };
   });
-  const hard = frames.some((f) => f.problem === 'covered' || f.problem === 'cut' || f.problem === 'duplicated' || f.problem === 'wrong_text' || f.problem === 'illegible');
+  const ruins = frames.filter((f) => f.problem && f.problem !== 'missing');
+  const provado = ruins.some((f) => (f.problem === 'covered' || f.problem === 'cut' || f.problem === 'duplicated') && !!f.reason);
   const missing = frames.filter((f) => f.problem === 'missing').length;
-  return { status: hard || missing >= 2 ? 'covered' : 'ok', frames };
+  return { status: ruins.length >= 2 || provado || missing >= 2 ? 'covered' : 'ok', frames };
 }
 
 /** Bytes de URL, caminho local ou Buffer. */

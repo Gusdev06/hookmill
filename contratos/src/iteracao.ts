@@ -150,7 +150,13 @@ export interface AutoInsight {
 /** legenda-protegida-v1 §4.2: veredito da checagem por visão (em `renders.input.captionCheck`). */
 export interface CaptionCheck {
   status: 'ok' | 'covered' | 'skipped';
-  frames: { atSec: number; ok: boolean; seen: string | null }[];
+  /** F10 (28/10): `problem` e `reason` = o veredito do quadro e o motivo dado pelo modelo (null = ok / não disse).
+   *  Opcionais: renders gravados antes de 28/10 não têm. */
+  frames: {
+    atSec: number; ok: boolean; seen: string | null;
+    problem?: 'covered' | 'cut' | 'missing' | 'illegible' | 'duplicated' | 'wrong_text' | null;
+    reason?: string | null;
+  }[];
   attempt: number;
 }
 /** 25/10 (headline-e-legenda-v1 §1): "original → nova" na peça HEADLINE. `original` = texto da headline do campeão (null no `add`). */
