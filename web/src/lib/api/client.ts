@@ -320,6 +320,10 @@ export const api = {
 
   // ───── variação automática de campeão (variacao-auto-v1.md §5). Status by polling GET /iterate/:id every 1.5 s (§10).
   iterate: {
+    answers: (id: string, b: T.UpdateIterateAnswersBody) => data(put<T.IterateBatch>(`/iterate/${seg(id)}/answers`, b)),
+    select: (id: string, itemId: string, included: boolean) => data(patch<T.IterateBatch>(`/iterate/${seg(id)}/items/${seg(itemId)}`, { included })),
+    preferences: () => data(get<T.IteratePreferences | null>(`/iterate/preferences`)),
+    forgetPreferences: () => data(del<void>(`/iterate/preferences`)),
     config: (o: Signal = {}) => data(get<T.IterateConfig>("/iterate/config", o)),
     /** Starts the analysis by itself (§5.1 note 1). 202 ANALYZING/PLANNING. 422 OFFER_REQUIRED `{ offers }`, 409 INVALID_STATE `not_a_video`, 409 SPEND_CAP_EXCEEDED. */
     create: (b: T.CreateIterateBody) => data(post<T.IterateBatch>("/iterate", b, { timeoutMs: 30_000 })),

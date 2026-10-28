@@ -15,6 +15,17 @@ const ctx = (o: Partial<AutoEditContext>): AutoEditContext => ({
 });
 
 describe('AutoEdit × legenda protegida', () => {
+  it('CUT with wide captions over the face keeps the entire frame instead of failing', () => {
+    const i = buildAutoEditInput(ctx({ editMap: em({ x: 130, y: 250, w: 700, h: 60 }) as never }), 'VERTICAL_9_16');
+    expect(i.captionMode).toBe('avoid');
+    expect(i.contentBox).toEqual({ x: 0, y: 0, w: 960, h: 960 });
+    expect(i.reframe.mode).toBe('cover');
+    expect(i.captions).toBeUndefined();
+    const b = i.outputProtectedBands![0];
+    expect(b.kind).toBe('original');
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.w).toBeLessThanOrEqual(1080);
+  });
   it('CUT com a legenda cabendo na janela do cover: desvia (avoid), sem legenda nossa e sem borrado', () => {
     const i = buildAutoEditInput(ctx({ editMap: em({ x: 300, y: 795, w: 360, h: 60 }) as never }), 'VERTICAL_9_16');
     expect(i.captionMode).toBe('avoid');
@@ -22,16 +33,14 @@ describe('AutoEdit × legenda protegida', () => {
     expect(i.protectedBands?.length).toBe(1);
     expect(i.captions).toBeUndefined();
   });
-  it('CUT de take quadrado com legenda mais larga que a janela do cover (sem borrado): recorta e legenda de novo', () => {
+  it('CUT quadrado com legenda larga: afasta o enquadramento e preserva a original', () => {
     const i = buildAutoEditInput(ctx({}), 'VERTICAL_9_16');
     expect(i.reframe.mode).toBe('cover');
-    expect(i.captionMode).toBe('replace');
+    expect(i.captionMode).toBe('avoid');
+    expect(i.captions).toBeUndefined();
   });
-  it('NATIVE_SEARCH: a tela de busca cobriria a legenda → recorta sem ela e põe a nossa no estilo da original', () => {
-    const i = buildAutoEditInput(ctx({ type: 'NATIVE_SEARCH', params: { type: 'NATIVE_SEARCH', query: 'dor nas costas' } }), 'VERTICAL_9_16');
-    expect(i.captionMode).toBe('replace');
-    expect(i.contentBox!.y + i.contentBox!.h).toBeLessThanOrEqual(i.protectedBands![0].y);
-    expect(i.captions?.style).toMatchObject({ fontId: 'montserrat-900', uppercase: true, color: '#FFFFFF', highlightColor: '#FFD43B' });
+  it('NATIVE_SEARCH que cobriria a legenda não é oferecido', () => {
+    expect(() => buildAutoEditInput(ctx({ type: 'NATIVE_SEARCH', params: { type: 'NATIVE_SEARCH', query: 'dor nas costas' } }), 'VERTICAL_9_16')).toThrow(/CAPTION_PROTECTED/);
   });
   it('legenda atravessando o rosto: não dá pra recortar → CAPTION_PROTECTED (face_cut)', () => {
     expect(() => buildAutoEditInput(ctx({ type: 'NATIVE_SEARCH', params: { type: 'NATIVE_SEARCH', query: 'x' }, editMap: em({ x: 130, y: 250, w: 700, h: 60 }) as never }), 'VERTICAL_9_16')).toThrow(/CAPTION_PROTECTED/);

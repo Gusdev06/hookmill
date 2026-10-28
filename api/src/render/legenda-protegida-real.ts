@@ -13,6 +13,7 @@ import { createReadStream, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import type { EditMap, TranscriptWord } from '@maquina/contratos';
 import { FRAME_COMPOSITION_ID, FRAME_IDS, REMIX_COMPOSITION_ID, checarLegendaProtegida } from '@maquina/video';
 import { frameSpecOf } from '../edicao/frame-input';
@@ -20,11 +21,11 @@ import type { AutoEditContext } from './auto-edit';
 import { buildFrameInput } from './frame';
 import { buildHeadlineInput } from './headline';
 
-const PORTA = 3020;
+const PORTA = Number(process.env.CAPTION_PROOF_PORT ?? 3020);
 const LOTE = 'cmvot8qxv000b22xlz0yrm60t';
 const raizVideo = path.resolve(__dirname, '../../../video');
-const saida = path.join(raizVideo, 'out', 'molduras-producao-2026-10-25', 'legenda-protegida');
-const CAMPEAO = path.join(raizVideo, 'out', 'molduras-producao-2026-10-25', 'lote2-faixas', '_campeao.mp4');
+const saida = process.env.CAPTION_PROOF_DIR ?? path.join(raizVideo, 'out', 'molduras-producao-2026-10-25', 'legenda-protegida');
+let CAMPEAO = path.join(raizVideo, 'out', 'molduras-producao-2026-10-25', 'lote2-faixas', '_campeao.mp4');
 
 async function main() {
   mkdirSync(saida, { recursive: true });
@@ -41,6 +42,17 @@ async function main() {
   const b = await prisma.variationBatch.findUniqueOrThrow({ where: { id: LOTE }, include: { items: true, champion: { include: { teardown: true, videoFile: true } } } });
   const ch = b.champion!;
   const em = ch.teardown!.editMap as unknown as EditMap;
+  if (process.env.CAPTION_PROOF_AUTO_SOURCE === '1') {
+    const candidates = ['campeao-real', 'lote2-faixas'].map((folder) => path.join(raizVideo, 'out', 'molduras-producao-2026-10-25', folder, '_campeao.mp4'));
+    const source = candidates.find((file) => {
+      const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=width,height:format=duration', '-of', 'json', file], { encoding: 'utf8' }));
+      const video = probe.streams.find((s: { width?: number }) => s.width);
+      return video.width === ch.videoFile!.width && video.height === ch.videoFile!.height && Math.abs(Number(probe.format.duration) - Number(ch.durationSec)) < 1;
+    });
+    if (!source) throw new Error('Nenhum arquivo local corresponde às dimensões e duração do campeão deste lote');
+    CAMPEAO = source;
+    console.log(`Fonte local conferida: ${path.relative(raizVideo, source)}`);
+  }
   const words = ((ch.teardown!.transcript as unknown as { words: TranscriptWord[] }).words);
   const ctx: AutoEditContext = {
     renderId: 'prova-lp', type: 'FRAME' as never, params: { type: 'FRAME' } as never, language: b.language,
@@ -55,8 +67,9 @@ async function main() {
   const semKind = <T extends object>(i: T) => { const { kind: _k, renderId: _r, templateId: _t, audioPassthroughUrl: _a, ...p } = i as T & Record<string, unknown>; return p; };
   const brand = { name: 'Amnayalife', handle: '@amnaylife', initials: 'AM', color: '#0008FF' };
   const resultado: Record<string, string> = {};
-  const frame = 150; // 5 s: legenda queimada na tela
+  const frame = Math.round(Number(process.env.CAPTION_PROOF_SECONDS ?? 5) * 30); // instant with burned-in captions
   for (const id of FRAME_IDS) {
+    if (process.env.CAPTION_PROOF_TEMPLATES && !process.env.CAPTION_PROOF_TEMPLATES.split(',').includes(id)) continue;
     const it = b.items.find((i) => (i.payload as { params?: { template?: string } }).params?.template === id);
     const params = it ? (it.payload as { params: Record<string, unknown> }).params
       : { template: id, texts: { promise: '讓你的英文*開口不卡*', price: { from: 'NT$ 990', to: 'NT$ 490' }, cta: '點擊下方按鈕立即報名' }, screenLanguage: 'zh', brand, faceAtSec: null, second: null };

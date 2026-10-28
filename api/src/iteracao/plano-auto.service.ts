@@ -1,3 +1,5 @@
+import { DEFAULT_ANSWERS, selectPieces } from './selecao';
+import type { IterateAnswers } from '@maquina/contratos';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AnalysisStage, AutoInsight, AutoVariationType, FrameTemplateId } from '@maquina/contratos';
 import type { Prisma } from '@prisma/client';
@@ -110,6 +112,7 @@ export class PlanoAutoService {
       const ctx = withCaptionGuard(planCtxOf(ctxSrc, this.media, { captured: !!page.fileId }), {
         ...ctxSrc, video: b.champion.videoFile, language: b.language,
       });
+      ctx.candidatePlan = true;
       const allowed = allowedFor(ctx);
       const swaps = swapsFor(allowed);
       const flags = flagsOf(ctx);
@@ -136,7 +139,7 @@ export class PlanoAutoService {
         // headline-e-legenda-v1: HEADLINE no `allowed` (TRANSIÇÃO: fora do AutoVariationType até a fusão) + o que a ia precisa
         allowed: allowed.map((a) => ({ type: a.type, max: a.max })) as unknown as AutoPlanInput['allowed'],
         allowedFrames: allowedFrameIds(ctx),
-        rules: rulesFor(allowed),
+        rules: rulesFor(allowed, true),
         ...(ctx.headline && !ctx.headline.blockedReason && {
           headline: { mode: ctx.headline.mode, original: ctx.headline.original, lines: ctx.headline.lines, maxChars: ctx.headline.maxChars, hasHighlight: ctx.headline.hasHighlight, language: ctx.headline.language },
         }),
@@ -166,7 +169,7 @@ export class PlanoAutoService {
         };
         rDraftItems = (draft.items ?? []) as unknown[];
         const r = repairPlan(draft, ctx, allowed, fb);
-        if (!r.ok) {
+        if (!r.ok && !(ctx.caption?.bands.length && r.draft.items.length > 0)) {
           const detail = violations.map((v) => violationText(v, draft.items ?? [])).join('; ').slice(0, 2000);
           throw new AutoPlanError('PLAN_INVALID', 'planning', detail);
         }
@@ -174,16 +177,26 @@ export class PlanoAutoService {
         draft = r.draft;
         removedByCaption = r.removed.filter((x) => x.rules.includes('burned_captions')).map((x) => ({ type: x.type, template: frameTemplateOfDraft(rDraftItems[x.index]) }));
       }
-      const items = finalizePlan(draft, ctx, this.media);
+      const finalized = finalizePlan(draft, ctx, this.media);
+      // Check the final payload too: snapped cuts and finalized layout are what the render queue will receive.
+      const items = finalized.filter((it) => {
+        if (!ctx.caption?.check({ type: it.type, params: it.params as unknown as Record<string, unknown> })) return true;
+        removedByCaption.push({ type: it.type, template: it.type === 'FRAME' ? (it.params as { template: FrameTemplateId }).template : null });
+        return false;
+      });
+      if (!items.length) throw new AutoPlanError('PLAN_INVALID', 'planning', 'No compatible pieces remain after caption validation');
       // §2.1: `captionsAuto` no insight (TRANSIÇÃO: fora do AutoInsight até o arquiteto tipar; o web já lê)
       // 26/10: por que o HEADLINE ficou fora (o web mostra); null = entrou ou o campeão não tem dado pra ele
       const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...captionBlockedOf(ctx, allowed, removedByCaption), ...(cleanVersion && { cleanVersion }) };
 
       // 3. PLAN_READY: itens e insight na mesma transação da troca de estado
       await this.prisma.$transaction(async (tx) => {
+        const locked = await tx.variationBatch.update({ where: { id: b.id }, data: { updatedAt: new Date() } });
+        const result = selectPieces(items.map((it) => ({ ...it, autoType: it.type })), (locked.answers as unknown as IterateAnswers | null) ?? DEFAULT_ANSWERS);
         await tx.variationItem.deleteMany({ where: { batchId: b.id } });
         await tx.variationItem.createMany({
-          data: items.map((it) => ({
+          data: result.selected.map(({ item: it, included, wantKey, selection }) => ({
+            included, wantKey, selection, priority: it.index,
             workspaceId: b.workspaceId, batchId: b.id, kind: 'AUTO_EDIT' as const, index: it.index, status: 'READY' as const,
             rationale: it.rationale, payload: { params: it.params, whyKey: it.whyKey } as unknown as Prisma.InputJsonValue,
             autoType: it.type, code: it.code, axis: it.axis, change: it.change, inZip: true, jobId,
@@ -193,7 +206,7 @@ export class PlanoAutoService {
           tx, batchId: b.id, event: 'AUTO_PLAN_DONE', from: 'PLANNING', to: 'PLAN_READY',
           data: { insight: insight as unknown as Prisma.InputJsonValue, errorCode: null, failReason: null, failDetail: null, failStage: null },
         });
-      });
+      }, { timeout: 30_000 });
       await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: { pieces: items.length } });
     } catch (e) {
       const err = e instanceof AutoPlanError ? e : new AutoPlanError(plannerCode(e), stage, (e as Error)?.message?.slice(0, 500) ?? null);

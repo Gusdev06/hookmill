@@ -223,6 +223,15 @@ export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat,
     if (protectedBands.length) {
       const { kind: _k, renderId: _r, templateId: _t, ...props } = { ...input, protectedBands };
       const d = decidirLegendaAutoEdit(props as AutoEditProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, corDeDestaque(ctx.palette, '#000000')) as AutoEditProps['captions'], opts.captionMode === 'replace' ? 'replace' : undefined);
+      if (d.mode === 'blocked' && p.type === 'CUT' && opts.captionMode !== 'replace') {
+        // A cut adds no overlay. If cropping would lose the caption or the face, keep the entire original frame.
+        // The existing scaled-cover renderer fills the unused space with the brand color, never blur.
+        const full = { x: 0, y: 0, w: ctx.source.width, h: ctx.source.height };
+        const scale = Math.min(f.width / full.w, f.height / full.h) / Math.max(f.width / full.w, f.height / full.h);
+        const keep = { ...props, contentBox: full, reframe: { mode: 'cover' as const, focus: { x: 0.5, y: 0.5 }, scale } } as AutoEditProps;
+        const safe = decidirLegendaAutoEdit(keep, ctx.editMap, null);
+        if (safe.mode !== 'blocked') return { kind: 'auto-edit', renderId: ctx.renderId, templateId: 'auto-edit', ...safe.input, outputProtectedBands: faixasProtegidasNaSaidaAutoEdit(safe.input) } as AutoEditRenderInput;
+      }
       if (d.mode === 'blocked') throw new CaptionProtectedError(d.reason, d.check.hits);
       return { kind: 'auto-edit', renderId: ctx.renderId, templateId: 'auto-edit', ...d.input, outputProtectedBands: faixasProtegidasNaSaidaAutoEdit(d.input) } as AutoEditRenderInput;
     }

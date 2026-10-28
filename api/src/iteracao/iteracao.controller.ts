@@ -1,8 +1,8 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext, Roles } from '../common/auth/auth-context';
 import { ExpensiveAction } from '../common/throttle/app-throttler.guard';
-import { CreateIterateDto, EmptyBodyDto, StartIterateDto } from './iteracao.dto';
+import { CreateIterateDto, EmptyBodyDto, StartIterateDto, UpdateAnswersDto, SelectItemDto } from './iteracao.dto';
 import { IteracaoService } from './iteracao.service';
 
 /**
@@ -23,6 +23,22 @@ export class IteracaoController {
   @ExpensiveAction() @HttpCode(202) @Post()
   create(@Auth() auth: AuthContext, @Body() dto: CreateIterateDto) {
     return this.iteracao.create(auth, dto);
+  }
+
+  @Roles('OWNER', 'ADMIN') @Get('preferences')
+  preferences(@Auth() auth: AuthContext) { return this.iteracao.preferences(auth); }
+
+  @Roles('OWNER', 'ADMIN') @HttpCode(204) @Delete('preferences')
+  forgetPreferences(@Auth() auth: AuthContext) { return this.iteracao.forgetPreferences(auth); }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Put(':id/answers')
+  answers(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: UpdateAnswersDto) {
+    return this.iteracao.answers(auth, id, dto.answers, dto.save !== false);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Patch(':id/items/:itemId')
+  select(@Auth() auth: AuthContext, @Param('id') id: string, @Param('itemId') itemId: string, @Body() dto: SelectItemDto) {
+    return this.iteracao.select(auth, id, itemId, dto.included);
   }
 
   @Get(':id')

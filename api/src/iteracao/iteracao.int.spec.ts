@@ -337,7 +337,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const done = await settled(cr.data.id);
     expect(done.data.status).toBe('PLAN_READY');
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0][0]).toMatchObject({ batchId: cr.data.id, rules: { max: 12, minDiversityPct: 40 }, page: { captured: true } });
+    expect(spy.mock.calls[0][0]).toMatchObject({ batchId: cr.data.id, rules: { max: 16, minDiversityPct: 0 }, page: { captured: true } });
     expect(done.data.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(['LAYOUT-REVIEW', 'NATIVE-SEARCH', 'STATIC-F1', 'FRAME-QUESTION-BOX', 'FRAME-LIVE']));
     expect(await prisma.job.count({ where: { championId, type: 'CHAMPION_ANALYZE' } })).toBe(1); // não reanalisou
     spy.mockRestore();

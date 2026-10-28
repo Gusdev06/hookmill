@@ -1,9 +1,11 @@
+import { FREE_WANTS, preferencesOf, selectPieces, validateAnswers } from './selecao';
+import type { IterateAnswers } from '@maquina/contratos';
 import { TEMPLATE_TYPES, templatesLigados } from './templates-plano';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Interval } from '@nestjs/schedule';
 import type { IterateBatch, IterateConfig, LibraryItem } from '@maquina/contratos';
-import type { Champion, Prisma } from '@prisma/client';
+import { Prisma, type Champion } from '@prisma/client';
 import { AnaliseService } from '../campeoes/analise.service';
 import { ChampionStateMachine } from '../campeoes/champion-state-machine';
 import { editMapOf, sectionsOf } from '../campeoes/champion-views';
@@ -72,6 +74,54 @@ export class IteracaoService {
     return this.views.batch(await this.load(auth.workspaceId, id));
   }
 
+  async preferences(auth: AuthContext) {
+    const w = await this.prisma.workspace.findUniqueOrThrow({ where: { id: auth.workspaceId }, select: { iteratePreferences: true } });
+    return preferencesOf(w.iteratePreferences);
+  }
+
+  async forgetPreferences(auth: AuthContext) {
+    await this.prisma.workspace.update({ where: { id: auth.workspaceId }, data: { iteratePreferences: Prisma.DbNull } });
+  }
+
+  async answers(auth: AuthContext, id: string, value: unknown, save: boolean): Promise<IterateBatch> {
+    const answers = validateAnswers(value);
+    await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
+      // The write locks this row against planning completion, launch and other answer requests.
+      const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
+      if (!hit.count) throw new AppException('NOT_FOUND');
+      const b = await tx.variationBatch.findUniqueOrThrow({ where: { id }, include: { items: { where: { kind: 'AUTO_EDIT' } } } });
+      if (!['ANALYZING', 'PLANNING', 'PLAN_READY'].includes(b.status)) throw new AppException('INVALID_STATE', { state: b.status, reason: b.status === 'LAUNCHED' ? 'launched' : b.status });
+      const now = new Date();
+      await tx.variationBatch.update({ where: { id }, data: { answers: answers as unknown as Prisma.InputJsonValue, answersAt: now, answersById: auth.userId } });
+      if (b.status === 'PLAN_READY') {
+        const result = selectPieces(b.items, answers);
+        for (const v of result.selected) await tx.variationItem.update({ where: { id: v.item.id }, data: { included: v.included, wantKey: v.wantKey, selection: v.selection } });
+      }
+      if (save) {
+        const user = await tx.user.findUniqueOrThrow({ where: { id: auth.userId }, select: { id: true, name: true } });
+        const savedBy = { ...user, initials: user.name.split(/\s+/).map((x) => x[0]).join('').slice(0, 2).toUpperCase() };
+        await tx.workspace.update({ where: { id: auth.workspaceId }, data: { iteratePreferences: { ...answers, savedAt: now.toISOString(), savedBy, fromBatchId: id } } });
+      }
+    }, { timeout: 30_000 }));
+    return this.get(auth, id);
+  }
+
+  async select(auth: AuthContext, id: string, itemId: string, included: boolean): Promise<IterateBatch> {
+    await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
+      const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
+      if (!hit.count) throw new AppException('NOT_FOUND');
+      const b = await tx.variationBatch.findUniqueOrThrow({ where: { id } });
+      if (b.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'] });
+      const item = await tx.variationItem.findFirst({ where: { id: itemId, batchId: id, kind: 'AUTO_EDIT' } });
+      if (!item) throw new AppException('NOT_FOUND');
+      if (item.selection === 'goal_cut') throw new AppException('ITEM_NOT_SELECTABLE');
+      const n = await tx.variationItem.count({ where: { batchId: id, included: true, kind: 'AUTO_EDIT' } });
+      if (included && !item.included && n >= 12) throw new AppException('ITEM_NOT_SELECTABLE', { reason: 'batch_full' });
+      await tx.variationItem.update({ where: { id: itemId }, data: { included, selection: included ? 'user_added' : 'user_removed' } });
+    }, { timeout: 30_000 }));
+    return this.get(auth, id);
+  }
+
   /** GET /iterate/config (§4). */
   async config(auth: AuthContext): Promise<IterateConfig> {
     const typical = autoAnalysisEstimateUsd(this.catalog, 30);
@@ -84,6 +134,8 @@ export class IteracaoService {
       defaultOfferId = last && offers.some((o) => o.id === last.offerId) ? last.offerId : null;
     }
     return {
+      quiz: { aiEnabled: false, wants: FREE_WANTS },
+      savedPreferences: await this.preferences(auth),
       maxBytes: this.cfg.uploadMaxBytes, minSec: this.cfg.championMinSec, maxSec: this.cfg.championMaxSec, mimeTypes: [...CHAMPION_MIME_TYPES],
       analysisUsdPerSec: Math.round((typical / 30) * 10_000) / 10_000, analysisTypicalUsd: typical,
       // iterate-v2 F1.7: os 2 templates grátis só com ITERATE_TEMPLATES=on (padrão off até o QA passar)
@@ -126,7 +178,7 @@ export class IteracaoService {
         data: {
           workspaceId: auth.workspaceId, championId: champion.id, offerId: champion.offerId, mode: 'AUTO',
           status: src.mode === 'reuse' ? BATCH_ENTRY.AUTO_REUSE : BATCH_ENTRY.AUTO_ANALYZE,
-          language: champion.language ?? src.offerLanguage, requests: [], settings: cleanFile ? { cleanFileId: cleanFile.id } : {}, estimatedCostUsd: estimate, createdById: auth.userId,
+          language: champion.language ?? src.offerLanguage, requests: [], settings: { quizEnabled: true, ...(cleanFile ? { cleanFileId: cleanFile.id } : {}) }, estimatedCostUsd: estimate, createdById: auth.userId,
         },
       });
       const job = src.mode === 'wait' ? null
@@ -334,19 +386,21 @@ export class IteracaoService {
    * SPEND_CAP_EXCEEDED (estimativa 0 não chama o teto). As imagens do STATIC são submetidas depois do commit.
    */
   async start(auth: AuthContext, id: string, expectedPieces: number, expectedCostUsd?: number): Promise<IterateBatch> {
-    const launched = await this.locks.run(`batch:${id}`, async () => {
-      const b = await this.load(auth.workspaceId, id);
+    const launched = await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
+      const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
+      if (!hit.count) throw new AppException('NOT_FOUND');
+      const b = await tx.variationBatch.findUniqueOrThrow({ where: { id } });
       assertBatchCan(b.status, 'AUTO_START');
-      if (b.items.length !== expectedPieces) throw new AppException('PLAN_CHANGED', { pieces: b.items.length });
+      const count = await tx.variationItem.count({ where: { batchId: id, kind: 'AUTO_EDIT', included: true } });
+      if (!count) throw new AppException('INVALID_STATE', { reason: 'nothing_selected' });
+      if (count !== expectedPieces) throw new AppException('PLAN_CHANGED', { pieces: count });
       const estimateUsd = await this.views.generateEstimateUsd(b.id);
       if (estimateUsd > (expectedCostUsd ?? 0) * 1.1 + 1e-9) throw new AppException('ESTIMATE_CHANGED', { estimateUsd });
       if (estimateUsd > 0) await this.custos.assertWithinCap(auth.workspaceId, estimateUsd);
       const launchedAt = new Date();
-      return this.prisma.$transaction(async (tx) => {
-        await this.sm.transition({ tx, batchId: b.id, event: 'AUTO_START', from: 'PLAN_READY', to: 'LAUNCHED', data: { launchedAt } });
-        return this.pecas.createPieces(tx, { batchId: b.id, userId: auth.userId, launchedAt });
-      }, { timeout: 30_000 });
-    });
+      await this.sm.transition({ tx, batchId: b.id, event: 'AUTO_START', from: 'PLAN_READY', to: 'LAUNCHED', data: { launchedAt } });
+      return this.pecas.createPieces(tx, { batchId: b.id, userId: auth.userId, launchedAt });
+    }, { timeout: 30_000 }));
     this.pecas.launched(launched);
     return this.get(auth, id);
   }

@@ -61,7 +61,7 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     dir = await mkdtemp(join(tmpdir(), 'maquina-tpl-'));
     const fakePage: PageCapturePort = {
       capture: async ({ workspaceId }) => {
-        const f = await prisma.file.create({ data: { workspaceId, kind: 'PAGE_CAPTURE', storageKey: `ws/${workspaceId}/page_capture/${RUN}.png`, mimeType: 'image/png', sizeBytes: 10, width: 1080, height: 3240 } });
+        const f = await prisma.file.create({ data: { workspaceId, kind: 'PAGE_CAPTURE', storageKey: `ws/${workspaceId}/page_capture/${RUN}-${Date.now()}.png`, mimeType: 'image/png', sizeBytes: 10, width: 1080, height: 3240 } });
         return { fileId: f.id, widthPx: 1080, heightPx: 3240, text: 'Sleep better tonight. Try it free.' };
       },
     };
@@ -105,6 +105,8 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
   });
 
   let championId = '';
+  let firstBatchId = '';
+  const answers = { goal: 'auto', ai: 'free_only', aiCapUsd: null, aiCapCredits: null, wants: ['chat_motion'] };
 
   it('config com a flag ligada traz CHAT_DM e PERSON_MOTION', async () => {
     const r = await call('GET', '/iterate/config');
@@ -121,6 +123,13 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     await call('POST', `/uploads/${c.data.uploadId}/complete`, {});
     const cr = await call('POST', '/iterate', { uploadId: c.data.uploadId });
     expect(cr.status).toBe(202);
+    if (!firstBatchId) {
+      firstBatchId = cr.data.id;
+      expect(cr.data.quizEnabled).toBe(true);
+      const early = await call('PUT', `/iterate/${cr.data.id}/answers`, { answers });
+      expect(early.status).toBe(200);
+      expect(early.data.answers).toMatchObject(answers);
+    }
     const b = await settled(cr.data.id);
     expect(b.data.status).toBe('PLAN_READY');
     championId = b.data.source.championId;
@@ -132,6 +141,38 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     const item = await prisma.variationItem.findUniqueOrThrow({ where: { id: chat.id } });
     const params = (item.payload as { params: Record<string, unknown> }).params;
     expect(params).toMatchObject({ type: 'CHAT_DM', templateId: 'chat-dm', brand: { name: 'Sleep app' } });
+  });
+
+  it('F2: editing goals, add back and removing pieces never invokes a paid planner again', async () => {
+    const before = await prisma.costEntry.count({ where: { variationBatchId: firstBatchId } });
+    const r = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: ['headline'] } });
+    expect(r.status).toBe(200);
+    expect(r.data.answers.wants).toEqual(['headline']);
+    expect(r.data.pieces.every((p: { wantKey: string | null }) => !p.wantKey || p.wantKey === 'headline')).toBe(true);
+    const frame = r.data.notSelected.find((p: { type: string }) => p.type === 'FRAME');
+    expect(frame).toBeDefined();
+    const added = await call('PATCH', `/iterate/${firstBatchId}/items/${frame.id}`, { included: true });
+    expect(added.data.pieces.find((p: { id: string }) => p.id === frame.id)?.selection).toBe('user_added');
+    const reset = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: ['headline'] } });
+    expect(reset.data.pieces.some((p: { id: string }) => p.id === frame.id)).toBe(false);
+    expect(reset.data.notSelected.find((p: { id: string }) => p.id === frame.id)?.selection).toBe('not_asked');
+    for (const p of reset.data.pieces) expect((await call('PATCH', `/iterate/${firstBatchId}/items/${p.id}`, { included: false })).status).toBe(200);
+    const empty = await call('GET', `/iterate/${firstBatchId}`);
+    expect(empty.data.summary.pieces).toBe(0);
+    expect(empty.data.cost.generateEstimateUsd).toBe(0);
+    const blocked = await call('POST', `/iterate/${firstBatchId}/start`, { expectedPieces: 1, expectedCostUsd: 0 });
+    expect(blocked.status).toBe(409);
+    expect(blocked.error.details.reason).toBe('nothing_selected');
+    expect(await prisma.costEntry.count({ where: { variationBatchId: firstBatchId } })).toBe(before);
+    const cfg = await call('GET', '/iterate/config');
+    expect(cfg.data.savedPreferences).toMatchObject({ wants: ['headline'], fromBatchId: firstBatchId });
+    expect((await call('DELETE', '/iterate/preferences')).status).toBe(204);
+    expect((await call('GET', '/iterate/config')).data.savedPreferences).toBeNull();
+    const invalid = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, ai: 'auto', aiCapUsd: 5 } });
+    expect(invalid.status).toBe(400);
+    expect(invalid.error.details.fields[0].rule).toBe('cap_needs_yes');
+    expect((await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: [] }, save: false })).status).toBe(200);
+    expect((await call('GET', '/iterate/config')).data.savedPreferences).toBeNull();
   });
 
   it('com rosto no editMap, o "Novo lote" do mesmo campeão traz os 2 templates; start → prontos, nome certo, só 9:16', async () => {

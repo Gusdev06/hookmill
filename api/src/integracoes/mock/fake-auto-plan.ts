@@ -159,7 +159,7 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   const used = new Map<AutoVariationType, number>();
   const can = (ty: AutoVariationType) => (used.get(ty) ?? 0) < (max.get(ty) ?? 0);
   const order: AutoVariationType[] = [];
-  const target = Math.min(i.rules.max, Math.max(i.rules.min, 10));
+  const target = Math.min(i.rules.max, Math.max(i.rules.min, i.rules.max > 12 ? 16 : 10));
   // HEADLINE entra inteira (3 ou 2: é a alavanca pedida); depois 1 de cada tipo (diversidade primeiro) e repetições
   while (can('HEADLINE')) {
     order.push('HEADLINE');

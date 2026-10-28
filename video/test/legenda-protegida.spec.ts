@@ -1,5 +1,5 @@
 // legenda-protegida-v1 (26/10): faixa protegida, checagem geométrica e decisão desviar → recortar → bloquear.
-import { checarLegendaProtegida, decidirLegenda, faixasProtegidasDe, recorteSemLegenda, reframeNaCaixa, unionBand, type EditMapLike, type MolduraProps } from '../src/lib';
+import { checarLegendaProtegida, decidirLegenda, faixasProtegidasDe, layoutDaPeca, pinturaNaCaixa, recorteSemLegenda, reframeNaCaixa, unionBand, type EditMapLike, type MolduraProps } from '../src/lib';
 
 const src = { width: 1080, height: 1920 };
 const mapa = (caption: { x: number; y: number; w: number; h: number }, rostoY = 0.1): EditMapLike & { fps: number } => ({
@@ -34,6 +34,19 @@ describe('faixas protegidas', () => {
 });
 
 describe('checagem e decisão', () => {
+  it('preserves the entire content area even when detection only found one subtitle line', () => {
+    const m = mapa({ x: 150, y: 1000, w: 780, h: 140 });
+    const d = decidirLegenda(input(m, 'meme', { pov: 'Uma pergunta', cta: 'Saiba mais' }), m, null);
+    expect(d.mode).toBe('avoid');
+    if (d.mode !== 'avoid') return;
+    const box = layoutDaPeca(d.input).videoBox;
+    const paint = pinturaNaCaixa(box, d.input.video.source, d.input.video.reframe, d.input.video.contentBox ?? null);
+    expect(paint.area.left).toBeGreaterThanOrEqual(-1);
+    expect(paint.area.top).toBeGreaterThanOrEqual(-1);
+    expect(paint.area.left + paint.area.w).toBeLessThanOrEqual(box.w + 1);
+    expect(paint.area.top + paint.area.h).toBeLessThanOrEqual(box.h + 1);
+    expect(d.input.captions).toBeUndefined();
+  });
   it('Caixinha sobre a legenda no meio: o layout desvia (passo 1) e a checagem passa', () => {
     const m = mapa({ x: 150, y: 1000, w: 780, h: 140 });
     const d = decidirLegenda(input(m, 'question_box', { question: 'Por que eu travo?' }), m, null);
@@ -55,15 +68,12 @@ describe('checagem e decisão', () => {
     const m2 = mapa({ x: 0, y: 500, w: 1080, h: 140 }, 0.1);
     expect(recorteSemLegenda(input(m2, 'live', {}), m2)).toBeNull();
   });
-  it('legenda larga demais pro vídeo cheio: recorta sem ela e põe a nossa (passo 2), sem vazar a original', () => {
+  it('template sem área segura sai do plano, preservando a legenda original', () => {
     const m = mapa({ x: 0, y: 1400, w: 1080, h: 140 });
     const leg = { words: [{ word: 'oi', startSec: 0, endSec: 1 }], highlightColor: '#FF0', language: 'pt' };
     const d = decidirLegenda(input(m, 'live', {}), m, leg);
-    expect(d.mode).toBe('replace');
-    if (d.mode !== 'replace') return;
-    expect(d.input.captionMode).toBe('replace');
-    expect(d.input.captions).toEqual(leg);
-    expect(checarLegendaProtegida(d.input).ok).toBe(true);
+    expect(d.mode).toBe('blocked');
+    expect(input(m, 'live', {}).video.protectedBands?.length).toBeGreaterThan(0);
   });
 });
 
@@ -74,7 +84,7 @@ describe('pontas de 26/10', () => {
     expect(r).not.toBeNull();
     expect(r.y + r.h).toBeLessThanOrEqual(faixasProtegidasDe(m as never, src)[0].y);
     const leg = { words: [{ word: 'oi', startSec: 0, endSec: 1 }], highlightColor: '#FF0', language: 'pt' };
-    expect(decidirLegenda(input(m, 'live', {}), m, leg).mode).toBe('replace');
+    expect(decidirLegenda(input(m, 'live', {}), m, leg).mode).toBe('blocked');
   });
   it("'replace' forçado (Retry depois de CAPTION_COVERED) pula o desvio; sem como recortar = blocked", () => {
     const m = mapa({ x: 150, y: 1000, w: 780, h: 140 }, 0.05);

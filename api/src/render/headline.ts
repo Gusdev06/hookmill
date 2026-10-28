@@ -197,17 +197,22 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
     const hTexto = Math.ceil(aj.linhas.length * aj.size * st.lineHeight);
     const hFaixa = Math.min(Math.round(0.22 * H), hTexto + 2 * pad);
     if (hTexto > hFaixa) throw new HeadlineError('HEADLINE_TOO_LONG', 'headline adicionada passa de 22 % da altura');
-    let y = Math.round(safe.top);
-    let faixa = { x: 0, y, w: W, h: hFaixa };
-    if (fracaoSobreRosto(m, faixa, ex, ey, frameCount) > 0.1) {
-      const r = m ? rostoPrincipal(src, m as never) : null;
-      y = r ? Math.round(r.cy + r.h / 2 + 16) : y;
-      faixa = { x: 0, y, w: W, h: hFaixa };
-      const queimado = (m?.layers ?? []).map((l) => escala(l.box, ex, ey));
-      if (y + hFaixa > H - safe.bottom || fracaoSobreRosto(m, faixa, ex, ey, frameCount) > 0.1 || queimado.some((q) => cruza(q, faixa))) {
-        throw new HeadlineError('HEADLINE_NO_ROOM', 'sem lugar pra faixa fora do rosto e do texto queimado');
-      }
-    }
+    const queimado = (m?.layers ?? []).map((l) => escala(l.box, ex, ey));
+    const protegidas = faixasProtegidasDe(m as never, src);
+    const obstaculos = [...queimado, ...protegidas];
+    const rosto = m ? rostoPrincipal(src, m as never) : null;
+    const candidatos = [
+      safe.top, H - safe.bottom - hFaixa,
+      ...(rosto ? [rosto.cy - rosto.h / 2 - hFaixa - 16, rosto.cy + rosto.h / 2 + 16] : []),
+      ...obstaculos.flatMap((q) => [q.y - hFaixa - 16, q.y + q.h + 16]),
+    ];
+    const y = candidatos.map(Math.round).find((candidate) => {
+      const box = { x: 0, y: candidate, w: W, h: hFaixa };
+      return candidate >= safe.top && candidate + hFaixa <= H - safe.bottom
+        && fracaoSobreRosto(m, box, ex, ey, frameCount) <= 0.1 && obstaculos.every((q) => !cruza(q, box));
+    });
+    if (y === undefined) throw new HeadlineError('HEADLINE_NO_ROOM', 'sem área livre fora do rosto, da legenda e do texto original');
+    const faixa = { x: 0, y, w: W, h: hFaixa };
     caixaNova = faixa;
     camadas.push({
       id: 'headline-nova', startFrame: 0, endFrame: frameCount, box: { x: mx, y: y + pad, w: W - 2 * mx, h: hFaixa - 2 * pad },

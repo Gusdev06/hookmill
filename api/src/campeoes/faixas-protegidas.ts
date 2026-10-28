@@ -15,7 +15,8 @@ export function comFaixasProtegidas<T extends EditMap>(m: T, source: Dim): T {
 /** Faixas do campeão (px do arquivo): as gravadas na análise ou, campeão antigo sem o campo, recalculadas das camadas. */
 export function faixasDoCampeao(m: EditMap | null, source: Dim): ProtectedBand[] {
   if (!m) return [];
-  return m.protectedBands ?? faixasProtegidasDe(m as never, source);
+  // Use the current layers, exactly like the render builders. A cached [] can predate caption detection.
+  return faixasProtegidasDe(m as never, source);
 }
 
 /** §2.3: com a versão sem legenda, o mapa das peças não tem legenda queimada (nada protegido, legenda nossa liga). */

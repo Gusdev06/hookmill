@@ -2702,6 +2702,80 @@
         "wikimedia": "Wikimedia Commons",
         "nasa": "NASA"
       }
+    },
+    "goals": {
+      "title": "O que vamos criar a partir deste campeão?",
+      "lede": "Escolha o que quer testar enquanto analisamos o vídeo.",
+      "flowLabel": "Etapas do lote",
+      "flow": {
+        "winner": "Campeão",
+        "goals": "Seus objetivos",
+        "plan": "Plano",
+        "generate": "Gerar",
+        "pieces": "Peças"
+      },
+      "loading": "Carregando suas preferências…",
+      "retry": "Tentar novamente",
+      "analyzing": "Analisando seu anúncio em segundo plano",
+      "analysisReady": "Anúncio analisado · plano pronto",
+      "question": {
+        "goal": "Qual é o objetivo deste lote?",
+        "ai": "Este lote pode usar geração com IA?",
+        "wants": "Quais variações você quer?"
+      },
+      "help": {
+        "goal": "Vamos preservar o que funciona no anúncio original.",
+        "ai": "A geração com IA sempre pede uma aprovação separada antes de gerar vídeo.",
+        "wants": "Escolha algumas ou deixe o HookMill montar o lote. Cortes e outras edições compatíveis também podem entrar."
+      },
+      "goal": {
+        "auto": "Deixar o HookMill escolher",
+        "stretch": "Esticar a vida do campeão",
+        "new_audience": "Alcançar um público novo",
+        "both": "Os dois"
+      },
+      "goalHelp": {
+        "auto": "Uma mistura equilibrada de edições e novos formatos.",
+        "stretch": "Mais variações próximas do anúncio vencedor.",
+        "new_audience": "Mais formatos novos para testar com outros públicos.",
+        "both": "Equilibrar edições do original com novos formatos."
+      },
+      "ai": {
+        "auto": "Deixar o HookMill sugerir · nada marcado automaticamente",
+        "free_only": "Apenas edição e templates",
+        "yes": "Sim, dentro do limite do lote"
+      },
+      "cap": "Limite de IA do lote · US$",
+      "capRange": "Informe um limite entre US$ 1 e US$ 1.000.",
+      "want": {
+        "headline": "Novas headlines",
+        "frames": "Molduras e layouts",
+        "static": "Imagens estáticas",
+        "chat_motion": "Chat / DM e pessoa + motion",
+        "face": "Novos rostos",
+        "format": "Novos formatos com IA"
+      },
+      "chooseForMe": "Deixar o HookMill escolher",
+      "chooseHelp": "Escolhemos variações compatíveis com seu objetivo.",
+      "step": "Pergunta {n} de {total}",
+      "back": "Voltar",
+      "continue": "Continuar",
+      "seePlan": "Ver o plano",
+      "saving": "Salvando…",
+      "noExtraCost": "Mudar as respostas não executa a análise novamente.",
+      "prefilled": "Preenchido com as respostas do último lote deste cliente ({date}).",
+      "useSaved": "Usar respostas salvas",
+      "preferences": "Preferências do cliente",
+      "edit": "Editar respostas",
+      "forget": "Esquecer respostas salvas",
+      "forgotten": "Respostas salvas esquecidas. Este lote continua como está.",
+      "autoReason": "Escolhemos uma mistura equilibrada. Todas as variações selecionadas são compatíveis com este vídeo.",
+      "youAsked": "VOCÊ PEDIU",
+      "remove": "Remover",
+      "addBack": "Adicionar de volta",
+      "leftOut": "Ficaram fora deste lote",
+      "leftOutHelp": "Estas peças não foram pedidas ou foram removidas. Você pode adicioná-las antes de gerar.",
+      "full": "Este lote tem 12 peças. Remova uma para adicionar outra."
     }
   },
   "welcome": {
@@ -3624,7 +3698,7 @@
   },
   "captions": {
     "blockedTitle": "{n, plural, one {# formato ficou de fora: o vídeo tem legenda queimada} other {# formatos ficaram de fora: o vídeo tem legenda queimada}}",
-    "blockedBody": "Esses tampariam a legenda. Com o mesmo vídeo sem legenda eles voltam.",
+    "blockedBody": "Esses layouts não têm espaço seguro fora da legenda original e do rosto. As variações compatíveis já estão no plano.",
     "needsClean": "Este formato precisa do vídeo sem legenda",
     "frameNamed": "Moldura · {name}",
     "afterSend": "Salvo. Os próximos lotes deste vídeo usam a versão sem legenda, então esses formatos podem entrar.",
@@ -3639,7 +3713,7 @@
       "attached": "{name} vai junto com o vídeo.",
       "change": "Trocar",
       "fieldTitle": "Versão sem legenda (opcional)",
-      "fieldBody": "Se o vídeo tem legenda queimada, envie também sem ela: todos os formatos podem entrar e a gente refaz a legenda no estilo do original.",
+      "fieldBody": "Legenda queimada pode limitar molduras e sobreposições. O plano só mostrará variações compatíveis. Enviar uma versão sem legenda permite avaliar mais layouts.",
       "fieldButton": "Escolher o arquivo sem legenda",
       "mismatch": {
         "duration": "Não é o mesmo vídeo: a duração é diferente.",

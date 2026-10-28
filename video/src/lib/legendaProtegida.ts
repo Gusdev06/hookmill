@@ -90,6 +90,14 @@ export const checarLegendaProtegida = (p: MolduraProps, L: FrameLayout = layoutD
   const hits: ChecagemLegenda['hits'] = [];
   const vb = L.videoBox;
   const vis = visivel(p, vb);
+  if (p.video.faceSafeBand) {
+    const face = faixaNaSaida(p.video.faceSafeBand, p, vb);
+    const faceArea = face.w * face.h;
+    if (area(face, vis) < faceArea * .92) hits.push({ element: 'face_clipped', atSec: 0, overlapPx: Math.round(faceArea - area(face, vis)) });
+    for (const [name, slot] of Object.entries(L.slots)) {
+      if (name !== 'column' && area(face, slot) > faceArea * .15) hits.push({ element: `face_covered:${name}`, atSec: 0, overlapPx: Math.round(area(face, slot)) });
+    }
+  }
   for (const b of p.video.protectedBands ?? []) {
     const at = naPeca(b, p.video.timeline);
     if (at === null) continue;
@@ -159,10 +167,24 @@ export const recorteSemLegenda = (p: Pick<MolduraProps, 'video'>, m: EditMapLike
  */
 export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: MolduraProps['captions'] | null, forcar?: 'replace'): DecisaoLegenda => {
   if (!p.video.protectedBands?.length) return { mode: 'avoid', input: p, check: { ok: true, hits: [] } };
-  const a = { ...p, captionMode: 'avoid' as const, captions: undefined };
+  const base = { ...p, captionMode: 'avoid' as const, captions: undefined };
+  // Preserve the complete content area up front. Caption detection can measure only one line of a multi-line subtitle.
+  // Keeping the entire video area visible prevents the unmeasured line from being cropped by a frame.
+  const full = enquadramentosPreservandoLegenda(p.video, layoutDaPeca(base).videoBox).at(-1);
+  const a: MolduraProps = { ...base, ...(full && { video: full }) };
   // forcar 'replace' (Retry depois de CAPTION_COVERED): pula o desvio e vai direto pro recorte
   const ca = forcar === 'replace' ? { ok: false, hits: [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }] } : checarLegendaProtegida(a);
   if (ca.ok) return { mode: 'avoid', input: a, check: ca };
+  if (forcar !== 'replace') {
+    // Try a wider view before replacing captions. Every attempt recomputes text placement around the measured bands.
+    const vb = layoutDaPeca(a).videoBox;
+    for (const video of enquadramentosPreservandoLegenda(p.video, vb)) {
+      const candidate: MolduraProps = { ...a, video };
+      const check = checarLegendaProtegida(candidate);
+      if (check.ok) return { mode: 'avoid', input: candidate, check };
+    }
+    return { mode: 'blocked', reason: 'no_room', check: ca };
+  }
   const cb = recorteSemLegenda(p, m);
   if (!cb) return { mode: 'blocked', reason: 'face_cut', check: ca };
   const L0 = layoutDaPeca(a);
@@ -177,6 +199,21 @@ export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: 
   if (!cr.ok) return { mode: 'blocked', reason: 'no_room', check: cr };
   return { mode: 'replace', input: r, check: cr, contentBox: cb };
 };
+
+/** Expand the crop to include all captions, then progressively zoom out. Never changes the source or its subtitles. */
+function enquadramentosPreservandoLegenda(video: MolduraProps['video'], box: { w: number; h: number }): MolduraProps['video'][] {
+  const source = video.source;
+  const crop = video.contentBox ?? { x: 0, y: 0, w: source.width, h: source.height };
+  const band = unionBand([...(video.protectedBands ?? []), ...(video.faceSafeBand ? [{ ...video.faceSafeBand, startSec: 0, endSec: source.durationSec }] : [])]);
+  if (!band) return [];
+  const x = Math.max(0, Math.min(crop.x, band.x)), y = Math.max(0, Math.min(crop.y, band.y));
+  const contentBox = { x, y, w: Math.min(source.width, Math.max(crop.x + crop.w, band.x + band.w)) - x, h: Math.min(source.height, Math.max(crop.y + crop.h, band.y + band.h)) - y };
+  const contain = Math.min(box.w / contentBox.w, box.h / contentBox.h) / Math.max(box.w / contentBox.w, box.h / contentBox.h);
+  const original = video.reframe.mode === 'cover' ? video.reframe.scale ?? 1 : 1;
+  const focus = video.reframe.mode === 'cover' ? video.reframe.focus : { x: .5, y: .5 };
+  return [...new Set([original, .92, .85, .75, .65, contain].map((scale) => Math.max(contain, Math.min(original, scale))))]
+    .map((scale) => ({ ...video, contentBox, reframe: { mode: 'cover' as const, focus, scale } }));
+}
 
 // ───────────────────────── AutoEdit (CUT, NATIVE_SEARCH, REVIEW) ─────────────────────────
 
@@ -213,9 +250,18 @@ export type DecisaoLegendaAutoEdit =
 /** §3 no AutoEdit: desviar (o reenquadramento já leva a faixa) → recortar e legendar no estilo da original → bloquear. */
 export const decidirLegendaAutoEdit = (p: AutoEditProps, m: EditMapLike | null, legenda: AutoEditProps['captions'] | null, forcar?: 'replace'): DecisaoLegendaAutoEdit => {
   if (!p.protectedBands?.length) return { mode: 'avoid', input: p, check: { ok: true, hits: [] } };
-  const a: AutoEditProps = { ...p, captionMode: 'avoid', captions: undefined };
+  const full = enquadramentosPreservandoLegenda({ source: p.source, contentBox: p.contentBox, protectedBands: p.protectedBands, reframe: p.reframe, timeline: p.timeline } as MolduraProps['video'], areaVideoAutoEdit(p)).at(-1);
+  const a: AutoEditProps = { ...p, captionMode: 'avoid', captions: undefined, ...(full && { contentBox: full.contentBox, reframe: full.reframe as AutoEditProps['reframe'] }) };
   const ca = forcar === 'replace' ? { ok: false, hits: [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }] } : checarLegendaAutoEdit(a);
   if (ca.ok) return { mode: 'avoid', input: a, check: ca };
+  if (forcar !== 'replace') {
+    for (const video of enquadramentosPreservandoLegenda({ source: p.source, contentBox: p.contentBox, protectedBands: p.protectedBands, reframe: p.reframe, timeline: p.timeline } as MolduraProps['video'], areaVideoAutoEdit(p))) {
+      const candidate: AutoEditProps = { ...a, contentBox: video.contentBox, reframe: video.reframe as AutoEditProps['reframe'] };
+      const check = checarLegendaAutoEdit(candidate);
+      if (check.ok) return { mode: 'avoid', input: candidate, check };
+    }
+    return { mode: 'blocked', reason: 'no_room', check: ca };
+  }
   const cb = recorteSemLegenda({ video: { source: p.source, protectedBands: p.protectedBands, contentBox: p.contentBox ?? null } } as never, m);
   if (!cb) return { mode: 'blocked', reason: 'face_cut', check: ca };
   const vb = areaVideoAutoEdit(p);

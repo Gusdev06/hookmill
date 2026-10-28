@@ -1,5 +1,5 @@
 import type { CreateIterateBody, StartIterateBody } from '@maquina/contratos';
-import { IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsObject, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 /** Exatamente um de uploadId/creativeId/metaAdId (conferido no service: 400 exactlyOneOf). metaAdId = Pick from Meta (meta-v1 D13). */
 export class CreateIterateDto implements CreateIterateBody {
@@ -22,3 +22,11 @@ export class StartIterateDto implements StartIterateBody {
 
 /** `POST /iterate/:id/retry` recebe `{}`. */
 export class EmptyBodyDto {}
+
+export class UpdateAnswersDto {
+  @IsObject() answers: import('@maquina/contratos').IterateAnswers;
+  @IsOptional() @IsBoolean() save?: boolean;
+}
+export class SelectItemDto {
+  @IsBoolean() included: boolean;
+}

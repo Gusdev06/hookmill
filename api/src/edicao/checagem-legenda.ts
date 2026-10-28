@@ -206,6 +206,7 @@ export class ChecagemLegendaService {
 
   /** null = a peça não tem faixa protegida (nada a checar). */
   async check(j: CaptionCheckJob): Promise<CaptionCheck | null> {
+    if (j.input.kind === 'template') return this.checkTemplate(j);
     const { bands, words } = await this.championBands(j.championId);
     const target = captionTargetOf(j.input, j.input.kind === 'remix-keep' ? bands : []);
     if (!target) return null;
@@ -246,5 +247,34 @@ export class ChecagemLegendaService {
     } finally {
       await rm(dir, { recursive: true, force: true }).catch(() => undefined);
     }
+  }
+
+  /** F1.5: templates also get a real post-render text check, even when the source has no burned-in captions. */
+  private async checkTemplate(j: CaptionCheckJob): Promise<CaptionCheck | null> {
+    if (j.input.kind !== 'template') return null;
+    const points = j.input.checkpoints.filter((p) => p.texts.some((t) => t.trim())).slice(0, CAPTION_CHECK_FRAMES);
+    if (!points.length) return null;
+    const dir = await mkdtemp(join(tmpdir(), 'template-check-'));
+    try {
+      const shots = await captionFramesOf(this.run, null, j.outputPath, points.map((p) => p.atSec), null);
+      const frames: CaptionCheck['frames'] = [];
+      for (const [i, shot] of shots.entries()) {
+        const path = join(dir, `frame-${i}.png`);
+        await writeFile(path, shot.image);
+        const expected = points[i].texts.filter((t) => t.trim()).map((text, k) => ({ key: `text-${k}`, text, critical: true }));
+        const result = await this.claude.checkStaticText({
+          workspaceId: j.workspaceId, creativeId: j.creativeId, variationBatchId: j.variationBatchId,
+          renderId: j.renderId, imageUrl: path, language: j.language, expected, notes: j.notes,
+        });
+        const missing = expected.filter((text) => !result.items.find((x) => x.key === text.key)?.found);
+        frames.push({ atSec: shot.atSec, ok: !missing.length, seen: result.items.map((x) => x.seen ?? '').filter(Boolean).join(' · ') || null,
+          problem: missing.length ? 'missing' : null, reason: missing.length ? 'Expected template text is missing or illegible' : null });
+      }
+      if (frames.length !== points.length) throw new Error('Incomplete template frame extraction');
+      return { status: frames.some((f) => !f.ok) ? 'covered' : 'ok', frames, attempt: j.attempt };
+    } catch (error) {
+      this.log.warn(`render ${j.renderId}: template text check skipped (${(error as Error).message})`);
+      return { status: 'skipped', frames: [], attempt: j.attempt };
+    } finally { await rm(dir, { recursive: true, force: true }).catch(() => undefined); }
   }
 }

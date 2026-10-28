@@ -41,6 +41,7 @@ export const ERROR_HTTP_STATUS = {
   // variacao-auto-v1 §5.3
   OFFER_REQUIRED: 422,
   PLAN_CHANGED: 409,
+  ITEM_NOT_SELECTABLE: 422,
   NO_PRODUCT_PHOTO: 422,
   // meta-v1 §3.4 (21/10): síncronos do módulo meta
   META_NOT_CONFIGURED: 503,
@@ -104,6 +105,7 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   ONBOARDING_INCOMPLETE: 'Finish the setup first: business type and at least one offer.',
   OFFER_REQUIRED: 'Pick which offer this video is for.',
   PLAN_CHANGED: 'The plan changed. Review the pieces again.',
+  ITEM_NOT_SELECTABLE: 'This piece cannot be selected in this plan.',
   NO_PRODUCT_PHOTO: 'Add a product photo to the offer first.',
   META_NOT_CONFIGURED: "Meta isn't set up on this server yet.",
   META_NOT_CONNECTED: 'Connect a Meta account first.',

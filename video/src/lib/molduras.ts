@@ -539,6 +539,8 @@ export const molduraSchema = z.object({
     burnedTextBands: z.array(z.object({ y: z.number(), h: z.number().positive(), startSec: z.number().min(0), endSec: z.number().min(0) })).optional(),
     /** legenda-protegida-v1: legenda queimada do campeão (px do arquivo, com folga), que nenhum elemento pode cobrir nem cortar */
     protectedBands: z.array(protectedBandSchema).optional(),
+    /** Source pixels: preserve the main face when finding space for a template around burned-in captions. */
+    faceSafeBand: z.object({ x: z.number(), y: z.number(), w: z.number().positive(), h: z.number().positive() }).optional(),
   }),
   second: secondSourceSchema.optional(),
   face: faceSourceSchema.optional(),
@@ -1054,6 +1056,7 @@ export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'fram
   const faixas: Faixa[] = [
     ...faixasNaSaida(p.video.burnedTextBands, p.video.source, p.video.reframe, L0.videoBox, cb),
     ...faixasNaSaida(prot, p.video.source, p.video.reframe, L0.videoBox, cb, 0).map((f) => ({ ...f, protegida: true })),
+    ...(p.video.faceSafeBand ? faixasNaSaida([{ y: p.video.faceSafeBand.y, h: p.video.faceSafeBand.h, startSec: 0, endSec: p.video.source.durationSec }], p.video.source, p.video.reframe, L0.videoBox, cb, 0).map((f) => ({ ...f, protegida: true })) : []),
   ];
   return faixas.length ? frameLayout(id, p.format, texts, p.language, { ...base, faixas }) : L0;
 };

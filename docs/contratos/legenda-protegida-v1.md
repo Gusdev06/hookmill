@@ -97,3 +97,13 @@ Ordem: arquiteto (tipos) → video + ia em paralelo → backend → frontend →
 | **D-LP4** | Checagem roda também quando o modo é `replace` | Sim: é onde mais pode dar errado (legenda original vazando na borda do recorte, duplicada). |
 | **D-LP5** | Versão sem legenda: replanejar o lote sozinho? | Não: aparece "Replanejar com a versão sem legenda" (o plano custa ~US$ 0,03); os lotes seguintes já usam ela. |
 | **D-LP6** | Legenda queimada **parcial** (só em parte da fala, < 50 %) | Também protegida nos intervalos dela (a regra é não tampar). Fora deles, a legenda automática só entra se o Gusta quiser (hoje não: ficaria legenda em metade do vídeo em 2 estilos). |
+# Revisão 28/10 — preservar a legenda e procurar área livre
+
+Decisão posterior do Gusta: remover legenda com IA foi rejeitado. Esta revisão prevalece sobre o recorte com substituição automática descrito acima.
+
+- Plano e render calculam as faixas a partir das camadas atuais, evitando cache antigo vazio.
+- Templates preservam toda a área do vídeo; isso também protege a segunda linha de uma legenda quando a análise mediu só uma linha.
+- Textos e cartões procuram áreas livres fora da legenda e do rosto principal (`video.faceSafeBand`, opcional, pixels da fonte).
+- HEADLINE adicionada testa topo, rodapé e limites das áreas ocupadas; sem área segura retorna `HEADLINE_NO_ROOM` antes de gerar.
+- Sem posição segura: template fora do plano. Retry novo preserva a legenda; `replace` antigo fica apenas por compatibilidade explícita.
+- Reparação tenta cortes válidos do vídeo original para completar o piso de quatro, sem duplicar cortes nem inventar texto. Se o material não permitir quatro peças, mostra a quantidade real e o aviso de lote menor.

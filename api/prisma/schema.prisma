@@ -383,7 +383,8 @@ model User {
   uploads           Upload[]
   championsCreated  Champion[]        @relation("ChampionCreatedBy")
   rightsDeclared    Champion[]        @relation("ChampionRightsDeclaredBy")
-  batchesCreated    VariationBatch[]
+  batchesCreated    VariationBatch[] @relation("BatchCreatedBy")
+  batchesAnswered   VariationBatch[] @relation("BatchAnsweredBy")
   onboardingUpdated Workspace[]       @relation("OnboardingUpdatedBy")
   metaConnections   MetaConnection[]  @relation("MetaConnectedBy")
   metaPublications  MetaPublication[] @relation("MetaPublishedBy")
@@ -424,6 +425,7 @@ model Workspace {
   resultTypeOther       String?       @map("result_type_other") // ≤ 80, só com resultType = OTHER
   websiteUrl            String?       @map("website_url") // http(s), ≤ 2048
   brandColor            String?       @map("brand_color") // 25/10 (estatico-montado-e-molduras-v1 D3): #RRGGBB maiúsculo; null = derivada (§A3.3)
+  iteratePreferences    Json?         @map("iterate_preferences") // Iterate v2: saved answers for this client
   onboardingStep        Int           @default(1) @map("onboarding_step") // 1..6, onde retomar o onboarding
   onboardingCompletedAt DateTime?     @map("onboarding_completed_at") // null = em setup
   pausedAt              DateTime?     @map("paused_at") // não null = pausado
@@ -1304,6 +1306,10 @@ model VariationBatch {
   launchedAt        DateTime?            @map("launched_at")
   // variacao-auto-v1 §2 (lotes AUTO; nos MANUAL ficam nulos/padrão)
   mode              BatchMode            @default(MANUAL)
+  answers           Json?
+  answersAt         DateTime?           @map("answers_at")
+  answersById       String?             @map("answers_by_id")
+  answersBy         User?               @relation("BatchAnsweredBy", fields: [answersById], references: [id], onDelete: SetNull)
   insight           Json? // AutoInsight: blocos com função, porquê (HOOK/PROOF/CTA), kept, flags, swaps
   errorCode         String?              @map("error_code") // ANALYSIS_FAILED: código assíncrono
   failReason        String?              @map("fail_reason") // frase humana (fallback EN)
@@ -1322,7 +1328,7 @@ model VariationBatch {
   pageCapture File?              @relation("BatchPageCapture", fields: [pageCaptureFileId], references: [id])
   zipFile     File?              @relation("BatchZip", fields: [zipFileId], references: [id])
   offer       Offer              @relation(fields: [offerId], references: [id])
-  createdBy   User               @relation(fields: [createdById], references: [id])
+  createdBy   User               @relation("BatchCreatedBy", fields: [createdById], references: [id])
   castings    VariationCasting[]
   items       VariationItem[]
   creatives   Creative[]
@@ -1379,6 +1385,9 @@ model VariationItem {
   axis        VariationAxis?
   change      String? // "a única coisa que muda", idioma da interface, ≤ 90
   inZip       Boolean            @default(true) @map("in_zip")
+  wantKey     String?            @map("want_key")
+  selection   String?
+  priority    Int?
   leftOutAt   DateTime?          @map("left_out_at") // "Leave out" numa peça falha; Retry limpa
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")

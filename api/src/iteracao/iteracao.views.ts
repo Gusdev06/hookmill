@@ -1,3 +1,5 @@
+import { DEFAULT_ANSWERS, selectionInfo, WANT_OF } from './selecao';
+import type { IterateAnswers, IterateWant, VariationSelection } from '@maquina/contratos';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AnalysisStage, AutoInsight, FileRef, IterateAnalysis, IterateBatch, IterateError, IteratePiece, IterateStatus } from '@maquina/contratos';
 import type { Job, Prisma } from '@prisma/client';
@@ -19,7 +21,7 @@ export const ITERATE_INCLUDE = {
   workspace: { select: { name: true, uiLocale: true } },
   createdBy: { select: { id: true, name: true } },
   champion: { include: { videoFile: true, thumbnailFile: true, teardown: { select: { measurements: true } } } },
-  items: { orderBy: { index: 'asc' }, select: { id: true } },
+  items: { orderBy: { index: 'asc' }, select: { id: true, included: true, selection: true, wantKey: true } },
 } satisfies Prisma.VariationBatchInclude;
 export type IterateRow = Prisma.VariationBatchGetPayload<{ include: typeof ITERATE_INCLUDE }>;
 
@@ -98,7 +100,22 @@ export class IteracaoViews {
       this.prisma.job.findFirst({ where: { championId: b.championId, type: 'CHAMPION_ANALYZE' }, orderBy: { createdAt: 'desc' } }),
       this.prisma.job.findFirst({ where: { variationBatchId: b.id, type: 'AUTO_PLAN' }, orderBy: { createdAt: 'desc' } }),
     ]);
-    const pieces = await this.pecas.pieces({ id: b.id, workspaceId: b.workspaceId, status: b.status });
+    const answers = b.answers as unknown as IterateAnswers | null;
+    const all = await this.pecas.pieces({ id: b.id, workspaceId: b.workspaceId, status: b.status });
+    const metadata = new Map(b.items.map((i) => [i.id, i]));
+    for (const piece of all) {
+      const it = metadata.get(piece.id);
+      piece.wantKey = (it?.wantKey as IterateWant | null) ?? WANT_OF[piece.type] ?? null;
+      piece.selection = (it?.selection as VariationSelection | null) ?? null;
+      piece.askedByUser = !!piece.wantKey && !!answers?.wants.includes(piece.wantKey);
+      piece.priceUsd = piece.type === 'STATIC' ? this.pecas.staticImageUsd() : null;
+    }
+    const pieces = all.filter((p) => metadata.get(p.id)?.included !== false);
+    const notSelected = all.filter((p) => ['not_asked', 'user_removed'].includes(metadata.get(p.id)?.selection ?? ''));
+    const leftOut = [...new Set(notSelected.map((p) => p.wantKey).filter((w): w is IterateWant => !!w))].map((wantKey) => {
+      const ps = notSelected.filter((p) => p.wantKey === wantKey);
+      return { wantKey, count: ps.length, pieceIds: ps.map((p) => p.id) };
+    });
     const cost = await this.costOf(b);
     const generateEstimateUsd = status === 'PLAN_READY' ? await this.generateEstimateUsd(b.id) : null;
     const m = measurementsOf(b.champion.teardown?.measurements);
@@ -116,8 +133,10 @@ export class IteracaoViews {
         thumbnail: await this.ref(b.champion.thumbnailFile), video: await this.ref(video),
       },
       analysis: await this.analysis(b, champJob, planJob),
-      insight: (b.insight as unknown as AutoInsight | null) ?? null,
+      insight: b.insight ? { ...(b.insight as unknown as AutoInsight), flags: { ...(b.insight as unknown as AutoInsight).flags, smallBatch: pieces.length < 8 } } : null,
       error: this.error(b, cost.analysisUsd),
+      quizEnabled: !!(b.settings as Record<string, unknown> | null)?.quizEnabled,
+      answers, selectionInfo: selectionInfo(answers ?? DEFAULT_ANSWERS), notSelected, leftOut,
       pieces,
       summary: {
         pieces: pieces.length,
@@ -220,9 +239,10 @@ export class IteracaoViews {
    * §4.2: campeão com legenda queimada (sem a versão sem legenda) soma a checagem por visão de cada peça de vídeo.
    */
   async generateEstimateUsd(batchId: string): Promise<number> {
-    const [n, videos, b] = await Promise.all([
-      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', autoType: 'STATIC' } }),
-      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', NOT: { autoType: 'STATIC' } } }),
+    const [n, videos, templates, b] = await Promise.all([
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: 'STATIC' } }),
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { notIn: ['STATIC', 'CHAT_DM', 'PERSON_MOTION'] } } }),
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { in: ['CHAT_DM', 'PERSON_MOTION'] } } }),
       this.prisma.variationBatch.findUnique({
         where: { id: batchId },
         select: { champion: { select: { cleanVideoFileId: true, videoFile: { select: { width: true, height: true } }, teardown: { select: { editMap: true } } } } },
@@ -231,7 +251,7 @@ export class IteracaoViews {
     const ch = b?.champion;
     const m = editMapOf(ch?.teardown?.editMap);
     const burned = !!ch && !ch.cleanVideoFileId && faixasDoCampeao(m, { width: ch.videoFile?.width ?? m?.width ?? 0, height: ch.videoFile?.height ?? m?.height ?? 0 }).length > 0;
-    const captionUsd = burned ? videos * CAPTION_CHECK_USD : 0;
+    const captionUsd = ((burned ? videos : 0) + templates) * CAPTION_CHECK_USD;
     return Math.round((estimateStaticUsd(this.catalog, n) + captionUsd) * 10_000) / 10_000;
   }
 

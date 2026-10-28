@@ -240,7 +240,7 @@ export type ApiErrorCode =
   // campanhas-v1 §4.1 (22/10): 422 síncrono ao ativar anúncio DISAPPROVED/WITH_ISSUES (homônimo do assíncrono do publish)
   | 'META_POLICY'
   // variacao-auto-v1 §5.3
-  | 'OFFER_REQUIRED' | 'PLAN_CHANGED' | 'NO_PRODUCT_PHOTO';
+  | 'OFFER_REQUIRED' | 'PLAN_CHANGED' | 'NO_PRODUCT_PHOTO' | 'ITEM_NOT_SELECTABLE';
 export interface ErrorDetails {
   /** rule: livre nos DTOs; no PUT /editor também os `EditDocRule` (editor-v1 §5.4). */
   VALIDATION_ERROR: { fields: { field: string; rule: EditDocRule | (string & {}) }[] };

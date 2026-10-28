@@ -21,6 +21,8 @@ import {
 } from "./parts"
 import { CaptionBlocked, CleanVersionStatus } from "./captions"
 import { usePriceLabel } from "./piece-actions"
+import { useSession } from "@/components/providers/session-provider"
+import { ClientPreferences, GoalsFlow, GoalsScreen, LeftOut, SelectPieceButton } from "./goals"
 
 const STAGES: AnalysisStage[] = ["reading", "brain", "planning"]
 const STAGE_KEYS: Record<AnalysisStage, string[]> = {
@@ -31,8 +33,11 @@ const STAGE_KEYS: Record<AnalysisStage, string[]> = {
 
 /** Analyze (spec §4.1): analyzing · ready (+ no Brain / short video / smaller batch) · analysis failed. One screen that grows. */
 export function AnalyzeScreen({ batch }: { batch: IterateBatch }) {
+  const [editing, setEditing] = useState(false)
+  const { session } = useSession()
   if (batch.status === "ANALYSIS_FAILED") return <Failed batch={batch} />
-  if (batch.status === "PLAN_READY") return <PlanReady batch={batch} />
+  if (session.workspace.role !== "CLIENT" && batch.quizEnabled && (!batch.answers || editing)) return <GoalsScreen batch={batch} onDone={() => setEditing(false)} />
+  if (batch.status === "PLAN_READY") return <PlanReady batch={batch} onEdit={() => setEditing(true)} />
   return <Analyzing batch={batch} />
 }
 
@@ -155,7 +160,8 @@ function WhyCard({ batch }: { batch: IterateBatch }) {
 }
 
 // ───────────── the plan ─────────────
-function PlanRow({ p }: { p: IteratePiece }) {
+function PlanRow({ p, batchId }: { p: IteratePiece; batchId?: string }) {
+  const tg = useTranslations("iterate.goals")
   const t = useTranslations("iterate.analyze")
   const price = usePriceLabel()
   const cfg = useIterateConfig()
@@ -167,6 +173,8 @@ function PlanRow({ p }: { p: IteratePiece }) {
       <div className="flex min-w-0 flex-col gap-[3px]">
         <div className="flex flex-wrap items-center gap-1.5">
           <Code>{p.code}</Code>
+          {p.askedByUser ? <Tag tone="ok">{tg("youAsked")}</Tag> : null}
+          {batchId ? <SelectPieceButton batchId={batchId} pieceId={p.id} included={false} /> : null}
           <PieceKind p={p} className="text-xs text-fg-3" />
           {cost ? <Tag tone="neutral" className="font-mono">{t("imageCost", { usd: cost })}</Tag> : null}
         </div>
@@ -176,7 +184,7 @@ function PlanRow({ p }: { p: IteratePiece }) {
     </div>
   )
 }
-function PlanGroup({ axis, pieces }: { axis: "ITERATION" | "DIVERSITY"; pieces: IteratePiece[] }) {
+function PlanGroup({ axis, pieces, batchId }: { axis: "ITERATION" | "DIVERSITY"; pieces: IteratePiece[]; batchId?: string }) {
   const t = useTranslations("iterate.analyze")
   if (!pieces.length) return null
   return (
@@ -189,7 +197,7 @@ function PlanGroup({ axis, pieces }: { axis: "ITERATION" | "DIVERSITY"; pieces: 
         <span className="text-xs text-fg-3">{axis === "ITERATION" ? t("stretchSub") : t("newAudienceSub")}</span>
       </div>
       {pieces.map((p) => (
-        <PlanRow key={p.id} p={p} />
+        <PlanRow key={p.id} p={p} batchId={batchId} />
       ))}
     </div>
   )
@@ -207,8 +215,8 @@ function BatchPlan({ batch }: { batch: IterateBatch }) {
       <CaptionsBadge batch={batch} />
       <CleanVersionStatus batch={batch} />
       <CaptionBlocked batch={batch} />
-      <PlanGroup axis="ITERATION" pieces={stretch} />
-      <PlanGroup axis="DIVERSITY" pieces={fresh} />
+      <PlanGroup axis="ITERATION" pieces={stretch} batchId={batch.quizEnabled ? batch.id : undefined} />
+      <PlanGroup axis="DIVERSITY" pieces={fresh} batchId={batch.quizEnabled ? batch.id : undefined} />
       <div className="border-t border-line-soft pt-2.5 text-xs text-fg-3">{t("formatsLine")}</div>
     </Card>
   )
@@ -414,7 +422,8 @@ function Notes({ batch }: { batch: IterateBatch }) {
   return out.length ? <>{out}</> : null
 }
 
-function PlanReady({ batch }: { batch: IterateBatch }) {
+function PlanReady({ batch, onEdit }: { batch: IterateBatch; onEdit: () => void }) {
+  const { session } = useSession()
   const t = useTranslations("iterate.analyze")
   const fmt = useIterFormat()
   const qc = useQueryClient()
@@ -447,8 +456,9 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
   })
   return (
     <IterWrap>
-      <IterFlow current="analyze" batchId={batch.id} />
+      <>{batch.quizEnabled ? <GoalsFlow current="plan" /> : <IterFlow current="analyze" batchId={batch.id} />}</>
       <Head eyebrow={t("readyEyebrow", { offer: batch.offer.name })} title={t("readyTitle", { n })} />
+      <ClientPreferences batch={batch} onEdit={onEdit} />
       <Notes batch={batch} />
       {capErr ? (
         <Alert variant="destructive">
@@ -470,6 +480,7 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
             <SourceCard batch={batch} mode="ready" />
             <WhyCard batch={batch} />
             <BatchPlan batch={batch} />
+            <LeftOut batch={batch} />
           </>
         }
         side={<ThisBatch batch={batch} />}
@@ -481,7 +492,7 @@ function PlanReady({ batch }: { batch: IterateBatch }) {
             : eta ? t("barHintEta", { n, files: batch.summary.files, eta }) : t("barHint", { n, files: batch.summary.files })
         }
       >
-        <Button variant="brand" size="lg" disabled={start.isPending || !n} onClick={() => start.mutate()}>
+        <Button variant="brand" size="lg" disabled={session.workspace.role === "CLIENT" || start.isPending || !n} onClick={() => start.mutate()}>
           {start.isPending ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : null}
           {t("generateN", { n })}
           {paid ? <span className="font-mono font-medium opacity-80">· {fmt.usd(estimate)}</span> : null}

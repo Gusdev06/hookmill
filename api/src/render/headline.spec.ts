@@ -21,6 +21,15 @@ const ctx = (layers: unknown[], face = true, rostoY = 0.1): AutoEditContext => (
 const spec = (o: Partial<HeadlineSpec> = {}): HeadlineSpec => ({ mode: 'replace', text: '你跟外國同事說過 I\'m not convenient 嗎？', highlight: 'I\'m not convenient', language: 'zh-TW', brandColor: '#0008FF', ...o });
 
 describe('buildHeadlineInput', () => {
+  it('finds a free band below when the default headline position would cover burned-in captions', () => {
+    const source = ctx([camada({ kind: 'caption', box: { x: 0, y: 20, w: 720, h: 300 } })], false);
+    const result = buildHeadlineInput(spec({ mode: 'add', text: 'A clear headline', highlight: null, language: 'en' }), source);
+    const newBox = result.textLayers[0].background.box!;
+    expect(newBox.y).toBeGreaterThan(320);
+    expect(result.outputProtectedBands?.length).toBeGreaterThan(0);
+    expect(result.audioPassthroughUrl).toBe(source.source.videoUrl);
+    expect(source.editMap!.layers[0].kind).toBe('caption');
+  });
   it('sobre o vídeo: placa da cor medida cobrindo a caixa antiga, mesmo estilo, destaque marcado, mesmo intervalo; valida no remix-keep', () => {
     const i = buildHeadlineInput(spec({ plateColor: '#101010' }), ctx([camada()]));
     expect(i).toMatchObject({ kind: 'remix-keep', canvas: { width: 720, height: 1280, fps: 30, frameCount: 300 }, baseVideoUrl: 'https://s3/c.mp4', audioPassthroughUrl: 'https://s3/c.mp4', overlays: [], language: 'zh-TW' });

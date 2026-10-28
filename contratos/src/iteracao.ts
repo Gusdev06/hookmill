@@ -6,6 +6,20 @@
 // campos novos opcionais (TRANSIÇÃO) até as entregas da seção C do contrato.
 import type { FileRef, LibraryItem, UserRef } from './index';
 
+export type IterateGoal = 'stretch' | 'new_audience' | 'both' | 'auto';
+export type IterateAiAnswer = 'free_only' | 'yes' | 'auto';
+export type IterateWant = 'headline' | 'frames' | 'static' | 'chat_motion' | 'face' | 'format';
+export type VariationSelection = 'auto' | 'asked' | 'not_asked' | 'goal_cut' | 'user_added' | 'user_removed';
+export interface IterateAnswers {
+  goal: IterateGoal;
+  ai: IterateAiAnswer;
+  aiCapUsd: number | null;
+  aiCapCredits: null;
+  wants: IterateWant[];
+}
+export interface IteratePreferences extends IterateAnswers { savedAt: string; savedBy: UserRef; fromBatchId: string }
+export interface UpdateIterateAnswersBody { answers: IterateAnswers; save?: boolean }
+
 // ───────────────────────── catálogo ─────────────────────────
 /** 25/10: `FRAME` (molduras, estatico-montado-e-molduras-v1 §B2) fundido na entrega B1. */
 export type AutoVariationType = 'CUT' | 'COLD_OPEN' | 'HOOK_TEXT' | 'ENDCARD' | 'SPLIT_LP' | 'STORY' | 'REVIEW' | 'NATIVE_SEARCH' | 'STATIC' | 'FRAME'
@@ -103,6 +117,8 @@ export type AnalysisStage = 'reading' | 'brain' | 'planning';
 
 // ───────────────────────── §5.1 GET /iterate/config ─────────────────────────
 export interface IterateConfig {
+  quiz?: { aiEnabled: boolean; wants: IterateWant[] };
+  savedPreferences?: IteratePreferences | null;
   maxBytes: number; minSec: number; maxSec: number; mimeTypes: string[];
   /** linha "custa cerca de US$ X" antes de subir (vídeo de 30 s) */
   analysisUsdPerSec: number; analysisTypicalUsd: number;
@@ -187,6 +203,10 @@ export interface PieceFile {
   format: FormatCode; name: string; url: string; mimeType: 'video/mp4' | 'image/png'; sizeBytes: number; durationSec: number | null;
 }
 export interface IteratePiece {
+  wantKey?: IterateWant | null;
+  selection?: VariationSelection | null;
+  askedByUser?: boolean;
+  priceUsd?: number | null;
   /** = VariationItem.id (estável do plano ao download) */
   id: string;
   index: number; type: AutoVariationType; code: string; axis: VariationAxis;
@@ -258,6 +278,12 @@ export interface IterateZip {
   folders: { stretch: string; newAudience: string };
 }
 export interface IterateBatch {
+  /** True for batches created with the goals flow; older batches keep their existing plan. */
+  quizEnabled?: boolean;
+  answers?: IterateAnswers | null;
+  selectionInfo?: { goal: Exclude<IterateGoal, 'auto'>; goalReasonKey: 'auto_default' | null; stretchMax: number } | null;
+  leftOut?: { wantKey: IterateWant; count: number; pieceIds: string[] }[];
+  notSelected?: IteratePiece[];
   id: string; status: IterateStatus; phase: IteratePhase;
   offer: { id: string; name: string; language: string };
   codeLanguage: CodeLanguage;

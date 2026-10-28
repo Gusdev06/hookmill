@@ -161,6 +161,7 @@ export interface Brain {
   offerAndPrice: string | null; cta: string | null; notes: string | null;
 }
 export interface PlanCtx {
+  candidatePlan?: boolean;
   lang: CodeLanguage;
   durationSec: number;
   /** blocos do teardown.structure, na ordem */
@@ -339,9 +340,9 @@ export function pricesIn(s: string | null | undefined): { digits: string; curren
 const samePrice = (a: { digits: string; currency: string }, b: { digits: string; currency: string }) => a.digits === b.digits && a.currency === b.currency;
 
 /** Regras do lote mandadas ao Claude: `min` = 8, ou menos (até o piso 4) quando os tipos permitidos não fecham 8 (D2). */
-export function rulesFor(allowed: AllowedType[]): { min: number; max: number; minDiversityPct: 40 } {
+export function rulesFor(allowed: AllowedType[], candidates = false): { min: number; max: number; minDiversityPct: 0 | 40 } {
   const capacity = allowed.reduce((a, t) => a + t.max, 0);
-  return { min: Math.max(BATCH_FLOOR, Math.min(BATCH_TARGET_MIN, capacity)), max: BATCH_MAX, minDiversityPct: MIN_DIVERSITY_PCT };
+  return { min: Math.max(BATCH_FLOOR, Math.min(BATCH_TARGET_MIN, capacity)), max: candidates ? 16 : BATCH_MAX, minDiversityPct: candidates ? 0 : MIN_DIVERSITY_PCT };
 }
 
 /** Diversidade mínima: 40 % arredondado pra cima (8 → 4, 11 → 5). */
@@ -1033,12 +1034,12 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
       seen.add(key);
     }
   });
-  const rules = rulesFor(allowed);
+  const rules = rulesFor(allowed, ctx.candidatePlan);
   const n = items.length;
   if (n < rules.min) out.push({ item: null, rule: 'count_low', detail: `${n} pieces, minimum ${rules.min}` });
   if (n > rules.max) out.push({ item: null, rule: 'count_high', detail: `${n} pieces, maximum ${rules.max}` });
   const div = items.filter((it) => AXIS_OF[it.type] === 'DIVERSITY').length;
-  if (n && div < minDiversity(n)) out.push({ item: null, rule: 'diversity', detail: `${div} new-audience pieces, need ${minDiversity(n)} of ${n} (≥ ${MIN_DIVERSITY_PCT} %)` });
+  if (!ctx.candidatePlan && n && div < minDiversity(n)) out.push({ item: null, rule: 'diversity', detail: `${div} new-audience pieces, need ${minDiversity(n)} of ${n} (≥ ${MIN_DIVERSITY_PCT} %)` });
   const why = draft.why;
   if (!why || !has(why.hook?.text) || !has(why.proof?.text) || !has(why.cta?.text)) out.push({ item: null, rule: 'why_incomplete', detail: 'why needs hook, proof and cta' });
   const kept = draft.kept?.length ?? 0;
@@ -1068,6 +1069,31 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
     removed.push({ index: i, type: it.type, rules: bad.get(i)! });
     return false;
   });
+  // A burned-in caption can remove most layouts. Fill with valid cuts made only from the measured original blocks.
+  // Never invent copy, duplicate an identical cut, or bring back a layout the caption guard rejected.
+  if (ctx.caption?.bands.length && items.length < BATCH_FLOOR && (allowed.find((a) => a.type === 'CUT')?.max ?? 0) > 0) {
+    for (const targetSec of [15, 20] as const) {
+      if (items.length >= BATCH_FLOOR || items.filter((x) => x.type === 'CUT').length >= TYPE_MAX.CUT) break;
+      if (items.some((x) => x.params.type === 'CUT' && x.params.targetSec === targetSec)) continue;
+      const keep = new Set(mustKeepBlocks(draft, ctx));
+      const cta = ctx.blocks.find((b) => b.fn === 'cta');
+      if (cta) keep.add(cta.index);
+      let seconds = ctx.blocks.filter((b) => keep.has(b.index)).reduce((n, b) => n + b.endSec - b.startSec, 0);
+      for (const b of ctx.blocks) {
+        if (!keep.has(b.index) && seconds + b.endSec - b.startSec <= targetSec) {
+          keep.add(b.index); seconds += b.endSec - b.startSec;
+        }
+      }
+      const blockIndexes = [...keep].sort((a, b) => a - b);
+      if (items.some((x) => x.params.type === 'CUT' && x.params.blockIndexes.join(',') === blockIndexes.join(','))) continue;
+      const candidate: PlanItem = {
+        type: 'CUT', params: { type: 'CUT', targetSec, blockIndexes }, whyKey: 'hook',
+        change: ctx.lang === 'PT' ? 'Corte do original preservando a legenda' : 'Shorter original with its captions preserved',
+        rationale: ctx.lang === 'PT' ? 'Preserva os blocos principais sem cobrir a legenda.' : 'Keeps the core blocks without covering the captions.',
+      };
+      if (!itemViolations(candidate, items.length, draft, ctx, new Map(allowed.map((a) => [a.type, a]))).length && !captionViolation(candidate, items.length, ctx)) items.push(candidate);
+    }
+  }
   // headline-e-legenda-v1 §3.2: o reparo tira CUT (do fim) antes de HEADLINE; HEADLINE só se não sobrar outro ITERATION
   const dropLastIteration = (): boolean => {
     for (const poupar of [true, false]) {
@@ -1081,16 +1107,16 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
     }
     return false;
   };
-  while (items.length > BATCH_MAX) if (!dropLastIteration()) items = items.slice(0, BATCH_MAX);
+  while (items.length > (ctx.candidatePlan ? 16 : BATCH_MAX)) if (!dropLastIteration()) items = items.slice(0, ctx.candidatePlan ? 16 : BATCH_MAX);
   const divOf = () => items.filter((it) => AXIS_OF[it.type] === 'DIVERSITY').length;
-  while (items.length && divOf() < minDiversity(items.length) && dropLastIteration());
+  while (!ctx.candidatePlan && items.length && divOf() < minDiversity(items.length) && dropLastIteration());
   const why = completeWhy(draft.why, fallback.why);
   const own = (draft.kept ?? []).filter((k) => has(k?.label));
   const kept = own.length >= 2
     ? own.slice(0, 4)
     : [...own, ...fallback.kept.filter((f) => !own.some((k) => normalizeText(k.label) === normalizeText(f.label)))].slice(0, 4);
   const repaired: AutoPlanDraft = { ...draft, why, kept, items: items as unknown as AutoItemDraft[] };
-  const ok = items.length >= BATCH_FLOOR && divOf() >= minDiversity(items.length);
+  const ok = items.length >= BATCH_FLOOR && (ctx.candidatePlan || divOf() >= minDiversity(items.length));
   return { draft: repaired, removed, ok, violations };
 }
 

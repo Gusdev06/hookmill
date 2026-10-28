@@ -1,5 +1,12 @@
 # Iterate v2: templates grátis, quiz e bloco "With AI" — contrato
-Data: 2026-10-28 · Dono: maquina-arquiteto · Status: **PROPOSTA. Nenhum código, migração ou gasto antes do ok do Gusta, fase por fase.**
+Data: 2026-10-28 · Dono: maquina-arquiteto · Status: **F1 no código; F2 implementada e validada localmente após “implementar tudo” do Gusta. Publicação pendente. F3 continua separado e desligado.**
+
+### Entrega de 28/10 — escolhas e legenda preservada
+- F2: candidatas até 16, seleção até 12, preferências por workspace, `answers`, Add back/Remove, edição sem outra chamada ao modelo. `quizEnabled` na vista vem de `VariationBatch.settings.quizEnabled`: lotes antigos continuam abrindo seu plano existente; novos lotes mostram o quiz.
+- A Q2 e categorias de geração paga ficam ocultas enquanto F3 estiver desligada. Não há geração paga acionada pelo quiz.
+- Migração aditiva `20261028000300_iterate_preferences`, aplicada nos bancos locais `maquina_test` e `maquina` (backup automático antes do segundo). Não aplicada em produção nesta entrega.
+- Legenda: decisão posterior do Gusta **rejeita ambos os removedores de IA**. A remoção não é oferecida. Preservar a área completa do vídeo, legenda e rosto; procurar espaço para os elementos novos; excluir o template antes de gerar se não houver espaço. A antiga substituição automática da legenda foi superada; modo `replace` permanece somente por compatibilidade explícita com entradas antigas.
+- F1 recebe checagem de texto pós-render. Templates ligados em desenvolvimento (`ITERATE_TEMPLATES=on`); antes de ligar em produção é necessário publicar o bundle Remotion atual e incluir `template` em `RENDER_LAMBDA_KINDS`.
 Origem: aprovação do Gusta em 28/10 (ordem F1 → F2 → F3) depois de ver o mockup v2 (`design/mockup-remix-formato.html`, spec `design/remix-formato-2026-10-28.md` §8). Pontos já aprovados (A5b, `testes/teste-manual-gusta-2026-10-28.md`): (1) o quiz roda **durante** a análise; (2) na Q2, "Let HookMill choose" deixa a IA paga **sugerida e desmarcada**; (3) as peças grátis renderizam **antes** da aprovação da IA. As Q1–Q13 de `brainstorms/2026-10-27-hookmill-variacoes-de-formato-ia.md` seguem como plano revisável (Q12 = leva 1; Q8 ajustada: **nada de print da landing, só motion**).
 Vale **por cima** de `variacao-auto-v1.md` (§3, §5, §6 e §8) **só** no que este arquivo muda. Convenções, envelope e erros: [`api.md` §1](api.md). Tempo real: **polling** de `GET /iterate/:id` a 1,5 s, como hoje (o quiz só lê a etapa da análise, e o estado mora no banco: SSE não traria nada a mais).
 

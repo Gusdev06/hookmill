@@ -112,6 +112,7 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
     video: {
       source: src, timeline: [{ startSec: 0, endSec: src.durationSec }], joinFadeMs: 40, reframe: reframeNaCaixa(L.videoBox, src, ctx.editMap, 1080, contentBox, U),
       ...(contentBox && { contentBox }), ...(burnedTextBands.length && { burnedTextBands }), ...(protectedBands.length && { protectedBands }),
+      ...(protectedBands.length && rosto && { faceSafeBand: { x: rosto.cx - rosto.w / 2, y: rosto.cy - rosto.h / 2, w: rosto.w, h: rosto.h } }),
     },
     ...(second && { second }),
     ...(face && { face }),

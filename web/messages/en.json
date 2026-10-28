@@ -2702,6 +2702,80 @@
         "wikimedia": "Wikimedia Commons",
         "nasa": "NASA"
       }
+    },
+    "goals": {
+      "title": "What should we make from this winner?",
+      "lede": "Choose what you want to test while we analyze your video.",
+      "flowLabel": "Batch steps",
+      "flow": {
+        "winner": "Winner",
+        "goals": "Your goals",
+        "plan": "Plan",
+        "generate": "Generate",
+        "pieces": "Pieces"
+      },
+      "loading": "Loading your preferences…",
+      "retry": "Try again",
+      "analyzing": "Analyzing your ad in the background",
+      "analysisReady": "Ad analyzed · plan ready",
+      "question": {
+        "goal": "What do you want this batch to do?",
+        "ai": "Can this batch use AI generation?",
+        "wants": "Which variations do you want?"
+      },
+      "help": {
+        "goal": "We will keep what works in your original ad.",
+        "ai": "AI generation always needs a separate approval before video generation.",
+        "wants": "Choose a few, or let HookMill put the batch together. Cuts and other compatible edits may be included too."
+      },
+      "goal": {
+        "auto": "Let HookMill choose",
+        "stretch": "Stretch its life",
+        "new_audience": "Reach a new audience",
+        "both": "Both"
+      },
+      "goalHelp": {
+        "auto": "A balanced mix of familiar edits and new formats.",
+        "stretch": "More variations close to the winning ad.",
+        "new_audience": "More new formats to test with other audiences.",
+        "both": "Balance edits of the original with new formats."
+      },
+      "ai": {
+        "auto": "Let HookMill suggest · nothing selected automatically",
+        "free_only": "Editing and templates only",
+        "yes": "Yes, within my batch limit"
+      },
+      "cap": "AI batch limit · US$",
+      "capRange": "Enter a limit between US$1 and US$1,000.",
+      "want": {
+        "headline": "New headlines",
+        "frames": "Frames and layouts",
+        "static": "Static images",
+        "chat_motion": "Chat / DM and person + motion",
+        "face": "New faces",
+        "format": "New formats with AI"
+      },
+      "chooseForMe": "Let HookMill choose",
+      "chooseHelp": "We pick compatible variations for your goal.",
+      "step": "Question {n} of {total}",
+      "back": "Back",
+      "continue": "Continue",
+      "seePlan": "See the plan",
+      "saving": "Saving…",
+      "noExtraCost": "Changing these answers does not run the analysis again.",
+      "prefilled": "Pre-filled from this client’s last batch ({date}).",
+      "useSaved": "Use saved answers",
+      "preferences": "Client preferences",
+      "edit": "Edit answers",
+      "forget": "Forget saved answers",
+      "forgotten": "Saved answers forgotten. This batch stays as it is.",
+      "autoReason": "We chose a balanced mix. Every selected variation is compatible with this video.",
+      "youAsked": "YOU ASKED",
+      "remove": "Remove",
+      "addBack": "Add back",
+      "leftOut": "Left out of this batch",
+      "leftOutHelp": "These were not requested or were removed. Add any of them back before generating.",
+      "full": "This batch has 12 pieces. Remove one to add another."
     }
   },
   "welcome": {
@@ -3624,7 +3698,7 @@
   },
   "captions": {
     "blockedTitle": "{n, plural, one {# format left out: the video has burned-in captions} other {# formats left out: the video has burned-in captions}}",
-    "blockedBody": "These would cover the captions. With the same video without captions they come back.",
+    "blockedBody": "These layouts have no safe space around the original captions and face. The compatible variations are already in your plan.",
     "needsClean": "This format needs the video without captions",
     "frameNamed": "Frame · {name}",
     "afterSend": "Saved. The next batches from this video use the version without captions, so these formats can be offered.",
@@ -3639,7 +3713,7 @@
       "attached": "{name} will go with the video.",
       "change": "Change",
       "fieldTitle": "Version without captions (optional)",
-      "fieldBody": "If the video has burned-in captions, send it without them too: every format can be offered and we redo the captions in the original style.",
+      "fieldBody": "Burned-in captions can limit frames and overlays. We will only plan compatible variations. A version without captions lets us check more layouts.",
       "fieldButton": "Choose the file without captions",
       "mismatch": {
         "duration": "This isn't the same video: the length is different.",

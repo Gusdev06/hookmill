@@ -156,7 +156,7 @@ export interface AutoPlanInput {
   /** 25/10 (§B2, TRANSIÇÃO): templates liberados pelo `allowedFrames` do backend pra este lote; ausente = padrão
    *  conservador da ia (`defaultAllowedFrames`, só B1). Só tem efeito com FRAME em `allowed`. */
   allowedFrames?: FrameTemplateId[];
-  rules: { min: number; max: number; minDiversityPct: 40 };
+  rules: { min: number; max: number; minDiversityPct: 0 | 40 };
   /** 25/10 (headline-e-legenda-v1 §1.2): o que a IA precisa pra escrever as headlines (backend, do editMap). Ausente = sem HEADLINE no `allowed`. */
   headline?: { mode: 'replace' | 'add'; original: string | null; lines: number; maxChars: number; hasHighlight: boolean; language: string };
   /** 2ª chamada (reparo) */

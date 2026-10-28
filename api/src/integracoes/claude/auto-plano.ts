@@ -97,7 +97,7 @@ export const AUTO_PLAN_SCHEMA = obj({
     rationale: str('Which why line it attacks and how, interface language, max 160 characters. A hypothesis.'),
     whyKey: en(['hook', 'proof', 'cta'], 'The why line this piece attacks.'),
     params: PARAMS,
-  }), 'The pieces, in plan order.'),
+  }), 'The candidate pieces, strongest first in priority order.'),
 });
 
 export const AUTO_PLAN_SYSTEM = `You plan a batch of edit-only variations of a winning short video ad (the "champion") for a performance team. Every video piece reuses the champion's own footage and audio; nothing is filmed or generated (the one exception is STATIC, a new image ad). Each piece changes exactly ONE thing so the test reads clean.
@@ -215,6 +215,7 @@ export function autoPlanUserMessage(i: AutoPlanInputWithFrame, refImages = 0): s
     `<allowed>\n${allowed.map((a) => `${a.type}: up to ${a.max}`).join('\n') || '(none)'}\n</allowed>`,
     `Plan between ${i.rules.min} and ${i.rules.max} pieces, at least ${i.rules.minDiversityPct}% of them DIVERSITY (rounded up). If the allowed types cannot honestly reach ${i.rules.min}, return fewer good pieces rather than filler.`,
   ];
+  if (i.rules.max > 12) lines.push('This is a candidate pool, not the final batch. Plan up to 16 independently useful options, strongest first. The user goal and categories will select up to 12 afterwards without another model call. Include distinct allowed types instead of repeating one format to fill the pool.');
   if (i.violations?.length) {
     lines.push(`A previous plan for this batch broke these rules. Write a new plan that fixes every one of them:\n${i.violations.map((v) => `- ${v}`).join('\n')}`);
   }

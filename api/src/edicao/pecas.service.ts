@@ -67,7 +67,7 @@ export class PecasAutoService {
   async createPieces(tx: Prisma.TransactionClient, input: { batchId: string; userId: string; launchedAt: Date }): Promise<LaunchedPieces> {
     const batch = await tx.variationBatch.findUniqueOrThrow({
       where: { id: input.batchId },
-      include: { champion: { select: { name: true } }, items: { where: { kind: 'AUTO_EDIT' }, orderBy: { index: 'asc' } } },
+      include: { champion: { select: { name: true } }, items: { where: { kind: 'AUTO_EDIT', included: true }, orderBy: { index: 'asc' } } },
     });
     const ids = new Map<string, string>();
     for (const item of batch.items) {
@@ -299,8 +299,8 @@ export class PecasAutoService {
           data: {
             leftOutAt: null, errorCode: null, failReason: null,
             ...(dto.useProductPhoto !== undefined && i.autoType === 'SPLIT_LP' && { payload: { ...payload, useProductPhoto: dto.useProductPhoto } as Prisma.InputJsonValue }),
-            // legenda-protegida-v1 §4.2: tampada na visão = o Retry vai direto pro passo seguinte (recortar e legendar)
-            ...(i.errorCode === 'CAPTION_COVERED' && { payload: { ...payload, captionForce: 'replace' } as Prisma.InputJsonValue }),
+            // 28/10: retry also preserves the original caption; use the improved placement search.
+            ...(i.errorCode === 'CAPTION_COVERED' && { payload: { ...payload, captionForce: 'avoid' } as Prisma.InputJsonValue }),
           },
         });
       });
