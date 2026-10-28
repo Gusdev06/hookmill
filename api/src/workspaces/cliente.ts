@@ -1,8 +1,9 @@
 // Fase 2 (fase2-agencia.md §1-§2): cliente = workspace. Funções puras: status derivado, resultado padrão, código curto
 // e a forma `Workspace` do contrato. Nenhuma outra parte do backend decide status do cliente por conta própria.
-import type { BusinessType, ClientStatus, DefaultResult, Onboarding, OnboardingStep, Workspace as WorkspaceView } from '@maquina/contratos';
+import type { ClientStatus, Onboarding, OnboardingStep, Workspace as WorkspaceView } from '@maquina/contratos';
 import type { Workspace } from '@prisma/client';
 import { num } from '../common/util/format';
+import { defaultResultOf, legacyBusinessTypeOf } from './resultado';
 
 export const ONBOARDING_STEPS = 6 as const;
 
@@ -12,10 +13,8 @@ export function clientStatusOf(ws: Pick<Workspace, 'pausedAt' | 'onboardingCompl
   return ws.onboardingCompletedAt ? 'LIVE' : 'SETUP';
 }
 
-const DEFAULT_RESULT: Record<BusinessType, DefaultResult> = { ONLINE_STORE: 'PURCHASES', LOCAL_BUSINESS: 'LEADS', APP: 'INSTALLS' };
-export function defaultResultOf(t: BusinessType | null): DefaultResult | null {
-  return t ? DEFAULT_RESULT[t] : null;
-}
+// resultado-v1 (28/10): o resultado padrão sai do ResultType (resultado.ts); reexportado pra quem já importava daqui
+export { defaultResultOf } from './resultado';
 
 /** Só a parte posicional do `Onboarding`; percent/steps/updatedBy vêm do `onboarding.ts` (onboardingFull). */
 export function onboardingOf(ws: Pick<Workspace, 'onboardingStep' | 'onboardingCompletedAt'>): Pick<Onboarding, 'step' | 'totalSteps' | 'completedAt'> {
@@ -35,6 +34,26 @@ export function shortCodeFromName(name: string): string {
   return chars.length >= 2 ? chars.slice(0, 2) : 'WS';
 }
 
+/**
+ * resultado-v1 (A2): prefixo sugerido pela leitura. `shortCodeFromName` e, se outro cliente já usa, variações do próprio
+ * nome (mais letras da 1ª palavra, iniciais + letra), por fim sufixo 2..99. null só se o nome não tiver letra/dígito.
+ */
+export function suggestShortCode(name: string, taken: ReadonlySet<string>): string | null {
+  const plain = name.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  const words = plain.split(/[^A-Z0-9]+/).filter(Boolean);
+  if (!words.join('')) return null;
+  const base = shortCodeFromName(name);
+  const joined = words.join('');
+  const initials = words.map((w) => w[0]).join('');
+  const candidates = [base];
+  for (let n = 3; n <= 6; n++) candidates.push(joined.slice(0, n));
+  if (words.length > 1) for (const w of words.slice(1)) for (let n = 2; n <= Math.min(4, w.length); n++) candidates.push((initials.slice(0, 1) + w.slice(0, n)).slice(0, 6));
+  for (const c of candidates) if (SHORT_CODE_RE.test(c) && !taken.has(c)) return c;
+  const stem = base.slice(0, 4);
+  for (let i = 2; i < 100; i++) { const c = `${stem}${i}`; if (!taken.has(c)) return c; }
+  return null;
+}
+
 /** `Workspace` do contrato menos o `onboarding` completo (percent/steps/updatedBy): quem chama junta o `onboardingFull`. */
 export type WorkspaceBase = Omit<WorkspaceView, 'onboarding'> & { onboarding: ReturnType<typeof onboardingOf> };
 
@@ -47,8 +66,10 @@ export function presentWorkspace(ws: Workspace): WorkspaceBase {
     shortCode: ws.shortCode,
     industry: ws.industry,
     market: ws.market,
-    businessType: ws.businessType,
-    defaultResult: defaultResultOf(ws.businessType),
+    resultType: ws.resultType,
+    resultTypeOther: ws.resultType === 'OTHER' ? ws.resultTypeOther : null,
+    businessType: legacyBusinessTypeOf(ws.resultType), // @deprecated
+    defaultResult: defaultResultOf(ws.resultType),
     websiteUrl: ws.websiteUrl,
     brandColor: ws.brandColor ?? null, // 25/10 D3
     status: clientStatusOf(ws),

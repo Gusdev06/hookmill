@@ -349,7 +349,7 @@ export const api = {
 
   workspace: {
     get: () => data(get<T.Workspace>("/workspace")),
-    /** §3.3: idempotent. 422 ONBOARDING_INCOMPLETE `{ missing: ('businessType'|'offer')[] }`. */
+    /** §3.3: idempotent. 422 ONBOARDING_INCOMPLETE `{ missing: ('resultType'|'offer')[] }` (resultado-v1: was 'businessType'). */
     completeOnboarding: () => data(post<T.Workspace>("/workspace/onboarding/complete")),
     update: (b: T.UpdateWorkspaceBody) => data(patch<T.Workspace>("/workspace", b)),
     members: () => data(get<T.MembersResponse>("/workspace/members")),

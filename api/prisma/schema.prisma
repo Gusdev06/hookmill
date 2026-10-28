@@ -26,10 +26,24 @@ enum MemberRole {
 }
 
 // fase 2: define o resultado padrão (derivado, não salvo): ONLINE_STORE → PURCHASES, LOCAL_BUSINESS → LEADS, APP → INSTALLS
+// DEPRECATED (resultado-v1, 28/10): a fonte da verdade é o ResultType. A coluna business_type segue gravada (derivada do
+// result_type) por 1 versão, pra API anterior que ainda lê; sai numa migração própria depois do deploy.
 enum BusinessType {
   ONLINE_STORE
   LOCAL_BUSINESS
   APP
+}
+
+// resultado-v1 (28/10, teste manual A3): "What counts as a result?". Decide objetivo/evento da Meta e o resultado do sync.
+enum ResultType {
+  PURCHASE // compra: loja, infoproduto, low ticket
+  LEAD // formulário
+  MESSAGE // conversa no WhatsApp / Direct / Messenger
+  APPOINTMENT // agendamento
+  SIGNUP // cadastro / teste grátis
+  SUBSCRIPTION // assinatura
+  APP_INSTALL // instalação de app
+  OTHER // texto livre em workspaces.result_type_other
 }
 
 enum UiLocale {
@@ -403,7 +417,9 @@ model Workspace {
   shortCode             String        @map("short_code") // 2-6 [A-Z0-9]; prefixo do nome do arquivo ("MC"). Não é único
   industry              String? // texto livre ≤ 80
   market                String? // mercado principal, texto livre ≤ 80
-  businessType          BusinessType? @map("business_type")
+  businessType          BusinessType? @map("business_type") // DEPRECATED: derivado do resultType (resultado-v1)
+  resultType            ResultType?   @map("result_type") // resultado-v1 (28/10): null = ainda não escolheu
+  resultTypeOther       String?       @map("result_type_other") // ≤ 80, só com resultType = OTHER
   websiteUrl            String?       @map("website_url") // http(s), ≤ 2048
   brandColor            String?       @map("brand_color") // 25/10 (estatico-montado-e-molduras-v1 D3): #RRGGBB maiúsculo; null = derivada (§A3.3)
   onboardingStep        Int           @default(1) @map("onboarding_step") // 1..6, onde retomar o onboarding

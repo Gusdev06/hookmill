@@ -153,7 +153,7 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
         pages: [{ url, role: 'main', title: null, text: text.slice(0, 60_000), truncated: text.length > 60_000, via: 'http', images: [] }],
         readMode: 'pasted',
       };
-      reading = { page, images: [], imageReason: null, readMs: 0 };
+      reading = { page, images: [], imageReason: null, readMs: 0, brandColor: null };
     } else if (input.url) {
       // leitura em cascata (leitura.ts): HTTP → render → subpáginas → imagens; emite os 4 stages de leitura
       reading = await (this.opts.readOffer ?? ((u: string, s: (stage: ExtractStage) => void) => readOffer(u, this.opts.pageOptions ?? {}, s)))(input.url, onStage);
@@ -174,7 +174,7 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     const costUsd = await this.charge(res, { workspaceId: input.workspaceId, jobId: input.jobId });
     this.assertFinished(res);
     onStage('detecting_language'); // o idioma sai na mesma resposta; a etapa existe pro checklist do web
-    const { brief, sources, imageNotes } = parseBriefFull(res.text);
+    const { brief, sources, imageNotes, business } = parseBriefFull(res.text);
 
     // §4.1: sources (role + imageIndex) → fieldOrigins (role + url); imagem aponta pra página de onde foi tirada
     const urlByRole = new Map<string, string>();
@@ -197,6 +197,8 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       ...brief, costUsd,
       readMode: page.readMode, pages, imagesRead, fieldOrigins,
       relatedUrls: pages.filter((p) => p.role !== 'main').map((p) => p.url),
+      // resultado-v1 (A2): texto colado não tem DOM, então sem cor
+      business, brandColor: reading.brandColor ?? null,
     };
   }
 

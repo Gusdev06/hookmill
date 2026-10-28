@@ -1738,10 +1738,49 @@
       "LOCAL_BUSINESS": "Negócio local",
       "APP": "App"
     },
+    "resultType": {
+      "PURCHASE": {
+        "label": "Compra",
+        "hint": "Loja, infoproduto, low ticket"
+      },
+      "LEAD": {
+        "label": "Lead",
+        "hint": "A pessoa preenche um formulário"
+      },
+      "MESSAGE": {
+        "label": "Mensagem",
+        "hint": "WhatsApp, Direct ou Messenger"
+      },
+      "APPOINTMENT": {
+        "label": "Agendamento",
+        "hint": "A pessoa marca um horário"
+      },
+      "SIGNUP": {
+        "label": "Cadastro",
+        "hint": "Conta ou teste grátis"
+      },
+      "SUBSCRIPTION": {
+        "label": "Assinatura",
+        "hint": "Plano recorrente"
+      },
+      "APP_INSTALL": {
+        "label": "Instalação de app",
+        "hint": "Download na loja"
+      },
+      "OTHER": {
+        "label": "Outro",
+        "hint": "Descreva"
+      }
+    },
     "result": {
       "PURCHASES": "Compras",
       "LEADS": "Leads",
-      "INSTALLS": "Instalações do app"
+      "INSTALLS": "Instalações do app",
+      "MESSAGES": "Mensagens",
+      "APPOINTMENTS": "Agendamentos",
+      "SIGNUPS": "Cadastros",
+      "SUBSCRIPTIONS": "Assinaturas",
+      "RESULTS": "Resultados"
     },
     "business": {
       "title": "Conte sobre o negócio",
@@ -1763,8 +1802,10 @@
       "market": "Mercado principal",
       "marketPh": "ex.: Brasil",
       "language": "Idioma do espaço",
-      "typeLegend": "Que tipo de negócio é?",
-      "typeHint": "Define o que conta como resultado no passo 5: compras pra loja online (produto digital também), leads pra negócio local, instalações pra app.",
+      "resultLegend": "O que conta como resultado?",
+      "resultHint": "Os anúncios na Meta otimizam por isso e é o que contamos como resultado. A leitura do site já marca um; troque se estiver errado.",
+      "resultOtherLabel": "Qual é o resultado?",
+      "resultOtherPh": "ex.: Doação",
       "code": "Código do cliente",
       "codeHint": "De 2 a 6 letras ou números. Abre o nome de todo arquivo de vídeo, pra casar resultados depois.",
       "codeInvalid": "Use de 2 a 6 letras ou números, sem espaço.",
@@ -1773,8 +1814,10 @@
       "teamSub": "Quem vê este cliente. O cliente aprova anúncios; não gasta nem muda configurações.",
       "teamFailed": "Não deu pra carregar o time.",
       "fixFirst": "Confira o nome e o código do cliente.",
+      "fixOther": "Descreva o que conta como resultado.",
       "continue": "Continuar: conectar Meta",
-      "continueOffer": "Continuar: produto e oferta"
+      "continueOffer": "Continuar: produto e oferta",
+      "fromSite": "do seu site"
     },
     "meta": {
       "title": "Conectar a conta Meta de {name}",
@@ -1841,8 +1884,8 @@
       "title": "Metas e limites",
       "sub": "O teto de gasto é o limite que já funciona: nenhuma geração passa dele neste mês.",
       "result": "O que conta como resultado?",
-      "resultHint": "Definido pelo tipo de negócio.",
-      "resultMissing": "Escolha o tipo de negócio pra definir.",
+      "resultHint": "Vem do que conta como resultado no passo 1.",
+      "resultMissing": "Escolha o que conta como resultado pra definir.",
       "resultEdit": "Mudar no passo 1",
       "capTitle": "Teto de gasto mensal",
       "cap": "Teto de gasto com geração, por mês (USD)",
@@ -1863,7 +1906,7 @@
       "liveHint": "Dá pra voltar a qualquer passo e mudar.",
       "incompleteTitle": "Falta isto pra ir ao ar",
       "gate": {
-        "businessType": "Escolha o tipo de negócio no passo 1.",
+        "resultType": "Escolha o que conta como resultado no passo 1.",
         "offer": "Crie uma oferta no passo 3."
       },
       "toStep": "Ir pro passo {n}",
@@ -1881,7 +1924,7 @@
       "sectionMissing": "Falta: {items}",
       "fill": "Preencher",
       "item": {
-        "businessType": "tipo de negócio",
+        "businessType": "o que conta como resultado",
         "industry": "segmento",
         "market": "mercado",
         "offer": "uma oferta",
@@ -3178,7 +3221,7 @@
         "imageAd": "Anúncio de imagem",
         "noVideo": "Sem vídeo aqui. Abra em Campanhas.",
         "field": {
-          "businessType": "Tipo de negócio",
+          "businessType": "Tipo de resultado",
           "industry": "Setor",
           "market": "Mercado",
           "websiteUrl": "Site",

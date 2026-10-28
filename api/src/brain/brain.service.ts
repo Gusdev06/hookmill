@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
-  BrainGraph, BrainMedia, BrainNeighbor, BrainNode, BrainNodeDetail, BrainNodeField, BrainNodeKind, BrainOpenTarget, BusinessType, MetaMetrics,
+  BrainGraph, BrainMedia, BrainNeighbor, BrainNode, BrainNodeDetail, BrainNodeField, BrainNodeKind, BrainOpenTarget, MetaMetrics,
 } from '@maquina/contratos';
 import type { Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
@@ -134,7 +134,7 @@ export class BrainService {
     const [ws, offers, creatives, conn] = await Promise.all([
       this.prisma.workspace.findUnique({
         where: { id: wid },
-        select: { id: true, name: true, businessType: true, industry: true, market: true, websiteUrl: true, monthlySpendCapUsd: true },
+        select: { id: true, name: true, resultType: true, industry: true, market: true, websiteUrl: true, monthlySpendCapUsd: true },
       }),
       this.prisma.offer.findMany({
         where: { workspaceId: wid, archivedAt: null },
@@ -207,8 +207,8 @@ export class BrainService {
 
     return {
       workspace: {
-        id: ws.id, name: ws.name, businessType: ws.businessType as BusinessType | null, industry: ws.industry, market: ws.market,
-        websiteUrl: ws.websiteUrl, monthlySpendCapUsd: num(ws.monthlySpendCapUsd), defaultResult: defaultResultOf(ws.businessType as BusinessType | null),
+        id: ws.id, name: ws.name, resultType: ws.resultType, industry: ws.industry, market: ws.market,
+        websiteUrl: ws.websiteUrl, monthlySpendCapUsd: num(ws.monthlySpendCapUsd), defaultResult: defaultResultOf(ws.resultType),
       },
       offers: offers.map(({ _count, ...o }) => ({ ...o, creatives: _count.creatives })),
       creatives: creatives.map((c): DadosCriativo => {
@@ -253,7 +253,7 @@ export class BrainService {
         return { fields: [f('workspace.name', d.workspace.name)], media: null };
       case 'business': {
         const w = d.workspace;
-        return { fields: [f('business.businessType', w.businessType), f('business.industry', w.industry), f('business.market', w.market), f('business.websiteUrl', w.websiteUrl)], media: null };
+        return { fields: [f('business.businessType', w.resultType), f('business.industry', w.industry), f('business.market', w.market), f('business.websiteUrl', w.websiteUrl)], media: null };
       }
       case 'goal':
         return { fields: [f('goal.spendCapUsd', d.workspace.monthlySpendCapUsd), f('goal.defaultResult', d.workspace.defaultResult)], media: null };

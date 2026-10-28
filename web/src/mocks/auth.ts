@@ -26,6 +26,7 @@ export function mockSetupCard(ref: WorkspaceRef, b: Partial<CreateClientBody> = 
     id: ref.id, name: ref.name, shortCode: code.length >= 2 ? code : "WS", role: ref.role, isActive: true,
     status: "SETUP", onboarding: { step: step as ClientCard["onboarding"]["step"], totalSteps: 6, completedAt: null, percent: 0, steps: [], updatedBy: null, updatedAt: null },
     industry: b.industry ?? null, businessType: b.businessType ?? null, websiteUrl: b.websiteUrl ?? null,
+    resultType: b.resultType ?? null,
     waitingOnYou: { creatives: 0, batches: 0, total: 0 }, updatedAt: new Date().toISOString(),
   }
 }

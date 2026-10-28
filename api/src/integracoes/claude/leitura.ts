@@ -12,6 +12,7 @@ import { IntegracaoError, isIntegracaoError } from '../erros';
 import { captureImages, imageTrigger, type CapturedImage, type ImageCapturer } from './imagens';
 import { LOGIN_WALL_CHARS, MIN_TEXT_CHARS, NO_TEXT_DETAIL, RENDER_BELOW_CHARS, fetchHtmlPage, loginWall, mergeRendered, type HttpPage, type PageText } from './pagina';
 import type { RenderPageOptions, RenderedPage } from './render-pagina';
+import { brandColorOf, type BrandColorPick } from './cor-marca';
 import { readSubpages, type SubpageOptions } from './subpaginas';
 
 /** §1: relógio da leitura inteira (a+b+c+d). */
@@ -26,6 +27,11 @@ export interface ReadOfferOptions extends SubpageOptions {
   capture?: ImageCapturer | null;
   /** opções do navegador pra (d) (executável, SSRF) */
   browser?: RenderPageOptions;
+  /**
+   * resultado-v1 (A2): quando a principal NÃO passou pelo render (HTTP bastou), abre ela no navegador só pra ler a cor dos
+   * CTAs, em paralelo com (c)/(d). null/ausente = sem sonda (a cor sai do theme-color, se houver). Custo zero.
+   */
+  colorProbe?: ((url: string) => Promise<string | null>) | null;
 }
 
 export interface OfferReading {
@@ -34,7 +40,12 @@ export interface OfferReading {
   /** por que a camada (d) rodou (null = não rodou) */
   imageReason: ReturnType<typeof imageTrigger>;
   readMs: number;
+  /** resultado-v1 (A2): cor de destaque (CTA renderizado > theme-color); null = não achou */
+  brandColor?: BrandColorPick | null;
 }
+
+/** Teto da sonda de cor depois que a leitura acabou (ela roda em paralelo; aqui só espera o resto). */
+export const COLOR_PROBE_WAIT_MS = 12_000;
 
 const log = new Logger('LeituraOferta');
 
@@ -70,6 +81,12 @@ export async function readOffer(url: string, opts: ReadOfferOptions, onStage: (s
       log.warn(`render de ${http.url} falhou (${(e as Error).message}); segue com o HTTP`);
     }
   }
+
+  // resultado-v1 (A2): cor dos CTAs. Renderizou = já tem; senão a sonda abre a principal em paralelo com (c)/(d)
+  const ctaFromRender = rendered?.ctaColor ?? null;
+  const probe = !ctaFromRender && !rendered && opts.colorProbe
+    ? opts.colorProbe(http.url).catch((e) => { log.warn(`cor de ${http.url} falhou (${(e as Error).message})`); return null; })
+    : null;
 
   // (c) subpáginas
   onStage('reading_subpages');
@@ -108,7 +125,9 @@ export async function readOffer(url: string, opts: ReadOfferOptions, onStage: (s
   }
 
   const readMode: ReadMode = images.length ? 'vision' : page.pages.length > 1 ? 'crawled' : page.rendered ? 'rendered' : 'http';
-  return { page: { ...page, readMode }, images, imageReason, readMs: now() - start };
+  const probed = probe ? await Promise.race([probe, new Promise<null>((r) => setTimeout(() => r(null), COLOR_PROBE_WAIT_MS).unref?.())]) : null;
+  const brandColor = brandColorOf(ctaFromRender ?? probed, http.themeColor ?? null);
+  return { page: { ...page, readMode }, images, imageReason, readMs: now() - start, brandColor };
 }
 
 function stripHttp(h: HttpPage): PageText {

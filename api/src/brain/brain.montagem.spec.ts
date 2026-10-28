@@ -7,7 +7,7 @@ import { BrainService } from './brain.service';
 
 const T0 = new Date('2026-10-22T12:00:00Z');
 const ws = (over: Partial<BrainDados['workspace']> = {}): BrainDados['workspace'] => ({
-  id: 'w1', name: 'Loja', businessType: null, industry: null, market: null, websiteUrl: null, monthlySpendCapUsd: null, defaultResult: null, ...over,
+  id: 'w1', name: 'Loja', resultType: null, industry: null, market: null, websiteUrl: null, monthlySpendCapUsd: null, defaultResult: null, ...over,
 });
 const offer = (id: string, over: Partial<DadosOferta> = {}): DadosOferta => ({
   id, name: `Offer ${id}`, kind: null, language: 'en', what: null, promise: null, offerAndPrice: null, cta: null,
@@ -56,7 +56,7 @@ describe('Brain 3D: montagem do grafo (brain-3d-v1 §1-2, revisão 22/10)', () =
 
   it('setup preenchido: negócio, meta, oferta com público/prova/instruções e as arestas part_of/targets/uses_proof/instructed_by', () => {
     const d = dados({
-      workspace: ws({ businessType: 'ONLINE_STORE', defaultResult: 'PURCHASES', industry: 'Bedding', monthlySpendCapUsd: 50 }),
+      workspace: ws({ resultType: 'PURCHASE', defaultResult: 'PURCHASES', industry: 'Bedding', monthlySpendCapUsd: 50 }),
       offers: [offer('o1', { audience: 'Moms', pains: 'No time', proof: '10k sold', notes: 'No slang' }), offer('o2')],
     });
     const { graph } = montarGrafo(d, { metaEnabled: true });
@@ -257,7 +257,7 @@ describe('BrainService: consultas (spy do Prisma)', () => {
     let calls = 0;
     const fn = <T>(v: T) => jest.fn(async () => { calls++; return v; });
     const prisma = {
-      workspace: { findUnique: fn({ id: 'w1', name: 'Loja', businessType: null, industry: null, market: null, websiteUrl: null, monthlySpendCapUsd: null }) },
+      workspace: { findUnique: fn({ id: 'w1', name: 'Loja', resultType: null, industry: null, market: null, websiteUrl: null, monthlySpendCapUsd: null }) },
       offer: { findMany: fn([]) },
       creative: { findMany: fn([]) },
       metaConnection: { findUnique: fn({ id: 'mc1', status: 'ACTIVE', adAccountId: 'act_1', currency: 'USD', lastSyncAt: null }) },

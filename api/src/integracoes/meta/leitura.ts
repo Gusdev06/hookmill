@@ -1,7 +1,7 @@
 // Leitura da Marketing API (meta-v1.md §3.1 options/health e §3.2 sync): contas com user_tasks, páginas, pixels com
 // last_fired_time, verification_status, anúncios de vídeo (até 500) e as 3 janelas de insights → MetaMetrics.
 import type { MetaAdAccountOption, MetaMetrics, MetaOptions } from '@maquina/contratos';
-import type { BusinessType, MetaAdAccountInfo, MetaAdSnapshotDraft, MetaAdsetSnapshotDraft, MetaCampaignSnapshotDraft, MetaSyncInput, MetaSyncStage } from '../contrato';
+import type { BusinessType, ResultType, MetaAdAccountInfo, MetaAdSnapshotDraft, MetaAdsetSnapshotDraft, MetaCampaignSnapshotDraft, MetaSyncInput, MetaSyncStage } from '../contrato';
 import { Logger } from '@nestjs/common';
 import { GraphClient, type Raw } from './cliente';
 import { MetaError, accountStatusLabel, isMetaError } from './erros';
@@ -111,7 +111,27 @@ export async function businessVerification(g: GraphClient, token: string, busine
 
 // ---------- sync ----------
 /** action_type do "resultado" (§3.2) com fallback. */
-export function resultActionTypes(businessType: BusinessType | null, hasPixel: boolean): { primary: string; fallback: string | null } {
+/**
+ * resultado-v1 (28/10): action_type por ResultType. `pixel: false` = conta mesmo sem pixel (conversa é métrica da Meta).
+ * SCHEDULE/SUBSCRIBE/COMPLETE_REGISTRATION e messaging: nomes da Marketing API ainda NÃO conferidos numa conta live
+ * (sem anúncio desses tipos no ar); o fallback cobre a variante por canal. Purchase/lead/install = os de antes.
+ */
+export const RESULT_ACTIONS: Record<ResultType, { primary: string; fallback: string | null; pixel: boolean }> = {
+  PURCHASE: { primary: 'omni_purchase', fallback: 'purchase', pixel: true },
+  SUBSCRIPTION: { primary: 'subscribe_total', fallback: 'subscribe_website', pixel: true },
+  LEAD: { primary: 'lead', fallback: 'onsite_conversion.lead_grouped', pixel: true },
+  APPOINTMENT: { primary: 'schedule_total', fallback: 'schedule_website', pixel: true },
+  SIGNUP: { primary: 'omni_complete_registration', fallback: 'complete_registration', pixel: true },
+  MESSAGE: { primary: 'onsite_conversion.messaging_conversation_started_7d', fallback: 'onsite_conversion.total_messaging_connection', pixel: false },
+  APP_INSTALL: { primary: 'omni_app_install', fallback: 'mobile_app_install', pixel: true },
+  OTHER: { primary: 'link_click', fallback: null, pixel: false },
+};
+
+export function resultActionTypes(businessType: BusinessType | null, hasPixel: boolean, resultType?: ResultType | null): { primary: string; fallback: string | null } {
+  if (resultType) {
+    const r = RESULT_ACTIONS[resultType];
+    return !r.pixel || hasPixel ? { primary: r.primary, fallback: r.fallback } : { primary: 'link_click', fallback: null };
+  }
   if (!hasPixel) return { primary: 'link_click', fallback: null };
   if (businessType === 'ONLINE_STORE') return { primary: 'omni_purchase', fallback: 'purchase' };
   if (businessType === 'LOCAL_BUSINESS') return { primary: 'lead', fallback: 'onsite_conversion.lead_grouped' };
@@ -298,7 +318,7 @@ export async function syncAds(g: GraphClient, token: string, i: MetaSyncInput, o
   const total = all.length;
   onProgress?.({ stage: 'reading_insights', done: 0, total });
 
-  const result = resultActionTypes(i.businessType, i.hasPixel);
+  const result = resultActionTypes(i.businessType, i.hasPixel, i.resultType);
   const state = newInsightState();
   const since = new Date(now.getTime() - 14 * 86_400_000);
   const until = new Date(now.getTime() - 8 * 86_400_000);

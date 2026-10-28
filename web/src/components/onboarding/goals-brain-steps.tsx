@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
-import type { BrainSection, DefaultResult, Workspace } from "@/lib/api/types"
+import type { BrainSection, Workspace } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils"
 import { BackLink, BRAIN_ITEM_STEP, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
 
 type Ctx = ReturnType<typeof useOnboarding>
-const RESULTS: DefaultResult[] = ["PURCHASES", "LEADS", "INSTALLS"]
 
 /** Step 5 · Goals & guardrails: only the monthly spend cap is real (PATCH /workspace). The rest is "Soon". */
 export function GoalsStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
@@ -55,22 +54,15 @@ export function GoalsStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       }
     >
       <Card title={t("goals.result")}>
-        <div className="flex flex-wrap gap-2" role="list">
-          {RESULTS.map((r) => (
-            <span
-              key={r}
-              role="listitem"
-              aria-current={ws.defaultResult === r ? "true" : undefined}
-              className={cn(
-                "inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 font-semibold",
-                ws.defaultResult === r ? "border-fg bg-fg text-white" : "border-line-strong bg-card text-fg-btn"
-              )}
-            >
-              {ws.defaultResult === r ? <Icon name="check" /> : null}
-              {t(`result.${r}`)}
+        {/* resultado-v1: the result comes from step 1 ("What counts as a result?"); here it is only shown */}
+        {ws.defaultResult ? (
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fg bg-fg px-3.5 font-semibold text-white">
+              <Icon name="check" />
+              {ws.resultType === "OTHER" && ws.resultTypeOther ? ws.resultTypeOther : t(`result.${ws.defaultResult}`)}
             </span>
-          ))}
-        </div>
+          </div>
+        ) : null}
         <span className="text-xs text-fg-3">
           {ws.defaultResult ? t("goals.resultHint") : t("goals.resultMissing")}{" "}
           <Link href={onboardingHref(1)} className="font-semibold underline underline-offset-2">
@@ -198,10 +190,10 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
           <Icon name="alert" />
           <AlertBody>
             <AlertTitle>{tb("incompleteTitle")}</AlertTitle>
-            <AlertDescription>{missingGate.map((m) => tb(`gate.${m === "offer" ? "offer" : "businessType"}`)).join(" ")}</AlertDescription>
+            <AlertDescription>{missingGate.map((m) => tb(`gate.${m === "offer" ? "offer" : "resultType"}`)).join(" ")}</AlertDescription>
           </AlertBody>
           <AlertActions>
-            {missingGate.includes("businessType") ? (
+            {(missingGate.includes("resultType") || missingGate.includes("businessType")) ? (
               <Link href={onboardingHref(1)} className={buttonVariants({ size: "sm" })}>
                 {tb("toStep", { n: 1 })}
               </Link>

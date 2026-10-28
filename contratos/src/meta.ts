@@ -200,7 +200,10 @@ export interface MetaPublicationsQuery { status?: MetaPublicationStatus; limit?:
 // ───────────────────────── §3.3 publicação ─────────────────────────
 export interface MetaPublishDefaults {
   objective: MetaObjective;
+  /** 'business_type' = saiu do resultType do cliente (nome mantido) */
   objectiveReason: 'business_type' | 'no_pixel';
+  /** resultado-v1 (28/10): evento do pixel que a publicação vai otimizar com este objetivo; null = sem pixel/LINK_CLICKS */
+  pixelEvent?: MetaPixelEvent | null;
   /** ISO-3166-1 alfa-2 derivado de workspace.market; vazio = usuário escolhe */
   countries: string[];
   ageMin: 18; ageMax: 65;
@@ -238,9 +241,13 @@ export interface MetaPublishBody {
   /** 18-65 */
   ageMin?: number; ageMax?: number;
 }
+/** resultado-v1 (28/10): `promoted_object.custom_event_type` do conjunto (pixel), resolvido pelo resultType do cliente. */
+export type MetaPixelEvent = 'PURCHASE' | 'LEAD' | 'COMPLETE_REGISTRATION' | 'SCHEDULE' | 'SUBSCRIBE';
 export type MetaPublishSettings = Required<Omit<MetaPublishBody, 'headline' | 'description'>> & {
   headline: string | null; description: string | null;
   objectiveReason: MetaPublishDefaults['objectiveReason'];
+  /** resultado-v1: evento do pixel na otimização (SALES/LEADS com pixel). Ausente (publicação antiga) = PURCHASE em SALES, LEAD em LEADS. */
+  pixelEvent?: MetaPixelEvent | null;
 };
 export interface MetaPublication {
   id: string; status: MetaPublicationStatus;

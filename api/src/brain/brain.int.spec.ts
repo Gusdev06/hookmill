@@ -69,7 +69,7 @@ describe(isLocal ? 'Brain 3D v1 (integração local)' : 'Brain 3D v1 [pulado: DA
     }
     w1 = (await prisma.workspace.create({
       data: {
-        name: `${PREFIX}loja`, shortCode: 'BR', businessType: 'ONLINE_STORE', industry: 'Bedding', market: 'United States', monthlySpendCapUsd: 500,
+        name: `${PREFIX}loja`, shortCode: 'BR', resultType: 'PURCHASE', businessType: 'ONLINE_STORE', industry: 'Bedding', market: 'United States', monthlySpendCapUsd: 500,
         onboardingStep: 6, onboardingCompletedAt: new Date(),
         memberships: { create: [{ userId: users.owner.id, role: 'OWNER', tourCompletedAt: new Date() }, { userId: users.client.id, role: 'CLIENT', tourCompletedAt: new Date() }] },
       },

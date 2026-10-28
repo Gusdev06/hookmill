@@ -123,7 +123,7 @@ function ClientTile({ c, busy, disabled, onOpen }: { c: ClientCard; busy: boolea
   const t = useTranslations("clients")
   const to = useTranslations("onboarding")
   const host = c.websiteUrl ? c.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "") : null
-  const line = [c.industry, c.businessType ? to(`businessType.${c.businessType}`) : null, host].filter(Boolean).join(" · ")
+  const line = [c.industry, c.resultType ? to(`resultType.${c.resultType}.label`) : null, host].filter(Boolean).join(" · ")
   const setup = !c.onboarding.completedAt
   const chip =
     c.status === "PAUSED" ? (

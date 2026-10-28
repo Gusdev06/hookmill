@@ -12,7 +12,7 @@ const onboarding = {
 } as any;
 /** Linha de workspace como o banco devolve (a sessão lê status/onboarding dela). */
 const wsRow = (id: string, name: string, over: Record<string, unknown> = {}) => ({
-  id, name, onboardingStep: 1, onboardingCompletedAt: null, pausedAt: null, businessType: null, monthlySpendCapUsd: null, onboardingUpdatedAt: null, ...over,
+  id, name, onboardingStep: 1, onboardingCompletedAt: null, pausedAt: null, resultType: null, monthlySpendCapUsd: null, onboardingUpdatedAt: null, ...over,
 });
 const jwt = new JwtService({ secret: 'test-secret-test-secret-test-secret', signOptions: { expiresIn: 900 } });
 

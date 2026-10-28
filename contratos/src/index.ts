@@ -143,6 +143,8 @@ export interface OfferExtractOutput {
   readMeta?: OfferReadMeta;
   /** @deprecated = pages.filter(p => p.role !== 'main').map(p => p.url); mantido 1 versão pro web atual */
   relatedUrls?: string[];
+  /** resultado-v1 (28/10, A2): sugestões pro passo 1 (ramo, mercado, cor, resultado, prefixo). O backend preenche sempre. */
+  business?: BusinessSuggestion;
 }
 
 export interface ScriptBlock { label: string; startSec: number; endSec: number; speech: string; visualPrompt: string }
@@ -264,7 +266,7 @@ export interface ErrorDetails {
   LIPSYNC_AUDIO_TOO_LONG: { durationSec: number; maxSec: 600 };
   EDIT_CONFLICT: EditConflictDetails;
   EDIT_NOT_SUPPORTED: EditNotSupportedDetails;
-  ONBOARDING_INCOMPLETE: { missing: ('businessType' | 'offer')[] };   // fase2-agencia.md §7
+  ONBOARDING_INCOMPLETE: { missing: ('resultType' | 'offer')[] };   // fase2-agencia.md §7 (resultado-v1 28/10: era 'businessType')
   BATCH_INCOMPLETE: { missing: ({ castingId: string; reason: 'face_not_selected' } | { itemId: string; reason: 'not_ready' } | { field: 'voiceId' })[] };
 }
 /** Falha dentro de trabalho assíncrono (job, rosto, cena, render). Não é erro HTTP. */
@@ -431,6 +433,11 @@ export interface WinnerBody { isWinner: boolean }
 export interface Workspace {
   id: string; name: string; uiLocale: UiLocale; monthlySpendCapUsd: number | null;
   shortCode: string; industry: string | null; market: string | null;
+  /** resultado-v1 (28/10): o que conta como resultado. Fonte da verdade (o `businessType` abaixo é derivado dele). */
+  resultType: ResultType | null;
+  /** texto livre quando `resultType = OTHER`; null nos outros */
+  resultTypeOther: string | null;
+  /** @deprecated derivado do resultType (PURCHASE/SUBSCRIPTION → ONLINE_STORE; LEAD/MESSAGE/APPOINTMENT/SIGNUP → LOCAL_BUSINESS; APP_INSTALL → APP; OTHER → null) */
   businessType: BusinessType | null; defaultResult: DefaultResult | null;
   websiteUrl: string | null;
   /** 25/10 (estatico-montado-e-molduras-v1 D3, TRANSIÇÃO): cor da marca `#RRGGBB` (maiúsculas); null = derivada (§A3.3) */
@@ -441,6 +448,9 @@ export interface Workspace {
 export type UpdateWorkspaceBody = Partial<{
   name: string; uiLocale: UiLocale; monthlySpendCapUsd: number | null;
   shortCode: string; industry: string | null; market: string | null;
+  /** resultado-v1: OTHER exige `resultTypeOther` não vazio (no estado final) = 400 VALIDATION_ERROR; trocar pra outro limpa o texto */
+  resultType: ResultType | null; resultTypeOther: string | null;
+  /** @deprecated use `resultType`; sem `resultType` no mesmo corpo, migra (ONLINE_STORE → PURCHASE, LOCAL_BUSINESS → LEAD, APP → APP_INSTALL) */
   businessType: BusinessType | null; websiteUrl: string | null;
   /** 25/10 (D3): `#RRGGBB` ou `#RGB` (o backend normaliza pra 6 dígitos maiúsculos); null limpa. Inválido = 400 VALIDATION_ERROR */
   brandColor: string | null;
@@ -767,7 +777,7 @@ export * from './cadastro';
 // Variação automática de campeão v1 (contrato docs/contratos/variacao-auto-v1.md)
 export * from './iteracao';
 import type { FormatCode, VariationAxis } from './iteracao';
-import type { BusinessType, ClientStatus, DefaultResult, Onboarding, OnboardingStep, WaitingBatchRef, WaitingOnYou } from './agencia';
+import type { BusinessSuggestion, BusinessType, ClientStatus, DefaultResult, Onboarding, ResultType, OnboardingStep, WaitingBatchRef, WaitingOnYou } from './agencia';
 
 // meta-v1 (docs/contratos/meta-v1.md, aprovado 21/10): conexão, leitura de anúncios/vencedor, publicação
 export * from './meta';

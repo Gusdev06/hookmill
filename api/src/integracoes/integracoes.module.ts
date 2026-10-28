@@ -17,7 +17,7 @@ import { PrismaCostStore, PrismaTaskStore } from './store/prisma.store';
 import Anthropic from '@anthropic-ai/sdk';
 import { ClaudeLiveService } from './claude/claude.service';
 import { SdkClaudeTransport, type SdkTransportOptions } from './claude/transporte';
-import { makePageRenderer } from './claude/render-pagina';
+import { makePageRenderer, renderPage } from './claude/render-pagina';
 import { ffmpegRunner } from './claude/checagem-texto';
 import { HiggsfieldClient } from './higgsfield/cliente';
 import { WaveSpeedClient } from './wavespeed/cliente';
@@ -113,6 +113,8 @@ export class IntegracoesModule {
               renderMain: makePageRenderer(browser),
               render: makePageRenderer({ ...browser, timeoutMs: 8_000, scrollTimeoutMs: 5_000 }),
               browser,
+              // resultado-v1 (A2): cor dos CTAs quando o HTTP bastou (sem scroll: só a 1ª tela importa)
+              colorProbe: async (u: string) => (await renderPage(u, { ...browser, timeoutMs: 10_000, scroll: false }))?.ctaColor ?? null,
             },
           });
         },

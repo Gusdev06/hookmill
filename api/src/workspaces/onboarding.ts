@@ -28,12 +28,12 @@ export interface OnboardingFacts {
 }
 export const NO_FACTS: OnboardingFacts = { offerComplete: false, audience: false, metaConnected: false };
 
-export type OnboardingWs = Pick<Workspace, 'name' | 'businessType' | 'monthlySpendCapUsd' | 'onboardingStep' | 'onboardingCompletedAt'>;
+export type OnboardingWs = Pick<Workspace, 'name' | 'resultType' | 'monthlySpendCapUsd' | 'onboardingStep' | 'onboardingCompletedAt'>;
 
 /** Um passo está preenchido? (tabela do §2) */
 function isDone(key: StepKey, ws: OnboardingWs, f: OnboardingFacts): boolean {
   switch (key) {
-    case 'business': return ws.businessType != null && ws.name.trim() !== '' && ws.name.trim() !== DEFAULT_CLIENT_NAME;
+    case 'business': return ws.resultType != null && ws.name.trim() !== '' && ws.name.trim() !== DEFAULT_CLIENT_NAME;
     case 'meta': return f.metaConnected;
     case 'offer': return f.offerComplete;
     case 'audience': return f.audience;

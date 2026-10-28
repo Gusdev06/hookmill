@@ -1738,10 +1738,49 @@
       "LOCAL_BUSINESS": "Local business",
       "APP": "App"
     },
+    "resultType": {
+      "PURCHASE": {
+        "label": "Purchase",
+        "hint": "Store, digital product, low ticket"
+      },
+      "LEAD": {
+        "label": "Lead",
+        "hint": "Someone fills a form"
+      },
+      "MESSAGE": {
+        "label": "Message",
+        "hint": "WhatsApp, Direct or Messenger"
+      },
+      "APPOINTMENT": {
+        "label": "Appointment",
+        "hint": "Someone books a time"
+      },
+      "SIGNUP": {
+        "label": "Sign-up",
+        "hint": "Account or free trial"
+      },
+      "SUBSCRIPTION": {
+        "label": "Subscription",
+        "hint": "Recurring plan"
+      },
+      "APP_INSTALL": {
+        "label": "App install",
+        "hint": "Download from the store"
+      },
+      "OTHER": {
+        "label": "Other",
+        "hint": "Describe it"
+      }
+    },
     "result": {
       "PURCHASES": "Purchases",
       "LEADS": "Leads",
-      "INSTALLS": "App installs"
+      "INSTALLS": "App installs",
+      "MESSAGES": "Messages",
+      "APPOINTMENTS": "Appointments",
+      "SIGNUPS": "Sign-ups",
+      "SUBSCRIPTIONS": "Subscriptions",
+      "RESULTS": "Results"
     },
     "business": {
       "title": "Tell us about the business",
@@ -1763,8 +1802,10 @@
       "market": "Main market",
       "marketPh": "e.g. United States",
       "language": "Workspace language",
-      "typeLegend": "What kind of business is it?",
-      "typeHint": "This sets what counts as a result in step 5: purchases for an online store (digital products too), leads for a local business, installs for an app.",
+      "resultLegend": "What counts as a result?",
+      "resultHint": "Meta ads optimize for this, and it is what we count as a result. Reading the site picks one; change it if it is wrong.",
+      "resultOtherLabel": "What is the result?",
+      "resultOtherPh": "e.g. Donation",
       "code": "Client code",
       "codeHint": "2 to 6 letters or digits. It starts every video file name, so results can be matched later.",
       "codeInvalid": "Use 2 to 6 letters or digits, no spaces.",
@@ -1773,8 +1814,10 @@
       "teamSub": "Who can see this client. The client approves ads; they can't spend or change settings.",
       "teamFailed": "Couldn't load the team.",
       "fixFirst": "Check the name and the client code.",
+      "fixOther": "Describe what counts as a result.",
       "continue": "Continue: connect Meta",
-      "continueOffer": "Continue: product & offer"
+      "continueOffer": "Continue: product & offer",
+      "fromSite": "from your site"
     },
     "meta": {
       "title": "Connect {name}'s Meta account",
@@ -1841,8 +1884,8 @@
       "title": "Goals and guardrails",
       "sub": "The spend cap is the one guardrail that works today: no generation goes past it this month.",
       "result": "What counts as a result?",
-      "resultHint": "Set by the business type.",
-      "resultMissing": "Pick the business type to set it.",
+      "resultHint": "Set by what counts as a result in step 1.",
+      "resultMissing": "Pick what counts as a result to set it.",
       "resultEdit": "Change in step 1",
       "capTitle": "Monthly spend cap",
       "cap": "Generation spend cap, per month (USD)",
@@ -1863,7 +1906,7 @@
       "liveHint": "You can come back to any step to change it.",
       "incompleteTitle": "Needed before going live",
       "gate": {
-        "businessType": "Pick the business type in step 1.",
+        "resultType": "Pick what counts as a result in step 1.",
         "offer": "Add an offer in step 3."
       },
       "toStep": "Go to step {n}",
@@ -1881,7 +1924,7 @@
       "sectionMissing": "Missing: {items}",
       "fill": "Fill",
       "item": {
-        "businessType": "business type",
+        "businessType": "what counts as a result",
         "industry": "industry",
         "market": "market",
         "offer": "an offer",
@@ -3178,7 +3221,7 @@
         "imageAd": "Image ad",
         "noVideo": "No video here. Open it in Campaigns.",
         "field": {
-          "businessType": "Business type",
+          "businessType": "Result type",
           "industry": "Industry",
           "market": "Market",
           "websiteUrl": "Website",

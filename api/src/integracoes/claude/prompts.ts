@@ -10,12 +10,14 @@ import { WORDS_PER_SECOND, countWords } from '../catalogo/precos';
 const nullableString = { anyOf: [{ type: 'string' }, { type: 'null' }] };
 
 export const PAGE_ROLES: readonly PageRole[] = ['main', 'checkout', 'pricing', 'about', 'faq', 'testimonials', 'terms', 'thankyou', 'other'];
+/** resultado-v1: o ResultType do contrato + UNKNOWN (vira null). */
+export const RESULT_TYPE_GUESSES = ['PURCHASE', 'LEAD', 'MESSAGE', 'APPOINTMENT', 'SIGNUP', 'SUBSCRIPTION', 'APP_INSTALL', 'OTHER', 'UNKNOWN'] as const;
 export const BRIEF_SOURCE_FIELDS: readonly BriefField[] = ['name', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes'];
 
 export const BRIEF_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['name', 'language', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes', 'sources', 'imageNotes'],
+  required: ['name', 'language', 'kind', 'what', 'audience', 'promise', 'pains', 'proof', 'offerAndPrice', 'cta', 'notes', 'industry', 'market', 'resultType', 'sources', 'imageNotes'],
   properties: {
     name: { type: 'string', description: 'Product or offer name as the page presents it.' },
     language: { type: 'string', description: 'BCP 47 tag of the page language, e.g. en, pt-BR, es, fr, de.' },
@@ -28,6 +30,11 @@ export const BRIEF_SCHEMA = {
     offerAndPrice: { ...nullableString, description: 'Price, plans, discounts, bonuses, trial, guarantee terms.' },
     cta: { ...nullableString, description: 'The call to action the page uses (button text or equivalent).' },
     notes: { ...nullableString, description: 'Tone of voice, claims to avoid, compliance-sensitive points. null if nothing stands out.' },
+    // resultado-v1 (28/10, A2/A3): sugestões pro passo 1. String simples ("" = não sabe) e enum com UNKNOWN: nenhuma união
+    // nova no schema (limite de 16 uniões da API, bug live 22/10)
+    industry: { type: 'string', description: 'The business industry or niche, 1-4 words, in the page language (e.g. "Skincare", "Dental clinic", "Online course"). Empty string if unclear.' },
+    market: { type: 'string', description: 'Main country or region the page sells to, in the page language (e.g. "United States", "Brasil"). Only when the page makes it clear (currency, phone format, address, shipping, explicit country); empty string otherwise.' },
+    resultType: { type: 'string', enum: [...RESULT_TYPE_GUESSES], description: 'What counts as a result for this business: the main action the page asks the visitor to take.' },
     sources: {
       type: 'object',
       additionalProperties: false,
@@ -71,6 +78,7 @@ Rules:
 - Pages come labeled by role: "main" (the page the user gave), then "checkout", "pricing", "about", "faq", "testimonials", "terms", "thankyou" or "other" pages of the same offer. The main page leads for what the offer is, who it is for and the promise; "language" comes from the main page.
 - "checkout" and "pricing" pages are the preferred source for "offerAndPrice" (price, installments, guarantee, bonuses, what the buyer gets), even when they contradict the main page: that is where people pay. "terms" pages count only for guarantee and refund terms. "thankyou" pages count only for upsells and bonuses, which go in "notes". Ignore pages that are clearly about something else (a blog post, a login wall, a different product).
 - Images, when present, are screenshots of the page and its banners, each preceded by a label with its number, page role and source. Transcribe literally the text that appears in them (price, promise, social proof, button text); describe the product in one sentence; never invent what is not legible. Fill "imageNotes" with one entry per image, at most 40 words each.
+- "industry", "market" and "resultType" describe the business behind the offer. "resultType" is the main conversion the page asks for: PURCHASE (buy now, checkout, one-time price: stores, digital products, courses, low ticket), SUBSCRIPTION (recurring plan as the main offer), LEAD (form to leave contact details or get a quote), MESSAGE (talk on WhatsApp, Instagram Direct or Messenger), APPOINTMENT (book a time, schedule a visit or call), SIGNUP (create an account or start a free trial), APP_INSTALL (download from an app store), OTHER (something else), UNKNOWN (cannot tell). A quiz that ends in a checkout is PURCHASE.
 - "sources": for every field you filled, list where it came from as { role, imageIndex }: the page role, and the image number when the information was read from an image (0 when it came from page text). Leave the array empty for fields you returned as null.`;
 
 /** Página como vai pro prompt (§5): a principal primeiro, subpáginas na ordem de prioridade. */

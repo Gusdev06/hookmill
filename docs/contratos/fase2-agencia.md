@@ -7,6 +7,29 @@ Data: 2026-10-12 · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta em 
 - **Build vermelho esperado até B1/B2/F1:** os tipos novos são obrigatórios. `tsc` hoje acusa no api `criativos.service.ts`, `criativos/views.ts`, `biblioteca.service.ts`, `common/errors/error-codes.ts`; no web `settings/page.tsx`, `invite-form.tsx` (rótulo do papel CLIENT) e os mocks (`db.ts`, `fixtures.ts`, `handlers.ts`). Cada dono fecha os seus.
 Base: `decisions/log.md` (12/10, fase 2 + F0), [`design/plano-fase2-ads-machine-2026-10-12.md`](../../design/plano-fase2-ads-machine-2026-10-12.md) (F1), [`design/fase2-telas-novas-2026-10-12.md`](../../design/fase2-telas-novas-2026-10-12.md) (§8 e §2.11), [`design/analise-mockup-ads-machine-2026-10-12.md`](../../design/analise-mockup-ads-machine-2026-10-12.md). Convenções, envelope e erros: [`api.md` §1](api.md). Escopo: só as telas ✅/🛠 do plano. Nada das ⏳ (§8).
 
+## Mudanças 28/10 · resultado-v1 (teste manual do Gusta, A2 + A3; `testes/teste-manual-gusta-2026-10-28.md`)
+**Proposto e implementado num worktree em 28/10; falta o ok do Gusta e o QA.** A pergunta do passo 1 "What kind of business is it?" (3 opções) vira **"What counts as a result?"** (8 opções), e a leitura do site pré-preenche o passo 1.
+
+**Modelo** (migração `20261028000100_result_type`, aditiva): enum `ResultType { PURCHASE LEAD MESSAGE APPOINTMENT SIGNUP SUBSCRIPTION APP_INSTALL OTHER }`, colunas `workspaces.result_type` (null = não escolheu) e `workspaces.result_type_other` (≤ 80, só com `OTHER`). Backfill: `ONLINE_STORE → PURCHASE`, `LOCAL_BUSINESS → LEAD`, `APP → APP_INSTALL`. `business_type` **fica** por 1 versão, gravado pela API derivado do `result_type` (a API anterior ainda lê); sai numa migração própria depois do deploy.
+
+**API:** `Workspace` e `ClientCard` ganham `resultType` (+ `resultTypeOther` no `Workspace`); `businessType` vira `@deprecated` derivado (tabela abaixo; OTHER → null). `PATCH /workspace` e `POST /workspaces` aceitam `resultType`/`resultTypeOther`; `businessType` sem `resultType` no mesmo corpo **migra** pelo backfill. Estado final `OTHER` sem texto = `400 VALIDATION_ERROR { field: 'resultTypeOther' }`; trocar pra outro tipo limpa o texto. `ONBOARDING_INCOMPLETE.missing` passa a usar `'resultType'` (era `'businessType'`) e continua exigindo o campo. Passo 1 `done` = `resultType != null` e nome próprio. `DefaultResult` ganha `MESSAGES | APPOINTMENTS | SIGNUPS | SUBSCRIPTIONS | RESULTS`. Tudo num lugar só: `api/src/workspaces/resultado.ts`.
+
+### §1.1 ResultType → Meta (publicação e sync)
+| resultType | rótulo (EN) | objetivo (publicação v1) | `custom_event_type` do pixel | o sync conta como resultado (`action_type`, fallback) | `defaultResult` | `businessType` (compat) |
+|---|---|---|---|---|---|---|
+| PURCHASE | Purchase | OUTCOME_SALES | PURCHASE | omni_purchase, purchase | PURCHASES | ONLINE_STORE |
+| SUBSCRIPTION | Subscription | OUTCOME_SALES | SUBSCRIBE | subscribe_total, subscribe_website | SUBSCRIPTIONS | ONLINE_STORE |
+| LEAD | Lead | OUTCOME_LEADS | LEAD | lead, onsite_conversion.lead_grouped | LEADS | LOCAL_BUSINESS |
+| APPOINTMENT | Appointment | OUTCOME_LEADS | SCHEDULE | schedule_total, schedule_website | APPOINTMENTS | LOCAL_BUSINESS |
+| SIGNUP | Sign-up | OUTCOME_LEADS | COMPLETE_REGISTRATION | omni_complete_registration, complete_registration | SIGNUPS | LOCAL_BUSINESS |
+| MESSAGE | Message | OUTCOME_TRAFFIC (v1 só publica com destino site) | — | onsite_conversion.messaging_conversation_started_7d, …total_messaging_connection (conta **sem** pixel) | MESSAGES | LOCAL_BUSINESS |
+| APP_INSTALL | App install | OUTCOME_APP_PROMOTION | — (app registrado) | omni_app_install, mobile_app_install | INSTALLS | APP |
+| OTHER | Other (texto) | OUTCOME_TRAFFIC | — | link_click | RESULTS | null |
+Regras que não mudam: sem pixel, SALES/LEADS/APP caem pra TRAFFIC (`objectiveReason: 'no_pixel'`) e o sync conta clique (menos MESSAGE). O evento vai em `MetaPublishSettings.pixelEvent` (e `MetaPublishDefaults.pixelEvent`): o do resultType quando o objetivo é o dele; trocou o objetivo na publicação = evento padrão do objetivo (SALES → PURCHASE, LEADS → LEAD); publicação antiga sem `pixelEvent` = como antes. **Não conferido ao vivo:** os `action_type` de SUBSCRIPTION/APPOINTMENT/SIGNUP/MESSAGE (não há anúncio desses tipos numa conta conectada); o fallback cobre a variante por canal. Fora da v1: CTWA/Direct/Messenger como destino (`OUTCOME_ENGAGEMENT` + `CONVERSATIONS`), lead form nativo.
+
+### §1.2 Pré-preenchimento pela leitura (A2)
+`OfferExtractOutput.business: BusinessSuggestion` (o backend preenche sempre): `industry` e `market` (saída estruturada do Claude, string vazia = não sabe → null), `resultType` (enum + `UNKNOWN` → null; quiz que termina em checkout = PURCHASE), `brandColor` + `brandColorSource` (**nunca do modelo**: fundo computado dos CTAs visíveis no DOM renderizado, agrupado por cor e pesado por área, só cor saturada; sem render na cascata, uma sonda abre a principal sem scroll em paralelo com as subpáginas; fallback `<meta name="theme-color">`; senão null) e `shortCode` (2-6 [A-Z0-9] a partir do nome, sem repetir o `shortCode` de outro workspace de quem é membro deste). O web pré-preenche **só campo vazio** (o código só enquanto ninguém digitou nele; o nome só se for o padrão "New client"), tudo editável, com o selo "from your site" enquanto o valor é o sugerido.
+
 ## 0. Resumo em 5 linhas
 1. **Cliente = Workspace.** Ganha `shortCode`, `industry`, `market`, `businessType`, `websiteUrl`, `onboardingStep`, `onboardingCompletedAt`, `pausedAt`. O `status` (SETUP / LIVE / PAUSED) é **derivado**, não salvo.
 2. **Papel novo `CLIENT`** ("Client · approves ads"): lê tudo, aprova, baixa, marca vencedor, pede ajuste de texto; não gasta dinheiro e não mexe em configurações. OWNER/ADMIN = "Agency admin". Nada do que existe muda.
