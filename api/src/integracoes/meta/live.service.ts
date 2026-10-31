@@ -3,7 +3,7 @@
 import type {
   MetaAdAccountInfo, MetaAuth, MetaHealthInput, MetaHealthResult, MetaOAuthState, MetaPublishIds, MetaPublishInput, MetaReturnTo, MetaService,
   MetaServiceStatus, MetaSyncInput, MetaSyncResult, MetaSyncStage, MetaTokenGrant, MetaTokenInfo, MetaWinnerRule,
-  MetaLiveObject, MetaObjectLevelPort, MetaUsage,
+  MetaLiveObject, MetaObjectLevelPort, MetaUsage, MetaTemplateSourceRead,
 } from '../contrato';
 import * as campanhas from './campanhas';
 import { GraphClient } from './cliente';
@@ -14,6 +14,7 @@ import { type OAuthConfig, debugToken, dialogUrl, exchangeCode } from './oauth';
 import * as pub from './publicacao';
 import { buildHealth } from './saude';
 import { scoreAllAds } from './vencedor';
+import * as templates from './templates';
 
 export interface LiveMetaOptions {
   appId: string; appSecret: string; configId: string;
@@ -168,5 +169,10 @@ export class LiveMetaService implements MetaService {
   usage(): MetaUsage | null {
     const u = this.graph.lastUsage;
     return u ? { pct: u.pct, regainSec: u.regainSec ?? null, at: (this.graph.lastUsageAt ?? this.now()).toISOString() } : null;
+  }
+
+  // ---------- meta-templates-v1 §3 ----------
+  readTemplateSource(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string; hint?: { adsetId?: string | null; adId?: string | null } }): Promise<MetaTemplateSourceRead> {
+    return templates.readTemplateSource(this.graph, auth.accessToken, i);
   }
 }

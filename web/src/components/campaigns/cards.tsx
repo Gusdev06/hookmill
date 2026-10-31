@@ -97,7 +97,7 @@ export function Totals({ totals, ctx }: { totals: MetaCampaignsTotals; ctx: Tabl
     [t("col.ctr"), f.pct(totals.ctr)],
   ]
   return (
-    <div className="grid grid-cols-2 gap-2 tablet:hidden">
+    <div className="grid grid-cols-2 gap-2 min-[1100px]:hidden">
       {cells.map(([k, v]) => (
         <div key={k} className="flex flex-col rounded-md border border-line bg-card px-3 py-2.5">
           <small className="text-[11px] text-fg-3">{k}</small>
@@ -208,14 +208,14 @@ export function PhoneList({
   return (
     <>
       <Totals totals={totals} ctx={ctx} />
-      <div className="flex flex-col gap-2.5 tablet:hidden">{body}</div>
+      <div className="flex flex-col gap-2.5 min-[1100px]:hidden">{body}</div>
     </>
   )
 }
 
 export function CardsSkeleton() {
   return (
-    <div className="flex flex-col gap-2.5 tablet:hidden" aria-busy="true">
+    <div className="flex flex-col gap-2.5 min-[1100px]:hidden" aria-busy="true">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex flex-col gap-2.5 rounded-[14px] border border-line bg-card p-3.5">
           <span className="sk block h-2.5 w-[70%] rounded-[6px]" />

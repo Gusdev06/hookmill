@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
+import { SampleCreativeGuard } from '../amostra/amostra.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { existsSync } from 'node:fs';
@@ -28,6 +29,7 @@ export class TemplatesController {
 
 @ApiTags('edit')
 @ApiBearerAuth()
+@UseGuards(SampleCreativeGuard) // amostra-gratis-v1 §4
 @Controller('creatives/:id')
 export class EdicaoController {
   constructor(private readonly edicao: EdicaoService) {}

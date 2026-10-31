@@ -1,4 +1,5 @@
 import { delay } from "msw"
+import { captureAccessFromUrl } from "./amostra"
 /**
  * Mock-only screen states, so every empty / loading / error state can be checked in the browser.
  * Open any page with ?mock=empty | loading | error (remembered for the tab); ?mock=off clears it.
@@ -7,6 +8,7 @@ export type Scenario = "empty" | "loading" | "error" | null
 const KEY = "mock:scenario"
 
 export function captureScenarioFromUrl() {
+  captureAccessFromUrl()
   const v = new URLSearchParams(window.location.search).get("mock")
   if (v === "off") sessionStorage.removeItem(KEY)
   else if (v === "empty" || v === "loading" || v === "error") sessionStorage.setItem(KEY, v)

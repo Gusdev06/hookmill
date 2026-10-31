@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext, Roles } from '../common/auth/auth-context';
 import { ExpensiveAction } from '../common/throttle/app-throttler.guard';
-import { CreateIterateDto, EmptyBodyDto, StartIterateDto, UpdateAnswersDto, SelectItemDto } from './iteracao.dto';
+import { CreateIterateDto, EmptyBodyDto, ForceCaptionBlockedDto, StartIterateDto, UpdateAnswersDto, SelectItemDto } from './iteracao.dto';
 import { IteracaoService } from './iteracao.service';
 
 /**
@@ -55,6 +55,19 @@ export class IteracaoController {
   @ExpensiveAction() @HttpCode(202) @Post(':id/replan')
   replan(@Auth() auth: AuthContext, @Param('id') id: string, @Body() _dto: EmptyBodyDto) {
     return this.iteracao.replan(auth, id);
+  }
+
+  /** legenda-protegida-v1 §8 (29/10): "Gerar mesmo assim" num formato bloqueado pela legenda queimada. Só PLAN_READY.
+   *  Sem candidata guardada = 1 chamada do plano (custo no lote, teto do workspace). */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @ExpensiveAction() @HttpCode(200) @Post(':id/caption-blocked/force')
+  forceCaption(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: ForceCaptionBlockedDto) {
+    return this.iteracao.forceCaptionBlocked(auth, id, { type: dto.type, template: dto.template ?? null });
+  }
+
+  /** §8: desfaz o "Gerar mesmo assim" (a peça sai do plano; o formato volta pra `captionBlocked` sem `forced`). */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @HttpCode(200) @Delete(':id/caption-blocked/force')
+  unforceCaption(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: ForceCaptionBlockedDto) {
+    return this.iteracao.unforceCaptionBlocked(auth, id, { type: dto.type, template: dto.template ?? null });
   }
 
   @HttpCode(202) @Post(':id/start')

@@ -124,7 +124,7 @@ export function FlowBar({
       {/* desktop */}
       <nav
         aria-label={t("aria", { name })}
-        className={cn("hidden flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-lg border border-line bg-card py-2 pr-2.5 pl-[18px] tablet:flex", className)}
+        className={cn("hidden flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-lg border border-line bg-card py-2 pr-2.5 pl-[18px] min-[1100px]:flex", className)}
       >
         <div className="flex flex-col">
           {client ? <span className="eyebrow">{client}</span> : null}
@@ -190,10 +190,11 @@ export function FlowBar({
       </nav>
 
       {/* ≤760 px */}
-      <nav aria-label={t("aria", { name })} className={cn("flex flex-col gap-2 rounded-[14px] border border-line bg-card px-3 py-2.5 tablet:hidden", className)}>
+      <nav aria-label={t("aria", { name })} className={cn("flex flex-col gap-2 rounded-[14px] border border-line bg-card px-3 py-2.5 min-[1100px]:hidden", className)}>
         <div className="flex items-center gap-2.5">
           <div className="flex min-w-0 flex-1 flex-col">
-            <span className="eyebrow truncate">
+            {/* QA layout 29/10 #11/#20: the compact bar up to 1100 px (the full one wrapped into 3 lines at 768); the eyebrow wraps instead of "…" */}
+            <span className="eyebrow [overflow-wrap:anywhere]">
               {name} · {t(`phases.${curPhase}`)}
             </span>
             <b className="wide truncate text-[15px]" aria-current="step">

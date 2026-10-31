@@ -263,7 +263,8 @@ export class AuthService {
 }
 
 export function publicUser(u: User): PublicUser {
-  return { id: u.id, name: u.name, email: u.email, uiLocale: u.uiLocale, accountMode: u.accountMode ?? null };
+  // amostra-gratis-v1 §1/§2: plano da conta e se a amostra já foi gasta
+  return { id: u.id, name: u.name, email: u.email, uiLocale: u.uiLocale, accountMode: u.accountMode ?? null, access: u.access, sampleUsed: !!u.sampleUsedAt };
 }
 
 /** Item de `workspaces[]`/`workspace` da sessão (sem tourCompletedAt; quem chama põe no ativo). */

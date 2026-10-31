@@ -9,7 +9,8 @@ import { MetaConexaoService } from './conexao.service';
 import { MetaEscritaService } from './escrita.service';
 import { MetaImportService } from './importacao.service';
 import { MetaModeGuard } from './meta-mode.guard';
-import { CreativeMetaController, MetaController } from './meta.controller';
+import { CreativeMetaController, MetaController, MetaTemplatesController } from './meta.controller';
+import { MetaTemplatesService } from './templates.service';
 import { MetaPublicacaoService } from './publicacao.service';
 import { MetaSyncService } from './sync.service';
 
@@ -30,8 +31,8 @@ class MetaRecuperacao implements OnApplicationBootstrap {
  */
 @Module({
   imports: [JobsModule, CampeoesModule, OnboardingModule], // StorageService e KeyedMutex vêm de módulos globais
-  controllers: [MetaController, CreativeMetaController, MetaCampanhasController],
-  providers: [MetaConexaoService, MetaSyncService, MetaImportService, MetaPublicacaoService, MetaRecuperacao, MetaModeGuard, MetaCampanhasService, MetaEscritaService],
-  exports: [MetaConexaoService, MetaSyncService, MetaImportService, MetaPublicacaoService, MetaCampanhasService, MetaEscritaService],
+  controllers: [MetaController, CreativeMetaController, MetaCampanhasController, MetaTemplatesController],
+  providers: [MetaConexaoService, MetaSyncService, MetaImportService, MetaPublicacaoService, MetaRecuperacao, MetaModeGuard, MetaCampanhasService, MetaEscritaService, MetaTemplatesService],
+  exports: [MetaConexaoService, MetaSyncService, MetaImportService, MetaPublicacaoService, MetaCampanhasService, MetaEscritaService, MetaTemplatesService],
 })
 export class MetaModule {}

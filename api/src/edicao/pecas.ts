@@ -360,6 +360,11 @@ export function median(xs: number[]): number | null {
 
 // ───────── legenda-protegida-v1 ─────────
 
+/** legenda-protegida-v1 §8 (29/10): item posto de volta com "Gerar mesmo assim" (`payload.captionOverride`). */
+export function captionOverrideOf(payload: unknown): boolean {
+  return (payload as { captionOverride?: unknown } | null)?.captionOverride === true;
+}
+
 /** §2.2 `IteratePiece.captionNote`: o render vigente saiu no modo `replace` (recorte + a nossa legenda no estilo da original). */
 export function captionNoteOf(renderInput: unknown): 'replaced' | null {
   return (renderInput as { captionMode?: string } | null)?.captionMode === 'replace' ? 'replaced' : null;

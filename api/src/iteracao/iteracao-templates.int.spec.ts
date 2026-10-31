@@ -70,7 +70,7 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     configureApp(app);
     await app.listen(PORT, '127.0.0.1');
     const email = `it-${RUN}@teste.local`;
-    const user = await prisma.user.create({ data: { email, name: 'It T', passwordHash: await hashPassword(PASSWORD) } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: 'It T', passwordHash: await hashPassword(PASSWORD) } });
     const w = await prisma.workspace.create({ data: { name: `Acme Tpl ${RUN}`, shortCode: 'MC', websiteUrl: 'https://example.com/lp', memberships: { create: [{ userId: user.id, role: 'OWNER' }] } } });
     wsId = w.id;
     const res = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });

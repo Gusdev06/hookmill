@@ -22,6 +22,8 @@ import { PieceTextAlert, TextCheckChip, hasTextError, useStaticStage } from "./t
 import { CaptionNote, NewBatchButton } from "./captions"
 import { useCanMakeFormats, useMakeFormatForAll, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
+import { BatchSendButton } from "@/components/meta/templates/batch-send"
+import { SampleDownloadScreen, isLockedSample } from "./sample"
 
 const inGrid = (p: IteratePiece) => p.status === "ready" || ((p.status === "queued" || p.status === "rendering") && p.previewReady)
 
@@ -42,6 +44,12 @@ function saveFile(url: string, fileName: string) {
  * ask the missing ones (one call per piece, total price in the confirm). The zip takes the formats that are ready.
  */
 export function DownloadScreen({ batch }: { batch: IterateBatch }) {
+  // amostra-gratis-v1: the locked sample shows the blurred previews + the unlock panel (zip, formats, Meta and editor off).
+  // Once the account is PAID the API sends the same pieces unlocked and this screen is the normal one.
+  return isLockedSample(batch) ? <SampleDownloadScreen batch={batch} /> : <FullDownloadScreen batch={batch} />
+}
+
+function FullDownloadScreen({ batch }: { batch: IterateBatch }) {
   const t = useTranslations("iterate.download")
   const fmt = useIterFormat()
   const format = useFormatter()
@@ -175,9 +183,12 @@ export function DownloadScreen({ batch }: { batch: IterateBatch }) {
           </>
         }
       >
-        <Link href="/" className={buttonVariants({ variant: "outline" })}>
+        {/* review 29/10 F5: three buttons don't fit 390 px; on the phone the dark top bar already goes Home */}
+        <Link href="/" className={buttonVariants({ variant: "outline", className: "max-tablet:hidden" })}>
           {t("home")}
         </Link>
+        {/* meta-templates-v1 P3: the ready videos in the zip go to Meta as one batch (stills can't be published as video ads) */}
+        <BatchSendButton items={inZip.filter((p) => p.creativeId && !isImagePiece(p)).map((p) => ({ creativeId: p.creativeId!, code: p.code }))} />
         <Button variant="brand" disabled={!inZip.length || building} onClick={() => zip.mutate()} title={!inZip.length ? t("nothingToZip") : undefined}>
           {building ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : <NavIcon name="dl" size={16} />}
           {building ? t("building") : t("downloadZip")}
@@ -278,8 +289,8 @@ function PieceCard({ p, batchId, onPreview }: { p: IteratePiece; batchId: string
   const stage = busy ? (stageLine(p) ?? t("renderingPiece")) : null
   const id = `inzip-${p.id}`
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-[14px] border border-line bg-card p-2.5">
-      <button type="button" onClick={onPreview} aria-label={t("previewAria", { code: p.code })} className={cn("relative block w-full cursor-pointer rounded-[10px] border-0 bg-transparent p-0", !p.inZip && "[&>.tf]:opacity-50")}>
+    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-line bg-card p-2.5">
+      <button type="button" onClick={onPreview} aria-label={t("previewAria", { code: p.code })} className={cn("relative block w-full cursor-pointer rounded-md border-0 bg-transparent p-0", !p.inZip && "[&>.tf]:opacity-50")}>
         <TypeThumb type={pieceType(p)} poster={p.poster} play={!isImagePiece(p)} />
         <TextCheckChip p={p} className="absolute bottom-2 left-2 shadow-[0_1px_6px_rgba(0,0,0,0.25)]" />
       </button>

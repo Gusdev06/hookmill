@@ -52,6 +52,9 @@ export class WorkspacesService {
       throw new AppException('INVALID_STATE', { state: clientStatusOf(cur), allowed: ['SETUP'], reason: 'onboarding_completed' });
     }
     const result = resultDataOf(dto, cur);
+    if (dto.targetCpa && dto.targetCpa.min > dto.targetCpa.max) {
+      throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'targetCpa.max', rule: 'min_lte_max' }] });
+    }
     const ws = await this.prisma.workspace.update({
       where: { id: auth.workspaceId },
       include: WS_WITH_UPDATED_BY,
@@ -66,6 +69,10 @@ export class WorkspacesService {
         ...(dto.industry !== undefined && { industry: text(dto.industry) }),
         ...(dto.market !== undefined && { market: text(dto.market) }),
         ...result,
+        // 29/10 (Loom do Tordan): faixa de CPA alvo; null limpa os três
+        ...(dto.targetCpa !== undefined && {
+          targetCpaMin: dto.targetCpa?.min ?? null, targetCpaMax: dto.targetCpa?.max ?? null, targetCpaCurrency: dto.targetCpa?.currency ?? null,
+        }),
         ...(dto.websiteUrl !== undefined && { websiteUrl: text(dto.websiteUrl) }),
         // D3: `#RRGGBB` maiúsculo; null limpa (a paleta volta a ser derivada, §A3.3)
         ...(dto.brandColor !== undefined && { brandColor: dto.brandColor === null ? null : normalizeHex(dto.brandColor) }),

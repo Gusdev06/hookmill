@@ -104,12 +104,12 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     };
     for (const k of ['A', 'B'] as const) {
       const email = `b2auto-${RUN}-${k.toLowerCase()}@teste.local`;
-      const user = await prisma.user.create({ data: { email, name: `B2auto ${k}`, passwordHash: hash } });
+      const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `B2auto ${k}`, passwordHash: hash } });
       const w = await prisma.workspace.create({ data: { name: `b2auto-${RUN}-${k}`, shortCode: 'TS', memberships: { create: { userId: user.id, role: 'OWNER' } } } });
       who[k] = { id: w.id, userId: user.id, token: await login(email) };
     }
     const cEmail = `b2auto-${RUN}-c@teste.local`;
-    const cu = await prisma.user.create({ data: { email: cEmail, name: 'B2auto Client', passwordHash: hash, memberships: { create: { workspaceId: who.A.id, role: 'CLIENT' } } } });
+    const cu = await prisma.user.create({ data: { access: 'INTERNAL', email: cEmail, name: 'B2auto Client', passwordHash: hash, memberships: { create: { workspaceId: who.A.id, role: 'CLIENT' } } } });
     who.C = { id: who.A.id, userId: cu.id, token: await login(cEmail) };
 
     offerId = (await prisma.offer.create({

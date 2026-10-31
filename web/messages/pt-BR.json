@@ -622,6 +622,7 @@
     "CONFIRM_DOWNSTREAM_RESET": "Essa mudança descarta o que já foi gerado.",
     "OFFER_INCOMPLETE": "O briefing precisa de pelo menos “O que é” e “Promessa principal”.",
     "SPEND_CAP_EXCEEDED": "Teto de gasto do mês atingido.",
+    "PAYMENT_REQUIRED": "Libere o HookMill pra fazer isso: não faz parte da amostra grátis.",
     "ESTIMATE_CHANGED": "A estimativa mudou. Confira e tente de novo.",
     "INVITE_INVALID": "Esse convite venceu ou já foi usado.",
     "SAFETY_BLOCK": "O serviço marcou o conteúdo como impróprio.",
@@ -651,7 +652,7 @@
     "ONBOARDING_INCOMPLETE": "A configuração precisa do tipo de negócio e de pelo menos uma oferta antes.",
     "OFFER_REQUIRED": "Escolha de qual oferta é este anúncio.",
     "PLAN_CHANGED": "O plano mudou. Confira o novo número e tente de novo.",
-    "NO_PRODUCT_PHOTO": "Ainda não há foto do produto no Brain.",
+    "NO_PRODUCT_PHOTO": "Ainda não há foto do produto no Cérebro.",
     "PLAN_INVALID": "O plano não passou nas regras do lote.",
     "SOURCE_UNAVAILABLE": "O vídeo original não está mais no armazenamento.",
     "META_NOT_CONFIGURED": "A Meta ainda não está configurada neste servidor.",
@@ -1533,7 +1534,7 @@
       "home": "Início",
       "campaigns": "Campanhas",
       "eddy": "Eddy",
-      "brain": "Brain",
+      "brain": "Cérebro",
       "iterate": "Iterar um vencedor",
       "concepts": "Conceitos novos",
       "review": "Revisar",
@@ -1576,16 +1577,16 @@
       "home": "Voltar pro Início"
     },
     "campaigns": {
-      "heading": "Campanhas lê os resultados do Meta de {client} todo dia.",
-      "promise": "Mostra o custo por compra contra a meta e ranqueia ganchos, corpos e CTAs pelos números reais. Precisa da conexão com o Meta, que ainda não existe.",
+      "heading": "Campanhas lê os resultados da Meta de {client} todo dia.",
+      "promise": "Mostra o custo por compra contra a meta e ranqueia ganchos, corpos e CTAs pelos números reais. Precisa da conexão com a Meta, que ainda não existe.",
       "eyebrow": "{client} · últimos 30 dias"
     },
     "eddy": {
       "heading": "O Eddy lê os resultados e diz o que fazer a seguir.",
-      "promise": "Notas em linguagem simples sobre o que está cansando, o que falta e o que funciona, com propostas que você aprova. Precisa da conexão com o Meta, que ainda não existe."
+      "promise": "Notas em linguagem simples sobre o que está cansando, o que falta e o que funciona, com propostas que você aprova. Precisa da conexão com a Meta, que ainda não existe."
     },
     "brain": {
-      "heading": "O Brain guarda tudo o que o HookMill sabe sobre {client}.",
+      "heading": "O Cérebro guarda tudo o que o HookMill sabe sobre {client}.",
       "promise": "Negócio, oferta, público, prova e as regras que toda rodada segue, com o quanto está completo. Esta tela chega na próxima rodada. Hoje isso mora nas ofertas."
     },
     "clients": {
@@ -1683,11 +1684,11 @@
     "opening": "Abrindo…",
     "waiting": "{total, plural, one {# item} other {# itens}} esperando você: {creatives, plural, one {# anúncio} other {# anúncios}}, {batches, plural, one {# lote} other {# lotes}}.",
     "nothingWaiting": "Nada esperando você.",
-    "soonSpend": "<b>Gasto e custo por resultado</b> vêm do Meta, que ainda não está conectado.",
+    "soonSpend": "<b>Gasto e custo por resultado</b> vêm da Meta, que ainda não está conectada.",
     "spend30": "Gasto, 30 dias",
     "cpa": "Custo por resultado",
     "onboardTitle": "Cadastrar um cliente novo",
-    "onboardBody": "Uns 20 minutos. O progresso é salvo a cada passo, dá pra terminar depois.",
+    "onboardBody": "Uns 10 minutos. O progresso é salvo a cada passo, dá pra terminar depois.",
     "newTitle": "Novo cliente",
     "newBody": "Criamos o espaço do cliente e abrimos a configuração no passo 1.",
     "name": "Nome do negócio",
@@ -1702,7 +1703,7 @@
     "eyebrow": "Configuração de cliente novo",
     "eyebrowEdit": "Configuração do cliente",
     "railLabel": "Passos da configuração",
-    "railFooter": "Uns 20 minutos. O progresso é salvo a cada passo, então o cliente pode terminar depois.",
+    "railFooter": "Uns 10 minutos. O progresso é salvo a cada passo, então o cliente pode terminar depois.",
     "saveExit": "Salvar e sair",
     "back": "Voltar",
     "stepOf": "Passo {n} de {total}",
@@ -1734,7 +1735,7 @@
         "desc": "Teto de gasto e metas"
       },
       "brain": {
-        "title": "Montar o Brain",
+        "title": "Montar o Cérebro",
         "desc": "Resumo e primeiros passos"
       }
     },
@@ -1814,7 +1815,7 @@
       "code": "Código do cliente",
       "codeHint": "De 2 a 6 letras ou números. Abre o nome de todo arquivo de vídeo, pra casar resultados depois.",
       "codeInvalid": "Use de 2 a 6 letras ou números, sem espaço.",
-      "soonCurrency": "<b>Moeda e fuso</b> por cliente chegam com a conexão do Meta.",
+      "soonCurrency": "<b>Fuso</b> e a moeda da conta de anúncios vêm da conexão com a Meta.",
       "team": "Time",
       "teamSub": "Quem vê este cliente. O cliente aprova anúncios; não gasta nem muda configurações.",
       "teamFailed": "Não deu pra carregar o time.",
@@ -1822,19 +1823,30 @@
       "fixOther": "Descreva o que conta como resultado.",
       "continue": "Continuar: conectar Meta",
       "continueOffer": "Continuar: produto e oferta",
-      "fromSite": "do seu site"
+      "fromSite": "do seu site",
+      "more": "Mais detalhes (opcional)",
+      "moreSub": "Idioma, cor da marca e custo alvo",
+      "moreTypes": "Mais…",
+      "inviteLater": "Convide o time depois em Configurações › Membros.",
+      "cpaLegend": "Custo alvo por resultado (opcional)",
+      "cpaMin": "De",
+      "cpaMax": "Até",
+      "cpaTo": "a",
+      "cpaCurrency": "Moeda",
+      "cpaHint": "A faixa que você aceita pagar por resultado, ex.: 100 a 150. O Cérebro usa isso pra julgar seus anúncios e planejar as variações.",
+      "fixCpa": "Preencha os dois valores da faixa de custo, com o primeiro não maior que o segundo."
     },
     "meta": {
       "title": "Conectar a conta Meta de {name}",
-      "sub": "O cliente entra com o Meta e dá acesso ao HookMill à conta de anúncios, página e pixel.",
-      "heading": "O Meta chega numa próxima rodada.",
-      "promise": "Vai ler campanhas e resultados todo dia e criar anúncios só depois de aprovados. Precisa da conexão com o Meta, que ainda não existe. Pule por enquanto: o resto funciona sem ela.",
+      "sub": "O cliente entra com a Meta e dá acesso ao HookMill à conta de anúncios, página e pixel.",
+      "heading": "A Meta chega numa próxima rodada.",
+      "promise": "Vai ler campanhas e resultados todo dia e criar anúncios só depois de aprovados. Precisa da conexão com a Meta, que ainda não existe. Pule por enquanto: o resto funciona sem ela.",
       "skip": "Pular por enquanto",
-      "hint": "Dá pra conectar o Meta depois, quando estiver pronto.",
+      "hint": "Dá pra conectar a Meta depois, quando estiver pronto.",
       "preview": {
-        "login": "Entrar com o Meta",
+        "login": "Entrar com a Meta",
         "loginSub": "Escolha o negócio, a conta de anúncios, a página e o pixel.",
-        "continue": "Continuar com o Meta",
+        "continue": "Continuar com a Meta",
         "health": {
           "account": "Conta de anúncios ativa",
           "payment": "Forma de pagamento cadastrada",
@@ -1852,8 +1864,8 @@
     },
     "offer": {
       "title": "O que estamos vendendo?",
-      "sub": "Preencha a oferta de {name}. Tudo vai pro Brain e todo roteiro sai daqui.",
-      "subRead": "Achamos isto em {site}. Confira e corrija o que estiver errado. Tudo vai pro Brain de {name}.",
+      "sub": "Preencha a oferta de {name}. Tudo vai pro Cérebro e todo roteiro sai daqui.",
+      "subRead": "Achamos isto em {site}. Confira e corrija o que estiver errado. Tudo vai pro Cérebro de {name}.",
       "noOffer": "Ainda sem oferta. Leia o site no passo 1 pra preencher, ou escreva aqui.",
       "readSite": "Ler o site",
       "many": "Este cliente tem {count} ofertas. Aqui você edita a mais recente; as outras ficam em Ofertas.",
@@ -1878,7 +1890,7 @@
       "instructions": "Instruções personalizadas",
       "notes": "Notas e o que evitar",
       "notesPh": "ex.: Nunca prometer resultado em dias. Não citar concorrente pelo nome.",
-      "notesHint": "Todo roteiro segue isto. Aparece no Brain como Instruções personalizadas.",
+      "notesHint": "Todo roteiro segue isto. Aparece no Cérebro como Instruções personalizadas.",
       "soonGroups": "<b>Grupos de compradores</b> com o que cada um quer.",
       "soonVoice": "<b>Voz</b>: controles de tom e uma frase com a cara da marca.",
       "soonWords": "<b>Palavras</b> que usamos e que nunca usamos.",
@@ -1896,14 +1908,14 @@
       "cap": "Teto de gasto com geração, por mês (USD)",
       "capHint": "Imagens, vozes e vídeos deste cliente param neste valor a cada mês. Vazio = sem teto.",
       "capInvalid": "Use um número, como 300.",
-      "soonTargets": "<b>Metas e verba</b> (custo por resultado, verba de teste, teto diário) precisam dos resultados do Meta.",
+      "soonTargets": "<b>Metas e verba</b> (custo por resultado, verba de teste, teto diário) precisam dos resultados da Meta.",
       "soonApprovals": "<b>Aprovações</b>: o que precisa de um sim antes de ir ao ar.",
       "soonAutonomy": "<b>Quanto o Eddy pode fazer sozinho.</b>",
-      "continue": "Montar o Brain de {name}"
+      "continue": "Montar o Cérebro de {name}"
     },
     "brain": {
-      "title": "Montando o Brain de {name}",
-      "titleLive": "O Brain de {name} está pronto",
+      "title": "Montando o Cérebro de {name}",
+      "titleLive": "O Cérebro de {name} está pronto",
       "sub": "Tudo o que o HookMill sabe deste cliente, a partir dos passos preenchidos. Todo roteiro usa isto.",
       "completing": "Concluindo a configuração…",
       "liveTitle": "{name} está no ar",
@@ -1917,7 +1929,7 @@
       "toStep": "Ir pro passo {n}",
       "tryAgain": "Tentar de novo",
       "completeFailed": "Não deu pra concluir a configuração",
-      "knows": "O que o Brain sabe",
+      "knows": "O que o Cérebro sabe",
       "section": {
         "business_offer": "Negócio e oferta",
         "audience": "Público",
@@ -1943,10 +1955,10 @@
         "notes": "notas",
         "spendCap": "teto de gasto"
       },
-      "brain": "Brain",
+      "brain": "Cérebro",
       "missingCount": "{count, plural, one {# item faltando} other {# itens faltando}}. Quanto mais ele sabe, melhores os roteiros.",
       "allIn": "Tudo preenchido.",
-      "soonRead": "<b>A primeira leitura do Eddy</b> sobre 90 dias de anúncios precisa da conexão com o Meta.",
+      "soonRead": "<b>A primeira leitura do Eddy</b> sobre 90 dias de anúncios precisa da conexão com a Meta.",
       "start": "Por onde você quer começar?",
       "path1": "Caminho 1",
       "path2": "Caminho 2",
@@ -1976,7 +1988,7 @@
   },
   "signup": {
     "title": "Crie sua conta",
-    "subtitle": "Em seguida você configura o primeiro cliente. Leva uns 20 minutos, e dá pra parar e voltar depois.",
+    "subtitle": "Em seguida você configura o seu negócio ou o primeiro cliente. Uns 10 minutos, e dá pra parar e voltar depois.",
     "name": "Seu nome",
     "email": "E-mail de trabalho",
     "password": "Senha",
@@ -2013,7 +2025,7 @@
       "eyebrow": "Mesa de anúncios em vídeo pra agências",
       "titleA": "Anúncios em vídeo pra qualquer oferta,",
       "titleB": "feitos a partir dos que já vendem.",
-      "sub": "Suba um anúncio vencedor e receba rostos e ganchos novos num lote só. Ou comece pela oferta e vá do roteiro até um MP4 aprovado. Cada cliente tem um Brain, então todo roteiro parte do que você já sabe.",
+      "sub": "Suba um anúncio vencedor e receba rostos e ganchos novos num lote só. Ou comece pela oferta e vá do roteiro até um MP4 aprovado. Cada cliente tem um Cérebro, então todo roteiro parte do que você já sabe.",
       "ctaPrimary": "Criar conta",
       "ctaSecondary": "Entrar",
       "note": "Em português e inglês. Funciona no celular."
@@ -2077,7 +2089,7 @@
           },
           {
             "t": "Roteiros",
-            "d": "Escritos a partir do Brain do cliente. Edite qualquer linha."
+            "d": "Escritos a partir do Cérebro do cliente. Edite qualquer linha."
           },
           {
             "t": "Rosto",
@@ -2106,7 +2118,7 @@
       "eyebrow": "O que tem dentro",
       "title": "As partes que poupam uma semana por cliente.",
       "brain": {
-        "title": "Um Brain pra cada cliente",
+        "title": "Um Cérebro pra cada cliente",
         "body": "Negócio, oferta, público, provas e suas instruções num lugar só. Todo roteiro sai dele. Marque os anúncios que vencem e os roteiros novos da mesma oferta aprendem com eles.",
         "rows": [
           "Negócio e oferta",
@@ -2154,7 +2166,7 @@
       "points": [
         {
           "t": "Um espaço por cliente",
-          "d": "Brain, Biblioteca e teto de gasto próprios. Troque de cliente pela barra lateral."
+          "d": "Cérebro, Biblioteca e teto de gasto próprios. Troque de cliente pela barra lateral."
         },
         {
           "t": "O que espera você",
@@ -2186,12 +2198,12 @@
       "badge": "Em breve",
       "items": [
         {
-          "t": "Enviar pro Meta",
-          "d": "Subir os anúncios aprovados na conta e ler os resultados todo dia. Depende da conexão com o Meta."
+          "t": "Enviar pra Meta",
+          "d": "Subir os anúncios aprovados na conta e ler os resultados todo dia. Depende da conexão com a Meta."
         },
         {
           "t": "Campanhas",
-          "d": "Os resultados do Meta de cada cliente por campanha e anúncio, casados com os nomes dos arquivos."
+          "d": "Os resultados da Meta de cada cliente por campanha e anúncio, casados com os nomes dos arquivos."
         },
         {
           "t": "Eddy",
@@ -2232,22 +2244,31 @@
       "starting": "Começando a análise…",
       "cancel": "Cancelar",
       "offerLabel": "De qual oferta é este anúncio?",
-      "offerHelp": "A oferta define o idioma dos nomes de arquivo e qual Brain a IA lê.",
+      "offerHelp": "A oferta define o idioma dos nomes de arquivo e qual Cérebro a IA lê.",
       "libTitle": "Ou escolha da sua Biblioteca",
       "libWinner": "Vencedor · {dur} · {offer}",
       "useThis": "Usar este",
       "libEmpty": "Nenhum vencedor ainda. Marque seus melhores anúncios com a estrela na Biblioteca.",
-      "metaSoon": "Escolha seus melhores anúncios direto do Meta.",
+      "metaSoon": "Escolha seus melhores anúncios direto da Meta.",
       "readOnlyTitle": "Só o time da agência inicia um lote",
       "readOnlyBody": "Você vê os vencedores da conta aqui. Peça pra agência iterar um.",
-      "hintEmpty": "Escolha um vídeo pra começar.",
+      "hintEmpty": "Escolha um vídeo pra começar. A análise começa sozinha.",
+      "hintEmptyMeta": "Itere o vencedor acima ou suba um vídeo. A análise começa sozinha.",
+      "chooseVideo": "Escolher um vídeo",
       "hintUploading": "Enviando. A análise começa sozinha.",
       "generate": "Gerar",
       "noOfferTitle": "Cadastre uma oferta antes",
-      "noOfferBody": "A análise lê a oferta no Brain. Cadastre uma e volte.",
-      "openBrain": "Abrir o Brain",
+      "noOfferBody": "A análise lê a oferta no Cérebro. Cadastre uma e volte.",
+      "openBrain": "Abrir o Cérebro",
       "loadError": "Não conseguimos carregar esta tela.",
-      "uploadFailed": "O upload não terminou"
+      "uploadFailed": "O upload não terminou",
+      "runningTitle": "Ainda trabalhando — pode voltar quando quiser",
+      "runningOpen": "Abrir",
+      "running": {
+        "ANALYZING": "Lendo o anúncio",
+        "PLANNING": "Planejando as variações",
+        "LAUNCHED": "Gerando as peças"
+      }
     },
     "analyze": {
       "startedAgo": "Começou {ago}",
@@ -2270,7 +2291,7 @@
         "cta": "CTA"
       },
       "fromVideo": "Do vídeo",
-      "brainRef": "Brain › {field}: {ref}",
+      "brainRef": "Cérebro › {field}: {ref}",
       "brainField": {
         "what": "Produto",
         "audience": "Público",
@@ -2283,17 +2304,17 @@
         "page": "Página"
       },
       "keptLabel": "Fica em todas as peças:",
-      "readFrom": "Lido do vídeo e do Brain de {client}.",
+      "readFrom": "Lido do vídeo e do Cérebro de {client}.",
       "readFromVideo": "Lido do vídeo.",
-      "metricsSoon": "Métricas não usadas · conecte o Meta",
+      "metricsSoon": "Métricas não usadas · conecte a Meta",
       "videoOnly": "Só o vídeo",
       "planTitle": "O lote · {n, plural, one {# peça} other {# peças}}",
       "planTitleLoading": "O lote",
       "planSub": "Cada peça muda uma coisa. O nome do arquivo diz qual.",
       "stretch": "Esticar a vida",
-      "stretchSub": "Mesmo conceito, edição nova. O Meta lê como o mesmo anúncio.",
+      "stretchSub": "Mesmo conceito, edição nova. A Meta lê como o mesmo anúncio.",
       "newAudience": "Público novo",
-      "newAudienceSub": "Primeiro frame e layout diferentes. O Meta lê como anúncios novos.",
+      "newAudienceSub": "Primeiro frame e layout diferentes. A Meta lê como anúncios novos.",
       "formatsLine": "Toda peça sai em 9:16. Faça 4:5 ou 1:1 depois, pela prévia ou pelo download, só das que precisar. Formatos não contam como variação.",
       "type": {
         "CUT": "Corte por bloco",
@@ -2331,7 +2352,7 @@
       "stepsLabel": "etapas",
       "stage": {
         "reading": "Lendo o vídeo",
-        "brain": "Cruzando com o Brain",
+        "brain": "Cruzando com o Cérebro",
         "planning": "Planejando o lote"
       },
       "check": {
@@ -2349,11 +2370,11 @@
       "timeLeft": "Falta",
       "canClose": "Pode fechar esta página. O plano espera você em Início › Esperando por você.",
       "backHome": "Voltar ao Início",
-      "brainEmptyTitle": "O Brain de {client} está vazio, então esta leitura vem só do vídeo.",
-      "brainEmptyBody": "Sem a página do produto e os depoimentos, as peças que usam isso foram trocadas por outras que não precisam. Preencha o Brain e o próximo lote sai mais certeiro.",
+      "brainEmptyTitle": "O Cérebro de {client} está vazio, então esta leitura vem só do vídeo.",
+      "brainEmptyBody": "Sem a página do produto e os depoimentos, as peças que usam isso foram trocadas por outras que não precisam. Preencha o Cérebro e o próximo lote sai mais certeiro.",
       "swaps": "Trocado: {list}.",
       "pageMissingTitle": "A página do produto não abriu pro nosso navegador, então o layout split virou uma moldura de story.",
-      "pageMissingBody": "Adicione uma foto do produto em Brain › Negócio e oferta e o próximo lote usa ela no lugar.",
+      "pageMissingBody": "Adicione uma foto do produto em Cérebro › Negócio e oferta e o próximo lote usa ela no lugar.",
       "shortTitle": "{dur} e um plano contínuo, então não há blocos pra cortar, reordenar ou abrir.",
       "shortBody": "O plano usa texto na tela, layouts e um estático: {n, plural, one {# peça} other {# peças}}.",
       "smallTitle": "Lote menor: {n, plural, one {# peça} other {# peças}} em vez de 8 a 12.",
@@ -2435,7 +2456,7 @@
         "PAGE_UNREADABLE": "A página do produto não carregou.",
         "RENDER_ERROR": "A renderização parou no meio.",
         "SOURCE_UNAVAILABLE": "O vídeo original não está mais no armazenamento. Fale com o suporte.",
-        "photoHint": "Tente de novo com a foto do produto do Brain, ou deixe esta peça de fora.",
+        "photoHint": "Tente de novo com a foto do produto do Cérebro, ou deixe esta peça de fora.",
         "retryHint": "Tente esta peça de novo, ou deixe ela de fora.",
         "SAFETY_BLOCK": "O modelo de imagem recusou este conceito. Tentar de novo faz outra; Deixar de fora tira a peça.",
         "DOWNLOAD_INVALID": "A imagem não baixou inteira.",
@@ -2465,7 +2486,7 @@
       "stretchHead": "Um conjunto de teste pra este mesmo conceito",
       "stretchBody": "Separado do conjunto do campeão, que segue rodando. Anúncio novo no conjunto do campeão quase não recebe entrega. Quando uma ganhar do campeão, mova pro conjunto principal.",
       "newHead": "Um conjunto novo",
-      "newBody": "Estas parecem diferentes pro Meta, então acham pessoas que o campeão não alcança. Um conjunto, as {n} juntas.",
+      "newBody": "Estas parecem diferentes pra Meta, então acham pessoas que o campeão não alcança. Um conjunto, as {n} juntas.",
       "filterAll": "Todas · {n}",
       "filterStretch": "Esticar · {n}",
       "filterNew": "Público novo · {n}",
@@ -2554,7 +2575,8 @@
       "pickOffer": "Escolha a oferta primeiro.",
       "seeAll": "Ver os {n} anúncios ativos",
       "rule": "Vencedor = gasto ≥ US$ {spend}, ≥ {results} resultados, custo por resultado na mediana da conta ou abaixo.",
-      "noAds": "Ainda não há anúncios em vídeo com resultado nesta conta."
+      "noAds": "Ainda não há anúncios em vídeo com resultado nesta conta.",
+      "openRunning": "Abrir — em andamento"
     },
     "formats": {
       "readyAria": "{format} pronto",
@@ -2706,14 +2728,6 @@
     "goals": {
       "title": "O que vamos criar a partir deste campeão?",
       "lede": "Escolha o que quer testar enquanto analisamos o vídeo.",
-      "flowLabel": "Etapas do lote",
-      "flow": {
-        "winner": "Campeão",
-        "goals": "Seus objetivos",
-        "plan": "Plano",
-        "generate": "Gerar",
-        "pieces": "Peças"
-      },
       "loading": "Carregando suas preferências…",
       "retry": "Tentar novamente",
       "analyzing": "Analisando seu anúncio em segundo plano",
@@ -3145,7 +3159,8 @@
     "history": {
       "title": "Tentativas anteriores",
       "count": "{count, plural, one {# tentativa} other {# tentativas}}"
-    }
+    },
+    "templatesLoading": "Carregando templates…"
   },
   "tour": {
     "counter": "Tour · {n} de {total}",
@@ -3313,6 +3328,7 @@
           "websiteUrl": "Site",
           "spendCapUsd": "Teto mensal",
           "defaultResult": "Resultado",
+          "targetCpa": "Custo alvo por resultado",
           "kind": "Tipo",
           "what": "O que é",
           "promise": "Promessa",
@@ -3637,7 +3653,10 @@
     "retry": "Tentar de novo",
     "detailFailed": "Não deu pra carregar esta campanha.",
     "loading": "Carregando…",
-    "loadMore": "Carregar mais"
+    "loadMore": "Carregar mais",
+    "filters": "Filtros",
+    "filtersTitle": "Filtros",
+    "filtersApply": "Ver resultados"
   },
   "brandColor": {
     "label": "Cor da marca",
@@ -3731,6 +3750,322 @@
     "replanned": "Planejando de novo com a versão sem legenda.",
     "launched": "Esse lote já foi lançado; gere um lote novo com a versão sem legenda.",
     "newBatch": "Novo lote",
-    "anotherBatch": "Gerar outro lote com este campeão"
+    "anotherBatch": "Gerar outro lote com este campeão",
+    "force": "Gerar mesmo assim",
+    "unforce": "Desfazer",
+    "forcedTag": "Cobre a legenda",
+    "blockedOr": "Ou gere mesmo assim: o layout novo vai cobrir a legenda original.",
+    "show": "Mostrar",
+    "hide": "Esconder"
+  },
+  "metaTemplates": {
+    "title": "Templates de publicação",
+    "crumbSettings": "Configurações",
+    "lede": "Defina uma vez como o HookMill cria campanhas, conjuntos e anúncios na sua conta. Todo \"Enviar pra Meta\" usa o template padrão, a menos que você escolha outro.",
+    "cardBody": "Como o HookMill cria campanhas, conjuntos e anúncios quando você envia pra Meta.",
+    "manage": "Templates de publicação",
+    "importCta": "Importar de uma campanha",
+    "newCta": "Novo template",
+    "edit": "Editar",
+    "view": "Ver",
+    "pillDefault": "Padrão",
+    "pillImported": "Importado",
+    "emptyTitle": "Nenhum template de publicação ainda",
+    "emptyBody": "Crie do zero ou importe as configurações de uma campanha que já roda. O primeiro vira o padrão.",
+    "emptyBodyClient": "Sua agência ainda não definiu um template de publicação pra esta conta.",
+    "loadFailed": "Não deu pra carregar os templates",
+    "offTitle": "A Meta não está configurada neste servidor",
+    "offBody": "Templates de publicação precisam da conexão com a Meta.",
+    "copyOf": "Cópia de \"{name}\"",
+    "notCopied": "Importado de \"{name}\". Não copiado: {list}. Revise os campos e salve.",
+    "event": {
+      "PURCHASE": "Compra",
+      "LEAD": "Lead",
+      "COMPLETE_REGISTRATION": "Cadastro concluído",
+      "SCHEDULE": "Agendamento",
+      "SUBSCRIBE": "Assinatura"
+    },
+    "summary": {
+      "perDay": "{amount}/dia",
+      "perAdset": "{amount}/conjunto",
+      "adsRange": "{min}–{max} anúncios",
+      "utmOn": "UTM ligado",
+      "reuse": "Campanha \"{name}\"",
+      "newEach": "Campanha nova a cada lote",
+      "clicks": "Cliques no link",
+      "advantage": "Público Advantage+",
+      "autoPlacements": "posicionamentos automáticos",
+      "manualPlacements": "{n} posicionamentos manuais"
+    },
+    "window": {
+      "titleNew": "Novo template de publicação",
+      "titleEdit": "Editar template de publicação",
+      "description": "Configurações de campanha, conjunto e anúncio que o HookMill usa ao enviar anúncios pra Meta.",
+      "name": "Nome do template",
+      "namePlaceholder": "Dê um nome a este template",
+      "default": "Template padrão",
+      "levels": "Níveis",
+      "level": {
+        "campaign": "Campanha",
+        "adset": "Conjunto",
+        "ad": "Anúncio"
+      },
+      "importLead": "Comece do que já funciona: copie as configurações de uma campanha, conjunto ou anúncio desta conta.",
+      "importButton": "Importar configurações…",
+      "sec": {
+        "destination": "Destino",
+        "campaign": "Campanha",
+        "perAdset": "Anúncios por conjunto",
+        "conversion": "Conversão",
+        "audience": "Público e posicionamentos",
+        "ad": "Anúncio"
+      },
+      "reuse": "Reusar uma campanha de testes",
+      "newEach": "Campanha nova por lote",
+      "campaignName": "Nome da campanha",
+      "reuseHint": "Criada na primeira vez; depois cada lote adiciona conjuntos a ela.",
+      "vars": "Variáveis: {vars}",
+      "bid": "Estratégia de lance",
+      "bidLabel": {
+        "LOWEST_COST": "Maior volume",
+        "COST_CAP": "Meta de custo por resultado",
+        "BID_CAP": "Limite de lance"
+      },
+      "budget": "Orçamento",
+      "cbo": "Orçamento da campanha (CBO)",
+      "abo": "Orçamento do conjunto (ABO)",
+      "dailyBudget": "Orçamento diário",
+      "dailyBudgetAdset": "Orçamento diário por conjunto",
+      "budgetMin": "Mínimo da conta: {min}",
+      "budgetRequired": "Obrigatório, na moeda da conta. A Meta confere o mínimo da conta quando você salva.",
+      "costCap": "Meta de custo por resultado",
+      "bidCap": "Limite de lance",
+      "atLeast": "No mínimo",
+      "atMost": "No máximo",
+      "perAdsetHint": "Quando um conjunto chega ao máximo, os próximos anúncios abrem um conjunto novo na mesma campanha.",
+      "noPixel": "Sem pixel (otimiza pra cliques no link)",
+      "event": "Evento de conversão",
+      "locations": "Localizações",
+      "gender": "Gênero",
+      "genders": {
+        "ALL": "Todos",
+        "MALE": "Homens",
+        "FEMALE": "Mulheres"
+      },
+      "advantage": "Público Advantage+",
+      "placements": "Posicionamentos",
+      "autoPlacements": "Posicionamentos Advantage+",
+      "manual": "Manual",
+      "platform": {
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "audience_network": "Audience Network",
+        "messenger": "Messenger"
+      },
+      "position": {
+        "facebook_feed": "Feed",
+        "facebook_story": "Stories",
+        "facebook_facebook_reels": "Reels",
+        "facebook_video_feeds": "Feeds de vídeo",
+        "facebook_marketplace": "Marketplace",
+        "facebook_instream_video": "Vídeo in-stream",
+        "instagram_stream": "Feed",
+        "instagram_story": "Stories",
+        "instagram_reels": "Reels",
+        "instagram_explore": "Explorar",
+        "audience_network_classic": "Nativo, banner e intersticial",
+        "audience_network_rewarded_video": "Vídeo com recompensa",
+        "messenger_messenger_home": "Caixa de entrada",
+        "messenger_story": "Stories"
+      },
+      "positionsHint": "Nenhuma posição marcada numa plataforma = todas as posições dela.",
+      "adsetName": "Nome do conjunto",
+      "adName": "Nome do anúncio",
+      "adNameHint": "{vars} · vira, por exemplo, \"{example}\".",
+      "link": "URL do site",
+      "utm": "Parâmetros de URL",
+      "utmHint": "Query string sem \"?\", somada ao link de todo anúncio.",
+      "emptyWrites": "Vazio = o HookMill escreve a partir da sua oferta em cada anúncio.",
+      "emptyWritesPlaceholder": "Vazio = o HookMill escreve a partir da sua oferta em cada anúncio",
+      "emptyInherits": "Vazio = vem do criativo",
+      "plan": "Exemplo com {n} anúncios aprovados:",
+      "planAria": "Plano do lote",
+      "adset": "Conjunto #{i} · {n} anúncios",
+      "adsetShort": "Conjunto #{i} · {n} anúncios (abaixo de {min})",
+      "save": "Salvar template",
+      "saved": "\"{name}\" salvo",
+      "archive": "Arquivar",
+      "archived": "\"{name}\" arquivado",
+      "archiveBusy": "Ainda há uma publicação rodando com este template. Tente de novo quando ela terminar.",
+      "err": {
+        "name": "Dê um nome (até 60 caracteres).",
+        "budget": "Digite o orçamento diário: ele é obrigatório.",
+        "budgetBelow": "O orçamento diário precisa ser de pelo menos {min}.",
+        "cap": "Digite o valor do limite.",
+        "pattern": "De 1 a 120 caracteres.",
+        "pixel": "Este objetivo precisa de um pixel. Escolha um, ou troque pra Tráfego.",
+        "countries": "Use códigos de país de duas letras, de 1 a 10.",
+        "ages": "Use idades entre 18 e 65, a menor primeiro.",
+        "perAdset": "Entre 1 e 50, mínimo ≤ máximo.",
+        "placements": "Escolha pelo menos uma plataforma.",
+        "link": "Use o endereço completo, começando com http:// ou https://.",
+        "utm": "Até 1024 caracteres.",
+        "length": "Até {max} caracteres.",
+        "invalid": "Confira este campo."
+      },
+      "targetCpa": "Custo por resultado alvo do seu Cérebro: <b>{range}</b>"
+    },
+    "import": {
+      "title": "Importar de uma campanha",
+      "lead": "Escolha uma campanha, conjunto ou anúncio desta conta. Nada é salvo até você clicar em Salvar.",
+      "campaigns": "Campanhas",
+      "search": "Buscar campanhas",
+      "use": "Usar",
+      "open": "Abrir {name}",
+      "campaignSub": "{mode} · {adsets} conjuntos · {ads} anúncios",
+      "adsetSub": "{ads} anúncios",
+      "noMatch": "Nenhuma campanha bate com a busca.",
+      "empty": "Nenhuma campanha no último sync.",
+      "noAdsets": "Nenhum conjunto nesta campanha.",
+      "loadFailed": "Não deu pra carregar as campanhas"
+    },
+    "send": {
+      "label": "Template de publicação",
+      "manage": "Gerenciar templates",
+      "defaultOption": "{name} (padrão)",
+      "custom": "Personalizado (preencher o formulário)",
+      "editTemplate": "Editar template",
+      "fixTemplate": "Corrija no template, ou escolha Personalizado pra publicar este à mão.",
+      "textByHookMill": "texto escrito pelo HookMill"
+    },
+    "batch": {
+      "button": "Enviar pra Meta ({n})",
+      "nothing": "Nenhum vídeo pronto no zip",
+      "title": "Enviar {n} anúncios aprovados pra Meta",
+      "lead": "Tudo é criado pausado. Nada gasta até você ativar.",
+      "template": "Template",
+      "defaultOption": "{name} (padrão)",
+      "plan": "Enviando {n} anúncios aprovados:",
+      "confirm": "Enviar {n} anúncios",
+      "noTemplateTitle": "Nenhum template de publicação ainda",
+      "noTemplateBody": "Um lote sai com um template: campanha, conjuntos de 4 a 8 anúncios, orçamento.",
+      "createTemplate": "Criar um template",
+      "fixTemplate": "Corrija no template e envie de novo.",
+      "editTemplate": "Editar template",
+      "notApproved": "Alguns anúncios ainda não foram aprovados.",
+      "busy": "Alguns anúncios já estão sendo publicados.",
+      "sendingTitle": "Enviando pra Meta · {done} de {n}",
+      "doneTitle": "{n} anúncios criados, pausados",
+      "sendingLead": "Pode fechar esta janela: o envio continua, e cada anúncio mostra o estado na página de envio dele.",
+      "progressAria": "Progresso do lote",
+      "belowMin": "abaixo do mínimo",
+      "openOne": "Abrir",
+      "canLeave": "Criados pausados na sua conta de anúncios.",
+      "status": {
+        "PUBLISHING": "Enviando",
+        "PAUSED": "Criado, pausado",
+        "ACTIVE": "Ativo",
+        "FAILED": "Falhou",
+        "DELETED": "Removido"
+      },
+      "stage": {
+        "uploading_video": "Subindo o vídeo",
+        "processing_video": "A Meta está processando",
+        "creating_campaign": "Criando a campanha",
+        "creating_adset": "Criando o conjunto",
+        "creating_creative": "Criando o criativo",
+        "creating_ad": "Criando o anúncio"
+      }
+    }
+  },
+  "sample": {
+    "badge": "Amostra grátis · até {n} variações, sem custo",
+    "eyebrowReady": "Amostra grátis · {ready} de {total} prontas",
+    "title": "{n, plural, one {Sua variação está pronta. Veja o gancho dela.} other {Suas # variações estão prontas. Veja o gancho de cada uma.}}",
+    "titleWaiting": "{ready} de {total} prontas. Veja o gancho de cada uma conforme chegam.",
+    "lede": "Lemos o seu anúncio “{name}” e fizemos {n, plural, one {# versão} other {# versões}} dele, sem custo. Os primeiros {sec} segundos tocam inteiros. Libere pra receber os vídeos completos, baixar e mandar pra Meta.",
+    "failedNote": "{n, plural, one {# variação não renderizou e fica fora da amostra.} other {# variações não renderizaram e ficam fora da amostra.}}",
+    "gridAria": "Variações",
+    "hookTag": "GANCHO · 0–{sec} s",
+    "lockLine": "Libere pra ver o resto",
+    "previewMaking": "Gerando a prévia…",
+    "rendering": "Renderizando…",
+    "download": "Baixar",
+    "sendToMeta": "Mandar pra Meta",
+    "sendAll": "Mandar pra Meta ({n})",
+    "downloadZip": "Baixar zip",
+    "lockedWhy": "Travado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.",
+    "lockedActions": "Amostra grátis: baixar, Mandar pra Meta, o editor, 4:5 / 1:1 e Tentar de novo abrem quando você libera.",
+    "failedBody": "Ela fica fora da amostra. Tentar de novo abre quando você libera.",
+    "doneTitle": "{ready} de {total} prontas, sem custo pra você.",
+    "doneBody": "Veja o gancho de cada uma no próximo passo.",
+    "costLabel": "Custo pra você",
+    "noCost": "Nenhum",
+    "hintRunning": "Amostra grátis: renderizando. Pode sair desta página; continua sozinho.",
+    "hintSettled": "Amostra grátis: veja os ganchos no próximo passo.",
+    "retryLocked": "Libere pra tentar de novo",
+    "watchOnDownload": "Veja no próximo passo",
+    "analyzeLede": "Esta é a sua amostra grátis: até {n} variações, sem IA e sem custo. Ela começa sozinha quando a análise termina.",
+    "planLede": "{n, plural, one {Esta variação grátis começa a renderizar sozinha em instantes.} other {Estas # variações grátis começam a renderizar sozinhas em instantes.}} Nada pra confirmar, nada pra pagar.",
+    "panelLabel": "Amostra grátis",
+    "panelNote": "1 por conta, até {n} variações, nunca com IA.",
+    "starting": "Começando sozinha…",
+    "startsByItself": "Amostra grátis: começa sozinha. Sem custo, nada pra confirmar.",
+    "goalsHint": "Amostra grátis: sem custo. Começa sozinha depois das suas respostas.",
+    "newLede": "Suba um anúncio que já está funcionando. Sua amostra grátis: até {n} variações dele, sem custo.",
+    "noCostLine": "A análise da sua amostra grátis é por nossa conta.",
+    "usedEyebrow": "Amostra grátis usada",
+    "usedTitle": "Você já usou a sua amostra grátis",
+    "usedLede": "Cada conta tem uma amostra grátis. Libere pra variar este campeão e os próximos.",
+    "usedWhatTitle": "Sua amostra continua aí",
+    "usedWhatBody": "As variações da sua amostra ficam na sua conta. Quando você libera, elas abrem inteiras, sem renderizar nada de novo.",
+    "usedHome": "Voltar pro Início",
+    "usedHint": "Libere pra subir um novo campeão.",
+    "panel": {
+      "aria": "Liberar",
+      "title": "{n, plural, one {Libere a sua variação} other {Libere as suas # variações}}",
+      "sub": "Elas já estão renderizadas. Liberar é na hora, nada é gerado de novo.",
+      "titleUsed": "Libere o HookMill",
+      "subUsed": "Varie cada campeão que você subir, com as variações grátis e, no plano, as com IA.",
+      "li1": "Vídeos completos em 9:16, e 4:5 e 1:1 quando pedir",
+      "li2": "Baixe num zip ou mande direto pro seu conjunto na Meta",
+      "li3": "Variações grátis novas a cada campeão que você subir",
+      "cta": "Liberar: fale com a gente",
+      "aiTitle": "Com IA",
+      "aiTag": "plano pago",
+      "aiBody": "Avatar novo no seu roteiro, formatos novos a partir do seu anúncio. Aparece aqui e fica disponível quando você tiver um plano.",
+      "note": "Amostra grátis: 1 por conta, até {n} variações, nunca com IA."
+    },
+    "contact": {
+      "title": "Fale com a gente pra liberar",
+      "body": "Por enquanto a gente libera sua conta na mão. Manda o ID da sua conta que fica pronto em minutos.",
+      "emailLabel": "Nosso e-mail",
+      "email": "hello@hookmill.app",
+      "idLabel": "Id da sua conta",
+      "copy": "Copiar",
+      "copiedEmail": "E-mail copiado",
+      "copiedId": "Id da conta copiado",
+      "instant": "A gente libera na hora, e as suas variações abrem inteiras.",
+      "auto": "Esta página se atualiza sozinha quando você voltar pra ela. Não precisa recarregar.",
+      "openMail": "Abrir o e-mail",
+      "back": "Voltar",
+      "subject": "Liberar minha conta no HookMill",
+      "mailBody": "Oi! Quero liberar minha conta no HookMill.\n\nId da conta: {id}"
+    },
+    "admin": {
+      "title": "Liberar uma conta",
+      "teamOnly": "Equipe HookMill",
+      "body": "Cole o id da conta que a pessoa mandou pelo “Fale com a gente” e escolha o plano. A amostra dela destrava na próxima vez que ela olhar; nada é renderizado de novo.",
+      "userId": "Id da conta",
+      "userIdPlaceholder": "ex.: cm3x…",
+      "planLabel": "Plano",
+      "plan": {
+        "PAID": "Pago",
+        "SAMPLE": "Amostra grátis (travada)",
+        "INTERNAL": "Equipe (nunca trava)"
+      },
+      "apply": "Salvar plano",
+      "done": "{id} agora está em {access}."
+    }
   }
 }

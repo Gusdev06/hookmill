@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
+import { SampleCreativeGuard } from '../amostra/amostra.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext, ClientAllowed } from '../common/auth/auth-context';
 import { Paginated } from '../common/http/envelope.interceptor';
@@ -26,6 +27,7 @@ export class BibliotecaController {
 /** fase2-agencia.md §3.5 (Send): baixar o MP4 com o nome padronizado. GET: liberado pra todos os papéis, inclusive CLIENT. */
 @ApiTags('library')
 @ApiBearerAuth()
+@UseGuards(SampleCreativeGuard) // amostra-gratis-v1 §4: download trava (402)
 @Controller('creatives/:id')
 export class DownloadController {
   constructor(private readonly biblioteca: BibliotecaService) {}

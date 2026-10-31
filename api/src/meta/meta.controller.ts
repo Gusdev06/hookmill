@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { SampleCreativeGuard } from '../amostra/amostra.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Auth, AuthContext, ClientAllowed, Public, Roles } from '../common/auth/auth-context';
@@ -7,8 +8,10 @@ import { ExpensiveAction } from '../common/throttle/app-throttler.guard';
 import { MetaConexaoService } from './conexao.service';
 import { MetaModeGuard } from './meta-mode.guard';
 import {
-  MetaActivateDto, MetaAdsQueryDto, MetaConnectDto, MetaEmptyDto, MetaOptionsQueryDto, MetaPublicationsQueryDto, MetaPublishDto, MetaSelectionDto, MetaSummaryQueryDto,
+  MetaActivateDto, MetaAdsQueryDto, MetaConnectDto, MetaEmptyDto, MetaOptionsQueryDto, MetaPublicationsQueryDto, MetaPublishBatchDto, MetaPublishDto, MetaSelectionDto,
+  MetaSummaryQueryDto, MetaTemplateDto, MetaTemplateImportDto, MetaTemplatePatchDto,
 } from './meta.dto';
+import { MetaTemplatesService } from './templates.service';
 import { MetaPublicacaoService } from './publicacao.service';
 import { MetaSyncService } from './sync.service';
 
@@ -93,6 +96,12 @@ export class MetaController {
     return this.sync.summary(auth, q.period ?? '30d');
   }
 
+  /** meta-templates-v1 §2 (P3): lote com template → 202 { publications, plan }. */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @ExpensiveAction() @HttpCode(202) @Post('publish-batch')
+  publishBatch(@Auth() auth: AuthContext, @Body() dto: MetaPublishBatchDto) {
+    return this.publicacao.publishBatch(auth, dto);
+  }
+
   @Get('publications')
   async publications(@Auth() auth: AuthContext, @Query() q: MetaPublicationsQueryDto) {
     const r = await this.publicacao.list(auth, q);
@@ -113,11 +122,13 @@ export class CreativeMetaController {
     return this.publicacao.creativeMeta(auth, id);
   }
 
+  @UseGuards(SampleCreativeGuard) // amostra-gratis-v1 §4: publicar trava (402)
   @Roles('OWNER', 'ADMIN', 'MEMBER') @ExpensiveAction() @HttpCode(202) @Post('publish')
   publish(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: MetaPublishDto) {
     return this.publicacao.publish(auth, id, dto);
   }
 
+  @UseGuards(SampleCreativeGuard)
   @Roles('OWNER', 'ADMIN', 'MEMBER') @ExpensiveAction() @HttpCode(202) @Post('retry')
   retry(@Auth() auth: AuthContext, @Param('id') id: string, @Body() _dto: MetaEmptyDto) {
     return this.publicacao.retry(auth, id);
@@ -132,5 +143,41 @@ export class CreativeMetaController {
   @Roles('OWNER', 'ADMIN') @HttpCode(200) @Post('pause')
   pause(@Auth() auth: AuthContext, @Param('id') id: string, @Body() _dto: MetaEmptyDto) {
     return this.publicacao.pause(auth, id);
+  }
+}
+
+/** meta-templates-v1 §2: templates de publicação da conta selecionada. Papéis iguais aos da publicação (CLIENT só lê). */
+@ApiTags('meta')
+@ApiBearerAuth()
+@UseGuards(MetaModeGuard)
+@Controller('meta/templates')
+export class MetaTemplatesController {
+  constructor(private readonly templates: MetaTemplatesService) {}
+
+  @Get()
+  list(@Auth() auth: AuthContext) {
+    return this.templates.list(auth);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @HttpCode(201) @Post()
+  create(@Auth() auth: AuthContext, @Body() dto: MetaTemplateDto) {
+    return this.templates.create(auth, dto);
+  }
+
+  /** Lê na Meta e devolve o corpo pra revisar; NÃO salva. */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @HttpCode(200) @Post('import')
+  importFrom(@Auth() auth: AuthContext, @Body() dto: MetaTemplateImportDto) {
+    return this.templates.importFrom(auth, dto);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Patch(':id')
+  update(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: MetaTemplatePatchDto) {
+    return this.templates.update(auth, id, dto);
+  }
+
+  /** Arquiva (o histórico de publicações continua apontando pra ele). */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @HttpCode(200) @Delete(':id')
+  archive(@Auth() auth: AuthContext, @Param('id') id: string) {
+    return this.templates.archive(auth, id);
   }
 }

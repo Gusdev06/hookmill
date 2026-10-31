@@ -168,7 +168,7 @@ export function autoPlanContext(i: AutoPlanInput): string {
   const silences = i.media.silences.map((s) => `${r2(s.startSec)}-${r2(s.endSec)}`).join(', ') || 'none';
   return [
     `<brain offer="${i.offer.name}" language="${i.offer.language}">\n${brain}\n</brain>`,
-    `<workspace>\nBrand name: ${i.workspace.name}\nIndustry: ${i.workspace.industry ?? 'n/a'}\nMarket: ${i.workspace.market ?? 'n/a'}\n</workspace>`,
+    `<workspace>\nBrand name: ${i.workspace.name}\nIndustry: ${i.workspace.industry ?? 'n/a'}\nMarket: ${i.workspace.market ?? 'n/a'}${i.workspace.targetCpa ? `\nTarget cost per result: ${i.workspace.targetCpa} (variations should aim to convert at or under this)` : ''}\n</workspace>`,
     pageText ? `<page captured="true">\n${pageText}\n</page>` : '<page captured="false">No landing page capture: SPLIT_LP is not possible and the why cannot cite "page".</page>',
     `<media>\nDuration ${r2(i.media.durationSec)} s, ${i.media.cuts} cuts.\nWritten hook on screen in 0-3 s: ${i.media.hasWrittenHook ? 'yes' : 'no'}.\nEnd card in the original: ${i.media.hasEndCard ? 'yes' : 'no'}.\nSilences: ${silences}.\n</media>`,
     `<hook seconds="${sec(t.hook, (d) => String(r2(d.endSec)))}">\nSpoken: ${sec(t.hook, (d) => d.spoken)}\nOn screen: ${sec(t.hook, (d) => d.onScreenText ?? '(none)')}\nFirst frame: ${sec(t.hook, (d) => d.visual)}\n</hook>`,

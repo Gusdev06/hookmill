@@ -10,6 +10,7 @@ import { adRows } from "./v2"
 import { cleanFileOf, cleanMismatch, f2, save as saveF2 } from "./variar"
 import { replanIter, replanPieces } from "./iterate"
 import { listScenario, scenario } from "./scenario"
+import { markSampleUsed, mockAccess, mockSampleUsed, paymentDetails, sampleLocked } from "./amostra"
 import { advanceIter, batchOfChampion, findPiece, newIterFromChampion, setIterClean, formatStateOf, isUnsupportedFormat, iterConfig, iterView, it, launchIter, newIter, pieceView, requestFormat, retryIter, retryPiece, saveIter, STATIC_USD, startZip, textCapForced, type MIter } from "./iterate"
 
 const u = (p: string) => API_URL + p
@@ -20,6 +21,8 @@ const notFound = () => fail("NOT_FOUND", 404, "Not found.")
 const invalid = (state: string, allowed: string[], reason?: string) =>
   fail("INVALID_STATE", 409, "Not allowed in the current state.", { state, allowed, ...(reason ? { reason } : {}) })
 const body = async <T,>(r: Request) => ((await r.json().catch(() => ({}))) as T)
+/** amostra-gratis-v1 §4: 402 on whatever hands out the file of a locked sample batch. */
+const locked = (b: MIter) => (sampleLocked(b) ? fail("PAYMENT_REQUIRED", 402, "Unlock to use these variations.", paymentDetails("locked", b.pieces.filter((p) => !p.leftOutAt).length)) : null)
 
 /** Web-mock trigger [mock:spend-cap] in the offer notes: any image spend is over the cap (§14.4). `force` = ?mocktext=cap.
  *  Details = `{ spentUsd, capUsd, estimateUsd }` (monthly cap, api.md 25/10). */
@@ -100,6 +103,15 @@ export const iterateHandlers = [
     if (given !== 1) return fail("VALIDATION_ERROR", 400, "Send exactly one of uploadId / creativeId / metaAdId / championId.", { fields: [{ field: "uploadId", rule: "exactly_one" }] })
     const cleanErr = cleanUploadError(b.cleanUploadId)
     if (cleanErr) return cleanErr
+    // amostra-gratis-v1 §2: a SAMPLE account gets one free batch; then 402 sample_used. A locked champion = 402 locked
+    const sample = mockAccess() === "SAMPLE"
+    if (sample && b.championId) {
+      const src = it.batches.find((x) => x.championId === b.championId && x.sample)
+      const l = src ? locked(src) : null
+      if (l) return l
+    }
+    if (sample && mockSampleUsed()) return fail("PAYMENT_REQUIRED", 402, "The free sample was already used.", paymentDetails("sample_used", 0))
+    if (sample) markSampleUsed()
     // 26/10 "New batch": same champion, its analysis reused (the batch is born in PLANNING)
     if (b.championId) {
       const src = it.batches.find((x) => x.championId === b.championId && !x.archived)
@@ -124,14 +136,14 @@ export const iterateHandlers = [
       if (!offers.some((o) => o.id === offerId)) return notFound()
       m.iterated = Array.from(new Set([...(m.iterated ?? []), ad.metaAdId]))
       saveDb()
-      const nb = newIter({ offerId, uploadId: null, sourceCreativeId: null, name: ad.name, durationSec: 29, width: 1080, height: 1920, filename: "" })
+      const nb = newIter({ offerId, uploadId: null, sourceCreativeId: null, name: ad.name, durationSec: 29, width: 1080, height: 1920, filename: "", sample })
       return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
     }
     if (b.creativeId) {
       const lib = (db.library as LibraryItem[]).find((l) => l.id === b.creativeId)
       if (!lib) return notFound()
       if (lib.media === "image") return invalid("APPROVED", [], "not_a_video")
-      const nb = newIter({ offerId: lib.offer.id, uploadId: null, sourceCreativeId: lib.id, name: lib.name, durationSec: lib.durationSec || 30, width: 1080, height: 1920, filename: "" })
+      const nb = newIter({ offerId: lib.offer.id, uploadId: null, sourceCreativeId: lib.id, name: lib.name, durationSec: lib.durationSec || 30, width: 1080, height: 1920, filename: "", sample })
       return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
     }
     const up = f2.uploads.find((x) => x.id === b.uploadId)
@@ -143,7 +155,7 @@ export const iterateHandlers = [
     if (!offers.some((o) => o.id === offerId)) return notFound()
     const nb = newIter({
       offerId, uploadId: up.id, sourceCreativeId: null, name: up.filename.replace(/\.[^.]+$/, ""), durationSec: up.durationSec ?? 30,
-      width: up.width ?? 1080, height: up.height ?? 1920, filename: up.filename,
+      width: up.width ?? 1080, height: up.height ?? 1920, filename: up.filename, sample,
     })
     return ok(iterView(withClean(nb, b.cleanUploadId)), 202)
   }),
@@ -152,6 +164,12 @@ export const iterateHandlers = [
     if (scenario() === "loading") await delay("infinite")
     const b = batch(params.id)
     if (!b) return notFound()
+    // amostra-gratis-v1 §2: the sample launches by itself (mock: ~2.5 s after the plan is ready, so the screen can be seen)
+    if (b.sample && !b.launchedAt && iterView(b).status === "PLAN_READY") {
+      b.sampleReadyAt ??= Date.now()
+      if (Date.now() - b.sampleReadyAt > 2500) launchIter(b)
+      saveIter()
+    }
     return ok(iterView(b))
   }),
 
@@ -200,6 +218,8 @@ export const iterateHandlers = [
   http.post(u("/iterate/pieces/:pieceId/retry"), async ({ params, request }) => {
     const f = findPiece(String(params.pieceId))
     if (!f) return notFound()
+    const lk = locked(f.b)
+    if (lk) return lk
     const v = pieceView(f.b, f.p)
     // §A10: also a STATIC `ready` whose text check is `mismatch` (new image, charged, through the cap)
     const textRetry = v.status === "ready" && v.textCheck?.status === "mismatch" && !v.render
@@ -218,6 +238,8 @@ export const iterateHandlers = [
     const f = findPiece(String(params.pieceId))
     if (!f) return notFound()
     if (roleOf(request) === "CLIENT") return fail("FORBIDDEN", 403, "Clients can't request formats.")
+    const lk = locked(f.b)
+    if (lk) return lk
     const v = pieceView(f.b, f.p)
     if (v.status !== "ready") return invalid(v.status, ["ready"])
     // §B4: a frame template without this format
@@ -259,6 +281,8 @@ export const iterateHandlers = [
   http.post(u("/iterate/:id/zip"), async ({ params }) => {
     const b = batch(params.id)
     if (!b) return notFound()
+    const lk = locked(b)
+    if (lk) return lk
     const v = iterView(b)
     if (v.status !== "LAUNCHED") return invalid(v.status, ["LAUNCHED"])
     if (!v.pieces.some((p) => p.status === "ready" && p.inZip)) return invalid(v.status, [], "nothing_to_zip")

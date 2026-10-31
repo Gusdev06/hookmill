@@ -3,7 +3,7 @@ import type { ProtectedBand } from './captionsSchema';
 import { caixaLegendaAutoEdit, caixaLegendaMoldura } from './legendaAuto';
 import { FORMATOS } from './formatos';
 import type { AutoEditProps } from './autoEdit';
-import { layoutDaPeca, pinturaNaCaixa, reframeNaCaixa, type FrameLayout, type MolduraProps, type Rect } from './molduras';
+import { layoutDaPeca, pinturaNaCaixa, reframeNaCaixa, textosQueNaoCouberam, type Focus, type FrameLayout, type MolduraProps, type Rect } from './molduras';
 
 // Legenda queimada protegida (docs/contratos/legenda-protegida-v1.md, aprovado 26/10): nenhum template tampa a legenda
 // queimada do campeão. Por peça: (1) desviar; (2) recortar o vídeo sem ela (contentBox − faixa, sem cortar o rosto) e
@@ -168,21 +168,23 @@ export const recorteSemLegenda = (p: Pick<MolduraProps, 'video'>, m: EditMapLike
 export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: MolduraProps['captions'] | null, forcar?: 'replace'): DecisaoLegenda => {
   if (!p.video.protectedBands?.length) return { mode: 'avoid', input: p, check: { ok: true, hits: [] } };
   const base = { ...p, captionMode: 'avoid' as const, captions: undefined };
-  // Preserve the complete content area up front. Caption detection can measure only one line of a multi-line subtitle.
-  // Keeping the entire video area visible prevents the unmeasured line from being cropped by a frame.
-  const full = enquadramentosPreservandoLegenda(p.video, layoutDaPeca(base).videoBox).at(-1);
-  const a: MolduraProps = { ...base, ...(full && { video: full }) };
-  // forcar 'replace' (Retry depois de CAPTION_COVERED): pula o desvio e vai direto pro recorte
+  // Revisão 29/10: o vídeo PREENCHE a caixa (cover). Os candidatos vêm em ordem: cover com o foco deslizando no eixo
+  // cortado até a legenda e o rosto ficarem dentro → o menor afastamento que faz caber → (último recurso) mais afastado,
+  // pra abrir espaço pro texto. O primeiro que passa na checagem E cujo texto cabe vence; sem texto que caiba, o primeiro
+  // que passa na checagem (o build acusa FRAME_TEXT_OVERFLOW, como antes).
+  const candidatos = enquadramentosPreservandoLegenda(p.video, layoutDaPeca(base).videoBox).map((video): MolduraProps => ({ ...base, video }));
+  const a: MolduraProps = candidatos[0] ?? base;
+  // forcar 'replace' (Retry antigo depois de CAPTION_COVERED): pula o desvio e vai direto pro recorte
   const ca = forcar === 'replace' ? { ok: false, hits: [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }] } : checarLegendaProtegida(a);
-  if (ca.ok) return { mode: 'avoid', input: a, check: ca };
   if (forcar !== 'replace') {
-    // Try a wider view before replacing captions. Every attempt recomputes text placement around the measured bands.
-    const vb = layoutDaPeca(a).videoBox;
-    for (const video of enquadramentosPreservandoLegenda(p.video, vb)) {
-      const candidate: MolduraProps = { ...a, video };
-      const check = checarLegendaProtegida(candidate);
-      if (check.ok) return { mode: 'avoid', input: candidate, check };
+    let passa: { input: MolduraProps; check: ChecagemLegenda } | null = null;
+    for (const c of candidatos.length ? candidatos : [a]) {
+      const check = c === a ? ca : checarLegendaProtegida(c);
+      if (!check.ok) continue;
+      if (!textosQueNaoCouberam(layoutDaPeca(c)).length) return { mode: 'avoid', input: c, check };
+      passa ??= { input: c, check };
     }
+    if (passa) return { mode: 'avoid', ...passa };
     return { mode: 'blocked', reason: 'no_room', check: ca };
   }
   const cb = recorteSemLegenda(p, m);
@@ -200,19 +202,53 @@ export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: 
   return { mode: 'replace', input: r, check: cr, contentBox: cb };
 };
 
-/** Expand the crop to include all captions, then progressively zoom out. Never changes the source or its subtitles. */
-function enquadramentosPreservandoLegenda(video: MolduraProps['video'], box: { w: number; h: number }): MolduraProps['video'][] {
+/**
+ * Candidatos de enquadramento que mantêm a legenda queimada e o rosto inteiros (revisão 29/10, vale por cima da de 28/10).
+ * Nunca muda o arquivo nem a legenda dele. Ordem:
+ *  1. cover (scale 1), com o foco deslizando no eixo cortado: o mais perto do foco original e as duas pontas do intervalo
+ *     em que a envoltória (legenda ∪ rosto) fica dentro da janela;
+ *  2. se ela não cabe no cover: o MENOR afastamento que a faz caber (faixa de cor só do tamanho necessário), idem foco;
+ *  3. último recurso (o texto da moldura não achou lugar): afastamentos maiores, até o contain.
+ * A `contentBox` cresce pra incluir a envoltória (a legenda pode estar fora da área de vídeo medida).
+ */
+export function enquadramentosPreservandoLegenda(video: MolduraProps['video'], box: { w: number; h: number }): MolduraProps['video'][] {
   const source = video.source;
   const crop = video.contentBox ?? { x: 0, y: 0, w: source.width, h: source.height };
   const band = unionBand([...(video.protectedBands ?? []), ...(video.faceSafeBand ? [{ ...video.faceSafeBand, startSec: 0, endSec: source.durationSec }] : [])]);
   if (!band) return [];
   const x = Math.max(0, Math.min(crop.x, band.x)), y = Math.max(0, Math.min(crop.y, band.y));
-  const contentBox = { x, y, w: Math.min(source.width, Math.max(crop.x + crop.w, band.x + band.w)) - x, h: Math.min(source.height, Math.max(crop.y + crop.h, band.y + band.h)) - y };
-  const contain = Math.min(box.w / contentBox.w, box.h / contentBox.h) / Math.max(box.w / contentBox.w, box.h / contentBox.h);
-  const original = video.reframe.mode === 'cover' ? video.reframe.scale ?? 1 : 1;
-  const focus = video.reframe.mode === 'cover' ? video.reframe.focus : { x: .5, y: .5 };
-  return [...new Set([original, .92, .85, .75, .65, contain].map((scale) => Math.max(contain, Math.min(original, scale))))]
-    .map((scale) => ({ ...video, contentBox, reframe: { mode: 'cover' as const, focus, scale } }));
+  const C = { x, y, w: Math.min(source.width, Math.max(crop.x + crop.w, band.x + band.w)) - x, h: Math.min(source.height, Math.max(crop.y + crop.h, band.y + band.h)) - y };
+  const U = { x: Math.max(0, band.x - C.x), y: Math.max(0, band.y - C.y), w: Math.min(band.w, C.w), h: Math.min(band.h, C.h) };
+  const cover = Math.max(box.w / C.w, box.h / C.h);
+  const contain = Math.min(box.w / C.w, box.h / C.h) / cover;
+  const M = 3; // px da fonte de folga contra arredondamento do foco (r3)
+  const cabe = Math.min(1, Math.min(box.w / Math.min(C.w, U.w + 2 * M), box.h / Math.min(C.h, U.h + 2 * M)) / cover);
+  const f0 = video.reframe.mode === 'cover' ? video.reframe.focus : { x: 0.5, y: 0.5 };
+  const r3 = (v: number) => Math.round(v * 1000) / 1000;
+  // centros possíveis num eixo (fração da contentBox): janela dentro da contentBox e a envoltória dentro da janela
+  const focos = (f: number, total: number, janela: number, u0: number, u1: number, eixo: 'x' | 'y'): number[] => {
+    if (janela <= total + 0.5 && janela >= total - 0.5) return [f]; // eixo justo: o foco não muda nada
+    // sobra (faixa de cor, caso extremo): inteira de um lado só, nunca um filete em cada ponta. Vertical: em cima
+    // (encosta no texto do topo das molduras) e depois embaixo; horizontal: dividida (simétrica)
+    if (janela > total) return eixo === 'y' ? [0, 1] : [0.5];
+    const lo = Math.max(janela / 2, u1 + M - janela / 2), hi = Math.min(total - janela / 2, u0 - M + janela / 2);
+    if (lo > hi) return [];
+    const perto = Math.min(hi, Math.max(lo, f * total));
+    return [...new Set([perto, lo, hi].map((c) => r3(c / total)))];
+  };
+  const piso = (v: number) => Math.floor(v * 1000) / 1000; // arredonda pra baixo: a janela nunca fica menor que a envoltória
+  const escalas = [...new Set([cabe, ...[0.95, 0.9, 0.85, 0.75, 0.65].map((k) => k * cabe), contain].map((s) => (s >= 0.999 ? 1 : piso(Math.max(contain, Math.min(cabe, s))))))]
+    .sort((a, b) => b - a);
+  const out: MolduraProps['video'][] = [];
+  for (const scale of escalas) {
+    const s = cover * scale, ww = box.w / s, wh = box.h / s;
+    const fx = focos(f0.x, C.w, ww, U.x, U.x + U.w, 'x'), fy = focos(f0.y, C.h, wh, U.y, U.y + U.h, 'y');
+    // ordem: o mais perto do foco original no eixo cortado (no eixo com sobra, a ordem de `focos`; sort é estável)
+    const k = (p: Focus) => (ww < C.w - 0.5 ? Math.abs(p.x - f0.x) : 0) + (wh < C.h - 0.5 ? Math.abs(p.y - f0.y) : 0);
+    const pares = fx.flatMap((a) => fy.map((b) => ({ x: a, y: b }))).sort((p, q) => k(p) - k(q));
+    for (const focus of pares) out.push({ ...video, contentBox: C, reframe: { mode: 'cover' as const, focus, ...(scale < 0.999 && { scale }) } });
+  }
+  return out;
 }
 
 // ───────────────────────── AutoEdit (CUT, NATIVE_SEARCH, REVIEW) ─────────────────────────
@@ -250,15 +286,15 @@ export type DecisaoLegendaAutoEdit =
 /** §3 no AutoEdit: desviar (o reenquadramento já leva a faixa) → recortar e legendar no estilo da original → bloquear. */
 export const decidirLegendaAutoEdit = (p: AutoEditProps, m: EditMapLike | null, legenda: AutoEditProps['captions'] | null, forcar?: 'replace'): DecisaoLegendaAutoEdit => {
   if (!p.protectedBands?.length) return { mode: 'avoid', input: p, check: { ok: true, hits: [] } };
-  const full = enquadramentosPreservandoLegenda({ source: p.source, contentBox: p.contentBox, protectedBands: p.protectedBands, reframe: p.reframe, timeline: p.timeline } as MolduraProps['video'], areaVideoAutoEdit(p)).at(-1);
-  const a: AutoEditProps = { ...p, captionMode: 'avoid', captions: undefined, ...(full && { contentBox: full.contentBox, reframe: full.reframe as AutoEditProps['reframe'] }) };
+  // revisão 29/10: mesmos candidatos da moldura (cover com o foco deslizando primeiro; afastar só o necessário)
+  const candidatos = enquadramentosPreservandoLegenda({ source: p.source, contentBox: p.contentBox, protectedBands: p.protectedBands, reframe: p.reframe, timeline: p.timeline } as MolduraProps['video'], areaVideoAutoEdit(p))
+    .map((video): AutoEditProps => ({ ...p, captionMode: 'avoid', captions: undefined, contentBox: video.contentBox, reframe: video.reframe as AutoEditProps['reframe'] }));
+  const a: AutoEditProps = candidatos[0] ?? { ...p, captionMode: 'avoid', captions: undefined };
   const ca = forcar === 'replace' ? { ok: false, hits: [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }] } : checarLegendaAutoEdit(a);
-  if (ca.ok) return { mode: 'avoid', input: a, check: ca };
   if (forcar !== 'replace') {
-    for (const video of enquadramentosPreservandoLegenda({ source: p.source, contentBox: p.contentBox, protectedBands: p.protectedBands, reframe: p.reframe, timeline: p.timeline } as MolduraProps['video'], areaVideoAutoEdit(p))) {
-      const candidate: AutoEditProps = { ...a, contentBox: video.contentBox, reframe: video.reframe as AutoEditProps['reframe'] };
-      const check = checarLegendaAutoEdit(candidate);
-      if (check.ok) return { mode: 'avoid', input: candidate, check };
+    for (const c of candidatos.length ? candidatos : [a]) {
+      const check = c === a ? ca : checarLegendaAutoEdit(c);
+      if (check.ok) return { mode: 'avoid', input: c, check };
     }
     return { mode: 'blocked', reason: 'no_room', check: ca };
   }

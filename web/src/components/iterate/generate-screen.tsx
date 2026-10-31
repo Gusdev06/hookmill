@@ -9,12 +9,14 @@ import { iterateHref } from "@/lib/routes"
 import { Alert, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { NavIcon } from "@/components/shell/nav-icon"
+import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
 import { PieceTextAlert, TextCheckChip, useStaticStage } from "./text-check"
 import { CaptionBlocked, CaptionNote, CleanVersionStatus, NewBatchButton } from "./captions"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
+import { SampleEyebrow, useSampleLocked } from "./sample"
 
 /**
  * Generate (spec §4.2): status per piece, grouped Stretch / New audience. A failed piece never stops the others.
@@ -43,6 +45,9 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
   const eta = fmt.eta(s.renderEtaSec)
   const preview = batch.pieces.find((p) => p.id === previewId) ?? null
   const started = batch.launchedAt ? format.relativeTime(new Date(batch.launchedAt), now) : ""
+  // amostra-gratis-v1: the free sample renders like any batch, but nothing here may hand out a file, retry or start a new batch
+  const locked = useSampleLocked(batch)
+  const ts = useTranslations("sample")
 
   return (
     <IterWrap>
@@ -51,13 +56,12 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
         main={
           <>
             <Head
-              eyebrow={settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
+              eyebrow={locked ? <SampleEyebrow /> : settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
               title={allReady ? t("titleDone", { total }) : settled ? t("titleSettled", { ready: s.ready, total }) : t("titleRunning", { total, ready: s.ready })}
             />
             <CaptionsBadge batch={batch} />
-            {settled ? <NewBatchButton batch={batch} /> : null}
+            {settled && !locked ? <NewBatchButton batch={batch} /> : null}
             <CleanVersionStatus batch={batch} />
-            <CaptionBlocked batch={batch} />
             {failed.length ? (
               <Alert variant="destructive">
                 <NavIcon name="alert" size={20} />
@@ -65,7 +69,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
                   <AlertTitle>
                     {failed.length === 1 ? t("failedTitle", { code: failed[0].code, n: total - 1 }) : t("failedManyTitle", { count: failed.length })}
                   </AlertTitle>
-                  <AlertDescription>{paidRetry ? t("failedBodyImage") : t("failedBody")}</AlertDescription>
+                  <AlertDescription>{locked ? ts("failedBody") : paidRetry ? t("failedBodyImage") : t("failedBody")}</AlertDescription>
                 </AlertBody>
               </Alert>
             ) : null}
@@ -73,13 +77,15 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
               <Alert variant="success">
                 <NavIcon name="check" size={20} strokeWidth={2.5} />
                 <AlertBody>
-                  <AlertTitle>{t("doneTitle", { ready: s.ready, total, usd: fmt.usd(batch.cost.totalUsd) })}</AlertTitle>
-                  <AlertDescription>{t("doneBody")}</AlertDescription>
+                  <AlertTitle>{locked ? ts("doneTitle", { ready: s.ready, total }) : t("doneTitle", { ready: s.ready, total, usd: fmt.usd(batch.cost.totalUsd) })}</AlertTitle>
+                  <AlertDescription>{locked ? ts("doneBody") : t("doneBody")}</AlertDescription>
                 </AlertBody>
               </Alert>
             ) : null}
-            <Group axis="ITERATION" pieces={batch.pieces.filter((p) => p.axis === "ITERATION")} batchId={batch.id} onPreview={setPreviewId} />
-            <Group axis="DIVERSITY" pieces={batch.pieces.filter((p) => p.axis === "DIVERSITY")} batchId={batch.id} onPreview={setPreviewId} />
+            <Group axis="ITERATION" pieces={batch.pieces.filter((p) => p.axis === "ITERATION")} batchId={batch.id} onPreview={setPreviewId} locked={locked} />
+            <Group axis="DIVERSITY" pieces={batch.pieces.filter((p) => p.axis === "DIVERSITY")} batchId={batch.id} onPreview={setPreviewId} locked={locked} />
+            {/* review 29/10 L4: after the launch the left-out formats are optional, so a quiet line below the groups, not amber up top */}
+            <CaptionBlocked batch={batch} collapsed />
           </>
         }
         side={
@@ -98,6 +104,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
                 ],
                 ...(settled ? [] : eta ? ([[ta("timeLeft"), eta]] as [string, string][]) : []),
                 [ta("files"), t("filesOf", { done: filesDone, total: s.files })],
+                ...(locked ? ([[ts("costLabel"), ts("noCost")]] as [string, string][]) : []),
                 [ta("videoCredits"), ta("noneUsed")],
                 ...(hasImages ? ([[ta("images"), <span key="i" className="font-mono">{fmt.usd(imagesUsd)}</span>]] as [string, React.ReactNode][]) : []),
               ]}
@@ -114,7 +121,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
           </InkPanel>
         }
       />
-      <IterActionBar hint={allReady ? t("hintDone") : failed.length ? t("hintFailed") : t("hintRunning")}>
+      <IterActionBar hint={locked ? (settled ? ts("hintSettled") : ts("hintRunning")) : allReady ? t("hintDone") : failed.length ? t("hintFailed") : t("hintRunning")}>
         <Button variant="brand" disabled={!canContinue} onClick={() => router.push(iterateHref(batch.id, settled ? null : "download"))}>
           {t("continue")}
           <NavIcon name="right" size={16} />
@@ -125,7 +132,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
   )
 }
 
-function Group({ axis, pieces, batchId, onPreview }: { axis: "ITERATION" | "DIVERSITY"; pieces: IteratePiece[]; batchId: string; onPreview: (id: string) => void }) {
+function Group({ axis, pieces, batchId, onPreview, locked }: { axis: "ITERATION" | "DIVERSITY"; pieces: IteratePiece[]; batchId: string; onPreview: (id: string) => void; locked: boolean }) {
   const t = useTranslations("iterate.analyze")
   if (!pieces.length) return null
   return (
@@ -139,7 +146,7 @@ function Group({ axis, pieces, batchId, onPreview }: { axis: "ITERATION" | "DIVE
       </div>
       <div className="flex flex-col gap-2.5">
         {pieces.map((p) => (
-          <PieceRow key={p.id} p={p} batchId={batchId} onPreview={onPreview} />
+          <PieceRow key={p.id} p={p} batchId={batchId} onPreview={onPreview} locked={locked} />
         ))}
       </div>
     </section>
@@ -147,8 +154,9 @@ function Group({ axis, pieces, batchId, onPreview }: { axis: "ITERATION" | "DIVE
 }
 
 /** SceneRow of the fase 2 with the code (spec §7): thumb, code + status, reason before the action, what changes, frame line. */
-function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string; onPreview: (id: string) => void }) {
+function PieceRow({ p, batchId, onPreview, locked }: { p: IteratePiece; batchId: string; onPreview: (id: string) => void; locked: boolean }) {
   const t = useTranslations("iterate.generate")
+  const ts = useTranslations("sample")
   const { retry, leaveOut, makeFormat } = usePieceActions(batchId)
   const canAct = useCanMakeFormats()
   const canMake = canAct && !!p.formats
@@ -233,7 +241,14 @@ function PieceRow({ p, batchId, onPreview }: { p: IteratePiece; batchId: string;
         ) : null}
       </div>
       <div className="col-span-2 flex flex-wrap items-center justify-end gap-1.5 tablet:col-span-1 tablet:flex-col tablet:items-end">
-        {p.status === "ready" || (p.previewReady && p.status !== "failed") || (running && isImagePiece(p)) ? (
+        {locked && (failed || p.status === "left_out") ? (
+          <span className="inline-flex items-center gap-1.5 text-xs text-fg-3">
+            <Icon name="lock" />
+            {ts("retryLocked")}
+          </span>
+        ) : locked && p.status === "ready" ? (
+          <span className="text-xs text-fg-3">{ts("watchOnDownload")}</span>
+        ) : p.status === "ready" || (p.previewReady && p.status !== "failed") || (running && isImagePiece(p)) ? (
           <Button size="sm" onClick={() => onPreview(p.id)}>
             {t("preview")}
           </Button>

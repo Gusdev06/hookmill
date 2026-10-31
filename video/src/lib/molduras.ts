@@ -325,6 +325,9 @@ export const fitText = (text: string, o: FitTextOptions): FittedText => {
 // do letterbox nem a headline queimada nelas); (2) nada de borda borrada: o vídeo PREENCHE a caixa (cover) centrado no
 // rosto, com um zoom máximo que não corta o rosto; no caso extremo sobra fundo sólido na cor da marca; (3) o texto da
 // moldura não fica por cima de legenda queimada (`burnedTextBands`, ver frameLayout).
+// Revisão 29/10 (legenda-protegida-v1 §29/10): com legenda queimada, o enquadramento final sai de
+// `enquadramentosPreservandoLegenda` (legendaProtegida.ts): cover primeiro, foco deslizando no eixo cortado até a legenda
+// (`protectedBands`) e o rosto (`faceSafeBand`) caberem; afasta o zoom só o mínimo quando nem assim cabem.
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Focus = { x: number; y: number };

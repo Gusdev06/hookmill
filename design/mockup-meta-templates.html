@@ -1,0 +1,230 @@
+<title>HookMill Publish Templates</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: HookMill Settings → Meta → Publish templates list, with the Ads-Manager-shaped editor open as a modal (rail Campaign / Ad set / Ad on the left, fields on the right, batch preview at the bottom). Single light theme like the product. */
+:root {
+  --bg: #eeeeea; --card: #fdfdfb; --card-2: #f3f4f0; --field: #ffffff; --line: #dcddd7; --line-strong: #cfd1cb;
+  --fg: #15171a; --fg-2: #3b4047; --fg-3: #5a6068;
+  --brand: #c8f03c; --brand-ink: #3e5200; --brand-soft: #f0f8d2; --brand-edge: #a9cc2a;
+  --ink: #16181b; --ink-fg: #f2f3ee; --ink-fg-2: #c5cad0;
+  --info-bg: #e6ebfc; --info: #2b4bc8; --info-edge: #c3cef6; --warn-bg: #fbf0d3; --warn: #7a5000;
+  --meta: #0866ff; --scrim: rgba(21, 23, 26, .42);
+  --display: "Archivo", system-ui, sans-serif; --body: "Archivo", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.45 }
+.page { padding-block: 26px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1120px; margin: 0 auto; display: grid; gap: 16px }
+h1 { font-family: var(--display); font-stretch: 108%; font-weight: 800; font-size: clamp(22px, 3vw, 30px); margin: 0 }
+.lede { margin: 0; color: var(--fg-2); max-width: 64ch }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.btn { font: inherit; font-weight: 600; font-size: 13px; border-radius: 8px; padding: 8px 12px; border: 1px solid var(--line-strong); background: var(--card); color: var(--fg); cursor: pointer; display: inline-flex; gap: 6px; align-items: center }
+.btn.brand { background: var(--brand); border-color: var(--brand-edge) }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--fg-2) }
+.btn:focus-visible, input:focus-visible, select:focus-visible, .rail button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px }
+.list { display: grid; gap: 10px }
+.tpl { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center }
+.tpl b { font-size: 15px }
+.tpl .sum { color: var(--fg-2); font-size: 13px; grid-column: 1 }
+.pill { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); background: var(--card-2); color: var(--fg-2); white-space: nowrap }
+.pill.def { background: var(--brand-soft); border-color: var(--brand-edge); color: var(--brand-ink) }
+.pill.imp { background: var(--info-bg); border-color: var(--info-edge); color: var(--info) }
+
+.scrim { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); z-index: 20 }
+.modal { background: var(--card); border-radius: 14px; width: min(980px, 100%); max-height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.25) }
+.mh { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); align-items: center; flex-wrap: wrap }
+.mh input { font: inherit; font-weight: 700; font-size: 16px; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; background: transparent; color: var(--fg); min-width: 0; width: 280px; max-width: 100% }
+.mh input:hover { border-color: var(--line) }
+.mb { display: grid; grid-template-columns: 200px minmax(0, 1fr); min-height: 0 }
+.rail { border-right: 1px solid var(--line); background: var(--card-2); padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow: auto }
+.rail button { font: inherit; text-align: left; border: 0; background: transparent; border-radius: 8px; padding: 9px 10px; color: var(--fg-2); cursor: pointer; display: grid; gap: 1px }
+.rail button small { font-size: 11.5px; color: var(--fg-3) }
+.rail button[aria-selected="true"] { background: var(--field); color: var(--fg); box-shadow: inset 3px 0 0 var(--meta) }
+.rail .lvl { display: flex; gap: 8px; align-items: center; font-weight: 600 }
+.rail .lvl svg { width: 15px; height: 15px; flex: none }
+.import { margin-top: auto; border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 6px }
+.import p { margin: 0; font-size: 12px; color: var(--fg-3); padding: 0 4px }
+.pane { overflow: auto; padding: 18px; display: grid; gap: 16px; align-content: start }
+.sec { display: grid; gap: 12px }
+.sec h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-3); font-family: var(--mono); font-weight: 500 }
+.f { display: grid; gap: 5px; min-width: 0 }
+.f label { font-size: 13px; font-weight: 600 }
+.f .hint { font-size: 12px; color: var(--fg-3) }
+input[type=text], input[type=number], select { font: inherit; font-size: 13.5px; border: 1px solid var(--line-strong); background: var(--field); color: var(--fg); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0 }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 9px; overflow: hidden; flex-wrap: wrap }
+.seg button { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 12px; border: 0; background: var(--field); color: var(--fg-2); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--card) }
+.callout { border: 1px solid var(--brand-edge); background: var(--brand-soft); color: var(--brand-ink); border-radius: 10px; padding: 10px 12px; font-size: 13px }
+.notcopied { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--fg-2) }
+.mf { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap }
+.plan { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--fg-2) }
+.plan .as { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); background: var(--card-2); border-radius: 6px; padding: 3px 7px; font-variant-numeric: tabular-nums }
+.plan .as.short { background: var(--warn-bg); color: var(--warn); border-color: var(--warn) }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px }
+.notes { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 8px }
+.notes h3 { margin: 0; font-size: 14px } .notes ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--fg-2) }
+.code { font-family: var(--mono); font-size: 12px }
+@media (max-width: 760px) {
+  .mb { grid-template-columns: minmax(0, 1fr) }
+  .rail { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line) }
+  .rail button { flex: none } .import { display: none }
+  .two { grid-template-columns: minmax(0, 1fr) }
+  .scrim { position: static; background: transparent; padding: 0 }
+}
+</style>
+
+<div class="page">
+  <div class="row" style="justify-content:space-between">
+    <div style="display:grid;gap:6px">
+      <span class="code" style="color:var(--fg-3)">Settings › Meta › Publish templates · Sleepwell US (act_••••4821)</span>
+      <h1>Publish templates</h1>
+    </div>
+    <div class="row">
+      <button class="btn" type="button">Import from a campaign</button>
+      <button class="btn brand" type="button">New template</button>
+    </div>
+  </div>
+  <p class="lede">Set once how HookMill creates campaigns, ad sets and ads in your account. Every "Send to Meta" uses the default template unless you pick another one.</p>
+
+  <div class="list">
+    <div class="tpl"><div class="row"><b>CBO testing · 4–8 per ad set</b><span class="pill def">Default</span></div><button class="btn" type="button">Edit</button><span class="sum">Campaign "HookMill — testing" · CBO $120/day · Purchase · US, 25–54 · Advantage+ audience · auto placements</span></div>
+    <div class="tpl"><div class="row"><b>Copy of "BF Scale — ABO"</b><span class="pill imp">Imported</span></div><button class="btn" type="button">Edit</button><span class="sum">New campaign each batch · ABO $40/ad set · Purchase · US, CA · Feeds + Reels</span></div>
+  </div>
+
+  <div class="notes">
+    <h3>Pra você decidir (contrato <span class="code">docs/contratos/meta-templates-v1.md</span>)</h3>
+    <ol>
+      <li><b>P1:</b> o padrão de fábrica é reusar uma campanha "HookMill — testing" (como está aqui) ou criar uma campanha por lote?</li>
+      <li><b>P2:</b> o orçamento é pedido na criação do 1º template, sem valor escondido?</li>
+      <li><b>P3:</b> publicar o lote inteiro de uma vez já na v1? O plano de ad sets no rodapé da janela mostra como fica.</li>
+    </ol>
+    <span style="font-size:12px;color:var(--fg-3)">Mockup ilustrativo: conta, valores e nomes são de exemplo.</span>
+  </div>
+</div>
+
+<div class="scrim" role="dialog" aria-modal="true" aria-labelledby="tpl-name">
+  <div class="modal">
+    <div class="mh">
+      <input id="tpl-name" type="text" value="CBO testing · 4–8 per ad set" aria-label="Template name">
+      <div class="row"><label class="check"><input id="tpl-default" type="checkbox" checked> Default template</label></div>
+    </div>
+    <div class="mb">
+      <nav class="rail" role="tablist" aria-label="Levels">
+        <button type="button" role="tab" id="tab-campaign" aria-selected="true" data-pane="campaign"><span class="lvl"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>Campaign</span><small>CBO · $120/day</small></button>
+        <button type="button" role="tab" id="tab-adset" aria-selected="false" data-pane="adset"><span class="lvl"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="5" y="5" width="6" height="6" rx="1"/></svg>Ad set</span><small>4–8 ads · US 25–54</small></button>
+        <button type="button" role="tab" id="tab-ad" aria-selected="false" data-pane="ad"><span class="lvl"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="2" width="6" height="12" rx="1.5"/></svg>Ad</span><small>Shop now · UTM on</small></button>
+        <div class="import">
+          <p>Start from what already works: copy the settings of a campaign, ad set or ad in this account.</p>
+          <button class="btn" type="button" id="do-import">Import settings…</button>
+        </div>
+      </nav>
+
+      <div class="pane" id="pane-campaign">
+        <div class="sec">
+          <h3>Destination</h3>
+          <div class="seg" role="group" aria-label="Destination"><button type="button" aria-pressed="true">Reuse one testing campaign</button><button type="button" aria-pressed="false">New campaign per batch</button></div>
+          <div class="f"><label for="c-name">Campaign name</label><input id="c-name" type="text" value="HookMill — testing"><span class="hint">Created the first time, then every batch adds ad sets to it.</span></div>
+        </div>
+        <div class="sec">
+          <h3>Campaign</h3>
+          <div class="two">
+            <div class="f"><label for="c-obj">Objective</label><select id="c-obj"><option>Sales</option><option>Leads</option><option>Traffic</option><option>App promotion</option></select></div>
+            <div class="f"><label for="c-bid">Bid strategy</label><select id="c-bid"><option>Highest volume</option><option>Cost per result goal</option><option>Bid cap</option></select></div>
+          </div>
+          <div class="f"><label>Budget</label><div class="seg" role="group" aria-label="Budget mode"><button type="button" aria-pressed="true">Campaign budget (CBO)</button><button type="button" aria-pressed="false">Ad set budget (ABO)</button></div></div>
+          <div class="two">
+            <div class="f"><label for="c-budget">Daily budget</label><input id="c-budget" type="text" value="$120.00"><span class="hint">Account minimum: $1.00</span></div>
+            <div class="f"><label for="c-special">Special ad categories</label><select id="c-special"><option>None</option><option>Credit</option><option>Employment</option><option>Housing</option></select></div>
+          </div>
+          <div class="callout">Target cost per result from your Brain: <b>$100–$150</b>. HookMill flags ad sets above it after 3 days.</div>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-adset" hidden>
+        <div class="sec">
+          <h3>Ads per ad set</h3>
+          <div class="two">
+            <div class="f"><label for="a-min">At least</label><input id="a-min" type="number" value="4" min="1" max="50"></div>
+            <div class="f"><label for="a-max">At most</label><input id="a-max" type="number" value="8" min="1" max="50"></div>
+          </div>
+          <span class="hint" style="font-size:12px;color:var(--fg-3)">When an ad set reaches the maximum, the next ads open a new ad set in the same campaign.</span>
+        </div>
+        <div class="sec">
+          <h3>Conversion</h3>
+          <div class="two">
+            <div class="f"><label for="a-pixel">Pixel</label><select id="a-pixel"><option>Sleepwell main pixel</option></select></div>
+            <div class="f"><label for="a-event">Conversion event</label><select id="a-event"><option>Purchase</option><option>Subscribe</option><option>Lead</option></select></div>
+          </div>
+        </div>
+        <div class="sec">
+          <h3>Audience and placements</h3>
+          <div class="two">
+            <div class="f"><label for="a-geo">Locations</label><input id="a-geo" type="text" value="United States"></div>
+            <div class="f"><label for="a-age">Age</label><input id="a-age" type="text" value="25 – 54"></div>
+          </div>
+          <label class="check"><input id="a-adv" type="checkbox" checked> Advantage+ audience</label>
+          <div class="f"><label>Placements</label><div class="seg" role="group" aria-label="Placements"><button type="button" aria-pressed="true">Advantage+ placements</button><button type="button" aria-pressed="false">Manual</button></div></div>
+          <div class="f"><label for="a-name">Ad set name</label><input id="a-name" type="text" value="{offer} · {date} · #{n}"></div>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-ad" hidden>
+        <div class="sec">
+          <h3>Ad</h3>
+          <div class="f"><label for="d-name">Ad name</label><input id="d-name" type="text" value="{code} · {offer}"><span class="hint">Becomes e.g. "HEADLINE-02 · Sleepwell".</span></div>
+          <div class="two">
+            <div class="f"><label for="d-cta">Call to action</label><select id="d-cta"><option>Shop now</option><option>Learn more</option><option>Sign up</option></select></div>
+            <div class="f"><label for="d-link">Website URL</label><input id="d-link" type="text" value="https://sleepwell.app/start"></div>
+          </div>
+          <div class="f"><label for="d-utm">URL parameters</label><input id="d-utm" type="text" value="utm_source=meta&utm_campaign={{campaign.name}}&utm_content={{ad.name}}"></div>
+          <div class="f"><label for="d-text">Primary text</label><input id="d-text" type="text" value="" placeholder="Empty = HookMill writes it from your offer for each ad"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <div class="plan" aria-label="Batch plan"><span>Sending 10 approved ads:</span><span class="as">Ad set #1 · 8 ads</span><span class="as short">Ad set #2 · 2 ads (below 4)</span></div>
+      <div class="row"><button class="btn ghost" type="button">Cancel</button><button class="btn brand" type="button">Save template</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll(".rail [role=tab]")
+  Array.prototype.forEach.call(tabs, function (t) {
+    t.addEventListener("click", function () {
+      Array.prototype.forEach.call(tabs, function (x) {
+        var on = x === t
+        x.setAttribute("aria-selected", String(on))
+        document.getElementById("pane-" + x.dataset.pane).hidden = !on
+      })
+    })
+  })
+  Array.prototype.forEach.call(document.querySelectorAll(".seg"), function (g) {
+    var bs = g.querySelectorAll("button")
+    Array.prototype.forEach.call(bs, function (b) {
+      b.addEventListener("click", function () { Array.prototype.forEach.call(bs, function (x) { x.setAttribute("aria-pressed", String(x === b)) }) })
+    })
+  })
+  function plan() {
+    var max = Math.max(1, parseInt(document.getElementById("a-max").value, 10) || 8)
+    var min = Math.max(1, parseInt(document.getElementById("a-min").value, 10) || 4)
+    var n = 10, out = ["<span>Sending 10 approved ads:</span>"], i = 1
+    while (n > 0) { var k = Math.min(max, n); out.push('<span class="as' + (k < min ? " short" : "") + '">Ad set #' + i + " · " + k + " ads" + (k < min ? " (below " + min + ")" : "") + "</span>"); n -= k; i++ }
+    document.querySelector(".plan").innerHTML = out.join("")
+  }
+  document.getElementById("a-max").addEventListener("input", plan)
+  document.getElementById("a-min").addEventListener("input", plan)
+  document.getElementById("do-import").addEventListener("click", function () {
+    var pane = document.getElementById("pane-campaign")
+    if (pane.querySelector(".notcopied")) return
+    var d = document.createElement("div")
+    d.className = "notcopied"
+    d.textContent = "Imported from \"BF Scale — ABO\". Not copied: custom audience \"Purchasers 180d\" (exclusion), ad schedule. Review the fields and save."
+    pane.insertBefore(d, pane.firstChild)
+    document.querySelector('[data-pane="campaign"]').click()
+  })
+})()
+</script>

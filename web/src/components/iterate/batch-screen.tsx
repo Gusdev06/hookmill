@@ -80,7 +80,8 @@ function BatchError({ error, onRetry }: { error: unknown; onRetry: () => void })
   const notFound = isApiError(error) && error.status === 404
   return (
     <IterWrap>
-      <IterFlow current="analyze" />
+      {/* QA layout 29/10 #15: no step bar over a batch that does not exist */}
+      {notFound ? null : <IterFlow current="analyze" />}
       <Alert variant="destructive">
         <NavIcon name="alert" size={20} />
         <AlertBody>

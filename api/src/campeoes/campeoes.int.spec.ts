@@ -113,7 +113,7 @@ describe(isLocal ? 'Campeões B4a (integração local)' : 'Campeões B4a [pulado
     const hash = await hashPassword(PASSWORD);
     for (const k of ['A', 'B'] as const) {
       const email = `b4a-${RUN}-${k.toLowerCase()}@teste.local`;
-      const user = await prisma.user.create({ data: { email, name: `B4a ${k}`, passwordHash: hash } });
+      const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `B4a ${k}`, passwordHash: hash } });
       const w = await prisma.workspace.create({ data: { name: `b4a-${RUN}-${k}`, shortCode: 'TS', memberships: { create: { userId: user.id, role: 'OWNER' } } } });
       const res = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });
       ws[k] = { id: w.id, userId: user.id, token: (await res.json()).data.accessToken };

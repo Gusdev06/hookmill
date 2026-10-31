@@ -1,0 +1,215 @@
+<title>HookMill Free Sample</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: the app shell of HookMill (sidebar + Iterate download step), main = 4 locked pieces, side = ink unlock panel. Single light theme, same as the product. */
+:root {
+  --bg: #eeeeea; --card: #fdfdfb; --card-2: #f3f4f0; --line: #dcddd7; --line-strong: #cfd1cb;
+  --fg: #15171a; --fg-2: #3b4047; --fg-3: #5a6068;
+  --brand: #c8f03c; --brand-ink: #3e5200; --brand-soft: #f0f8d2; --brand-edge: #a9cc2a;
+  --ink: #16181b; --ink-2: #202328; --ink-line: #2e3238; --ink-fg: #f2f3ee; --ink-fg-2: #c5cad0; --ink-fg-3: #9aa1a9;
+  --warn-bg: #fbf0d3; --warn: #7a5000; --info-bg: #e6ebfc; --info: #2b4bc8;
+  --chat-a: #e9e9ef; --chat-b: #3d6cf0; --chat-b-fg: #ffffff; --skin: #c99b7c; --hair: #3a2b22; --scene-1: #8fb3c9; --scene-2: #d8c3a0;
+  --display: "Archivo", system-ui, sans-serif; --body: "Archivo", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.45 }
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh }
+.side { background: var(--card); border-right: 1px solid var(--line); padding: 18px 14px; display: flex; flex-direction: column; gap: 4px }
+.logo { font-family: var(--display); font-weight: 800; font-stretch: 112%; font-size: 17px; padding: 4px 8px 16px; display: flex; gap: 8px; align-items: center }
+.logo i { width: 18px; height: 18px; border-radius: 5px; background: var(--brand); display: inline-block; border: 1px solid var(--brand-edge) }
+.nav { padding: 8px 10px; border-radius: 8px; color: var(--fg-2) }
+.nav.on { background: var(--card-2); color: var(--fg); font-weight: 600 }
+.main { padding-block: 26px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; min-width: 0; max-width: 1180px }
+.flow { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--fg-3) }
+.flow span { padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line) }
+.flow .done { background: var(--card-2) } .flow .cur { background: var(--fg); color: var(--card); border-color: var(--fg) }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-ink); background: var(--brand-soft); border: 1px solid var(--brand-edge); padding: 3px 8px; border-radius: 99px; align-self: flex-start }
+h1 { font-family: var(--display); font-stretch: 108%; font-weight: 800; font-size: clamp(24px, 3.2vw, 34px); line-height: 1.08; margin: 0; text-wrap: balance }
+.lede { color: var(--fg-2); margin: 0; max-width: 62ch }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px }
+.piece { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 9px; min-width: 0 }
+.frame { position: relative; aspect-ratio: 9 / 16; max-width: 100%; border-radius: 9px; overflow: hidden; background: var(--ink) }
+.content { position: absolute; inset: 0; animation: reveal 7s linear infinite }
+.paid .content { animation: none; filter: none }
+@keyframes reveal { 0%, 42% { filter: none } 46%, 100% { filter: blur(9px) saturate(.8) } }
+.clock { position: absolute; left: 8px; right: 8px; bottom: 8px; height: 3px; background: rgba(255,255,255,.25); border-radius: 3px; overflow: hidden }
+.clock b { display: block; height: 100%; width: 100%; background: var(--brand); transform-origin: left; animation: tick 7s linear infinite }
+@keyframes tick { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+.lock { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 6px; color: var(--ink-fg); text-align: center; opacity: 0; animation: lockin 7s linear infinite; font-weight: 700; font-size: 13px; padding: 10px }
+.lock svg { width: 26px; height: 26px }
+@keyframes lockin { 0%, 44% { opacity: 0 } 50%, 100% { opacity: 1 } }
+.paid .lock, .paid .clock { display: none }
+.hook-tag { position: absolute; top: 8px; left: 8px; font-family: var(--mono); font-size: 10px; background: var(--brand); color: var(--brand-ink); padding: 2px 6px; border-radius: 4px; animation: hooktag 7s linear infinite }
+@keyframes hooktag { 0%, 42% { opacity: 1 } 46%, 100% { opacity: 0 } }
+.paid .hook-tag { display: none }
+.wm { position: absolute; right: 8px; top: 8px; font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,.75); letter-spacing: .06em }
+.paid .wm { display: none }
+.meta { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; min-width: 0 }
+.meta b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.code { font-family: var(--mono); font-size: 11px; color: var(--fg-3) }
+.why { font-size: 12px; color: var(--fg-2); margin: 0 }
+.tag { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--card-2); border: 1px solid var(--line); color: var(--fg-2) }
+.tag.free { background: var(--brand-soft); border-color: var(--brand-edge); color: var(--brand-ink) }
+.acts { display: flex; gap: 6px }
+.btn { font: inherit; font-weight: 600; font-size: 13px; border-radius: 8px; padding: 8px 12px; border: 1px solid var(--line-strong); background: var(--card); color: var(--fg); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; justify-content: center }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.btn.brand { background: var(--brand); border-color: var(--brand-edge); color: var(--fg) }
+.btn:focus-visible { outline: 2px solid var(--info); outline-offset: 2px }
+.acts .btn { flex: 1; padding: 6px 8px; font-size: 12px }
+
+/* drawn pieces */
+.chat { background: #ffffff; padding: 22px 10px; display: flex; flex-direction: column; gap: 7px; font-size: 11px }
+.chat .hd { font-weight: 700; font-size: 11px; color: var(--fg); padding-bottom: 6px; border-bottom: 1px solid var(--line) }
+.b { max-width: 82%; padding: 6px 9px; border-radius: 13px; line-height: 1.3 }
+.b.in { background: var(--chat-a); color: var(--fg); align-self: flex-start }
+.b.out { background: var(--chat-b); color: var(--chat-b-fg); align-self: flex-end }
+.person { background: linear-gradient(180deg, var(--scene-1), var(--scene-2)) }
+.person .stage { position: absolute; left: 0; right: 0; top: 0; height: 52%; display: grid; place-items: center; padding: 12px; background: var(--ink); color: var(--ink-fg); font-family: var(--display); font-weight: 800; font-stretch: 112%; font-size: 17px; text-align: center; line-height: 1.05 }
+.person .stage em { color: var(--brand); font-style: normal }
+.face { position: absolute; left: 50%; bottom: 13%; width: 58%; aspect-ratio: 3 / 4; transform: translateX(-50%) }
+.face .h { position: absolute; inset: 8% 14% 34%; border-radius: 48% 48% 44% 44%; background: var(--skin) }
+.face .hr { position: absolute; inset: 0 8% 62%; border-radius: 50% 50% 20% 20%; background: var(--hair) }
+.face .bd { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; border-radius: 40% 40% 0 0; background: var(--fg-2) }
+.cap { position: absolute; left: 8px; right: 8px; bottom: 9%; text-align: center; font-weight: 800; font-size: 12px; color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,.7) }
+.cut { background: linear-gradient(160deg, var(--scene-2), var(--scene-1)) }
+.headline { position: absolute; top: 14%; left: 10px; right: 10px; background: #ffffff; color: var(--fg); font-weight: 800; font-size: 13px; padding: 7px 9px; border-radius: 6px; line-height: 1.15 }
+
+/* unlock panel */
+.ink { background: var(--ink); color: var(--ink-fg); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: max(16px, env(safe-area-inset-top, 0px)) }
+.ink h2 { font-family: var(--display); font-stretch: 108%; font-size: 20px; margin: 0; line-height: 1.1 }
+.ink p { margin: 0; color: var(--ink-fg-2); font-size: 13px }
+.ink ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 13px }
+.ink li { display: flex; gap: 8px; align-items: flex-start }
+.ink li::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 2px; background: var(--brand); margin-top: 6px }
+.ink .sep { border-top: 1px solid var(--ink-line) }
+.ink .small { font-size: 12px; color: var(--ink-fg-3) }
+.ai { border: 1px dashed var(--ink-line); border-radius: 10px; padding: 12px; display: grid; gap: 4px }
+.ai b { font-size: 13px }
+
+/* review panel for Gusta */
+.notes { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px }
+.notes h3 { margin: 0; font-size: 14px }
+.notes ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--fg-2) }
+.toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 9px; overflow: hidden; align-self: flex-start }
+.toggle button { font: inherit; font-size: 12px; font-weight: 600; padding: 7px 12px; border: 0; background: var(--card); color: var(--fg-2); cursor: pointer }
+.toggle button[aria-pressed="true"] { background: var(--fg); color: var(--card) }
+.toggle button:focus-visible { outline: 2px solid var(--info); outline-offset: -2px }
+.banner { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 13px }
+@media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr) } .ink { position: static } }
+@media (max-width: 720px) { .app { grid-template-columns: minmax(0, 1fr) } .side { display: none } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (prefers-reduced-motion: reduce) { .content { animation: none; filter: blur(9px) } .lock { animation: none; opacity: 1 } .clock b, .hook-tag { animation: none } }
+</style>
+
+<div class="app" id="app">
+  <aside class="side" aria-label="HookMill navigation">
+    <div class="logo"><i></i>HookMill</div>
+    <span class="nav">Home</span>
+    <span class="nav on">Iterate a winner</span>
+    <span class="nav">New concepts</span>
+    <span class="nav">Library</span>
+    <span class="nav">Brain</span>
+  </aside>
+
+  <main class="main">
+    <div class="toggle" role="group" aria-label="Preview state">
+      <button type="button" id="st-locked" aria-pressed="true">Before paying</button>
+      <button type="button" id="st-paid" aria-pressed="false">After paying</button>
+    </div>
+
+    <nav class="flow" aria-label="Steps"><span class="done">1 Analyze</span><span class="done">2 Generate</span><span class="cur">3 Download</span></nav>
+
+    <span class="eyebrow" id="eyebrow">Free sample · 4 of 4 ready</span>
+    <h1 id="title">Your 4 variations are ready. Watch the hook of each one.</h1>
+    <p class="lede" id="lede">We read your ad "Sleep in 7 nights — UGC v3" and made 4 versions from it at no cost. The first 3 seconds play in full. Unlock to get the full videos, download them and send them to Meta.</p>
+
+    <div class="cols">
+      <section class="grid" aria-label="Variations">
+        <article class="piece">
+          <div class="frame"><div class="content cut"><div class="face"><div class="hr"></div><div class="h"></div><div class="bd"></div></div><div class="headline">I tried 11 sleep apps. This is the one I kept.</div><div class="cap">night three was different</div></div><span class="hook-tag">HOOK · 0–3 s</span><span class="wm">HOOKMILL PREVIEW</span><div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Unlock to watch the rest</div><div class="clock"><b></b></div></div>
+          <div class="meta"><b>New headline</b><span class="code">HEADLINE</span></div>
+          <p class="why">Puts the comparison up front. Your proof ("11 apps") is in the Brain.</p>
+          <div class="acts"><button class="btn lockable" type="button" disabled>Download</button><button class="btn lockable" type="button" disabled>Send to Meta</button></div>
+        </article>
+
+        <article class="piece">
+          <div class="frame"><div class="content chat"><div class="hd">sleepwell.app · Direct</div><div class="b in">does it actually work if I wake up at 3am?</div><div class="b out">That's who it was built for. 7 nights, 12 min a night.</div><div class="b in">price?</div><div class="b out">$9.99/mo, first week free.</div></div><span class="hook-tag">HOOK · 0–3 s</span><span class="wm">HOOKMILL PREVIEW</span><div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Unlock to watch the rest</div><div class="clock"><b></b></div></div>
+          <div class="meta"><b>Chat DM</b><span class="code">CHAT-DM</span></div>
+          <p class="why">Your top objection ("3am wake-ups") becomes the question a buyer asks.</p>
+          <div class="acts"><button class="btn lockable" type="button" disabled>Download</button><button class="btn lockable" type="button" disabled>Send to Meta</button></div>
+        </article>
+
+        <article class="piece">
+          <div class="frame"><div class="content person"><div class="stage">7 nights.<br><em>12 minutes</em> a night.</div><div class="face" style="bottom:2%;width:46%"><div class="hr"></div><div class="h"></div><div class="bd"></div></div><div class="cap" style="bottom:4%">this is what changed</div></div><span class="hook-tag">HOOK · 0–3 s</span><span class="wm">HOOKMILL PREVIEW</span><div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Unlock to watch the rest</div><div class="clock"><b></b></div></div>
+          <div class="meta"><b>Person + motion</b><span class="code">PERSON-MOTION</span></div>
+          <p class="why">Your own creator, with the promise animated over the parts where she says it.</p>
+          <div class="acts"><button class="btn lockable" type="button" disabled>Download</button><button class="btn lockable" type="button" disabled>Send to Meta</button></div>
+        </article>
+
+        <article class="piece">
+          <div class="frame"><div class="content cut" style="background:linear-gradient(200deg,var(--scene-1),var(--ink-2))"><div class="face"><div class="hr"></div><div class="h"></div><div class="bd"></div></div><div class="cap">night three was different</div></div><span class="hook-tag">HOOK · 0–3 s</span><span class="wm">HOOKMILL PREVIEW</span><div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Unlock to watch the rest</div><div class="clock"><b></b></div></div>
+          <div class="meta"><b>Cold open</b><span class="code">CUT</span></div>
+          <p class="why">Starts at your strongest line (0:14) and drops the 4 s of intro.</p>
+          <div class="acts"><button class="btn lockable" type="button" disabled>Download</button><button class="btn lockable" type="button" disabled>Send to Meta</button></div>
+        </article>
+      </section>
+
+      <aside class="ink" aria-label="Unlock">
+        <h2 id="ink-title">Unlock your 4 variations</h2>
+        <p id="ink-sub">They're already rendered. Unlocking is instant, nothing is generated again.</p>
+        <ul id="ink-list">
+          <li>Full videos in 9:16, plus 4:5 and 1:1 on request</li>
+          <li>Download as a zip or send straight to your Meta ad set</li>
+          <li>New free variations every time you upload a winner</li>
+        </ul>
+        <button class="btn brand" type="button" id="unlock">Unlock — see plans</button>
+        <div class="sep"></div>
+        <div class="ai">
+          <b>With AI <span class="tag" style="margin-left:6px">paid plan</span></b>
+          <span class="small">New avatar on your script, new formats from your ad. Shown here, available once you're on a plan.</span>
+        </div>
+        <span class="small">Free sample: 1 per account, up to 4 variations, never AI.</span>
+      </aside>
+    </div>
+
+    <section class="notes" aria-label="Review notes">
+      <h3>Pra você decidir (contrato <span class="code">docs/contratos/amostra-gratis-v1.md</span>)</h3>
+      <div class="banner">Mockup ilustrativo: as peças são desenhadas em CSS, não são renders. Os números da oferta são de exemplo.</div>
+      <ol>
+        <li><b>P3, o blur:</b> como está aqui, os 3 primeiros segundos ficam nítidos (o gancho) e o resto borrado, com cadeado. A alternativa é borrar tudo.</li>
+        <li><b>P1, quem paga:</b> o acesso pago vale pela conta do dono (todos os clientes da agência) ou por workspace?</li>
+        <li><b>P2, provedor e preço:</b> Stripe ou Cakto, e qual plano. Até isso ser decidido, "Unlock" leva a "fale com a gente" e o admin libera na mão.</li>
+        <li><b>P4:</b> a amostra é só pro modo "próprio" ou também pra agência em teste?</li>
+      </ol>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var app = document.getElementById("app")
+  var locked = document.getElementById("st-locked"), paid = document.getElementById("st-paid")
+  var copy = {
+    locked: { eyebrow: "Free sample · 4 of 4 ready", title: "Your 4 variations are ready. Watch the hook of each one.", lede: "We read your ad \"Sleep in 7 nights — UGC v3\" and made 4 versions from it at no cost. The first 3 seconds play in full. Unlock to get the full videos, download them and send them to Meta.", inkTitle: "Unlock your 4 variations", inkSub: "They're already rendered. Unlocking is instant, nothing is generated again.", btn: "Unlock — see plans" },
+    paid: { eyebrow: "Unlocked · 4 of 4 ready", title: "Your 4 variations are unlocked.", lede: "Same 4 pieces, now in full quality. Download them or send them to an ad set.", inkTitle: "You're on a plan", inkSub: "Upload your next winner for a new batch, or try a version with AI.", btn: "Download all (zip)" }
+  }
+  function set(state) {
+    var c = copy[state]
+    app.classList.toggle("paid", state === "paid")
+    locked.setAttribute("aria-pressed", String(state === "locked"))
+    paid.setAttribute("aria-pressed", String(state === "paid"))
+    document.getElementById("eyebrow").textContent = c.eyebrow
+    document.getElementById("title").textContent = c.title
+    document.getElementById("lede").textContent = c.lede
+    document.getElementById("ink-title").textContent = c.inkTitle
+    document.getElementById("ink-sub").textContent = c.inkSub
+    document.getElementById("unlock").textContent = c.btn
+    Array.prototype.forEach.call(document.querySelectorAll(".lockable"), function (b) { b.disabled = state !== "paid" })
+  }
+  locked.addEventListener("click", function () { set("locked") })
+  paid.addEventListener("click", function () { set("paid") })
+  document.getElementById("unlock").addEventListener("click", function () { if (!app.classList.contains("paid")) set("paid") })
+})()
+</script>

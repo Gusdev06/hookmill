@@ -93,7 +93,7 @@ describe(isLocal ? 'B6 Trocar avatar com Kling/Seedance (A) (integração local)
     configureApp(app);
     await app.listen(PORT, '127.0.0.1');
     const email = `${RUN}@teste.local`;
-    const user = await prisma.user.create({ data: { email, name: 'B6', passwordHash: await hashPassword(PASSWORD) } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: 'B6', passwordHash: await hashPassword(PASSWORD) } });
     userId = user.id;
     const w = await prisma.workspace.create({ data: { name: RUN, shortCode: 'TS', monthlySpendCapUsd: 500, memberships: { create: { userId: user.id, role: 'OWNER' } } } });
     wsId = w.id;

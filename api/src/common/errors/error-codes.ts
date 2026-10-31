@@ -12,6 +12,7 @@ export const ERROR_HTTP_STATUS = {
   CONFIRM_DOWNSTREAM_RESET: 409,
   OFFER_INCOMPLETE: 422,
   SPEND_CAP_EXCEEDED: 409,
+  PAYMENT_REQUIRED: 402, // amostra-gratis-v1 §4
   ESTIMATE_CHANGED: 409,
   INVITE_INVALID: 410,
   EMAIL_TAKEN: 409,
@@ -81,6 +82,7 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   CONFIRM_DOWNSTREAM_RESET: 'This change discards generated work. Confirm to continue.',
   OFFER_INCOMPLETE: 'The offer is missing required fields.',
   SPEND_CAP_EXCEEDED: 'Monthly spend cap reached.',
+  PAYMENT_REQUIRED: 'Unlock a plan to use this.',
   ESTIMATE_CHANGED: 'The estimate changed. Review the new cost.',
   INVITE_INVALID: 'This invite is no longer valid.',
   EMAIL_TAKEN: 'This email is already a member.',

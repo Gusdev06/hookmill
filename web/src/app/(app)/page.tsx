@@ -129,14 +129,17 @@ export default function HomePage() {
   const brainCard = <BrainCard ws={ws.data} offers={offers.data?.data} />
 
   // ── the results block, by state
+  const metaLoading = !off && (conn.isPending || (usable && summary.isPending))
   let results: React.ReactNode
   if (off) {
     results = <Cols main={waitingCard} side={brainCard} />
-  } else if (conn.isPending || (usable && summary.isPending)) {
+  } else if (metaLoading) {
+    // QA layout 29/10 (3rd round): while Meta loads, only the Meta placeholders. The cards below (Waiting, Brain, Recent)
+    // come in once the shape is known — a Connect card is far shorter than the KPIs, and everything under it used to jump.
     results = (
       <>
         <KpiSkeleton />
-        <Cols main={<TopAdsSkeleton />} side={<>{waitingCard}{brainCard}</>} />
+        <TopAdsSkeleton />
       </>
     )
   } else if (conn.isError) {
@@ -262,7 +265,7 @@ export default function HomePage() {
 
       {results}
 
-      <section className="flex flex-col gap-3">
+      <section className={cn("flex flex-col gap-3", metaLoading && "hidden")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-base font-bold">
             {t("home.recent")}
@@ -403,13 +406,17 @@ function KpiSkeleton() {
   const t = useTranslations("home")
   return (
     <>
-      <h2 className="text-base font-bold">{t("results")}</h2>
+      {/* QA layout 29/10 #7: same box sizes as the loaded header (with the 7d/30d toggle) and tiles, so nothing moves */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2.5">
+        <h2 className="text-base font-bold">{t("results")}</h2>
+        <span className="sk h-10 w-[150px] rounded-[12px] tablet:h-[33px]" />
+      </div>
       <div id="t-kpis" className="grid grid-cols-2 gap-3 desktop:grid-cols-4" role="status" aria-label={t("loadingResults")}>
         {[t("kpi.spend"), t("kpi.cpa"), t("kpi.roas"), t("kpi.active")].map((k) => (
-          <div key={k} className="flex flex-col gap-2 rounded-xl border border-line bg-card px-4 py-4">
+          <div key={k} className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-line bg-card px-4 py-4 tablet:px-[18px]">
             <span className="text-[13px] font-semibold text-fg-3">{k}</span>
-            <span className="sk h-7 w-24" />
-            <span className="sk h-3 w-32" />
+            <span className="sk h-[26px] w-24 tablet:h-[31px]" />
+            <span className="sk h-[22px] w-32 rounded-full" />
           </div>
         ))}
       </div>
@@ -627,7 +634,7 @@ function BrainCard({ ws, offers }: { ws: Workspace | undefined; offers: Offer[] 
       </div>
       <span className="text-[13px] text-fg-3">
         {brain ? (brain.missing.length ? t("missing", { items: brain.missing.slice(0, 3).map((i) => tb(`item.${i}`)).join(", ") }) : t("allIn")) : <span className="sk inline-block h-3 w-40" />}{" "}
-        <Link href="/brain" className="font-semibold text-fg underline underline-offset-2 hover:text-brand-ink">
+        <Link href="/brain" className="inline-flex min-h-10 items-center font-semibold text-fg underline underline-offset-2 hover:text-brand-ink tablet:min-h-0">
           {t("fill")}
         </Link>
       </span>
@@ -653,7 +660,7 @@ function WaitingCard({ c }: { c: CreativeRow }) {
         <span className="truncate font-medium">{c.name}</span>
         {c.variation ? <VariationLine v={c.variation} /> : null}
         {c.editedInEditor ? <span><EditedBadge variation={!!c.variation} /></span> : null}
-        <span className="row-sub">
+        <span className="row-sub whitespace-normal">
           {c.offer.name} · {rel(c.updatedAt)}
         </span>
         <StatusChip status={c.status}>{label(c)}</StatusChip>
@@ -684,7 +691,7 @@ function WaitingBatchCard({ b }: { b: WaitingBatchRef }) {
       </span>
       <div className="grid min-w-0 flex-1 content-start gap-1">
         <span className="truncate font-medium">{b.championName}</span>
-        <span className="row-sub">
+        <span className="row-sub whitespace-normal">
           {auto ? t("kindAuto") : t("kindManual")} · {b.offer.name} · {rel(b.updatedAt)}
         </span>
         <StatusChip status={status}>{label}</StatusChip>

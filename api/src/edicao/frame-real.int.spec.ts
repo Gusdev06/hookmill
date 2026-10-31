@@ -65,7 +65,7 @@ describe(ATIVO ? 'moldura real pela edicao (Remotion)' : 'moldura real pela edic
     app = mod.createNestApplication<NestExpressApplication>({ rawBody: true, logger: ['error', 'warn'] });
     configureApp(app);
     await app.listen(PORT, '127.0.0.1');
-    const user = await prisma.user.create({ data: { email: `frame-real-${RUN}@teste.local`, name: 'Frame', passwordHash: 'x' } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email: `frame-real-${RUN}@teste.local`, name: 'Frame', passwordHash: 'x' } });
     userId = user.id;
     const w = await prisma.workspace.create({ data: { name: `frame-real-${RUN}`, shortCode: 'FR', memberships: { create: { userId, role: 'OWNER' } } } });
     wsId = w.id;

@@ -20,6 +20,9 @@ export function iterateInterval(b: IterateBatch | undefined) {
   if (!b) return false
   if (b.status === "ANALYZING" || b.status === "PLANNING" || b.phase === "generate" || b.zip.status === "building") return 1_500
   if (b.pieces.some((p) => p.render || p.formats?.some((f) => f.state === "queued" || f.state === "rendering"))) return 1_500
+  // amostra-gratis-v1 §2/§3: the sample launches by itself from PLAN_READY, and the blurred preview comes a bit after the piece
+  if (b.sample && b.status === "PLAN_READY") return 1_500
+  if (b.pieces.some((p) => p.locked && p.status === "ready" && !p.preview)) return 2_000
   return false
 }
 

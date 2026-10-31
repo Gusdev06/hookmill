@@ -5,8 +5,13 @@ import type {
 } from '@maquina/contratos';
 import { Type } from 'class-transformer';
 import {
-  ArrayMaxSize, ArrayMinSize, Equals, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength,
+  Allow, ArrayMaxSize, ArrayMinSize, ArrayUnique, Equals, IsArray, IsBoolean, IsDefined, IsIn, IsInt, IsObject, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength,
+  ValidateIf,
 } from 'class-validator';
+import type {
+  MetaPublishBatchBody, MetaTemplateAd, MetaTemplateAdset, MetaTemplateBody, MetaTemplateCampaign, MetaTemplateImportBody, MetaTemplateImportedFrom,
+  UpdateMetaTemplateBody,
+} from '@maquina/contratos';
 import type {
   MetaAdFormat, MetaBudgetBody, MetaCampaignDetailQuery, MetaCampaignsQuery, MetaChangesQuery, MetaLevel, MetaOrigin, MetaSort, MetaStatusBody,
   MetaStatusFilter, MetaToggleStatus,
@@ -107,19 +112,55 @@ export class MetaPublicationsQueryDto implements MetaPublicationsQuery {
   @IsOptional() @IsString() @MaxLength(500) cursor?: string;
 }
 
+/** Sem `templateId` = o formulário de hoje (campos obrigatórios); com `templateId` = só ele (meta-templates-v1 §2). */
+const noTemplate = (o: { templateId?: unknown }) => o.templateId === undefined;
 export class MetaPublishDto implements MetaPublishBody {
-  @IsInt() @Min(1) dailyBudgetMinor: number;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(10) @Matches(/^[A-Z]{2}$/, { each: true }) countries: string[];
+  /** meta-templates-v1: publicar com um template (alternativa ao corpo inteiro); os demais campos ficam proibidos */
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) templateId?: string;
+  @ValidateIf(noTemplate) @IsInt() @Min(1) dailyBudgetMinor: number;
+  @ValidateIf(noTemplate) @IsArray() @ArrayMinSize(1) @ArrayMaxSize(10) @Matches(/^[A-Z]{2}$/, { each: true }) countries: string[];
   @IsOptional() @IsIn(OBJECTIVES) objective?: MetaObjective;
-  @IsString() @MinLength(1) @MaxLength(2000) primaryText: string;
+  @ValidateIf(noTemplate) @IsString() @MinLength(1) @MaxLength(2000) primaryText: string;
   /** > 40 = aviso na tela, não erro (teto técnico 255) */
   @IsOptional() @IsString() @MaxLength(255) headline?: string;
   @IsOptional() @IsString() @MaxLength(125) description?: string;
-  @IsIn(CTAS) callToAction: MetaCallToAction;
-  @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(2048) link: string;
+  @ValidateIf(noTemplate) @IsIn(CTAS) callToAction: MetaCallToAction;
+  @ValidateIf(noTemplate) @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(2048) link: string;
   @IsOptional() @IsArray() @IsIn(SPECIAL_CATEGORIES, { each: true }) specialAdCategories?: MetaSpecialAdCategory[];
   @IsOptional() @IsInt() @Min(18) @Max(65) ageMin?: number;
   @IsOptional() @IsInt() @Min(18) @Max(65) ageMax?: number;
+}
+
+// ───────── meta-templates-v1 ─────────
+// O formato fino das seções (união de placements, regras cruzadas, chaves desconhecidas) é validado por
+// `templateBodyErrors` (meta/templates.ts) e devolvido no mesmo VALIDATION_ERROR { fields }.
+
+export class MetaTemplateDto implements MetaTemplateBody {
+  @IsDefined() @IsString() name: string;
+  @IsOptional() @IsBoolean() isDefault?: boolean;
+  @IsDefined() @IsObject() campaign: MetaTemplateCampaign;
+  @IsDefined() @IsObject() adset: MetaTemplateAdset;
+  @IsDefined() @IsObject() ad: MetaTemplateAd;
+  @IsOptional() @Allow() importedFrom?: MetaTemplateImportedFrom | null;
+}
+
+export class MetaTemplatePatchDto implements UpdateMetaTemplateBody {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsBoolean() isDefault?: boolean;
+  @IsOptional() @IsObject() campaign?: MetaTemplateCampaign;
+  @IsOptional() @IsObject() adset?: MetaTemplateAdset;
+  @IsOptional() @IsObject() ad?: MetaTemplateAd;
+  @IsOptional() @Allow() importedFrom?: MetaTemplateImportedFrom | null;
+}
+
+export class MetaTemplateImportDto implements MetaTemplateImportBody {
+  @IsIn(LEVELS) level: MetaLevel;
+  @IsString() @MinLength(1) @MaxLength(64) id: string;
+}
+
+export class MetaPublishBatchDto implements MetaPublishBatchBody {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(50) @ArrayUnique() @IsString({ each: true }) @MinLength(1, { each: true }) @MaxLength(64, { each: true }) creativeIds: string[];
+  @IsString() @MinLength(1) @MaxLength(64) templateId: string;
 }
 
 export class MetaActivateDto implements MetaActivateBody {

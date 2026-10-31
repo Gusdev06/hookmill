@@ -155,7 +155,8 @@ export async function seedIdentities(opts: { useApiSeed: boolean } = { useApiSee
   // 13/10: short_code (fase2-agencia, NOT NULL sem default) = prefixo do nome do arquivo (CLIENTE_MMDD_CODIGO)
   await q(`insert into workspaces (id, name, short_code, updated_at) values ($1, 'QA Alfa', 'QA', now()), ($2, 'QA Beta', 'QB', now())`, [WS.A, WS.B]);
   for (const p of Object.values(PERSONAS)) {
-    await q(`insert into users (id, email, password_hash, name, updated_at) values ($1, $2, $3, $4, now())`, [p.id, p.email, hash, p.name]);
+    // 29/10 (amostra-gratis-v1): o default do banco virou SAMPLE (conta nova travada); as personas do QA são equipe = INTERNAL
+    await q(`insert into users (id, email, password_hash, name, access, updated_at) values ($1, $2, $3, $4, 'INTERNAL', now())`, [p.id, p.email, hash, p.name]);
     for (const [ws, role] of p.memberships) {
       await q(`insert into memberships (id, workspace_id, user_id, role) values ($1, $2, $3, $4)`, [`qa_mb_${p.id}_${ws}`, WS[ws], p.id, role]);
     }

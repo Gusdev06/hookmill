@@ -47,7 +47,7 @@ function ToggleGroupItem({
     <ToggleGroupPrimitive.Item
       data-slot="toggle-group-item"
       className={cn(
-        "rounded-[9px] border-0 bg-transparent px-3 py-1.5 text-[13px] font-semibold whitespace-nowrap text-fg-btn outline-none hover:text-fg focus-visible:outline-2 focus-visible:outline-ring data-[state=on]:bg-card data-[state=on]:text-fg data-[state=on]:shadow-[0_0_0_1px_var(--line)]",
+        "inline-flex min-h-10 min-w-10 items-center justify-center rounded-[9px] border-0 bg-transparent px-3 py-1.5 tablet:min-h-0 tablet:min-w-0 text-[13px] font-semibold whitespace-nowrap text-fg-btn outline-none hover:text-fg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring data-[state=on]:bg-card data-[state=on]:text-fg data-[state=on]:shadow-[0_0_0_1px_var(--line)]",
         className
       )}
       {...props}

@@ -1,4 +1,5 @@
-import { Controller, Get, Global, Module, Param, Res } from '@nestjs/common';
+import { Controller, Get, Global, Module, Param, Res, UseGuards } from '@nestjs/common';
+import { SampleFileGuard } from '../amostra/amostra.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Auth, AuthContext } from '../common/auth/auth-context';
@@ -11,6 +12,7 @@ export class FilesController {
   constructor(private readonly storage: StorageService) {}
 
   /** 302 pra uma URL assinada nova (6 h). Arquivo de outro workspace = 404. */
+  @UseGuards(SampleFileGuard) // amostra-gratis-v1 §3: arquivo final de peça travada não sai
   @Get(':id')
   async redirect(@Auth() auth: AuthContext, @Param('id') id: string, @Res() res: Response) {
     const file = await this.storage.getForWorkspace(auth.workspaceId, id);

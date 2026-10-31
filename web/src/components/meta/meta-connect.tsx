@@ -329,7 +329,7 @@ function AccountRow({ a, checked }: { a: MetaAdAccountOption; checked: boolean }
       disabled={!ok}
       aria-describedby={ok ? undefined : "meta-noperm"}
       className={cn(
-        "flex w-full min-h-11 items-center gap-3 rounded-md border bg-card px-3.5 py-3 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "flex w-full min-h-11 items-center gap-3 rounded-md border bg-card px-3.5 py-3 text-left outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring",
         checked ? "border-fg shadow-[0_0_0_1px_var(--fg)]" : "border-line hover:border-fg",
         !ok && "cursor-not-allowed hover:border-line"
       )}

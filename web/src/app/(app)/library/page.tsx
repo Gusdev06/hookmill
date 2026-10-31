@@ -125,7 +125,7 @@ function Library() {
           <ToggleGroupItem value="original">{t("variar.lib.originals")}</ToggleGroupItem>
           <ToggleGroupItem value="variation">{t("variar.lib.variations")}</ToggleGroupItem>
         </ToggleGroup>
-        <ToggleGroup type="single" value={offerId} onValueChange={(v) => v && setOfferId(v)} aria-label={t("library.allOffers")}>
+        <ToggleGroup type="single" value={offerId} onValueChange={(v) => v && setOfferId(v)} aria-label={t("library.allOffers")} className="max-tablet:flex-wrap max-tablet:overflow-visible">
           <ToggleGroupItem value={ALL}>{t("library.allOffers")}</ToggleGroupItem>
           {offers.map((o) => (
             <ToggleGroupItem key={o.id} value={o.id}>
@@ -193,10 +193,12 @@ function LibraryCard({ item, isNew, queryKey }: { item: LibraryItem; isNew: bool
   })
 
   return (
-    <div className="grid min-w-0 gap-2">
+    // QA layout 29/10 #10 + 3rd round: a column that fills the row; the actions sit at the card's foot (mt-auto), so a
+    // 2-line name doesn't push one card's buttons below its siblings'
+    <div className="flex min-w-0 flex-col gap-2">
       <Dialog>
       <DialogTrigger asChild>
-      <button type="button" aria-label={item.name} className="block w-full cursor-pointer rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2">
+      <button type="button" aria-label={item.name} className="block w-full cursor-pointer rounded-lg text-left focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2">
       <Thumb file={item.thumbnail} play={!image} className={cn("rounded-lg", isNew && "shadow-[0_0_0_2px_var(--green)]")}>
         {item.isWinner ? (
           <span className="absolute top-2 left-2 rounded-[4px] bg-status-waiting-bg px-1.5 py-px text-[11px] font-semibold text-status-waiting">{t("winner")}</span>
@@ -223,9 +225,9 @@ function LibraryCard({ item, isNew, queryKey }: { item: LibraryItem; isNew: bool
         )}
       </DialogContent>
       </Dialog>
-      <div className="flex items-start justify-between gap-2">
-        <div className="grid min-w-0 gap-0.5">
-          <span className="truncate font-medium">{item.name}</span>
+      <div className="flex flex-1 items-start justify-between gap-2">
+        <div className="flex h-full min-w-0 flex-col gap-0.5">
+          <span className="line-clamp-2 font-medium [overflow-wrap:anywhere]">{item.name}</span>
           <span className="row-sub">
             {item.offer.name} · {item.engineLabel}{image ? null : <> · <span className="num">{duration(item.durationSec)}</span></>}
           </span>
@@ -233,7 +235,7 @@ function LibraryCard({ item, isNew, queryKey }: { item: LibraryItem; isNew: bool
           {item.variation ? <VariationLine v={item.variation} /> : null}
           {item.editedInEditor ? <span><EditedBadge variation={!!item.variation} /></span> : null}
           {image ? null : (
-            <span className="flex flex-wrap gap-1.5 pt-1">
+            <span className="mt-auto flex flex-wrap gap-1.5 pt-1">
               <Button size="sm" disabled={vary.isPending} onClick={() => vary.mutate()}>
                 {vary.isPending ? <span className="spin-ring size-3.5" aria-hidden="true" /> : <Icon name="branch" />}
                 {vary.isPending ? ti("starting") : ti("vary")}
@@ -253,7 +255,7 @@ function LibraryCard({ item, isNew, queryKey }: { item: LibraryItem; isNew: bool
           aria-label={item.isWinner ? t("unmarkWinner") : t("markWinner")}
           title={item.isWinner ? t("unmarkWinner") : t("markWinner")}
           onClick={() => winner.mutate(!item.isWinner)}
-          className="grid flex-none place-items-center rounded-sm border border-line p-1 text-fg-3 aria-pressed:border-transparent aria-pressed:bg-status-waiting-bg aria-pressed:text-status-waiting aria-pressed:[&_svg]:fill-current"
+          className="grid min-h-10 min-w-10 flex-none place-items-center rounded-sm border border-line p-1 text-fg-3 tablet:min-h-0 tablet:min-w-0 aria-pressed:border-transparent aria-pressed:bg-status-waiting-bg aria-pressed:text-status-waiting aria-pressed:[&_svg]:fill-current"
         >
           <Icon name="star" />
         </button>

@@ -95,7 +95,7 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     const hash = await hashPassword(PASSWORD);
     for (const k of ['owner', 'admin', 'member', 'client'] as Who[]) {
       const email = `${PREFIX}${k}@teste.local`;
-      const u = await prisma.user.create({ data: { email, name: `Meta ${k}`, passwordHash: hash, accountMode: 'AGENCY' } });
+      const u = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `Meta ${k}`, passwordHash: hash, accountMode: 'AGENCY' } });
       users[k] = { id: u.id, email, token: '' };
     }
     const role = (k: Who): 'OWNER' | 'ADMIN' | 'MEMBER' | 'CLIENT' => (k === 'owner' ? 'OWNER' : k === 'admin' ? 'ADMIN' : k === 'member' ? 'MEMBER' : 'CLIENT');

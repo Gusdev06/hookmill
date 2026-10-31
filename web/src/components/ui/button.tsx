@@ -6,7 +6,7 @@ import { Slot } from "radix-ui"
 /* fase2 .btn: 44 px, 12 px radius, bold. brand = lime (one per screen: the step's advance),
    default = ink, outline, ghost, destructive = red outline (spec §2.5, §4) */
 const buttonVariants = cva(
-  "inline-flex min-w-0 shrink-0 items-center justify-center gap-2 rounded-btn border font-bold whitespace-nowrap transition-[background-color,border-color,color] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45 aria-disabled:cursor-not-allowed aria-disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex min-w-0 shrink-0 items-center justify-center gap-2 rounded-btn border font-bold whitespace-nowrap transition-[background-color,border-color,color] outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45 aria-disabled:cursor-not-allowed aria-disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -21,10 +21,11 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-11 px-4 text-sm",
-        sm: "h-9 rounded-md px-3 text-[13px]",
+        // QA layout 29/10 #9: 40 px touch target on the phone, the compact 36 px from tablet up
+        sm: "h-10 rounded-md px-3 text-[13px] tablet:h-9",
         lg: "h-[50px] px-[18px] text-sm",
         icon: "size-11",
-        "icon-sm": "size-9 rounded-md",
+        "icon-sm": "size-10 rounded-md tablet:size-9",
       },
     },
     defaultVariants: {

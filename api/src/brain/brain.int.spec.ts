@@ -64,7 +64,7 @@ describe(isLocal ? 'Brain 3D v1 (integração local)' : 'Brain 3D v1 [pulado: DA
     const hash = await hashPassword(PASSWORD);
     for (const k of ['owner', 'client', 'other'] as Who[]) {
       const email = `${PREFIX}${k}@teste.local`;
-      const u = await prisma.user.create({ data: { email, name: `Brain ${k}`, passwordHash: hash, accountMode: 'AGENCY' } });
+      const u = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `Brain ${k}`, passwordHash: hash, accountMode: 'AGENCY' } });
       users[k] = { id: u.id, email, token: '' };
     }
     w1 = (await prisma.workspace.create({

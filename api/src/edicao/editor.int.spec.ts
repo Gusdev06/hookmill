@@ -90,7 +90,7 @@ describe(isLocal ? 'Editor F2a (integração local)' : 'Editor F2a [pulado: DATA
     const hash = await hashPassword(PASSWORD);
     for (const k of ['A', 'B'] as const) {
       const email = `${RUN}-${k.toLowerCase()}@teste.local`;
-      const user = await prisma.user.create({ data: { email, name: `Editor ${k}`, passwordHash: hash } });
+      const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `Editor ${k}`, passwordHash: hash } });
       const w = await prisma.workspace.create({ data: { name: `${RUN}-${k}`, shortCode: 'TS', memberships: { create: { userId: user.id, role: 'OWNER' } } } });
       const r = await fetch(`${base}/api/v1/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });
       ws[k] = { id: w.id, userId: user.id, token: ((await r.json()) as any).data.accessToken };

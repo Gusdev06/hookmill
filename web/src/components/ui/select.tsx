@@ -36,7 +36,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit items-center justify-between gap-2 rounded-md border border-line-strong bg-field px-3 text-sm text-fg whitespace-nowrap outline-none focus-visible:border-info focus-visible:shadow-[0_0_0_3px_var(--info-bg)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-fg-3 data-[size=default]:h-11 data-[size=sm]:h-9 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-fg-3",
+        "flex w-fit items-center justify-between gap-2 rounded-md border border-line-strong bg-field px-3 text-sm text-fg whitespace-nowrap outline-none focus-visible:border-info focus-visible:shadow-[0_0_0_3px_var(--info-bg)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-fg-3 data-[size=default]:h-11 data-[size=sm]:h-9 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-fg-3",
         className
       )}
       {...props}

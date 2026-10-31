@@ -519,9 +519,10 @@ function TopBar() {
             <span className="ed-mono">{pct}%</span>
           </Button>
         ) : (
-          <Button size="sm" variant="default" onClick={act.exportNow} disabled={s.exportMut.isPending} title={`${t("export")} (⌘E)`}>
+          // QA layout 29/10 #13: icon only on the phone, so the creative's name keeps room in the top bar
+          <Button size="sm" variant="default" onClick={act.exportNow} disabled={s.exportMut.isPending} title={`${t("export")} (⌘E)`} aria-label={s.exportFailed ? t("exportAgain") : t("export")}>
             <EdIcon name={s.exportFailed ? "refresh" : "exp"} />
-            {s.exportFailed ? t("exportAgain") : t("export")}
+            <span className="ed-hide-m">{s.exportFailed ? t("exportAgain") : t("export")}</span>
           </Button>
         )}
       </div>

@@ -38,13 +38,14 @@ import { EditorSaves, anunciarEdicao } from './editor-saves';
 import { integracoesMode } from '../integracoes';
 import { computeAdName, isAdNameConflict } from '../biblioteca/ad-names';
 import { AUTO_EDIT_BUILDER, type AutoEditBuilder, type AutoEditContext } from './auto-edit-input';
-import { AUTO_EDIT_TEMPLATE, frameTemplateOf, mockRenderFail, pieceOutcome, primaryFormatOf } from './pecas';
+import { AUTO_EDIT_TEMPLATE, captionOverrideOf, frameTemplateOf, mockRenderFail, pieceOutcome, primaryFormatOf } from './pecas';
 import { FRAME_BUILDER, frameSpecOf, type FrameBuilder } from './frame-input';
 import { capturaValida } from './captura-valida';
 import { HEADLINE_BUILDER, type HeadlineBuilder } from './headline-input';
 import type { OpcoesDeBuild } from '../render/frame';
 import { TemplateTextOverflowError, buildTemplateInput } from '../render/template';
 import { palavrasNaEscrita } from '../render/escrita-chinesa';
+import { PREVIEW, gerarPrevia } from '../render/previa';
 import type { TemplateSpec } from '../integracoes/contrato';
 import { paletaDoEstatico } from '../iteracao/paleta';
 import type { CaptionsAuto } from '@maquina/video';
@@ -660,14 +661,38 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     });
     // legenda-protegida-v1 §4.2: a visão confere a legenda queimada (ou a nossa, no replace); `covered` = formato failed
     if (!still && (await this.captionCovered(r, res, out.id))) return;
+    const previewFileId = still ? null : await this.previewIfSample(r, res);
     await this.prisma.render.update({
       where: { id: r.id },
-      data: { status: 'READY', stage: null, progress: 100, fileId: out.id, durationSec: res.durationSec, finishedAt: new Date(), finalizingAt: null },
+      data: { status: 'READY', stage: null, progress: 100, fileId: out.id, durationSec: res.durationSec, finishedAt: new Date(), finalizingAt: null, previewFileId },
     });
     // pôster da peça = frame do 9:16 (o único formato do Gerar, §14.2)
     if (format === 'VERTICAL_9_16') await this.prisma.creative.update({ where: { id: r.creativeId }, data: { thumbnailFileId: poster.id } });
     await this.publish(r.id);
     await this.settleAuto(r.creativeId);
+  }
+
+  /**
+   * amostra-gratis-v1 §3: peça de VÍDEO de lote com `settings.sample = true` ganha `preview.mp4` (480 px, 0-3 s nítido,
+   * resto borrado, selo) gerado do arquivo final já local (render local ou baixado do Lambda no finalize). Falha na
+   * prévia não falha a peça: loga e devolve null. A pasta de `res.outputPath` é apagada pelo `settle` depois.
+   */
+  private async previewIfSample(r: RenderRow, res: RenderResult): Promise<string | null> {
+    const batchId = r.creative.variationBatchId;
+    if (!batchId) return null;
+    try {
+      const batch = await this.prisma.variationBatch.findUnique({ where: { id: batchId }, select: { settings: true } });
+      if ((batch?.settings as { sample?: boolean } | null)?.sample !== true) return null;
+      const saida = join(dirname(res.outputPath), 'preview.mp4');
+      await gerarPrevia(res.outputPath, saida);
+      const file = await this.storage.put(saida, {
+        workspaceId: r.workspaceId, kind: 'RENDER_VIDEO', mimeType: 'video/mp4', meta: { durationSec: res.durationSec, width: PREVIEW.width, height: Math.round((res.height * PREVIEW.width) / res.width / 2) * 2 },
+      });
+      return file.id;
+    } catch (e) {
+      this.log.warn(`render ${r.id}: prévia da amostra falhou (peça segue sem prévia): ${(e as Error).message}`);
+      return null;
+    }
   }
 
   /**
@@ -678,6 +703,11 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   private async captionCovered(r: RenderRow, res: RenderResult, fileId: string): Promise<boolean> {
     const c = r.creative;
     if (!c.variationBatchId) return false;
+    // §8 (29/10): a pessoa aceitou cobrir a legenda ("Gerar mesmo assim"); CAPTION_COVERED nunca reprova essa peça
+    if (c.variationItemId) {
+      const item = await this.prisma.variationItem.findUnique({ where: { id: c.variationItemId }, select: { payload: true } });
+      if (captionOverrideOf(item?.payload)) return false;
+    }
     const input = r.input as unknown as RenderInput;
     const [batch, offer, attempt] = await Promise.all([
       this.prisma.variationBatch.findUnique({ where: { id: c.variationBatchId }, select: { language: true } }),
@@ -860,7 +890,8 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const clean = ch.cleanVideoFile && (await this.storage.head(ch.cleanVideoFile.storageKey)) ? ch.cleanVideoFile : null;
     const video = clean ?? ch.videoFile;
     if (!video || !(await this.storage.head(video.storageKey))) throw new AutoPieceError('SOURCE_UNAVAILABLE', 'vídeo do campeão sumiu do storage');
-    const editMap = clean ? semLegendaQueimada(editMapOf(ch.teardown?.editMap)) : editMapOf(ch.teardown?.editMap);
+    // §8 (29/10): "Gerar mesmo assim" = layout normal, sem as faixas protegidas (pode cobrir a legenda queimada)
+    const editMap = clean || captionOverrideOf(item.payload) ? semLegendaQueimada(editMapOf(ch.teardown?.editMap)) : editMapOf(ch.teardown?.editMap);
     const sections = (ch.teardown?.sections ?? {}) as {
       structure?: { status?: string; data?: { blocks?: { startSec: number; endSec: number }[] } | null };
       hook?: { status?: string; data?: { endSec?: number } | null };

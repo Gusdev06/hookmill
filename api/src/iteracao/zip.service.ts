@@ -16,6 +16,7 @@ import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
 import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AmostraService } from '../amostra/amostra.service';
 import { ALL_FORMATS, autoFileName, latestByFormat, paramsOf, pieceStatus, suggestedPrimaryTextOf } from '../edicao/pecas';
 import { ZIP_TTL_MS, creditoDoBroll, folderFor, notaDoTemplate, readmeFor, zipFileName, zipFolders, zipKeyOf, type ZipLocale } from './zip';
 
@@ -38,6 +39,7 @@ export class ZipService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly jobs: JobsService,
+    private readonly amostra: AmostraService,
   ) {}
 
   private async batch(workspaceId: string, batchId: string) {
@@ -93,7 +95,8 @@ export class ZipService {
     const key = this.keyOf(entries);
     const base = { pieces: entries.length, files: entries.reduce((a, e) => a + e.files.length, 0), folders: zipFolders(locale) };
     const fileName = b.launchedAt ? zipFileName({ shortCode: b.workspace.shortCode, launchedAt: b.launchedAt, championName: b.champion.name, locale }) : null;
-    if (b.zipFile && b.zipKey === key && entries.length) {
+    // amostra-gratis-v1 §3: lote travado nunca devolve a URL do zip
+    if (b.zipFile && b.zipKey === key && entries.length && !(await this.amostra.batchLock(b)).locked) {
       const { url } = await this.storage.signedDownloadUrl(b.zipFile, fileName!);
       if (!b.downloadedAt) await this.prisma.variationBatch.updateMany({ where: { id: b.id, downloadedAt: null }, data: { downloadedAt: new Date() } });
       return { status: 'ready', fileName, url, sizeBytes: b.zipFile.sizeBytes, ...base };
@@ -106,6 +109,7 @@ export class ZipService {
   /** `POST /iterate/:id/zip`: 200 `ready` (mesmo zipKey) ou 202 `building` (job ZIP_BUILD). */
   async request(auth: AuthContext, batchId: string): Promise<{ httpStatus: 200 | 202; zip: IterateZip }> {
     const b = await this.batch(auth.workspaceId, batchId);
+    await this.amostra.assertBatchUnlocked(auth.workspaceId, b.id); // amostra-gratis-v1 §4: zip trava (402)
     if (b.status !== 'LAUNCHED') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['LAUNCHED'] });
     const entries = await this.entries(b.id, true);
     if (!entries.length) throw new AppException('INVALID_STATE', { state: b.status, allowed: [], reason: 'nothing_to_zip' });

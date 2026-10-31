@@ -1,0 +1,220 @@
+<title>HookMill review 29/10</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: prototype bar on top, then the product screen in a desktop or 390 px frame. Single light theme (fase2 §3), on purpose. */
+:root {
+  --bg:#eeeeea; --card:#fdfdfb; --card-2:#f3f4f0; --field:#ffffff;
+  --line:#dcddd7; --line-soft:#e4e5e0; --line-strong:#cfd1cb; --control:#b9bcb5;
+  --fg:#15171a; --fg-2:#3b4047; --fg-3:#5a6068;
+  --brand:#c8f03c; --brand-hover:#bde52f; --brand-ink:#3e5200; --brand-soft:#f0f8d2; --brand-edge:#a9cc2a;
+  --ink:#16181b; --ink-2:#202328; --ink-line:#2e3238; --ink-fg:#f2f3ee; --ink-fg-2:#c5cad0;
+  --info:#2b4bc8; --info-bg:#e6ebfc; --warn:#7a5000; --warn-bg:#fbf0d3;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--sans); margin: 0 }
+.proto { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding-block:10px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); background:var(--ink); color:var(--ink-fg) }
+.proto b { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-2); margin-right:4px }
+.seg { display:inline-flex; border:1px solid var(--ink-line); border-radius:10px; overflow:hidden }
+.seg button { font:inherit; font-size:12px; font-weight:600; padding:7px 11px; border:0; background:transparent; color:var(--ink-fg-2); cursor:pointer; min-height:36px }
+.seg button[aria-pressed="true"] { background:var(--ink-fg); color:var(--ink) }
+.seg button:focus-visible, .btn:focus-visible, .chip:focus-visible, summary:focus-visible { outline:2px solid var(--info); outline-offset:2px }
+.stage { padding-block:20px 40px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); display:flex; justify-content:center }
+.frame { width:100%; max-width:1100px; background:var(--bg); border:1px solid var(--line); border-radius:18px; overflow:hidden; position:relative }
+.frame.phone { max-width:390px }
+.top { display:flex; align-items:center; gap:10px; min-height:52px; padding:8px 16px; background:var(--card); border-bottom:1px solid var(--line) }
+.logo { width:26px; height:26px; border-radius:8px; background:var(--brand); border:1px solid var(--brand-edge); display:grid; place-items:center; font-weight:800; font-size:11px }
+.top .name { font-weight:800; font-stretch:125% }
+.top .sp { flex:1 }
+.top .ghost { font-size:13px; font-weight:600; color:var(--fg-3) }
+.page { padding:20px 24px 24px; display:flex; flex-direction:column; gap:16px }
+.phone .page { padding:16px 16px 150px }
+.flow { display:flex; gap:10px; align-items:center; font-size:12px; color:var(--fg-3); flex-wrap:wrap }
+.flow .c { display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; border:1.5px solid var(--control); font-family:var(--mono); font-size:11px; font-weight:600; color:var(--fg) }
+.flow .on .c { background:var(--brand); border-color:var(--brand) }
+.flow .on { color:var(--fg); font-weight:600 }
+.flow span { display:inline-flex; gap:6px; align-items:center }
+.eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--brand-ink); background:var(--brand-soft); border:1px solid var(--brand-edge); border-radius:99px; padding:3px 8px; align-self:flex-start }
+h1 { margin:0; font-size:30px; line-height:1.1; font-weight:800; font-stretch:125%; letter-spacing:-.015em; text-wrap:balance }
+.phone h1 { font-size:24px }
+.lede { margin:0; color:var(--fg-3); max-width:62ch }
+.card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:12px; min-width:0 }
+.card h2 { margin:0; font-size:16px }
+.drop { border:1.5px dashed var(--control); border-radius:16px; background:var(--card); padding:26px 18px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center }
+.muted { color:var(--fg-3); font-size:13px }
+.tiny { font-size:12px; color:var(--fg-3) }
+.btn { font:inherit; font-weight:700; font-size:14px; min-height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line-strong); background:var(--card); color:var(--fg); display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; white-space:nowrap }
+.btn.sm { min-height:36px; padding:0 12px; font-size:13px }
+.btn.brand { background:var(--brand); border-color:transparent; color:var(--fg) }
+.btn.ink { background:var(--fg); border-color:transparent; color:#ffffff }
+.btn.ghost { border-color:transparent; background:transparent; color:var(--fg-3) }
+.grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:16px; align-items:start }
+.ad { display:flex; gap:12px; align-items:center; border:1px solid var(--line); border-radius:12px; padding:10px; background:var(--card) }
+.ad.win { border-color:var(--brand-edge) }
+.thumb { width:40px; aspect-ratio:9/16; border-radius:8px; background:linear-gradient(160deg,#2a2e33,#5a6068); flex:none }
+.ad .meta { min-width:0; flex:1 }
+.ad b { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.tag { font-family:var(--mono); font-size:10.5px; border-radius:99px; padding:2px 7px; background:var(--brand-soft); color:var(--brand-ink); border:1px solid var(--brand-edge) }
+.bar { position:sticky; bottom:12px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:10px 10px 10px 18px; box-shadow:0 -6px 24px rgba(21,23,26,.06) }
+.bar .hint { flex:1 1 220px; font-size:13px; color:var(--fg-2) }
+.phone .bar { position:absolute; left:0; right:0; bottom:0; border-radius:0; border-width:1px 0 0; padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px)) }
+.phone .bar .hint { flex-basis:100% }
+.phone .bar .btns { width:100%; display:grid; grid-template-columns:auto 1fr; gap:8px }
+.phone .bar .btns.one { grid-template-columns:1fr }
+.btns { display:flex; gap:8px; margin-left:auto }
+.fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 14px }
+.phone .fields { grid-template-columns:minmax(0,1fr) }
+label.l { font-size:13px; font-weight:600; display:flex; gap:8px; align-items:center }
+.inp { font:inherit; width:100%; min-height:44px; padding:0 12px; border:1px solid var(--line-strong); border-radius:10px; background:var(--field); color:var(--fg) }
+.inp.mono { font-family:var(--mono) }
+.f { display:grid; gap:6px; min-width:0 }
+.from { font-size:11px; font-weight:600; color:var(--brand-ink); background:var(--brand-soft); border-radius:99px; padding:1px 8px }
+.chips { display:flex; flex-wrap:wrap; gap:8px }
+.chip { font:inherit; font-size:13px; font-weight:600; min-height:40px; padding:0 14px; border-radius:99px; border:1px solid var(--line-strong); background:var(--card); color:var(--fg); cursor:pointer }
+.chip[aria-checked="true"] { border:1.5px solid var(--fg); box-shadow:0 0 0 1px var(--fg) }
+details { border-top:1px solid var(--line-soft); padding-top:12px }
+summary { cursor:pointer; font-weight:600; font-size:13px; min-height:36px; display:flex; align-items:center }
+.row { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+.row .inp { width:auto; flex:1 1 90px }
+.ok { display:flex; gap:10px; align-items:center; padding:12px 14px; border-radius:12px; background:var(--brand-soft); border:1px solid var(--brand-edge); font-weight:600; font-size:13px }
+.notes { max-width:1100px; margin:0 auto 40px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)) }
+.notes .card { gap:8px }
+.notes ol { margin:0; padding-left:20px; display:grid; gap:6px; color:var(--fg-2) }
+@media (max-width:520px) { .fields { grid-template-columns:minmax(0,1fr) } }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important } }
+</style>
+
+<div class="proto" role="toolbar" aria-label="Protótipo">
+  <b>Tela</b>
+  <div class="seg" role="group" aria-label="Tela">
+    <button type="button" id="s-iter" aria-pressed="true">Iterate · primeira vez</button>
+    <button type="button" id="s-biz" aria-pressed="false">Setup · passo 1</button>
+  </div>
+  <b>Largura</b>
+  <div class="seg" role="group" aria-label="Largura">
+    <button type="button" id="w-desk" aria-pressed="true">Desktop</button>
+    <button type="button" id="w-phone" aria-pressed="false">Phone 390</button>
+  </div>
+  <b>Meta</b>
+  <div class="seg" role="group" aria-label="Meta conectada">
+    <button type="button" id="m-on" aria-pressed="true">Conectada</button>
+    <button type="button" id="m-off" aria-pressed="false">Sem Meta</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="frame" id="frame">
+    <div class="top"><span class="logo">HM</span><span class="name">HookMill</span><span class="sp"></span><span class="ghost">EN · PT</span></div>
+
+    <!-- L1: /iterate/new for a new user. One lime action, in the bar, that actually does something. -->
+    <section class="page" id="v-iter">
+      <nav class="flow" aria-label="Steps"><span class="on"><i class="c">1</i>Analyze</span><span><i class="c">2</i>Generate</span><span><i class="c">3</i>Download</span></nav>
+      <span class="eyebrow">Free sample · up to 4 variations, no cost</span>
+      <h1>Upload an ad that works</h1>
+      <p class="lede">Upload an ad that's already working. Your free sample: up to 4 variations from it, at no cost.</p>
+
+      <div class="card" id="meta-card">
+        <div class="row" style="justify-content:space-between"><h2>From Mooncloth's Meta account</h2><span class="tag">Synced 4 min ago</span></div>
+        <div class="ad win"><span class="thumb"></span><span class="meta"><b>Sleep in 7 nights · UGC v3</b><span class="tiny">CPA $11.20 · 38% below the account · Winner</span></span><button class="btn sm ink" type="button">Iterate it</button></div>
+        <div class="ad"><span class="thumb"></span><span class="meta"><b>Mask close-up · static</b><span class="tiny">CPA $19.80 · near the account</span></span><button class="btn sm" type="button">Iterate it</button></div>
+      </div>
+
+      <div class="grid2">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div class="drop">
+            <b>Drop the video here</b>
+            <span class="muted">MP4 or MOV · up to 500 MB · up to 3 min</span>
+            <span class="tiny">Or use the button below.</span>
+          </div>
+          <span class="tiny">The analysis of your free sample is on us.</span>
+        </div>
+        <div class="card"><b>Or pick from your Library</b><p class="muted" style="margin:0">No winners yet. Mark your best ads with the star in the Library.</p></div>
+      </div>
+
+      <div class="bar">
+        <span class="hint" id="iter-hint">Iterate the winner above, or upload a video. The analysis starts by itself.</span>
+        <div class="btns one"><button class="btn brand" type="button" id="iter-cta">Choose a video</button></div>
+      </div>
+    </section>
+
+    <!-- L2: setup step 1, back to the approved mockup shape: site + 4 essentials + result chips; the rest optional. -->
+    <section class="page" id="v-biz" hidden>
+      <div class="card" style="gap:6px"><div class="row" style="justify-content:space-between"><b class="wide" style="font-size:26px;font-weight:800;font-family:var(--mono)">0%</b><span class="tiny">Step 1 of 6 · Business</span></div></div>
+      <h1>Tell us about the business</h1>
+      <p class="lede">Start with the website. We read it and fill the rest; you only check.</p>
+
+      <div class="card">
+        <h2>Website</h2>
+        <div class="row"><input class="inp" id="site" value="mooncloth.com" aria-label="Website"><button class="btn ink" type="button">Read the site</button></div>
+        <div class="ok" role="status">Found 6 of 7 brief fields. Check the details below.</div>
+      </div>
+
+      <div class="card">
+        <h2>The business</h2>
+        <div class="fields">
+          <div class="f"><label class="l" for="n">Name <span class="from">From your site</span></label><input class="inp" id="n" value="Mooncloth"></div>
+          <div class="f"><label class="l" for="c">Code for file names</label><input class="inp mono" id="c" value="MC"><span class="tiny">MC_NEW_1029_A_F1_9x16.mp4</span></div>
+          <div class="f"><label class="l" for="i">Industry <span class="from">From your site</span></label><input class="inp" id="i" value="Sleep products"></div>
+          <div class="f"><label class="l" for="m">Main market <span class="from">From your site</span></label><input class="inp" id="m" value="United States"></div>
+        </div>
+        <div class="f">
+          <span class="l">What counts as a result?</span>
+          <div class="chips" role="radiogroup" aria-label="Result">
+            <button class="chip" role="radio" aria-checked="true" type="button">Purchase</button>
+            <button class="chip" role="radio" aria-checked="false" type="button">Lead</button>
+            <button class="chip" role="radio" aria-checked="false" type="button">Message</button>
+            <button class="chip" role="radio" aria-checked="false" type="button">Appointment</button>
+            <button class="chip" role="radio" aria-checked="false" type="button">Sign-up</button>
+            <button class="chip" role="radio" aria-checked="false" type="button">More…</button>
+          </div>
+        </div>
+        <details>
+          <summary>More details (optional): language, brand color, target cost</summary>
+          <div class="fields" style="margin-top:10px">
+            <div class="f"><label class="l" for="lg">Language of the ads</label><input class="inp" id="lg" value="English"></div>
+            <div class="f"><label class="l" for="bc">Brand color</label><input class="inp mono" id="bc" value="#1E2550"></div>
+            <div class="f" style="grid-column:1/-1"><span class="l">Target cost per result</span><div class="row"><input class="inp" aria-label="From" value="100"><span class="tiny">to</span><input class="inp" aria-label="To" value="150"><input class="inp" aria-label="Currency" value="USD" style="flex:0 0 84px"></div></div>
+          </div>
+        </details>
+      </div>
+      <p class="tiny" style="margin:0">Invite your team later in Settings › People. Time zone comes from the Meta connection.</p>
+
+      <div class="bar">
+        <span class="hint">Saved when you continue.</span>
+        <div class="btns one"><button class="btn brand" type="button">Continue: connect Meta</button></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="notes" aria-label="Notas">
+  <div class="card">
+    <h2>O que esta prévia mostra (review 29/10, itens L1 e L2)</h2>
+    <ol>
+      <li><b>L1 · Iterate na primeira vez:</b> a barra fixa deixa de ter um "Generate" lima que nunca liga. O lima vira "Choose a video" (abre o seletor). Com Meta, o "Iterate it" do vencedor fica tinta, então a tela segue com um lima só.</li>
+      <li><b>L2 · Setup passo 1:</b> volta pro formato do mockup aprovado em 21/10. Fica o site, 4 campos e o resultado em chips. Idioma, cor e custo alvo vão pra "More details". O cartão de time sai do passo 1.</li>
+      <li>Dados de exemplo (Mooncloth). Spec e planos em <span style="font-family:var(--mono)">design/review-ux-ui-2026-10-29.md</span>.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+(function () {
+  function pick(a, b, on) { a.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-pressed", String(!on)) }
+  var sI = document.getElementById("s-iter"), sB = document.getElementById("s-biz")
+  var wD = document.getElementById("w-desk"), wP = document.getElementById("w-phone")
+  var mOn = document.getElementById("m-on"), mOff = document.getElementById("m-off")
+  var frame = document.getElementById("frame")
+  sI.onclick = function () { pick(sI, sB, true); document.getElementById("v-iter").hidden = false; document.getElementById("v-biz").hidden = true }
+  sB.onclick = function () { pick(sI, sB, false); document.getElementById("v-iter").hidden = true; document.getElementById("v-biz").hidden = false }
+  wD.onclick = function () { pick(wD, wP, true); frame.classList.remove("phone") }
+  wP.onclick = function () { pick(wD, wP, false); frame.classList.add("phone") }
+  mOn.onclick = function () { pick(mOn, mOff, true); document.getElementById("meta-card").hidden = false; document.getElementById("iter-hint").textContent = "Iterate the winner above, or upload a video. The analysis starts by itself." }
+  mOff.onclick = function () { pick(mOn, mOff, false); document.getElementById("meta-card").hidden = true; document.getElementById("iter-hint").textContent = "Choose a video to start. The analysis starts by itself." }
+  document.querySelectorAll('[role="radio"]').forEach(function (r) {
+    r.addEventListener("click", function () { document.querySelectorAll('[role="radio"]').forEach(function (x) { x.setAttribute("aria-checked", "false") }); r.setAttribute("aria-checked", "true") })
+  })
+})()
+</script>

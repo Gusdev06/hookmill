@@ -13,14 +13,15 @@ import { isApiError } from "@/lib/api/errors"
 import { signup } from "@/lib/session/token"
 import { toUiLocale, toLocale } from "@/i18n/config"
 
-type Field = "name" | "email" | "password" | "agencyName"
-const FIELDS: Field[] = ["name", "email", "password", "agencyName"]
+// review 29/10 L3: no agency/client name here; it is asked once, in step 1 of the setup (the API keeps `agencyName` optional)
+type Field = "name" | "email" | "password"
+const FIELDS: Field[] = ["name", "email", "password"]
 
 export function SignupForm() {
   const t = useTranslations()
   const locale = useLocale()
   const router = useRouter()
-  const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "", agencyName: "" })
+  const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" })
   const [fieldErr, setFieldErr] = useState<Partial<Record<Field, string>>>({})
   const [emailTaken, setEmailTaken] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +51,6 @@ export function SignupForm() {
           name: values.name.trim(),
           email: values.email.trim(),
           password: values.password,
-          ...(values.agencyName.trim() ? { agencyName: values.agencyName.trim() } : {}),
           uiLocale: toUiLocale(toLocale(locale)),
         })
         // onboarding-v2 D8: the account mode question comes first (/start), then step 1 of the setup
@@ -128,13 +128,6 @@ export function SignupForm() {
         <Label htmlFor="password">{t("signup.password")}</Label>
         <Input id="password" name="password" type="password" autoComplete="new-password" required maxLength={200} value={values.password} onChange={set("password")} aria-invalid={!!fieldErr.password || undefined} aria-describedby={describe("password", true)} />
         {fieldErr.password ? <FieldError id="password-err">{fieldErr.password}</FieldError> : <span id="password-hint" className="text-xs text-fg-3">{t("signup.passwordHint")}</span>}
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="agencyName">
-          {t("signup.agencyName")} <span className="font-normal text-fg-3">{t("signup.optional")}</span>
-        </Label>
-        <Input id="agencyName" name="agencyName" autoComplete="organization" maxLength={80} placeholder={t("signup.agencyPlaceholder")} value={values.agencyName} onChange={set("agencyName")} aria-invalid={!!fieldErr.agencyName || undefined} aria-describedby={describe("agencyName", true)} />
-        {fieldErr.agencyName ? <FieldError id="agencyName-err">{fieldErr.agencyName}</FieldError> : <span id="agencyName-hint" className="text-xs text-fg-3">{t("signup.agencyHint")}</span>}
       </div>
       <Button type="submit" variant="default" size="lg" disabled={pending} className="w-full">
         {pending ? t("signup.submitting") : t("signup.submit")}

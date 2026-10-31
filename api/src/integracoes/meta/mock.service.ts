@@ -5,7 +5,10 @@ import type {
   MetaAdsetSnapshotDraft, MetaCampaignSnapshotDraft, MetaLiveObject, MetaObjectLevelPort, MetaUsage,
   MetaAdAccountInfo, MetaAdSnapshotDraft, MetaAuth, MetaHealthInput, MetaHealthResult, MetaOAuthState, MetaPublishIds, MetaPublishInput,
   MetaReturnTo, MetaService, MetaServiceStatus, MetaSyncInput, MetaSyncResult, MetaSyncStage, MetaTokenGrant, MetaTokenInfo, MetaWinnerRule,
+  MetaTemplateSourceRead,
 } from '../contrato';
+import type { Raw } from './cliente';
+import { adSetBody, campaignBody, creativeBody } from './publicacao';
 import { randomBytes } from 'node:crypto';
 import { mockMediaUrl, seedOf } from '../mock/midia';
 import { MetaError, accountStatusLabel } from './erros';
@@ -102,8 +105,8 @@ export const MOCK_ADSETS: AdsetSeed[] = [
 ];
 /** Estrutura publicada pelo HookMill (createCampaign/AdSet/Ad do mock), PAUSED como no live; entra no sync com selo (§6). */
 export interface MockPublished {
-  campaigns: Map<string, { id: string; name: string; objective: string; createdAt: string }>;
-  adsets: Map<string, { id: string; campaignId: string; name: string; daily: number; createdAt: string }>;
+  campaigns: Map<string, { id: string; name: string; objective: string; createdAt: string; daily?: number | null }>;
+  adsets: Map<string, { id: string; campaignId: string; name: string; daily: number | null; createdAt: string }>;
   ads: Map<string, { id: string; adsetId: string; name: string; videoId: string; createdAt: string }>;
 }
 /** Estado mutável das escritas mock de UM escopo (conexão + conta, ver FakeMetaService.scope): status/orçamento por id e a
@@ -119,7 +122,7 @@ const Z6: Seed['m7'] = [0, 0, 0, 0, 0, 0];
 function catalogOf(st: MockWriteState): Catalog {
   const p = st.published;
   return {
-    campaigns: [...MOCK_CAMPAIGNS, ...[...p.campaigns.values()].map<CampaignSeed>((c) => ({ id: c.id, name: c.name, objective: c.objective, status: 'PAUSED', daily: null, lifetime: null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' }))],
+    campaigns: [...MOCK_CAMPAIGNS, ...[...p.campaigns.values()].map<CampaignSeed>((c) => ({ id: c.id, name: c.name, objective: c.objective, status: 'PAUSED', daily: c.daily ?? null, lifetime: null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' }))],
     adsets: [...MOCK_ADSETS, ...[...p.adsets.values()].filter((a) => p.campaigns.has(a.campaignId)).map<AdsetSeed>((a) => ({ id: a.id, campaignId: a.campaignId, name: a.name, status: 'PAUSED', daily: a.daily, learning: null }))],
     seeds: [...SEEDS, ...[...p.ads.values()].filter((a) => { const s = p.adsets.get(a.adsetId); return !!s && p.campaigns.has(s.campaignId); })
       .map<Seed>((a) => ({ id: a.id, name: a.name, status: 'PAUSED', createdDaysAgo: 0, createdAt: a.createdAt, m30: Z5, m7: Z6, prev: Z6, video: true, videoId: a.videoId, adset: a.adsetId }))],
@@ -234,6 +237,8 @@ export class FakeMetaService implements MetaService {
   private readonly scopes = new Map<string, MockWriteState>();
   /** última conta vista por token (sync/publicação/leitura de conta): as escritas não recebem adAccountId na porta */
   private readonly accountOf = new Map<string, string>();
+  /** meta-templates-v1: corpos Graph que a publicação montou (campaignBody/adSetBody/creativeBody reais), pros testes conferirem CBO/ABO etc. */
+  readonly sent: { campaigns: Raw[]; adsets: Raw[]; creatives: Raw[] } = { campaigns: [], adsets: [], creatives: [] };
   constructor(private readonly opts: FakeMetaOptions) {
     this.now = opts.now ?? (() => new Date());
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
@@ -397,9 +402,12 @@ export class FakeMetaService implements MetaService {
     this.assertUsable(i);
     this.publishTrigger(i, 'creating_campaign');
     await this.step();
-    const campaignId = `mock_campaign_${seedOf('camp', i.adName).slice(0, 8)}`;
     const pub = this.scope(auth, i.adAccountId).published.campaigns;
-    if (!pub.has(campaignId)) pub.set(campaignId, { id: campaignId, name: i.adName, objective: i.settings.objective, createdAt: this.now().toISOString() });
+    const st = i.structure;
+    // com template: nome do padrão + contador (dois lotes com o mesmo nome são campanhas diferentes, como na Meta)
+    const campaignId = st ? `mock_campaign_${seedOf('camp', st.campaignName, String(pub.size)).slice(0, 8)}` : `mock_campaign_${seedOf('camp', i.adName).slice(0, 8)}`;
+    this.sent.campaigns.push({ id: campaignId, ...campaignBody(i) });
+    if (!pub.has(campaignId)) pub.set(campaignId, { id: campaignId, name: st?.campaignName ?? i.adName, objective: i.settings.objective, createdAt: this.now().toISOString(), daily: st?.budgetMode === 'CBO' ? i.settings.dailyBudgetMinor : null });
     return { campaignId };
   }
   async createAdSet(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds) {
@@ -408,9 +416,11 @@ export class FakeMetaService implements MetaService {
     if (!ids.campaignId) throw new MetaError('META_ERROR', 'mock: createAdSet without campaignId', { stage: 'creating_adset' });
     if (i.settings.dailyBudgetMinor < MOCK_MIN_DAILY_BUDGET_MINOR) throw new MetaError('META_BUDGET_TOO_LOW', null, { stage: 'creating_adset', details: { minimumMinor: MOCK_MIN_DAILY_BUDGET_MINOR, currency: a.currency } });
     await this.step();
-    const adsetId = `mock_adset_${seedOf('adset', i.adName).slice(0, 8)}`;
     const pub = this.scope(auth, i.adAccountId).published.adsets;
-    if (!pub.has(adsetId)) pub.set(adsetId, { id: adsetId, campaignId: ids.campaignId, name: i.adName, daily: i.settings.dailyBudgetMinor, createdAt: this.now().toISOString() });
+    const st = i.structure;
+    const adsetId = st ? `mock_adset_${seedOf('adset', st.adsetName, ids.campaignId, String(pub.size)).slice(0, 8)}` : `mock_adset_${seedOf('adset', i.adName).slice(0, 8)}`;
+    this.sent.adsets.push({ id: adsetId, ...adSetBody(i, ids.campaignId) });
+    if (!pub.has(adsetId)) pub.set(adsetId, { id: adsetId, campaignId: ids.campaignId, name: st?.adsetName ?? i.adName, daily: st?.budgetMode === 'CBO' ? null : i.settings.dailyBudgetMinor, createdAt: this.now().toISOString() });
     return { adsetId };
   }
   async createAdCreative(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds) {
@@ -419,6 +429,7 @@ export class FakeMetaService implements MetaService {
     if (!ids.videoId) throw new MetaError('META_ERROR', 'mock: createAdCreative without videoId', { stage: 'creating_creative' });
     this.publishTrigger(i, 'creating_creative');
     await this.step();
+    this.sent.creatives.push(creativeBody(i, ids.videoId));
     return { creativeId: `mock_creative_${seedOf('creative', i.adName).slice(0, 8)}` };
   }
   async createAd(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds) {
@@ -509,5 +520,56 @@ export class FakeMetaService implements MetaService {
   }
   usage(): MetaUsage | null {
     return null;
+  }
+
+  // ---------- meta-templates-v1 §3 ----------
+  /** Estrutura fixa do §6 (+ publicados no escopo). `mock_adset_cbo_1` tem público personalizado, exclusão e data de fim
+   *  (vão pro `unsupported`); conjuntos de campanha OUTCOME_SALES otimizam pelo pix_mock/PURCHASE. */
+  async readTemplateSource(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string; hint?: { adsetId?: string | null; adId?: string | null } }): Promise<MetaTemplateSourceRead> {
+    this.assertToken(auth);
+    const st = this.scope(auth);
+    const o = mockObject(i.id, st);
+    if (!o || o.level !== i.level) throw new MetaError('META_OBJECT_GONE', null, { details: { level: i.level, id: i.id }, action: 'refresh', failDetail: 'mock 100/33' });
+    this.writeTriggers(o.name);
+    await this.step();
+    const cat = catalogOf(st);
+    const active = (s: { status: string }) => s.status === 'ACTIVE';
+    let adSeed = i.level === 'ad' ? cat.seeds.find((x) => x.id === i.id)! : null;
+    let adset = i.level === 'adset' ? cat.adsets.find((x) => x.id === i.id)! : adSeed ? cat.adsets.find((x) => x.id === adSeed!.adset)! : null;
+    const campaign = cat.campaigns.find((x) => x.id === (i.level === 'campaign' ? i.id : adset!.campaignId))!;
+    if (!adset) {
+      const kids = cat.adsets.filter((x) => x.campaignId === campaign.id);
+      adset = (i.hint?.adsetId && kids.find((x) => x.id === i.hint!.adsetId)) || kids.find(active) || kids[0] || null;
+    }
+    if (!adSeed && adset) {
+      const kids = cat.seeds.filter((x) => x.adset === adset!.id);
+      adSeed = (i.hint?.adId && kids.find((x) => x.id === i.hint!.adId)) || kids.find(active) || kids[0] || null;
+    }
+    const sales = campaign.objective === 'OUTCOME_SALES';
+    const custom = adset?.id === 'mock_adset_cbo_1';
+    return {
+      campaign: {
+        id: campaign.id, name: campaign.name, objective: campaign.objective, bidStrategy: campaign.bidStrategy,
+        dailyBudgetMinor: campaign.daily, lifetimeBudgetMinor: campaign.lifetime, specialAdCategories: [], startTime: null, stopTime: null,
+      },
+      adset: adset ? {
+        id: adset.id, name: adset.name, bidStrategy: adset.daily != null ? 'LOWEST_COST_WITHOUT_CAP' : null, bidAmountMinor: null,
+        dailyBudgetMinor: adset.daily, lifetimeBudgetMinor: null, optimizationGoal: sales ? 'OFFSITE_CONVERSIONS' : 'LINK_CLICKS',
+        promotedObject: sales ? { pixelId: 'pix_mock', customEventType: 'PURCHASE', applicationId: null } : null,
+        targeting: {
+          geo_locations: { countries: ['US', 'CA'] }, age_min: 25, age_max: 54, genders: custom ? [2] : undefined,
+          targeting_automation: { advantage_audience: custom ? 0 : 1 },
+          ...(custom ? {
+            custom_audiences: [{ id: 'mock_aud_1', name: 'Buyers 180d' }], excluded_custom_audiences: [{ id: 'mock_aud_2', name: 'Purchased 30d' }],
+            publisher_platforms: ['facebook', 'instagram'], facebook_positions: ['feed'], instagram_positions: ['stream', 'story'],
+          } : {}),
+        },
+        startTime: null, endTime: custom ? '2026-12-31T23:59:00-0500' : null,
+      } : null,
+      ad: adSeed ? {
+        id: adSeed.id, name: adSeed.name,
+        creative: { message: `${adSeed.name}: sleep cooler tonight.`, title: 'Bamboo sheets', description: null, callToAction: sales ? 'SHOP_NOW' : 'LEARN_MORE', link: 'https://example.com/sheets', urlTags: 'utm_source=facebook&utm_medium=paid' },
+      } : null,
+    };
   }
 }

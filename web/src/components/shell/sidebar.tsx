@@ -89,7 +89,7 @@ function NavLink({ href, icon, active, children, onNavigate }: { href: string; i
   )
 }
 
-const topCls = "flex w-full min-w-0 items-center gap-2.5 rounded-btn border border-ink-line bg-ink-2 text-left text-ink-fg outline-none hover:border-[#3a3f46] focus-visible:outline-2 focus-visible:outline-info-on-ink"
+const topCls = "flex w-full min-w-0 items-center gap-2.5 rounded-btn border border-ink-line bg-ink-2 text-left text-ink-fg outline-none hover:border-[#3a3f46] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-info-on-ink"
 
 /** Client selector = workspace switch (POST /auth/switch-workspace through /api/session). "All clients" at the end. Clients in setup show "Setup 33 %". */
 function ClientSwitcher({ compact, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
@@ -192,7 +192,7 @@ function Account({ onNavigate }: { onNavigate?: () => void }) {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={t("common.account")}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md text-left outline-none focus-visible:outline-2 focus-visible:outline-info-on-ink"
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md text-left outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-info-on-ink"
         >
           <span className="inline-grid size-8 flex-none place-items-center rounded-full bg-ink-line text-[13px] font-bold text-ink-fg" aria-hidden="true">
             {initials}
@@ -313,7 +313,7 @@ export function MobileTopbar() {
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <DialogPrimitive.Trigger
           aria-label={t("shell.openMenu")}
-          className="grid size-11 flex-none place-items-center rounded-md border border-ink-line text-ink-fg outline-none focus-visible:outline-2 focus-visible:outline-info-on-ink"
+          className="grid size-11 flex-none place-items-center rounded-md border border-ink-line text-ink-fg outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-info-on-ink"
         >
           <NavIcon name="menu" />
         </DialogPrimitive.Trigger>
@@ -333,7 +333,7 @@ export function MobileTopbar() {
               </DialogPrimitive.Title>
               <DialogPrimitive.Close
                 aria-label={t("shell.closeMenu")}
-                className="grid size-11 place-items-center rounded-md border border-ink-line text-ink-fg outline-none focus-visible:outline-2 focus-visible:outline-info-on-ink"
+                className="grid size-11 place-items-center rounded-md border border-ink-line text-ink-fg outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-info-on-ink"
               >
                 <NavIcon name="x" />
               </DialogPrimitive.Close>

@@ -68,6 +68,19 @@ export default defineConfig({
       timeout: 420_000,
       use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
     },
+    // QA 29/10 (amostra grátis, templates Meta, Still working, CPA): API de teste + web, 1440 e 390
+    {
+      name: 'qa2910-1440',
+      testDir: './specs/qa-2910',
+      timeout: 600_000,
+      use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: 'qa2910-390',
+      testDir: './specs/qa-2910',
+      timeout: 600_000,
+      use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+    },
     // Estático montado (A) + molduras (B1) — estatico-montado-e-molduras-v1 (25/10). Pendente até as entregas da §C.1:
     // os projetos só existem com E2E_EM=1, então `contrato`/`e2e`/`iterate` não mudam. Cada spec ainda pula sozinho
     // (motivo no relatório) enquanto a API do QA não tiver a entrega (harness/estatico-molduras.ts › entrega()).

@@ -217,7 +217,7 @@ export interface ErrorEnvelope {
 }
 export type ApiErrorCode =
   | 'VALIDATION_ERROR' | 'UNAUTHORIZED' | 'INVALID_CREDENTIALS' | 'REFRESH_INVALID' | 'FORBIDDEN' | 'NOT_FOUND'
-  | 'INVALID_STATE' | 'CONFIRM_DOWNSTREAM_RESET' | 'OFFER_INCOMPLETE' | 'SPEND_CAP_EXCEEDED' | 'ESTIMATE_CHANGED'
+  | 'INVALID_STATE' | 'CONFIRM_DOWNSTREAM_RESET' | 'OFFER_INCOMPLETE' | 'SPEND_CAP_EXCEEDED' | 'ESTIMATE_CHANGED' | 'PAYMENT_REQUIRED'
   | 'INVITE_INVALID' | 'EMAIL_TAKEN' | 'LAST_OWNER' | 'RATE_LIMITED' | 'PROVIDER_UNAVAILABLE' | 'INTERNAL_ERROR'
   // feature 2
   | 'AD_LIBRARY_UNAVAILABLE' | 'MEDIA_TOO_LARGE' | 'MEDIA_TOO_SHORT' | 'MEDIA_TOO_LONG' | 'MEDIA_INVALID'
@@ -251,6 +251,7 @@ export interface ErrorDetails {
   CONFIRM_DOWNSTREAM_RESET: { scenesLost: number; rendersLost: number; spentUsd: number };
   OFFER_INCOMPLETE: { missing: OfferBriefField[] };
   SPEND_CAP_EXCEEDED: { spentUsd: number; capUsd: number; estimateUsd: number };
+  PAYMENT_REQUIRED: PaymentRequiredDetails; // amostra-gratis-v1 §4 (402)
   ESTIMATE_CHANGED: { estimateUsd: number };
   RATE_LIMITED: { retryAfterSec: number };
   PROVIDER_UNAVAILABLE: { provider: 'ANTHROPIC' | 'WAVESPEED' | 'HIGGSFIELD' };
@@ -294,6 +295,10 @@ export interface AuthUser {
   id: string; name: string; email: string; uiLocale: UiLocale;
   /** onboarding-v2: null = ainda não respondeu (o shell trata como AGENCY) */
   accountMode: AccountMode | null;
+  /** amostra-gratis-v1 §1 (29/10): plano da conta. Ausente = API anterior (trate como INTERNAL) */
+  access?: AccountAccess;
+  /** amostra-gratis-v1 §2: true = a conta já criou o lote da amostra */
+  sampleUsed?: boolean;
 }
 export interface WorkspaceRef {
   id: string; name: string; role: Role;
@@ -440,11 +445,15 @@ export interface Workspace {
   resultTypeOther: string | null;
   /** @deprecated derivado do resultType (PURCHASE/SUBSCRIPTION → ONLINE_STORE; LEAD/MESSAGE/APPOINTMENT/SIGNUP → LOCAL_BUSINESS; APP_INSTALL → APP; OTHER → null) */
   businessType: BusinessType | null; defaultResult: DefaultResult | null;
+  /** 29/10 (Loom do Tordan): faixa de custo por resultado que o cliente quer ("CPA de 100 a 150"); null = não informado */
+  targetCpa: TargetCpa | null;
   websiteUrl: string | null;
   /** 25/10 (estatico-montado-e-molduras-v1 D3, TRANSIÇÃO): cor da marca `#RRGGBB` (maiúsculas); null = derivada (§A3.3) */
   brandColor?: string | null;
   status: ClientStatus; onboarding: Onboarding;
 }
+/** 29/10: faixa de CPA alvo, na moeda escolhida (padrão USD) */
+export interface TargetCpa { min: number; max: number; currency: string }
 /** OWNER/ADMIN. `onboardingStep` com onboarding concluído = 409 INVALID_STATE reason 'onboarding_completed'. */
 export type UpdateWorkspaceBody = Partial<{
   name: string; uiLocale: UiLocale; monthlySpendCapUsd: number | null;
@@ -453,6 +462,8 @@ export type UpdateWorkspaceBody = Partial<{
   resultType: ResultType | null; resultTypeOther: string | null;
   /** @deprecated use `resultType`; sem `resultType` no mesmo corpo, migra (ONLINE_STORE → PURCHASE, LOCAL_BUSINESS → LEAD, APP → APP_INSTALL) */
   businessType: BusinessType | null; websiteUrl: string | null;
+  /** 29/10: null limpa. min ≤ max (senão 400 VALIDATION_ERROR rule 'min_lte_max'); currency ISO 4217 de 3 letras */
+  targetCpa: TargetCpa | null;
   /** 25/10 (D3): `#RRGGBB` ou `#RGB` (o backend normaliza pra 6 dígitos maiúsculos); null limpa. Inválido = 400 VALIDATION_ERROR */
   brandColor: string | null;
   onboardingStep: OnboardingStep;
@@ -777,6 +788,9 @@ export * from './cadastro';
 
 // Variação automática de campeão v1 (contrato docs/contratos/variacao-auto-v1.md)
 export * from './iteracao';
+export * from './amostra';
+export * from './meta-templates';
+import type { AccountAccess, PaymentRequiredDetails } from './amostra';
 import type { FormatCode, VariationAxis } from './iteracao';
 import type { BusinessSuggestion, BusinessType, ClientStatus, DefaultResult, Onboarding, ResultType, OnboardingStep, WaitingBatchRef, WaitingOnYou } from './agencia';
 

@@ -34,6 +34,7 @@ describe('cliente (fase2-agencia.md §1-§2)', () => {
     expect(v).toEqual({
       id: 'w', name: 'N', uiLocale: 'EN', monthlySpendCapUsd: null, shortCode: 'NN', industry: null, market: 'US',
       resultType: 'APP_INSTALL', resultTypeOther: null, businessType: 'APP', defaultResult: 'INSTALLS', websiteUrl: null, brandColor: null, status: 'SETUP',
+      targetCpa: null, // 29/10 (CPA alvo): sem faixa no banco = null
       onboarding: { step: 3, totalSteps: 6, completedAt: null },
     });
   });

@@ -1,8 +1,11 @@
 // meta-v1.md §3.3: publicar um Creative APPROVED na Meta (vídeo → campanha → conjunto → criativo → anúncio, tudo
 // PAUSED), com os ids gravados em MetaPublication a cada etapa (retry retoma sem duplicar), activate/pause e a lista.
+import { AmostraService } from '../amostra/amostra.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type {
-  CreativeMetaResponse, MetaCallToAction, MetaObjective, MetaPublication as MetaPublicationView, MetaPublishDefaults, MetaPublishSettings,
+  CreativeMetaResponse, MetaCallToAction, MetaObjective, MetaPublication as MetaPublicationView, MetaPublishBatchResponse, MetaPublishDefaults,
+  MetaPublishSettings, MetaPublishTemplate as MetaPublishTemplateView,
 } from '@maquina/contratos';
 import { Prisma, type Job, type MetaConnection, type MetaPublication } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
@@ -14,7 +17,7 @@ import { KeyedMutex } from '../common/util/mutex';
 import { AppConfig } from '../config/app-config';
 import { blocksOf } from '../criativos/views';
 import { paramsOf, suggestedPrimaryTextOf } from '../edicao/pecas';
-import { META_PUBLISH_STAGES, META_SERVICE, type MetaPublishIds, type MetaPublishInput, type MetaService, accountUnusable, isMetaError } from '../integracoes';
+import { META_PUBLISH_STAGES, META_SERVICE, type MetaAuth, type MetaPublishIds, type MetaPublishInput, type MetaService, accountUnusable, isMetaError } from '../integracoes';
 import { JobsService } from '../jobs/jobs.service';
 import { presentJob } from '../jobs/job.presenter';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,7 +25,9 @@ import { asMetaAsyncCode, assertSelected, assertUsable, countriesOf, markTokenIn
 import { MetaConexaoService, storedHealthOf } from './conexao.service';
 import { MetaEscritaService } from './escrita.service';
 import { POLICY_BLOCKED } from './campanhas.views';
-import type { MetaPublishDto } from './meta.dto';
+import type { MetaPublishBatchDto, MetaPublishDto } from './meta.dto';
+import { MetaTemplatesService } from './templates.service';
+import { groupKeyOf, isoDate, parseGroupKey, pixelMissing, planGroups, planOf, resolveName, structureOf } from './templates';
 import { RESULT_PROFILE, pixelEventFor } from '../workspaces/resultado';
 
 const PUB_INCLUDE = { createdBy: { select: { id: true, name: true } } } satisfies Prisma.MetaPublicationInclude;
@@ -44,6 +49,8 @@ export class MetaPublicacaoService {
     private readonly locks: KeyedMutex,
     private readonly conexao: MetaConexaoService,
     private readonly escrita: MetaEscritaService,
+    private readonly templates: MetaTemplatesService,
+    private readonly amostra: AmostraService,
     @Inject(META_SERVICE) private readonly meta: MetaService,
   ) {}
 
@@ -182,6 +189,7 @@ export class MetaPublicacaoService {
    * utilizável (422 META_ACCOUNT_UNUSABLE), orçamento ≥ mínimo (422 META_BUDGET_TOO_LOW). Cria a linha + job e roda.
    */
   async publish(auth: AuthContext, id: string, dto: MetaPublishDto): Promise<MetaPublicationView> {
+    if (dto.templateId !== undefined) return this.publishWithTemplate(auth, id, dto);
     const pubId = await this.locks.run(`meta-pub:${id}`, async () => {
       const c = await this.creative(auth, id);
       const render = c.finalRender;
@@ -231,6 +239,216 @@ export class MetaPublicacaoService {
     return this.present(await this.load(auth, pubId));
   }
 
+  // ───────── meta-templates-v1: publicar com template / lote ─────────
+
+  /** Conta pronta pra publicar: conta+página (422), health rodado antes (§3.1), conta utilizável (422). */
+  private async gate(auth: AuthContext) {
+    const conn = assertSelected(await this.conexao.usable(auth.workspaceId));
+    const health = await this.conexao.runHealth(conn.id).catch((e) => {
+      if (e instanceof AppException) throw e;
+      return storedHealthOf(conn.lastHealth);
+    });
+    const fresh = assertSelected(await this.conexao.usable(auth.workspaceId));
+    if (accountUnusable(fresh.accountStatus)) throw new AppException('META_ACCOUNT_UNUSABLE', { accountStatus: fresh.accountStatus, label: accountLabel(fresh.accountStatus) });
+    return { fresh, minimum: health?._account?.minimumDailyBudgetMinor ?? null };
+  }
+
+  /** Template → checagens de pixel e orçamento iguais às da publicação de hoje. */
+  private async templateFor(auth: AuthContext, templateId: string, fresh: MetaConnection & { adAccountId: string }, minimum: number | null): Promise<MetaPublishTemplateView> {
+    const tpl = this.templates.present(await this.templates.load(auth, templateId, fresh));
+    if (pixelMissing(tpl.campaign, tpl.adset)) throw new AppException('META_PIXEL_REQUIRED', { objective: tpl.campaign.objective });
+    if (minimum != null && tpl.campaign.dailyBudgetMinor < minimum) throw new AppException('META_BUDGET_TOO_LOW', { minimumMinor: minimum, currency: fresh.currency ?? 'USD' });
+    return tpl;
+  }
+
+  /** Settings resolvidos do template (só o que a publicação usa; o template fica no templateId). Texto null herda do criativo/oferta. */
+  private templateSettings(c: Awaited<ReturnType<MetaPublicacaoService['creative']>>, conn: MetaConnection, tpl: MetaPublishTemplateView): MetaPublishSettings {
+    const d = this.defaults(c, conn);
+    const objective = tpl.campaign.objective;
+    const primaryText = (tpl.ad.primaryText ?? d.primaryText ?? '').trim();
+    if (!primaryText) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'ad.primaryText', rule: 'inheritedEmpty' }], creativeId: c.id });
+    return {
+      dailyBudgetMinor: tpl.campaign.dailyBudgetMinor, countries: tpl.adset.countries, objective, primaryText,
+      headline: tpl.ad.headline ?? d.headline, description: tpl.ad.description ?? d.description,
+      callToAction: tpl.ad.callToAction, link: tpl.ad.link, specialAdCategories: tpl.campaign.specialAdCategories,
+      ageMin: tpl.adset.ageMin, ageMax: tpl.adset.ageMax,
+      objectiveReason: objective === d.objective ? d.objectiveReason : 'business_type',
+      pixelEvent: tpl.adset.pixelId ? tpl.adset.pixelEvent ?? pixelEventFor(objective, c.workspace.resultType) : null,
+    };
+  }
+
+  /** POST /creatives/:id/meta/publish { templateId }: 1 anúncio; campanha nova ou a reaproveitada (REUSE), ad set próprio. */
+  private async publishWithTemplate(auth: AuthContext, id: string, dto: MetaPublishDto): Promise<MetaPublicationView> {
+    const extra = Object.entries(dto).filter(([k, v]) => k !== 'templateId' && v !== undefined).map(([k]) => ({ field: k, rule: 'exclusiveWithTemplateId' }));
+    if (extra.length) throw new AppException('VALIDATION_ERROR', { fields: extra });
+    const pubId = await this.locks.run(`meta-pub:${id}`, async () => {
+      const c = await this.creative(auth, id);
+      const render = c.finalRender;
+      if (c.state !== 'APPROVED' || !render?.file || !render.file.mimeType.startsWith('video/')) {
+        throw new AppException('INVALID_STATE', { state: c.state, allowed: ['APPROVED'], reason: 'not_approved' });
+      }
+      if (await this.prisma.metaPublication.count({ where: { creativeId: c.id, status: 'PUBLISHING' } })) {
+        throw new AppException('INVALID_STATE', { state: c.state, allowed: ['APPROVED'], reason: 'publish_in_progress' });
+      }
+      const { fresh, minimum } = await this.gate(auth);
+      const tpl = await this.templateFor(auth, dto.templateId!, fresh, minimum);
+      const settings = this.templateSettings(c, fresh, tpl);
+      return this.prisma.$transaction(async (tx) => {
+        const pub = await tx.metaPublication.create({
+          data: {
+            workspaceId: auth.workspaceId, connectionId: fresh.id, creativeId: c.id, status: 'PUBLISHING', adAccountId: fresh.adAccountId, pageId: fresh.pageId,
+            pixelId: tpl.adset.pixelId, settings: settings as unknown as Prisma.InputJsonValue, renderFileId: render.file!.id, createdById: auth.userId, templateId: tpl.id,
+          },
+        });
+        const job = await tx.job.create({
+          data: { workspaceId: auth.workspaceId, type: 'META_PUBLISH', status: 'QUEUED', input: { publicationId: pub.id, templateId: tpl.id }, creativeId: c.id, metaPublicationId: pub.id, createdById: auth.userId },
+        });
+        await tx.metaPublication.update({ where: { id: pub.id }, data: { jobId: job.id } });
+        return pub.id;
+      });
+    });
+    const p = await this.prisma.metaPublication.findUniqueOrThrow({ where: { id: pubId } });
+    void this.jobs.detach(p.jobId, 'publicação na Meta (template)', () => this.run(p.jobId!, p.id));
+    return this.present(await this.load(auth, pubId));
+  }
+
+  /**
+   * POST /meta/publish-batch { creativeIds (1–50), templateId } (P3): ad sets de até adsPerAdset.max na ordem pedida
+   * (`groupKey` = `<lote>:<n>`); 1 job META_PUBLISH por anúncio, mas campanha 1× por lote (ou a reaproveitada) e ad set
+   * 1× por grupo (run(): trava por grupo e reaproveita o id do irmão). 409 com os ids que não estão APPROVED.
+   */
+  async publishBatch(auth: AuthContext, dto: MetaPublishBatchDto): Promise<MetaPublishBatchResponse> {
+    const r = await this.locks.run(`meta-batch:${auth.workspaceId}`, async () => {
+      const rows = await this.prisma.creative.findMany({
+        where: { id: { in: dto.creativeIds }, workspaceId: auth.workspaceId, archivedAt: null },
+        include: {
+          offer: true, workspace: true, selectedScript: true, finalRender: { include: { file: true } }, thumbnail: true,
+          variationItem: { select: { autoType: true, payload: true } },
+        },
+      });
+      const byId = new Map(rows.map((c) => [c.id, c]));
+      const missing = dto.creativeIds.filter((x) => !byId.has(x));
+      if (missing.length) throw new AppException('NOT_FOUND', { creativeIds: missing });
+      const creatives = dto.creativeIds.map((x) => byId.get(x)!);
+      // amostra-gratis-v1 §4 (QA 29/10, F1): peça da amostra travada não vai pro Meta nem em lote (402 locked)
+      for (const batchId of new Set(creatives.map((c) => c.variationBatchId).filter((x): x is string => !!x))) {
+        await this.amostra.assertBatchUnlocked(auth.workspaceId, batchId);
+      }
+      const notApproved = creatives.filter((c) => c.state !== 'APPROVED' || !c.finalRender?.file || !c.finalRender.file.mimeType.startsWith('video/')).map((c) => c.id);
+      if (notApproved.length) throw new AppException('INVALID_STATE', { allowed: ['APPROVED'], reason: 'not_approved', creativeIds: notApproved });
+      const busy = await this.prisma.metaPublication.findMany({ where: { creativeId: { in: dto.creativeIds }, status: 'PUBLISHING' }, select: { creativeId: true } });
+      if (busy.length) throw new AppException('INVALID_STATE', { allowed: ['APPROVED'], reason: 'publish_in_progress', creativeIds: [...new Set(busy.map((b) => b.creativeId))] });
+      const { fresh, minimum } = await this.gate(auth);
+      const tpl = await this.templateFor(auth, dto.templateId, fresh, minimum);
+      const settings = new Map(creatives.map((c) => [c.id, this.templateSettings(c, fresh, tpl)]));
+      const batchId = randomUUID();
+      const now = Date.now();
+      const date = isoDate(new Date(now));
+      const groups = planGroups(creatives, tpl.adset.adsPerAdset).map((g, i) => ({
+        n: i + 1, items: g.items, belowMin: g.belowMin,
+        name: resolveName(tpl.adset.namePattern, { offer: g.items[0].offer.name, code: codeOf(g.items[0]), date, n: i + 1 }),
+      }));
+      const pubIds = await this.prisma.$transaction(async (tx) => {
+        const out: string[] = [];
+        let k = 0;
+        for (const g of groups) {
+          for (const c of g.items) {
+            const pub = await tx.metaPublication.create({
+              data: {
+                workspaceId: auth.workspaceId, connectionId: fresh.id, creativeId: c.id, status: 'PUBLISHING', adAccountId: fresh.adAccountId, pageId: fresh.pageId,
+                pixelId: tpl.adset.pixelId, settings: settings.get(c.id) as unknown as Prisma.InputJsonValue, renderFileId: c.finalRender!.file!.id, createdById: auth.userId,
+                templateId: tpl.id, groupKey: groupKeyOf(batchId, g.n),
+                createdAt: new Date(now + k++), // ordem estável dentro do lote: o 1º do grupo dá o nome do ad set, a posição dá o {n} do anúncio
+              },
+            });
+            const job = await tx.job.create({
+              data: { workspaceId: auth.workspaceId, type: 'META_PUBLISH', status: 'QUEUED', input: { publicationId: pub.id, templateId: tpl.id, groupKey: pub.groupKey }, creativeId: c.id, metaPublicationId: pub.id, createdById: auth.userId },
+            });
+            await tx.metaPublication.update({ where: { id: pub.id }, data: { jobId: job.id } });
+            out.push(pub.id);
+          }
+        }
+        return out;
+      }, { timeout: 60_000 });
+      return { pubIds, plan: planOf(groups.map((g) => ({ name: g.name, creativeIds: g.items.map((c) => c.id), belowMin: g.belowMin }))) };
+    });
+    const pubs = await this.prisma.metaPublication.findMany({ where: { id: { in: r.pubIds } }, include: PUB_INCLUDE });
+    const order = new Map(r.pubIds.map((x, i) => [x, i]));
+    pubs.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+    for (const p of pubs) void this.jobs.detach(p.jobId, 'publicação na Meta (lote)', () => this.run(p.jobId!, p.id));
+    return { publications: await this.presentMany(pubs), plan: r.plan };
+  }
+
+  /** Nomes da publicação com template: campanha do 1º anúncio do lote, ad set do 1º do grupo, anúncio com {n} = posição no grupo. */
+  private async templateNames(p: MetaPublication & { creative: { name: string; adName: string | null; variationCode: string | null; offerId: string } }, tpl: MetaPublishTemplateView) {
+    const date = isoDate(p.createdAt);
+    const g = parseGroupKey(p.groupKey);
+    const siblings = g
+      ? await this.prisma.metaPublication.findMany({
+        where: { groupKey: { startsWith: `${g.batchId}:` } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, groupKey: true, creative: { select: { name: true, adName: true, variationCode: true, offer: { select: { name: true } } } } },
+      })
+      : [];
+    const own = { id: p.id, groupKey: p.groupKey, creative: { ...p.creative, offer: await this.prisma.offer.findUniqueOrThrow({ where: { id: p.creative.offerId }, select: { name: true } }) } };
+    const firstOfBatch = siblings[0] ?? own;
+    const group = siblings.filter((x) => x.groupKey === p.groupKey);
+    const firstOfGroup = group[0] ?? own;
+    const pos = Math.max(0, group.findIndex((x) => x.id === p.id)) + 1;
+    type Ref = { creative: { name: string; adName: string | null; variationCode: string | null; offer: { name: string } } };
+    const vars = (x: Ref, n: number) => ({ offer: x.creative.offer.name, code: codeOf(x.creative), date, n });
+    return {
+      campaign: resolveName(tpl.campaign.namePattern, vars(firstOfBatch, 1)),
+      adset: resolveName(tpl.adset.namePattern, vars(firstOfGroup, g?.n ?? 1)),
+      ad: resolveName(tpl.ad.namePattern, vars(own, pos)),
+    };
+  }
+
+  /**
+   * Campanha da publicação com template (dentro da trava, gravando antes de soltar): irmão do lote que já tem campanha →
+   * ela; REUSE → a guardada no template se ainda existe na Meta (senão cria e grava); NEW → cria (1× por lote).
+   */
+  private async templateCampaign(auth: MetaAuth, p: MetaPublication, tpl: MetaPublishTemplateView, input: MetaPublishInput, save: (data: Prisma.MetaPublicationUncheckedUpdateInput) => Promise<unknown>): Promise<string> {
+    const batch = parseGroupKey(p.groupKey)?.batchId ?? null;
+    const reuse = tpl.campaign.destination === 'REUSE_CAMPAIGN';
+    const key = reuse ? `meta-camp:tpl:${tpl.id}` : batch ? `meta-camp:batch:${batch}` : `meta-camp:pub:${p.id}`;
+    return this.locks.run(key, async () => {
+      let id: string | null = null;
+      if (batch) {
+        const sib = await this.prisma.metaPublication.findFirst({ where: { groupKey: { startsWith: `${batch}:` }, campaignId: { not: null }, id: { not: p.id } }, select: { campaignId: true } });
+        id = sib?.campaignId ?? null;
+      }
+      if (!id && reuse) {
+        const stored = (await this.prisma.metaPublishTemplate.findUnique({ where: { id: tpl.id }, select: { reuseCampaignId: true } }))?.reuseCampaignId ?? null;
+        if (stored) {
+          try {
+            await this.meta.readObject(auth, { level: 'campaign', id: stored });
+            id = stored;
+          } catch (e) {
+            if (!(isMetaError(e) && e.code === 'META_OBJECT_GONE')) throw e; // apagada/arquivada na Meta: cria outra e troca o id
+          }
+        }
+      }
+      if (!id) {
+        id = (await this.meta.createCampaign(auth, input)).campaignId;
+        if (reuse) await this.prisma.metaPublishTemplate.update({ where: { id: tpl.id }, data: { reuseCampaignId: id } });
+      }
+      await save({ campaignId: id });
+      return id;
+    });
+  }
+
+  /** Ad set do grupo (1× por grupo): o do irmão na mesma campanha, senão cria. Sem grupo (publicação avulsa) = cria. */
+  private async templateAdset(auth: MetaAuth, p: MetaPublication, input: MetaPublishInput, ids: MetaPublishIds, save: (data: Prisma.MetaPublicationUncheckedUpdateInput) => Promise<unknown>): Promise<string> {
+    return this.locks.run(`meta-adset:${p.groupKey ?? p.id}`, async () => {
+      const sib = p.groupKey
+        ? await this.prisma.metaPublication.findFirst({ where: { groupKey: p.groupKey, adsetId: { not: null }, campaignId: ids.campaignId, id: { not: p.id } }, select: { adsetId: true } })
+        : null;
+      const id = sib?.adsetId ?? (await this.meta.createAdSet(auth, input, ids)).adsetId;
+      await save({ adsetId: id });
+      return id;
+    });
+  }
+
   /** POST /creatives/:id/meta/retry: FAILED → PUBLISHING com job novo, retomando dos ids já gravados. */
   async retry(auth: AuthContext, id: string): Promise<MetaPublicationView> {
     const pubId = await this.locks.run(`meta-pub:${id}`, async () => {
@@ -262,7 +480,7 @@ export class MetaPublicacaoService {
 
   /** Job META_PUBLISH: cada etapa grava o id antes de seguir; etapa com id já gravado é pulada (retomada idempotente). */
   async run(jobId: string, publicationId: string): Promise<void> {
-    const p = await this.prisma.metaPublication.findUniqueOrThrow({ where: { id: publicationId }, include: { creative: true, renderFile: true, connection: true } });
+    const p = await this.prisma.metaPublication.findUniqueOrThrow({ where: { id: publicationId }, include: { creative: true, renderFile: true, connection: true, template: true } });
     let stageKey: string | null = null;
     try {
       const conn = assertSelected(assertUsable(p.connection));
@@ -272,10 +490,14 @@ export class MetaPublicacaoService {
       const publicMedia = (process.env.PUBLIC_MEDIA ?? 'on').toLowerCase() !== 'off';
       const fileUrl = await this.storage.signedUrl(p.renderFile);
       const renderFile = p.renderFile;
+      // meta-templates-v1: com template, nomes pelos padrões e a estrutura (CBO/ABO, lance, público, posicionamentos, UTM)
+      const tpl = p.template ? this.templates.present(p.template) : null;
+      const names = tpl ? await this.templateNames(p, tpl) : null;
       const input: MetaPublishInput = {
-        adAccountId: conn.adAccountId, pageId: conn.pageId, pixelId: conn.pixelId,
-        adName: await this.metaName(p, p.creative.adName ?? p.creative.name),
+        adAccountId: conn.adAccountId, pageId: conn.pageId, pixelId: tpl ? p.pixelId : conn.pixelId,
+        adName: await this.metaName(p, names?.ad ?? p.creative.adName ?? p.creative.name),
         settings,
+        structure: tpl && names ? structureOf(tpl, names) : null,
         video: {
           fileUrl: publicMedia ? fileUrl : null,
           sizeBytes: p.renderFile.sizeBytes,
@@ -298,8 +520,14 @@ export class MetaPublicacaoService {
         switch (stage) {
           case 'uploading_video': ids.videoId = (await this.meta.uploadVideo(auth, input)).videoId; await save({ videoId: ids.videoId }); break;
           case 'processing_video': await this.meta.waitVideoReady(auth, input, ids); break;
-          case 'creating_campaign': ids.campaignId = (await this.meta.createCampaign(auth, input)).campaignId; await save({ campaignId: ids.campaignId }); break;
-          case 'creating_adset': ids.adsetId = (await this.meta.createAdSet(auth, input, ids)).adsetId; await save({ adsetId: ids.adsetId }); break;
+          case 'creating_campaign':
+            if (tpl) ids.campaignId = await this.templateCampaign(auth, p, tpl, input, save);
+            else { ids.campaignId = (await this.meta.createCampaign(auth, input)).campaignId; await save({ campaignId: ids.campaignId }); }
+            break;
+          case 'creating_adset':
+            if (tpl) ids.adsetId = await this.templateAdset(auth, p, input, ids, save);
+            else { ids.adsetId = (await this.meta.createAdSet(auth, input, ids)).adsetId; await save({ adsetId: ids.adsetId }); }
+            break;
           case 'creating_creative': ids.creativeId = (await this.meta.createAdCreative(auth, input, ids)).creativeId; await save({ metaCreativeId: ids.creativeId }); break;
           case 'creating_ad': {
             const r = await this.meta.createAd(auth, input, ids);
@@ -318,7 +546,7 @@ export class MetaPublicacaoService {
           where: { connectionId_metaAdId: { connectionId: conn.id, metaAdId: ids.adId! } },
           create: {
             workspaceId: p.workspaceId, connectionId: conn.id, adAccountId: conn.adAccountId, metaAdId: ids.adId!, name: input.adName, effectiveStatus: 'PAUSED', status: 'PAUSED',
-            campaignId: ids.campaignId!, campaignName: input.adName, adsetId: ids.adsetId!, adsetName: input.adName, metaCreativeId: ids.creativeId, videoId: ids.videoId,
+            campaignId: ids.campaignId!, campaignName: input.structure?.campaignName ?? input.adName, adsetId: ids.adsetId!, adsetName: input.structure?.adsetName ?? input.adName, metaCreativeId: ids.creativeId, videoId: ids.videoId,
             thumbnailUrl: null, resultType: null, metrics: ZERO_METRICS as unknown as Prisma.InputJsonValue, metrics7d: ZERO_METRICS as unknown as Prisma.InputJsonValue,
             metricsPrev7d: ZERO_METRICS as unknown as Prisma.InputJsonValue, verdict: 'LOW_DATA', trend: null, adCreatedTime: now, syncedAt: now,
           },
@@ -410,6 +638,11 @@ export class MetaPublicacaoService {
     }
     return n;
   }
+}
+
+/** `{code}` = código da peça (variationCode, ex. HEADLINE-02), senão o adName, senão o nome. */
+function codeOf(c: { variationCode: string | null; adName: string | null; name: string }): string {
+  return c.variationCode ?? c.adName ?? c.name;
 }
 
 function accountLabel(status: number | null): string {

@@ -114,7 +114,7 @@ describe(isLocal ? 'STATIC montado + molduras (integração local)' : 'STATIC mo
     };
     const hash = await hashPassword(PASSWORD);
     const email = `molduras-${RUN}@teste.local`;
-    const user = await prisma.user.create({ data: { email, name: 'Molduras', passwordHash: hash } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: 'Molduras', passwordHash: hash } });
     const w = await prisma.workspace.create({ data: { name: `molduras-${RUN}`, shortCode: 'MD', memberships: { create: { userId: user.id, role: 'OWNER' } } } });
     const res = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });
     ws = { id: w.id, userId: user.id, token: (await res.json()).data.accessToken };

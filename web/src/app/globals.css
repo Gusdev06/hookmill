@@ -76,6 +76,13 @@
 
   color-scheme: light;
 }
+/* QA layout 29/10 #22: the phone value has to live outside @layer, or the unlayered :root above (0px) always wins and every
+   min-h / sticky offset under the 56 px top bar was off by 56 px */
+@media (max-width: 760px) {
+  :root {
+    --hdr-h: 56px;
+  }
+}
 
 /* aliases: declared on every token scope so they follow .on-ink / .on-light */
 :root,
@@ -352,11 +359,6 @@
   :focus-visible {
     outline: 2px solid var(--info);
     outline-offset: 2px;
-  }
-  @media (max-width: 760px) {
-    :root {
-      --hdr-h: 56px;
-    }
   }
 }
 

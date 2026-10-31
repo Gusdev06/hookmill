@@ -2,7 +2,7 @@
 // antes de chamar a próxima; retry não repete etapa com id). Upload do vídeo por file_url (prod) ou resumable
 // (start/transfer/finish em pedaços de 8 MB) quando o render não é público.
 import type { MetaObjective, MetaPixelEvent } from '@maquina/contratos';
-import type { MetaPublishIds, MetaPublishInput } from '../contrato';
+import type { MetaPublishIds, MetaPublishInput, MetaPublishStructure } from '../contrato';
 import { GraphClient, type Raw } from './cliente';
 import { MetaError, isMetaError } from './erros';
 
@@ -18,15 +18,51 @@ export function optimizationFor(objective: MetaObjective, pixelId: string | null
   return { optimization_goal: 'LINK_CLICKS' };
 }
 
+/** meta-templates-v1: estratégia do template → `bid_strategy` da Graph. */
+export const GRAPH_BID_STRATEGY: Record<MetaPublishStructure['bidStrategy'], string> = {
+  LOWEST_COST: 'LOWEST_COST_WITHOUT_CAP', COST_CAP: 'COST_CAP', BID_CAP: 'LOWEST_COST_WITH_BID_CAP',
+};
+const PLATFORM_POSITION_KEY: Record<string, string> = {
+  facebook: 'facebook_positions', instagram: 'instagram_positions', audience_network: 'audience_network_positions', messenger: 'messenger_positions',
+};
+/** Posicionamentos manuais: `publisher_platforms` + `<plataforma>_positions` (posição `<plataforma>_<posição>`, ex. `instagram_story`). */
+export function placementsOf(p: MetaPublishStructure['placements']): Raw {
+  if (p === 'AUTO') return {};
+  const out: Raw = { publisher_platforms: [...p.platforms] };
+  for (const pos of p.positions) {
+    const platform = Object.keys(PLATFORM_POSITION_KEY).sort((a, b) => b.length - a.length).find((k) => pos.startsWith(`${k}_`));
+    if (!platform || !p.platforms.includes(platform)) continue;
+    const key = PLATFORM_POSITION_KEY[platform];
+    (out[key] ??= []).push(pos.slice(platform.length + 1));
+  }
+  return out;
+}
+
 export function campaignBody(i: MetaPublishInput): Raw {
-  return { name: i.adName, objective: i.settings.objective, status: 'PAUSED', special_ad_categories: i.settings.specialAdCategories ?? [], buying_type: 'AUCTION' };
+  const st = i.structure;
+  const base: Raw = { name: st?.campaignName ?? i.adName, objective: i.settings.objective, status: 'PAUSED', special_ad_categories: i.settings.specialAdCategories ?? [], buying_type: 'AUCTION' };
+  // CBO (Advantage campaign budget): orçamento e estratégia de lance na campanha
+  if (st?.budgetMode === 'CBO') return { ...base, daily_budget: i.settings.dailyBudgetMinor, bid_strategy: GRAPH_BID_STRATEGY[st.bidStrategy] };
+  return base;
 }
 export function adSetBody(i: MetaPublishInput, campaignId: string): Raw {
   const s = i.settings;
+  const st = i.structure;
+  const targeting: Raw = {
+    geo_locations: { countries: s.countries }, age_min: s.ageMin, age_max: s.ageMax,
+    targeting_automation: { advantage_audience: st && !st.advantageAudience ? 0 : 1 },
+  };
+  if (st && st.genders !== 'ALL') targeting.genders = [st.genders === 'MALE' ? 1 : 2];
+  if (st) Object.assign(targeting, placementsOf(st.placements));
+  const cbo = st?.budgetMode === 'CBO';
+  const capped = !!st && st.bidStrategy !== 'LOWEST_COST' && st.bidAmountMinor != null;
   return {
-    name: i.adName, campaign_id: campaignId, daily_budget: s.dailyBudgetMinor,
-    billing_event: 'IMPRESSIONS', bid_strategy: 'LOWEST_COST_WITHOUT_CAP', status: 'PAUSED',
-    targeting: { geo_locations: { countries: s.countries }, age_min: s.ageMin, age_max: s.ageMax, targeting_automation: { advantage_audience: 1 } },
+    name: st?.adsetName ?? i.adName, campaign_id: campaignId,
+    // ABO: orçamento e estratégia no conjunto; CBO: herda da campanha (só o bid_amount do cap mora aqui)
+    ...(cbo ? {} : { daily_budget: s.dailyBudgetMinor, bid_strategy: st ? GRAPH_BID_STRATEGY[st.bidStrategy] : 'LOWEST_COST_WITHOUT_CAP' }),
+    ...(capped ? { bid_amount: st!.bidAmountMinor } : {}),
+    billing_event: 'IMPRESSIONS', status: 'PAUSED',
+    targeting,
     ...optimizationFor(s.objective, i.pixelId, s.pixelEvent),
   };
 }
@@ -42,6 +78,7 @@ export function creativeBody(i: MetaPublishInput, videoId: string): Raw {
         call_to_action: { type: s.callToAction, value: { link: s.link } },
       },
     },
+    ...(i.structure?.urlTags ? { url_tags: i.structure.urlTags } : {}),
   };
 }
 export function adBody(i: MetaPublishInput, adsetId: string, creativeId: string): Raw {

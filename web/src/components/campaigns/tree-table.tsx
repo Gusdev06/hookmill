@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
@@ -333,7 +333,7 @@ export function TreeTable({
   // the "Total · N" label counts the whole filtered set when the server says how many (totals.count, §11), else what is loaded
   const totalCount = totals.count ?? count
   return (
-    <div className="min-w-0 overflow-x-auto rounded-lg border border-line bg-card max-tablet:hidden">
+    <ScrollX>
       <table role="treegrid" aria-label={t("title")} className="w-full min-w-[1060px] border-separate border-spacing-0 text-[13px]">
         <Head sort={sort} dir={dir} onSort={onSort} resultKey={ctx.resultKey} />
         {count ? (
@@ -361,7 +361,7 @@ export function TreeTable({
         ) : null}
       </table>
       {count ? null : empty}
-    </div>
+    </ScrollX>
   )
 }
 
@@ -369,7 +369,7 @@ export function TableSkeleton() {
   const t = useTranslations("campaigns")
   const sk = (w: number, h = 10) => <span className="sk inline-block rounded-[6px]" style={{ width: w, height: h }} />
   return (
-    <div className="min-w-0 overflow-x-auto rounded-lg border border-line bg-card max-tablet:hidden" aria-busy="true">
+    <ScrollX aria-busy="true">
       <table className="w-full min-w-[1060px] border-separate border-spacing-0 text-[13px]">
         <thead>
           <tr>
@@ -396,6 +396,37 @@ export function TableSkeleton() {
           ))}
         </tbody>
       </table>
+    </ScrollX>
+  )
+}
+
+/**
+ * QA layout 29/10 #6: the table is wider than the content column up to ~1340 px; a soft shade on the right edge says there
+ * is more to scroll (gone at the end). Below 1100 px the cards take its place.
+ */
+function ScrollX({ children, ...rest }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [more, setMore] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
+    check()
+    el.addEventListener("scroll", check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
+    return () => {
+      el.removeEventListener("scroll", check)
+      ro.disconnect()
+    }
+  }, [])
+  return (
+    <div className="relative min-w-0 max-[1099px]:hidden">
+      <div ref={ref} className="min-w-0 overflow-x-auto rounded-lg border border-line bg-card" {...rest}>
+        {children}
+      </div>
+      {more ? <span aria-hidden="true" className="pointer-events-none absolute inset-y-px right-px w-12 rounded-r-lg bg-gradient-to-l from-[rgba(21,23,26,0.12)] to-transparent" /> : null}
     </div>
   )
 }

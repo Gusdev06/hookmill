@@ -21,6 +21,8 @@ import { mmss } from "@/components/wizard/common"
 import { stepHref } from "@/components/wizard/shell"
 import { PublicationCard, PublicationHistory } from "./publication-card"
 import { PublishForm, valuesFromDefaults } from "./publish-form"
+import { useMetaTemplates } from "@/hooks/use-meta-templates"
+import { CUSTOM, TemplateChooser, TemplatePublish } from "@/components/meta/templates/send-template"
 
 const CONNECTIONS = "/settings/connections"
 const FORMAT_SHORT = { VERTICAL_9_16: "9:16", PORTRAIT_4_5: "4:5", SQUARE_1_1: "1:1" } as const
@@ -170,6 +172,12 @@ function Body({
   const connection = useMetaConnection()
   const canWrite = role !== "CLIENT"
   const p = data.publication
+  // meta-templates-v1: the default template preselected; "Custom" keeps today's form (also when editing an attempt's text)
+  const templates = useMetaTemplates(canWrite && !!data.defaults)
+  const [choice, setChoice] = useState<string | null>(null)
+  const list = templates.data ?? []
+  const picked = choice ?? (editing ? CUSTOM : (list.find((x) => x.isDefault) ?? list[0])?.id ?? CUSTOM)
+  const template = list.find((x) => x.id === picked) ?? null
   // the API may list the current publication in `history` too: the card shows it once
   const history = data.history.filter((h) => h.id !== p?.id)
   const currency = data.defaults?.currency ?? null
@@ -249,7 +257,22 @@ function Body({
 
   return (
     <>
-      {showForm ? (
+      {showForm && templates.isPending && templates.fetchStatus !== "idle" ? (
+        <div className="grid gap-4" role="status" aria-label={t("templatesLoading")}>
+          <span className="sk h-[74px] rounded-xl" />
+          <span className="sk h-56 rounded-xl" />
+        </div>
+      ) : showForm && list.length ? <TemplateChooser templates={list} value={template ? template.id : CUSTOM} onChange={setChoice} /> : null}
+      {showForm && templates.isPending && templates.fetchStatus !== "idle" ? null : showForm && template ? (
+        <TemplatePublish
+          template={template}
+          currency={currency}
+          error={act.publish.error}
+          pending={act.publish.isPending}
+          onSubmit={() => act.publish.mutate({ templateId: template.id }, { onSuccess: () => setEditing(null), onError: () => setErrorAt(Date.now()) })}
+          onCancel={editing && p && p.status !== "DELETED" ? () => setEditing(null) : null}
+        />
+      ) : showForm ? (
         <PublishForm
           key={editing?.id ?? "new"}
           defaults={data.defaults}

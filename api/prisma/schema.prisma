@@ -330,6 +330,13 @@ enum MetaPublicationStatus {
 
 // ── onboarding-v2 (docs/contratos/onboarding-v2.md, aprovado 21/10) ──
 
+// amostra-gratis-v1 (29/10): SAMPLE = conta nova sem plano (1 amostra travada); PAID = plano; INTERNAL = Gusta/Tordan/legado, nunca trava
+enum AccountAccess {
+  SAMPLE
+  PAID
+  INTERNAL
+}
+
 // User.accountMode: só muda o shell (OWN = sem seletor de cliente); o modelo cliente = workspace não muda (D1)
 enum AccountMode {
   AGENCY
@@ -362,33 +369,36 @@ enum MetaChangeSource {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique // sempre minúsculo
-  passwordHash String       @map("password_hash")
+  id           String        @id @default(cuid())
+  email        String        @unique // sempre minúsculo
+  passwordHash String        @map("password_hash")
   name         String
-  uiLocale     UiLocale     @default(EN) @map("ui_locale")
-  isActive     Boolean      @default(true) @map("is_active")
-  lastLoginAt  DateTime?    @map("last_login_at")
-  accountMode  AccountMode? @map("account_mode") // onboarding-v2 §1: null = ainda não respondeu (pergunta pós-cadastro /start)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  uiLocale     UiLocale      @default(EN) @map("ui_locale")
+  isActive     Boolean       @default(true) @map("is_active")
+  lastLoginAt  DateTime?     @map("last_login_at")
+  accountMode  AccountMode?  @map("account_mode") // onboarding-v2 §1: null = ainda não respondeu (pergunta pós-cadastro /start)
+  access       AccountAccess @default(SAMPLE) // amostra-gratis-v1 §1 (29/10): plano da CONTA (P1 = conta); quem já existia = INTERNAL
+  sampleUsedAt DateTime?     @map("sample_used_at") // amostra-gratis-v1 §2: lote da amostra criado; não nulo = amostra gasta
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  memberships       Membership[]
-  refreshTokens     RefreshToken[]
-  invitesSent       Invite[]          @relation("InviteCreatedBy")
-  offersCreated     Offer[]           @relation("OfferCreatedBy")
-  creativesCreated  Creative[]        @relation("CreativeCreatedBy")
-  creativesApproved Creative[]        @relation("CreativeApprovedBy")
-  changeRequests    ChangeRequest[]
-  uploads           Upload[]
-  championsCreated  Champion[]        @relation("ChampionCreatedBy")
-  rightsDeclared    Champion[]        @relation("ChampionRightsDeclaredBy")
-  batchesCreated    VariationBatch[] @relation("BatchCreatedBy")
-  batchesAnswered   VariationBatch[] @relation("BatchAnsweredBy")
-  onboardingUpdated Workspace[]       @relation("OnboardingUpdatedBy")
-  metaConnections   MetaConnection[]  @relation("MetaConnectedBy")
-  metaPublications  MetaPublication[] @relation("MetaPublishedBy")
-  metaChanges       MetaChange[]      @relation("MetaChangedBy")
+  memberships          Membership[]
+  refreshTokens        RefreshToken[]
+  invitesSent          Invite[]              @relation("InviteCreatedBy")
+  offersCreated        Offer[]               @relation("OfferCreatedBy")
+  creativesCreated     Creative[]            @relation("CreativeCreatedBy")
+  creativesApproved    Creative[]            @relation("CreativeApprovedBy")
+  changeRequests       ChangeRequest[]
+  uploads              Upload[]
+  championsCreated     Champion[]            @relation("ChampionCreatedBy")
+  rightsDeclared       Champion[]            @relation("ChampionRightsDeclaredBy")
+  batchesCreated       VariationBatch[]      @relation("BatchCreatedBy")
+  metaTemplatesCreated MetaPublishTemplate[] @relation("MetaTemplateCreatedBy")
+  batchesAnswered      VariationBatch[]      @relation("BatchAnsweredBy")
+  onboardingUpdated    Workspace[]           @relation("OnboardingUpdatedBy")
+  metaConnections      MetaConnection[]      @relation("MetaConnectedBy")
+  metaPublications     MetaPublication[]     @relation("MetaPublishedBy")
+  metaChanges          MetaChange[]          @relation("MetaChangedBy")
 
   @@map("users")
 }
@@ -423,6 +433,9 @@ model Workspace {
   businessType          BusinessType? @map("business_type") // DEPRECATED: derivado do resultType (resultado-v1)
   resultType            ResultType?   @map("result_type") // resultado-v1 (28/10): null = ainda não escolheu
   resultTypeOther       String?       @map("result_type_other") // ≤ 80, só com resultType = OTHER
+  targetCpaMin          Decimal?      @map("target_cpa_min") @db.Decimal(12, 2) // 29/10 (Loom do Tordan): faixa de custo por resultado que o cliente quer
+  targetCpaMax          Decimal?      @map("target_cpa_max") @db.Decimal(12, 2) // min ≤ max; os dois null = não informado
+  targetCpaCurrency     String?       @map("target_cpa_currency") // ISO 4217 (USD, BRL, EUR…); só com a faixa
   websiteUrl            String?       @map("website_url") // http(s), ≤ 2048
   brandColor            String?       @map("brand_color") // 25/10 (estatico-montado-e-molduras-v1 D3): #RRGGBB maiúsculo; null = derivada (§A3.3)
   iteratePreferences    Json?         @map("iterate_preferences") // Iterate v2: saved answers for this client
@@ -457,6 +470,7 @@ model Workspace {
   metaConnection        MetaConnection?
   metaAdSnapshots       MetaAdSnapshot[]
   metaPublications      MetaPublication[]
+  metaPublishTemplates  MetaPublishTemplate[]
   metaCampaignSnapshots MetaCampaignSnapshot[]
   metaAdsetSnapshots    MetaAdsetSnapshot[]
   metaChanges           MetaChange[]
@@ -785,6 +799,8 @@ model Render {
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   creative      Creative       @relation("CreativeRenders", fields: [creativeId], references: [id], onDelete: Cascade)
   file          File?          @relation("RenderFile", fields: [fileId], references: [id])
+  previewFileId String?        @unique @map("preview_file_id") // amostra-gratis-v1 §3: 480p, 0-3 s nítido, resto borrado + selo
+  previewFile   File?          @relation("RenderPreviewFile", fields: [previewFileId], references: [id])
   finalOf       Creative?      @relation("FinalRender")
   providerTasks ProviderTask[]
 
@@ -824,6 +840,7 @@ model File {
   takeAudios            Take[]            @relation("TakeAudio")
   takeThumbnails        Take[]            @relation("TakeThumbnail")
   render                Render?           @relation("RenderFile")
+  renderPreview         Render?           @relation("RenderPreviewFile")
   thumbnailOf           Creative[]        @relation("CreativeThumbnail")
   upload                Upload?
   championVideos        Champion[]        @relation("ChampionVideo")
@@ -1160,16 +1177,51 @@ model MetaPublication {
   createdById    String                @map("created_by_id")
   createdAt      DateTime              @default(now()) @map("created_at")
   updatedAt      DateTime              @updatedAt @map("updated_at")
+  templateId     String?               @map("template_id") // meta-templates-v1 §2: publicado com template
+  groupKey       String?               @map("group_key") // meta-templates-v1 §2: publish-batch, mesmo ad set = mesma chave
 
-  workspace  Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  connection MetaConnection @relation(fields: [connectionId], references: [id])
-  creative   Creative       @relation(fields: [creativeId], references: [id], onDelete: Cascade)
-  renderFile File           @relation("MetaPublicationVideo", fields: [renderFileId], references: [id])
-  createdBy  User           @relation("MetaPublishedBy", fields: [createdById], references: [id])
+  template   MetaPublishTemplate? @relation(fields: [templateId], references: [id])
+  workspace  Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection MetaConnection       @relation(fields: [connectionId], references: [id])
+  creative   Creative             @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  renderFile File                 @relation("MetaPublicationVideo", fields: [renderFileId], references: [id])
+  createdBy  User                 @relation("MetaPublishedBy", fields: [createdById], references: [id])
 
   @@index([creativeId, createdAt])
   @@index([workspaceId, status])
+  @@index([groupKey])
   @@map("meta_publications")
+}
+
+// meta-templates-v1 (29/10, Loom do Tordan): como o HookMill cria campanha/conjunto/anúncio nesta conta de anúncio.
+enum MetaTemplateSource {
+  MANUAL
+  IMPORTED
+}
+
+model MetaPublishTemplate {
+  id              String             @id @default(cuid())
+  workspaceId     String             @map("workspace_id")
+  adAccountId     String             @map("ad_account_id") // o template vale pra 1 conta de anúncio
+  name            String // ≤ 60
+  isDefault       Boolean            @default(false) @map("is_default") // 1 por (workspace, conta), garantido no service
+  source          MetaTemplateSource @default(MANUAL)
+  importedFrom    Json?              @map("imported_from") // { level, id, name }
+  campaign        Json // MetaTemplateCampaign (@maquina/contratos)
+  adset           Json // MetaTemplateAdset
+  ad              Json // MetaTemplateAd
+  reuseCampaignId String?            @map("reuse_campaign_id") // destination REUSE_CAMPAIGN: id criado na 1ª publicação
+  createdById     String             @map("created_by_id")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  archivedAt      DateTime?          @map("archived_at")
+
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy    User              @relation("MetaTemplateCreatedBy", fields: [createdById], references: [id])
+  publications MetaPublication[]
+
+  @@index([workspaceId, adAccountId, archivedAt])
+  @@map("meta_publish_templates")
 }
 
 // ── campanhas-v1 §2: estrutura + orçamento + insights por nível. Substituídas inteiras a cada META_SYNC, na MESMA
@@ -1307,9 +1359,9 @@ model VariationBatch {
   // variacao-auto-v1 §2 (lotes AUTO; nos MANUAL ficam nulos/padrão)
   mode              BatchMode            @default(MANUAL)
   answers           Json?
-  answersAt         DateTime?           @map("answers_at")
-  answersById       String?             @map("answers_by_id")
-  answersBy         User?               @relation("BatchAnsweredBy", fields: [answersById], references: [id], onDelete: SetNull)
+  answersAt         DateTime?            @map("answers_at")
+  answersById       String?              @map("answers_by_id")
+  answersBy         User?                @relation("BatchAnsweredBy", fields: [answersById], references: [id], onDelete: SetNull)
   insight           Json? // AutoInsight: blocos com função, porquê (HOOK/PROOF/CTA), kept, flags, swaps
   errorCode         String?              @map("error_code") // ANALYSIS_FAILED: código assíncrono
   failReason        String?              @map("fail_reason") // frase humana (fallback EN)

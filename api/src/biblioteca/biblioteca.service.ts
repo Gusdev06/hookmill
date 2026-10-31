@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { AmostraService } from '../amostra/amostra.service';
 import type { CreativeDownload, CreativeState, FileRef, FormatCode, LibraryMeta } from '@maquina/contratos';
 import type { LibraryItemAuto } from '../criativos/contrato-auto';
 import { ALL_FORMATS, FORMAT_CODE, autoFileName, formatFromQuery } from '../edicao/pecas';
@@ -37,11 +38,13 @@ export class BibliotecaService {
     private readonly prisma: PrismaService,
     private readonly views: CreativeViews,
     private readonly storage: StorageService,
+    private readonly amostra: AmostraService,
   ) {}
 
   async list(auth: AuthContext, q: LibraryQueryDto): Promise<{ items: LibraryItemAuto[]; meta: LibraryMeta }> {
     const limit = q.limit ?? DEFAULT_LIMIT;
-    const base: Prisma.CreativeWhereInput = { workspaceId: auth.workspaceId, archivedAt: null, state: 'APPROVED' };
+    // amostra-gratis-v1 §3: peça de lote travado não entra na Library (o arquivo original não sai por URL assinada)
+    const base: Prisma.CreativeWhereInput = { workspaceId: auth.workspaceId, archivedAt: null, state: 'APPROVED', ...(await this.amostra.libraryFilter(auth.workspaceId)) };
     const rows = await this.prisma.creative.findMany({
       where: {
         AND: [base, q.offerId ? { offerId: q.offerId } : {}, q.winners ? { isWinner: true } : {},

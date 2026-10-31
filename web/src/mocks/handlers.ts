@@ -15,9 +15,11 @@ import {
 import { listScenario } from "./scenario"
 import { variarHandlers } from "./handlers-variar"
 import { iterateHandlers } from "./handlers-iterate"
+import { mockAccess, mockSampleUsed, setMockAccess } from "./amostra"
 import { autoWaiting, touchAllIter } from "./iterate"
 import { editorAvailable, editorEntry, editorHandlers, reposition } from "./handlers-editor"
 import { metaHandlers } from "./handlers-meta"
+import { metaTemplateHandlers } from "./handlers-meta-templates"
 import { campaignHandlers } from "./campaigns"
 import { brainHandlers } from "./handlers-brain"
 import { metaFlag, newWs, onboardingPercent, onboardingSteps, type WsState } from "./v2"
@@ -152,7 +154,7 @@ export const handlers = [
     wsStateOf(token)
     const refs = WORKSPACES.some((w) => w.id === active.id) ? WORKSPACES : [...WORKSPACES, active]
     return ok({
-      user: { id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale, accountMode: accountModeOf(active.id) },
+      user: { id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale, accountMode: accountModeOf(active.id), access: mockAccess(), sampleUsed: mockSampleUsed() },
       workspace: { ...active, name: workspaceView(token).name, ...onboardingSummaryOf(active.id), tourCompletedAt: db.v2.tour[active.id] ?? null },
       workspaces: refs.map((w) => ({ ...w, name: w.id === db.workspace.id ? db.workspace.name : (db.v2.ws[w.id]?.name ?? w.name), ...onboardingSummaryOf(w.id) })),
     })
@@ -169,6 +171,17 @@ export const handlers = [
     save()
     await delay(200)
     return ok({ id: ME.id, name: ME.name, email: ME.email, uiLocale: db.uiLocale, accountMode: accountModeOf(mockWorkspaceOf(request.headers.get("Authorization")).id) })
+  }),
+  // amostra-gratis-v1 §5 (P2): manual unlock, only INTERNAL OWNER. The mock user's own id changes the mock plan (?mockaccess=)
+  http.patch(u("/admin/users/:id/access"), async ({ params, request }) => {
+    const { access } = await body<{ access?: string }>(request)
+    if (access !== "SAMPLE" && access !== "PAID" && access !== "INTERNAL") return fail("VALIDATION_ERROR", 400, "access must be SAMPLE, PAID or INTERNAL.", { fields: [{ field: "access", rule: "isIn" }] })
+    if (mockAccess() !== "INTERNAL" || mockWorkspaceOf(request.headers.get("Authorization")).role !== "OWNER") return fail("FORBIDDEN", 403, "Only the HookMill team can change a plan.")
+    const id = String(params.id).trim()
+    if (!/^[\w-]{3,}$/.test(id) || id.startsWith("u_missing")) return fail("NOT_FOUND", 404, "Not found.")
+    if (id === ME.id) setMockAccess(access)
+    await delay(250)
+    return ok({ id, access })
   }),
   http.get(u("/auth/invites/:token"), ({ params }) => {
     const inv = db.members.invites.find((i) => i.id === params.token)
@@ -778,6 +791,7 @@ export const handlers = [
   ...iterateHandlers,
   // ───── meta-v1 + tour (onboarding-v2 §3.4)
   ...campaignHandlers,
+  ...metaTemplateHandlers,
   ...metaHandlers,
   ...brainHandlers, // brain-3d-v1
 ]

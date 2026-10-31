@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app-exception';
 import { num } from '../common/util/format';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,6 +26,17 @@ export const MOCK_TASK_PREFIX = 'mock_';
 const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 
 /**
+ * amostra-gratis-v1 §2: custo da amostra (lote, campeão dela e criativos dela) é nosso, com teto fixo próprio: fica FORA
+ * do gasto do mês do cliente. Campeão da amostra = campeão com algum lote `settings.sample` (conta SAMPLE só tem esse).
+ */
+const SAMPLE_JSON = { settings: { path: ['sample'], equals: true } } satisfies Prisma.VariationBatchWhereInput;
+const SAMPLE_COSTS: Prisma.CostEntryWhereInput[] = [
+  { variationBatch: { is: SAMPLE_JSON } },
+  { variationBatchId: null, creativeId: null, champion: { is: { batches: { some: SAMPLE_JSON } } } },
+  { creative: { is: { variationBatch: { is: SAMPLE_JSON } } } },
+];
+
+/**
  * Teto de gasto e custo real. Só LÊ cost_entries e provider_tasks (quem grava é a integracoes).
  * Toda ação paga chama assertWithinCap(estimativa) antes de falar com o provedor.
  */
@@ -40,11 +52,12 @@ export class CustosService {
    */
   async monthSpent(workspaceId: string, at = new Date()): Promise<number> {
     const { from, to } = monthRange(at);
-    const [recorded, open] = await Promise.all([
-      this.prisma.costEntry.aggregate({
-        where: { workspaceId, createdAt: { gte: from, lt: to } },
-        _sum: { amountUsd: true },
-      }),
+    // 29/10 (QA): total − amostra, e não `NOT: SAMPLE_COSTS`. O filtro JSON (`settings.sample`) dá NULL em lote sem a chave,
+    // e NOT(NULL) descartava do gasto toda entrada ligada a lote/criativo normal: o teto mensal via US$ 0 (pecas.int).
+    const month = { workspaceId, createdAt: { gte: from, lt: to } };
+    const [recorded, sample, open] = await Promise.all([
+      this.prisma.costEntry.aggregate({ where: month, _sum: { amountUsd: true } }),
+      this.prisma.costEntry.aggregate({ where: { ...month, OR: SAMPLE_COSTS }, _sum: { amountUsd: true } }),
       this.prisma.providerTask.aggregate({
         where: {
           workspaceId, status: 'SUBMITTED', costEntry: null, submittedAt: { gte: from, lt: to },
@@ -53,7 +66,7 @@ export class CustosService {
         _sum: { estimatedUsd: true },
       }),
     ]);
-    return round4((num(recorded._sum.amountUsd) ?? 0) + (num(open._sum.estimatedUsd) ?? 0));
+    return round4((num(recorded._sum.amountUsd) ?? 0) - (num(sample._sum.amountUsd) ?? 0) + (num(open._sum.estimatedUsd) ?? 0));
   }
 
   async cap(workspaceId: string): Promise<number | null> {

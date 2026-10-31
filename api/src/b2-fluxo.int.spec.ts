@@ -61,7 +61,7 @@ describe(isLocal ? 'B2 fluxo (integração local)' : 'B2 fluxo [pulado: DATABASE
     await app.listen(PORT);
     base = `http://127.0.0.1:${PORT}`;
     const email = `${RUN}@teste.local`;
-    const user = await prisma.user.create({ data: { email, name: 'B2 Fluxo', passwordHash: await hashPassword(PASSWORD) } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: 'B2 Fluxo', passwordHash: await hashPassword(PASSWORD) } });
     const w = await prisma.workspace.create({ data: { name: RUN, shortCode: 'TS', monthlySpendCapUsd: 200, memberships: { create: { userId: user.id, role: 'OWNER' } } } });
     wsId = w.id;
     const r = await fetch(`${base}/api/v1/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });

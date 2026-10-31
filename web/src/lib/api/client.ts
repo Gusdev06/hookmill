@@ -330,6 +330,9 @@ export const api = {
     get: (id: string, o: Signal = {}) => data(get<T.IterateBatch>(`/iterate/${seg(id)}`, o)),
     /** Only from ANALYSIS_FAILED with action try_again. */
     retry: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/retry`)),
+    /** 29/10 (legenda-protegida-v1 §8): "Generate anyway" a format blocked by burned captions; DELETE undoes it */
+    forceCaption: (id: string, b: T.ForceCaptionBlockedBody) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/caption-blocked/force`, b)),
+    unforceCaption: (id: string, b: T.ForceCaptionBlockedBody) => data(del<T.IterateBatch>(`/iterate/${seg(id)}/caption-blocked/force`, { body: b })),
     /** 26/10 (legenda-protegida D-LP5): plan again over the finished analysis; only PLAN_READY (409 INVALID_STATE reason 'launched') */
     replan: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/replan`, {})),
     /** 409 PLAN_CHANGED `{ pieces }` when the plan differs from the number on the button. Rev. 23/10 (§14.4): `expectedCostUsd` =
@@ -344,6 +347,12 @@ export const api = {
     updatePiece: (pieceId: string, b: T.UpdatePieceBody) => data(patch<T.IteratePiece>(`/iterate/pieces/${seg(pieceId)}`, b)),
     /** 202 building or 200 ready (same zipKey). 409 INVALID_STATE `nothing_to_zip`. */
     zip: (id: string) => data(post<T.IterateZipResponse>(`/iterate/${seg(id)}/zip`)),
+  },
+
+  /** amostra-gratis-v1 §5 (P2, no gateway yet): manual unlock. Only an INTERNAL OWNER (else 403 FORBIDDEN); 404 unknown user. */
+  admin: {
+    updateAccess: (userId: string, access: T.AccountAccess) =>
+      data(patch<{ id: string; access: T.AccountAccess }>(`/admin/users/${seg(userId)}/access`, { access } satisfies T.UpdateAccessBody)),
   },
 
   /** fase2-agencia §3.1. "New client" (POST /workspaces) returns tokens, so it goes through the BFF: `createClient` in lib/session/token. */
@@ -415,13 +424,28 @@ export const api = {
     /** Current publication, history, prefilled defaults (null without a connection) and the connection state. 404. */
     creative: (cid: string, o: Signal = {}) => data(get<T.CreativeMetaResponse>(`/creatives/${seg(cid)}/meta`, o)),
     /** 202 PUBLISHING. 409 INVALID_STATE `not_approved` | `publish_in_progress`; 422 META_PIXEL_REQUIRED `{ objective }` / META_BUDGET_TOO_LOW `{ minimumMinor, currency }` / META_ACCOUNT_UNUSABLE / META_TOKEN_INVALID; 503 META_UNAVAILABLE `{ retryAfterSec }`. */
-    publish: (cid: string, b: T.MetaPublishBody) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/publish`, b, { timeoutMs: 30_000 })),
+    publish: (cid: string, b: T.MetaPublishBody | T.MetaPublishWithTemplateBody) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/publish`, b, { timeoutMs: 30_000 })),
     /** Reopens a FAILED job from the ids already created (no duplicate campaign). 409 when not FAILED. */
     retry: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/retry`, {})),
     /** OWNER/ADMIN only (D11: activating is what spends). 409 when not PAUSED. */
     activate: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/activate`, { confirm: true } satisfies T.MetaActivateBody, { timeoutMs: 30_000 })),
     /** OWNER/ADMIN only. Pauses just the ad. 409 when not ACTIVE. */
     pause: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/pause`, {}, { timeoutMs: 30_000 })),
+    /** meta-templates-v1 §2: 202 { publications, plan }. 409 INVALID_STATE `not_approved` | `publish_in_progress` { creativeIds }; 422 like publish. */
+    publishBatch: (b: T.MetaPublishBatchBody) => data(post<T.MetaPublishBatchResponse>("/meta/publish-batch", b, { timeoutMs: 60_000 })),
+
+    // ───── meta-templates-v1 §2: publish templates of the selected ad account (CLIENT only reads).
+    templates: {
+      /** default first. 422 META_SELECTION_MISSING */
+      list: (o: Signal = {}) => data(get<T.MetaPublishTemplate[]>("/meta/templates", o)),
+      /** 201. 400 VALIDATION_ERROR { fields }; 422 META_PIXEL_REQUIRED / META_BUDGET_TOO_LOW { minimumMinor, currency } */
+      create: (b: T.MetaTemplateBody) => data(post<T.MetaPublishTemplate>("/meta/templates", b)),
+      update: (id: string, b: T.UpdateMetaTemplateBody) => data(patch<T.MetaPublishTemplate>(`/meta/templates/${seg(id)}`, b)),
+      /** archives. 409 while a publication with it is running */
+      remove: (id: string) => data(del<T.MetaPublishTemplate>(`/meta/templates/${seg(id)}`)),
+      /** reads a campaign / ad set / ad of the account and maps it; does NOT save. 404 META_OBJECT_GONE; 422 META_PERMISSION */
+      import: (b: T.MetaTemplateImportBody) => data(post<T.MetaTemplateImportResult>("/meta/templates/import", b, { timeoutMs: 30_000 })),
+    },
   },
 }
 

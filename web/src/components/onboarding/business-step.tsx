@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useFormatter, useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
-import type { BusinessSuggestion, Offer, OfferBrief, OfferExtractOutput, ResultType, UiLocale, UpdateOfferBody, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
+import type { BusinessSuggestion, Offer, OfferBrief, OfferExtractOutput, ResultType, TargetCpa, UiLocale, UpdateOfferBody, UpdateWorkspaceBody, Workspace } from "@/lib/api/types"
 import { BrandColorField, normalizeBrandColor } from "@/components/brand-color-field"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Icon } from "@/components/icon"
 import { ExtractChecklist, hostOf, ReadFrom, useOfferExtract } from "@/components/offer-extract"
-import { SoonBlock } from "@/components/soon"
-import { InviteForm } from "@/components/team"
+import { choiceCardClass } from "@/components/ui/choice-card"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { cn } from "@/lib/utils"
 import { Card, isMetaEnabled, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
@@ -22,6 +22,8 @@ import { Card, isMetaEnabled, OnboardingFrame, onboardingHref, type useOnboardin
 type Ctx = ReturnType<typeof useOnboarding>
 /** resultado-v1 (A3): "What counts as a result?" — each maps to the Meta optimization (fase2-agencia §1.1). */
 const RESULT_TYPES: ResultType[] = ["PURCHASE", "LEAD", "MESSAGE", "APPOINTMENT", "SIGNUP", "SUBSCRIPTION", "APP_INSTALL", "OTHER"]
+/** review 29/10 L2: the five common ones as chips; "More…" opens the rest (and Other). */
+const MAIN_RESULT_TYPES = RESULT_TYPES.slice(0, 5)
 /** Fields the site reading can pre-fill (A2); the "from your site" tag shows while the value is still the suggested one. */
 type SiteKey = "name" | "industry" | "market" | "brandColor" | "result" | "code"
 const DEFAULT_NAMES = new Set(["", "New client", "Workspace"])
@@ -70,7 +72,8 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const metaOn = isMetaEnabled(ws)
 
   const [site, setSite] = useState(ws.websiteUrl ?? "")
-  const [name, setName] = useState(ws.name)
+  // L3: the name is asked only here (no longer in the signup nor in /start); the signup's placeholder name starts empty
+  const [name, setName] = useState(!ws.onboarding.completedAt && DEFAULT_NAMES.has(ws.name) ? "" : ws.name)
   const [industry, setIndustry] = useState(ws.industry ?? "")
   const [market, setMarket] = useState(ws.market ?? "")
   const [goal, setGoal] = useState<ResultType | null>(ws.resultType ?? null)
@@ -81,7 +84,14 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const [codeTouched, setCodeTouched] = useState(false)
   const [locale, setLocale] = useState<UiLocale>(ws.uiLocale)
   const [brandColor, setBrandColor] = useState(ws.brandColor ?? "")
+  // 29/10 (Tordan's Loom): target cost per result, a range ("100 to 150"); optional, both or neither
+  const [cpaMin, setCpaMin] = useState(ws.targetCpa ? String(ws.targetCpa.min) : "")
+  const [cpaMax, setCpaMax] = useState(ws.targetCpa ? String(ws.targetCpa.max) : "")
+  const [cpaCurrency, setCpaCurrency] = useState(ws.targetCpa?.currency ?? "USD")
   const [found, setFound] = useState<string[] | null>(null)
+  // L2: "More…" result types and the optional "More details" open by themselves when they already hold a value
+  const [moreTypes, setMoreTypes] = useState(() => !!ws.resultType && !MAIN_RESULT_TYPES.includes(ws.resultType))
+  const [moreOpen, setMoreOpen] = useState(() => !!ws.brandColor || !!ws.targetCpa)
 
   const ex = useOfferExtract({ onStart: () => setFound(null) })
   const apply = useMutation({
@@ -110,7 +120,10 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
     take("industry", !industry.trim(), b?.industry, setIndustry)
     take("market", !market.trim(), b?.market, setMarket)
     take("brandColor", !brandColor.trim(), b?.brandColor, setBrandColor)
-    take("result", goal === null, b?.resultType, (v) => setGoal(v as ResultType))
+    take("result", goal === null, b?.resultType, (v) => {
+      setGoal(v as ResultType)
+      if (!MAIN_RESULT_TYPES.includes(v as ResultType)) setMoreTypes(true)
+    })
     take("code", !codeTouched && (!ws.onboarding.completedAt || !CODE_RE.test(code)), b?.shortCode, setCode)
     setFromSite(filled)
   }
@@ -147,6 +160,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const brandColorNorm = normalizeBrandColor(brandColor)
   const nameOk = name.trim().length > 0 && name.trim().length <= 80
   const otherOk = goal !== "OTHER" || (resultOther.trim().length > 0 && resultOther.trim().length <= 80)
+  const cpa = targetCpaOf(cpaMin, cpaMax, cpaCurrency)
   const body = (): UpdateWorkspaceBody => ({
     name: name.trim(),
     websiteUrl: normalizeUrl(site) || null,
@@ -154,12 +168,14 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
     market: market.trim() || null,
     resultType: goal,
     resultTypeOther: goal === "OTHER" ? resultOther.trim() : null,
+    // 29/10: like brandColor, sent only when it changed
+    ...(cpa !== "invalid" && JSON.stringify(cpa) !== JSON.stringify(ws.targetCpa ?? null) ? { targetCpa: cpa } : {}),
     shortCode: code,
     uiLocale: locale,
     // estatico-montado D3: sent only when it changed (an API without the field ignores nothing it didn't get)
     ...((brandColorNorm || null) !== (ws.brandColor ?? null) ? { brandColor: brandColorNorm || null } : {}),
   })
-  const valid = nameOk && codeOk && brandColorNorm !== null && otherOk
+  const valid = nameOk && codeOk && brandColorNorm !== null && otherOk && cpa !== "invalid"
   const go = (step: number, to: string) => (valid || !canEdit ? move.mutate({ body: canEdit ? body() : undefined, step, to }) : undefined)
 
   const mmdd = format.dateTime(new Date(), { month: "2-digit", day: "2-digit", timeZone: "UTC" }).replace(/\D/g, "").slice(0, 4)
@@ -176,7 +192,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       saving={move.isPending}
       onSaveExit={() => go(1, ctx.exitTo)}
       hintWarn={!valid}
-      hint={!valid ? t(otherOk ? "business.fixFirst" : "business.fixOther") : t("savedAsYouGo")}
+      hint={!valid ? t(!otherOk ? "business.fixOther" : cpa === "invalid" ? "business.fixCpa" : "business.fixFirst") : t("savedAsYouGo")}
       back={null}
       primary={
         <Button variant="brand" size="lg" disabled={move.isPending || (canEdit && !valid) || reading} onClick={() => go(ctx.nextStep(1), ctx.next(1))}>
@@ -243,67 +259,90 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         ) : null}
       </Card>
 
+      {/* review 29/10 L2: one focus per screen (onboarding-v2 §2.2), back to the approved shape — name, code, industry, market and
+          the result as chips; language, brand color and target cost go into "More details", the team leaves step 1 */}
       <Card title={t("business.details")}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3.5 tablet:grid-cols-2">
-          <div className="grid min-w-0 gap-1.5">
+          <div className="grid min-w-0 content-start gap-1.5">
             <div className="flex items-center gap-2">
               <Label htmlFor="ob-name">{t("business.name")}</Label>
               {siteTag("name", name)}
             </div>
-            <Input id="ob-name" value={name} maxLength={80} disabled={!canEdit} aria-invalid={!nameOk} onChange={(e) => setName(e.target.value)} />
+            <Input id="ob-name" value={name} maxLength={80} disabled={!canEdit} aria-invalid={!nameOk && name !== ""} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="grid min-w-0 gap-1.5">
+          <div className="grid min-w-0 content-start gap-1.5">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="ob-code">{t("business.code")}</Label>
+              {siteTag("code", code)}
+            </div>
+            <Input
+              id="ob-code"
+              value={code}
+              maxLength={6}
+              disabled={!canEdit}
+              aria-invalid={!codeOk}
+              aria-describedby="ob-code-hint"
+              onChange={(e) => {
+                setCodeTouched(true)
+                setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+              }}
+              className="font-mono"
+            />
+            <span id="ob-code-hint" className={cn("text-xs", codeOk ? "text-fg-3" : "text-status-failed")}>
+              {codeOk ? (
+                <>
+                  <span className="font-mono text-fg-2 [overflow-wrap:anywhere]">{`${code}_NEW_${mmdd}_A_F1_9x16.mp4`}</span> · {t("business.codeHint")}
+                </>
+              ) : (
+                t("business.codeInvalid")
+              )}
+            </span>
+          </div>
+          <div className="grid min-w-0 content-start gap-1.5">
             <div className="flex items-center gap-2">
               <Label htmlFor="ob-industry">{t("business.industry")}</Label>
               {siteTag("industry", industry)}
             </div>
             <Input id="ob-industry" value={industry} maxLength={80} disabled={!canEdit} onChange={(e) => setIndustry(e.target.value)} placeholder={t("business.industryPh")} />
           </div>
-          <div className="grid min-w-0 gap-1.5">
+          <div className="grid min-w-0 content-start gap-1.5">
             <div className="flex items-center gap-2">
               <Label htmlFor="ob-market">{t("business.market")}</Label>
               {siteTag("market", market)}
             </div>
             <Input id="ob-market" value={market} maxLength={80} disabled={!canEdit} onChange={(e) => setMarket(e.target.value)} placeholder={t("business.marketPh")} />
           </div>
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor="ob-locale">{t("business.language")}</Label>
-            <Select value={locale} onValueChange={(v) => setLocale(v as UiLocale)} disabled={!canEdit}>
-              <SelectTrigger id="ob-locale" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EN">English</SelectItem>
-                <SelectItem value="PT_BR">Português (Brasil)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
-
-        <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} badge={siteTag("brandColor", brandColor)} />
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="mb-2 flex items-center gap-2 p-0 text-[13px] font-semibold">
             {t("business.resultLegend")}
             {siteTag("result", goal)}
           </legend>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-2 tablet:grid-cols-2">
-            {RESULT_TYPES.map((rt) => (
+          <div className="flex flex-wrap gap-2">
+            {(moreTypes ? RESULT_TYPES : MAIN_RESULT_TYPES).map((rt) => (
               <button
                 key={rt}
                 type="button"
                 aria-pressed={goal === rt}
                 disabled={!canEdit}
                 onClick={() => setGoal(rt)}
-                className={cn(
-                  "flex min-h-11 min-w-0 flex-col items-start rounded-lg border px-3.5 py-2 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-45",
-                  goal === rt ? "border-fg bg-fg text-white" : "border-line-strong bg-card text-fg hover:border-fg"
-                )}
+                className={choiceCardClass(goal === rt, "min-h-11 rounded-full px-3.5 py-0 text-[13px] font-semibold text-fg disabled:opacity-45")}
               >
-                <span className="font-semibold">{t(`resultType.${rt}.label`)}</span>
-                <span className={cn("text-xs", goal === rt ? "text-white/75" : "text-fg-3")}>{t(`resultType.${rt}.hint`)}</span>
+                {t(`resultType.${rt}.label`)}
               </button>
             ))}
+            {moreTypes ? null : (
+              <button
+                type="button"
+                aria-expanded={false}
+                disabled={!canEdit}
+                onClick={() => setMoreTypes(true)}
+                className={choiceCardClass(false, "min-h-11 rounded-full border-dashed px-3.5 py-0 text-[13px] font-semibold text-fg-2 disabled:opacity-45")}
+              >
+                {t("business.moreTypes")}
+              </button>
+            )}
           </div>
           {goal === "OTHER" ? (
             <div className="grid gap-1.5">
@@ -319,96 +358,103 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
               />
             </div>
           ) : null}
-          <span className="text-xs text-fg-3">{t("business.resultHint")}</span>
+          <span className="text-xs text-fg-3">
+            {goal ? <b className="font-semibold text-fg-2">{t(`resultType.${goal}.hint`)} </b> : null}
+            {t("business.resultHint")}
+          </span>
         </fieldset>
 
-        <div className="grid gap-1.5 border-t border-line-soft pt-3.5">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="ob-code">{t("business.code")}</Label>
-            {siteTag("code", code)}
-          </div>
-          <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
-            <Input
-              id="ob-code"
-              value={code}
-              maxLength={6}
-              disabled={!canEdit}
-              aria-invalid={!codeOk}
-              aria-describedby="ob-code-hint"
-              onChange={(e) => {
-                setCodeTouched(true)
-                setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
-              }}
-              className="w-full font-mono tablet:w-32"
-            />
-            <span className="min-w-0 truncate font-mono text-xs text-fg-2">
-              {codeOk ? `${code}_NEW_${mmdd}_A_F1_9x16.mp4` : null}
-            </span>
-          </div>
-          <span id="ob-code-hint" className={cn("text-xs", codeOk ? "text-fg-3" : "text-status-failed")}>
-            {codeOk ? t("business.codeHint") : t("business.codeInvalid")}
-          </span>
-        </div>
+        <Accordion type="single" collapsible value={moreOpen ? "more" : ""} onValueChange={(v) => setMoreOpen(v === "more")}>
+          <AccordionItem value="more" className="border-t border-line-soft first:border-t">
+            <AccordionTrigger className="flex min-h-11 flex-wrap items-center gap-x-2 gap-y-0.5 pt-3 pb-1 hover:bg-transparent">
+              <Icon name="chev" className="text-fg-3 transition-transform group-data-[state=open]:rotate-90" />
+              <b className="text-[13px] font-semibold">{t("business.more")}</b>
+              <span className="text-[13px] text-fg-3">{t("business.moreSub")}</span>
+            </AccordionTrigger>
+            <AccordionContent className="flex flex-col gap-3.5 px-0 pt-2.5 pb-0">
+              <div className="grid min-w-0 gap-1.5 tablet:max-w-[calc(50%-7px)]">
+                <Label htmlFor="ob-locale">{t("business.language")}</Label>
+                <Select value={locale} onValueChange={(v) => setLocale(v as UiLocale)} disabled={!canEdit}>
+                  <SelectTrigger id="ob-locale" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EN">English</SelectItem>
+                    <SelectItem value="PT_BR">Português (Brasil)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <SoonBlock what={t.rich("business.soonCurrency", { b: (c) => <b>{c}</b> })} />
+              <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} badge={siteTag("brandColor", brandColor)} />
+
+              <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+                <legend className="mb-2 p-0 text-[13px] font-semibold">{t("business.cpaLegend")}</legend>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="ob-cpa-min"
+                    aria-label={t("business.cpaMin")}
+                    inputMode="decimal"
+                    className="w-28"
+                    value={cpaMin}
+                    disabled={!canEdit}
+                    aria-invalid={cpa === "invalid"}
+                    onChange={(e) => setCpaMin(e.target.value)}
+                    placeholder="100"
+                  />
+                  <span className="text-fg-3">{t("business.cpaTo")}</span>
+                  <Input
+                    id="ob-cpa-max"
+                    aria-label={t("business.cpaMax")}
+                    inputMode="decimal"
+                    className="w-28"
+                    value={cpaMax}
+                    disabled={!canEdit}
+                    aria-invalid={cpa === "invalid"}
+                    onChange={(e) => setCpaMax(e.target.value)}
+                    placeholder="150"
+                  />
+                  <Select value={cpaCurrency} onValueChange={setCpaCurrency} disabled={!canEdit}>
+                    <SelectTrigger className="w-24" aria-label={t("business.cpaCurrency")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CPA_CURRENCIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <span className={cn("text-xs", cpa === "invalid" ? "text-status-failed" : "text-fg-3")}>{t(cpa === "invalid" ? "business.fixCpa" : "business.cpaHint")}</span>
+              </fieldset>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </Card>
-
-      <TeamCard canEdit={canEdit} />
+      <p className="m-0 text-xs text-fg-3">
+        {t("business.inviteLater")} {t.rich("business.soonCurrency", { b: (c) => <b className="font-semibold text-fg-2">{c}</b> })}
+      </p>
     </OnboardingFrame>
   )
 }
 
-function TeamCard({ canEdit }: { canEdit: boolean }) {
-  const t = useTranslations()
-  const format = useFormatter()
-  const members = useQuery({ queryKey: ["workspace", "members"], queryFn: api.workspace.members })
-  return (
-    <Card title={t("onboarding.business.team")}>
-      <p className="m-0 -mt-2 text-[13px] text-fg-3">{t("onboarding.business.teamSub")}</p>
-      {members.data ? (
-        <ul className="m-0 flex list-none flex-col p-0">
-          {members.data.members.map((m) => (
-            <li key={m.userId} className="flex flex-wrap items-center gap-3 border-t border-line-soft py-3">
-              <span aria-hidden="true" className="inline-grid size-[34px] flex-none place-items-center rounded-full bg-ink-line font-bold text-ink-fg">
-                {m.initials.slice(0, 1)}
-              </span>
-              <span className="flex min-w-0 flex-[1_1_200px] flex-col">
-                <strong className="truncate">{m.name}</strong>
-                <span className="truncate text-[13px] text-fg-3">{m.email}</span>
-              </span>
-              <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", m.role === "CLIENT" ? "bg-status-progress-bg text-status-progress" : "bg-card-2 text-fg-2")}>
-                {t(`shell.roleLabel.${m.role}`)}
-              </span>
-            </li>
-          ))}
-          {members.data.invites.map((i) => (
-            <li key={i.id} className="flex flex-wrap items-center gap-3 border-t border-line-soft py-3">
-              <span aria-hidden="true" className="inline-grid size-[34px] flex-none place-items-center rounded-full border border-dashed border-control text-fg-3">
-                <Icon name="clock" />
-              </span>
-              <span className="flex min-w-0 flex-[1_1_200px] flex-col">
-                <strong className="truncate font-medium">{i.email}</strong>
-                <span className="text-[13px] text-fg-3">
-                  {t("settings.pendingInvite", { date: format.dateTime(new Date(i.expiresAt), { month: "short", day: "numeric" }) })}
-                </span>
-              </span>
-              <span className="rounded-full bg-card-2 px-2.5 py-1 text-xs font-semibold text-fg-2">{t(`shell.roleLabel.${i.role}`)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : members.isError ? (
-        <p className="m-0 text-[13px] text-status-failed">{t("onboarding.business.teamFailed")}</p>
-      ) : (
-        <div className="grid gap-2" aria-hidden="true">
-          <span className="sk h-11" />
-          <span className="sk h-11" />
-        </div>
-      )}
-      {canEdit ? (
-        <div className="border-t border-line-soft pt-3.5">
-          <InviteForm inline defaultRole="CLIENT" idPrefix="ob-invite" />
-        </div>
-      ) : null}
-    </Card>
-  )
+const CPA_CURRENCIES = ["USD", "BRL", "EUR", "GBP", "MXN"]
+
+/** Both empty = not given (null); both filled, > 0 and min ≤ max = the range; anything else = "invalid". "1.234,50" and "1,234.50" read as 1234.5. */
+function targetCpaOf(minText: string, maxText: string, currency: string): TargetCpa | null | "invalid" {
+  if (!minText.trim() && !maxText.trim()) return null
+  const min = money(minText), max = money(maxText)
+  if (min === null || max === null || min <= 0 || max > 1_000_000 || min > max) return "invalid"
+  return { min, max, currency }
+}
+
+function money(text: string): number | null {
+  const t = text.trim().replace(/[^\d.,]/g, "")
+  if (!t) return null
+  const lastSep = Math.max(t.lastIndexOf(","), t.lastIndexOf("."))
+  const decimals = lastSep >= 0 && t.length - lastSep - 1 <= 2 ? t.slice(lastSep + 1) : ""
+  const int = (decimals ? t.slice(0, lastSep) : t).replace(/[.,]/g, "")
+  const n = Number(`${int || "0"}.${decimals || "0"}`)
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : null
 }

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useFormatter } from "next-intl"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
-import type { CreativeMetaResponse, MetaPublication, MetaPublishBody } from "@/lib/api/types"
+import type { CreativeMetaResponse, MetaPublication, MetaPublishBody, MetaPublishWithTemplateBody } from "@/lib/api/types"
 import { isMetaOff, mk } from "./use-meta"
 
 /*
@@ -49,7 +49,7 @@ export function usePublishActions(id: string) {
     void qc.invalidateQueries({ queryKey: mk.summary("7d") })
     void qc.invalidateQueries({ queryKey: mk.summary("30d") })
   }
-  const publish = useMutation({ mutationFn: (b: MetaPublishBody) => api.meta.publish(id, b), onSuccess: done })
+  const publish = useMutation({ mutationFn: (b: MetaPublishBody | MetaPublishWithTemplateBody) => api.meta.publish(id, b), onSuccess: done })
   const retry = useMutation({ mutationFn: () => api.meta.retry(id), onSuccess: done })
   const activate = useMutation({ mutationFn: () => api.meta.activate(id), onSuccess: done })
   const pause = useMutation({ mutationFn: () => api.meta.pause(id), onSuccess: done })

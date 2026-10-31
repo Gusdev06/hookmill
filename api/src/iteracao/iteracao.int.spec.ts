@@ -135,7 +135,7 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const users: Record<Who, { id: string; email: string }> = {} as never;
     for (const k of ['A', 'B', 'C'] as const) {
       const email = `it-${RUN}-${k.toLowerCase()}@teste.local`;
-      users[k] = { id: (await prisma.user.create({ data: { email, name: `It ${k}`, passwordHash: hash } })).id, email };
+      users[k] = { id: (await prisma.user.create({ data: { access: 'INTERNAL', email, name: `It ${k}`, passwordHash: hash } })).id, email };
     }
     const wA = await prisma.workspace.create({
       data: { name: `Acme Iterate ${RUN}`, shortCode: 'AC', websiteUrl: 'https://example.com/lp', memberships: { create: [{ userId: users.A.id, role: 'OWNER' }, { userId: users.C.id, role: 'CLIENT' }] } },
@@ -220,6 +220,13 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const r = await settled(batchId);
     expect(r.data.error).toBeNull();
     expect(r.data.status).toBe('PLAN_READY');
+    // 29/10 (Tordan): config.running = o caminho de volta pro lote ainda trabalhando; PLAN_READY não está mais "trabalhando"
+    expect((await call('GET', '/iterate/config')).data.running).toEqual([]);
+    await prisma.variationBatch.update({ where: { id: batchId }, data: { status: 'ANALYZING' } });
+    const working = await call('GET', '/iterate/config');
+    expect(working.data.running).toEqual([{ id: batchId, championName: 'champ', status: 'ANALYZING', metaAdId: null, createdAt: expect.any(String) }]);
+    expect((await call('GET', '/iterate/config', undefined, 'B')).data.running).toEqual([]); // outro workspace não vê
+    await prisma.variationBatch.update({ where: { id: batchId }, data: { status: 'PLAN_READY' } });
     expect(r.data.analysis).toMatchObject({ stage: null, step: 3, progress: 100, etaSec: null });
     expect(r.data.analysis.checklist.every((c: any) => c.status === 'done')).toBe(true);
     const n = r.data.pieces.length;

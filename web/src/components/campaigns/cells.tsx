@@ -92,7 +92,7 @@ export function StatusSwitch({ n, disabledReason, onToggle, size = "sm" }: { n: 
       title={disabledReason ?? undefined}
       aria-label={on ? t("switchOff", { name: n.row.name }) : t("switchOn", { name: n.row.name })}
       className={cn(
-        "relative inline-flex flex-none cursor-pointer items-center rounded-full bg-control p-0 outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-info disabled:cursor-not-allowed disabled:opacity-45",
+        "relative inline-flex flex-none cursor-pointer items-center rounded-full bg-control p-0 outline-none transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-info disabled:cursor-not-allowed disabled:opacity-45",
         "data-[state=checked]:bg-ok-dot",
         held && "data-[state=checked]:bg-[#8fc9a9]",
         size === "sm" ? "h-5 w-9" : "h-[26px] w-11"
@@ -172,7 +172,7 @@ export function BudgetCell({ n, canEdit, onEdit, currency, card }: { n: Node; ca
       type="button"
       onClick={onEdit}
       aria-label={t("edit", { name: n.row.name, value: f.minor(b.amountMinor) })}
-      className="inline-flex min-h-[30px] items-center gap-1.5 rounded-sm border border-transparent bg-transparent px-1.5 hover:border-line-strong hover:bg-card focus-visible:outline-2 focus-visible:outline-info"
+      className="inline-flex min-h-[30px] items-center gap-1.5 rounded-sm border border-transparent bg-transparent px-1.5 hover:border-line-strong hover:bg-card focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-info"
     >
       {body}
       <Icon name="pencil" className="size-[13px] text-fg-3" />

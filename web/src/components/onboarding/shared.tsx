@@ -188,7 +188,7 @@ export function OnboardingFrame({
 /** Light card with an h2 (mockup cards: 16 px radius, 20 px padding). */
 export function Card({ title, aside, children, className, id }: { title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <div id={id} className={cn("flex min-w-0 flex-col gap-3.5 rounded-xl border border-line bg-card p-4 tablet:p-5", className)}>
+    <div id={id} className={cn("flex min-w-0 flex-col gap-3.5 rounded-lg border border-line bg-card p-4 tablet:p-5", className)}>
       {title || aside ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {title ? <h2 className="text-base font-bold">{title}</h2> : null}
@@ -214,12 +214,12 @@ export function OnboardingLoading() {
   return (
     <MinimalShell right={null}>
       <div role="status" aria-busy="true" className="flex flex-col gap-5">
-        <span className="sk h-[92px] rounded-xl" />
+        <span className="sk h-[92px] rounded-lg" />
         <span className="sk h-3 w-24" />
         <span className="sk h-8 w-3/5" />
         <span className="sk h-4 w-4/5" />
-        <span className="sk h-[180px] rounded-xl" />
-        <span className="sk h-[240px] rounded-xl" />
+        <span className="sk h-[180px] rounded-lg" />
+        <span className="sk h-[240px] rounded-lg" />
       </div>
     </MinimalShell>
   )

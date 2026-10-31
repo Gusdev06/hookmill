@@ -25,6 +25,7 @@ import type { AutoInsight, AutoVariationType, FrameTemplateId, StaticRenderStage
 import type { PieceHeadline, WaitingBatchRef } from "@/lib/api/types"
 import { db, mockArt, mockId, MOCK_VIDEO, save as saveDb } from "./db"
 import { blobUrl } from "./variar"
+import { sampleLocked } from "./amostra"
 
 // ───────────── constants ─────────────
 const KEYS = ["decode", "transcribe", "cuts", "edit_map", "blocks", "audience", "offer", "proof", "page", "planning"] as const
@@ -160,6 +161,8 @@ interface MIter {
   pieces: MPiece[]; launchedAt: number | null; jobs: MRenderJob[]
   zip: { status: "none" | "building" | "ready"; t0: number; key: string; sizeBytes: number | null }
   downloadedAt: number | null; createdBy: UserRef; createdAt: number; archived: boolean
+  /** amostra-gratis-v1 §2: free types only, ≤ 4 pieces, launches by itself (`sampleReadyAt` = first read in PLAN_READY) */
+  sample?: boolean; sampleReadyAt?: number | null
 }
 interface Store { batches: MIter[]; lastOfferId: string | null }
 
@@ -491,6 +494,29 @@ function errorOf(b: MIter, status: IterateStatus): IterateBatch["error"] {
 }
 
 export function iterView(b: MIter, now = Date.now()): IterateBatch {
+  const v = iterViewRaw(b, now)
+  if (!b.sample) return v
+  if (!sampleLocked(b)) return { ...v, sample: true }
+  // §3: locked = no files, no zip URL; only the blurred preview (here the same mock mp4, ready ~2 s after the piece)
+  return {
+    ...v, sample: true, zip: { ...v.zip, url: null },
+    pieces: v.pieces.map((p) => {
+      const done = lastDone(b, p.id, "9x16", now)
+      const preview = p.status === "ready" && done && now - done.endAt > 2000 ? { id: `f_${p.id}_preview`, url: sourceVideo(b), mimeType: "video/mp4", width: 480, height: 854, durationSec: p.files[0]?.durationSec ?? undefined } : null
+      return { ...p, locked: true, files: [], preview }
+    }),
+  }
+}
+
+/** Free sample (§2): drops STATIC and keeps at most 4 pieces, one of each type first. */
+export function samplePieces(pieces: MPiece[]) {
+  const free = pieces.filter((p) => !isStatic(p))
+  const seen = new Set<string>()
+  const first = free.filter((p) => (seen.has(p.type) ? false : (seen.add(p.type), true)))
+  return [...first, ...free.filter((p) => !first.includes(p))].slice(0, 4)
+}
+
+function iterViewRaw(b: MIter, now: number): IterateBatch {
   const status = statusOf(b, now)
   const of = offerOf(b)
   const launched = status === "LAUNCHED"
@@ -647,7 +673,7 @@ export function replanIter(b: MIter) {
   b.pieces = buildPieces(b)
   saveIter()
 }
-export function newIter(p: { offerId: string; uploadId: string | null; sourceCreativeId: string | null; name: string; durationSec: number; width: number; height: number; filename: string }) {
+export function newIter(p: { offerId: string; uploadId: string | null; sourceCreativeId: string | null; name: string; durationSec: number; width: number; height: number; filename: string; sample?: boolean }) {
   const now = Date.now()
   const notes = notesOf(p.offerId)
   const fname = p.filename.toLowerCase()
@@ -671,6 +697,10 @@ export function newIter(p: { offerId: string; uploadId: string | null; sourceCre
   }
   if (b.brainEmpty) b.pageCaptured = false
   b.pieces = buildPieces(b)
+  if (p.sample) {
+    b.sample = true
+    b.pieces = samplePieces(b.pieces)
+  }
   it.batches.unshift(b)
   it.lastOfferId = p.offerId
   saveIter()

@@ -151,7 +151,7 @@ describe(isLocal ? 'Render no Lambda: despachante, poller, webhook, settle (inte
     configureApp(app);
     await app.listen(PORT, '127.0.0.1');
 
-    const user = await prisma.user.create({ data: { email: `lambda-${RUN}@teste.local`, name: 'Lambda', passwordHash: await hashPassword(PASSWORD) } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email: `lambda-${RUN}@teste.local`, name: 'Lambda', passwordHash: await hashPassword(PASSWORD) } });
     const w = await prisma.workspace.create({ data: { name: `lambda-${RUN}`, shortCode: 'LB', memberships: { create: { userId: user.id, role: 'OWNER' } } } });
     ws = { id: w.id, userId: user.id };
     const offer = await prisma.offer.create({ data: { workspaceId: ws.id, name: 'Oferta lambda', language: 'en', what: 'App', promise: 'Save time', cta: 'Download', createdById: ws.userId } });

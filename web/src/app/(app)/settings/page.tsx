@@ -20,6 +20,7 @@ import { InviteDialog } from "@/components/team"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { isMetaOff, metaReady, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
 import { AccountModeCard } from "@/components/settings/account-mode-card"
+import { UnlockAccountCard } from "@/components/settings/unlock-account-card"
 import { BrandColorField } from "@/components/brand-color-field"
 import { percentOf } from "@/components/onboarding/shared"
 import { startReplay } from "@/components/tour/tour-state"
@@ -157,6 +158,9 @@ export default function SettingsPage() {
         )}
 
         <AccountModeCard />
+
+        {/* amostra-gratis-v1 §5: renders only for an INTERNAL OWNER */}
+        <UnlockAccountCard />
 
         <Panel>
           <PanelHead>

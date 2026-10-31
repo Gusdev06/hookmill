@@ -10,7 +10,7 @@ const TORDAN: UserRef = { id: "u_tordan", name: "Tordan", initials: "T" }
 // fase2-agencia.md §2: client = workspace. LIVE (onboarding done), like every workspace after the backfill.
 export const WORKSPACE: Workspace = {
   id: "ws_1", name: "Workspace", uiLocale: "EN", monthlySpendCapUsd: 300,
-  shortCode: "WS", industry: null, market: null, resultType: null, resultTypeOther: null, businessType: null, defaultResult: null, websiteUrl: null,
+  shortCode: "WS", industry: null, market: null, resultType: null, resultTypeOther: null, businessType: null, defaultResult: null, targetCpa: null, websiteUrl: null,
   status: "LIVE",
   onboarding: { step: 6, totalSteps: 6, completedAt: "2026-10-05T12:00:00.000Z", percent: 100, steps: [], updatedBy: null, updatedAt: null },
 }

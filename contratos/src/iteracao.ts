@@ -134,6 +134,17 @@ export interface IterateConfig {
   recentWinners: LibraryItem[];
   /** rev. 23/10 (TRANSIÇÃO): preço de 1 imagem do STATIC (GPT Image 2 high 1k), pra "~US$ X" no botão do formato e no retry */
   staticImageUsd?: number;
+  /** 29/10 (feedback Tordan): lotes AUTO ainda trabalhando (análise, plano ou peças em render), até 3, mais novo primeiro. Sair da tela não cancela nada; isto é o caminho de volta. */
+  running?: IterateRunningRef[];
+}
+/** 29/10: lote AUTO em andamento, pra voltar a ele a partir de /iterate/new (e não pagar a análise de novo). */
+export interface IterateRunningRef {
+  id: string;
+  championName: string;
+  status: 'ANALYZING' | 'PLANNING' | 'LAUNCHED';
+  /** anúncio do Meta de origem (Pick from Meta), pra trocar "Iterate it" por "Open" no mesmo anúncio */
+  metaAdId: string | null;
+  createdAt: string;
 }
 
 // ───────────────────────── insight (porquê + blocos) ─────────────────────────
@@ -161,7 +172,12 @@ export interface AutoInsight {
   captionsAuto?: boolean;
   /** legenda-protegida-v1 §2.3 (26/10): templates/tipos que o plano não ofereceu porque tampariam a legenda queimada.
    *  O web mostra "Este formato precisa do vídeo sem legenda" + "Enviar versão sem legenda". Ausente = nenhum. */
-  captionBlocked?: { type: AutoVariationType; template: FrameTemplateId | null; reason: 'burned_captions' }[];
+  captionBlocked?: {
+    type: AutoVariationType; template: FrameTemplateId | null; reason: 'burned_captions';
+    /** 29/10 (legenda-protegida-v1 §8): true = a pessoa escolheu "Gerar mesmo assim" e a peça está no plano (incluída),
+     *  marcada `captionOverride`. Ausente/false = fora do plano (padrão). */
+    forced?: boolean;
+  }[];
   /** 26/10: resultado do `cleanUploadId` do `POST /iterate` (conferido antes do plano). `applied` = o plano já usou a versão
    *  sem legenda; `mismatch` = não é o mesmo vídeo (`reason` igual ao 422 CLEAN_VERSION_MISMATCH). Ausente = não mandou. */
   cleanVersion?: { status: 'applied' | 'mismatch'; reason: 'duration' | 'resolution' | 'fps' | 'content' | null };
@@ -203,6 +219,10 @@ export interface PieceFile {
   format: FormatCode; name: string; url: string; mimeType: 'video/mp4' | 'image/png'; sizeBytes: number; durationSec: number | null;
 }
 export interface IteratePiece {
+  /** amostra-gratis-v1 §1/§3: peça da amostra sem plano. true = `file`/`formats[].file` vêm null e só existe `preview` */
+  locked?: boolean;
+  /** amostra-gratis-v1 §3: 480p, 0-3 s nítido e o resto borrado (feito no servidor). null fora da amostra travada ou ainda gerando */
+  preview?: FileRef | null;
   wantKey?: IterateWant | null;
   selection?: VariationSelection | null;
   askedByUser?: boolean;
@@ -214,6 +234,9 @@ export interface IteratePiece {
   headline?: PieceHeadline | null;
   /** legenda-protegida-v1 §2.2 (26/10): 'replaced' = a legenda queimada foi recortada e refeita no estilo do original */
   captionNote?: 'replaced' | null;
+  /** 29/10 (legenda-protegida-v1 §8): peça posta de volta com "Gerar mesmo assim": o layout normal pode cobrir a legenda
+   *  queimada e a checagem `CAPTION_COVERED` não roda nela. O web mostra o selo "Cobre a legenda". */
+  captionOverride?: boolean;
   /** "a única coisa que muda" (idioma da interface) */
   change: string;
   status: PieceStatus;
@@ -278,6 +301,8 @@ export interface IterateZip {
   folders: { stretch: string; newAudience: string };
 }
 export interface IterateBatch {
+  /** amostra-gratis-v1 §2: lote da amostra grátis (só tipos grátis, ≤ 4 peças, lança sozinho) */
+  sample?: boolean;
   /** True for batches created with the goals flow; older batches keep their existing plan. */
   quizEnabled?: boolean;
   answers?: IterateAnswers | null;
@@ -337,6 +362,9 @@ export interface StartIterateBody { expectedPieces: number; expectedCostUsd?: nu
  *  25/10 (§A10): também vale pra STATIC `ready` com `textCheck.status = 'mismatch'` (corpo {}; cobra staticImageUsd; teto). */
 export interface RetryPieceBody { useProductPhoto?: boolean }
 export interface UpdatePieceBody { inZip: boolean }
+/** 29/10 (legenda-protegida-v1 §8): `POST /iterate/:id/caption-blocked/force` ("Gerar mesmo assim") e `DELETE` (desfazer),
+ *  mesmo corpo. Só PLAN_READY. `template` = o da moldura (FRAME) ou null (tipo inteiro), igual ao item de `captionBlocked`. */
+export interface ForceCaptionBlockedBody { type: AutoVariationType; template: FrameTemplateId | null }
 /** 25/10 (§B3.1): `POST /iterate/pieces/:pieceId/broll` troca o clipe da 2ª fonte (só FRAME de 2 fontes com stock_broll).
  *  Corpo vazio = próximo candidato da busca; `candidateId` = o escolhido em `GET /iterate/pieces/:pieceId/broll/candidates`;
  *  `url` = clipe colado. Re-render grátis (202). URL de fonte fora da v1 = 422 BROLL_SOURCE_NOT_SUPPORTED. */

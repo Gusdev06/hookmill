@@ -9,11 +9,11 @@ import { api } from "@/lib/api/client"
 import type { AccountMode } from "@/lib/api/types"
 import { Alert, AlertBody, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { choiceCardClass } from "@/components/ui/choice-card"
 import { Icon } from "@/components/icon"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { MinimalShell } from "@/components/shell/minimal-shell"
+import { LanguageToggle } from "@/components/shell/language-toggle"
 import { ActionBar } from "@/components/onboarding/action-bar"
 import { onboardingHref } from "@/components/onboarding/shared"
 import { useSession } from "@/components/providers/session-provider"
@@ -25,8 +25,8 @@ import { cn } from "@/lib/utils"
 /*
  * /start · "How will you use HookMill?" (onboarding-v2 §3.1, D8; spec decision 1). Shown once, right after the signup,
  * when `user.accountMode == null` and the person is OWNER of the active workspace (the gate in the shell sends here).
- * Continue = PATCH /auth/me { accountMode }; AGENCY may also name the first client (PATCH /workspace { name }, never
- * POST /workspaces: the workspace of the signup already is the first client). Then the setup, step 1.
+ * Continue = PATCH /auth/me { accountMode }. Then the setup, step 1, where the business / first client gets its name
+ * (review 29/10 L3: the name is asked once, in step 1, pre-filled by the site reading).
  */
 const MODES: { id: AccountMode; icon: "bld" | "user"; items: 3 }[] = [
   { id: "AGENCY", icon: "bld", items: 3 },
@@ -35,27 +35,21 @@ const MODES: { id: AccountMode; icon: "bld" | "user"; items: 3 }[] = [
 
 export default function StartPage() {
   const t = useTranslations("welcome")
+  const tc = useTranslations("common")
   const errorMessage = useErrorMessage()
   const router = useRouter()
   const qc = useQueryClient()
-  const { session } = useSession()
+  const { session, logout } = useSession()
   const me = useMe()
   const [pick, setPick] = useState<AccountMode | null>(null)
-  const [client, setClient] = useState("")
   const workspace = me.data?.workspace ?? session.workspace
 
   const save = useMutation({
-    mutationFn: async (mode: AccountMode) => {
-      const user = await api.auth.updateMe({ accountMode: mode })
-      const name = client.trim()
-      if (mode === "AGENCY" && name && name !== workspace.name) await api.workspace.update({ name })
-      return user
-    },
+    mutationFn: (mode: AccountMode) => api.auth.updateMe({ accountMode: mode }),
     onSuccess: async (user) => {
       const s = getSession()
       if (s) setSession({ ...s, user: { ...s.user, accountMode: user.accountMode ?? pick } })
       await qc.invalidateQueries({ queryKey: ME_KEY })
-      await qc.invalidateQueries({ queryKey: ["workspace"] })
       router.replace(onboardingHref(workspace.onboarding?.step ?? 1))
     },
   })
@@ -63,7 +57,17 @@ export default function StartPage() {
   const hint = pick === "AGENCY" ? t("hintAgency") : pick === "OWN" ? t("hintOwn") : t("pick")
 
   return (
-    <MinimalShell>
+    // L5: whoever came in with the wrong account has a way out (same logout as the setup's "Save and exit")
+    <MinimalShell
+      right={
+        <>
+          <LanguageToggle persist />
+          <Button variant="ghost" size="sm" onClick={() => void logout()}>
+            {tc("logout")}
+          </Button>
+        </>
+      }
+    >
       <div className="flex flex-col gap-2">
         <span className="eyebrow">{t("eyebrow", { name: session.user.name.split(" ")[0] })}</span>
         <h1 className="text-pretty">{t("title")}</h1>
@@ -85,10 +89,7 @@ export default function StartPage() {
             <RadioGroupPrimitive.Item
               key={m.id}
               value={m.id}
-              className={cn(
-                "relative flex min-h-11 flex-col gap-3 rounded-xl border-[1.5px] bg-card p-[22px] text-left outline-none hover:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring tablet:min-h-[230px]",
-                on ? "border-fg shadow-[0_0_0_1px_var(--fg)]" : "border-line"
-              )}
+              className={choiceCardClass(on, "relative flex min-h-11 flex-col gap-3 p-[22px] tablet:min-h-[230px]")}
             >
               <span aria-hidden="true" className={cn("absolute top-4 right-4 inline-grid size-5 place-items-center rounded-full border-[1.5px]", on ? "border-fg" : "border-control")}>
                 {on ? <span className="size-2.5 rounded-full bg-fg" /> : null}
@@ -107,15 +108,6 @@ export default function StartPage() {
           )
         })}
       </RadioGroupPrimitive.Root>
-      {pick === "AGENCY" ? (
-        <div className="grid gap-1.5 rounded-xl border border-line bg-card p-4 tablet:p-5">
-          <Label htmlFor="start-client">
-            {t("firstClient")} <span className="font-normal text-fg-3">{t("optional")}</span>
-          </Label>
-          <Input id="start-client" maxLength={80} value={client} onChange={(e) => setClient(e.target.value)} placeholder={workspace.name} />
-          <span className="text-xs text-fg-3">{t("firstClientHint")}</span>
-        </div>
-      ) : null}
       <ActionBar
         hint={hint}
         primary={

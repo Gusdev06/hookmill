@@ -1,6 +1,6 @@
 // Fase 2 (fase2-agencia.md §1-§2): cliente = workspace. Funções puras: status derivado, resultado padrão, código curto
 // e a forma `Workspace` do contrato. Nenhuma outra parte do backend decide status do cliente por conta própria.
-import type { ClientStatus, Onboarding, OnboardingStep, Workspace as WorkspaceView } from '@maquina/contratos';
+import type { ClientStatus, Onboarding, OnboardingStep, TargetCpa, Workspace as WorkspaceView } from '@maquina/contratos';
 import type { Workspace } from '@prisma/client';
 import { num } from '../common/util/format';
 import { defaultResultOf, legacyBusinessTypeOf } from './resultado';
@@ -70,9 +70,22 @@ export function presentWorkspace(ws: Workspace): WorkspaceBase {
     resultTypeOther: ws.resultType === 'OTHER' ? ws.resultTypeOther : null,
     businessType: legacyBusinessTypeOf(ws.resultType), // @deprecated
     defaultResult: defaultResultOf(ws.resultType),
+    targetCpa: targetCpaOf(ws),
     websiteUrl: ws.websiteUrl,
     brandColor: ws.brandColor ?? null, // 25/10 D3
     status: clientStatusOf(ws),
     onboarding: onboardingOf(ws),
   };
+}
+
+/** 29/10: a faixa só existe com min, max e moeda gravados. */
+export function targetCpaOf(ws: Pick<Workspace, 'targetCpaMin' | 'targetCpaMax' | 'targetCpaCurrency'>): TargetCpa | null {
+  const min = num(ws.targetCpaMin), max = num(ws.targetCpaMax);
+  return min != null && max != null && ws.targetCpaCurrency ? { min, max, currency: ws.targetCpaCurrency } : null;
+}
+
+/** 29/10: "100–150 USD" (Brain e prompts); faixa de um valor só = "100 USD". */
+export function targetCpaText(t: TargetCpa | null): string | null {
+  if (!t) return null;
+  return `${t.min === t.max ? t.min : `${t.min}–${t.max}`} ${t.currency}`;
 }

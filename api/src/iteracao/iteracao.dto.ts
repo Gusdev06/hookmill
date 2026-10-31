@@ -1,4 +1,4 @@
-import type { CreateIterateBody, StartIterateBody } from '@maquina/contratos';
+import type { AutoVariationType, CreateIterateBody, ForceCaptionBlockedBody, FrameTemplateId, StartIterateBody } from '@maquina/contratos';
 import { IsBoolean, IsObject, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 /** Exatamente um de uploadId/creativeId/metaAdId (conferido no service: 400 exactlyOneOf). metaAdId = Pick from Meta (meta-v1 D13). */
@@ -29,4 +29,10 @@ export class UpdateAnswersDto {
 }
 export class SelectItemDto {
   @IsBoolean() included: boolean;
+}
+
+/** 29/10 (legenda-protegida-v1 §8): "Gerar mesmo assim" / desfazer. O par (type, template) tem que estar em `insight.captionBlocked`. */
+export class ForceCaptionBlockedDto implements ForceCaptionBlockedBody {
+  @IsString() @MinLength(1) @MaxLength(32) type: AutoVariationType;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(32) template: FrameTemplateId | null;
 }

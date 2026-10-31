@@ -88,7 +88,7 @@ describe(isLocal ? 'B5 take contínuo + manter a edição (integração local)' 
     await app.listen(PORT, '127.0.0.1');
     voiceId = app.get<CatalogService>(CATALOG_SERVICE).voices('en')[0].id;
     const email = `${RUN}@teste.local`;
-    const user = await prisma.user.create({ data: { email, name: 'B5', passwordHash: await hashPassword(PASSWORD) } });
+    const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: 'B5', passwordHash: await hashPassword(PASSWORD) } });
     userId = user.id;
     const w = await prisma.workspace.create({ data: { name: RUN, shortCode: 'TS', monthlySpendCapUsd: 500, memberships: { create: { userId: user.id, role: 'OWNER' } } } });
     wsId = w.id;

@@ -57,7 +57,7 @@ describe(isLocal ? 'API (integração local)' : 'API (integração local) [pulad
     const hash = await hashPassword(PASSWORD);
     for (const k of ['A', 'B'] as const) {
       const email = `int-${RUN}-${k.toLowerCase()}@teste.local`;
-      const user = await prisma.user.create({ data: { email, name: `Int ${k}`, passwordHash: hash } });
+      const user = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `Int ${k}`, passwordHash: hash } });
       const w = await prisma.workspace.create({
         data: { name: `int-${RUN}-${k}`, shortCode: 'TS', memberships: { create: { userId: user.id, role: 'OWNER' } } },
       });
@@ -129,7 +129,7 @@ describe(isLocal ? 'API (integração local)' : 'API (integração local) [pulad
 
   it('membro removido perde acesso na hora, mesmo com access token válido', async () => {
     const email = `int-${RUN}-c@teste.local`;
-    const u = await prisma.user.create({ data: { email, name: 'C', passwordHash: await hashPassword(PASSWORD) } });
+    const u = await prisma.user.create({ data: { access: 'INTERNAL', email, name: 'C', passwordHash: await hashPassword(PASSWORD) } });
     await prisma.membership.create({ data: { workspaceId: ws.A.id, userId: u.id, role: 'MEMBER' } });
     const tok = (await (await call('POST', '/auth/login', undefined, { email, password: PASSWORD })).json()).data.accessToken;
     expect((await call('GET', '/workspace', tok)).status).toBe(200);

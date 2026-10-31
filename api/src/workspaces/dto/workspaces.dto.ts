@@ -1,9 +1,10 @@
 import type {
-  BusinessType, CreateClientBody, ResultType, CreateInviteBody, OnboardingStep, Role, UpdateMemberBody, UpdateWorkspaceBody,
+  BusinessType, CreateClientBody, ResultType, CreateInviteBody, TargetCpa, OnboardingStep, Role, UpdateMemberBody, UpdateWorkspaceBody,
 } from '@maquina/contratos';
 import {
-  IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength, ValidateIf,
+  IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { SHORT_CODE_RE } from '../cliente';
 import { RESULT_OTHER_MAX, RESULT_TYPES } from '../resultado';
 
@@ -12,6 +13,12 @@ const URL_OPTS = { protocols: ['http', 'https'], require_protocol: true };
 export const BRAND_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 /** Campo que não aceita null: só valida quando veio (undefined = não mexe). */
 const Present = () => ValidateIf((_, v) => v !== undefined);
+
+export class TargetCpaDto implements TargetCpa {
+  @IsNumber({ maxDecimalPlaces: 2 }) @Min(0.01) @Max(1_000_000) min: number;
+  @IsNumber({ maxDecimalPlaces: 2 }) @Min(0.01) @Max(1_000_000) max: number;
+  @IsString() @Matches(/^[A-Z]{3}$/) currency: string;
+}
 
 export class UpdateWorkspaceDto implements UpdateWorkspaceBody {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(120) name?: string;
@@ -30,6 +37,8 @@ export class UpdateWorkspaceDto implements UpdateWorkspaceBody {
   /** @deprecated: sem resultType no corpo, migra pelo RESULT_FROM_LEGACY */
   @IsOptional() @IsIn(BUSINESS_TYPES) businessType?: BusinessType | null;
   @IsOptional() @IsUrl(URL_OPTS) @MaxLength(2048) websiteUrl?: string | null;
+  /** 29/10: faixa de CPA alvo; null limpa; min ≤ max conferido no service */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @ValidateNested() @Type(() => TargetCpaDto) targetCpa?: TargetCpaDto | null;
   /** 25/10 (estatico-montado-e-molduras-v1 D3): `#RGB`/`#RRGGBB` (o service normaliza pra 6 dígitos maiúsculos); null limpa */
   @IsOptional() @IsString() @Matches(BRAND_COLOR_RE, { message: 'brandColor must be #RGB or #RRGGBB' }) brandColor?: string | null;
   @Present() @IsInt() @Min(1) @Max(6) onboardingStep?: OnboardingStep;

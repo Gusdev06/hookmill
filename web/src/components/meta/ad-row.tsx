@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 /*
  * AdRow (spec §4, mockup .ad): thumbnail · name + "Video · running N days" · Spend / CPA / ROAS · trend chip · action.
- * The winner (verdict WINNER) sits on lime-soft with the lime action. ≤760 px: thumb + name, the 3 numbers in a row
+ * The winner (verdict WINNER) sits on lime-soft with the lime action. QA layout 29/10 #3: below 1100 px (768 with the sidebar has no room for 5 columns): thumb + name, the 3 numbers in a row
  * below, the action full width. `trend` null = "—" (not enough data, meta-v1 §5.2).
  */
 export function TrendTag({ trend, className }: { trend: MetaAdTrend | null; className?: string }) {
@@ -49,7 +49,7 @@ export function AdRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 rounded-md border bg-card px-3 py-2.5 tablet:grid-cols-[40px_minmax(0,1fr)_repeat(3,76px)_auto]",
+        "grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 rounded-md border bg-card px-3 py-2.5 min-[1100px]:grid-cols-[40px_minmax(0,1fr)_repeat(3,76px)_auto]",
         win ? "border-brand-edge bg-brand-soft" : "border-line",
         selected && "shadow-[0_0_0_1.5px_var(--fg)]",
         className
@@ -60,15 +60,15 @@ export function AdRow({
         <b className="truncate">{ad.name}</b>
         <small className="text-xs text-fg-3">{ad.daysRunning === null ? t("video") : t("videoRunning", { days: ad.daysRunning })}</small>
       </span>
-      <span className="col-span-2 flex flex-wrap gap-3.5 tablet:contents">
+      <span className="col-span-2 flex flex-wrap gap-3.5 min-[1100px]:contents">
         {cells.map(([k, v]) => (
-          <span key={k} className="flex min-w-0 items-baseline gap-1.5 tablet:flex-col tablet:gap-0">
+          <span key={k} className="flex min-w-0 items-baseline gap-1.5 min-[1100px]:flex-col min-[1100px]:gap-0">
             <small className="text-[11px] text-fg-3">{k}</small>
             <span className="font-mono font-semibold tabular-nums">{v}</span>
           </span>
         ))}
       </span>
-      <span className="col-span-2 flex items-center justify-end gap-2 tablet:col-span-1 [&>a]:flex-1 [&>button]:flex-1 tablet:[&>a]:flex-none tablet:[&>button]:flex-none">
+      <span className="col-span-2 flex items-center justify-end gap-2 min-[1100px]:col-span-1 [&>a]:flex-1 [&>button]:flex-1 min-[1100px]:[&>a]:flex-none min-[1100px]:[&>button]:flex-none">
         <TrendTag trend={ad.trend} />
         {action}
       </span>

@@ -15,6 +15,7 @@ import { CATALOG_SERVICE, type CatalogService } from '../integracoes';
 import { PrismaService } from '../prisma/prisma.service';
 import { autoFailReason } from './plano-auto.service';
 import { ZipService } from './zip.service';
+import { isSampleSettings } from '../amostra/acesso';
 
 export const ITERATE_INCLUDE = {
   offer: true,
@@ -78,6 +79,20 @@ export function phaseOf(status: IterateStatus, generatePending: number): Iterate
   return generatePending > 0 ? 'generate' : 'download';
 }
 
+/**
+ * legenda-protegida-v1 §8 (29/10): `captionBlocked[].forced` = há peça incluída no plano, com `captionOverride`, desse
+ * tipo/moldura ("Gerar mesmo assim"). Sem `captionBlocked` = como veio.
+ */
+export function withForced(insight: AutoInsight, pieces: Pick<IteratePiece, 'type' | 'captionOverride' | 'frame'>[]): AutoInsight {
+  if (!insight.captionBlocked?.length) return insight;
+  return {
+    ...insight,
+    captionBlocked: insight.captionBlocked.map((e) => ({
+      ...e, forced: pieces.some((p) => p.captionOverride === true && p.type === e.type && (p.type !== 'FRAME' || (p.frame?.template ?? null) === e.template)),
+    })),
+  };
+}
+
 @Injectable()
 export class IteracaoViews {
   constructor(
@@ -133,8 +148,9 @@ export class IteracaoViews {
         thumbnail: await this.ref(b.champion.thumbnailFile), video: await this.ref(video),
       },
       analysis: await this.analysis(b, champJob, planJob),
-      insight: b.insight ? { ...(b.insight as unknown as AutoInsight), flags: { ...(b.insight as unknown as AutoInsight).flags, smallBatch: pieces.length < 8 } } : null,
+      insight: b.insight ? withForced({ ...(b.insight as unknown as AutoInsight), flags: { ...(b.insight as unknown as AutoInsight).flags, smallBatch: pieces.length < 8 } }, pieces) : null,
       error: this.error(b, cost.analysisUsd),
+      sample: isSampleSettings(b.settings), // amostra-gratis-v1 §2
       quizEnabled: !!(b.settings as Record<string, unknown> | null)?.quizEnabled,
       answers, selectionInfo: selectionInfo(answers ?? DEFAULT_ANSWERS), notSelected, leftOut,
       pieces,
@@ -239,15 +255,18 @@ export class IteracaoViews {
    * §4.2: campeão com legenda queimada (sem a versão sem legenda) soma a checagem por visão de cada peça de vídeo.
    */
   async generateEstimateUsd(batchId: string): Promise<number> {
-    const [n, videos, templates, b] = await Promise.all([
+    const [n, allVideos, forced, templates, b] = await Promise.all([
       this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: 'STATIC' } }),
       this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { notIn: ['STATIC', 'CHAT_DM', 'PERSON_MOTION'] } } }),
+      // §8 (29/10): peça forçada ("Gerar mesmo assim") não passa pela checagem por visão
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { notIn: ['STATIC', 'CHAT_DM', 'PERSON_MOTION'] }, payload: { path: ['captionOverride'], equals: true } } }),
       this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { in: ['CHAT_DM', 'PERSON_MOTION'] } } }),
       this.prisma.variationBatch.findUnique({
         where: { id: batchId },
         select: { champion: { select: { cleanVideoFileId: true, videoFile: { select: { width: true, height: true } }, teardown: { select: { editMap: true } } } } },
       }),
     ]);
+    const videos = allVideos - forced;
     const ch = b?.champion;
     const m = editMapOf(ch?.teardown?.editMap);
     const burned = !!ch && !ch.cleanVideoFileId && faixasDoCampeao(m, { width: ch.videoFile?.width ?? m?.width ?? 0, height: ch.videoFile?.height ?? m?.height ?? 0 }).length > 0;

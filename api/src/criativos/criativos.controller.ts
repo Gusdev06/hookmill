@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { SampleCreativeGuard } from '../amostra/amostra.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext } from '../common/auth/auth-context';
 import { Paginated } from '../common/http/envelope.interceptor';
@@ -23,6 +24,7 @@ export class CriativosController {
     return this.criativos.create(auth, dto);
   }
 
+  @UseGuards(SampleCreativeGuard) // amostra-gratis-v1 §3: o detalhe traz a URL do render
   @Get(':id')
   get(@Auth() auth: AuthContext, @Param('id') id: string) {
     return this.criativos.get(auth, id);

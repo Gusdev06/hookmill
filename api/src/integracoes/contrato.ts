@@ -143,7 +143,8 @@ export interface AutoPlanInput {
   screenLanguage: string;
   /** Brain v0 (fase2-agencia §5). `notes` também carrega os gatilhos do mock (§10). */
   offer: OfferBriefDraft;
-  workspace: { name: string; industry: string|null; market: string|null };
+  /** 29/10: `targetCpa` = "100–150 USD" (faixa que o cliente quer pagar por resultado); null = não informado */
+  workspace: { name: string; industry: string|null; market: string|null; targetCpa?: string|null };
   /** texto visível da LP (≤ 4 mil caracteres), se capturada */
   page: { captured: boolean; text: string|null };
   teardown: TeardownSections; transcript: TranscriptWord[];
@@ -753,6 +754,43 @@ export interface MetaPublishInput {
   };
   /** thumbnail JPEG/PNG do render (assinado ≥ 6 h) = `image_url` do video_data. `null` = sem JPEG: o creative vai sem `image_url` e a Meta gera o thumb do vídeo (nunca passe a URL do .mp4 aqui) */
   thumbnailUrl: string | null;
+  /** meta-templates-v1 (29/10): publicação com template. Ausente = comportamento de antes (nomes = adName, orçamento no
+   *  conjunto, LOWEST_COST, público amplo, posicionamentos automáticos). */
+  structure?: MetaPublishStructure | null;
+}
+/** meta-templates-v1: o que o template muda na campanha/conjunto/criativo. CBO = `daily_budget` + `bid_strategy` na
+ *  campanha (conjunto sem orçamento); ABO = os dois no conjunto. `bid_amount` sempre no conjunto. */
+export interface MetaPublishStructure {
+  campaignName: string; adsetName: string;
+  budgetMode: 'CBO' | 'ABO';
+  bidStrategy: 'LOWEST_COST' | 'COST_CAP' | 'BID_CAP';
+  bidAmountMinor: number | null;
+  genders: 'ALL' | 'MALE' | 'FEMALE';
+  advantageAudience: boolean;
+  /** AUTO = sem publisher_platforms; posições no formato `<plataforma>_<posição>` (ex. `instagram_story`, `facebook_feed`) */
+  placements: 'AUTO' | { platforms: string[]; positions: string[] };
+  /** `url_tags` do creative (query sem "?") */
+  urlTags: string | null;
+}
+/** meta-templates-v1 §3: leitura de campanha/conjunto/anúncio pra virar template (o mapeamento é do backend). */
+export interface MetaTemplateSourceRead {
+  campaign: {
+    id: string; name: string; objective: string; bidStrategy: string | null;
+    dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null; specialAdCategories: string[];
+    startTime: string | null; stopTime: string | null;
+  };
+  adset: {
+    id: string; name: string; bidStrategy: string | null; bidAmountMinor: number | null;
+    dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null; optimizationGoal: string | null;
+    promotedObject: { pixelId: string | null; customEventType: string | null; applicationId: string | null } | null;
+    /** targeting cru da Graph (geo_locations, age_min/max, genders, custom_audiences, excluded_*, flexible_spec, publisher_platforms…) */
+    targeting: Record<string, unknown> | null;
+    startTime: string | null; endTime: string | null;
+  } | null;
+  ad: {
+    id: string; name: string;
+    creative: { message: string | null; title: string | null; description: string | null; callToAction: string | null; link: string | null; urlTags: string | null } | null;
+  } | null;
 }
 /** Ids já criados (retomada idempotente: etapa com id gravado não roda de novo). */
 export interface MetaPublishIds { videoId: string | null; creativeId: string | null; campaignId: string | null; adsetId: string | null; adId: string | null }
@@ -836,6 +874,13 @@ export interface MetaService {
   objectUrl(adAccountId: string, level: MetaObjectLevelPort, id: string): string;
   /** Último uso de cota da Meta visto pelo cliente Graph (null antes da 1ª chamada / mock). O backend bloqueia escrita com pct ≥ META_WRITE_USAGE_CEILING (90). */
   usage(): MetaUsage | null;
+
+  // ---------- meta-templates-v1 §3 (29/10) ----------
+  /** Lê o objeto e os parentes/filhos pra importar como template. `campaign`: a campanha, o 1º conjunto ativo (senão o 1º)
+   *  e o 1º anúncio dele; `adset`: o conjunto, a campanha-mãe e o 1º anúncio; `ad`: os três. `hint` (do snapshot) pula a
+   *  listagem dos filhos. Objeto inexistente = META_OBJECT_GONE. Mock: estrutura fixa do §6 (com público personalizado e
+   *  agendamento em `mock_adset_cbo_1`, pra exercitar o `unsupported`). */
+  readTemplateSource(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string; hint?: { adsetId?: string | null; adId?: string | null } }): Promise<MetaTemplateSourceRead>;
 }
 
 // ---------- iterate-v2-quiz-templates-ia F1.2 (28/10): templates grátis CHAT_DM e PERSON_MOTION ----------

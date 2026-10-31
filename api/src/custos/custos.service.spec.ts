@@ -4,7 +4,8 @@ import { CustosService, monthRange } from './custos.service';
 
 function svc(spent: number, cap: number | null, openUsd: number | null = null) {
   const prisma = {
-    costEntry: { aggregate: jest.fn().mockResolvedValue({ _sum: { amountUsd: new Prisma.Decimal(spent) } }) },
+    // 29/10: 2ª agregação = custo da amostra (OR), subtraído do total; aqui sem amostra
+    costEntry: { aggregate: jest.fn().mockImplementation(async (a: { where: { OR?: unknown } }) => ({ _sum: { amountUsd: a.where.OR ? null : new Prisma.Decimal(spent) } })) },
     providerTask: { aggregate: jest.fn().mockResolvedValue({ _sum: { estimatedUsd: openUsd == null ? null : new Prisma.Decimal(openUsd) } }) },
     workspace: { findUnique: jest.fn().mockResolvedValue({ monthlySpendCapUsd: cap == null ? null : new Prisma.Decimal(cap) }) },
   } as any;

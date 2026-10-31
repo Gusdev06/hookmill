@@ -22,7 +22,8 @@ import {
 import { CaptionBlocked, CleanVersionStatus } from "./captions"
 import { usePriceLabel } from "./piece-actions"
 import { useSession } from "@/components/providers/session-provider"
-import { ClientPreferences, GoalsFlow, GoalsScreen, LeftOut, SelectPieceButton } from "./goals"
+import { ClientPreferences, GoalsScreen, LeftOut, SelectPieceButton } from "./goals"
+import { SAMPLE_MAX_PIECES, SampleEyebrow, useSampleLocked } from "./sample"
 
 const STAGES: AnalysisStage[] = ["reading", "brain", "planning"]
 const STAGE_KEYS: Record<AnalysisStage, string[]> = {
@@ -91,17 +92,18 @@ function BlockStrip({ insight, mode }: { insight: AutoInsight | null; mode: "ana
   const blocks = insight?.blocks ?? []
   const cell = "min-w-0 overflow-hidden rounded-[6px] border px-1 py-1 text-[10px] font-semibold text-ellipsis whitespace-nowrap tablet:px-1.5 tablet:py-[5px] tablet:text-[11px]"
   const tail = mode !== "ready" ? (
-    <span className={cn(cell, "border-dashed border-line-soft bg-card-2 text-fg-3")} style={{ flex: blocks.length ? 6 : 1 }}>
+    <span className={cn(cell, "border-dashed border-line-soft bg-card-2 text-fg-3")} style={{ flex: `${blocks.length ? 6 : 1} 0 auto` }}>
       {mode === "stopped" ? t("stopped") : t("reading")}
     </span>
   ) : null
   return (
-    <div className="flex w-full gap-[3px]" aria-label={t("blocksFound")}>
+    // QA layout 29/10 #8: each block is at least as wide as its label (basis auto) and grows by its length; wraps when it can't fit
+    <div className="flex w-full flex-wrap gap-[3px]" aria-label={t("blocksFound")}>
       {blocks.map((b) => (
         <span
           key={b.index}
           className={cn(cell, b.kept ? "border-[#DCEB9F] bg-brand-soft" : "border-line-soft bg-card-2")}
-          style={{ flex: Math.max(0.6, b.endSec - b.startSec) }}
+          style={{ flex: `${Math.max(0.6, b.endSec - b.startSec)} 0 auto` }}
           title={`${b.label} · ${mmss(b.startSec)}`}
         >
           {b.label}
@@ -303,10 +305,16 @@ function Analyzing({ batch }: { batch: IterateBatch }) {
   const now = useNow({ updateInterval: 5_000 })
   const a = batch.analysis
   const eta = fmt.eta(a.etaSec)
+  const sample = useSampleLocked(batch)
+  const ts = useTranslations("sample")
   return (
     <IterWrap>
       <IterFlow current="analyze" running batchId={batch.id} />
-      <Head eyebrow={t("startedAgo", { ago: format.relativeTime(new Date(batch.createdAt), now) })} title={t("readingTitle")} />
+      <Head
+        eyebrow={sample ? <SampleEyebrow /> : t("startedAgo", { ago: format.relativeTime(new Date(batch.createdAt), now) })}
+        title={t("readingTitle")}
+        lede={sample ? ts("analyzeLede", { n: SAMPLE_MAX_PIECES }) : undefined}
+      />
       <Cols
         main={
           <>
@@ -351,7 +359,7 @@ function Analyzing({ batch }: { batch: IterateBatch }) {
           </InkPanel>
         }
       />
-      <IterActionBar hint={t("hintAnalyzing")}>
+      <IterActionBar hint={sample ? ts("startsByItself") : t("hintAnalyzing")}>
         <Button variant="brand" disabled>
           {tn("generate")}
         </Button>
@@ -423,6 +431,58 @@ function Notes({ batch }: { batch: IterateBatch }) {
 }
 
 function PlanReady({ batch, onEdit }: { batch: IterateBatch; onEdit: () => void }) {
+  // amostra-gratis-v1 §2: the sample has no "Generate" with a price; it launches by itself (the batch keeps polling)
+  if (batch.sample) return <SamplePlanReady batch={batch} onEdit={onEdit} />
+  return <PaidPlanReady batch={batch} onEdit={onEdit} />
+}
+
+/** The sample's plan: same cards, the side says "Free sample · no cost", and the bar waits for the automatic start. */
+function SamplePlanReady({ batch, onEdit }: { batch: IterateBatch; onEdit: () => void }) {
+  const t = useTranslations("iterate.analyze")
+  const ts = useTranslations("sample")
+  const fmt = useIterFormat()
+  const n = batch.pieces.length
+  const s = batch.summary
+  const eta = fmt.eta(s.renderEtaSec)
+  return (
+    <IterWrap>
+      <IterFlow current="analyze" running={batch.status !== "PLAN_READY"} batchId={batch.id} />
+      <Head eyebrow={<SampleEyebrow />} title={t("readyTitle", { n })} lede={ts("planLede", { n })} />
+      <ClientPreferences batch={batch} onEdit={onEdit} />
+      <Cols
+        main={
+          <>
+            <SourceCard batch={batch} mode="ready" />
+            <WhyCard batch={batch} />
+            <BatchPlan batch={batch} />
+          </>
+        }
+        side={
+          <InkPanel label={ts("panelLabel")} beam role="status">
+            <InkBig value={n} unit={t("pieces", { n })} />
+            <InkList
+              rows={[
+                [t("stretch"), s.stretch],
+                [t("newAudience"), s.newAudience],
+                ...(eta ? ([[t("readyIn"), eta]] as [string, string][]) : []),
+                [ts("costLabel"), ts("noCost")],
+              ]}
+            />
+            <InkNote>{ts("panelNote", { n: SAMPLE_MAX_PIECES })}</InkNote>
+          </InkPanel>
+        }
+      />
+      <IterActionBar hint={ts("startsByItself")}>
+        <Button variant="brand" size="lg" disabled aria-busy="true">
+          <span className="spin-ring size-4 border-fg" aria-hidden="true" />
+          {ts("starting")}
+        </Button>
+      </IterActionBar>
+    </IterWrap>
+  )
+}
+
+function PaidPlanReady({ batch, onEdit }: { batch: IterateBatch; onEdit: () => void }) {
   const { session } = useSession()
   const t = useTranslations("iterate.analyze")
   const fmt = useIterFormat()
@@ -456,7 +516,7 @@ function PlanReady({ batch, onEdit }: { batch: IterateBatch; onEdit: () => void 
   })
   return (
     <IterWrap>
-      <>{batch.quizEnabled ? <GoalsFlow current="plan" /> : <IterFlow current="analyze" batchId={batch.id} />}</>
+      <IterFlow current="analyze" running={batch.status !== "PLAN_READY"} batchId={batch.id} />
       <Head eyebrow={t("readyEyebrow", { offer: batch.offer.name })} title={t("readyTitle", { n })} />
       <ClientPreferences batch={batch} onEdit={onEdit} />
       <Notes batch={batch} />

@@ -151,11 +151,13 @@ export function WizardFrame({
   const offerName = offer?.name ?? creative?.offer.name
 
   return (
-    <div className="grid min-h-[calc(100dvh-var(--hdr-h,94px))] grid-cols-[minmax(0,1fr)] tablet:grid-cols-[240px_minmax(0,1fr)]">
+    <div className="grid min-h-[calc(100dvh-var(--hdr-h,94px))] grid-cols-[minmax(0,1fr)] min-[1100px]:grid-cols-[240px_minmax(0,1fr)]">
       <aside
         aria-label={t("wizard.railLabel")}
-        className="sticky top-[calc(var(--hdr-h,94px)+2px)] hidden content-start gap-[18px] self-start border-r border-line px-4 py-5 tablet:grid"
+        className="hidden border-r border-line min-[1100px]:block"
       >
+        {/* QA layout 29/10 #2/#17: rail only from 1100 px; the aside stretches (border to the bottom), its content is sticky */}
+        <div className="sticky top-[calc(var(--hdr-h,94px)+2px)] grid content-start gap-[18px] px-4 py-5">
         <div className="grid gap-1">
           <NameInput creative={creative} />
           {offerName ? (
@@ -200,11 +202,12 @@ export function WizardFrame({
             </div>
           ) : null}
         </div>
+              </div>
       </aside>
 
       <div className="flex min-w-0 flex-col pb-[72px] tablet:pb-0">
         {/* mobile step bar */}
-        <div className="sticky top-[var(--hdr-h,94px)] z-[9] grid gap-2 border-b border-line bg-bg px-[var(--gut)] py-2.5 tablet:hidden">
+        <div className="sticky top-[var(--hdr-h,94px)] z-[9] grid gap-2 border-b border-line bg-bg px-[var(--gut)] py-2.5 min-[1100px]:hidden">
           <button type="button" className="flex w-full items-center gap-2 text-left" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             <StepIcon kind={viewKind} n={idx + 1} />
             <span className="min-w-0">

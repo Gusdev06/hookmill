@@ -115,7 +115,7 @@ export function IterFlow({ current, running, batchId, done }: { current: "analyz
  * Action bar (fase2 §2.6): sticky card at the bottom on desktop, fixed full width on the phone with the safe area.
  * Hint on the left, one lime action per screen.
  */
-export function IterActionBar({ hint, children }: { hint: React.ReactNode; children: React.ReactNode }) {
+export function IterActionBar({ hint, children }: { hint: React.ReactNode; children?: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.style.setProperty("--toast-bottom", "120px")
     return () => {
@@ -125,9 +125,11 @@ export function IterActionBar({ hint, children }: { hint: React.ReactNode; child
   return (
     <div className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-2.5 border-t border-line bg-card px-4 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] shadow-[0_-6px_24px_rgba(21,23,26,0.06)] tablet:sticky tablet:mt-1 tablet:rounded-lg tablet:border tablet:py-2.5 tablet:pr-2.5 tablet:pl-[18px]">
       <span className="min-w-0 flex-[1_1_100%] text-[13px] text-fg-2 tablet:flex-[1_1_220px]">{hint}</span>
-      <div className="grid w-full auto-cols-auto grid-flow-col grid-cols-[auto_1fr] gap-2 has-[>:only-child]:grid-cols-1 tablet:flex tablet:w-auto tablet:flex-wrap [&>*]:w-full tablet:[&>*]:w-auto">
-        {children}
-      </div>
+      {children ? (
+        <div className="grid w-full auto-cols-auto grid-flow-col grid-cols-[auto_1fr] gap-2 has-[>:only-child]:grid-cols-1 tablet:flex tablet:w-auto tablet:flex-wrap [&>*]:w-full tablet:[&>*]:w-auto">
+          {children}
+        </div>
+      ) : null}
     </div>
   )
 }

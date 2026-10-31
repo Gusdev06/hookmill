@@ -62,7 +62,7 @@ describe(isLocal ? 'Fase 2 agência (integração local)' : 'Fase 2 agência [pu
     const hash = await hashPassword(PASSWORD);
     for (const k of ['owner', 'admin', 'member', 'client', 'other'] as Who[]) {
       const email = `f2-${RUN}-${k}@teste.local`;
-      const u = await prisma.user.create({ data: { email, name: `F2 ${k}`, passwordHash: hash } });
+      const u = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `F2 ${k}`, passwordHash: hash } });
       users[k] = { id: u.id, email, token: '' };
     }
     w1 = (await prisma.workspace.create({
@@ -191,6 +191,22 @@ describe(isLocal ? 'Fase 2 agência (integração local)' : 'Fase 2 agência [pu
     const r = await call('PATCH', '/workspace', users.admin.token, { industry: 'Sleep products' });
     expect(r.status).toBe(200);
     expect(r.body.data.industry).toBe('Sleep products');
+  });
+
+  it('29/10 CPA alvo: faixa grava e volta; min > max = 400; moeda inválida = 400; null limpa', async () => {
+    const t = users.admin.token;
+    expect((await call('GET', '/workspace', t)).body.data.targetCpa).toBeNull();
+    const ok = await call('PATCH', '/workspace', t, { targetCpa: { min: 100, max: 150.5, currency: 'USD' } });
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.targetCpa).toEqual({ min: 100, max: 150.5, currency: 'USD' });
+    const bad = await call('PATCH', '/workspace', t, { targetCpa: { min: 200, max: 150, currency: 'USD' } });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.details.fields[0]).toMatchObject({ field: 'targetCpa.max', rule: 'min_lte_max' });
+    expect((await call('PATCH', '/workspace', t, { targetCpa: { min: 1, max: 2, currency: 'usd' } })).status).toBe(400);
+    expect((await call('PATCH', '/workspace', t, { targetCpa: { min: 0, max: 2, currency: 'USD' } })).status).toBe(400);
+    expect((await call('GET', '/workspace', t)).body.data.targetCpa).toEqual({ min: 100, max: 150.5, currency: 'USD' }); // o 400 não mexeu
+    const cleared = await call('PATCH', '/workspace', t, { targetCpa: null });
+    expect(cleared.body.data.targetCpa).toBeNull();
   });
 
   it('convite e papel aceitam CLIENT', async () => {

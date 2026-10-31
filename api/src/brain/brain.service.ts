@@ -10,7 +10,7 @@ import { AppException } from '../common/errors/app-exception';
 import { num } from '../common/util/format';
 import { AppConfig } from '../config/app-config';
 import { PrismaService } from '../prisma/prisma.service';
-import { defaultResultOf } from '../workspaces/cliente';
+import { defaultResultOf, targetCpaOf, targetCpaText } from '../workspaces/cliente';
 import { BrainCache } from './brain.cache';
 import type { BrainGraphQueryDto } from './brain.dto';
 import {
@@ -134,7 +134,7 @@ export class BrainService {
     const [ws, offers, creatives, conn] = await Promise.all([
       this.prisma.workspace.findUnique({
         where: { id: wid },
-        select: { id: true, name: true, resultType: true, industry: true, market: true, websiteUrl: true, monthlySpendCapUsd: true },
+        select: { id: true, name: true, resultType: true, industry: true, market: true, websiteUrl: true, monthlySpendCapUsd: true, targetCpaMin: true, targetCpaMax: true, targetCpaCurrency: true },
       }),
       this.prisma.offer.findMany({
         where: { workspaceId: wid, archivedAt: null },
@@ -209,6 +209,7 @@ export class BrainService {
       workspace: {
         id: ws.id, name: ws.name, resultType: ws.resultType, industry: ws.industry, market: ws.market,
         websiteUrl: ws.websiteUrl, monthlySpendCapUsd: num(ws.monthlySpendCapUsd), defaultResult: defaultResultOf(ws.resultType),
+        targetCpa: targetCpaText(targetCpaOf(ws)),
       },
       offers: offers.map(({ _count, ...o }) => ({ ...o, creatives: _count.creatives })),
       creatives: creatives.map((c): DadosCriativo => {
@@ -256,7 +257,7 @@ export class BrainService {
         return { fields: [f('business.businessType', w.resultType), f('business.industry', w.industry), f('business.market', w.market), f('business.websiteUrl', w.websiteUrl)], media: null };
       }
       case 'goal':
-        return { fields: [f('goal.spendCapUsd', d.workspace.monthlySpendCapUsd), f('goal.defaultResult', d.workspace.defaultResult)], media: null };
+        return { fields: [f('goal.spendCapUsd', d.workspace.monthlySpendCapUsd), f('goal.defaultResult', d.workspace.defaultResult), f('goal.targetCpa', d.workspace.targetCpa ?? null)], media: null };
       case 'offer': {
         const o = offer();
         const winners = node.meta.kind === 'offer' ? node.meta.winners : 0;

@@ -14,18 +14,19 @@ import { CreativeStateMachine, initialState } from '../criativos/state-machine';
 import { CustosService } from '../custos/custos.service';
 import { CATALOG_SERVICE, type CatalogService } from '../integracoes';
 import { PrismaService } from '../prisma/prisma.service';
+import { AmostraService } from '../amostra/amostra.service';
 import { EdicaoService } from './edicao.service';
 import { ImagemEstaticaService } from './imagem-estatica.service';
 import {
   ALL_FORMATS, AUTO_EDIT_TEMPLATE, FORMAT_CODE, criticalErrorsOf, latestReadyByFormat, FORMAT_OF_CODE, FRAME_TEXT_OVERFLOW, PRIORITY_BATCH, PRIORITY_ON_DEMAND, STATIC_IMAGE_ETA_SEC,
   autoFileName, engineFor, estimateStaticUsd, expectedOutputSec, folderOf, latestByFormat, median, paramsOf, pieceFormats, pieceFrameOf, pieceStatus,
-  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, pieceTemplateOf, textCheckOf, captionCoveredTwice, captionNoteOf,
+  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, pieceTemplateOf, textCheckOf, captionCoveredTwice, captionNoteOf, captionOverrideOf,
 } from './pecas';
 
 const ITEM_INCLUDE = {
   creative: {
     include: {
-      renders: { where: { stale: false }, include: { file: true }, orderBy: { createdAt: 'asc' } },
+      renders: { where: { stale: false }, include: { file: true, previewFile: true }, orderBy: { createdAt: 'asc' } },
       thumbnail: true,
     },
   },
@@ -49,6 +50,7 @@ export class PecasAutoService {
     private readonly imagem: ImagemEstaticaService,
     private readonly custos: CustosService,
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
+    private readonly amostra: AmostraService,
   ) {}
 
   /** §14.4: preço de 1 imagem do STATIC (`IterateConfig.staticImageUsd`, `requestUsd`, `retryUsd`). */
@@ -64,10 +66,12 @@ export class PecasAutoService {
    * Vídeo = engine REMOTION (fila); STATIC = IMAGE_GEN (submetido depois do commit). `launchedAt` = o gravado no lote
    * (MMDD do adName). Depois do commit, chame `launched(resultado)`.
    */
-  async createPieces(tx: Prisma.TransactionClient, input: { batchId: string; userId: string; launchedAt: Date }): Promise<LaunchedPieces> {
+  /** legenda-protegida-v1 §8 (29/10): `itemIds` = só essas peças (o "Gerar mesmo assim" num lote já lançado; `launchedAt`
+   *  = agora, a peça entra no fim da fila). */
+  async createPieces(tx: Prisma.TransactionClient, input: { batchId: string; userId: string; launchedAt: Date; itemIds?: string[] }): Promise<LaunchedPieces> {
     const batch = await tx.variationBatch.findUniqueOrThrow({
       where: { id: input.batchId },
-      include: { champion: { select: { name: true } }, items: { where: { kind: 'AUTO_EDIT', included: true }, orderBy: { index: 'asc' } } },
+      include: { champion: { select: { name: true } }, items: { where: { kind: 'AUTO_EDIT', included: true, ...(input.itemIds && { id: { in: input.itemIds } }) }, orderBy: { index: 'asc' } } },
     });
     const ids = new Map<string, string>();
     for (const item of batch.items) {
@@ -106,16 +110,35 @@ export class PecasAutoService {
   /** IteratePiece[] do lote, na ordem do plano (PLAN_READY: todas `planned`). */
   async pieces(batch: PieceBatchRef): Promise<IteratePiece[]> {
     const items = await this.prisma.variationItem.findMany({ where: { batchId: batch.id, kind: 'AUTO_EDIT' }, include: ITEM_INCLUDE, orderBy: { index: 'asc' } });
-    return Promise.all(items.map((i) => this.piece(i, batch.status === 'LAUNCHED')));
+    const locked = await this.lockedBatch(batch.id);
+    return Promise.all(items.map((i) => this.piece(i, batch.status === 'LAUNCHED', locked)));
   }
 
   /** Uma peça (respostas do Retry/Leave out/In zip). */
   async pieceById(pieceId: string): Promise<IteratePiece> {
     const i = await this.prisma.variationItem.findUniqueOrThrow({ where: { id: pieceId }, include: { ...ITEM_INCLUDE, batch: { select: { status: true } } } });
-    return this.piece(i, i.batch.status === 'LAUNCHED');
+    return this.piece(i, i.batch.status === 'LAUNCHED', await this.lockedBatch(i.batchId));
   }
 
-  private async piece(i: ItemRow, launched: boolean): Promise<IteratePiece> {
+  /** amostra-gratis-v1 §1/§3: lote da amostra com o workspace sem plano. */
+  private async lockedBatch(batchId: string): Promise<boolean> {
+    const b = await this.prisma.variationBatch.findUnique({ where: { id: batchId }, select: { id: true, workspaceId: true, settings: true } });
+    return !!b && (await this.amostra.batchLock(b)).locked;
+  }
+
+  /**
+   * amostra-gratis-v1 §3: peça travada = sem `files` (o original nunca sai por URL assinada) e com `preview` (a prévia
+   * borrada do formato principal, gerada pelo render; null enquanto não existe). Destravada: `locked: false`, `preview: null`.
+   */
+  private async piece(i: ItemRow, launched: boolean, locked = false): Promise<IteratePiece> {
+    const p = await this.unlockedPiece(i, launched);
+    if (!locked) return { ...p, locked: false, preview: null };
+    const primary = primaryFormatOf(i.autoType, paramsOf(i.payload));
+    const r = latestReadyByFormat(i.creative?.renders ?? []).get(primary);
+    return { ...p, locked: true, files: [], preview: r?.previewFile ? await this.storage.fileRef(r.previewFile) : null };
+  }
+
+  private async unlockedPiece(i: ItemRow, launched: boolean): Promise<IteratePiece> {
     const c = i.creative;
     const renders = c?.renders ?? [];
     const status = pieceStatus({ launched, leftOutAt: i.leftOutAt, creativeState: c?.state ?? null, renders });
@@ -177,6 +200,8 @@ export class PecasAutoService {
       template: pieceTemplateOf(i.autoType, params),
       // legenda-protegida-v1 §2.2: "Legenda refeita no estilo do original" (o 9:16 saiu com o recorte + a nossa legenda)
       captionNote: captionNoteOf(latest.get('VERTICAL_9_16')?.input),
+      // legenda-protegida-v1 §8 (29/10): "Gerar mesmo assim" (o web mostra o selo "Cobre a legenda")
+      captionOverride: captionOverrideOf(i.payload),
       // headline-e-legenda-v1 (TRANSIÇÃO, nomes do web/types.ts): "original → nova" na peça HEADLINE
       ...((i.autoType as string) === 'HEADLINE' && {
         headline: { mode: params?.mode === 'add' ? 'add' : 'replace', original: (params?.original as string | null) ?? null, text: String(params?.text ?? ''), highlight: (params?.highlight as string | null) ?? null },
@@ -242,6 +267,7 @@ export class PecasAutoService {
    */
   async retry(auth: AuthContext, pieceId: string, dto: { useProductPhoto?: boolean }): Promise<IteratePiece> {
     const pre = await this.item(auth, pieceId);
+    await this.amostra.assertBatchUnlocked(auth.workspaceId, pre.batchId); // amostra-gratis-v1 §4: Retry trava (402)
     if (!pre.creative) throw PecasAutoService.invalid(this.status(pre), ['failed', 'left_out']);
     const creativeId = pre.creative.id;
     let staticIds: string[] = [];
@@ -322,6 +348,7 @@ export class PecasAutoService {
   async requestFormat(auth: AuthContext, pieceId: string, code: Exclude<FormatCode, '9x16'>): Promise<{ httpStatus: 200 | 202; piece: IteratePiece }> {
     const format = FORMAT_OF_CODE[code];
     const pre = await this.item(auth, pieceId);
+    await this.amostra.assertBatchUnlocked(auth.workspaceId, pre.batchId); // amostra-gratis-v1 §4: 4:5/1:1 travam (402)
     if (!pre.creative) throw PecasAutoService.invalid(this.status(pre), ['ready']);
     const creativeId = pre.creative.id;
     let created: { id: string; engine: 'REMOTION' | 'IMAGE_GEN' } | null = null;

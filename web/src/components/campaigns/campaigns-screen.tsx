@@ -11,6 +11,7 @@ import { isApiError } from "@/lib/api/errors"
 import type { MetaCampaignAdRow, MetaCampaignsTotals, MetaPeriod, MetaStatusCounts, MetaSyncState, MetaWriteResult } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -243,7 +244,8 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
   if (conn.isPending || (usable && active.isPending)) {
     body = (
       <>
-        {conn.isPending ? null : toolbar}
+        {/* QA layout 29/10 (3rd round): same toolbar while loading, so the list doesn't jump when it arrives */}
+        {toolbar}
         <TableSkeleton />
         <CardsSkeleton />
       </>
@@ -294,7 +296,7 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
           account={c?.adAccount ?? null}
           sync={notConnected ? null : sync}
           isClient={isClient}
-          showActions={!notConnected && !conn.isPending}
+          showActions={!notConnected}
           syncing={syncNow.isPending}
           onSync={() => syncNow.mutate()}
           onHistory={() => setHist("all")}
@@ -532,55 +534,91 @@ function ToolbarView({
   const t = useTranslations("campaigns")
   const sorts: [SortKey, string][] = [["spend", t("col.spend")], ["cpa", t(`cost.${rk}`)], ["results", t(`result.${rk}`)], ["ctr", t("col.ctr")], ["hookRate", t("col.hook")], ["budget", t("col.budget")], ["name", t("col.name")]]
   const count = (n: number | undefined) => (n === undefined ? null : <span className="ml-1.5 font-mono text-[11px] text-fg-3">{n}</span>)
+  const [sheet, setSheet] = useState(false)
+  // QA layout 29/10 (3rd round): on the phone the 4 filter groups took ~300 px before the numbers; there they go in a sheet
+  const changed = [view !== "tree", period !== "30d", status !== "all", origin !== "all"].filter(Boolean).length
+  const groups = (stacked: boolean) => {
+    const label = (k: string) => (stacked ? <span className="text-[13px] font-semibold">{t(`${k}.label` as never)}</span> : null)
+    const wrap = (k: string, el: React.ReactNode) => (stacked ? <div key={k} className="grid gap-1.5">{label(k)}{el}</div> : el)
+    return (
+      <>
+        {wrap("view",
+          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "tree" | "ads")} aria-label={t("view.label")} className="flex-none">
+            <ToggleGroupItem value="tree">{t("view.tree")}</ToggleGroupItem>
+            <ToggleGroupItem value="ads">{t("view.ads")}</ToggleGroupItem>
+          </ToggleGroup>
+        )}
+        {wrap("period",
+          <ToggleGroup type="single" value={period} onValueChange={(v) => v && setPeriod(v as MetaPeriod)} aria-label={t("period.label")} className="flex-none">
+            <ToggleGroupItem value="30d">{t("period.30d")}</ToggleGroupItem>
+            <ToggleGroupItem value="7d">{t("period.7d")}</ToggleGroupItem>
+          </ToggleGroup>
+        )}
+        {wrap("status",
+          <ToggleGroup type="single" value={status} onValueChange={(v) => v && setStatus(v as Filters["status"])} aria-label={t("status.label")} className="flex-none">
+            <ToggleGroupItem value="all">{t("status.all")}</ToggleGroupItem>
+            <ToggleGroupItem value="active">{t("status.active")}</ToggleGroupItem>
+            <ToggleGroupItem value="paused">{t("status.paused")}</ToggleGroupItem>
+            <ToggleGroupItem value="issues" className="gap-1.5">
+              {t("status.issues")}
+              {count(counts?.issues)}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
+        {wrap("origin",
+          <ToggleGroup type="single" value={origin} onValueChange={(v) => v && setOrigin(v as Filters["origin"])} aria-label={t("origin.label")} className="flex-none">
+            <ToggleGroupItem value="all">{t("origin.all")}</ToggleGroupItem>
+            <ToggleGroupItem value="hookmill" className="gap-1.5">
+              <Chip tone="hm" className="px-1.5 py-0">
+                HM
+              </Chip>
+              {t("origin.hookmill")}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
+      </>
+    )
+  }
+  const sortSelect = (
+    <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+      <SelectTrigger aria-label={t("sortBy")} className="h-10 w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {sorts.map(([k, l]) => (
+          <SelectItem key={k} value={k}>
+            {t("sortOption", { col: l })}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-      <div className="no-scrollbar flex gap-2 max-tablet:w-full max-tablet:overflow-x-auto max-tablet:pb-0.5 tablet:contents">
-        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "tree" | "ads")} aria-label={t("view.label")} className="flex-none">
-          <ToggleGroupItem value="tree">{t("view.tree")}</ToggleGroupItem>
-          <ToggleGroupItem value="ads">{t("view.ads")}</ToggleGroupItem>
-        </ToggleGroup>
-        <ToggleGroup type="single" value={period} onValueChange={(v) => v && setPeriod(v as MetaPeriod)} aria-label={t("period.label")} className="flex-none">
-          <ToggleGroupItem value="30d">{t("period.30d")}</ToggleGroupItem>
-          <ToggleGroupItem value="7d">{t("period.7d")}</ToggleGroupItem>
-        </ToggleGroup>
-        <ToggleGroup type="single" value={status} onValueChange={(v) => v && setStatus(v as Filters["status"])} aria-label={t("status.label")} className="flex-none">
-          <ToggleGroupItem value="all">{t("status.all")}</ToggleGroupItem>
-          <ToggleGroupItem value="active">{t("status.active")}</ToggleGroupItem>
-          <ToggleGroupItem value="paused">{t("status.paused")}</ToggleGroupItem>
-          <ToggleGroupItem value="issues" className="gap-1.5">
-            {t("status.issues")}
-            {count(counts?.issues)}
-          </ToggleGroupItem>
-        </ToggleGroup>
-        <ToggleGroup type="single" value={origin} onValueChange={(v) => v && setOrigin(v as Filters["origin"])} aria-label={t("origin.label")} className="flex-none">
-          <ToggleGroupItem value="all">{t("origin.all")}</ToggleGroupItem>
-          <ToggleGroupItem value="hookmill" className="gap-1.5">
-            <Chip tone="hm" className="px-1.5 py-0">
-              HM
-            </Chip>
-            {t("origin.hookmill")}
-          </ToggleGroupItem>
-        </ToggleGroup>
+      <div className="hidden tablet:contents">{groups(false)}</div>
+      {/* phone: Filters (sheet) + sort on one line, the search below */}
+      <div className="flex w-full min-w-0 gap-2 tablet:hidden">
+        <Button variant="outline" onClick={() => setSheet(true)} aria-haspopup="dialog" className="flex-none">
+          {t("filters")}
+          {changed ? <span className="rounded-full bg-fg px-1.5 font-mono text-[11px] text-white">{changed}</span> : null}
+        </Button>
+        <div className="min-w-0 flex-1">{sortSelect}</div>
       </div>
       <label className="relative flex min-w-0 flex-[1_1_220px] items-center tablet:max-w-[340px] max-tablet:flex-[1_1_100%]">
         <Icon name="search" className="pointer-events-none absolute left-3 text-fg-3" />
         <span className="sr-only">{t("search")}</span>
-        <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} autoComplete="off" className="h-[38px] pl-9" />
+        <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} autoComplete="off" className="h-10 pl-9" />
       </label>
-      <div className="flex-[1_1_auto] tablet:hidden">
-        <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-          <SelectTrigger aria-label={t("sortBy")} className="h-[38px] w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sorts.map(([k, l]) => (
-              <SelectItem key={k} value={k}>
-                {t("sortOption", { col: l })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <div className="hidden flex-[1_1_auto] tablet:block min-[1100px]:hidden">{sortSelect}</div>
+      <Dialog open={sheet} onOpenChange={setSheet}>
+        <DialogContent className="top-auto bottom-0 left-0 max-h-[85dvh] w-full max-w-none translate-x-0 translate-y-0 gap-4 overflow-y-auto rounded-b-none border-x-0 border-b-0 bg-card p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] sm:max-w-none">
+          <DialogTitle className="text-base font-bold">{t("filtersTitle")}</DialogTitle>
+          <div className="grid gap-3.5">{groups(true)}</div>
+          <Button variant="default" onClick={() => setSheet(false)} className="w-full">
+            {t("filtersApply")}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

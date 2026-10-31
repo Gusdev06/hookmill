@@ -27,6 +27,8 @@ export const SETUP_STEP = { business: 1, offer: 3, proof: 3, audience: 4, instru
 export interface DadosWorkspace {
   id: string; name: string; /** resultado-v1: o ResultType do cliente */ resultType: ResultType | null; industry: string | null; market: string | null;
   websiteUrl: string | null; monthlySpendCapUsd: number | null; defaultResult: DefaultResult | null;
+  /** 29/10 (Loom do Tordan): "100–150 USD"; null = não informado */
+  targetCpa?: string | null;
 }
 export interface DadosOferta {
   id: string; name: string; kind: string | null; language: string;
@@ -184,7 +186,7 @@ export function montarGrafo(d: BrainDados, opts: OpcoesMontagem): Montado {
 
   // ── totais reais
   const businessOn = ws.resultType != null || filled(ws.industry) || filled(ws.market) || filled(ws.websiteUrl);
-  const goalOn = ws.monthlySpendCapUsd != null || ws.resultType != null;
+  const goalOn = ws.monthlySpendCapUsd != null || ws.resultType != null || !!ws.targetCpa;
   counts.workspace.total = 1;
   counts.business.total = businessOn ? 1 : 0;
   counts.goal.total = goalOn ? 1 : 0;
@@ -266,7 +268,7 @@ export function montarGrafo(d: BrainDados, opts: OpcoesMontagem): Montado {
       corta([ws.resultType, ws.industry, ws.market, ws.websiteUrl].filter(filled).join(' · '), 200), 0.5, { kind: 'business', setupStep: SETUP_STEP.business })]);
   }
   if (goalOn) {
-    const label = [ws.defaultResult, ws.monthlySpendCapUsd != null ? `US$ ${ws.monthlySpendCapUsd}` : null].filter(filled).join(' · ');
+    const label = [ws.defaultResult, ws.targetCpa ? `CPA ${ws.targetCpa}` : null, ws.monthlySpendCapUsd != null ? `US$ ${ws.monthlySpendCapUsd}` : null].filter(filled).join(' · ');
     tenta([mk('goal', ws.id, ws.id, label, null, 0.5, { kind: 'goal', setupStep: SETUP_STEP.goal, spendCapUsd: ws.monthlySpendCapUsd, defaultResult: ws.defaultResult })]);
   }
   // 2. ofertas (+ público, provas, instruções)

@@ -102,7 +102,7 @@ export default function ClientsPage() {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 rounded-xl border-[1.5px] border-dashed border-control p-[18px] text-center text-fg outline-none hover:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 rounded-xl border-[1.5px] border-dashed border-control p-[18px] text-center text-fg outline-none hover:border-fg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span aria-hidden="true" className="inline-grid size-11 place-items-center rounded-full bg-brand text-[#15171a]">
                 <Icon name="plus" />

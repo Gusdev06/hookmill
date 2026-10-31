@@ -202,7 +202,7 @@ describe(isLocal ? 'Campaigns v1 (integração local)' : 'Campaigns v1 [pulado: 
     const hash = await hashPassword(PASSWORD);
     for (const k of ['owner', 'admin', 'member', 'client'] as Who[]) {
       const email = `${PREFIX}${k}@teste.local`;
-      const u = await prisma.user.create({ data: { email, name: `Cmp ${k}`, passwordHash: hash, accountMode: 'AGENCY' } });
+      const u = await prisma.user.create({ data: { access: 'INTERNAL', email, name: `Cmp ${k}`, passwordHash: hash, accountMode: 'AGENCY' } });
       users[k] = { id: u.id, email, token: '' };
     }
     const role = { owner: 'OWNER', admin: 'ADMIN', member: 'MEMBER', client: 'CLIENT' } as const;

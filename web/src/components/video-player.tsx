@@ -56,7 +56,7 @@ export function VideoPlayer({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[10px] bg-[#0d0d0d] [--player-cap:62vh]",
+        "@container relative overflow-hidden rounded-[10px] bg-[#0d0d0d] [--player-cap:62vh]",
         size === "lg" ? "tablet:[--player-cap:min(72vh,720px)]" : "tablet:[--player-cap:min(64vh,600px)]",
         className
       )}
@@ -106,7 +106,8 @@ export function VideoPlayer({
               <b className="absolute inset-y-0 left-0 rounded-[2px] bg-white" style={{ width: dur ? `${(time / dur) * 100}%` : 0 }} />
             </div>
           </div>
-          <span className="font-mono text-[11px] tabular-nums">
+          {/* tiny players (< 200 px, e.g. the 2-column sample grid on a phone) drop the time so the sound button still fits */}
+          <span className="hidden font-mono text-[11px] whitespace-nowrap tabular-nums @[200px]:inline">
             {fmt(time)} / {fmt(dur)}
           </span>
           <button type="button" onClick={() => setMuted((m) => !m)} aria-label={muted ? t("unmute") : t("mute")} aria-pressed={muted} className={cn("grid place-items-center p-1", muted && "opacity-50")}>

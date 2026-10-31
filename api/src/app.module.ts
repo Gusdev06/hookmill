@@ -37,6 +37,7 @@ import { IteracaoModule } from './iteracao/iteracao.module';
 import { ZipModule } from './iteracao/zip.module';
 import { MetaModule } from './meta/meta.module';
 import { BrainModule } from './brain/brain.module';
+import { AmostraModule } from './amostra/amostra.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { BrainModule } from './brain/brain.module';
     AuthModule,
     WorkspacesModule,
     ArquivosModule,
+    AmostraModule, // amostra-gratis-v1 (global)
     JobsModule,
     EventosModule,
     SaudeModule,

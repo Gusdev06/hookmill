@@ -75,11 +75,12 @@ describe('buildFrameInput', () => {
     expect(i.captionMode).toBe('avoid');
   });
 
-  it('legenda protegida mais larga que a janela e em cima do rosto: nem desvia nem recorta = CAPTION_PROTECTED', () => {
+  // 28-29/10: legenda larga sobre o rosto já sai (vídeo cheio, sobra de cor mínima); bloqueia quando não há área segura
+  it('texto queimado ocupando quase o quadro todo: não há onde pôr a moldura = CAPTION_PROTECTED', () => {
     const em = {
       version: 1, width: 720, height: 1280, fps: 30, frameCount: 300, mainSpeaker: { box: { x: 0, y: 187, w: 720, h: 933 } },
       faceTrack: [{ startFrame: 0, endFrame: 300, region: { x: 0, y: 187, w: 720, h: 933 }, faceInRegion: [{ atFrame: 0, box: { x: 0.3, y: 0.3, w: 0.4, h: 0.4 } }] }],
-      layers: [{ box: { x: 0, y: 560, w: 720, h: 120 }, startFrame: 0, endFrame: 300, kind: 'caption' }],
+      layers: [{ box: { x: 0, y: 200, w: 720, h: 870 }, startFrame: 0, endFrame: 300, kind: 'caption' }],
     };
     const c = ctx({ source: { videoUrl: 'https://s3/c.mp4', width: 720, height: 1280, fps: 30, durationSec: 10, hasAudio: true }, editMap: em as never });
     expect(() => buildFrameInput(spec('live', {}), c, 'VERTICAL_9_16')).toThrow(/CAPTION_PROTECTED/);

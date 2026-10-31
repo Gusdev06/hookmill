@@ -132,6 +132,10 @@ interface IterateConfig {                        // GET /iterate/config
   offers: { id: string; name: string; language: string }[];  // ativas; >1 = o web pede a oferta (D3)
   defaultOfferId: string|null;                   // única oferta, ou a última usada num lote AUTO
   recentWinners: LibraryItem[];                  // até 3 (isWinner, só vídeo): "Or pick from your Library"
+  running?: { id: string; championName: string; status: 'ANALYZING'|'PLANNING'|'LAUNCHED'; metaAdId: string|null; createdAt: string }[];
+                                                 // 29/10 (Loom do Tordan): lotes AUTO ainda trabalhando (análise/plano, ou LAUNCHED com peça RENDERING),
+                                                 // até 3, mais novo primeiro. Sair da tela não cancela nada; é o caminho de volta. No Pick from Meta,
+                                                 // anúncio com lote em andamento vira "Open" (não paga a análise de novo).
 }
 
 interface WhyLine {

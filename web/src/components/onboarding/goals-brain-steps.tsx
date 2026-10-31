@@ -65,7 +65,7 @@ export function GoalsStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         ) : null}
         <span className="text-xs text-fg-3">
           {ws.defaultResult ? t("goals.resultHint") : t("goals.resultMissing")}{" "}
-          <Link href={onboardingHref(1)} className="font-semibold underline underline-offset-2">
+          <Link href={onboardingHref(1)} className="inline-flex min-h-10 items-center font-semibold underline underline-offset-2 tablet:min-h-0">
             {t("goals.resultEdit")}
           </Link>
         </span>
@@ -299,7 +299,7 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
 
 function PathCard({ href, eyebrow, title, body }: { href: string; eyebrow: string; title: string; body: string }) {
   return (
-    <Link href={href} className="group flex min-h-11 flex-col gap-1.5 rounded-xl border border-line bg-card p-4 no-underline hover:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+    <Link href={href} className="group flex min-h-11 flex-col gap-1.5 rounded-xl border border-line bg-card p-4 no-underline hover:border-fg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring">
       <span className="eyebrow">{eyebrow}</span>
       <strong className="flex items-center gap-2 text-base">
         {title}
