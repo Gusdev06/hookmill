@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AbsoluteFill, OffthreadVideo, Sequence, continueRender, delayRender, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Img, OffthreadVideo, Sequence, continueRender, delayRender, useCurrentFrame, useVideoConfig } from 'remotion';
 import { measureText } from '@remotion/layout-utils';
 import { resolverSrc } from './componentes/midia';
 import { carregarFonteCatalogo, carregarFontes, carregarFontesCJK } from './fontes';
 import { pinturaNaCaixa, temCJK } from './lib/molduras';
 import { ID_EDITOR_DA_CAMADA_REMIX } from './lib/editor/headline';
-import { FONT_CATALOG, paginasKaraoke, tokensDoKaraoke, tokensDoTexto, type RemixKeepProps, type RemixOverlay, type RemixTextLayer, type RemixTextStyle, type TokenTexto } from './lib/remix';
+import { FONT_CATALOG, paginasKaraoke, pedacosDasLinhas, tokensDoKaraoke, tokensDoTexto, type RemixKeepProps, type RemixOverlay, type RemixTextLayer, type RemixTextStyle, type TokenTexto } from './lib/remix';
 
 // Template remix-keep (§13.6): base = campeão; overlays = clipe novo nas regiões do rosto; camadas de texto redesenhadas.
 // Ordem de pintura: base → overlays → textLayers (fundo da camada, depois o texto). Tudo em px da grade do campeão.
@@ -124,12 +124,98 @@ const PalavraSpan: React.FC<{ cor: string; caixa: string | null; children: React
 
 const Fundo: React.FC<{ layer: RemixTextLayer }> = ({ layer }) => {
   const b = layer.background;
-  if (b.kind === 'none' || !b.color) return null;
+  if (b.kind === 'none' || (!b.color && !b.image)) return null;
   const r = b.box ?? layer.box;
-  return <div data-layer={`${idEditor(layer.id)}:box`} style={{ position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, background: b.color, borderRadius: b.kind === 'pill' ? r.h / 2 : (b.radius ?? 0) }} />;
+  // imagem 2D medida da caixa original (troca-texto §14.2): repinta exatamente os pixels da caixa, esticada
+  const img: React.CSSProperties = b.image ? { backgroundImage: `url(${b.image})`, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' } : {};
+  return <div data-layer={`${idEditor(layer.id)}:box`} style={{ position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, background: b.image ? undefined : b.color ?? undefined, ...img, borderRadius: b.kind === 'pill' ? r.h / 2 : (b.radius ?? 0) }} />;
+};
+
+// ───────── cópia da headline (troca-texto §14.4, §16.2 A4, §16.6 V3) ─────────
+// Linhas prontas (ajustarHeadlineCopia), cada uma na sua linha de base; nada se reajusta aqui. Mesma rasterização da S4/G0:
+// sem suavização do sistema, kerning normal, x fracionário. A largura vem do canvas 2D com a fonte já carregada.
+const BASE_COPIA: React.CSSProperties = { position: 'absolute', whiteSpace: 'pre', textRendering: 'geometricPrecision', WebkitFontSmoothing: 'antialiased', fontKerning: 'normal' };
+
+const medirLinha = (family: string, weight: number, size: number, texto: string, ls: number) => {
+  const c = document.createElement('canvas').getContext('2d')!;
+  c.font = `${weight} ${size}px "${family}"`;
+  (c as unknown as { fontKerning: string }).fontKerning = 'normal';
+  const m = c.measureText(texto);
+  // letter-spacing: o mesmo modelo de larguraCopia (somado depois de cada caractere)
+  return { w: m.width + [...texto].length * ls * size, asc: m.fontBoundingBoxAscent, desc: m.fontBoundingBoxDescent };
+};
+
+const sombraCss = (st: RemixTextStyle, size: number): string | undefined => {
+  const d = st.shadowDetail;
+  if (d) return `${d.dx}px ${d.dy}px ${d.blurPx}px ${d.color}`;
+  return st.shadow ? `0 ${Math.max(1, size * 0.04)}px ${Math.max(2, size * 0.12)}px rgba(0,0,0,0.55)` : undefined;
+};
+
+type ConteudoCopia = Extract<RemixTextLayer['content'], { kind: 'static' }> & { lines: string[]; layout: { firstBaselineY: number; linePitchPx: number; anchorX: number } };
+
+const TextoCopia: React.FC<{ layer: RemixTextLayer; c: ConteudoCopia }> = ({ layer, c }) => {
+  const pronta = useFonte(layer.style.fontId);
+  const st = layer.style;
+  const f = FONT_CATALOG[st.fontId];
+  const size = st.fontSizePx, ls = st.letterSpacingEm ?? 0;
+  const linhas = useMemo(() => pedacosDasLinhas(c.lines.map((l) => (st.uppercase ? l.toUpperCase() : l))), [c.lines, st.uppercase]);
+  const postas = useMemo(() => {
+    if (!pronta) return null;
+    return linhas.map((pedacos, i) => {
+      const texto = pedacos.map((p) => p.t).join('');
+      const m = medirLinha(f.family, f.weight, size, texto, ls);
+      const em = c.emoji && c.emoji.lineIndex === i ? c.emoji : null;
+      const extra = em ? em.gapPx + em.inkWidthPx : 0;
+      const total = m.w + extra;
+      const ax = c.layout.anchorX;
+      const totalX = st.align === 'center' ? ax - total / 2 : st.align === 'left' ? ax : ax - total;
+      const textX = em && em.side === 'start' ? totalX + extra : totalX;
+      const baseline = c.layout.firstBaselineY + i * c.layout.linePitchPx;
+      // emoji: a tinta começa `marginLeftPx` depois da borda do recorte
+      const emojiX = em ? Math.round(em.side === 'end' ? textX + m.w + em.gapPx - em.marginLeftPx : totalX - em.marginLeftPx) : 0;
+      return { pedacos, m, baseline, textX, em, emojiX };
+    });
+  }, [pronta, linhas, f, size, ls, c, st.align]);
+  if (!postas) return <Fundo layer={layer} />;
+  const sombra = sombraCss(st, size);
+  const enf = st.emphasis ?? null;
+  const contorno = st.strokeColor && st.strokeWidthPx > 0 ? { WebkitTextStroke: `${st.strokeWidthPx * 2}px ${st.strokeColor}`, paintOrder: 'stroke fill' } : {};
+  return (
+    <>
+      <Fundo layer={layer} />
+      <div data-layer={idEditor(layer.id)} style={{ position: 'absolute', inset: 0 }}>
+        {postas.map((l, i) => (
+          <React.Fragment key={i}>
+            <div style={{ ...BASE_COPIA, left: l.textX, top: l.baseline - l.m.asc, lineHeight: `${l.m.asc + l.m.desc}px`, fontFamily: f.family, fontWeight: f.weight, fontSize: size,
+              color: st.color, letterSpacing: ls ? `${ls}em` : undefined, textShadow: sombra, ...contorno }}>
+              {l.pedacos.map((p, k) => {
+                if (!p.destaque || !enf) return <span key={k}>{p.t}</span>;
+                if (enf.kind === 'color') return <span key={k} style={{ color: enf.color }}>{p.t}</span>;
+                if (enf.kind === 'box') return <span key={k} style={{ background: enf.color, boxShadow: `0 0 0 0.14em ${enf.color}`, WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }}>{p.t}</span>;
+                // sublinhado medido: barra da largura do trecho, topo = linha de base + offset; mesma sombra da letra
+                return (
+                  <span key={k} style={{ position: 'relative' }}>
+                    {p.t}
+                    <span style={{ position: 'absolute', left: 0, width: '100%', top: l.m.asc + enf.offsetPx, height: enf.thicknessPx, background: enf.color,
+                      boxShadow: st.shadowDetail ? `${st.shadowDetail.dx}px ${st.shadowDetail.dy}px ${st.shadowDetail.blurPx}px ${st.shadowDetail.color}` : undefined }} />
+                  </span>
+                );
+              })}
+            </div>
+            {l.em ? <Img src={l.em.image} style={{ position: 'absolute', left: l.emojiX, top: Math.round(l.baseline + l.em.topFromBaseline), width: l.em.w, height: l.em.h, imageRendering: 'pixelated' }} /> : null}
+          </React.Fragment>
+        ))}
+      </div>
+    </>
+  );
 };
 
 const TextoEstatico: React.FC<{ layer: RemixTextLayer & { content: { kind: 'static' } } }> = ({ layer }) => {
+  const c = layer.content;
+  return c.lines && c.layout ? <TextoCopia layer={layer} c={c as ConteudoCopia} /> : <TextoAjustado layer={layer} />;
+};
+
+const TextoAjustado: React.FC<{ layer: RemixTextLayer & { content: { kind: 'static' } } }> = ({ layer }) => {
   const pronta = useFonte(layer.style.fontId);
   // *trecho* = destaque (headline nova com o destaque da original, headline-e-legenda-v1 §1.2)
   const ajuste = useMemo(() => (pronta ? ajustarTexto(tokensDoTexto(layer.content.text), layer.style, layer.box) : null), [pronta, layer]);

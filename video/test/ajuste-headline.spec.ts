@@ -154,3 +154,11 @@ describe('ajustarHeadlineCopia: A4 e caixa', () => {
     expect(r.lines).toEqual(['NUNCA FOI', 'PRA VOCÊ']);
   });
 });
+
+describe('ajustarHeadlineCopia: mesmas palavras na caixa (V3)', () => {
+  it('largura de avanço > tinta medida não derruba pro shrink (fit medido do 05 na fixture da V3)', () => {
+    const fit = {"kind": "box", "canvas": {"width": 720, "height": 1280}, "fontId": "tiktok-sans-500", "sizePx": 60.07, "letterSpacingEm": 0, "linePitchPx": 60, "firstBaselineY": 654, "align": "center", "centerX": 313.5, "caseStyle": "sentence", "originalLines": [{"chars": 22, "widthPx": 580}, {"chars": 19, "widthPx": 548}, {"chars": 16, "widthPx": 431}], "erasedRects": [], "bottomLimitY": null, "chinY": null, "sideMarginPx": 24, "emoji": null, "box": {"x": 0, "y": 586, "w": 628, "h": 220}} as unknown as HeadlineFitLook;
+    const r = ajustarHeadlineCopia(fit, "If he doesn't call you\nwithin two minutes,\nI’ll pay you $50");
+    expect([r.fits, r.step, r.sizePx]).toEqual([true, 'same', fit.sizePx]);
+  });
+});

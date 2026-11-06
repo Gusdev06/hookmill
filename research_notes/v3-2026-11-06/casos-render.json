@@ -1,0 +1,14 @@
+[
+ {"nome": "solto", "video": "/tmp/v3/fixt/solto.mp4", "placa": "/tmp/v3/medida/placas/solto.mp4", "variantes": [
+  {"nome": "mesmas", "text": "How to view your man’s\nrecent following on IG"},
+  {"nome": "novo", "text": "Tired of scrolling his endless following list?"}]},
+ {"nome": "c02", "video": "/tmp/v3/fixt/c02.mp4", "variantes": [
+  {"nome": "mesmas", "text": "Si en 2 minutos no te\nbusca, es porque\nnunca fue para ti..", "highlight": "es porque nunca fue para ti.."},
+  {"nome": "novo", "text": "Si en 7 días no vuelve a escribirte, nunca fue para ti..", "highlight": "nunca fue para ti.."}]},
+ {"nome": "c05", "video": "/tmp/v3/fixt/c05.mp4", "variantes": [
+  {"nome": "mesmas", "text": "If he doesn't call you\nwithin two minutes,\nI’ll pay you $50"},
+  {"nome": "novo", "text": "If he doesn't text you back within an hour, I’ll pay you $50"}]},
+ {"nome": "c06", "video": "/tmp/v3/fixt/c06.mp4", "variantes": [
+  {"nome": "mesmas", "text": "Él ya está con otra? Te\npropongo algo. Si en 7 días\nno te busca, dime mentirosa"},
+  {"nome": "novo", "text": "¿Ya está con otra? Te propongo algo. Si en 7 días no te escribe, dime mentirosa"}]}
+]

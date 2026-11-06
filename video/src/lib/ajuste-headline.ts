@@ -191,10 +191,15 @@ const dispor = (fit: HeadlineFitLook, linhas: string[], sizePx: number, vertical
   return { linhas: postas, sizePx, firstBaselineY: first, inkTop, inkBottom, boxGrowPx, boxTop, boxBottom };
 };
 
-const cabeNaLargura = (fit: HeadlineFitLook, d: Disposicao, limiteTotal: number | null): boolean => {
+/** `folga`: px a mais nos dois lados (só no degrau `same`), sem passar da borda da caixa ou do quadro. A margem do look é
+ *  medida na TINTA da linha mais larga, e a largura da tabela é de avanço (com o respiro lateral das letras): sem isso, as
+ *  mesmas palavras no mesmo tamanho estouravam a margem por 2-10 px e caíam no `shrink` (V3, fixtures da S4: 98-99 %). */
+const cabeNaLargura = (fit: HeadlineFitLook, d: Disposicao, limiteTotal: number | null, folga = 0): boolean => {
   const { L, R } = limitesX(fit);
+  const borda = fit.box ? { L: fit.box.x, R: fit.box.x + fit.box.w } : { L: 0, R: fit.canvas.width };
+  const l0 = Math.max(borda.L, L - folga), r0 = Math.min(borda.R, R + folga);
   const eps = 0.5;
-  return d.linhas.every((l) => l.totalX >= L - eps && l.totalX + l.totalW <= R + eps && (limiteTotal === null || l.totalW <= limiteTotal + eps));
+  return d.linhas.every((l) => l.totalX >= l0 - eps && l.totalX + l.totalW <= r0 + eps && (limiteTotal === null || l.totalW <= limiteTotal + eps));
 };
 const cabeNaAltura = (fit: HeadlineFitLook, d: Disposicao): boolean => {
   const topo = d.boxTop ?? d.inkTop, fundo = d.boxBottom ?? d.inkBottom;
@@ -313,21 +318,22 @@ export function ajustarHeadlineCopia(fit: HeadlineFitLook, texto: string): Headl
   const k0 = explicitas ? explicitas.length : Math.min(n0, palavras.length);
   const linhasCom = (k: number, s: number) => explicitas ?? quebrar(fit, palavras, k, s);
   const extraOriginal = (i: number) => (fit.emoji && fit.emoji.lineIndex === i ? fit.emoji.gapPx + fit.emoji.widthPx : 0);
-  const limiteSame = Math.max(...fit.originalLines.map((l, i) => l.widthPx + extraOriginal(i))) * (1 + FOLGA_SAME);
+  const maisLarga = Math.max(...fit.originalLines.map((l, i) => l.widthPx + extraOriginal(i)));
+  const limiteSame = maisLarga * (1 + FOLGA_SAME);
 
   let achou: { d: Disposicao; step: HeadlineFitStep } | null = null;
   let ultima: Disposicao | null = null;
-  const tentar = (k: number, s: number, vertical: Vertical, limiteTotal: number | null): Disposicao | null => {
+  const tentar = (k: number, s: number, vertical: Vertical, limiteTotal: number | null, folga = 0): Disposicao | null => {
     const linhas = linhasCom(k, s);
     if (!linhas) return null;
     const d = dispor(fit, linhas, s, vertical);
     ultima = d;
-    return cabeNaLargura(fit, d, limiteTotal) && cabeNaAltura(fit, d) ? d : null;
+    return cabeNaLargura(fit, d, limiteTotal, folga) && cabeNaAltura(fit, d) ? d : null;
   };
 
-  // 0 same, 1 rewrap
+  // 0 same (a mesma folga da régua de largura, metade de cada lado), 1 rewrap
   const s0 = fit.sizePx;
-  let d = tentar(k0, s0, 'center', limiteSame);
+  let d = tentar(k0, s0, 'center', limiteSame, (limiteSame - maisLarga) / 2);
   if (d) achou = { d, step: 'same' };
   if (!achou && (d = tentar(k0, s0, 'center', null))) achou = { d, step: 'rewrap' };
   // 2 shrink, de 1 % em 1 % até 90 %

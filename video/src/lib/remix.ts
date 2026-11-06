@@ -60,6 +60,17 @@ export const textStyleSchema = z.object({
   strokeWidthPx: z.number().min(0),
   shadow: z.boolean(),
   align: z.enum(['left', 'center', 'right']),
+  // ── cópia da headline (troca-texto §14.5, §16.6 V3), todos opcionais: props antigas continuam válidas ──
+  /** espaçamento entre letras, em em (CSS letter-spacing) */
+  letterSpacingEm: z.number().optional(),
+  /** sombra medida (vale sobre o booleano `shadow`): CSS text-shadow; `blurPx` = raio de desfoque do CSS (2 × sigma) */
+  shadowDetail: z.object({ dx: z.number(), dy: z.number(), blurPx: z.number().min(0), color: z.string() }).nullable().optional(),
+  /** destaque do trecho entre `*`: sublinhado medido (offset = topo da barra − linha de base), cor ou caixa */
+  emphasis: z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('underline'), thicknessPx: z.number().positive(), offsetPx: z.number(), color: z.string() }),
+    z.object({ kind: z.literal('color'), color: z.string() }),
+    z.object({ kind: z.literal('box'), color: z.string() }),
+  ]).nullable().optional(),
 });
 
 const frameRange = { startFrame: z.number().int().min(0), endFrame: z.number().int().positive() };
@@ -84,10 +95,27 @@ export const textLayerSchema = z.object({
     kind: z.enum(['solid', 'pill', 'none']), color: z.string().nullable(), box: rectSchema.nullable(),
     /** raio dos cantos do `solid` em px (placa sobre o vídeo da headline nova: 0,15 em); ausente = 0 */
     radius: z.number().min(0).optional(),
+    /** imagem 2D medida da caixa original (data URI PNG ≤ 4 KB, §14.2), esticada em `box` (100 % × 100 %). Com ela, `color`
+     *  é só reserva e a máscara do compositor é exatamente `box`, sem folga (A8) */
+    image: z.string().optional(),
   }),
   style: textStyleSchema,
   content: z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('static'), text: z.string() }),
+    z.object({
+      kind: z.literal('static'), text: z.string(),
+      /** cópia da headline: linhas prontas (de `ajustarHeadlineCopia`; `*trecho*` pode cruzar linhas) postas por linha de
+       *  base, sem reajuste no render. Ausente = `text` quebrado por `ajustarTexto` dentro de `box` (o de antes) */
+      lines: z.array(z.string()).min(1).optional(),
+      /** posição das `lines`, px da grade: 1ª linha de base, entrelinha e âncora x (centro, borda esquerda ou direita, pelo `align`) */
+      layout: z.object({ firstBaselineY: z.number(), linePitchPx: z.number().positive(), anchorX: z.number() }).optional(),
+      /** emoji recortado do próprio quadro (§15.7.2, A1), no tamanho original. `topFromBaseline` = topo da imagem − linha de
+       *  base da linha dele; `marginLeftPx` = coluna transparente à esquerda do recorte (a tinta começa depois dela) */
+      emoji: z.object({
+        image: z.string().min(1), w: z.number().positive(), h: z.number().positive(), inkWidthPx: z.number().positive(),
+        topFromBaseline: z.number(), gapPx: z.number().min(0), marginLeftPx: z.number().min(0),
+        lineIndex: z.number().int().min(0), side: z.enum(['start', 'end']),
+      }).optional(),
+    }),
     z.object({
       kind: z.literal('karaoke'),
       words: z.array(z.object({ word: z.string(), ...frameRange })),
@@ -133,6 +161,8 @@ export const propsDeRemixInput = (input: RemixKeepProps): RemixKeepProps => {
   }
   for (const l of p.textLayers) {
     if (!(l.endFrame > l.startFrame) || l.endFrame > n) throw new Error(`camada ${l.id}: frames ${l.startFrame}-${l.endFrame} fora de 0-${n}`);
+    if (l.content.kind === 'static' && (l.content.lines || l.content.emoji) && !(l.content.lines && l.content.layout)) throw new Error(`camada ${l.id}: lines/emoji pedem lines e layout`);
+    if (l.content.kind === 'static' && l.content.emoji && l.content.emoji.lineIndex >= l.content.lines!.length) throw new Error(`camada ${l.id}: emoji na linha ${l.content.emoji.lineIndex} de ${l.content.lines!.length}`);
   }
   return p;
 };
@@ -179,6 +209,18 @@ export const tokensDoTexto = (texto: string): TokenTexto[] => {
   return out;
 };
 /** Palavras do karaokê → fichas: sem espaço entre duas palavras CJK (zh/ja do Whisper), com espaço no resto. */
+/** Linhas com `*trecho*` (o destaque pode cruzar linhas) → pedaços por linha, sem os `*`. */
+export const pedacosDasLinhas = (linhas: string[]): { t: string; destaque: boolean }[][] => {
+  let destaque = false;
+  return linhas.map((l) => {
+    const out: { t: string; destaque: boolean }[] = [];
+    for (const parte of l.split('*').map((t, i) => ({ t, troca: i > 0 }))) {
+      if (parte.troca) destaque = !destaque;
+      if (parte.t) out.push({ t: parte.t, destaque });
+    }
+    return out;
+  });
+};
 export const tokensDoKaraoke = (palavras: string[]): TokenTexto[] => palavras.map((t, i) => {
   const ini = t.codePointAt(0) ?? 0;
   const ant = i > 0 ? palavras[i - 1] : '';

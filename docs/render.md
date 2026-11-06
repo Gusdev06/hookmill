@@ -208,3 +208,19 @@ Script: `api/src/render/auto-edit-real.ts <saida> [tipos] [formatos]` (RemotionR
 
   Prova: `node video/scripts/lista-exemplos.mjs <saida> [stills]` (avatar em `video/public/fixtures/avatar-pocketwise.mp4`, palavras reais do mlx-whisper em `video/scripts/lista-exemplos-palavras.json`). 30 s de vídeo ≈ 85 s de render no mesmo ritmo.
 - **Lambda:** site de dev `hookmill-dev` republicado em 04/11 com o bundle novo. Produção NÃO publicada (ok do Gusta): `npm run build:bundle -w video && set -a; source <(grep '^REMOTION_AWS_' .env); set +a; SITE=hookmill-$(git rev-parse --short HEAD) BUNDLE_DIR=video/dist/bundle node scripts/sonda-lambda-l1.mjs deploy` e trocar o `REMOTION_SERVE_URL` do EasyPanel pela URL impressa (não há `npm run lambda:deploy` na raiz ainda).
+
+## Headline copiada do criativo (F1b, V3, 06/11): `box` e `loose` no `remix-keep`
+
+- **Composição:** `RemixKeep` ganhou o caminho de cópia (props opcionais; props antigas iguais): `background.image` (imagem 2D medida da caixa, esticada), `style.letterSpacingEm`, `style.shadowDetail` (sombra medida), `style.emphasis` (sublinhado com espessura e offset medidos, cor ou caixa; `*trecho*` pode cruzar linhas), `content.lines` + `content.layout` (linhas prontas de `ajustarHeadlineCopia`, uma por linha de base, centro único da A4) e `content.emoji` (recorte do próprio quadro, tamanho original). Mede a linha no canvas do Chrome, como a S4/G0.
+- **Build:** `buildHeadlineInput` em `replace` usa `spec.look`. `box`: base = campeão, máscara = a caixa exata (sem pad). `loose`: base = placa (`opts.plateUrl`), áudio = campeão, `placaComoBase: true`. Sem `look` = `HEADLINE_PENDING`; medida reprovada = `HEADLINE_LOW_CONFIDENCE`; `too_long` = `HEADLINE_TOO_LONG`; `too_short`/`over_chin` = `HEADLINE_NO_FIT`. Isento de `protectedBands` (§15.5.4 item 7).
+- **A8:** `calibrarY` (posprocesso) mede `render − placa` em 3 quadros do trecho, fora das camadas, e aplica `lutyuv` só no render; ± 4 no máximo, senão `RENDER_ERROR`. Na VPS, peça solta: mediana peça − placa dentro da máscara = 0,0.
+- **Medido (VPS Debian 12, 4 vCPU, chrome-headless-shell do Remotion, ffmpeg 5.1, `RENDER_FRAMES_CONCURRENCY=1`, bundle pronto):**
+
+| peça | quadros | render + composição | pico RSS (Node + Chrome + ffmpeg) |
+|---|---|---|---|
+| solto 464×832 | 240 (8 s) | 41-44 s | 1,72 GB |
+| 02 716×1278 | 258 (8,6 s) | 74 s | 1,74 GB |
+| 05 720×1280 | 251 (8,4 s) | 67 s | 1,76-2,04 GB |
+| 06 720×960 | 395 (13,2 s) | 102-148 s | 1,63-1,88 GB |
+
+  Numa 1ª rodada com a máquina dividida com outros agentes, os mesmos renders levaram 75-369 s com o mesmo pico. Estimativa, sem render de 30 s: 30 s a 720p ≈ 4-6 min nesse ritmo; o pico de memória não variou com a duração (8-13 s). Prova: `api/src/render/copia-real.ts` + `research_notes/v3-2026-11-06/` (`scripts/fixtures.py`, `scripts/conferir.py`, `conferencia.json`, `folha-v3.png`).

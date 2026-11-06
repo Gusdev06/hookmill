@@ -1,0 +1,244 @@
+[
+ {
+  "nome": "solto-mesmas",
+  "caso": "solto",
+  "kind": "loose",
+  "peca": "/tmp/v3/pecas/solto-mesmas.mp4",
+  "campeao": "/tmp/v3/fixt/solto.mp4",
+  "placa": "/tmp/v3/medida/placas/solto.mp4",
+  "quadros": 240,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 161,
+  "render_s": 44.324,
+  "pico_rss_MB": 1720,
+  "mascara": [
+   {
+    "x": 78,
+    "y": 533,
+    "w": 310,
+    "h": 63
+   },
+   {
+    "x": 70,
+    "y": 526,
+    "w": 330,
+    "h": 82
+   }
+  ],
+  "linhas": [
+   "How to view your man’s",
+   "recent following on IG"
+  ],
+  "fonte": "inter-600",
+  "tamanho": 25.63
+ },
+ {
+  "nome": "solto-novo",
+  "caso": "solto",
+  "kind": "loose",
+  "peca": "/tmp/v3/pecas/solto-novo.mp4",
+  "campeao": "/tmp/v3/fixt/solto.mp4",
+  "placa": "/tmp/v3/medida/placas/solto.mp4",
+  "quadros": 240,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 161,
+  "render_s": 40.593,
+  "pico_rss_MB": 1721,
+  "mascara": [
+   {
+    "x": 76,
+    "y": 533,
+    "w": 314,
+    "h": 63
+   },
+   {
+    "x": 70,
+    "y": 526,
+    "w": 330,
+    "h": 82
+   }
+  ],
+  "linhas": [
+   "Tired of scrolling his",
+   "endless following list?"
+  ],
+  "fonte": "inter-600",
+  "tamanho": 25.63
+ },
+ {
+  "nome": "c02-mesmas",
+  "caso": "c02",
+  "kind": "box",
+  "peca": "/tmp/v3/pecas/c02-mesmas.mp4",
+  "campeao": "/tmp/v3/fixt/c02.mp4",
+  "placa": null,
+  "quadros": 258,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 198,
+  "render_s": 74.081,
+  "pico_rss_MB": 1738,
+  "mascara": [
+   {
+    "x": 0,
+    "y": 0,
+    "w": 716,
+    "h": 246
+   }
+  ],
+  "linhas": [
+   "Si en 2 minutos no te",
+   "busca, *es porque",
+   "nunca fue para ti..*"
+  ],
+  "fonte": "tiktok-sans-600",
+  "tamanho": 66.04
+ },
+ {
+  "nome": "c02-novo",
+  "caso": "c02",
+  "kind": "box",
+  "peca": "/tmp/v3/pecas/c02-novo.mp4",
+  "campeao": "/tmp/v3/fixt/c02.mp4",
+  "placa": null,
+  "quadros": 258,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 198,
+  "render_s": 73.929,
+  "pico_rss_MB": 1746,
+  "mascara": [
+   {
+    "x": 0,
+    "y": 0,
+    "w": 716,
+    "h": 246
+   }
+  ],
+  "linhas": [
+   "Si en 7 días no",
+   "vuelve a escribirte,",
+   "*nunca fue para ti..*"
+  ],
+  "fonte": "tiktok-sans-600",
+  "tamanho": 66.04
+ },
+ {
+  "nome": "c05-mesmas",
+  "caso": "c05",
+  "kind": "box",
+  "peca": "/tmp/v3/pecas/c05-mesmas.mp4",
+  "campeao": "/tmp/v3/fixt/c05.mp4",
+  "placa": null,
+  "quadros": 251,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 191,
+  "render_s": 66.713,
+  "pico_rss_MB": 1759,
+  "mascara": [
+   {
+    "x": 0,
+    "y": 586,
+    "w": 628,
+    "h": 220
+   }
+  ],
+  "linhas": [
+   "If he doesn't call you",
+   "within two minutes,",
+   "I’ll pay you $50"
+  ],
+  "fonte": "tiktok-sans-500",
+  "tamanho": 60.07
+ },
+ {
+  "nome": "c05-novo",
+  "caso": "c05",
+  "kind": "box",
+  "peca": "/tmp/v3/pecas/c05-novo.mp4",
+  "campeao": "/tmp/v3/fixt/c05.mp4",
+  "placa": null,
+  "quadros": 251,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 191,
+  "render_s": 66.997,
+  "pico_rss_MB": 2042,
+  "mascara": [
+   {
+    "x": 0,
+    "y": 586,
+    "w": 628,
+    "h": 220
+   }
+  ],
+  "linhas": [
+   "If he doesn't text",
+   "you back within an",
+   "hour, I’ll pay you $50"
+  ],
+  "fonte": "tiktok-sans-500",
+  "tamanho": 60.07
+ },
+ {
+  "nome": "c06-mesmas",
+  "caso": "c06",
+  "kind": "box",
+  "peca": "/tmp/v3/pecas/c06-mesmas.mp4",
+  "campeao": "/tmp/v3/fixt/c06.mp4",
+  "placa": null,
+  "quadros": 395,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 335,
+  "render_s": 102.014,
+  "pico_rss_MB": 1877,
+  "mascara": [
+   {
+    "x": 0,
+    "y": 529,
+    "w": 481,
+    "h": 130
+   }
+  ],
+  "linhas": [
+   "Él ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te busca, dime mentirosa"
+  ],
+  "fonte": "tiktok-sans-500",
+  "tamanho": 33.76
+ },
+ {
+  "nome": "c06-novo",
+  "caso": "c06",
+  "kind": "box",
+  "peca": "/tmp/v3/pecas/c06-novo.mp4",
+  "campeao": "/tmp/v3/fixt/c06.mp4",
+  "placa": null,
+  "quadros": 395,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 335,
+  "render_s": 148.131,
+  "pico_rss_MB": 1625,
+  "mascara": [
+   {
+    "x": 0,
+    "y": 529,
+    "w": 481,
+    "h": 130
+   }
+  ],
+  "linhas": [
+   "¿Ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te escribe, dime mentirosa"
+  ],
+  "fonte": "tiktok-sans-500",
+  "tamanho": 31.4
+ }
+]

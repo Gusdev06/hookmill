@@ -1,0 +1,128 @@
+{
+ "version": 2,
+ "kind": "loose",
+ "layerId": "headline-1",
+ "startFrame": 0,
+ "endFrame": 161,
+ "box": null,
+ "radiusPx": 0,
+ "plate": null,
+ "plateRef": {
+  "kind": "HEADLINE",
+  "layerKey": "headline-1",
+  "version": 0
+ },
+ "emoji": {
+  "char": "👀",
+  "image": "data:image/png;base64,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",
+  "x": 357,
+  "y": 566,
+  "w": 31,
+  "h": 28,
+  "lineIndex": 1,
+  "side": "end",
+  "gapPx": 8,
+  "marginLeftPx": 2,
+  "solidity": 0.792
+ },
+ "text": {
+  "lines": [
+   "How to view your man’s",
+   "recent following on IG"
+  ],
+  "textBox": {
+   "x": 82,
+   "y": 538,
+   "w": 304,
+   "h": 58
+  },
+  "firstBaselineY": 556.5,
+  "linePitchPx": 33.5,
+  "sizePx": 25.63,
+  "letterSpacingEm": 0,
+  "align": "center",
+  "caseStyle": "sentence",
+  "color": "#fdfbf5",
+  "stroke": null,
+  "shadow": null,
+  "stemPx": 2.38
+ },
+ "emphasis": null,
+ "font": {
+  "fontId": "inter-600",
+  "corr": 0.7578,
+  "stemErr": 0.1206,
+  "widthErr": 0.017,
+  "tier": "close",
+  "measuredIn": "chrome-linux"
+ },
+ "fit": {
+  "kind": "loose",
+  "canvas": {
+   "width": 464,
+   "height": 832
+  },
+  "fontId": "inter-600",
+  "sizePx": 25.63,
+  "letterSpacingEm": 0,
+  "linePitchPx": 33.5,
+  "firstBaselineY": 556.5,
+  "align": "center",
+  "centerX": 233,
+  "caseStyle": "sentence",
+  "originalLines": [
+   {
+    "chars": 22,
+    "widthPx": 294
+   },
+   {
+    "chars": 22,
+    "widthPx": 269
+   }
+  ],
+  "erasedRects": [
+   {
+    "x": 86,
+    "y": 538,
+    "w": 294,
+    "h": 24
+   },
+   {
+    "x": 82,
+    "y": 571,
+    "w": 269,
+    "h": 25
+   }
+  ],
+  "bottomLimitY": 603,
+  "chinY": null,
+  "sideMarginPx": 23,
+  "emoji": {
+   "widthPx": 27,
+   "gapPx": 8,
+   "lineIndex": 1,
+   "side": "end"
+  },
+  "box": null
+ },
+ "verdict": {
+  "ok": true,
+  "reason": null,
+  "gates": {
+   "transicao_max": 0,
+   "temporal_p99": 3.3,
+   "px_letra": 3015,
+   "luz_letra": 250,
+   "emoji_ocupa": 0.677,
+   "emoji_solidez": 0.792,
+   "emoji_lobulos": 2,
+   "sombra_err_sem": 14.18,
+   "sombra_err_com": 14.18,
+   "distancia_legenda": 10,
+   "folga_legenda": 7,
+   "rosto_frac": 0,
+   "font_corr": 0.7578,
+   "font_candidatas": 5
+  }
+ }
+}

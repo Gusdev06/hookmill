@@ -1,7 +1,7 @@
 // Contrato do módulo render (maquina-video). docs/contratos/estrutura.md §2.2 + feature-2-variar-campeao.md §13.6.
 // Só o maquina-arquiteto muda o contrato; o backend importa os tipos daqui.
 import type { AutoVariationType, EndcardVariant, Rect, TextStyle } from '@maquina/contratos';
-import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, RemixKeepProps, ResolvedLayer, TemplateProps } from '@maquina/video';
+import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, RemixKeepProps, RemixTextLayer, RemixTextStyle, ResolvedLayer, TemplateProps } from '@maquina/video';
 
 /** Criativo do zero (templates clean/bold/headline). `kind` opcional: ausente = scratch (compatível com o v1). */
 export interface ScratchRenderInput {
@@ -42,6 +42,10 @@ export interface RemixKeepRenderInput {
   /** §13.15.4 (B) ENGINE_VOICE: áudio = campeão com cada span [start, end) trocado pela voz do arquivo `url` (do instante 0
    *  dele, cortada no tamanho do span), crossfade de `fadeMs` (10) nas bordas, AAC 192 kbps. Ausente = -c:a copy. */
   audioSplice?: { spans: { startFrame: number; endFrame: number; url: string }[]; fadeMs: number };
+  /** troca-texto §16.2 A8 e §16.5 (F1b, V3): `baseVideoUrl` é a PLACA do campeão (texto antigo apagado, mesmos quadros) e não
+   *  o campeão; `audioPassthroughUrl` segue o campeão. O compositor calibra o Y do render contra a placa (3 quadros do
+   *  intervalo, mediana fora da tinta, limite ± 4, fora disso RENDER_ERROR) e corrige só o render. Ausente = false. */
+  placaComoBase?: boolean;
   overlays: { startFrame: number; endFrame: number; region: Rect;          // [start, end) na grade do campeão
               clipUrl: string; clipOffsetSec: number;                      // instante do clipe no startFrame
               crop: Rect }[];                                              // px do clipe (fitCrop), escalado pra region
@@ -49,11 +53,14 @@ export interface RemixKeepRenderInput {
                 /** solid/pill: pinta a caixa inteira antes do texto. color = hex, ou `linear-gradient(...)` CSS quando a
                  *  faixa medida é um degradê (MediaAnalysisService.solidBackground) */
                 /** radius (25/10, headline-e-legenda-v1 §1.3): cantos do `solid` em px (placa sobre o vídeo); ausente = 0 */
-                background: { kind: 'solid' | 'pill' | 'none'; color: string | null; box: Rect | null; radius?: number };
+                /** image (F1b, V3): imagem 2D medida da caixa original (data URI), esticada em `box`; a máscara é `box` exato */
+                background: { kind: 'solid' | 'pill' | 'none'; color: string | null; box: Rect | null; radius?: number; image?: string };
                 /** highlightBackground (opcional, §13.15): caixa atrás da palavra atual do karaokê (estilo "palavra na
                  *  pílula roxa"). Ainda não existe no TextStyle do @maquina/contratos: o arquiteto decide se sobe pra lá. */
-                style: TextStyle & { highlightBackground?: string | null };
-                content: { kind: 'static'; text: string }
+                /** letterSpacingEm, shadowDetail, emphasis (F1b, V3, troca-texto §14.5): cópia da headline medida */
+                style: TextStyle & { highlightBackground?: string | null } & Pick<RemixTextStyle, 'letterSpacingEm' | 'shadowDetail' | 'emphasis'>;
+                /** lines + layout + emoji (F1b, V3): linhas prontas de `ajustarHeadlineCopia`, por linha de base, sem reajuste */
+                content: { kind: 'static'; text: string } & Pick<Extract<RemixTextLayer['content'], { kind: 'static' }>, 'lines' | 'layout' | 'emoji'>
                        | { kind: 'karaoke'; words: { word: string; startFrame: number; endFrame: number }[]; wordsPerPage: number } }[];
 }
 

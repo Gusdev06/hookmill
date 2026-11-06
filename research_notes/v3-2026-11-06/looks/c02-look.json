@@ -1,0 +1,119 @@
+{
+ "version": 2,
+ "kind": "box",
+ "layerId": "headline-1",
+ "startFrame": 0,
+ "endFrame": 198,
+ "box": {
+  "x": 0,
+  "y": 0,
+  "w": 716,
+  "h": 246
+ },
+ "radiusPx": 0,
+ "plate": {
+  "color": "#033a7d",
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAeCAIAAADINCUsAAAEUUlEQVRYw+VZC5bjKAx0eTjVXm3v7poGJJBAYCeTmTe9m87rxp84UJRKJTV+/PPvYV/wIx7jaz7zHV4cFpcPMNxzHv+bF+5uSK9tO/8rQOAJFtGq8Y2BQLAg4BEvGOFG3hPsr9t+vMgMhLwgQprcwsEPxe1bCODBXdjPII2L4ZtTfRxAJDfY4K2AH/JD+BA5jfWEk3sQP6+bNDDHK+R0O7BLinJ1ypINgwgM1JPoH0bfFdbZpT+RIywT7BhO0OxMQtbD0HyHgr+vn9ar+Rfzl6DNhk0vfmuCaItn+XnECDLgBgJ0+uLkcosEWCFB/wG6/NFrYRq2hh/GgSuVYKgCpK6DWbmwzIMuDjwQwA4FE2cNENmANAfwx+BgVwovF9Goz15QGMG4B8IxBYYuDQj3wfx4yu9ymFaKzV+EoMdEl6gFGax+1VW0vzZW6KTzmFcOA8cIBCYVKSBUIOoXrX3nCwQxAjTnj3xxiA+uQYR8AnVkcCmz1RNwqHggPDwVCLhbBQoNjvI1GY70C4JIlyx5oxevWBRUTlmG1PQicLi4aot2W69i0dOHpwVYc4luOoH0viKyTNikicmd8oFF8XUPA1OSOUHnk9DwwdF2HzjGNRcUwixbz1U4KhrY1Ga3QAj5yaUaPlCUOLfAo9FOZ0zqXpfDs28/NBxsNnWGY+HKRTwLKOkdYSyMMEDwbX2Nr3EQcAysk9OXtF+aJABxxdFTEqIanMKR9H6O+Ixb5YMSs1GvcnrgjSbhqfSydCDotIRBrkibBh9Gh8RIJLeg4PUshT1lPBxFTTIUFLWBZMugdrsttdO2AKy5Zs6IHFf/BjvwPHfTQWjgUPGWvA3Z/SLqQYUWWHsY1qXHjQU2FFQ1F0TZPA+2pczXGxoq+uySUbLMIYBUjhihfakBkW6nAs32JpU+AGJTVnmpX3Br6jGO9JRjXl9rvi4c5wUWBdVYyEAsbfyj3q81Z3OCYMmlHQguaYAJBZiK0jsiIbV7Hlba0u+pho/XdR0njgtnBgLU1ErdyKdwpB2PKv8qJb4GF/UwIgWm8YCCLQpE92HbTFQR7CaqJ8EiE5PpkGjJaGS7gWa5vt4nsGl/RTKVwqahC+e68gpEw2LplHzzCTyG9YtZdqawrA0dXnLEKYd/jc5eSuk0yucyGuXpp9oungeOjdHqT9BBAkJ9o2RUitPu72MjE3WNdEUk2JpKKOouO1dgguGOoRo8KaCTONpb8TH+Q0LlzH6Usg0719naW/qMdGJuNdGQ8guMi3YacecSQwdd955aRFb3bAd6fxlynU8kdnQvKgP8fyq6xwGyGy3kIyDzqRSkB8HsgZRoaWggQntLCkhEipv/I0gbrdUNmQIjEEQvFhi2a2FsTIXjKgdnHQyFMCUAK6GFgK1WiTvnVPiEadZrCQbqr/pMPClmXgCTcAzRXoNCi6g+UBQ4e17fCCTZvLCzKKZLR/0qJ98rHYRtDxSe/AQuMZXAzLukkgAAAABJRU5ErkJggg==",
+  "temporalP99": 0,
+  "translucent": false
+ },
+ "plateRef": null,
+ "emoji": null,
+ "text": {
+  "lines": [
+   "Si en 2 minutos no te",
+   "busca, es porque",
+   "nunca fue para ti.."
+  ],
+  "textBox": {
+   "x": 16,
+   "y": 24,
+   "w": 665,
+   "h": 194
+  },
+  "firstBaselineY": 72.5,
+  "linePitchPx": 67,
+  "sizePx": 66.04,
+  "letterSpacingEm": 0,
+  "align": "center",
+  "caseStyle": "sentence",
+  "color": "#f3fbfc",
+  "stroke": null,
+  "shadow": null,
+  "stemPx": 6.64
+ },
+ "emphasis": {
+  "kind": "underline",
+  "thicknessPx": 5,
+  "offsetPx": 13.5,
+  "color": "#f3fbfc"
+ },
+ "font": {
+  "fontId": "tiktok-sans-600",
+  "corr": 0.8941,
+  "stemErr": 0.0115,
+  "widthErr": 0.0074,
+  "tier": "same",
+  "measuredIn": "chrome-linux"
+ },
+ "fit": {
+  "kind": "box",
+  "canvas": {
+   "width": 716,
+   "height": 1278
+  },
+  "fontId": "tiktok-sans-600",
+  "sizePx": 66.04,
+  "letterSpacingEm": 0,
+  "linePitchPx": 67,
+  "firstBaselineY": 72.5,
+  "align": "center",
+  "centerX": 349,
+  "caseStyle": "sentence",
+  "originalLines": [
+   {
+    "chars": 21,
+    "widthPx": 665
+   },
+   {
+    "chars": 16,
+    "widthPx": 541
+   },
+   {
+    "chars": 19,
+    "widthPx": 564
+   }
+  ],
+  "erasedRects": [],
+  "bottomLimitY": null,
+  "chinY": null,
+  "sideMarginPx": 16,
+  "emoji": null,
+  "box": {
+   "x": 0,
+   "y": 0,
+   "w": 716,
+   "h": 246
+  }
+ },
+ "verdict": {
+  "ok": true,
+  "reason": null,
+  "gates": {
+   "transicao_max": 0,
+   "caixa_area_rel": 1.19,
+   "caixa_quadro_rel": 0.192,
+   "caixa_chapada_p90": 12,
+   "temporal_p99": 0,
+   "sombra_err_sem": 4.66,
+   "sombra_err_com": 4.45,
+   "dilatacao": 9,
+   "halo_p99": 8,
+   "placa_bytes": 1574,
+   "folga_legenda": 11,
+   "rosto_frac": 0,
+   "font_corr": 0.8941,
+   "font_candidatas": 5
+  }
+ }
+}

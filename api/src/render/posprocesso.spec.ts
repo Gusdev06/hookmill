@@ -3,11 +3,14 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { comporSobreOCampeao, contarFrames } from './posprocesso';
+import { calibrarY, comporSobreOCampeao, contarFrames } from './posprocesso';
 import type { RemixKeepRenderInput } from './contrato';
 
 const ff = { ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg', ffprobe: process.env.FFPROBE_PATH || 'ffprobe' };
 const W = 320, H = 320, FPS = 30, N = 150;
+
+// ffmpeg real: com a suíte inteira em paralelo, um teste passa dos 5 s padrão do jest
+jest.setTimeout(30_000);
 
 describe('comporSobreOCampeao com edição de vídeo', () => {
   let dir: string, campeao: string;
@@ -88,4 +91,43 @@ describe('comporSobreOCampeao com edição de vídeo', () => {
     expect(cor(saida, 10)[0]).toBeGreaterThan(200);
     expect(Math.abs(audioSec(saida) - 2)).toBeLessThan(0.1);
   });
+
+  // troca-texto §16.2 A8 (F1b, V3): caixa copiada = máscara exata; placa de base = Y calibrado no render
+  const cinza = (nome: string, hex: string, frames: number, audio: boolean) => {
+    const f = join(dir, nome);
+    execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `color=c=${hex}:s=${W}x${H}:r=${FPS}:d=${frames / FPS}`,
+      ...(audio ? ['-f', 'lavfi', '-i', `sine=frequency=440:duration=${frames / FPS}`, '-c:a', 'aac', '-shortest'] : []), '-c:v', 'libx264', '-crf', '0', '-pix_fmt', 'yuv420p', f]);
+    return f;
+  };
+  const yDe = (f: string, frame: number, x: number, yy: number) => execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', f,
+    '-vf', `select=eq(n\\,${frame}),format=gray,crop=4:4:${x}:${yy},scale=1:1:flags=area`, '-frames:v', '1', '-f', 'rawvideo', '-'])[0];
+  const camadaTexto = (o: Partial<RemixKeepRenderInput['textLayers'][number]>): RemixKeepRenderInput['textLayers'][number] => ({
+    id: 'headline-nova', startFrame: 0, endFrame: 30, box: { x: 100, y: 100, w: 40, h: 40 }, background: { kind: 'none', color: null, box: null },
+    style: { fontId: 'inter-600', uppercase: false, fontSizePx: 30, lineHeight: 1.2, color: '#fff', highlightColor: null, strokeColor: null, strokeWidthPx: 0, shadow: false, align: 'center' },
+    content: { kind: 'static', text: 'x' }, ...o,
+  });
+  it('caixa com imagem medida: a máscara é a caixa exata, sem o pad de 4 px', async () => {
+    const base = cinza('b-caixa.mp4', '0x666666', 60, true);
+    const saida = join(dir, 'caixa-exata.mp4');
+    const camada = camadaTexto({ background: { kind: 'solid', color: '#000', box: { x: 100, y: 100, w: 60, h: 60 }, image: 'data:image/png;base64,' } });
+    await comporSobreOCampeao(ff, { ...input(60), baseVideoUrl: base, audioPassthroughUrl: base, textLayers: [camada] }, cinza('m-caixa.mp4', '0xBCBCBC', 60, false), saida);
+    const ref = yDe(base, 10, 10, 10);
+    expect(yDe(saida, 10, 120, 120) - ref).toBeGreaterThan(60);                 // dentro da caixa: render
+    expect(Math.abs(yDe(saida, 10, 95, 120) - ref)).toBeLessThanOrEqual(1);     // 1-5 px fora: base (antes, o pad pintava)
+    expect(Math.abs(yDe(saida, 10, 161, 120) - ref)).toBeLessThanOrEqual(1);
+   }, 30_000);
+  it('A8: render 2 Y abaixo da placa = +2 só no render; fora de ± 4 = RENDER_ERROR', async () => {
+    const placa = cinza('placa.mp4', '0x666666', 60, false);
+    const camp = cinza('camp-a8.mp4', '0x666666', 60, true);
+    const mudo = cinza('m-a8.mp4', '0x646464', 60, false);       // 0x66 − 2: o OffthreadVideo escurece a placa
+    const i8: RemixKeepRenderInput = { ...input(60), baseVideoUrl: placa, audioPassthroughUrl: camp, placaComoBase: true, textLayers: [camadaTexto({})] };
+    expect(await calibrarY(ff, i8, mudo)).toBe(2);   // antes de compor: o compositor apaga o mudo
+    const saida = join(dir, 'a8.mp4');
+    await comporSobreOCampeao(ff, i8, mudo, saida);
+    const ref = yDe(placa, 10, 10, 10);
+    expect(Math.abs(yDe(saida, 10, 110, 110) - ref)).toBeLessThanOrEqual(1);   // dentro da máscara, corrigido
+    expect(Math.abs(yDe(saida, 10, 250, 250) - ref)).toBeLessThanOrEqual(1);   // fora: a placa
+    expect(Math.abs(audioSec(saida) - 2)).toBeLessThan(0.1);
+    await expect(calibrarY(ff, i8, cinza('m-a8-ruim.mp4', '0x5A5A5A', 60, false))).rejects.toThrow(/A8/);
+   }, 30_000);
 });

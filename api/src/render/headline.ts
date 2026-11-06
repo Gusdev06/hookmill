@@ -2,14 +2,16 @@
  * headline-e-legenda-v1 §1.3: buildHeadlineInput(spec, ctx) → RemixKeepRenderInput. Função PURA do maquina-video (como o
  * buildFrameInput): a headline nova por cima do campeão no render `remix-keep` (mesmo corte, mesmo áudio, mesmo quadro;
  * a API compõe sobre o campeão decodificado com máscara na caixa nova).
- * - `replace`: `HEADLINE_PENDING` (troca-texto-queimado-v1 §15.3, F1a). A placa saiu e a caixa volta com a medida nova, no F1b.
+ * - `replace` (troca-texto §16.6 V3): cópia da headline medida (`spec.look`). `box` = imagem 2D da caixa original + texto
+ *   novo por linha de base, máscara = a caixa; `loose` = a placa do campeão (texto antigo apagado, `opts.plateUrl`) como base,
+ *   texto novo e emoji recortado por cima, com A8. Sem `look` = `HEADLINE_PENDING` (F1a). Isento de `protectedBands` (§15.5.4.7).
  * - `add` (campeão sem headline): faixa na cor da marca no topo da área segura, Montserrat 800 caixa alta centralizada;
  *   cobrindo o rosto em > 10 % dos frames desce pra logo abaixo dele; ainda colidindo = `HEADLINE_NO_ROOM`.
  * Texto até 3 linhas, tamanho entre 80 % e 100 %; não coube = `HEADLINE_TOO_LONG`. Destaque: *trecho* = `highlight`.
  * Legenda automática (`captionsAuto`, §2.2): camada karaokê embaixo, nunca na faixa nova.
  */
-import type { EditLayer, EditMap, Rect } from '@maquina/contratos';
-import { SAFE_AREA, contraste, faixasProtegidasDe, faixasProtegidasNaSaidaRemix, medirTexto, rostoPrincipal, semEspaco, tokensDoTexto, type CaptionsAuto, type FrameFontKey } from '@maquina/video';
+import type { EditLayer, EditMap, HeadlineLook, Rect } from '@maquina/contratos';
+import { SAFE_AREA, ajustarHeadlineCopia, contraste, faixasProtegidasDe, faixasProtegidasNaSaidaRemix, larguraCopia, medirTexto, rostoPrincipal, semEspaco, tintaCopia, tokensDoTexto, type CaptionsAuto, type FrameFontKey, type HeadlineFitLook } from '@maquina/video';
 import type { HeadlineSpec } from '../integracoes/contrato';
 import type { AutoEditContext } from './auto-edit';
 import type { RemixKeepRenderInput } from './contrato';
@@ -19,8 +21,11 @@ import { CaptionProtectedError, type OpcoesDeBuild } from './frame';
 export type { HeadlineSpec };
 
 export class HeadlineError extends Error {
-  constructor(public readonly code: 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE' | 'HEADLINE_PENDING', msg: string) { super(`${code}: ${msg}`); }
+  constructor(public readonly code: 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_FIT' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE' | 'HEADLINE_PENDING', msg: string) { super(`${code}: ${msg}`); }
 }
+
+/** Opções do build da headline. `plateUrl` (F1b): placa do campeão (`champion_plates`, READY), URL que o render lê; só `loose`. */
+export interface OpcoesHeadline extends OpcoesDeBuild { plateUrl?: string | null }
 
 type TextLayer = RemixKeepRenderInput['textLayers'][number];
 type Estilo = TextLayer['style'];
@@ -101,7 +106,7 @@ export function quadrosDoCampeao(src: { fps: number; durationSec: number }, m: P
   return Math.max(1, Math.round(src.durationSec * src.fps));
 }
 
-export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opts: OpcoesDeBuild = {}): RemixKeepRenderInput {
+export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opts: OpcoesHeadline = {}): RemixKeepRenderInput {
   const src = ctx.source;
   const W = src.width, H = src.height, fps = src.fps;
   const m = ctx.editMap;
@@ -112,10 +117,22 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
   const texto = marcarDestaque(spec.text.trim(), spec.highlight);
   const camadas: TextLayer[] = [];
   let caixaNova: Rect;
+  let baseVideoUrl = src.videoUrl;
+  let placaComoBase = false;
+  let copia = false;
 
   if (spec.mode === 'replace') {
-    // troca-texto-queimado-v1 §15.3 (F1a): nada cobre o texto original. Sem placa e sem caixa com a medida antiga até o F1b.
-    throw new HeadlineError('HEADLINE_PENDING', 'a headline deste vídeo ainda não pode ser refeita');
+    // troca-texto §15.3 (F1a): sem medida, nada cobre o texto original
+    if (!spec.look) throw new HeadlineError('HEADLINE_PENDING', 'a headline deste vídeo ainda não pode ser refeita');
+    const c = camadaDaCopia(spec, spec.look, { W, H, frameCount });
+    if (c.look.kind === 'loose') {
+      if (!opts.plateUrl) throw new HeadlineError('HEADLINE_PENDING', 'placa do texto solto ainda não está pronta');
+      baseVideoUrl = opts.plateUrl;
+      placaComoBase = true;
+    }
+    camadas.push(c.camada);
+    caixaNova = c.camada.background.box ?? c.camada.box;
+    copia = true;
   } else {
     // add: faixa na cor da marca no topo da área segura (H3)
     const fmt = Math.abs(W / H - 9 / 16) < 0.02 ? 'VERTICAL_9_16' : Math.abs(W / H - 4 / 5) < 0.02 ? 'PORTRAIT_4_5' : 'SQUARE_1_1';
@@ -160,7 +177,8 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
   const protegidas = faixasProtegidasDe(m as never, src);
   // remix-keep mantém o quadro inteiro do campeão: não dá pra recortar a legenda; 'replace' forçado = CAPTION_PROTECTED
   if (opts.captionMode === 'replace' && protegidas.length) throw new CaptionProtectedError('no_room', [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }]);
-  const cruzou = protegidas.find((b) => cruza(caixaNova, b));
+  // cópia (box ou loose): não pinta fora do texto antigo + o novo, e o novo respeita `bottomLimitY` (§15.5.4 item 7)
+  const cruzou = copia ? undefined : protegidas.find((b) => cruza(caixaNova, b));
   if (cruzou) throw new HeadlineError('HEADLINE_NO_ROOM', `a headline nova cruza a legenda queimada (y ${cruzou.y}-${cruzou.y + cruzou.h})`);
 
   // legenda automática (§2.2): karaokê embaixo, acima da área segura, nunca na faixa nova; com legenda queimada, não entra
@@ -187,9 +205,120 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
   return {
     kind: 'remix-keep', renderId: ctx.renderId, templateId: 'remix-keep',
     canvas: { width: W, height: H, fps, frameCount },
-    baseVideoUrl: src.videoUrl, audioPassthroughUrl: src.videoUrl, overlays: [], textLayers: camadas, language: spec.language,
+    baseVideoUrl, audioPassthroughUrl: src.videoUrl, overlays: [], textLayers: camadas, language: spec.language,
+    ...(placaComoBase && { placaComoBase: true }),
     ...(protegidas.length && { outputProtectedBands: faixasProtegidasNaSaidaRemix(protegidas, { width: W, height: H, fps, frameCount }) }),
     // editor universal F-U2: auto reframe numa caixa nova (a composição ignora)
     ...(rostoHint && { faceHint: { x: rostoHint.cx - rostoHint.w / 2, y: rostoHint.cy - rostoHint.h / 2, w: rostoHint.w, h: rostoHint.h } }),
   };
+}
+
+// ───────── cópia da headline (troca-texto §14.4, §15.5, §16.2 A4, §16.6 V3) ─────────
+
+/** `*trecho*` nas linhas prontas: o `highlight` (1ª ocorrência, sem caixa) pode cruzar linhas. Ausente = sem marca. */
+export function marcarDestaqueNasLinhas(linhas: string[], highlight: string | null): string[] {
+  const h = highlight?.replace(/\*/g, '').trim().replace(/\s+/g, ' ');
+  if (!h) return linhas;
+  const junto = linhas.join(' ');
+  const i = junto.toLocaleLowerCase().indexOf(h.toLocaleLowerCase());
+  if (i < 0) return linhas;
+  const j = i + h.length;
+  let ini = 0;
+  return linhas.map((l) => {
+    const a = ini, b = ini + l.length;
+    ini = b + 1;
+    const s0 = Math.max(a, i), s1 = Math.min(b, j);
+    if (s1 <= s0) return l;
+    const ab = s0 === i ? '*' : '', fe = s1 === j ? '*' : '';
+    // trecho que continua na linha seguinte: fecha na próxima (o `*` vale entre linhas)
+    return l.slice(0, s0 - a) + ab + l.slice(s0 - a, s1 - a) + fe + l.slice(s1 - a);
+  });
+}
+
+/** Linha do emoji no texto novo (mesma regra de `ajustarHeadlineCopia`): última → última, primeira → primeira. */
+const linhaDoEmojiNova = (fit: HeadlineFitLook, lineIndex: number, k: number) => {
+  const n0 = fit.originalLines.length;
+  if (lineIndex >= n0 - 1) return k - 1;
+  if (lineIndex <= 0) return 0;
+  return Math.min(lineIndex, k - 1);
+};
+
+/** Âncora x das linhas (A4: centro único; `left`/`right` pela borda), a mesma de `ajustarHeadlineCopia`. */
+const ancoraDaCopia = (fit: HeadlineFitLook) => {
+  const side = fit.sideMarginPx;
+  const L = fit.box ? fit.box.x + side : side, R = fit.box ? fit.box.x + fit.box.w - side : fit.canvas.width - side;
+  if (fit.align === 'center') return fit.centerX ?? (fit.box ? fit.box.x + fit.box.w / 2 : fit.canvas.width / 2);
+  const er = fit.erasedRects;
+  if (fit.align === 'left') return !fit.box && er.length ? Math.min(...er.map((r) => r.x)) : L;
+  return !fit.box && er.length ? Math.max(...er.map((r) => r.x + r.w)) : R;
+};
+
+/** Caixa que cresce (degrau `grow`, §14.4): pra baixo se encosta no topo, pra cima se encosta embaixo, senão os dois. */
+const caixaCrescida = (b: Rect, grow: number, H: number): Rect => {
+  if (grow <= 0) return b;
+  const encosta = 0.02 * H;
+  const cima = b.y <= encosta ? 0 : b.y + b.h >= H - encosta ? grow : grow / 2;
+  return { x: b.x, y: Math.round(b.y - cima), w: b.w, h: b.h + grow };
+};
+
+/** A camada `remix-keep` da cópia. Pura: a medida (`look`) e o texto novo decidem tudo; o render não reajusta. */
+export function camadaDaCopia(spec: Pick<HeadlineSpec, 'text' | 'highlight'>, look: HeadlineLook, g: { W: number; H: number; frameCount: number }): { camada: TextLayer; look: HeadlineLook; fit: ReturnType<typeof ajustarHeadlineCopia> } {
+  if (!look.verdict.ok) throw new HeadlineError('HEADLINE_LOW_CONFIDENCE', `medida reprovada: ${look.verdict.reason ?? 'sem motivo'}`);
+  const fitLook = look.fit as unknown as HeadlineFitLook;
+  if (Math.abs(fitLook.canvas.width - g.W) > 1 || Math.abs(fitLook.canvas.height - g.H) > 1) {
+    throw new HeadlineError('HEADLINE_LOW_CONFIDENCE', `medida em ${fitLook.canvas.width}x${fitLook.canvas.height}, vídeo em ${g.W}x${g.H}`);
+  }
+  if (look.kind === 'box' && (!look.box || !look.plate)) throw new HeadlineError('HEADLINE_LOW_CONFIDENCE', 'caixa sem imagem medida');
+  const texto = spec.text.replace(/\*/g, '').trim();
+  const fit = ajustarHeadlineCopia(fitLook, texto);
+  if (!fit.fits) {
+    if (fit.reject === 'too_long') throw new HeadlineError('HEADLINE_TOO_LONG', 'não cabe na headline copiada');
+    throw new HeadlineError('HEADLINE_NO_FIT', `${fit.reject}: E ${fit.exposure}, queixo ${fit.chinGapPx ?? '-'}`);
+  }
+  const startFrame = Math.max(0, look.startFrame), endFrame = Math.min(g.frameCount, look.endFrame);
+  if (!(endFrame > startFrame)) throw new HeadlineError('HEADLINE_LOW_CONFIDENCE', `intervalo ${look.startFrame}-${look.endFrame} fora do vídeo`);
+  const escala = fit.sizePx / fitLook.sizePx;
+  const pitch = fitLook.linePitchPx * escala;
+  const anchorX = ancoraDaCopia(fitLook);
+  const t = look.text;
+  const lines = look.emphasis ? marcarDestaqueNasLinhas(fit.lines, spec.highlight) : fit.lines;
+  const emoji = look.emoji ? {
+    image: look.emoji.image, w: look.emoji.w, h: look.emoji.h, inkWidthPx: fitLook.emoji?.widthPx ?? look.emoji.w - look.emoji.marginLeftPx,
+    topFromBaseline: look.emoji.y - (fitLook.firstBaselineY + look.emoji.lineIndex * fitLook.linePitchPx),
+    gapPx: look.emoji.gapPx, marginLeftPx: look.emoji.marginLeftPx,
+    lineIndex: linhaDoEmojiNova(fitLook, look.emoji.lineIndex, fit.lines.length), side: look.emoji.side,
+  } : undefined;
+  const style: TextLayer['style'] = {
+    fontId: look.font.fontId, uppercase: false, fontSizePx: fit.sizePx, lineHeight: pitch / fit.sizePx, color: t.color,
+    highlightColor: null, strokeColor: t.stroke?.color ?? null, strokeWidthPx: t.stroke?.px ?? 0, shadow: !!t.shadow, align: t.align,
+    letterSpacingEm: t.letterSpacingEm, shadowDetail: t.shadow ?? null, emphasis: look.emphasis ?? null,
+  };
+  // caixa da camada = tinta nova + emoji + sombra (máscara do compositor no `loose`; no `box` a máscara é a caixa)
+  const sombra = t.shadow ? Math.abs(t.shadow.dx) + Math.abs(t.shadow.dy) + 1.5 * t.shadow.blurPx : 0;
+  const folga = Math.ceil(2 + sombra + (t.stroke?.px ?? 0) + (look.emphasis?.kind === 'underline' ? Math.max(0, look.emphasis.offsetPx + look.emphasis.thicknessPx) : 0));
+  const rs = fit.lines.map((l, i) => {
+    const w = larguraCopia(look.font.fontId, l, fit.sizePx, t.letterSpacingEm);
+    const extra = emoji && emoji.lineIndex === i ? emoji.gapPx + emoji.inkWidthPx : 0;
+    const tot = w + extra;
+    const x = t.align === 'center' ? anchorX - tot / 2 : t.align === 'left' ? anchorX : anchorX - tot;
+    const base = fit.firstBaselineY + i * pitch;
+    const tin = tintaCopia(look.font.fontId, l || 'H', fit.sizePx);
+    const r = { x, y: base - Math.max(tin.top, 0.8 * fit.sizePx), w: tot, h: Math.max(tin.top, 0.8 * fit.sizePx) + Math.max(tin.bot, 0.25 * fit.sizePx) };
+    if (emoji && emoji.lineIndex === i) { const ey = base + emoji.topFromBaseline; r.y = Math.min(r.y, ey); r.h = Math.max(r.y + r.h, ey + emoji.h) - r.y; }
+    return r;
+  });
+  const x0 = Math.min(...rs.map((r) => r.x)) - folga, y0 = Math.min(...rs.map((r) => r.y)) - folga;
+  const x1 = Math.max(...rs.map((r) => r.x + r.w)) + folga, y1 = Math.max(...rs.map((r) => r.y + r.h)) + folga;
+  const box = { x: Math.max(0, Math.floor(x0)), y: Math.max(0, Math.floor(y0)), w: 0, h: 0 };
+  box.w = Math.min(g.W, Math.ceil(x1)) - box.x; box.h = Math.min(g.H, Math.ceil(y1)) - box.y;
+  const caixa = look.kind === 'box' ? caixaCrescida(look.box!, fit.boxGrowPx, g.H) : null;
+  const camada: TextLayer = {
+    id: 'headline-nova', startFrame, endFrame, box,
+    background: caixa
+      ? { kind: 'solid', color: look.plate!.color, box: caixa, image: look.plate!.image, ...(look.radiusPx ? { radius: look.radiusPx } : {}) }
+      : { kind: 'none', color: null, box: null },
+    style,
+    content: { kind: 'static', text: lines.join('\n'), lines, layout: { firstBaselineY: fit.firstBaselineY, linePitchPx: pitch, anchorX }, ...(emoji && { emoji }) },
+  };
+  return { camada, look, fit };
 }
