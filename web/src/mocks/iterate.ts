@@ -26,6 +26,7 @@ import type { PieceHeadline, WaitingBatchRef } from "@/lib/api/types"
 import { db, mockArt, mockId, MOCK_VIDEO, save as saveDb } from "./db"
 import { entryOf as editorEntryU, pieceEditorView } from "./editor-universal"
 import { blobUrl } from "./variar"
+import { COPY_TEXTS, headlineBlockedReason, headlineCopied, headlineCopyFields, headlineMockAdd, headlineNeedsPlate } from "./headline-f1b"
 import { sampleLocked } from "./amostra"
 
 // ───────────── constants ─────────────
@@ -237,7 +238,7 @@ function planRows(b: MIter): Row[] {
  */
 function headlineRows(b: MIter): Row[] {
   const add = noHeadlineOf(b)
-  if (!add && !legacyFlag()) return []
+  if (!add && !legacyFlag() && !headlineCopied()) return []
   return HEADLINES.slice(0, add ? 2 : 3).map((_, i): Row => add
     ? ["HEADLINE", "add", "Adds a headline band in the brand color. The rest of the video stays the same.", "Põe uma faixa de headline na cor da marca. O resto do vídeo fica igual.", i]
     : ["HEADLINE", "replace", "Only the headline changes: same place, same style. Cuts, voice and framing stay.", "Só a headline muda: mesmo lugar, mesmo estilo. Cortes, voz e enquadramento ficam.", i])
@@ -467,7 +468,8 @@ function insightOf(b: MIter, status: IterateStatus): AutoInsight | null {
         { type: "FRAME" as const, template: "question_box" as const, reason: "burned_captions" as const },
       ]
     : []
-  const headlineBlocked = noHeadlineOf(b) || legacyFlag() ? null : { reason: "headline_pending", mode: "replace" }
+  // F1b (?mockheadline): copied = offered (no block); a blocked reason replaces the F1a `headline_pending`
+  const headlineBlocked = noHeadlineOf(b) || legacyFlag() || headlineCopied() ? null : { reason: headlineBlockedReason() ?? "headline_pending", mode: "replace" }
   return { blocks, why, kept, flags, swaps, captionsAuto, captionBlocked, headlineBlocked, cleanVersion: b.cleanVersion ?? undefined, ...(legacyFlag() && { captionNote: true }) } as AutoInsight
 }
 
@@ -481,8 +483,20 @@ function analysisOf(b: MIter, status: IterateStatus, now: number): IterateBatch[
   return {
     stage, step: done ? 3 : at < READING_END ? 1 : at < KEYS.length - 1 ? 2 : 3,
     progress: done ? 100 : Math.round((at / KEYS.length) * 100), etaSec: left,
-    checklist: KEYS.map((key, k) => ({ key, status: done || k < at ? "done" : k === failIdx ? "failed" : k === at && failIdx === null ? "running" : "pending" })),
+    checklist: withPlate(b, now, KEYS.map((key, k) => ({ key, status: done || k < at ? "done" : k === failIdx ? "failed" : k === at && failIdx === null ? "running" : "pending" }))),
   }
+}
+/**
+ * troca-texto-queimado-v1 §16.5 (F1b, ?mockheadline=loose|close): the old headline is erased before the plan, as the
+ * `preparing_plate` item of `stage: 'planning'`. Here it takes the first half of the planning step.
+ */
+function withPlate(b: MIter, now: number, list: IterateBatch["analysis"]["checklist"]): IterateBatch["analysis"]["checklist"] {
+  if (!headlineNeedsPlate() || noHeadlineOf(b)) return list
+  const plan = list[list.length - 1]
+  const firstHalf = ((now - b.t0) % STEP_MS) < STEP_MS / 2
+  const plate = plan.status === "running" ? (firstHalf ? "running" : "done") : plan.status === "failed" ? "done" : plan.status
+  const planning = plan.status === "running" && firstHalf ? "pending" : plan.status
+  return [...list.slice(0, -1), { key: "preparing_plate", status: plate }, { ...plan, status: planning }]
 }
 
 function errorOf(b: MIter, status: IterateStatus): IterateBatch["error"] {
@@ -574,7 +588,13 @@ function iterViewRaw(b: MIter, now: number): IterateBatch {
       // legenda-protegida §2.2: the frame cropped the burned captions out and redrew ours in the original style
       captionNote: p.frame === "meme" && burnedOf(b) && !b.cleanUploadId ? ("replaced" as const) : null,
       headline: p.type === "HEADLINE"
-        ? { mode: p.variant as PieceHeadline["mode"], original: p.variant === "add" ? null : HEADLINE_ORIGINAL, ...HEADLINES[p.n % HEADLINES.length], ...(legacyFlag() && { copy: "plate" }) }
+        ? p.variant === "replace" && headlineCopied()
+          ? (() => {
+              const [en, ptText] = COPY_TEXTS[p.n % COPY_TEXTS.length]
+              const text = L(en, ptText)
+              return { mode: "replace" as const, text, highlight: null, ...headlineCopyFields(p.n, text, status === "PLAN_READY") }
+            })()
+          : { mode: p.variant as PieceHeadline["mode"], original: p.variant === "add" ? null : HEADLINE_ORIGINAL, ...HEADLINES[p.n % HEADLINES.length], ...(legacyFlag() && { copy: "plate" }), ...(p.variant === "add" && headlineMockAdd() && { copy: "add" as const }) }
         : null,
       // ?mockcaptions=legacy: a piece made before F1a, still carrying the retired field (the web ignores it)
       ...(legacyFlag() && (p.type === "HEADLINE" || p.frame) ? { captionOverride: true } : {}),

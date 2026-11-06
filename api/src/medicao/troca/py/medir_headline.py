@@ -87,8 +87,10 @@ def intervalo(video, info, roi, ini_visao, fim_visao):
             a -= 1
 
     def trans(i, passo):
+        # transição = cobertura intermediária que AINDA muda (fade). Patamar parado não conta: no solto real da S4 o texto
+        # sai seco (0,99 → 0,28 no quadro 161) e fica em 0,28 pelas bordas estáveis da cena dentro do molde.
         n = 0
-        while i in cob and .2 < cob[i] <= COBERTURA:
+        while i in cob and .2 < cob[i] <= COBERTURA and abs(cob[i] - cob.get(i + passo, cob[i])) > .03:
             n += 1
             i += passo
         return n
@@ -367,8 +369,10 @@ def _medir_solto(ev, r, med, mn, pilha, roi, gates, texto, emojis, W, H):
         sideMarginPx=int(round(.05 * W)), erasedRects=erased,
         candidatas=[_desloca(c, rx, ry) for c in cands],
         molde=dict(roi=list(roi), brilho=BRILHO),
+        # fundo da régua = o do MÍNIMO (mesmo modelo do alvo, que vem do mínimo dos quadros); o da mediana é mais claro e
+        # engrossava a tinta da prova (vídeo real da S4: Arimo 600 com traço +15,7 %)
         ref=dict(modo="loose", rect=[int(rx), int(ry), int(rw), int(rh)], alvo=png_uri((al * 255).astype(np.uint8)),
-                 fundo=png_uri(fundo), zerar_linhas=[], zerar_colunas=zerar, stem=r2(stem, 3), linhas=meds, cor=hexa(texto_cor)),
+                 fundo=png_uri(cv2.cvtColor(fundo_min.clip(0, 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)), zerar_linhas=[], zerar_colunas=zerar, stem=r2(stem, 3), linhas=meds, cor=hexa(texto_cor)),
         emojis=len(emojis),
     )
 

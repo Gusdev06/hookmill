@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect } from "react"
 import { useFormatter, useTranslations } from "next-intl"
-import type { AutoInsight, AutoVariationType, IteratePiece, FileRef, FormatCode, FrameTemplateId, IterateBatch, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
+import type { AutoInsight, AutoVariationType, HeadlineFitStep, IteratePiece, FileRef, PieceHeadline, FormatCode, FrameTemplateId, IterateBatch, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
 import { FlowBar, type FlowStep } from "@/components/flow-bar"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useSession } from "@/components/providers/session-provider"
@@ -41,6 +41,7 @@ export function HeadlineChange({ p, compact, className }: { p: IteratePiece; com
     )
   return (
     <div className={cn("flex min-w-0 flex-col gap-1 rounded-md border border-line-soft bg-card-2 px-2.5 py-2", compact ? "text-xs" : "text-[13px]", className)}>
+      <HeadlineMarks h={h} />
       <span className="text-fg-3 [overflow-wrap:anywhere]">
         {h.original ? <s className="decoration-fg-3/60">“{h.original}”</s> : <i>{t("none")}</i>}
       </span>
@@ -50,6 +51,42 @@ export function HeadlineChange({ p, compact, className }: { p: IteratePiece; com
         <span>“{fresh}”</span>
       </span>
     </div>
+  )
+}
+
+/**
+ * troca-texto-queimado-v1 §14.1.2, §14.4, §16.5 (F1b): how the new headline is made, on the Plan and on the piece.
+ * `copy` box = the same box with new words; loose = the old text erased and redrawn in the same style; add = a new band.
+ * `fontTier: 'close'` = "Closest font" (the exact one isn't in the catalog; `far` never reaches the web, the piece isn't offered).
+ * `fitStep` = the step the text took (same / rewrap say nothing: it looks identical). Pieces from before F1b carry none of these.
+ */
+export function HeadlineMarks({ h, step, className }: { h: PieceHeadline; step?: HeadlineFitStep | null; className?: string }) {
+  const t = useTranslations("iterate.headline")
+  const copy = h.copy === "box" || h.copy === "loose" || h.copy === "add" ? h.copy : null
+  const fitStep = step === undefined ? h.fitStep ?? null : step
+  const stepShown = fitStep === "shrink" || fitStep === "grow" ? fitStep : null
+  if (!copy && h.fontTier !== "close" && !stepShown) return null
+  return (
+    <span className={cn("flex flex-wrap items-center gap-1.5", className)}>
+      {copy ? (
+        <Tag tone={copy === "add" ? "neutral" : "info"}>
+          {copy === "add" ? null : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="8" y="8" width="12" height="12" rx="2" />
+              <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+            </svg>
+          )}
+          {t(`copy.${copy}`)}
+        </Tag>
+      ) : null}
+      {h.fontTier === "close" ? (
+        <Tag tone="warn">
+          <span title={t("closestFontWhy")}>{t("closestFont")}</span>
+          <span className="sr-only">: {t("closestFontWhy")}</span>
+        </Tag>
+      ) : null}
+      {stepShown ? <Tag tone="neutral">{t(`step.${stepShown === "grow" && h.copy === "box" ? "growBox" : stepShown}`)}</Tag> : null}
+    </span>
   )
 }
 

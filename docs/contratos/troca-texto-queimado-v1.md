@@ -1061,3 +1061,4 @@ rewriteHeadlineFit(i: { workspaceId: string; batchId: string; language: string; 
 1. **AWS:** ok para G0, G1, deploy da função `hookmill-legenda` e o lote real final (~US$ 0,30) que ele vê.
 2. **Caixa 05 e 06:** aprovadas. 05 = Albert Sans 500; 06 = Montserrat 500. A régua da caixa pode nascer dessas escolhas.
 3. Bugs B1–B8 do QA do F1a: corrigir. B9 fica com o arquiteto.
+4. **Fonte da caixa: a régua decide (06/11, "sigo recomendações").** Vendo `research_notes/v2-2026-11-06/fontes-caixa-aprovada-x-regua.png`, o Gusta aceitou que a régua no Chrome escolha a fonte pelo `look` medido, em vez de fixar Montserrat/Albert Sans. Nos 3 casos da S4 ela escolhe TikTok Sans (02: corr 0,894 × 0,645; 06: 0,763 × 0,629; 05: empate 0,772 × 0,767). Substitui o item 2 acima no que diz respeito à fonte; o item 2 continua valendo como aprovação visual da caixa.

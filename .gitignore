@@ -45,3 +45,6 @@ design/exemplos-templates/
 
 # 04/11: vídeos de teste das research_notes (ex.: limpar-texto-teste) ficam fora do git
 research_notes/**/*.mp4
+
+__pycache__/
+*.pyc

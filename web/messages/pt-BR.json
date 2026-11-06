@@ -2880,7 +2880,8 @@
         "offer": "oferta",
         "proof": "prova",
         "page": "página do produto",
-        "planning": "peças e regras"
+        "planning": "peças e regras",
+        "preparing_plate": "apagando a headline antiga"
       },
       "timeLeft": "Falta",
       "canClose": "Pode fechar esta página. O plano espera você em Início › Esperando por você.",
@@ -3221,7 +3222,19 @@
     },
     "headline": {
       "none": "O campeão não tinha headline",
-      "becomes": "vira"
+      "becomes": "vira",
+      "copy": {
+        "box": "Mesma caixa, palavras novas",
+        "loose": "Texto antigo apagado, mesmo estilo",
+        "add": "Faixa de headline nova"
+      },
+      "closestFont": "Fonte mais próxima",
+      "closestFontWhy": "A fonte original não está disponível, então a headline usa a mais próxima que temos. Tamanho, peso, cor e posição ficam iguais.",
+      "step": {
+        "shrink": "Um pouco menor",
+        "grow": "Uma linha a mais",
+        "growBox": "Caixa cresce"
+      }
     },
     "captions": {
       "badge": "Legenda adicionada",
@@ -4327,7 +4340,50 @@
     "newBatch": "Novo lote",
     "anotherBatch": "Gerar outro lote com este campeão",
     "show": "Mostrar",
-    "hide": "Esconder"
+    "hide": "Esconder",
+    "headlineBlocked": {
+      "othersFine": "Os outros formatos do plano não mudam.",
+      "headline_pending": {
+        "title": "A headline deste vídeo ainda não pode ser reescrita",
+        "body": "Ela está sendo preparada do nosso lado."
+      },
+      "headline_near_caption": {
+        "title": "A headline está perto demais da legenda pra ser refeita",
+        "body": "Refazer encostaria na legenda, então ela ficou de fora."
+      },
+      "headline_font_far": {
+        "title": "Não temos fonte parecida com a desta headline",
+        "body": "Outra fonte mudaria a cara do anúncio, então ela ficou de fora."
+      },
+      "headline_plate_rejected": {
+        "title": "A headline antiga não saiu limpa",
+        "body": "Ficaria marca dela, então ela ficou de fora."
+      },
+      "headline_no_fit": {
+        "title": "Nenhuma headline nova coube no espaço do original",
+        "body": "Reescrevemos algumas vezes; cada versão saiu curta ou longa demais pro lugar, então ela ficou de fora."
+      },
+      "headline_over_face": {
+        "title": "A headline fica em cima do rosto",
+        "body": "Refazer encostaria no rosto, então ela ficou de fora."
+      },
+      "headline_moves": {
+        "title": "A headline se mexe ou muda na tela",
+        "body": "Só dá pra refazer headline parada, então ela ficou de fora."
+      },
+      "headline_low_confidence": {
+        "title": "Não conseguimos ler esta headline bem o bastante pra copiar",
+        "body": "Uma cópia errada apareceria, então ela ficou de fora."
+      },
+      "headline_aspect": {
+        "title": "O formato deste vídeo não aceita headline nova",
+        "body": "Ela ficou de fora deste plano."
+      },
+      "other": {
+        "title": "A headline deste vídeo não pode ser reescrita",
+        "body": "Ela ficou de fora deste plano."
+      }
+    }
   },
   "metaTemplates": {
     "editor": {
@@ -5442,7 +5498,11 @@
         "not_read": "Ainda não lido · ~1 min",
         "coming_soon": "Em breve",
         "not_planned": "Não entrou no plano",
-        "headline_pending": "Headline ainda não pode ser reescrita"
+        "headline_pending": "Headline ainda não pode ser reescrita",
+        "headline_near_caption": "Headline perto demais da legenda",
+        "headline_font_far": "Nenhuma fonte parecida com a da headline",
+        "headline_plate_rejected": "A headline antiga não sai limpa",
+        "headline_no_fit": "Nenhuma headline nova cabe no espaço do original"
       }
     },
     "needs": {
@@ -5507,7 +5567,8 @@
         "transcribing": "Transcrevendo a fala",
         "blocks": "Achando gancho, corpo e chamada",
         "brain": "Checando rosto, legenda e seu Cérebro",
-        "fits": "Checando se {name} encaixa e escrevendo os textos"
+        "fits": "Checando se {name} encaixa e escrevendo os textos",
+        "plate": "Apagando a headline antiga"
       },
       "canLeave": "Pode sair desta página. O template fica escolhido e o plano aparece quando você voltar.",
       "yourTemplate": "Seu template",
@@ -5589,11 +5650,31 @@
       "rule": {
         "maxChars": "Longo demais pra este template.",
         "required": "Este texto não pode ficar vazio.",
-        "invented": "Use só o que está no anúncio ou no Cérebro."
+        "invented": "Use só o que está no anúncio ou no Cérebro.",
+        "headline_too_long": "Longo demais pro espaço do original. Corte algumas palavras.",
+        "headline_too_short": "Curto demais: parte do espaço da headline antiga ficaria à mostra. Acrescente algumas palavras.",
+        "headline_over_chin": "Longo demais: chegaria no rosto. Corte algumas palavras."
       },
       "from": "de: {source}",
       "saving": "Salvando…",
-      "savedText": "Salvo"
+      "savedText": "Salvo",
+      "fit": {
+        "measuring": "Medindo…",
+        "same": "Cabe",
+        "rewrap": "Cabe, com outra quebra de linha",
+        "shrink": "Um pouco menor",
+        "grow": "Cabe com uma linha a mais",
+        "growBox": "Caixa cresce",
+        "too_long": "Longo demais pro espaço do original. Corte algumas palavras.",
+        "too_short": "Curto demais: parte do espaço da headline antiga ficaria à mostra. Acrescente algumas palavras.",
+        "over_chin": "Longo demais: chegaria no rosto. Corte algumas palavras."
+      },
+      "hardReason": {
+        "headline_near_caption": "Refazer a headline encostaria na legenda, então {name} não roda neste anúncio. Escolha outro template ou outro anúncio.",
+        "headline_font_far": "Outra fonte mudaria a cara do anúncio, então {name} não roda neste anúncio. Escolha outro template ou outro anúncio.",
+        "headline_plate_rejected": "Ficaria marca da headline antiga, então {name} não roda neste anúncio. Escolha outro template ou outro anúncio.",
+        "headline_no_fit": "Reescrevemos a headline algumas vezes e nenhuma ficou do tamanho do original: cada uma saiu curta ou longa demais. Nada foi cobrado. Escolha outro template ou outro anúncio."
+      }
     },
     "admin": {
       "eyebrow": "Admin · só a equipe do HookMill vê",

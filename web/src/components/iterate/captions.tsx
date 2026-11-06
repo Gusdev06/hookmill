@@ -207,17 +207,28 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
   )
 }
 
+/** Reasons with their own words (`captions.headlineBlocked.<reason>`); anything else gets the generic line. */
+const HEADLINE_REASONS = new Set([
+  "headline_pending", "headline_near_caption", "headline_font_far", "headline_plate_rejected", "headline_no_fit",
+  "headline_over_face", "headline_moves", "headline_low_confidence", "headline_aspect",
+])
+
 /**
- * troca-texto-queimado-v1 §15.4 (F1a): the champion has a written headline and it can't be replaced yet, so HEADLINE isn't in the
- * plan. A quiet line (nothing waits on the person, the other formats are already there), with no date.
+ * troca-texto-queimado-v1 §15.4 (F1a) and §16.5 (F1b): the champion has a written headline and it isn't redone in this plan, so
+ * HEADLINE isn't there. One quiet line with the reason (nothing waits on the person, the other formats are already there), no
+ * date and no "Generate anyway" (nothing covers burned-in text). `add` is never blocked here.
  */
-export function HeadlinePending({ batch, className }: { batch: IterateBatch; className?: string }) {
+export function HeadlineBlockedNote({ batch, className }: { batch: IterateBatch; className?: string }) {
   const t = useTranslations("captions")
-  if (headlineBlockedOf(batch)?.reason !== "headline_pending") return null
+  const blocked = headlineBlockedOf(batch)
+  if (!blocked || blocked.mode === "add") return null
+  const key = HEADLINE_REASONS.has(blocked.reason) ? blocked.reason : "other"
   return (
-    <div role="status" className={cn("flex flex-col gap-0.5 rounded-md border border-line-soft bg-card-2 px-3 py-2.5 text-[13px]", className)}>
-      <b className="font-semibold">{t("headlinePending")}</b>
-      <span className="text-fg-2">{t("headlinePendingBody")}</span>
+    <div role="status" data-reason={blocked.reason} className={cn("flex flex-col gap-0.5 rounded-md border border-line-soft bg-card-2 px-3 py-2.5 text-[13px]", className)}>
+      <b className="font-semibold">{t(`headlineBlocked.${key}.title` as never)}</b>
+      <span className="text-fg-2">
+        {t(`headlineBlocked.${key}.body` as never)} {t("headlineBlocked.othersFine")}
+      </span>
     </div>
   )
 }

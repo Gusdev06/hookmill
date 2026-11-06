@@ -8,7 +8,8 @@ import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
-import type { EditableText, InsufficientCreditsDetails, IterateBatch, IteratePiece, IterateTemplateRun } from "@/lib/api/types"
+import type { EditableText, HeadlineFitResult, InsufficientCreditsDetails, IterateBatch, IteratePiece, IterateTemplateRun, PieceHeadline } from "@/lib/api/types"
+import { useHeadlineFit } from "@/lib/headline-fit"
 import { iterateHref, templateAdHref, templateRunHref, templateSelectionHref, templatesHref } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -23,7 +24,7 @@ import { BatchError, BatchSkeleton } from "@/components/iterate/batch-screen"
 import { CleanVersionUpload } from "@/components/iterate/captions"
 import { DownloadScreen } from "@/components/iterate/download-screen"
 import { GenerateScreen } from "@/components/iterate/generate-screen"
-import { Bar, Card, HeadlineChange, IterActionBar, IterWrap, PieceKind, TemplateFlowContext, TypeThumb, pieceType, usePieceName } from "@/components/iterate/parts"
+import { Bar, Card, HeadlineChange, HeadlineMarks, IterActionBar, IterWrap, PieceKind, TemplateFlowContext, TypeThumb, pieceType, usePieceName } from "@/components/iterate/parts"
 import { UnlockDialog } from "@/components/iterate/sample"
 import { useSession } from "@/components/providers/session-provider"
 import { useErrorMessage } from "@/hooks/use-error-message"
@@ -186,6 +187,11 @@ const READ_STEPS: { key: string; keys: string[] }[] = [
   { key: "brain", keys: ["audience", "offer", "proof", "page"] },
   { key: "fits", keys: ["planning"] },
 ]
+/** troca-texto-queimado-v1 §16.5: `preparing_plate` (erasing the old headline, before the texts) only when the API sends it. */
+const readStepsOf = (checklist: { key: string }[]) =>
+  checklist.some((c) => c.key === "preparing_plate")
+    ? [...READ_STEPS.slice(0, -1), { key: "plate", keys: ["preparing_plate"] }, READ_STEPS[READ_STEPS.length - 1]]
+    : READ_STEPS
 
 function Reading({ batch, tpl }: { batch: IterateBatch; tpl: IterateTemplateRun }) {
   const t = useTranslations("adTemplates.reading")
@@ -209,7 +215,7 @@ function Reading({ batch, tpl }: { batch: IterateBatch; tpl: IterateTemplateRun 
             </div>
           </div>
           <ul className="m-0 grid list-none gap-2.5 p-0" aria-live="polite">
-            {READ_STEPS.map((s) => {
+            {readStepsOf(a.checklist).map((s) => {
               const states = s.keys.map(st)
               const done = states.every((x) => x === "done")
               const failed = states.includes("failed")
@@ -476,7 +482,13 @@ function FitBanner({ batch, tpl }: { batch: IterateBatch; tpl: IterateTemplateRu
     return (
       <div role="status" className="grid gap-2.5 rounded-lg border border-status-waiting-edge bg-status-waiting-bg p-3.5 text-status-waiting tablet:px-4">
         <b>{pending ? t("pendingTitle") : t("hardTitle", { reason: fitText(tpl.fit) ?? "" })}</b>
-        <p className="m-0 text-fg-2">{pending ? t("pendingBody", { name: tpl.name }) : t("hardBody", { name: tpl.name })}</p>
+        <p className="m-0 text-fg-2">
+          {pending
+            ? t("pendingBody", { name: tpl.name })
+            : t.has(`hardReason.${tpl.fit.reason}` as never)
+              ? t(`hardReason.${tpl.fit.reason}` as "hardReason.headline_no_fit", { name: tpl.name })
+              : t("hardBody", { name: tpl.name })}
+        </p>
         <div className="flex flex-wrap gap-2">
           <Link href={adHrefOf(tpl)} className={buttonVariants({ size: "sm" })}>
             {t("otherAd")}
@@ -586,7 +598,9 @@ function PieceTexts({ batch, p, items, index }: { batch: IterateBatch; p: Iterat
         </span>
       ) : null}
       {items.length ? (
-        items.map((x) => <TextField key={x.path} batchId={batch.id} pieceId={p.id} item={x} />)
+        items.map((x) => (
+          <TextField key={x.path} batchId={batch.id} pieceId={p.id} item={x} headline={pieceType(p) === "HEADLINE" && x.path === "text" ? p.headline ?? null : null} />
+        ))
       ) : (
         <div className="flex flex-col gap-1.5 rounded-md border border-line-soft bg-card-2 px-3 py-2.5">
           <PieceKind p={p} className="text-xs text-fg-3" />
@@ -600,8 +614,19 @@ function PieceTexts({ batch, p, items, index }: { batch: IterateBatch; p: Iterat
 
 const LABEL_KEYS = new Set(["headline", "title", "subtitle", "question", "answer", "caption", "handle", "cta", "primaryText", "pov", "body", "name", "kicker", "topic", "dek", "headline_lead", "headline_highlight"])
 
-/** Save on blur (PATCH .../texts, free). 422 TEXT_INVALID shows the rule under the field and keeps what was typed. */
-function TextField({ batchId, pieceId, item }: { batchId: string; pieceId: string; item: EditableText }) {
+/** The step / rejection of the live headline measure, in the field's helper line (§14.4: "Fits", "Slightly smaller", "Box grows"…). */
+function fitKey(r: HeadlineFitResult, h: PieceHeadline): string {
+  if (r.reject) return `fit.${r.reject}`
+  if (r.step === "grow") return h.copy === "box" ? "fit.growBox" : "fit.grow"
+  return `fit.${r.step ?? "same"}`
+}
+
+/**
+ * Save on blur (PATCH .../texts, free). 422 TEXT_INVALID shows the rule under the field and keeps what was typed.
+ * troca-texto-queimado-v1 §16.3 (F1b): a copied HEADLINE (`headline.fit`, only in PLAN_READY) is measured while typing with the same
+ * function as the API; a text that doesn't fit isn't sent (the API would answer 422 anyway) and the line says why.
+ */
+function TextField({ batchId, pieceId, item, headline = null }: { batchId: string; pieceId: string; item: EditableText; headline?: PieceHeadline | null }) {
   const t = useTranslations("adTemplates.plan")
   const qc = useQueryClient()
   const errorMessage = useErrorMessage()
@@ -638,16 +663,20 @@ function TextField({ batchId, pieceId, item }: { batchId: string; pieceId: strin
       : item.label.replace(/[._]/g, " ")
   const long = item.maxChars > 70
   const over = value.length > item.maxChars
+  const fit = useHeadlineFit(headline?.mode === "replace" ? headline.fit : null, value)
+  const measured = fit.status === "ready" ? fit.result : null
+  const misfit = !!measured && !measured.fits
   const commit = () => {
     const v = value.replace(/\s+/g, " ").trim()
-    if (!v || v === item.value || over) return
+    if (!v || v === item.value || over || misfit) return
     save.mutate(v)
   }
+  const fitLine = headline && measured && !err ? t(fitKey(measured, headline) as never) : headline && fit.status === "loading" ? t("fit.measuring") : null
   const common = {
     id,
     value,
     maxLength: item.maxChars + 20,
-    "aria-invalid": !!err || over,
+    "aria-invalid": !!err || over || misfit,
     "aria-describedby": `${id}-h`,
     onChange: (e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => {
       setValue(e.target.value)
@@ -655,15 +684,23 @@ function TextField({ batchId, pieceId, item }: { batchId: string; pieceId: strin
     },
     onBlur: commit,
   }
+  const status = err ?? (save.isPending ? t("saving") : fitLine ?? (savedAt ? t("savedText") : ""))
+  const bad = !!err || over || misfit
   return (
     <div className="grid gap-[5px]">
       <label htmlFor={id} className="flex justify-between gap-2 text-xs text-fg-3">
         <span>{label}</span>
         {item.source ? <span className="font-mono text-[10px]">{t("from", { source: item.source })}</span> : null}
       </label>
+      {headline ? <HeadlineMarks h={headline} step={null} /> : null}
       {long ? <Textarea rows={2} {...common} /> : <Input {...common} onKeyDown={(e) => (e.key === "Enter" ? (e.currentTarget.blur(), undefined) : undefined)} />}
-      <span id={`${id}-h`} className={cn("flex justify-between gap-2 text-[11px]", err || over ? "text-status-failed" : "text-fg-3")} role={err ? "alert" : undefined}>
-        <span>{err ?? (save.isPending ? t("saving") : savedAt ? t("savedText") : "")}</span>
+      <span
+        id={`${id}-h`}
+        className={cn("flex justify-between gap-2 text-[11px]", bad ? "text-status-failed" : measured?.step === "shrink" || measured?.step === "grow" ? "text-fg-2" : "text-fg-3")}
+        role={err ? "alert" : undefined}
+        aria-live={headline ? "polite" : undefined}
+      >
+        <span>{status}</span>
         <span className="font-mono tabular-nums">
           {value.length}/{item.maxChars}
         </span>

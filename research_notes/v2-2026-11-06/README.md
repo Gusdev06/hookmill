@@ -40,3 +40,21 @@ Copiar do Mac, sem symlink (`cp -L`), para `research_notes/s4-demo-2026-11-06/or
 - `fontes-caixa-aprovada-x-regua.png`: original × aprovada × escolha da régua, stills do Chrome.
 - `fixture-sintetica-resumo.json`: tudo o que o `troca-real.ts` mediu nas 4 fixtures.
 - `casos-s4.json`: casos do aceite no vídeo real.
+
+## Aceite no vídeo real (06/11, à tarde): vídeos da S4 recebidos; o Gusta decidiu que a régua escolhe a fonte
+| item | real | sintético | S4 |
+|---|---|---|---|
+| `endFrame` solto | **161** | 161 | 161 |
+| Intervalos 05 / 02 / 06 | **[0,191) / [0,198) / [0,335)** | iguais | 191 / 198 / 335 |
+| Dilatação 05 | **17** (halo 5,5) | 17 | 21 ± 4 |
+| Caixa 02 translúcida (p99) | **17,0** | 0 (fundo parado na fixture) | 17,7 |
+| Emoji: ocupa / solidez / bbox | **0,797 / 0,834 / x 357, y 568, 31×25** | 0,677 / 0,789 / 31×28 | 0,797 / 0,832 / 31×25 |
+| Fonte 05 / 02 / 06 | **TikTok Sans 500 / 600 / 500** (corr 0,772 / 0,894 / 0,763) | iguais | aceito (§16.11 item 4) |
+| Fonte solto | **Arimo 600 `close`, corr 0,819, traço +10,7 %** | Arimo 600, 0,758 | Arimo 600, 0,876 |
+| A2 fantasma (pior média / corr) | **0,46 / 0,033** | 0,16 / 0,011 | 0,5 / 0,013 |
+| Placa | **READY, 564 quadros, 4 pedaços, 23 s, 70 MB/pedaço** | 240 q, 14,7 s | 2,9 s no Mac, 1 processo |
+
+**Corrigido para o vídeo real (2 erros de medida, sem mexer em limite):**
+1. **Transição:** o solto saía `fades` com 322 quadros. O texto sai seco (cobertura 0,99 no quadro 160, 0,28 no 161) e fica em 0,28 por bordas paradas da cena dentro do molde. Agora transição é cobertura intermediária que ainda muda.
+2. **Fundo da régua do solto:** era o da mediana e o alvo vinha do mínimo. Com isso, a Arimo 600 dava traço +15,7 % (saía do filtro) e corr 0,745. Com o fundo do mínimo: +10,7 % e 0,819.
+Arquivos: `s4-real-resumo.json` (4 casos, antes da correção 2) e `s4-real-solto-resumo.json` (solto, depois).

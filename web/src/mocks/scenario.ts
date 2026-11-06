@@ -41,6 +41,12 @@ export function captureScenarioFromUrl() {
   const mc = new URLSearchParams(window.location.search).get("mockcaptions")
   if (mc === "off") sessionStorage.removeItem("mock:captions")
   else if (mc === "burned" || mc === "covered" || mc === "legacy") sessionStorage.setItem("mock:captions", mc)
+  // troca-texto-queimado-v1 §16 (F1b, web-mock): ?mockheadline=box|loose|close (the champion's headline is copied: box, erased +
+  // redrawn with the `preparing_plate` wait, or loose with "Closest font") or a blocked reason: pending|near_caption|font_far|
+  // plate_rejected|no_fit|over_face|moves|low_confidence; =off clears (the F1a default: headline_pending)
+  const mh = new URLSearchParams(window.location.search).get("mockheadline")
+  if (mh === "off") sessionStorage.removeItem("mock:headline")
+  else if (mh && ["box", "loose", "close", "pending", "near_caption", "font_far", "plate_rejected", "no_fit", "over_face", "moves", "low_confidence"].includes(mh)) sessionStorage.setItem("mock:headline", mh)
   const ms = new URLSearchParams(window.location.search).get("mockslow")
   if (ms === "off") sessionStorage.removeItem("mock:slow")
   else if (ms && Number(ms) > 0) sessionStorage.setItem("mock:slow", ms)

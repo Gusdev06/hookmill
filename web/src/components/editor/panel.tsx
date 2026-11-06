@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import type { FontId, LayerStyle } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
+import { editorFonts } from "@/lib/editor-fonts"
 import { useEd, type Ed } from "./context"
 import { EdIcon, type EdIconName } from "./ed-icon"
 import { FPS, HEX, MIN_CLIP_SEC, SWATCHES, clamp, deleteBlock, minClipFor, timecode, toFrame, type LayerKey, type WordView } from "./model"
@@ -147,7 +148,7 @@ function styleSec(E: Ed, key: LayerKey): Sec {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[60]">
-              {st.fonts.map((f) => (
+              {editorFonts(st.fonts, s.fontId).map((f) => (
                 <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
               ))}
             </SelectContent>

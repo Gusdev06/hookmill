@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
 import {
   AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, isImagePiece, mmss, PieceKind, pieceType, Tag, TypeThumb, useIterFormat, useTypeName,
 } from "./parts"
-import { CaptionBlocked, CleanVersionStatus, HeadlinePending } from "./captions"
+import { CaptionBlocked, CleanVersionStatus, HeadlineBlockedNote } from "./captions"
 import { usePriceLabel } from "./piece-actions"
 import { useSession } from "@/components/providers/session-provider"
 import { ClientPreferences, GoalsScreen, LeftOut, SelectPieceButton } from "./goals"
@@ -31,6 +31,13 @@ const STAGE_KEYS: Record<AnalysisStage, string[]> = {
   brain: ["audience", "offer", "proof", "page"],
   planning: ["planning"],
 }
+/**
+ * troca-texto-queimado-v1 §16.5 (F1b): when the champion's headline is erased and redrawn, the API adds `preparing_plate` to the
+ * checklist, inside `stage: 'planning'` and before the plan (it can take up to ~3 min). Only listed when the API sends it, so
+ * batches without it (and older APIs) read exactly as before.
+ */
+export const stageKeysOf = (checklist: { key: string }[]): Record<AnalysisStage, string[]> =>
+  checklist.some((c) => c.key === "preparing_plate") ? { ...STAGE_KEYS, planning: ["preparing_plate", ...STAGE_KEYS.planning] } : STAGE_KEYS
 
 /** Analyze (spec §4.1): analyzing · ready (+ no Brain / short video / smaller batch) · analysis failed. One screen that grows. */
 export function AnalyzeScreen({ batch }: { batch: IterateBatch }) {
@@ -217,7 +224,7 @@ function BatchPlan({ batch }: { batch: IterateBatch }) {
       <CaptionsBadge batch={batch} />
       <CleanVersionStatus batch={batch} />
       <CaptionBlocked batch={batch} />
-      <HeadlinePending batch={batch} />
+      <HeadlineBlockedNote batch={batch} />
       <PlanGroup axis="ITERATION" pieces={stretch} batchId={batch.quizEnabled ? batch.id : undefined} />
       <PlanGroup axis="DIVERSITY" pieces={fresh} batchId={batch.quizEnabled ? batch.id : undefined} />
       <div className="border-t border-line-soft pt-2.5 text-xs text-fg-3">{t("formatsLine")}</div>
@@ -264,10 +271,11 @@ function StageList({ batch, stopped }: { batch: IterateBatch; stopped?: boolean 
   const t = useTranslations("iterate.analyze")
   const a = batch.analysis
   const status = (k: string) => a.checklist.find((c) => c.key === k)?.status ?? "pending"
+  const keysOf = stageKeysOf(a.checklist)
   return (
     <ul className="m-0 flex list-none flex-col gap-[9px] p-0 text-[13px]">
       {STAGES.map((st) => {
-        const keys = STAGE_KEYS[st]
+        const keys = keysOf[st]
         const states = keys.map(status)
         const failed = states.includes("failed")
         const done = states.every((x) => x === "done")

@@ -153,6 +153,9 @@ export function PricePill({ card, credits }: { card: Pick<TemplateCard, "credits
 }
 
 /** Fit reason in words (§6). Unknown reasons fall back to a generic line. */
+/** troca-texto-queimado-v1 §16.5 (F1b): hard fits of a copied headline, besides `headline_pending`. */
+const HEADLINE_FIT_REASONS = new Set(["headline_near_caption", "headline_font_far", "headline_plate_rejected", "headline_no_fit"])
+
 export function useFitText() {
   const t = useTranslations("adTemplates.fit")
   return (fit: TemplateFit | null | undefined) => {
@@ -197,6 +200,7 @@ export function useUseTemplate({ onInvalid }: { onInvalid?: (d: TemplateSelectio
   const router = useRouter()
   const qc = useQueryClient()
   const errorMessage = useErrorMessage()
+  const fitText = useFitText()
   const [state, setState] = useState<UseState>({ unlock: false, offers: null, misfit: null })
   const requestIds = useRef(new Map<string, string>())
   const m = useMutation({
@@ -234,6 +238,8 @@ export function useUseTemplate({ onInvalid }: { onInvalid?: (d: TemplateSelectio
         if (d?.items?.length) return setState((s) => ({ ...s, misfit: d.items! }))
         // troca-texto-queimado-v1 §15.4: says what's unavailable instead of the generic "doesn't fit"
         if (d?.reason === "headline_pending") return void toast(errorMessage("HEADLINE_PENDING"))
+        // §16.5 (F1b): the 4 new headline reasons say which one, through the fit line ("Headline too close to the captions"…)
+        if (d?.reason && HEADLINE_FIT_REASONS.has(d.reason)) return void toast(fitText({ level: "hard", reason: d.reason }))
       }
       if (isApiError(e) && e.code === "TEMPLATE_SELECTION_INVALID") {
         const d = (e.details ?? null) as unknown as TemplateSelectionInvalidDetails | null

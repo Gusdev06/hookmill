@@ -13,7 +13,7 @@ import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
 import { PieceTextAlert, TextCheckChip, useStaticStage } from "./text-check"
-import { CaptionBlocked, CaptionNote, CleanVersionStatus, HeadlinePending, NewBatchButton } from "./captions"
+import { CaptionBlocked, CaptionNote, CleanVersionStatus, HeadlineBlockedNote, NewBatchButton } from "./captions"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
 import { SampleEyebrow, useSampleLocked } from "./sample"
@@ -89,7 +89,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
             <Group axis="DIVERSITY" pieces={batch.pieces.filter((p) => p.axis === "DIVERSITY")} batchId={batch.id} onPreview={setPreviewId} locked={locked} />
             {/* review 29/10 L4: after the launch the left-out formats are optional, so a quiet line below the groups, not amber up top */}
             <CaptionBlocked batch={batch} collapsed />
-            <HeadlinePending batch={batch} />
+            <HeadlineBlockedNote batch={batch} />
           </>
         }
         side={

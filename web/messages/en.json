@@ -2880,7 +2880,8 @@
         "offer": "offer",
         "proof": "proof",
         "page": "product page",
-        "planning": "pieces and rules"
+        "planning": "pieces and rules",
+        "preparing_plate": "erasing the old headline"
       },
       "timeLeft": "Time left",
       "canClose": "You can close this page. The plan waits for you in Home › Waiting for you.",
@@ -3221,7 +3222,19 @@
     },
     "headline": {
       "none": "No headline in the champion",
-      "becomes": "becomes"
+      "becomes": "becomes",
+      "copy": {
+        "box": "Same box, new words",
+        "loose": "Old text erased, same style",
+        "add": "New headline band"
+      },
+      "closestFont": "Closest font",
+      "closestFontWhy": "The original font isn't available, so the headline uses the closest one we have. Size, weight, color and position are the same.",
+      "step": {
+        "shrink": "Slightly smaller",
+        "grow": "One more line",
+        "growBox": "Box grows"
+      }
     },
     "captions": {
       "badge": "Captions added",
@@ -4327,7 +4340,50 @@
     "newBatch": "New batch",
     "anotherBatch": "Make another batch with this champion",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "headlineBlocked": {
+      "othersFine": "The other formats in your plan aren't affected.",
+      "headline_pending": {
+        "title": "This video's headline can't be rewritten yet",
+        "body": "It's being prepared on our side."
+      },
+      "headline_near_caption": {
+        "title": "The headline sits too close to the captions to be redone",
+        "body": "Redrawing it would touch the captions, so it was left out."
+      },
+      "headline_font_far": {
+        "title": "We don't have a font close to this headline's",
+        "body": "A different font would change how the ad looks, so it was left out."
+      },
+      "headline_plate_rejected": {
+        "title": "The old headline couldn't be erased cleanly",
+        "body": "A trace of it would still show, so it was left out."
+      },
+      "headline_no_fit": {
+        "title": "No new headline fit the original's space",
+        "body": "We rewrote it a few times; each version was too short or too long for its place, so it was left out."
+      },
+      "headline_over_face": {
+        "title": "The headline sits over the face",
+        "body": "Redoing it would touch the face, so it was left out."
+      },
+      "headline_moves": {
+        "title": "The headline moves or changes on screen",
+        "body": "Only a headline that stays still can be redone, so it was left out."
+      },
+      "headline_low_confidence": {
+        "title": "We couldn't read this headline well enough to copy it",
+        "body": "Copying it wrong would show, so it was left out."
+      },
+      "headline_aspect": {
+        "title": "This video's shape doesn't take a new headline",
+        "body": "It was left out of this plan."
+      },
+      "other": {
+        "title": "This video's headline can't be rewritten",
+        "body": "It was left out of this plan."
+      }
+    }
   },
   "metaTemplates": {
     "editor": {
@@ -5442,7 +5498,11 @@
         "not_read": "Not read yet · ~1 min",
         "coming_soon": "Coming soon",
         "not_planned": "Not planned for this ad",
-        "headline_pending": "Headline can't be rewritten yet"
+        "headline_pending": "Headline can't be rewritten yet",
+        "headline_near_caption": "Headline too close to the captions",
+        "headline_font_far": "No font close to the headline's",
+        "headline_plate_rejected": "The old headline can't be erased cleanly",
+        "headline_no_fit": "No new headline fits the original's space"
       }
     },
     "needs": {
@@ -5507,7 +5567,8 @@
         "transcribing": "Transcribing the speech",
         "blocks": "Finding hook, body and call to action",
         "brain": "Checking face, captions and your Brain",
-        "fits": "Checking that {name} fits and writing the texts"
+        "fits": "Checking that {name} fits and writing the texts",
+        "plate": "Erasing the old headline"
       },
       "canLeave": "You can leave this page. We keep the template picked and show the plan when you come back.",
       "yourTemplate": "Your template",
@@ -5589,11 +5650,31 @@
       "rule": {
         "maxChars": "Too long for this template.",
         "required": "This text can't be empty.",
-        "invented": "Use only what is in your ad or your Brain."
+        "invented": "Use only what is in your ad or your Brain.",
+        "headline_too_long": "Too long for the original's space. Cut a few words.",
+        "headline_too_short": "Too short: part of the old headline's space would show. Add a few words.",
+        "headline_over_chin": "Too long: it would reach the face. Cut a few words."
       },
       "from": "from: {source}",
       "saving": "Saving…",
-      "savedText": "Saved"
+      "savedText": "Saved",
+      "fit": {
+        "measuring": "Measuring…",
+        "same": "Fits",
+        "rewrap": "Fits, with new line breaks",
+        "shrink": "Slightly smaller",
+        "grow": "Fits with one more line",
+        "growBox": "Box grows",
+        "too_long": "Too long for the original's space. Cut a few words.",
+        "too_short": "Too short: part of the old headline's space would show. Add a few words.",
+        "over_chin": "Too long: it would reach the face. Cut a few words."
+      },
+      "hardReason": {
+        "headline_near_caption": "Redrawing the headline would touch the captions, so {name} can't run on this ad. Pick another template or another ad.",
+        "headline_font_far": "A different font would change how the ad looks, so {name} can't run on this ad. Pick another template or another ad.",
+        "headline_plate_rejected": "A trace of the old headline would still show, so {name} can't run on this ad. Pick another template or another ad.",
+        "headline_no_fit": "We rewrote the headline a few times and none kept the original's size: each was too short or too long. Nothing was charged. Pick another template or another ad."
+      }
     },
     "admin": {
       "eyebrow": "Admin · visible to HookMill staff only",

@@ -5,6 +5,7 @@ import { useFormatter } from "next-intl"
 import type { RemixKeepProps } from "@maquina/video/player"
 import type { ControlDecl, EditIssue, LayerStyle, LayerTransform, Rect, TextProvenance, VideoFraming } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
+import { editorFonts } from "@/lib/editor-fonts"
 import { EdIcon } from "@/components/editor/ed-icon"
 import { useU } from "./context"
 import { KIND_ICON } from "./layers"
@@ -394,7 +395,7 @@ export function LayerTab() {
             <div className="field">
               <span className="fl">{t("lyr.font")}</span>
               <select className="inp" disabled={ro} value={String(style("fontId") ?? "")} onChange={(e) => setStyle(t("lyr.font"), { fontId: e.target.value as LayerStyle["fontId"] })}>
-                {st.fonts.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                {editorFonts(st.fonts, String(style("fontId") ?? "")).map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
               </select>
             </div>
             {sizePx !== null ? (

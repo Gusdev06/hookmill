@@ -24,6 +24,7 @@ import { mockWorkspaceOf } from "./auth"
 import { adRows } from "./v2"
 import { f2 } from "./variar"
 import { advanceIter, it, iterView, launchIter, newIter, saveIter, type MIter, type MPiece } from "./iterate"
+import { COPY_TEXTS, headlineBlockedReason, headlineCopied, headlineFitReady } from "./headline-f1b"
 
 const u = (p: string) => API_URL + p
 const ok = <D,>(data: D, status = 200) => HttpResponse.json({ success: true, data }, { status })
@@ -182,7 +183,8 @@ function fitOf(t: MTemplate, tr: Traits): TemplateFit {
   if (!tr.read) return { level: "unknown", reason: "not_read" }
   if (t.pack) return { level: "ok", reason: null }
   // troca-texto-queimado-v1 §15.4 (F1a): a written headline can't be replaced until the motor exists; only `add` is offered
-  if (t.key === "HEADLINE" && tr.writtenHeadline) return { level: "hard", reason: "headline_pending" }
+  // F1b (?mockheadline): copied = fits; a blocked reason = hard with that reason
+  if (t.key === "HEADLINE" && tr.writtenHeadline && !headlineCopied()) return { level: "hard", reason: headlineBlockedReason() ?? "headline_pending" }
   if (t.needs.includes("face") && !tr.face) return { level: "hard", reason: "no_face" }
   if (t.needs.includes("min_25s") && tr.durationSec < 25) return { level: "hard", reason: "short_video" }
   if (t.needs.includes("clean_face") && tr.captions) return { level: "soft", reason: "burned_captions" }
@@ -197,8 +199,8 @@ const HEAD = [
 ]
 function textsFor(p: MPiece): EditableText[] {
   if (p.type === "HEADLINE") {
-    const h = HEAD[p.n % HEAD.length]
-    return [{ path: "text", label: "headline", value: L(h[0], h[1]), maxChars: 60, source: L("transcript 0:04", "transcrição 0:04") }]
+    const h = p.variant === "replace" ? COPY_TEXTS[p.n % COPY_TEXTS.length] : HEAD[p.n % HEAD.length]
+    return [{ path: "text", label: "headline", value: L(h[0], h[1]), maxChars: 70, source: L("transcript 0:04", "transcrição 0:04") }]
   }
   if (p.type === "FRAME") {
     return [
@@ -212,12 +214,13 @@ function piecesFor(b: MIter, specs: { spec: Spec; tpl: MTemplate }[]) {
   const out: MPiece[] = []
   const keyOf: Record<string, string> = {}
   for (const { spec, tpl } of specs) {
-    const variants = spec.variants ?? Array.from({ length: spec.n ?? 1 }, () => (spec.type === "HEADLINE" ? "add" : spec.frame ?? ""))
+    const variants = spec.variants ?? Array.from({ length: spec.n ?? 1 }, () => (spec.type === "HEADLINE" ? (headlineCopied() ? "replace" : "add") : spec.frame ?? ""))
     variants.forEach((v, k) => {
       const p: MPiece = {
         id: mockId("vi"), index: out.length, type: spec.type as MPiece["type"], variant: v, n: k,
         change: spec.type === "FRAME" ? { en: `Your ad inside the ${nameOf(tpl).toLowerCase()} frame.`, pt: `Seu anúncio dentro da moldura ${nameOf(tpl).toLowerCase()}.` }
           : spec.type === "CUT" ? { en: `A ${v} s version that keeps hook, proof and CTA.`, pt: `Uma versão de ${v} s com gancho, prova e chamada.` }
+          : spec.type === "HEADLINE" && headlineCopied() ? { en: "Only the headline changes: same place, same style. Cuts, voice and framing stay.", pt: "Só a headline muda: mesmo lugar, mesmo estilo. Cortes, voz e enquadramento ficam." }
           : spec.type === "HEADLINE" ? { en: "Adds a headline band in the brand color. The rest of the video stays the same.", pt: "Põe uma faixa de headline na cor da marca. O resto do vídeo fica igual." }
           : { en: (tpl.en[1]), pt: tpl.pt[1] },
         inZip: true, leftOutAt: null, creativeId: null, inLibrary: false, failFirst: null, sec: spec.type === "CUT" ? Number(v) : b.durationSec,
@@ -295,7 +298,7 @@ function view(b: MIter): IterateBatch {
     v.pieces = []
   }
   // f1a-handoff: HEADLINE `replace` doesn't appear in the plan nor count in the quote
-  if (run.fit.reason === "headline_pending" && raw.status === "PLAN_READY") v.pieces = []
+  if (run.fit.level === "hard" && String(run.fit.reason ?? "").startsWith("headline_") && raw.status === "PLAN_READY") v.pieces = []
   settle(run, v)
   const quote = quoteOf(run, b)
   const balance = run.status === "DRAFT" ? balanceOf(run.pool) : balanceOf(run.pool)
@@ -491,7 +494,15 @@ export const templateHandlers = [
     const items = run.texts[String(params.itemId)]
     if (!items?.length) return fail("EDIT_NOT_SUPPORTED", 422, "No editable text.")
     const { texts } = await body<UpdateItemTextsBody>(request)
+    // F1b (§16.3): a copied HEADLINE is measured with the same function as the web; no IA on PATCH
+    const piece = iterView(b).pieces.find((p) => p.id === String(params.itemId))
+    const look = piece?.headline?.mode === "replace" ? piece.headline.fit ?? null : null
+    const fitFn = look ? await headlineFitReady : null
     const violations = texts.flatMap((x) => {
+      if (look && fitFn && x.path === "text") {
+        const r = fitFn(look, x.value)
+        if (!r.fits) return [{ path: x.path, rule: `headline_${r.reject ?? "too_long"}`, detail: r.reject === "too_short" ? `E ${r.exposure}` : r.reject === "over_chin" ? `chin gap ${r.chinGapPx} px` : `step none` }]
+      }
       const it0 = items.find((i) => i.path === x.path)
       if (!it0) return [{ path: x.path, rule: "unknown_path", detail: "Unknown path." }]
       if (!x.value.trim()) return [{ path: x.path, rule: "required", detail: "Empty." }]
