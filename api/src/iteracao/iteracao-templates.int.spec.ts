@@ -148,16 +148,17 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
   });
 
   it('F2: editing goals, add back and removing pieces never invokes a paid planner again', async () => {
+    // B4 (06/11): `headline` sem HEADLINE possível é ignorado; o filtro de objetivo usa outro pedido que o plano tem
     const before = await prisma.costEntry.count({ where: { variationBatchId: firstBatchId } });
-    const r = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: ['headline'] } });
+    const r = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: ['chat_motion'] } });
     expect(r.status).toBe(200);
-    expect(r.data.answers.wants).toEqual(['headline']);
-    expect(r.data.pieces.every((p: { wantKey: string | null }) => !p.wantKey || p.wantKey === 'headline')).toBe(true);
+    expect(r.data.answers.wants).toEqual(['chat_motion']);
+    expect(r.data.pieces.every((p: { wantKey: string | null }) => !p.wantKey || p.wantKey === 'chat_motion')).toBe(true);
     const frame = r.data.notSelected.find((p: { type: string }) => p.type === 'FRAME');
     expect(frame).toBeDefined();
     const added = await call('PATCH', `/iterate/${firstBatchId}/items/${frame.id}`, { included: true });
     expect(added.data.pieces.find((p: { id: string }) => p.id === frame.id)?.selection).toBe('user_added');
-    const reset = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: ['headline'] } });
+    const reset = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, wants: ['chat_motion'] } });
     expect(reset.data.pieces.some((p: { id: string }) => p.id === frame.id)).toBe(false);
     expect(reset.data.notSelected.find((p: { id: string }) => p.id === frame.id)?.selection).toBe('not_asked');
     for (const p of reset.data.pieces) expect((await call('PATCH', `/iterate/${firstBatchId}/items/${p.id}`, { included: false })).status).toBe(200);
@@ -170,7 +171,7 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     expect((await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } })).firstGenerateAt).toBeNull(); // Gerar barrado não conta
     expect(await prisma.costEntry.count({ where: { variationBatchId: firstBatchId } })).toBe(before);
     const cfg = await call('GET', '/iterate/config');
-    expect(cfg.data.savedPreferences).toMatchObject({ wants: ['headline'], fromBatchId: firstBatchId });
+    expect(cfg.data.savedPreferences).toMatchObject({ wants: ['chat_motion'], fromBatchId: firstBatchId });
     expect((await call('DELETE', '/iterate/preferences')).status).toBe(204);
     expect((await call('GET', '/iterate/config')).data.savedPreferences).toBeNull();
     const invalid = await call('PUT', `/iterate/${firstBatchId}/answers`, { answers: { ...answers, ai: 'auto', aiCapUsd: 5 } });

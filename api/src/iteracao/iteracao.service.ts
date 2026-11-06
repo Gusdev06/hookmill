@@ -1,4 +1,6 @@
 import { FREE_WANTS, preferencesOf, selectPieces, validateAnswers } from './selecao';
+import { ehCopia, medidaLegivel, medirTexto } from './headline-plano';
+import { PlacasService } from '../campeoes/placas.service';
 import type { IterateAnswers } from '@maquina/contratos';
 import { TEMPLATE_TYPES, templatesLigados } from './templates-plano';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -80,6 +82,7 @@ export class IteracaoService {
     private readonly amostra: AmostraService,
     private readonly creditos: CreditosService,
     private readonly researchChampion: ResearchChampionService, // ads-research-v1 §6.1
+    private readonly placas: PlacasService, // troca-texto-queimado-v1 §16.5 (F1b)
   ) {}
 
   // ───────── leitura ─────────
@@ -477,16 +480,23 @@ export class IteracaoService {
    * na leitura e no Gerar. Lote de template que fica vazio assim passa a mostrar a faixa `soft`. Sem item desses = sem escrita.
    */
   private async retireFromPlan(db: Prisma.TransactionClient | PrismaService, workspaceId: string, batchId: string): Promise<void> {
-    const hit = await db.variationItem.updateMany({
-      where: {
-        batchId, workspaceId, kind: 'AUTO_EDIT', batch: { status: 'PLAN_READY' },
-        AND: [
-          { OR: [{ included: true }, { selection: { in: ['not_asked', 'user_removed'] } }] },
-          { OR: [{ payload: { path: ['captionOverride'], equals: true } }, { autoType: 'HEADLINE', payload: { path: ['params', 'mode'], equals: 'replace' } }] },
-        ],
-      },
-      data: { included: false, selection: 'goal_cut' },
-    });
+    const where: Prisma.VariationItemWhereInput = {
+      batchId, workspaceId, kind: 'AUTO_EDIT', batch: { status: 'PLAN_READY' },
+      AND: [
+        { OR: [{ included: true }, { selection: { in: ['not_asked', 'user_removed'] } }] },
+        { OR: [{ payload: { path: ['captionOverride'], equals: true } }, { autoType: 'HEADLINE', payload: { path: ['params', 'mode'], equals: 'replace' } }] },
+      ],
+    };
+    // troca-texto-queimado-v1 §16.5 (F1b): HEADLINE `replace` copiado (`copy` box/loose, do plano do F1b) fica, enquanto a
+    // troca estiver ligada pra este workspace. Desligada depois do plano = volta ao F1a (sai do lote, sem crédito).
+    const ligada = this.placas.implPara(workspaceId) !== 'off';
+    const alvo = await db.variationItem.findMany({ where, select: { id: true, payload: true } });
+    const sair = alvo.filter((i) => {
+      const pl = (i.payload ?? {}) as { captionOverride?: unknown; params?: { copy?: unknown } };
+      return pl.captionOverride === true || !ligada || (pl.params?.copy !== 'box' && pl.params?.copy !== 'loose');
+    }).map((i) => i.id);
+    if (!sair.length) return;
+    const hit = await db.variationItem.updateMany({ where: { id: { in: sair } }, data: { included: false, selection: 'goal_cut' } });
     if (!hit.count) return;
     const left = await db.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true } });
     if (left) return;
@@ -536,9 +546,17 @@ export class IteracaoService {
       return frameContentViolations(draft, 0, ctx).map((v) => ({ path: /^([\w.]+?)(?: |$)/.exec(v.detail)?.[1] ?? '*', rule: v.rule, detail: v.detail }));
     }
     const draft = { type: 'HEADLINE', mode: params.mode, text: params.text, highlight: params.highlight ?? null, sources: params.sources ?? {} } as unknown as Extract<AutoParamsDraft, { type: 'HEADLINE' }>;
-    return headlineViolations(draft, 0, ctx)
+    const out = headlineViolations(draft, 0, ctx)
       // a original não muda; editar de volta pra original é escolha da pessoa só se ela digitou igual (a regra do plano vale)
       .map((v) => ({ path: 'text', rule: v.rule, detail: v.detail }));
+    // troca-texto-queimado-v1 §16.3 item 6 (F1b): `replace` copiado = a mesma função do plano e do web, sem IA. Não coube =
+    // `headline_too_long` | `headline_too_short` | `headline_over_chin`, com a medida no `detail`
+    if (params.mode === 'replace' && ehCopia(ctx.headline)) {
+      const r = medirTexto(ctx.headline.look, String(params.text ?? ''));
+      if (!r.fits) out.push({ path: 'text', rule: `headline_${r.reject ?? 'too_long'}`, detail: medidaLegivel(r, ctx.headline.look.fit.originalLines.length) });
+      else params.fitStep = r.step;
+    }
+    return out;
   }
 
   // ───────── opções da lista (templates-lista-v1 §5) ─────────

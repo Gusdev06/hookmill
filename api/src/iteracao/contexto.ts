@@ -7,7 +7,7 @@ import type { FrameBrand } from '../integracoes';
 import { handleDe } from '../render/auto-edit';
 import { paletaDoEstatico } from './paleta';
 import { brandLogoOf } from '../brand-kit/logo';
-import { captionsAutoOf, headlineInfoOf } from './headline-plano';
+import { captionsAutoOf, headlineInfoOf, semEsperarPlaca, type HeadlinePlateState, type PlateImplMode } from './headline-plano';
 import type { MediaRulesPort } from './portas';
 import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, allowedFrameIds, brainEmpty, codeLanguageOf, screenLangOf } from './regras';
 import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
@@ -25,6 +25,9 @@ export interface CtxSource {
   /** 25/10: `language` = idioma da fala (textos de tela). 26/10: `cleanVideoFileId` = versão sem legenda (legenda-protegida-v1 §2.3) */
   champion: { durationSec: unknown; hasSpeech: boolean; language?: string | null; cleanVideoFileId?: string | null };
   teardown: TeardownRow | null;
+  /** troca-texto-queimado-v1 §16.5 (F1b): troca ligada pra este workspace e a placa vigente. Ausente = F1a. `final` = o
+   *  AUTO_PLAN já esperou o que tinha de esperar: placa ainda não pronta vira `headline_pending` neste lote. */
+  troca?: { plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final?: boolean } | null;
 }
 
 export function brainOf(o: OfferRow): Brain {
@@ -95,10 +98,11 @@ export function planCtxOf(src: CtxSource, media: MediaRulesPort, page: { capture
     offerKind: src.offer.kind ?? null,
     frame: { brand: frameBrandOf(src, m?.palette), faceAtSec: faceAtSecOf(editMap) },
     // headline-e-legenda-v1: modo/limites/bloqueio da headline e se o lote ganha legenda automática
-    headline: headlineInfoOf(editMap, {
+    headline: ((h) => (src.troca?.final ? semEsperarPlaca(h) : h))(headlineInfoOf(editMap, {
       screenLanguage: src.champion.language || transcript?.language || src.offer.language, offerLanguage: src.offer.language,
       width: m?.width ?? editMap?.width ?? 0, height: m?.height ?? editMap?.height ?? 0,
-    }),
+      ...(src.troca && { plateImpl: src.troca.plateImpl, plate: src.troca.plate }),
+    })),
     // §2.3: com a versão sem legenda a legenda nossa liga (a original não está no vídeo que as peças usam)
     captionsAuto: src.champion.cleanVideoFileId ? (transcript?.words.length ?? 0) > 0 : captionsAutoOf(editMap, transcript?.words ?? []),
     // iterate-v2 F1.1: rosto e legenda queimada pros templates grátis (atrás da flag ITERATE_TEMPLATES)

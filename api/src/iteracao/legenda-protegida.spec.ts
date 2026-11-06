@@ -67,7 +67,7 @@ describe('allowed com burned_captions (§2.3)', () => {
   });
 
   it('HEADLINE coberto pela guarda sai com burned_captions; bloqueio próprio do HEADLINE vem antes', () => {
-    const headline = { mode: 'replace' as const, original: 'Old', lines: 1, maxChars: 40, hasHighlight: false, language: 'en', blockedReason: null, format: null };
+    const headline = { mode: 'replace' as const, original: 'Old', lines: 1, maxChars: 40, hasHighlight: false, language: 'en', blockedReason: null, format: null, copy: null, look: null, needsMeasure: false, needsPlate: false };
     const g = fakeGuard([{ type: 'HEADLINE', template: null }]);
     expect(allowedFor(ctx({ headline, caption: g }))[0]).toMatchObject({ type: 'HEADLINE', max: 0, blockedReason: 'burned_captions' });
     expect(allowedFor(ctx({ headline: { ...headline, blockedReason: 'headline_over_face' }, caption: g }))[0]).toMatchObject({ blockedReason: 'headline_over_face' });

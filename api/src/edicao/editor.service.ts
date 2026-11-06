@@ -2,6 +2,7 @@
 // remix-keep fica 422 EDIT_NOT_SUPPORTED até o F3. editor-universal-v1 F-U1: peça AUTO (FRAME/HEADLINE) vai pro
 // EditorAutoService (EditorStateV3); o criativo do zero segue no v1 até o F-U2.
 import { Injectable } from '@nestjs/common';
+import { editorFonts } from './editor-fontes';
 import type { EditDoc, EditNotSupportedDetails, EditSettings, EditorLayerInfo, EditorState, EditorStateV3, PutEditorResponse, PutEditorResponseV3, ScratchSource } from '@maquina/contratos';
 import { FONT_CATALOG, framesDasCenas, layoutPadrao, normalizarDoc, resolverProps, validarDoc, type FontId, type TemplateId } from '@maquina/video';
 import type { Creative, Prisma } from '@prisma/client';
@@ -93,7 +94,7 @@ export class EditorService {
       urlsExpireAt: new Date(Date.now() + this.config.storage.signedUrlTtlSec * 1000).toISOString(),
       layers: this.camadas(fonte, settings, doc),
       capabilities: { trimScenes: true, reorderScenes: true, trimVideo: false, fixCaptionWords: true, locked: [] },
-      fonts: (Object.keys(FONT_CATALOG) as FontId[]).map((id) => ({ id, label: FONT_CATALOG[id].label })),
+      fonts: editorFonts(), // decisão 06/11: o seletor fica com as 9 fontes de antes do F1b
       dirty: c.editDirty,
       latestRender: latest ? await this.views.render(latest) : null,
       previewRender: preview ? await this.views.render(preview) : null,

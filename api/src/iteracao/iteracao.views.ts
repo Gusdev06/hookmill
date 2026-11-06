@@ -255,7 +255,7 @@ export class IteracaoViews {
     const failed = st === 'ANALYSIS_FAILED';
     const stage: AnalysisStage | null =
       st === 'ANALYZING' ? 'reading'
-        : st === 'PLANNING' ? (planJob?.stage === 'planning' ? 'planning' : 'brain')
+        : st === 'PLANNING' ? (planJob?.stage === 'planning' || planJob?.stage === 'preparing_plate' ? 'planning' : 'brain')
           : failed ? ((b.failStage as AnalysisStage | null) ?? 'planning') : null;
     const step = stage === 'reading' ? 1 : stage === 'brain' ? 2 : 3;
     // leitura: pela etapa do CHAMPION_ANALYZE quando ela está acontecendo (ou foi onde falhou)
@@ -269,7 +269,13 @@ export class IteracaoViews {
     const pastBrain = stage === 'planning' || stage === null;
     BRAIN_KEYS.forEach((key, i) =>
       checklist.push({ key, status: readingNow ? 'pending' : pastBrain ? 'done' : brainNow ? mark(i, BRAIN_KEYS.length - 1, true) : 'pending' }));
-    checklist.push({ key: 'planning', status: stage === null ? 'done' : stage === 'planning' ? (failed ? 'failed' : 'running') : 'pending' });
+    // troca-texto-queimado-v1 §16.5 (F1b): espera da placa da headline, em `stage: 'planning'`. Só aparece quando houve
+    // espera neste lote (o AUTO_PLAN em `preparing_plate`, ou um CHAMPION_PLATE pedido por ele); sem troca, nada muda
+    const esperandoPlaca = planJob?.stage === 'preparing_plate' && (st === 'PLANNING' || failed);
+    const placaDoLote = !esperandoPlaca && !!planJob && (await this.prisma.job.count({ where: { workspaceId: b.workspaceId, type: 'CHAMPION_PLATE', input: { path: ['batchId'], equals: b.id } } })) > 0;
+    if (esperandoPlaca) checklist.push({ key: 'preparing_plate', status: failed ? 'failed' : 'running' });
+    else if (placaDoLote) checklist.push({ key: 'preparing_plate', status: 'done' });
+    checklist.push({ key: 'planning', status: stage === null ? 'done' : stage === 'planning' && !esperandoPlaca ? (failed ? 'failed' : 'running') : 'pending' });
 
     const progress = stage === null ? 100
       : stage === 'reading' ? Math.round((champJob?.progress ?? 0) * 0.7)

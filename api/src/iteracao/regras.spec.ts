@@ -712,7 +712,7 @@ describe('catálogo 25/10 no validatePlan (lote novo)', () => {
 });
 
 describe('HEADLINE (headline-e-legenda-v1)', () => {
-  const H = (over = {}) => ({ mode: 'replace' as const, original: 'Tired every morning?', lines: 1, maxChars: 24, hasHighlight: true, language: 'en', blockedReason: null, format: 'VERTICAL_9_16' as const, ...over });
+  const H = (over = {}) => ({ mode: 'replace' as const, original: 'Tired every morning?', lines: 1, maxChars: 24, hasHighlight: true, language: 'en', blockedReason: null, format: 'VERTICAL_9_16' as const, copy: null, look: null, needsMeasure: false, needsPlate: false, ...over });
   const hd = (text: string, over: Record<string, unknown> = {}) => ({ ...item({ type: 'HEADLINE', mode: 'replace', text, highlight: null, sources: {}, ...over } as unknown as AutoItemDraft['params']), type: 'HEADLINE' }) as unknown as AutoItemDraft;
   const run = (its: AutoItemDraft[], c: PlanCtx) => validatePlan(draft([...goodItems().slice(9), ...its]), c, allowedFor(c)).filter((v) => v.item !== null && v.item >= 2).map((v) => `${v.item}:${v.rule}`);
   it('allowed: replace = 3, add = 2, bloqueado com motivo; sem info = fora da lista; código HEADLINE-<n>', () => {

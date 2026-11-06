@@ -4,6 +4,7 @@
 // teto de gasto + limite diário, checagem antes de servir) e POST …/export/recheck. Manifesto, resolver, validação e
 // checagens são do @maquina/video/lib (o mesmo código do Player no web).
 import { Injectable } from '@nestjs/common';
+import { editorFonts } from './editor-fontes';
 import type {
   EditBlockedDetails, EditDocV3, EditIssue, EditManifest, EditTemplateKey, EditorExportView, EditorGuard, EditorPropsJson, EditorStateV3,
   FontId, FormatCode, PutEditorResponseV3, TextConfirmation,
@@ -255,7 +256,7 @@ export class EditorAutoService {
       issues: this.issues(p, m, doc, numbers),
       proxy: proxyFile ? { status: 'ready', etaSec: null } : original ? { status: 'building', etaSec: proxyEtaSec(Number(original.durationSec ?? 0) || null) } : { status: 'none', etaSec: null },
       urlsExpireAt: new Date(Date.now() + this.config.storage.signedUrlTtlSec * 1000).toISOString(),
-      fonts: (Object.keys(FONT_CATALOG) as (keyof typeof FONT_CATALOG)[]).map((id) => ({ id: id as FontId, label: FONT_CATALOG[id].label })),
+      fonts: editorFonts(), // decisão 06/11: o seletor fica com as 9 fontes de antes do F1b
       brandColor: ws?.brandColor ?? null,
       readOnly: await this.readOnlyOf(c),
       dirty: pendingFromDocs(doc, exported?.doc ?? null),

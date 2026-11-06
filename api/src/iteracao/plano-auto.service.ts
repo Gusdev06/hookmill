@@ -3,13 +3,18 @@ import { DEFAULT_ANSWERS, selectPieces } from './selecao';
 import type { IterateAnswers } from '@maquina/contratos';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AnalysisStage, AutoInsight, AutoVariationType, FrameTemplateId, ListTemplateId } from '@maquina/contratos';
+import type { EditMap } from '@maquina/contratos';
 import type { Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import { editMapOf, measurementsOf, sectionsOf, transcriptOf } from '../campeoes/champion-views';
 import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
 import { VersaoSemLegendaService, type CleanMismatch } from '../campeoes/versao-sem-legenda';
 import { failReasonFor, asAsyncErrorCode } from '../common/errors/falhas';
-import { CLAUDE_SERVICE, integracoesMode, isIntegracaoError, type AutoPlanDraft, type AutoPlanInput, type ClaudeService } from '../integracoes';
+import { CLAUDE_SERVICE, integracoesMode, isIntegracaoError, type AutoHeadlineDraft, type AutoItemDraft, type AutoPlanDraft, type AutoPlanInput, type ClaudeService } from '../integracoes';
+import { alvosPorLinha } from '../integracoes/claude/headline-fit';
+import { encaixarHeadline } from '../integracoes/claude/laco-headline';
+import { PlacasService } from '../campeoes/placas.service';
+import { ehCopia, medidaLegivel, medirTexto, type HeadlinePlateState, type PlateImplMode } from './headline-plano';
 import { JobsService } from '../jobs/jobs.service';
 import { draftOf } from '../ofertas/ofertas.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -24,11 +29,11 @@ import { batchFitOf, captionBlockedForTemplate, keysOf, pieceKeyOf, restrictToTe
 import type { TemplateFit } from '@maquina/contratos';
 import { WANT_OF } from './selecao';
 import {
-  type AllowedType, type PlanCtx, type Violation, allowedFor, pickedMissing, listCtxOf, listTemplatesOf, endcardVariants, templateOnlyTypesOf, allowedFrames, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
+  type AllowedType, type PlanCtx, type Violation, allowedFor, headlineViolations, normalizeText, pickedMissing, listCtxOf, listTemplatesOf, endcardVariants, templateOnlyTypesOf, allowedFrames, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
 } from './regras';
 
 /** Etapas do job AUTO_PLAN (JOB_CHECKLIST) e progresso do job. */
-export const AUTO_PLAN_STAGES = { checking_brain: 20, planning: 50 } as const;
+export const AUTO_PLAN_STAGES = { checking_brain: 20, preparing_plate: 35, planning: 50 } as const;
 /** Até 8 frames-chave pro Claude (STATIC e teaser). */
 const MAX_PLAN_KEYFRAMES = 8;
 const PAGE_TEXT_MAX = 4000;
@@ -104,6 +109,7 @@ export class PlanoAutoService {
     @Inject(PAGE_CAPTURE) private readonly pages: PageCapturePort,
     @Inject(MEDIA_RULES) private readonly media: MediaRulesPort,
     private readonly semLegenda: VersaoSemLegendaService,
+    private readonly placas: PlacasService,
   ) {}
 
   async run(jobId: string, batchId: string): Promise<void> {
@@ -118,8 +124,10 @@ export class PlanoAutoService {
       await this.jobs.stage(jobId, 'checking_brain', AUTO_PLAN_STAGES.checking_brain);
       const page = await this.capturePage(b);
       await this.prisma.variationBatch.update({ where: { id: b.id }, data: { pageCaptureFileId: page.fileId } });
+      // troca-texto-queimado-v1 §16.5 (F1b): medir → headlineInfoOf → placa (espera ≤ 180 s) → plano. PLATE_IMPL=off = F1a
+      const troca = await this.prepararHeadline(b, jobId, !!page.fileId);
       // legenda-protegida-v1: o que tamparia a legenda queimada sai do `allowed` (burned_captions), e a validação repete
-      const ctx = this.guardedCtx(b, !!page.fileId);
+      const ctx = this.guardedCtx(b, !!page.fileId, troca);
       ctx.candidatePlan = true;
       // amostra-gratis-v1 §2: só tipos grátis (sem STATIC; IA nem entra no allowedFor) e os templates grátis CHAT_DM e
       // PERSON_MOTION entram mesmo com ITERATE_TEMPLATES desligado (a flag é do lote normal; a amostra decide por ela)
@@ -205,6 +213,14 @@ export class PlanoAutoService {
           ...(x.type === 'LIST_OVERLAY' && { listTemplate: listTemplateOf((rDraftItems[x.index] as { params?: unknown } | undefined)?.params) ?? undefined }),
         }));
       }
+      // §16.3: laço da headline copiada (medida → até 3 reescritas). Não passou = a peça sai, sem crédito reservado
+      const laco = await this.encaixarHeadlines(draft, ctx, b.id, b.workspaceId, jobId);
+      draft = laco.draft;
+      const noFit = laco.removed > 0 && laco.kept === 0 ? { reason: 'headline_no_fit', mode: 'replace' } : null;
+      if (noFit && tpl && !(draft.items ?? []).length) {
+        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: noFit, ...blockedOf(captionBlockedOf(ctx, allowed)), ...(cleanVersion && { cleanVersion }) }, { level: 'hard', reason: 'headline_no_fit' }, sel?.fits);
+        return;
+      }
       const tplKeys = tpl ? keysOf(tpl.keys) : null;
       // lote de template: peça de outra chave (moldura fora do template) sai antes da checagem
       const finalized = finalizePlan(draft, ctx, this.media).filter((it) => !tpl || tpl.keys.includes(pieceKeyOf(it.type, it.params)) || (it.type !== 'FRAME' && it.type !== 'LIST_OVERLAY' && tplKeys!.types.has(it.type)));
@@ -222,7 +238,7 @@ export class PlanoAutoService {
       if (!items.length) throw new AutoPlanError('PLAN_INVALID', 'planning', 'No compatible pieces remain after caption validation');
       // §2.1: `captionsAuto` no insight (TRANSIÇÃO: fora do AutoInsight até o arquiteto tipar; o web já lê)
       // 26/10: por que o HEADLINE ficou fora (o web mostra); null = entrou ou o campeão não tem dado pra ele
-      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed, removedByCaption)), ...(cleanVersion && { cleanVersion }) };
+      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto, headlineBlocked: noFit ?? headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed, removedByCaption)), ...(cleanVersion && { cleanVersion }) };
 
       // 3. PLAN_READY: itens e insight na mesma transação da troca de estado
       await this.prisma.$transaction(async (tx) => {
@@ -305,12 +321,13 @@ export class PlanoAutoService {
     if (!c || c.status !== 'READY' || !c.teardown || !sectionsOf(c.teardown.sections)) return null;
     const { offer, workspace, ...champion } = c;
     const b = { offer, workspace, champion, language: language ?? c.language ?? offer.language } as unknown as PlanBatch;
-    return this.guardedCtx(b, true);
+    const troca = await this.placas.trocaDoCampeao(c.workspaceId, c.id, editMapOf(c.teardown.editMap));
+    return this.guardedCtx(b, true, troca);
   }
 
   /** Contexto das regras com a guarda da legenda (o mesmo do plano). */
-  private guardedCtx(b: PlanBatch, captured: boolean): PlanCtx {
-    const ctxSrc = { offer: b.offer, workspace: b.workspace, champion: b.champion, teardown: b.champion.teardown };
+  private guardedCtx(b: PlanBatch, captured: boolean, troca: { plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final?: boolean } | null = null): PlanCtx {
+    const ctxSrc = { offer: b.offer, workspace: b.workspace, champion: b.champion, teardown: b.champion.teardown, troca };
     const ctx = withCaptionGuard(planCtxOf(ctxSrc, this.media, { captured }), { ...ctxSrc, video: b.champion.videoFile, language: b.language });
     // templates-creditos-v1 A6: COLD_OPEN/ENDCARD só no lote de template que tem a chave (o Iterate normal segue sem)
     const tpl = templateSettingsOf((b as { settings?: unknown }).settings);
@@ -346,7 +363,14 @@ export class PlanoAutoService {
       // templates-creditos-v1 A6: as variantes de end card que o Brain sustenta (só com ENDCARD no lote de template)
       ...(allowed.some((a) => a.type === 'ENDCARD' && a.max > 0) && { endcardVariants: endcardVariants(ctx) }),
       ...(ctx.headline && !ctx.headline.blockedReason && {
-        headline: { mode: ctx.headline.mode, original: ctx.headline.original, lines: ctx.headline.lines, maxChars: ctx.headline.maxChars, hasHighlight: ctx.headline.hasHighlight, language: ctx.headline.language },
+        headline: {
+          mode: ctx.headline.mode, original: ctx.headline.original, lines: ctx.headline.lines, maxChars: ctx.headline.maxChars, hasHighlight: ctx.headline.hasHighlight, language: ctx.headline.language,
+          // troca-texto-queimado-v1 §16.3 item 1 (F1b): limites reais da original medida; orientação, o veredito é o laço
+          ...(ehCopia(ctx.headline) && {
+            charsPerLine: ctx.headline.look.fit.originalLines.map((l) => l.chars), caseStyle: ctx.headline.look.fit.caseStyle,
+            emphasisKind: ctx.headline.look.emphasis?.kind ?? null, copy: ctx.headline.look.kind,
+          }),
+        },
       }),
     };
   }
@@ -379,6 +403,89 @@ export class PlanoAutoService {
       this.prisma.champion.update({ where: { id: ch.id }, data: { cleanVideoFileId: file.id } }),
     ]);
     return { status: 'applied', reason: null };
+  }
+
+  /**
+   * troca-texto-queimado-v1 §16.5 (F1b): mede a headline se falta (campeão antigo, grava no editMap) e, se ela for solta, o
+   * HEADLINE puder entrar e a pessoa não tiver pedido outra coisa, enfileira a placa e espera (≤ 180 s). Devolve o estado
+   * final da troca pro contexto: placa ainda não pronta vira `headline_pending` neste lote (`final`). Desligada = F1a.
+   */
+  private async prepararHeadline(b: PlanBatch, jobId: string, captured: boolean): Promise<{ plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final: true }> {
+    const td = b.champion.teardown!;
+    const em0 = editMapOf(td.editMap);
+    const em = await this.placas.medirSeFalta({ workspaceId: b.workspaceId, championId: b.championId, batchId: b.id, jobId, editMap: em0 });
+    if (em !== em0) (td as { editMap: unknown }).editMap = em as unknown as EditMap;
+    let troca = await this.placas.trocaDoCampeao(b.workspaceId, b.championId, em);
+    if (troca.plateImpl === 'off') return { ...troca, final: true };
+    const ctx0 = this.guardedCtx(b, captured, troca);
+    const h = ctx0.headline;
+    if (h?.needsPlate && h.look && this.querHeadline(b, ctx0)) {
+      await this.jobs.stage(jobId, 'preparing_plate', AUTO_PLAN_STAGES.preparing_plate);
+      const plate = await this.placas.garantirPlaca({ workspaceId: b.workspaceId, championId: b.championId, createdById: b.createdById, batchId: b.id, look: h.look });
+      troca = { ...troca, plate };
+    }
+    return { ...troca, final: true };
+  }
+
+  /** §16.5: a placa só roda se o HEADLINE está no `allowed` do lote (template incluído) e na seleção da pessoa. */
+  private querHeadline(b: PlanBatch, ctx0: PlanCtx): boolean {
+    const tpl = templateSettingsOf(b.settings);
+    const sample = isSampleSettings(b.settings);
+    const base = sample ? allowedFor(ctx0).filter((a) => !SAMPLE_BLOCKED_TYPES.includes(a.type)) : allowedFor(ctx0);
+    const allowed = tpl ? restrictToTemplate(ctx0, base, tpl).allowed : base;
+    if (!allowed.some((a) => a.type === 'HEADLINE' && a.max > 0)) return false;
+    const wants = (b.answers as unknown as IterateAnswers | null)?.wants ?? [];
+    return !wants.length || wants.includes('headline');
+  }
+
+  /**
+   * troca-texto-queimado-v1 §16.3 itens 2-4: cada HEADLINE `replace` copiado passa por `ajustarHeadlineCopia` + as regras do
+   * plano (`headlineViolations`, diferente das outras do lote). Reprovou: até 3 reescritas (`rewriteHeadlineFit`, custo LLM
+   * no lote; erro conta como tentativa). Sem passar: a peça sai do plano. Fora do reparo do plano inteiro.
+   */
+  private async encaixarHeadlines(draft: AutoPlanDraft, ctx: PlanCtx, batchId: string, workspaceId: string, jobId: string): Promise<{ draft: AutoPlanDraft; removed: number; kept: number; rewrites: number }> {
+    const h = ctx.headline;
+    if (!ehCopia(h)) return { draft, removed: 0, kept: 0, rewrites: 0 };
+    const look = h.look;
+    const original = look.text.lines.join('\n') || h.original || '';
+    const targetCharsPerLine = alvosPorLinha(look.fit.originalLines.map((l) => l.chars));
+    const out: AutoItemDraft[] = [];
+    const aceitas: string[] = [];
+    let removed = 0, kept = 0, rewrites = 0;
+    for (const it of draft.items ?? []) {
+      const p = it.params as AutoHeadlineDraft;
+      if (it.type !== 'HEADLINE' || p.mode !== 'replace') { out.push(it); continue; }
+      const medir = (text: string, highlight: string | null) => {
+        const rules = headlineViolations({ ...p, text, highlight }, 0, ctx).map((v) => `${v.rule}: ${v.detail}`);
+        if (aceitas.some((a) => normalizeText(a) === normalizeText(text))) rules.push('duplicate: must differ from the other headlines in this batch');
+        try {
+          const r = medirTexto(look, text);
+          return { ok: r.fits && !rules.length, reject: !r.fits ? r.reject : rules.length ? ('rule' as const) : null, measure: medidaLegivel(r, look.fit.originalLines.length), rules };
+        } catch (e) {
+          return { ok: false, reject: 'rule' as const, measure: `measure failed (${(e as Error).message})`, rules };
+        }
+      };
+      const res = await encaixarHeadline({
+        text: p.text, highlight: p.highlight, medir,
+        reescrever: async (a) => {
+          const r = await this.claude.rewriteHeadlineFit({
+            workspaceId, batchId, jobId, language: h.language, original, current: a.current, reject: a.reject, measure: a.measure,
+            targetCharsPerLine, rules: a.rules, hasHighlight: h.hasHighlight, others: aceitas,
+          });
+          return { text: r.text, highlight: r.highlight };
+        },
+      });
+      rewrites += res.rewrites;
+      if (res.ok) {
+        out.push({ ...it, params: { ...p, text: res.text, highlight: res.highlight } });
+        aceitas.push(res.text);
+        kept++;
+      } else {
+        removed++;
+        this.log.log(`lote ${batchId}: HEADLINE "${p.text}" saiu do plano (headline_no_fit, ${res.measures} medidas; ${res.last.reject}: ${res.last.measure})`);
+      }
+    }
+    return { draft: { ...draft, items: out }, removed, kept, rewrites };
   }
 
   /** planAutoBatch com 1 nova tentativa se a chamada falhar ("Claude falhou 2x" = falha do lote). */

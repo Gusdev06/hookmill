@@ -16,6 +16,9 @@ import { AD_LIBRARY_SERVICE } from '../integracoes';
 import { AD_LIBRARY } from './portas';
 import { ResearchChampionService } from './research-champion.service';
 import { ResearchModule } from '../research/research.module';
+import { createReadStream } from 'node:fs';
+import { TROCA_TEXTO, criarTrocaTexto, trocaConfig } from '../medicao/troca';
+import { PlacasService, TROCA_CONFIG, type TrocaLiberacao } from './placas.service';
 
 @Module({
   imports: [JobsModule, UploadsModule, MedicaoModule, ResearchModule], // ads-research-v1 §6.1: campeão por researchAdId
@@ -43,7 +46,30 @@ import { ResearchModule } from '../research/research.module';
         });
       },
     },
+    // troca-texto-queimado-v1 §16.5 (F1b): PLATE_IMPL=off (padrão) não constrói porta nenhuma; testes trocam TROCA_TEXTO pelo fake
+    { provide: TROCA_CONFIG, inject: [ConfigService], useFactory: (cfg: ConfigService): TrocaLiberacao => { const c = trocaConfig((k) => cfg.get<string>(k)); return { impl: c.impl, workspaceIds: c.workspaceIds }; } },
+    {
+      provide: TROCA_TEXTO,
+      inject: [ConfigService, StorageService],
+      useFactory: (cfg: ConfigService, storage: StorageService) => {
+        const c = trocaConfig((k) => cfg.get<string>(k));
+        if (c.impl === 'off') return null;
+        const log = new Logger('Troca');
+        log.log(`troca de texto: PLATE_IMPL=${c.impl}${c.workspaceIds.length ? ` (workspaces ${c.workspaceIds.join(', ')})` : ''}`);
+        return criarTrocaTexto(c, {
+          storage: {
+            presignPut: (key, o) => storage.presignPut(key, o),
+            presignGet: (key) => storage.signedUrlForKey(key),
+            remove: (key) => storage.deleteObject(key),
+            tmpPrefix: 'tmp/troca/',
+            putFile: (key, file, contentType) => storage.putStream(key, createReadStream(file), contentType),
+          },
+          log, ffmpeg: cfg.get<string>('FFMPEG_PATH') || undefined, ffprobe: cfg.get<string>('FFPROBE_PATH') || undefined,
+        });
+      },
+    },
+    PlacasService,
   ],
-  exports: [LEITURA_MIDIA, ResearchChampionService, ResearchModule, CampeoesService, AnaliseService, ChampionStateMachine, ChampionViews, VersaoSemLegendaService, AD_LIBRARY, MedicaoModule],
+  exports: [PlacasService, TROCA_TEXTO, LEITURA_MIDIA, ResearchChampionService, ResearchModule, CampeoesService, AnaliseService, ChampionStateMachine, ChampionViews, VersaoSemLegendaService, AD_LIBRARY, MedicaoModule],
 })
 export class CampeoesModule {}

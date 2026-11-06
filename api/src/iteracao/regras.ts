@@ -7,7 +7,7 @@
 // apaga o bloco opcional) e FRAME (molduras, §B2/§B5: allowedFrames, textos por template, preço literal, máx. 2 distintas).
 // TRANSIÇÃO (§C.0): FRAME ainda fora do AutoVariationType; aqui tudo é escrito contra `AutoVariationType`.
 import type {
-  AutoInsight, AutoVariationType, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts, ListTemplateId,
+  AutoInsight, AutoVariationType, HeadlineCopyKind, HeadlineFitLook, HeadlineFitStep, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts, ListTemplateId,
   SwapReason, TranscriptWord, VariationAxis, WhyLine,
 } from '@maquina/contratos';
 import type {
@@ -15,7 +15,7 @@ import type {
   StaticIcon, StaticVisualDraft, StaticVisualV2, TemplateSpec,
 } from '../integracoes';
 import { inventedClaimsIn } from './afirmacoes';
-import type { HeadlineBlocked, HeadlineInfo } from './headline-plano';
+import { headlineCopyParams, type HeadlineBlocked, type HeadlineInfo } from './headline-plano';
 import type { CaptionGuard } from './legenda-protegida';
 import { DEFAULT_ACCENT } from './paleta';
 import type { MediaRulesPort, Span } from './portas';
@@ -1085,7 +1085,10 @@ export function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE
   const text = (p.text ?? '').replace(/\s+/g, ' ').trim();
   if (p.mode !== h.mode) v('headline_mode', `mode must be ${h.mode}`);
   if (!text) v('text_empty', 'text is empty');
-  if (text.length > h.maxChars) v('headline_too_long', `text over ${h.maxChars} chars`);
+  // troca-texto-queimado-v1 §16.3 item 2: no `replace` copiado o tamanho é de `ajustarHeadlineCopia` (laço do AUTO_PLAN);
+  // o teto por caracteres vale só no `add` e no `replace` sem medida
+  const copia = h.mode === 'replace' && (h.copy === 'box' || h.copy === 'loose');
+  if (!copia && text.length > h.maxChars) v('headline_too_long', `text over ${h.maxChars} chars`);
   if (p.highlight) {
     if (!h.hasHighlight) v('headline_highlight', 'the original headline has no highlight: highlight must be null');
     else if (!text.includes(p.highlight.trim())) v('headline_highlight', 'highlight must be a stretch of the text');
@@ -1299,7 +1302,9 @@ export type FinalParams =
   /** 25/10 §A2/§A5: plano novo. `headline` = lead + highlight (rótulo/duplicado/legado); `visual` = V2 */
   | { type: 'STATIC'; layout: 'assembled'; headline: string; refAtSec: number | null; copy: StaticCopy; visual: StaticVisualV2 }
   /** headline-e-legenda-v1: o que o `HeadlineSpec` do render precisa (+ a original, pra vista "original → nova") */
-  | { type: 'HEADLINE'; mode: 'replace' | 'add'; text: string; highlight: string | null; sources: Record<string, CopySource>; language: string; original: string | null; format: string | null }
+  | { type: 'HEADLINE'; mode: 'replace' | 'add'; text: string; highlight: string | null; sources: Record<string, CopySource>; language: string; original: string | null; format: string | null;
+      /** troca-texto-queimado-v1 §16.5 (F1b), gravados pelo laço do AUTO_PLAN no `replace` copiado; ausentes antes do F1b */
+      copy?: HeadlineCopyKind | 'add' | null; fontTier?: 'same' | 'close' | null; fitStep?: HeadlineFitStep | null; fit?: HeadlineFitLook | null }
   /** 25/10 §B2: = FrameSpec (lido pelo buildFrameInput do video) + as fontes de cada texto (rastreio) */
   | ({ type: 'FRAME'; sources: Record<string, CopySource> } & FrameSpec)
   /** iterate-v2 F1.3: = TemplateSpec (lido pelo buildTemplateInput do video) */
@@ -1457,6 +1462,8 @@ export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<Med
           type: 'HEADLINE', mode: p.mode, text: p.text.replace(/\s+/g, ' ').trim(), highlight: p.highlight?.trim() || null, sources: { ...(p.sources ?? {}) },
           language: ctx.headline?.language ?? screenLangOf(ctx), original: ctx.headline?.original ?? null,
           format: ctx.headline?.format ?? null, // §1.5: a peça só existe no aspecto do campeão
+          // troca-texto-queimado-v1 §16.5: copy, fontTier, fitStep e fit (a entrada da função pro web) no `replace` copiado
+          ...headlineCopyParams(ctx.headline ?? null, p.text.replace(/\s+/g, ' ').trim()),
         };
         break;
       case 'CHAT_DM':

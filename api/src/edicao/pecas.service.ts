@@ -2,7 +2,7 @@
 // IteratePiece (com `formats`), Retry, Leave out, In zip e o pedido de formato sob demanda (4:5/1:1).
 // O lote (máquina, start, GET /iterate/:id) é do módulo iteracao (B1); ele chama createPieces/launched/pieces daqui.
 import { Inject, Injectable } from '@nestjs/common';
-import type { AutoVariationType, FormatCode, IteratePiece, VariationAxis } from '@maquina/contratos';
+import type { AutoVariationType, FormatCode, IteratePiece, PieceHeadline, VariationAxis } from '@maquina/contratos';
 import type { Prisma, VideoFormat } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import type { AuthContext } from '../common/auth/auth-context';
@@ -227,7 +227,11 @@ export class PecasAutoService {
       editor: c ? pieceEditorViewOf({ key: templateKeyOf(i.autoType, params), status, locked, editDoc: c.editDoc, primary: primaryFmt, renders: allRenders, headlineRetired: headlineRetiredOf(i.autoType, params) }) : null,
       // headline-e-legenda-v1 (TRANSIÇÃO, nomes do web/types.ts): "original → nova" na peça HEADLINE
       ...((i.autoType as string) === 'HEADLINE' && {
-        headline: { mode: params?.mode === 'add' ? 'add' : 'replace', original: (params?.original as string | null) ?? null, text: String(params?.text ?? ''), highlight: (params?.highlight as string | null) ?? null },
+        headline: {
+          mode: params?.mode === 'add' ? 'add' : 'replace', original: (params?.original as string | null) ?? null, text: String(params?.text ?? ''), highlight: (params?.highlight as string | null) ?? null,
+          // troca-texto-queimado-v1 §16.5 (F1b): ausentes nas peças de antes; `fit` (entrada da função pro web) só em PLAN_READY
+          ...pieceHeadlineCopyOf(params, launched),
+        },
       }),
     } as IteratePiece;
   }
@@ -431,4 +435,16 @@ export class PecasAutoService {
     if (i.inZip !== inZip) await this.prisma.variationItem.update({ where: { id: i.id }, data: { inZip } });
     return this.pieceById(pieceId);
   }
+}
+
+/** §16.5: `copy`, `fontTier`, `fitStep` e (antes do Gerar) `fit` da peça HEADLINE; params de antes do F1b = nada. */
+export function pieceHeadlineCopyOf(params: Record<string, unknown> | null | undefined, launched: boolean): Partial<Pick<PieceHeadline, 'copy' | 'fontTier' | 'fitStep' | 'fit'>> {
+  const copy = params?.copy;
+  if (copy !== 'box' && copy !== 'loose' && copy !== 'add') return {};
+  return {
+    copy,
+    fontTier: params?.fontTier === 'close' ? 'close' : params?.fontTier === 'same' ? 'same' : null,
+    fitStep: (params?.fitStep as PieceHeadline['fitStep']) ?? null,
+    ...(!launched && copy !== 'add' && params?.fit ? { fit: params.fit as PieceHeadline['fit'] } : {}),
+  };
 }

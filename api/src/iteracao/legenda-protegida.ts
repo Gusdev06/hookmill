@@ -9,7 +9,7 @@ import { buildAutoEditInput, type AutoEditContext } from '../render/auto-edit';
 import { buildFrameInput } from '../render/frame';
 import { buildHeadlineInput } from '../render/headline';
 import { semLegendaQueimada } from '../campeoes/faixas-protegidas';
-import type { HeadlineInfo } from './headline-plano';
+import { ehCopia, type HeadlineInfo } from './headline-plano';
 
 export type CaptionBlockReason = 'face_cut' | 'no_room';
 export interface CaptionBlocked { type: AutoVariationType; template: FrameTemplateId | null; reason: CaptionBlockReason }
@@ -174,7 +174,11 @@ export function captionGuardOf(
   opts: { templates: readonly FrameTemplateId[]; frame: { brand: FrameSpec['brand']; screenLanguage: string; faceAtSec: number | null }; headline: HeadlineInfo | null },
 ): CaptionGuard {
   if (!bands.length) return { bands: [], blocked: [], check: () => null };
-  const guard = (item: CaptionGuardItem) => decide(s, item);
+  // troca-texto-queimado-v1 §15.5.4 item 7 (F1b): o `replace` copiado (caixa ou solto) não pinta fora do texto antigo mais o
+  // novo, e o novo nunca cruza a banda (portão `near_caption` na medida): isento de `protectedBands` e de `burned_captions`
+  const copia = ehCopia(opts.headline);
+  const guard = (item: CaptionGuardItem) =>
+    (copia && item.type === 'HEADLINE' && (item.params as { mode?: string }).mode === 'replace' ? null : decide(s, item));
   const blocked: CaptionBlocked[] = [];
   for (const t of opts.templates) {
     let reason: CaptionBlockReason | null = null;

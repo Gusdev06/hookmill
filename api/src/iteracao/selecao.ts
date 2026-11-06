@@ -42,7 +42,12 @@ export function selectionInfo(answers: IterateAnswers): NonNullable<IterateBatch
 export interface SelectionCandidate { autoType: AutoVariationType | null; axis: VariationAxis | null; priority?: number | null; index: number }
 
 /** Pure re-selection: priority comes from the planner; changes never make another LLM request. */
-export function selectPieces<T extends SelectionCandidate>(candidates: readonly T[], answers: IterateAnswers) {
+export function selectPieces<T extends SelectionCandidate>(candidates: readonly T[], given: IterateAnswers) {
+  // troca-texto-queimado-v1 B4 (06/11): `headline` pedido sem HEADLINE possível no plano (bloqueada, sem placa, sem caber) é
+  // ignorado. Sem isso um `wants: ['headline']` mandado direto pela API marcava todo o resto `not_asked` e o lote saía com
+  // 1 peça. O web já esconde a opção; isto é a defesa da API.
+  const answers = given.wants.includes('headline') && !candidates.some((c) => c.autoType === 'HEADLINE')
+    ? { ...given, wants: given.wants.filter((w) => w !== 'headline') } : given;
   const info = selectionInfo(answers);
   let stretch = 0, diversity = 0, total = 0;
   const selected = [...candidates].sort((a, b) => (a.priority ?? a.index) - (b.priority ?? b.index)).map((item) => {
