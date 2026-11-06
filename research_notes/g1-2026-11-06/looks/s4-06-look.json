@@ -1,0 +1,114 @@
+{
+ "version": 2,
+ "kind": "box",
+ "layerId": "headline-1",
+ "startFrame": 0,
+ "endFrame": 335,
+ "box": {
+  "x": 0,
+  "y": 529,
+  "w": 481,
+  "h": 130
+ },
+ "radiusPx": 0,
+ "plate": {
+  "color": "#4f0708",
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAQCAIAAADF8ItoAAABOElEQVRIx7WWC27EIAxE90WW9na9/22mSiDlZwiglF1FED4ej+0h/Hy/n9jg81qT9/L5fPz9YSTQ1T/KKb0Fmm1fRyjihHkT7JOZoeZac/7I3WA3ZmmjedzIP10btkS98SaFNVbygfW3K1h8u7Ga9WrS1xgR6aYKK+RTrmE55bwdthJ0njC57rKWsBO8Hf+QALdCreSsHjgif2Mrpdt6rVVRGSzzOHUDwDG0QkdIN2VwT4cqsvXIdIcGTemB5jV/FnF42DzLA41S/4RC88X+pcu18zwIc3ikRM3IIQUQDZI/iUf3I37cUGDXFMUxKYm3q3XA4KD3rNBcbyr5FUVA4kjRKWWR8siRkrCmaFkDMSGp+hqXlDq55d5FJMySK/d+2YTOMSwVFuqI+58LTeUwlbVzDJ3y6ZrmF9oBbKJscRYwAAAAAElFTkSuQmCC",
+  "temporalP99": 9.3,
+  "translucent": false
+ },
+ "plateRef": null,
+ "emoji": null,
+ "text": {
+  "lines": [
+   "Él ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te busca, dime mentirosa"
+  ],
+  "textBox": {
+   "x": 13,
+   "y": 542,
+   "w": 452,
+   "h": 98
+  },
+  "firstBaselineY": 571.5,
+  "linePitchPx": 34,
+  "sizePx": 34.09,
+  "letterSpacingEm": 0,
+  "align": "center",
+  "caseStyle": "sentence",
+  "color": "#fffff7",
+  "stroke": null,
+  "shadow": null,
+  "stemPx": 2.93
+ },
+ "emphasis": null,
+ "font": {
+  "fontId": "tiktok-sans-500",
+  "corr": 0.7096,
+  "stemErr": 0.0821,
+  "widthErr": 0.0192,
+  "tier": "same",
+  "measuredIn": "chrome-linux"
+ },
+ "fit": {
+  "kind": "box",
+  "canvas": {
+   "width": 720,
+   "height": 960
+  },
+  "fontId": "tiktok-sans-500",
+  "sizePx": 34.09,
+  "letterSpacingEm": 0,
+  "linePitchPx": 34,
+  "firstBaselineY": 571.5,
+  "align": "center",
+  "centerX": 234.5,
+  "caseStyle": "sentence",
+  "originalLines": [
+   {
+    "chars": 23,
+    "widthPx": 364
+   },
+   {
+    "chars": 27,
+    "widthPx": 436
+   },
+   {
+    "chars": 27,
+    "widthPx": 452
+   }
+  ],
+  "erasedRects": [],
+  "bottomLimitY": null,
+  "chinY": null,
+  "sideMarginPx": 13,
+  "emoji": null,
+  "box": {
+   "x": 0,
+   "y": 529,
+   "w": 481,
+   "h": 130
+  }
+ },
+ "verdict": {
+  "ok": true,
+  "reason": null,
+  "gates": {
+   "transicao_max": 0,
+   "caixa_area_rel": 1.14,
+   "caixa_quadro_rel": 0.09,
+   "caixa_chapada_p90": 2.3,
+   "temporal_p99": 9.3,
+   "sombra_err_sem": 2.24,
+   "sombra_err_com": 2.24,
+   "dilatacao": 9,
+   "halo_p99": 6.1,
+   "placa_bytes": 514,
+   "folga_legenda": 11,
+   "rosto_frac": 0,
+   "font_corr": 0.7096,
+   "font_candidatas": 6
+  }
+ }
+}

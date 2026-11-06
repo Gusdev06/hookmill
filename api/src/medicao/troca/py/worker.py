@@ -57,7 +57,7 @@ def rodar(ev):
                      ffmpeg=subprocess.check_output(["ffmpeg", "-version"]).decode().split("\n")[0])
         elif op == "sondar":
             from comum import sonda
-            r.update(sonda(ev["url"]))
+            r.update(sonda(ev.get("url") or "video.mp4"))
         elif op == "medir_headline":
             import medir_headline as mh
             r.update(mh.medida(ev) if ev.get("fase", "medida") == "medida" else mh.regua(ev))

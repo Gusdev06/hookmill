@@ -25,7 +25,7 @@ async function main() {
   const casos = (JSON.parse(readFileSync(arqCasos, 'utf8')) as Caso[]).map((c) => ({ ...c, video: /^(https?:|\/)/.test(c.video) ? c.video : path.resolve(path.dirname(arqCasos), c.video) }));
   const fontesDir = pastaDeFontes(process.env.TROCA_FONTES_DIR);
   const storage = { putFile: async (key: string, file: string) => { const d = path.join(saida, key); mkdirSync(path.dirname(d), { recursive: true }); copyFileSync(file, d); } };
-  const ex = new ExecutorLocal({ python: process.env.TROCA_PYTHON || 'python3', pyDir: pastaPython(process.env.TROCA_PY_DIR), fontesDir }, storage);
+  const ex = new ExecutorLocal({ python: process.env.TROCA_PYTHON || 'python3', pyDir: pastaPython(process.env.TROCA_PY_DIR), fontesDir, ffmpeg: process.env.FFMPEG_PATH, ffprobe: process.env.FFPROBE_PATH }, storage);
   const porta = new TrocaTextoOrquestrada(ex, new ProvaPuppeteer({ browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE || null, fontesDir }), { log: console, aoMedir: (md, rg, stills) => {
     const d = path.join(saida, 'provas', String(atual)); mkdirSync(d, { recursive: true });
     for (const st of stills) writeFileSync(path.join(d, `${st.fontId}.png`), Buffer.from(st.png.split(',')[1], 'base64'));

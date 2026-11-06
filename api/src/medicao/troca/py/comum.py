@@ -16,7 +16,10 @@ def sonda(caminho):
     """Largura, altura, fps, nº de quadros (pacotes contados) e cor do 1º fluxo de vídeo."""
     out = subprocess.run([FFPROBE, "-v", "error", "-select_streams", "v:0", "-count_packets", "-show_entries",
                           "stream=width,height,avg_frame_rate,r_frame_rate,nb_read_packets,color_space,color_range,color_primaries,color_transfer",
-                          "-of", "json", caminho], capture_output=True, text=True, check=True).stdout
+                          "-of", "json", caminho], capture_output=True, text=True)
+    if out.returncode != 0:
+        raise RuntimeError(f"ffprobe {out.returncode}: {out.stderr.strip()[-400:]}")
+    out = out.stdout
     s = json.loads(out)["streams"][0]
     num, den = (s.get("avg_frame_rate") or s.get("r_frame_rate") or "30/1").split("/")
     fps = float(num) / float(den) if float(den) else 30.0
@@ -47,7 +50,9 @@ def quadros(caminho, info, ini=0, n=None, roi=None, cinza=False, mat=None):
     cmd = [FFMPEG, "-v", "error", "-nostdin", "-i", caminho, "-vf", ",".join(vf)]
     if n:
         cmd += ["-frames:v", str(n)]
-    cmd += ["-f", "rawvideo", "-pix_fmt", "bgr24", "-"]
+    # passthrough: 1 quadro decodificado = 1 quadro aqui. Sem ele a ffmpeg 7 da função (G1, 06/11) duplicava/descartava
+    # quadros pelo tempo no solto real (trim a partir do 135: 358 quadros em vez de 429; placa com 494 de 564)
+    cmd += ["-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "bgr24", "-"]
     # stderr calado: quem lê pode parar no meio (o texto saiu), e o ffmpeg reclama do pipe fechado
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     tam = W * H * 3

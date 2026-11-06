@@ -141,9 +141,10 @@ export class TrocaTextoOrquestrada implements TrocaTextoPort {
     }
   }
 
-  /** Nº de quadros do campeão (ffprobe direto na URL, sem baixar): planeja os pedaços. */
+  /** Nº de quadros do campeão: planeja os pedaços. Baixa pelo `get` como as outras ops: o ffprobe estático da função não
+   *  abre a URL assinada do S3 (G1, 06/11: `sondar` com `url` falhou na Lambda; local passava porque a URL é caminho). */
   private async contarQuadros(videoUrl: string): Promise<{ n: number; costUsd: number }> {
-    const r = await this.op({ op: 'sondar', url: videoUrl });
+    const r = await this.op({ op: 'sondar', get: { 'video.mp4': videoUrl } });
     return { n: Number(r.r.n ?? 0), costUsd: r.costUsd };
   }
 }

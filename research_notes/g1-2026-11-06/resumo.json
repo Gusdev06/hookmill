@@ -1,0 +1,267 @@
+{
+ "s4-05": {
+  "derivado": false,
+  "medir": {
+   "s": 25.742,
+   "custoUsd": 0.0009335504990624999
+  },
+  "kind": "box",
+  "intervalo": [
+   0,
+   191
+  ],
+  "verdict": {
+   "ok": true,
+   "reason": null,
+   "gates": {
+    "transicao_max": 0,
+    "caixa_area_rel": 1.36,
+    "caixa_quadro_rel": 0.15,
+    "caixa_chapada_p90": 6,
+    "temporal_p99": 6.7,
+    "sombra_err_sem": 12.24,
+    "sombra_err_com": 5.95,
+    "dilatacao": 17,
+    "halo_p99": 5.5,
+    "placa_bytes": 662,
+    "folga_legenda": 11,
+    "rosto_frac": 0,
+    "font_corr": 0.7696,
+    "font_candidatas": 5
+   }
+  },
+  "font": {
+   "fontId": "albert-sans-500",
+   "corr": 0.7696,
+   "stemErr": 0.0472,
+   "widthErr": 0.0128,
+   "tier": "same",
+   "measuredIn": "chrome-linux"
+  },
+  "linhas": [
+   "If he doesn't call you",
+   "within two minutes,",
+   "I’ll pay you $50"
+  ]
+ },
+ "s4-02": {
+  "derivado": false,
+  "medir": {
+   "s": 15.199,
+   "custoUsd": 0.0005412160374
+  },
+  "kind": "box",
+  "intervalo": [
+   0,
+   198
+  ],
+  "verdict": {
+   "ok": true,
+   "reason": null,
+   "gates": {
+    "transicao_max": 0,
+    "caixa_area_rel": 1.19,
+    "caixa_quadro_rel": 0.192,
+    "caixa_chapada_p90": 12.7,
+    "temporal_p99": 17,
+    "sombra_err_sem": 4.77,
+    "sombra_err_com": 4.62,
+    "dilatacao": 9,
+    "halo_p99": 8.3,
+    "placa_bytes": 1666,
+    "folga_legenda": 11,
+    "rosto_frac": 0,
+    "font_corr": 0.8852,
+    "font_candidatas": 5
+   }
+  },
+  "font": {
+   "fontId": "tiktok-sans-600",
+   "corr": 0.8852,
+   "stemErr": 0.0124,
+   "widthErr": 0.0074,
+   "tier": "same",
+   "measuredIn": "chrome-linux"
+  },
+  "linhas": [
+   "Si en 2 minutos no te",
+   "busca, es porque",
+   "nunca fue para ti.."
+  ]
+ },
+ "s4-06": {
+  "derivado": false,
+  "medir": {
+   "s": 12.471,
+   "custoUsd": 0.00043953886234999995
+  },
+  "kind": "box",
+  "intervalo": [
+   0,
+   335
+  ],
+  "verdict": {
+   "ok": true,
+   "reason": null,
+   "gates": {
+    "transicao_max": 0,
+    "caixa_area_rel": 1.14,
+    "caixa_quadro_rel": 0.09,
+    "caixa_chapada_p90": 2.3,
+    "temporal_p99": 9.3,
+    "sombra_err_sem": 2.24,
+    "sombra_err_com": 2.24,
+    "dilatacao": 9,
+    "halo_p99": 6.1,
+    "placa_bytes": 514,
+    "folga_legenda": 11,
+    "rosto_frac": 0,
+    "font_corr": 0.7096,
+    "font_candidatas": 6
+   }
+  },
+  "font": {
+   "fontId": "tiktok-sans-500",
+   "corr": 0.7096,
+   "stemErr": 0.0821,
+   "widthErr": 0.0192,
+   "tier": "same",
+   "measuredIn": "chrome-linux"
+  },
+  "linhas": [
+   "Él ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te busca, dime mentirosa"
+  ]
+ },
+ "s4-solto": {
+  "derivado": false,
+  "medir": {
+   "s": 9.144,
+   "custoUsd": 0.000308173205525
+  },
+  "kind": "loose",
+  "intervalo": [
+   0,
+   161
+  ],
+  "verdict": {
+   "ok": true,
+   "reason": null,
+   "gates": {
+    "transicao_max": 0,
+    "caixa_area_rel": 1.27,
+    "caixa_quadro_rel": 0.044,
+    "caixa_chapada_p90": 12.7,
+    "temporal_p99": 133.7,
+    "px_letra": 2773,
+    "luz_letra": 254,
+    "emoji_ocupa": 0.797,
+    "emoji_solidez": 0.834,
+    "emoji_lobulos": 2,
+    "sombra_err_sem": 1.77,
+    "sombra_err_com": 1.57,
+    "distancia_legenda": 10,
+    "folga_legenda": 7,
+    "rosto_frac": 0,
+    "font_corr": 0.8267,
+    "font_candidatas": 5
+   }
+  },
+  "font": {
+   "fontId": "arimo-600",
+   "corr": 0.8267,
+   "stemErr": 0.0842,
+   "widthErr": 0.0074,
+   "tier": "close",
+   "measuredIn": "chrome-linux"
+  },
+  "linhas": [
+   "How to view your man’s",
+   "recent following on IG"
+  ],
+  "placa": {
+   "status": "READY",
+   "reason": null,
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 564,
+    "fantasma_pior_media": 0.5,
+    "fantasma_pior_corr": 0.0344,
+    "pedaco_max_s": 18.446,
+    "mascara_px": 13267,
+    "pico_MB": 269,
+    "quadros_placa": 564
+   },
+   "sizeBytes": 4809290,
+   "costUsd": 0.0013791685564749998,
+   "ms": 20030,
+   "s": 20.132
+  }
+ },
+ "solto-longo-60s-derivado": {
+  "derivado": true,
+  "medir": {
+   "s": 17.967,
+   "custoUsd": 0.0006597741301875
+  },
+  "kind": "loose",
+  "intervalo": [
+   0,
+   161
+  ],
+  "verdict": {
+   "ok": true,
+   "reason": null,
+   "gates": {
+    "transicao_max": 0,
+    "caixa_area_rel": 1.27,
+    "caixa_quadro_rel": 0.045,
+    "caixa_chapada_p90": 14.3,
+    "temporal_p99": 133,
+    "px_letra": 6374,
+    "luz_letra": 254,
+    "emoji_ocupa": 0.772,
+    "emoji_solidez": 0.851,
+    "emoji_lobulos": 2,
+    "sombra_err_sem": 2.9,
+    "sombra_err_com": 2.76,
+    "distancia_legenda": 18,
+    "folga_legenda": 11,
+    "rosto_frac": 0,
+    "font_corr": 0.8707,
+    "font_candidatas": 5
+   }
+  },
+  "font": {
+   "fontId": "arimo-600",
+   "corr": 0.8707,
+   "stemErr": 0.1305,
+   "widthErr": 0.0044,
+   "tier": "same",
+   "measuredIn": "chrome-linux"
+  },
+  "linhas": [
+   "How to view your man’s",
+   "recent following on IG"
+  ],
+  "placa": {
+   "status": "READY",
+   "reason": null,
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1800,
+    "fantasma_pior_media": 0.32,
+    "fantasma_pior_corr": 0.0252,
+    "pedaco_max_s": 96.635,
+    "mascara_px": 32044,
+    "pico_MB": 475,
+    "quadros_placa": 1800
+   },
+   "sizeBytes": 31370530,
+   "costUsd": 0.006312979058737501,
+   "ms": 99480,
+   "s": 99.642
+  }
+ }
+}
