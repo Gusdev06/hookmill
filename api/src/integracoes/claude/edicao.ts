@@ -48,7 +48,7 @@ const BOX = obj(
 
 const LAYER = obj({
   kind: en(['headline', 'caption', 'text'], 'headline = fixed title/hook text; caption = word-by-word subtitles of the speech (karaoke); text = any other burned-in text'),
-  text: str('Literal text exactly as on screen (keep case, line breaks as spaces). Empty string for kind caption.'),
+  text: str('Literal text exactly as on screen: keep case, emoji and punctuation, and put a line break (\\n) exactly where the text breaks onto a new line on screen, one \\n per break. Empty string for kind caption.'),
   startSec: num('First second the layer is visible (approximate, from the frames).'),
   endSec: num('Last second the layer is visible (approximate).'),
   box: BOX,
@@ -108,7 +108,7 @@ export const EDIT_SYSTEM = `You map the editing of a short vertical video ad so 
 
 Rules:
 - Report only what the frames show. Boxes and times are approximate (they are refined by pixel measurement later), but never invent a layer you did not see.
-- Text: copy it literally, in its original language. A caption layer (word-by-word subtitles of the speech) has an empty text; its timing comes from the transcript.
+- Text: copy it literally, in its original language, with a line break (\\n) wherever it breaks onto a new line on screen. A caption layer (word-by-word subtitles of the speech) has an empty text; its timing comes from the transcript.
 - Fonts: pick the closest id from the catalog by letter shape, never a font outside it.
 - Colors are hex #RRGGBB as they look on screen.
 - The person: describe ONLY generic, non-identifying traits (apparent gender, age band, broad ethnicity, hair, clothes, setting, light, framing, pose). Never a name, handle, tattoo, scar, birthmark, jewelry detail or anything that singles out this individual.
@@ -214,6 +214,18 @@ function isOverFace(box: Rect, frames: { startFrame: number; endFrame: number },
   });
 }
 
+/** Texto da camada com as quebras de linha da tela: `\r\n`, `\r`, `\u2028` e o `\\n` literal viram `\n`; espaços de cada
+ *  linha colapsados; linhas vazias saem. */
+export function textLinesOf(v: unknown): string {
+  if (typeof v !== 'string') return '';
+  return v
+    .replace(/\r\n?|\u2028|\u2029|\\n/g, '\n')
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
 export function parseEditMap(text: string, g: VideoGrid, words: TranscriptWord[], faceTrack: FaceTrackSegment[] = []): EditMapDraft {
   const d = parseJsonObject(text);
   const layers: EditLayer[] = [];
@@ -225,7 +237,9 @@ export function parseEditMap(text: string, g: VideoGrid, words: TranscriptWord[]
     const L = o(raw);
     const kind = s(L.kind) as EditLayer['kind'];
     if (kind !== 'headline' && kind !== 'caption' && kind !== 'text') continue;
-    const text = s(L.text);
+    // troca-texto-queimado-v1 §14.1 (F1b, I1): o texto volta com `\n` onde quebra na tela (o nº de linhas e os
+    // caracteres por linha da original saem daqui); cada linha aparada, linha vazia sai
+    const text = textLinesOf(L.text);
     if (kind !== 'caption' && !text) continue;
     // legenda: o intervalo é o da fala (1ª a última palavra); sem fala, o que a visão viu
     const span = kind === 'caption' && firstWord != null && lastWord != null ? { a: firstWord, b: lastWord } : { a: n(L.startSec) ?? -1, b: n(L.endSec) ?? -1 };

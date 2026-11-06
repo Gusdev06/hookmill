@@ -19,6 +19,7 @@ import { STATIC_V2_RULES, staticCopyOf, staticVisualV2Of } from './auto-plano-es
 import { FRAME_RULES, allowedFramesOf, frameAllowed, frameParamsOf, framesRequestLine, type AutoPlanInputWithFrame } from './auto-plano-moldura';
 import { IntegracaoError } from '../erros';
 import type { AutoHeadlineDraft } from '../contrato';
+import { alvoTexto, alvosPorLinha, hasEmoji, stripEmoji } from './headline-fit';
 import { sourceOf } from './auto-plano-estatico';
 import { wordsBlock } from './prompts-campeao';
 import { parseJsonObject } from './validacao-campeao';
@@ -183,7 +184,7 @@ Batch rules:
 
 HEADLINE:
 - When HEADLINE is in <allowed>, write exactly as many HEADLINE pieces as its max (3 when the champion has a headline, 2 when it has none), each with a different angle: the pain, the promise, the proof. Each one must differ from the others and from the original headline.
-- Same language as given in <headline>. Same number of lines as the original and no more characters than its limit (a full-width character counts as 1 here); short, concrete, as people write on a video; no emojis, no hashtags, no brand name.
+- Same language as given in <headline>. Same number of lines as the original and no more characters than its limit (a full-width character counts as 1 here); short, concrete, as people write on a video; no emojis, no hashtags, no brand name. When <headline> gives a character target per line, the new text replaces the original in the same place and size: stay close to the targets (a much shorter text leaves a hole, a longer one does not fit). An emoji of the original stays in the video on its own: never write one.
 - Keep the voice of the original (if it asks a question, a question works; if it is all caps on screen, the render shows it in caps: write it normally).
 - highlight: only when <headline> says the original has a highlight: the strongest 1-4 words of your text, copied exactly; otherwise empty.
 - Nothing invented: every number, price, time span or percentage must be in the Brain or the transcript; textSource names where the claim comes from.
@@ -252,10 +253,25 @@ export function headlineRequest(i: Pick<AutoPlanInputWithFrame, 'allowed' | 'hea
   const max = i.allowed.find((a) => a.type === 'HEADLINE')?.max ?? 0;
   const h = i.headline;
   if (!h || max <= 0) return null;
+  // troca-texto-queimado-v1 §16.3 item 1 (F1b, I1): no `replace` medido, o alvo de 85-115 % por linha da original. É
+  // orientação; o veredito é `ajustarHeadlineCopia` e o laço (`encaixarHeadline` + `rewriteHeadlineFit`) vem depois.
+  const targets = h.mode === 'replace' && h.charsPerLine?.length ? alvosPorLinha(h.charsPerLine) : [];
+  const lines = targets.length || h.lines;
+  const original = h.original ? stripEmoji(h.original) : null;
+  const attrs = [
+    `mode="${h.mode}"`, `pieces="${max}"`, `lines="${lines}"`, `max_chars="${h.maxChars}"`, `highlight="${h.hasHighlight ? 'yes' : 'no'}"`,
+    ...(h.hasHighlight && h.emphasisKind ? [`highlight_style="${h.emphasisKind}"`] : []),
+    ...(h.caseStyle ? [`case="${h.caseStyle}"`] : []),
+    `language="${h.language}"`,
+  ];
   const out = [
-    `<headline mode="${h.mode}" pieces="${max}" lines="${h.lines}" max_chars="${h.maxChars}" highlight="${h.hasHighlight ? 'yes' : 'no'}" language="${h.language}">`,
-    h.mode === 'replace' && h.original ? `Original headline: "${h.original.replace(/"/g, '”')}"` : 'The champion has no headline: the new one goes on a band at the top.',
-    `Write exactly ${max} HEADLINE pieces, each at most ${h.maxChars} characters in ${h.lines} line(s), in ${languageName(h.language)}.`,
+    `<headline ${attrs.join(' ')}>`,
+    h.mode === 'replace' && h.original
+      ? `Original headline${targets.length ? ' (lines split by " / ")' : ''}: "${(original || h.original).replace(/\s*\n\s*/g, targets.length ? ' / ' : ' ').replace(/"/g, '”')}"${hasEmoji(h.original) ? ' (its emoji stays in the video on its own; write no emoji)' : ''}`
+      : 'The champion has no headline: the new one goes on a band at the top.',
+    targets.length
+      ? `Write exactly ${max} HEADLINE pieces in ${languageName(h.language)}, each about the same length as the original, line by line: ${alvoTexto(targets)}. Never over ${h.maxChars} characters. Write it as one line of text: the render breaks it like the original. Too short leaves a hole where the old text was erased; too long does not fit.`
+      : `Write exactly ${max} HEADLINE pieces, each at most ${h.maxChars} characters in ${h.lines} line(s), in ${languageName(h.language)}.`,
     '</headline>',
   ];
   if (i.violations?.some((v) => /headline_too_long/.test(v))) {
@@ -374,9 +390,10 @@ export interface AutoPlanParseCtx {
 /** HEADLINE (só forma): texto aparado e sem aspas; destaque só se a original tem e se é trecho literal do texto. O
  *  comprimento NÃO é cortado aqui (cortar mutila a frase): passou do limite = `headline_too_long` no backend e reparo. */
 export function headlineParamsOf(p: Record<string, unknown>, h: NonNullable<AutoPlanInput['headline']>): AutoHeadlineDraft | null {
-  const text = s(p.text).replace(/^["“”']+|["“”']+$/g, '').trim().slice(0, 90);
+  // troca-texto-queimado-v1 §15.5.6 / §16 (I1): sem emoji no texto (o da original é recortado do quadro e fica na peça)
+  const text = stripEmoji(s(p.text)).replace(/\s+/g, ' ').replace(/^["“”']+|["“”']+$/g, '').trim().slice(0, 90);
   if (!text) return null;
-  const hl = s(p.highlight).replace(/^["“”']+|["“”']+$/g, '').trim();
+  const hl = stripEmoji(s(p.highlight)).replace(/\s+/g, ' ').replace(/^["“”']+|["“”']+$/g, '').trim();
   const highlight = h.hasHighlight && hl && hl !== text && text.includes(hl) ? hl : null;
   const src = sourceOf(p.textSource) ?? 'generic';
   return { type: 'HEADLINE', mode: h.mode, text, highlight, sources: highlight ? { text: src, highlight: src } : { text: src } };

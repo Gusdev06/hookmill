@@ -2,8 +2,8 @@
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**
 Fonte da verdade do banco: [`api/prisma/schema.prisma`](../../api/prisma/schema.prisma) (validado com Prisma 6.19). Este arquivo explica o porquê e as regras que o schema sozinho não diz.
 
-## Mudanças 06/11 (F0b da troca de texto queimado; detalhe em [`troca-texto-queimado-v1.md`](troca-texto-queimado-v1.md) §15.8, §16.5) · **arquivo escrito, NÃO aplicado em nenhum banco**
-- Migração aditiva `20261110000200_champion_plates`: enums `PlateKind` e `PlateStatus`, `FileKind` + `CHAMPION_PLATE`, `JobType` + `CHAMPION_PLATE`, tabela `champion_plates`. Gerada por `prisma migrate diff` entre schemas, sem conectar em banco; schema resultante validado. **`schema.prisma` ainda sem este bloco:** entra na fase A0, depois do QA do F1a. Até lá, `db:diff` mostra a diferença.
+## Mudanças 06/11 (F0b da troca de texto queimado; detalhe em [`troca-texto-queimado-v1.md`](troca-texto-queimado-v1.md) §15.8, §16.5) · **A0 06/11: no `schema.prisma`; aplicada em `maquina` (backup `maquina-2026-11-06-1152.sql.gz`); `db:diff` vazio. Produção: ainda não ([`deploy-f1b-plano.md`](deploy-f1b-plano.md))**
+- Migração aditiva `20261110000200_champion_plates`: enums `PlateKind` e `PlateStatus`, `FileKind` + `CHAMPION_PLATE`, `JobType` + `CHAMPION_PLATE`, tabela `champion_plates`. Gerada por `prisma migrate diff` entre schemas, sem conectar em banco; schema resultante validado. O bloco abaixo entrou no `schema.prisma` na A0.
 - Regras que o schema não diz: 1 linha por campeão × `kind` × `layerKey` × `version`; `version` sobe quando o método muda, e placa antiga não vale. **REJECTED e FAILED ficam guardadas** para não reprocessar. `CHAMPION_PLATE` é máquina; `CHAMPION_CLEAN_VIDEO` é enviado pela pessoa, e com ele não há placa nem portão. Headline em caixa não usa a tabela: a imagem é data URI em `teardowns.edit_map.headlineLook`, sem arquivo. `headlineLook` é JSON, sem coluna (ausente = não medido; null = medido, sem headline).
 ```prisma
 // enum JobType, acrescentar:   CHAMPION_PLATE // troca-texto-queimado-v1 §15.8

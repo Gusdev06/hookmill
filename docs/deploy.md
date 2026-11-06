@@ -110,7 +110,7 @@ Segredo só no painel (EasyPanel / Vercel). Nada disto vai pro git.
 | `DEFAULT_MONTHLY_SPEND_CAP_USD` | `200` |
 | `THROTTLE_DEFAULT_PER_MIN` / `THROTTLE_EXPENSIVE_PER_MIN` | `600` / `20` |
 | `MEDICAO_ONNX_THREADS` | `2` (opcional; com CPU limit 1, use `1`) |
-| `ANALYZE_IMPL` / `ANALYZE_LAMBDA_FUNCTION` / `ANALYZE_LAMBDA_FALLBACK` | `lambda` / `hookmill-leitura` / `on` (leitura do anúncio na AWS, `contratos/leitura-lambda-v1.md` §7.1; usa as `REMOTION_AWS_*` do render). Rollback: `ANALYZE_IMPL=local`. **Mudou `api/src/medicao/**`? Rode `node scripts/leitura-lambda.mjs deploy` (perfil admin) ANTES de subir a API.** |
+| `ANALYZE_IMPL` / `ANALYZE_LAMBDA_FUNCTION` / `ANALYZE_LAMBDA_FALLBACK` | `lambda` / `hookmill-leitura` / `off` (decisão do Gusta, 06/11: leitura sempre na Lambda, sem refazer na VPS) (leitura do anúncio na AWS, `contratos/leitura-lambda-v1.md` §7.1; usa as `REMOTION_AWS_*` do render). Rollback: `ANALYZE_IMPL=local`. **Mudou `api/src/medicao/**`? Rode `node scripts/leitura-lambda.mjs deploy` (perfil admin) ANTES de subir a API.** |
 | `PUBLIC_MEDIA` | não definir (`on`: a WaveSpeed baixa direto da URL assinada) |
 | `SEED_*` | não usar em produção (o seed precisa de `ts-node`, que não está na imagem; o 1º dono entra pelo §7) |
 

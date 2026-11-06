@@ -1,15 +1,10 @@
 // troca-texto-queimado-v1 §15.8 e §16 (F0b, 06/11): headline copiada do criativo, solta ou em caixa. SÓ TIPOS, aditivos.
-// Dono: maquina-arquiteto. O FontId do index.ts não muda aqui: api e video indexam FONT_CATALOG por ele, e a união só cresce
-// junto do catálogo (fase V1). Até lá, `CopyFontId` é o catálogo da cópia.
+// Dono: maquina-arquiteto. V1 do F1b (06/11): o catálogo da cópia foi fundido no `FontId` do index.ts, junto do
+// FONT_CATALOG do video/. `CopyFontId` fica como sinônimo, para os tipos já escritos com ele.
 import type { FontId, Rect } from './index';
 
-export type CopyFontId = FontId
-  | 'montserrat-500' | 'montserrat-600' | 'montserrat-700'
-  | 'inter-400' | 'inter-500' | 'inter-600' | 'inter-700'
-  | 'poppins-500' | 'poppins-600'
-  | 'arimo-400' | 'arimo-500' | 'arimo-600' | 'arimo-700'
-  | 'tiktok-sans-400' | 'tiktok-sans-500' | 'tiktok-sans-600' | 'tiktok-sans-700'
-  | 'albert-sans-500';
+/** = `FontId` desde a V1 (fundido). Mantido para não quebrar quem já importa. */
+export type CopyFontId = FontId;
 
 /** O pixel decide (§15.5.2): `box` = molde cp108, imagem 2D parada; `loose` = molde followcatch, placa em vídeo. */
 export type HeadlineCopyKind = 'box' | 'loose';

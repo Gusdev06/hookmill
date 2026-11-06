@@ -18,6 +18,27 @@ export const FONT_CATALOG = {
   'archivo-black-400': { family: 'MaquinaArchivoBlack', weight: 400, label: 'Archivo Black' },
   'poppins-800': { family: 'MaquinaPoppins', weight: 800, label: 'Poppins ExtraBold' },
   'roboto-condensed-700': { family: 'MaquinaRobotoCondensed', weight: 700, label: 'Roboto Condensed Bold' },
+  // Cópia de headline (troca-texto §14.1.2, §15.7.3, V1 do F1b, 06/11): pesos médios para texto corrido. Todas OFL-1.1,
+  // licença e origem em public/fonts/licenses/. Aprovadas na S4: 02 Montserrat 600, 05 Albert Sans 500, 06 Montserrat 500,
+  // solto Arimo 600 (Gusta, §16.11).
+  'montserrat-500': { family: 'MaquinaMontserrat', weight: 500, label: 'Montserrat Medium' },
+  'montserrat-600': { family: 'MaquinaMontserrat', weight: 600, label: 'Montserrat SemiBold' },
+  'montserrat-700': { family: 'MaquinaMontserrat', weight: 700, label: 'Montserrat Bold' },
+  'inter-400': { family: 'MaquinaInter', weight: 400, label: 'Inter Regular' },
+  'inter-500': { family: 'MaquinaInter', weight: 500, label: 'Inter Medium' },
+  'inter-600': { family: 'MaquinaInter', weight: 600, label: 'Inter SemiBold' },
+  'inter-700': { family: 'MaquinaInter', weight: 700, label: 'Inter Bold' },
+  'poppins-500': { family: 'MaquinaPoppins', weight: 500, label: 'Poppins Medium' },
+  'poppins-600': { family: 'MaquinaPoppins', weight: 600, label: 'Poppins SemiBold' },
+  'arimo-400': { family: 'MaquinaArimo', weight: 400, label: 'Arimo Regular' },
+  'arimo-500': { family: 'MaquinaArimo', weight: 500, label: 'Arimo Medium' },
+  'arimo-600': { family: 'MaquinaArimo', weight: 600, label: 'Arimo SemiBold' },
+  'arimo-700': { family: 'MaquinaArimo', weight: 700, label: 'Arimo Bold' },
+  'tiktok-sans-400': { family: 'MaquinaTikTokSans', weight: 400, label: 'TikTok Sans Regular' },
+  'tiktok-sans-500': { family: 'MaquinaTikTokSans', weight: 500, label: 'TikTok Sans Medium' },
+  'tiktok-sans-600': { family: 'MaquinaTikTokSans', weight: 600, label: 'TikTok Sans SemiBold' },
+  'tiktok-sans-700': { family: 'MaquinaTikTokSans', weight: 700, label: 'TikTok Sans Bold' },
+  'albert-sans-500': { family: 'MaquinaAlbertSans', weight: 500, label: 'Albert Sans Medium' },
 } as const;
 export type FontId = keyof typeof FONT_CATALOG;
 export const FONT_IDS = Object.keys(FONT_CATALOG) as [FontId, ...FontId[]];

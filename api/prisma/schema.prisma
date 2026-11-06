@@ -108,6 +108,7 @@ enum JobType {
   META_SYNC // meta-v1 §3.2: anúncios + insights (30 d, 7 d, 7 d anteriores) → meta_ad_snapshots
   META_IMPORT // meta-v1 D13: baixa o vídeo de um anúncio → File CHAMPION_VIDEO → Champion (rights OWN)
   META_PUBLISH // meta-v1 §3.3: vídeo → creative → campanha → ad set → ad (PAUSED), ids gravados por etapa
+  CHAMPION_PLATE // troca-texto-queimado-v1 §15.8, §16.5: placa do campeão (texto queimado apagado)
 }
 
 enum JobStatus {
@@ -176,6 +177,7 @@ enum FileKind {
   BRAND_FILE // kit-marca-v1: imagem, PDF de apresentação, print do produto
   BRAND_VIDEO // kit-marca-v1: vídeo demo / screen recording do produto
   PROXY // editor-universal-v1 §8: proxy 540p de um vídeo (files.proxy_of_file_id = original)
+  CHAMPION_PLATE // troca-texto-queimado-v1 §16.5: vídeo do campeão com o texto apagado (máquina), distinto do CHAMPION_CLEAN_VIDEO (enviado)
 }
 
 // kit-marca-v1 (31/10): papel do asset no kit da marca
@@ -525,6 +527,7 @@ model Workspace {
   competitorCandidates  CompetitorCandidate[]
   researchTerms         ResearchTerm[]
   savedAds              SavedAd[]
+  championPlates        ChampionPlate[] // troca-texto-queimado-v1 §16.5
 
   @@map("workspaces")
 }
@@ -630,12 +633,12 @@ model Creative {
   generatedAt      DateTime?   @map("generated_at")
 
   // Etapa Edit: { templateId, captionStyle, captionPosition, headline, ctaText, endCard } (ver modelo-de-dados.md)
-  editSettings Json    @default("{}") @map("edit_settings")
-  editDirty    Boolean @default(false) @map("edit_dirty") // settings mudaram desde o último render READY
+  editSettings  Json      @default("{}") @map("edit_settings")
+  editDirty     Boolean   @default(false) @map("edit_dirty") // settings mudaram desde o último render READY
   // Editor v1 (docs/contratos/editor-v1.md §4): ajuste fino por cima do editSettings. null = só o template.
-  editDoc      Json?   @map("edit_doc")
-  editRevision Int     @default(0) @map("edit_revision") // +1 a cada PATCH /edit e PUT /editor (concorrência otimista)
-  remixBase    Json?   @map("remix_base") // cache do RemixKeepRenderInput (fileIds no lugar de URLs); F3, interno do backend
+  editDoc       Json?     @map("edit_doc")
+  editRevision  Int       @default(0) @map("edit_revision") // +1 a cada PATCH /edit e PUT /editor (concorrência otimista)
+  remixBase     Json?     @map("remix_base") // cache do RemixKeepRenderInput (fileIds no lugar de URLs); F3, interno do backend
   // editor-universal-v1 §10: quem salvou a edição por último (EDIT_CONFLICT.details, editor.updated); mesmo update da revisão
   editSavedById String?   @map("edit_saved_by_id")
   editSavedAt   DateTime? @map("edit_saved_at")
@@ -878,22 +881,22 @@ model Render {
 // Todo binário mora no storage (Supabase Storage via API S3; local = versitygw). O banco guarda só a chave.
 // URL pra o web = assinada na hora da resposta (nunca salva no banco).
 model File {
-  id          String   @id @default(cuid())
-  workspaceId String   @map("workspace_id")
-  kind        FileKind
-  storageKey  String   @unique @map("storage_key") // ws/<workspaceId>/<kind>/<cuid>.<ext>
-  mimeType    String   @map("mime_type")
-  sizeBytes   Int      @map("size_bytes")
-  durationSec Decimal? @map("duration_sec") @db.Decimal(8, 3)
-  width       Int?
-  height      Int?
-  sha256      String?
-  sourceUrl   String?  @map("source_url") // URL de origem no provedor (auditoria)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  workspaceId   String   @map("workspace_id")
+  kind          FileKind
+  storageKey    String   @unique @map("storage_key") // ws/<workspaceId>/<kind>/<cuid>.<ext>
+  mimeType      String   @map("mime_type")
+  sizeBytes     Int      @map("size_bytes")
+  durationSec   Decimal? @map("duration_sec") @db.Decimal(8, 3)
+  width         Int?
+  height        Int?
+  sha256        String?
+  sourceUrl     String?  @map("source_url") // URL de origem no provedor (auditoria)
+  createdAt     DateTime @default(now()) @map("created_at")
   // editor-universal-v1 §8: proxy 540p (kind PROXY) aponta pro original; apagado junto com ele
-  proxyOfFileId String? @map("proxy_of_file_id")
-  proxyOf       File?   @relation("FileProxy", fields: [proxyOfFileId], references: [id], onDelete: Cascade)
-  proxies       File[]  @relation("FileProxy")
+  proxyOfFileId String?  @map("proxy_of_file_id")
+  proxyOf       File?    @relation("FileProxy", fields: [proxyOfFileId], references: [id], onDelete: Cascade)
+  proxies       File[]   @relation("FileProxy")
 
   workspace             Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   face                  Face?             @relation("FaceFile")
@@ -917,6 +920,7 @@ model File {
   zipOf                 VariationBatch[]  @relation("BatchZip")
   metaPublicationVideos MetaPublication[] @relation("MetaPublicationVideo")
   brandAssets           BrandAsset[]
+  championPlates        ChampionPlate[] // troca-texto-queimado-v1 §16.5
 
   @@index([workspaceId, kind])
   @@index([proxyOfFileId])
@@ -1160,6 +1164,7 @@ model Champion {
   providerTasks    ProviderTask[]
   costEntries      CostEntry[]
   researchAd       LibraryAd?       @relation(fields: [researchAdId], references: [id], onDelete: SetNull)
+  plates           ChampionPlate[] // troca-texto-queimado-v1 §16.5
 
   @@unique([workspaceId, researchAdId])
   @@index([workspaceId, archivedAt, updatedAt])
@@ -2148,4 +2153,44 @@ model SavedAd {
   @@unique([workspaceId, adId])
   @@index([workspaceId, createdAt])
   @@map("saved_ads")
+}
+
+// troca-texto-queimado-v1 §15.8, §16.5 (F1b, A0 06/11): placa do campeão, 1 linha por campeão × kind × layerKey × version.
+// REJECTED e FAILED ficam guardadas para não reprocessar. Headline em caixa não usa a tabela (data URI em edit_map.headlineLook).
+enum PlateKind {
+  HEADLINE
+  CAPTION
+}
+
+enum PlateStatus {
+  QUEUED
+  RUNNING
+  READY
+  REJECTED
+  FAILED
+}
+
+model ChampionPlate {
+  id          String      @id @default(cuid())
+  workspaceId String      @map("workspace_id")
+  championId  String      @map("champion_id")
+  kind        PlateKind
+  layerKey    String      @map("layer_key") // HEADLINE: layerId; CAPTION: 'caption'
+  version     Int // sobe quando o método muda; placa antiga deixa de valer
+  status      PlateStatus @default(QUEUED)
+  fileId      String?     @map("file_id") // FileKind CHAMPION_PLATE
+  reason      String? // razão do portão ou da falha
+  metrics     Json? // conferência e tempos, sem pixel
+  costUsd     Decimal?    @map("cost_usd") @db.Decimal(10, 6)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  champion  Champion  @relation(fields: [championId], references: [id], onDelete: Cascade)
+  file      File?     @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@unique([championId, kind, layerKey, version])
+  @@index([workspaceId])
+  @@index([fileId])
+  @@map("champion_plates")
 }

@@ -104,7 +104,7 @@ function buildClaude(costs: CostStore, cfg: ConfigService, mode: IntegracoesMode
   const model = cfg.get<string>('ANTHROPIC_MODEL') || 'claude-opus-5-5';
   if (mode === 'mock') return new FakeClaudeService(costs, { model });
   const apiKey = cfg.get<string>('ANTHROPIC_API_KEY');
-  if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption', 'proposeCompetitors', 'judgeCompetitors']);
+  if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption', 'proposeCompetitors', 'judgeCompetitors', 'rewriteHeadlineFit']);
   const transport = new SdkClaudeTransport(new Anthropic({ apiKey, maxRetries: 2 }), {
     model,
     effort: effortOf(cfg.get<string>('ANTHROPIC_EFFORT')),
@@ -121,6 +121,8 @@ function buildClaude(costs: CostStore, cfg: ConfigService, mode: IntegracoesMode
     // ads-research-v1 (C.3): D1 Sonnet / D4 Haiku
     researchProposeModel: cfg.get<string>('ADS_RESEARCH_PROPOSE_MODEL') || undefined,
     researchJudgeModel: cfg.get<string>('ADS_RESEARCH_JUDGE_MODEL') || undefined,
+    // troca-texto-queimado-v1 §16.3 (I1): reescrita da headline que não ficou do tamanho da original (Haiku 4.5 por padrão)
+    headlineFitModel: cfg.get<string>('ANTHROPIC_HEADLINE_FIT_MODEL') || undefined,
     pageOptions: {
       renderMain: makePageRenderer(browser),
       render: makePageRenderer({ ...browser, timeoutMs: 8_000, scrollTimeoutMs: 5_000 }),

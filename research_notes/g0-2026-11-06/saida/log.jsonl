@@ -1,0 +1,18 @@
+{"t":"2026-11-06T11:54:55.234Z","etapa":"bundle","s":11.239}
+{"t":"2026-11-06T11:55:07.752Z","modo":"local","rot":"vps-chromium","job":"still-solto","s":4.976}
+{"t":"2026-11-06T11:55:10.551Z","modo":"local","rot":"vps-chromium","job":"still-02","s":2.78}
+{"t":"2026-11-06T11:55:15.510Z","modo":"local","rot":"vps-chromium","job":"still-05","s":4.959}
+{"t":"2026-11-06T11:55:17.879Z","modo":"local","rot":"vps-chromium","job":"still-06","s":2.369}
+{"t":"2026-11-06T11:55:22.388Z","modo":"local","rot":"vps-chromium","job":"clipe-placa-10q","s":4.509}
+{"t":"2026-11-06T11:55:30.880Z","modo":"local","rot":"vps-shell","job":"still-solto","s":5.311}
+{"t":"2026-11-06T11:55:31.681Z","modo":"local","rot":"vps-shell","job":"still-02","s":0.8}
+{"t":"2026-11-06T11:55:32.362Z","modo":"local","rot":"vps-shell","job":"still-05","s":0.68}
+{"t":"2026-11-06T11:55:33.230Z","modo":"local","rot":"vps-shell","job":"still-06","s":0.867}
+{"t":"2026-11-06T11:55:35.392Z","modo":"local","rot":"vps-shell","job":"clipe-placa-10q","s":2.16}
+{"t":"2026-11-06T11:58:23.554Z","etapa":"site","siteName":"g0-s4-20261106","s":1.716,"stats":{"uploadedFiles":59,"deletedFiles":0,"untouchedFiles":0}}
+{"t":"2026-11-06T11:58:28.404Z","modo":"lambda","job":"still-solto","s":4.85,"usd":0.0001,"renderId":"1mxg4sf6f7"}
+{"t":"2026-11-06T11:58:29.261Z","modo":"lambda","job":"still-02","s":0.677,"usd":0.00003,"renderId":"yx94qdf42u"}
+{"t":"2026-11-06T11:58:30.041Z","modo":"lambda","job":"still-05","s":0.58,"usd":0.00002,"renderId":"hdfe3x2voa"}
+{"t":"2026-11-06T11:58:30.775Z","modo":"lambda","job":"still-06","s":0.552,"usd":0.00002,"renderId":"07g6850tpt"}
+{"t":"2026-11-06T11:58:38.172Z","modo":"lambda","job":"clipe-placa-10q","s":7.19,"usd":0.00012,"lambdas":1,"renderId":"go9a9pcehi"}
+{"t":"2026-11-06T11:58:38.922Z","etapa":"site apagado","siteName":"g0-s4-20261106","d":{"totalSizeInBytes":28658517},"custoTotalUsd":0.00029}

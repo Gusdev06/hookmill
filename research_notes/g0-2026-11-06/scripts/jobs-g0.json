@@ -1,0 +1,360 @@
+[
+ {
+  "nome": "still-solto",
+  "tipo": "still",
+  "frame": 10,
+  "props": {
+   "w": 464,
+   "h": 832,
+   "frames": 161,
+   "fontes": [
+    {
+     "family": "Arimo",
+     "weight": 600,
+     "file": "fonts/arimo-600.woff"
+    }
+   ],
+   "blocos": [
+    {
+     "start": 0,
+     "end": 161,
+     "family": "Arimo",
+     "weight": 600,
+     "size": 26.75,
+     "color": "#fff",
+     "lines": [
+      {
+       "text": "How to view your man\u2019s",
+       "cx": 233.0,
+       "base": 557.0
+      },
+      {
+       "text": "recent following on IG",
+       "cx": 233.0,
+       "base": 590.25
+      }
+     ],
+     "sombra": {
+      "dx": 0,
+      "dy": 1,
+      "blur": 2.6,
+      "color": "rgba(0,0,0,0.4)"
+     },
+     "suaviza": 0.4,
+     "emoji": {
+      "src": "midia/emoji.png",
+      "linha": 1,
+      "gap": 6.12,
+      "w": 27,
+      "h": 25,
+      "y": -22,
+      "margemEsq": 2,
+      "recorteW": 31,
+      "sombra": "drop-shadow(0px 1px 1.3px rgba(0,0,0,0.24))"
+     }
+    }
+   ],
+   "fundo": "transparent"
+  }
+ },
+ {
+  "nome": "still-02",
+  "tipo": "still",
+  "frame": 10,
+  "props": {
+   "w": 716,
+   "h": 1278,
+   "frames": 198,
+   "fontes": [
+    {
+     "family": "Montserrat",
+     "weight": 500,
+     "file": "fonts/montserrat-latin-500-normal.woff2"
+    },
+    {
+     "family": "Montserrat",
+     "weight": 600,
+     "file": "fonts/montserrat-latin-600-normal.woff2"
+    },
+    {
+     "family": "Montserrat",
+     "weight": 700,
+     "file": "fonts/montserrat-latin-700-normal.woff2"
+    },
+    {
+     "family": "Albert Sans",
+     "weight": 500,
+     "file": "fonts/albert-sans-500.woff"
+    },
+    {
+     "family": "DM Sans",
+     "weight": 400,
+     "file": "fonts/dm-sans-400.woff2"
+    }
+   ],
+   "blocos": [
+    {
+     "start": 0,
+     "end": 198,
+     "family": "Montserrat",
+     "weight": 600,
+     "size": 61.47337006427915,
+     "tracking": 0.005,
+     "color": "#f6fcff",
+     "lines": [
+      {
+       "text": "Si en 2 minutos no te",
+       "cx": 347.0,
+       "base": 72.0
+      },
+      {
+       "text": "busca, es porque",
+       "cx": 350.0,
+       "base": 138.5
+      },
+      {
+       "text": "nunca fue para ti..",
+       "cx": 353.5,
+       "base": 205.0
+      }
+     ],
+     "suaviza": 0.6,
+     "placa": {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAeCAIAAADINCUsAAAEeElEQVR42t1ZW7bbNgyc4dFP99SNdfOcfhAEAb4sJ21PE19dJ7YkihgAgwEu//jzLxxfHP8VfsEXfeua7Vk+AeXVmr8kELPN/HTd8/sCEW0nZ2P4FgsB0Fs4//dAfPqeByykDS78TYDIV/AeF9ov9wYO3felf9W063XkbQ2uWOjDinc4LpZKby7nB5h5v2Kc5m41khsW1byPx3nho/O2cOiLeNH2BgKgjrhk0kumcsGDGywGEBESQQSh6Krnq2j9NtLDkxT8oOhDzeyukc7ceZ+7qOBIBk6E0E+RES5J9iR30fOfkJnDrwXZHBHyMOEm6VeXB4tpGIQ4mKHyUwMs24M4Y8F/VkwoAaHMHNzewP5LCeSRVSY+nIHw4OA4G99j0jvueo6q9aeBCAhoW6qPwsaQsJxec4UrLohsEfOkZ0eGoX2URBKyaHxOheYnqCGlRgdjYz53uBAURAJi+wExUMk8MtnPqWRkIHal1eNC0pkv3sCR7d85X3LSjGfbhrWnDa8YIjIcWmpnDoVu9niI8+VEIu2ZFhNEi4/nrl1O4iAxgKQjUl4+FM1MN2xLrRqTwhJFzQo5RiF3OkfQySKUlADEzJytjlimAPq+jgwU/E0XitEqaebPCRhXGpLXk7YCRZBUtLNZZdYyKwgwpMm2FJOSelaC32LRXQ0ZF2hr7f32G32a1Q6COpvavSQIFFSgtM9seLBwdv0qNTbyXOpg/JDWkh2eBAtzfBLYnwSuaEuacQYJSKgADYlqCdNjZV8tPsn3gMrzQ5pBmRN0t3CdKXErtG4ibXixRUT/h5LELs5I7pHlB0688oXnXZTRisrJwuOdq3n+Rq+7NJcDLSIoFFSpDL10sNtY8vu5Fk/FJAaDgpi6A8FbZSJia3jTfBZb6jUQACpUILmcayW4iZMVkZ2QzVt63o4HPCiEFZ1TG8u1q+bn+QZnRKRUaQ0ONa/Yi1GY4JgvJ2tbb/Z5SmNE5kXD1KQmuoB1Vgs35KqPyxanOsPTsNKCwLGotaKUEpaiFZlvpnLPG8qX/PBCaqmiS06E1HUUll5xBKnm7o1RFDnm6pVMFATVWhlaNGJIkHXKc5sG6eGZU6LDNV6jxF0YgkweJQcQ5DR66XW6wZ33TmvljRfNF0x1plYBFQILSSYR/jYq8vwiErBCbjgEAwhdQNAwg2O4wvmdE1gSRHYR6yuMMmBIQbVxp0Y0oVahVFaChaWJsQzErt/VzJ77uOiRKeMH1bGXAxJppNJshkY4OAoZlLjX2NwHma0eL6wtJCQ1oRirfauztahUwhRZZ5xD6Ae2bcr/4frnlKSfRkhI2/HUhL96j2BHIUl1RFpPgfZN2KVSaqXdUoDYZU3fYbXTI4LhZZYgxDHXOLMFOx8SAJ7ChdL9ikCYkbnWMjNl+KAG9G2Z/SyUTxLY28845lyVmB8AK6xXYa61HFKlrSk7nKs56zv2euQd4TNzXtLGSsPzyKUvVGIYH5iXPArCMG6Z92dCja1qR7kPoiZ2kz9Lh6nxkh49O1qI/Q0QhuejHfYFCQAAAABJRU5ErkJggg==",
+      "x": 0,
+      "y": 0,
+      "w": 716,
+      "h": 246
+     },
+     "sublinhados": [
+      {
+       "linha": 1,
+       "de": 7,
+       "ate": 16,
+       "dy": 14,
+       "esp": 6
+      },
+      {
+       "linha": 2,
+       "de": 0,
+       "ate": 17,
+       "dy": 14,
+       "esp": 6
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "nome": "still-05",
+  "tipo": "still",
+  "frame": 10,
+  "props": {
+   "w": 720,
+   "h": 1280,
+   "frames": 191,
+   "fontes": [
+    {
+     "family": "Montserrat",
+     "weight": 500,
+     "file": "fonts/montserrat-latin-500-normal.woff2"
+    },
+    {
+     "family": "Montserrat",
+     "weight": 600,
+     "file": "fonts/montserrat-latin-600-normal.woff2"
+    },
+    {
+     "family": "Montserrat",
+     "weight": 700,
+     "file": "fonts/montserrat-latin-700-normal.woff2"
+    },
+    {
+     "family": "Albert Sans",
+     "weight": 500,
+     "file": "fonts/albert-sans-500.woff"
+    },
+    {
+     "family": "DM Sans",
+     "weight": 400,
+     "file": "fonts/dm-sans-400.woff2"
+    }
+   ],
+   "blocos": [
+    {
+     "start": 0,
+     "end": 191,
+     "family": "Albert Sans",
+     "weight": 500,
+     "size": 61.9,
+     "tracking": null,
+     "color": "#fffefa",
+     "lines": [
+      {
+       "text": "If he doesn't call you",
+       "cx": 314,
+       "base": 654.0
+      },
+      {
+       "text": "within two minutes,",
+       "cx": 313,
+       "base": 714.0
+      },
+      {
+       "text": "I\u2019ll pay you $50",
+       "cx": 314.5,
+       "base": 774.0
+      }
+     ],
+     "suaviza": 0.6,
+     "placa": {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE4AAAAbCAIAAABdiy4OAAABmUlEQVR42tWYyZLDIAxEeRT/f5vv7Tmk7DgslticCifKi5AaqVvAHzEYQ8eEMD14W+sb8jigOzcjQbfL63OuiSBXQOVGpRzpCrZyZxQqG6pixg28mC64kQpBp4eUBpU9oh7qZ8DefOWyiCrfa/mGmflPo+6UhTpTkQ8lpz+Hyd1LRq7zSF2xoTiVx33UqtqfXV3R7FbL9BU36J3OJGS4KMNo9R2NfRJH5bTtqfnr3Ih7REK1Jzpf0SsUsySnV6j6CmtsIGdjzVQnrKc8wYgcJ3d5vE9Nen4wburRslYG4rZ001DwJzOwWNL5CFWruwMNNMmEwNCKssBIWdOIGz+59C6vC2eddAm5ehL4LSj+wwujwOtL/Wb0WOvMbNYKzKrTXzQ91QY91M7jBGMMrEfU/xkRjwNNmjrCxoTMyQ7zEKeyZ1mxMHIQqxyHOc1XB+UtBIvwZPwbLa94Ghcuv3C/4GugueuBf3bgvcBNo+bPEzvUsG0szS4ut1OPNGAyu30uAy46Q27wWlE2JmrId7LpUyAvG6+kBzxy8A8UzILqVkuVJwAAAABJRU5ErkJggg==",
+      "x": 0,
+      "y": 586,
+      "w": 628,
+      "h": 220
+     },
+     "sublinhados": [],
+     "sombra": {
+      "dx": 3,
+      "dy": 4,
+      "blur": 8,
+      "color": "rgba(0,0,0,1)"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "nome": "still-06",
+  "tipo": "still",
+  "frame": 10,
+  "props": {
+   "w": 720,
+   "h": 960,
+   "frames": 335,
+   "fontes": [
+    {
+     "family": "Montserrat",
+     "weight": 500,
+     "file": "fonts/montserrat-latin-500-normal.woff2"
+    },
+    {
+     "family": "Montserrat",
+     "weight": 600,
+     "file": "fonts/montserrat-latin-600-normal.woff2"
+    },
+    {
+     "family": "Montserrat",
+     "weight": 700,
+     "file": "fonts/montserrat-latin-700-normal.woff2"
+    },
+    {
+     "family": "Albert Sans",
+     "weight": 500,
+     "file": "fonts/albert-sans-500.woff"
+    },
+    {
+     "family": "DM Sans",
+     "weight": 400,
+     "file": "fonts/dm-sans-400.woff2"
+    }
+   ],
+   "blocos": [
+    {
+     "start": 0,
+     "end": 335,
+     "family": "Montserrat",
+     "weight": 500,
+     "size": 32.25182481751825,
+     "tracking": null,
+     "color": "#fffff7",
+     "lines": [
+      {
+       "text": "\u00c9l ya est\u00e1 con otra? Te",
+       "cx": 234.5,
+       "base": 571.5
+      },
+      {
+       "text": "propongo algo. Si en 7 d\u00edas",
+       "cx": 233.5,
+       "base": 605.0
+      },
+      {
+       "text": "no te busca, dime mentirosa",
+       "cx": 244.5,
+       "base": 638.5
+      }
+     ],
+     "suaviza": 0.6,
+     "placa": {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAQCAIAAADF8ItoAAABN0lEQVR42rWWYa6EIAyE+5kme7t3/9vM/gBXgYJAfMQYEWmn03aQv8/H8gB7bSh6+WyfeH+aCWQms6Nc0lug2Y51hCIveLTAPpk31JiZTKZkj81w1PLgETeKrWvDl6g3nqSwxsp94v3tSh7fHqxWvZrydUZEhqXCCvmU37BcctEOX0k6T5jCcFkr2Anejn8ogFOhVmpWDxxxf+MrrdtGrVVRGXwWcRomgGPohY6Qbsrgng5VZOuR6Q4NmtIDzWv+LOJ083mWBxqlvoVC88X+oYspG8IDHilRMwpICUSD5Cfx6LzlnxsK7JqiOBcl+XT1DhgC9JEXmuNNJb+iSEieKQelW6YicqRLWK9seQPxQlI9a9xS6tRWeBZxYZZCuY/bJj0cw1ZhoY84r7vQVAFTecMM6LRP1zVf2gFsovBSP0UAAAAASUVORK5CYII=",
+      "x": 0,
+      "y": 529,
+      "w": 481,
+      "h": 130
+     },
+     "sublinhados": []
+    }
+   ]
+  }
+ },
+ {
+  "nome": "clipe-placa-10q",
+  "tipo": "clipe",
+  "props": {
+   "w": 464,
+   "h": 832,
+   "frames": 10,
+   "base": "midia/g0-base.mp4",
+   "fontes": [
+    {
+     "family": "Arimo",
+     "weight": 600,
+     "file": "fonts/arimo-600.woff"
+    }
+   ],
+   "blocos": [
+    {
+     "start": 0,
+     "end": 10,
+     "family": "Arimo",
+     "weight": 600,
+     "size": 26.75,
+     "color": "#fff",
+     "lines": [
+      {
+       "text": "How to view your man\u2019s",
+       "cx": 233.0,
+       "base": 557.0
+      },
+      {
+       "text": "recent following on IG",
+       "cx": 233.0,
+       "base": 590.25
+      }
+     ],
+     "sombra": {
+      "dx": 0,
+      "dy": 1,
+      "blur": 2.6,
+      "color": "rgba(0,0,0,0.4)"
+     },
+     "suaviza": 0.4,
+     "emoji": {
+      "src": "midia/emoji.png",
+      "linha": 1,
+      "gap": 6.12,
+      "w": 27,
+      "h": 25,
+      "y": -22,
+      "margemEsq": 2,
+      "recorteW": 31,
+      "sombra": "drop-shadow(0px 1px 1.3px rgba(0,0,0,0.24))"
+     }
+    }
+   ]
+  }
+ }
+]

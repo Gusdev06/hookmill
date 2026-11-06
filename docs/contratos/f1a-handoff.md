@@ -21,15 +21,19 @@ Dono: maquina-backend. Fonte: `troca-texto-queimado-v1.md` §15.3, §15.3.1, §1
 | Lote, `insight.headlineBlocked` | `{ reason: 'headline_pending', mode: 'replace' }` (campo em transição, igual aos outros motivos) |
 | Galeria e lote, `TemplateFit` do Headline | `{ level: 'hard', reason: 'headline_pending' }` |
 | `POST` de usar template | 422 `TEMPLATE_DOESNT_FIT`, `details.reason: 'headline_pending'` |
-| Pack ou seleção | segue `ok` se outra peça couber; seleção lista `{ slug, reason: 'headline_pending' }` em `skipped` |
+| Pack | segue `ok` se outra peça couber |
+| Seleção, anúncio **já lido** (`POST /ad-templates/use`) | 422 `TEMPLATE_DOESNT_FIT` com `details = { reason, slug, items: [{ slug, reason: 'headline_pending' }] }`; o web mostra "tirar e continuar". Regra M5 de `templates-multi-v1.md` |
+| Seleção, anúncio **ainda não lido** (o fit só se conhece no `AUTO_PLAN`) | o lote segue; `run.selection.skipped` traz `{ slug, name, reason: 'headline_pending' }` |
 | Peça antiga refeita ou na fila | `errorCode: 'HEADLINE_PENDING'`, `retryHint: 'leave_out'`, `failReason` em EN |
 
 Texto (§15.4): "This video's headline can't be rewritten yet" + as saídas. Nunca prometer data.
 HEADLINE `add` (campeão sem headline) segue oferecido. `headline_aspect` continua valendo para aspecto sem formato.
 
+**B9 (06/11, arquiteto):** a linha antiga dizia só `skipped`. Vale o código (`templates.service.ts` `useMany`, passo 10), que segue a M5 aprovada pelo Gusta: com o anúncio já lido, o fit é conhecido antes do preço e tirar em silêncio mudaria o que a pessoa escolheu e vai pagar. Backend não muda.
+
 ## Lote de template com legenda queimada
 - Formato que cobriria a legenda: `template.fit = { level: 'soft', reason: 'burned_captions' }`, `pieces: []`, sem "Generate anyway". Mostrar a faixa `soft` com: enviar versão sem legenda, outro template.
-- Seleção: marcado `soft` não entra no plano e aparece em `skipped` com `reason: 'burned_captions'`.
+- Seleção: marcado `soft` não entra no plano e aparece em `skipped` com `{ slug, name, reason: 'burned_captions' }` (`soft` não recusa a seleção; só `hard` dá o 422 da M5).
 - Pack: `ok` se algum couber.
 - Sem cobertura, a checagem `CAPTION_COVERED` agora vale para toda peça com legenda queimada, inclusive no export do editor.
 

@@ -21,10 +21,29 @@ const ARQUIVOS: Record<FontId, string> = {
   'archivo-black-400': 'fonts/archivo-black-latin-400-normal.woff2',
   'poppins-800': 'fonts/poppins-latin-800-normal.woff2',
   'roboto-condensed-700': 'fonts/roboto-condensed-latin-700-normal.woff2',
+  // cópia de headline (troca-texto V1): licenças em public/fonts/licenses/
+  'montserrat-500': 'fonts/montserrat-latin-500-normal.woff2',
+  'montserrat-600': 'fonts/montserrat-latin-600-normal.woff2',
+  'montserrat-700': 'fonts/montserrat-latin-700-normal.woff2',
+  'inter-400': 'fonts/inter-latin-400-normal.woff2',
+  'inter-500': 'fonts/inter-latin-500-normal.woff2',
+  'inter-600': 'fonts/inter-latin-600-normal.woff2',
+  'inter-700': 'fonts/inter-latin-700-normal.woff2',
+  'poppins-500': 'fonts/poppins-latin-500-normal.woff2',
+  'poppins-600': 'fonts/poppins-latin-600-normal.woff2',
+  'arimo-400': 'fonts/arimo-latin-400-normal.woff2',
+  'arimo-500': 'fonts/arimo-latin-500-normal.woff2',
+  'arimo-600': 'fonts/arimo-latin-600-normal.woff2',
+  'arimo-700': 'fonts/arimo-latin-700-normal.woff2',
+  'tiktok-sans-400': 'fonts/tiktok-sans-latin-400-normal.woff2',
+  'tiktok-sans-500': 'fonts/tiktok-sans-latin-500-normal.woff2',
+  'tiktok-sans-600': 'fonts/tiktok-sans-latin-600-normal.woff2',
+  'tiktok-sans-700': 'fonts/tiktok-sans-latin-700-normal.woff2',
+  'albert-sans-500': 'fonts/albert-sans-latin-500-normal.woff2',
 };
-const INTER_600 = 'fonts/inter-latin-600-normal.woff2';
+const INTER_600 = ARQUIVOS['inter-600'];
 
-/** Os 10 arquivos que o web precisa servir em /fonts (o prebuild do web copia esta lista). */
+/** Os arquivos que o web precisa servir em /fonts (o prebuild do web copia esta lista). */
 export const ARQUIVOS_DE_FONTE: readonly string[] = [INTER_600, ...new Set(Object.values(ARQUIVOS))];
 
 let fontesDosTemplates: Promise<void> | null = null;

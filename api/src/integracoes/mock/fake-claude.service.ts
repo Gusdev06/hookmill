@@ -23,6 +23,8 @@
 //                   dentro, metade fora da região do rosto; [mock:keep-overlay] → painel sobre o rosto no terço do meio;
 //                   [mock:hook-over-video] → headline sem fundo (texto direto sobre o vídeo).
 //                   headline-e-legenda-v1: [mock:headline-over-video] → idem, o vídeo todo; [mock:headline-none] → sem headline.
+//                   troca-texto-queimado-v1 (I1): [mock:headline-lines] → headline com `\n` em 3 linhas.
+//   rewriteHeadlineFit (§16.3, I1): mira o alvo por linha; `opts.headlineFit` 'same' | 'error' força o laço a esgotar.
 //                   legenda-protegida-v1: [mock:burned-captions] → legenda queimada (karaokê) na fala; sem ele, nenhuma.
 import type {
   AdLibraryMeta,
@@ -62,6 +64,8 @@ import { FakeCompetitorAi, type FakeCompetitorAiOptions } from './fake-concorren
 import type { JudgeCompetitorsInput, JudgeCompetitorsResult, ProposeCompetitorsInput, ProposeCompetitorsResult } from '../contrato';
 import { seedOf, unit } from './midia';
 import { mockAutoPlan } from './fake-auto-plan';
+import { fakeRewriteHeadlineFit, type FakeHeadlineFitMode } from './fake-headline-fit';
+import type { RewriteHeadlineFitInput } from '../contrato';
 import type { CheckStaticTextInput, CheckStaticTextResult, StaticTextCheckPort } from '../contrato';
 import type { CaptionCheckPort, CheckCaptionInput } from '../contrato';
 import type { CheckCaptionInputAny, CheckCaptionVerdict } from '../claude/checagem-legenda';
@@ -83,6 +87,9 @@ export interface FakeClaudeOptions {
   stepMs?: number;
   /** ads-research-v1: D1/D4 fake (custo por chamada, espera do mock-slow); stepMs vem do de cima se não vier */
   research?: FakeCompetitorAiOptions;
+  /** troca-texto-queimado-v1 §16.3 (I1): `rewriteHeadlineFit` mira o alvo (`fit`, padrão), devolve o mesmo texto (`same`)
+   *  ou falha (`error`). Pras specs do laço: peça sai depois de 3 reescritas. */
+  headlineFit?: FakeHeadlineFitMode;
 }
 
 type Lang = 'en' | 'pt' | 'es';
@@ -441,6 +448,17 @@ export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, Ca
     return { ...draft, costUsd: 0 };
   }
 
+  /** troca-texto-queimado-v1 §16.3 (I1): chamadas de `rewriteHeadlineFit` (as specs conferem o teto de 3 por headline) */
+  headlineFitCalls = 0;
+
+  /** §16.3 mock: texto no meio do alvo por linha, só com palavras do atual e da original, sem emoji; custo 0 no lote. */
+  async rewriteHeadlineFit(i: RewriteHeadlineFitInput): Promise<{ text: string; highlight: string | null } & Usage> {
+    this.headlineFitCalls++;
+    await this.pause(3);
+    await this.costs.record({ workspaceId: i.workspaceId, variationBatchId: i.batchId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0, jobId: i.jobId });
+    return { ...fakeRewriteHeadlineFit(i, this.opts.headlineFit ?? 'fit'), costUsd: 0 };
+  }
+
   /** renders cuja 1ª checagem já saiu errada no [mock:static-text-mismatch] (memória do processo; a 2ª passa) */
   private readonly textMismatched = new Set<string>();
 
@@ -639,6 +657,13 @@ function profileCasting(lg: Lang, p: PersonProfile, voiceGender: 'female' | 'mal
   return [`${who}, ${p.ageBand || '30'}, ${p.ethnicity || ''}`.replace(/,\s*$/, ''), trait, p.hair, p.clothing, p.setting, p.lighting, p.framing, p.pose].filter(Boolean).join(', ') + '.';
 }
 
+/** troca-texto-queimado-v1 §14.1 (I1): `[mock:headline-lines]` = a headline volta com `\n` como a visão manda agora. */
+function emLinhas(t: string, n: number): string {
+  const w = t.split(' ');
+  const per = Math.ceil(w.length / n);
+  return Array.from({ length: n }, (_, k) => w.slice(k * per, (k + 1) * per).join(' ')).filter(Boolean).join('\n');
+}
+
 /** describeEdit do mock: 1 headline com fundo chapado + 1 legenda karaokê (com fala). Na grade do campeão. */
 export function mockEditMap(i: DescribeEditInput): EditMapDraft {
   const v = i.video;
@@ -664,7 +689,7 @@ export function mockEditMap(i: DescribeEditInput): EditMapDraft {
       id: 'headline-1', kind: 'headline', startFrame: 0, endFrame: overVideo && !fullOver ? Math.max(1, f(Math.min(3, v.durationSec))) : Math.max(1, full), box: headBox,
       background: overVideo ? { kind: 'none', color: null, box: null } : { kind: 'solid', color: red, box: { ...headBox } },
       style: { ...white, fontId: 'archivo-black-400', uppercase: true, fontSizePx: Math.round((40 / 960) * v.height), color: '#FFFFFF', highlightColor: '#FFD400', shadow: false, ...(overVideo ? { strokeColor: '#000000', strokeWidthPx: 3 } : {}) },
-      text: HEADLINE[lg], wordsPerPage: null, source: 'vision',
+      text: notes.includes('[mock:headline-lines]') ? emLinhas(HEADLINE[lg], 3) : HEADLINE[lg], wordsPerPage: null, source: 'vision',
     },
     {
       id: 'text-1', kind: 'text', startFrame: 0, endFrame: Math.max(1, full), box: footBox,

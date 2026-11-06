@@ -34,8 +34,10 @@ import type {
   ProposeCompetitorsInput,
   ProposeCompetitorsResult,
   ResearchLlmUsage,
+  RewriteHeadlineFitInput,
 } from '../contrato';
-import { STATIC_TEXT_CHECK_MODEL, WORDS_PER_SECOND } from '../catalogo/precos';
+import { HEADLINE_FIT_MODEL, STATIC_TEXT_CHECK_MODEL, WORDS_PER_SECOND } from '../catalogo/precos';
+import { REWRITE_FIT_SCHEMA, REWRITE_FIT_SYSTEM, parseRewriteFit, rewriteFitUserMessage } from './headline-fit';
 import { genderOf } from '../catalogo/genero';
 import { guessLanguage } from '../wavespeed/idioma';
 import {
@@ -129,6 +131,8 @@ export interface ClaudeLiveOptions {
   /** ads-research-v1 (C.3): modelos do D1 (ADS_RESEARCH_PROPOSE_MODEL) e do D4 (ADS_RESEARCH_JUDGE_MODEL) */
   researchProposeModel?: string;
   researchJudgeModel?: string;
+  /** troca-texto-queimado-v1 §16.3 (I1): ANTHROPIC_HEADLINE_FIT_MODEL (padrão HEADLINE_FIT_MODEL.model = claude-haiku-4-5) */
+  headlineFitModel?: string;
 }
 
 /** Limites dos frames que vão pro Claude (§6.1: até 16, lado maior 768 px, já reduzidos pelo backend). */
@@ -602,6 +606,21 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       return parseCaptionCheck(res.text, { mode: i.mode, frames });
     });
     return { ...out, costUsd: round6(total) };
+  }
+
+  /**
+   * troca-texto-queimado-v1 §16.3 item 3 (I1): reescreve 1 headline que a função reprovou (curta, longa, no queixo ou fora
+   * da regra) pro alvo por linha. Haiku, sem nova tentativa interna (cada chamada é 1 das 3 do laço). Custo gravado no lote.
+   */
+  async rewriteHeadlineFit(i: RewriteHeadlineFitInput): Promise<{ text: string; highlight: string | null } & Usage> {
+    const model = this.opts.headlineFitModel || HEADLINE_FIT_MODEL.model;
+    const res = await this.transport.run({
+      system: REWRITE_FIT_SYSTEM, user: rewriteFitUserMessage(i), schema: REWRITE_FIT_SCHEMA,
+      maxTokens: HEADLINE_FIT_MODEL.maxTokens, model, effort: textCheckEffort(model),
+    });
+    const spent = await recordLlmCost(this.costs, { workspaceId: i.workspaceId, variationBatchId: i.batchId, jobId: i.jobId, model }, res.usage);
+    this.assertFinished(res);
+    return { ...parseRewriteFit(res.text, i), costUsd: round6(spent) };
   }
 
   // ---------- ads-research-v1 (Ad Radar), C.3 / C.8 ----------

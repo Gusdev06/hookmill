@@ -952,6 +952,7 @@ Sem placa por quadro no F1b e sem `CHAMPION_PLATE` na caixa.
 **Escrito nesta rodada:** `contratos/src/troca-texto.ts` (novo), `contratos/src/index.ts` (`EditMap.headlineLook?`, export), `contratos/src/iteracao.ts` (`PieceHeadline` e `AutoInsight.headlineBlocked?`, opcionais), `contratos/src/templates.ts` (motivos), `api/prisma/migrations/20261110000200_champion_plates/migration.sql`, `api.md`, `modelo-de-dados.md`. `tsc --noEmit` limpo em `contratos`, `api`, `web` e `video`.
 **Decisão:** `FontId` não cresce agora. `api` e `video` indexam `FONT_CATALOG` por ele, e isso quebraria o F1a em teste. `CopyFontId` vale até a V1, quando o arquiteto funde.
 **`api/prisma/schema.prisma` não foi tocado nesta rodada**, por restrição de escopo. O bloco exato está em `modelo-de-dados.md`, e a migração saiu dele. Entra na fase A0. Até lá, `npm run db:diff` mostra diferença, e isso é esperado.
+**A0 feita (06/11):** bloco no `schema.prisma`, igual ao de `modelo-de-dados.md`; migração sem mudança. `npm run db:diff` vazio; `maquina` local já tinha a migração (`migrate status` em dia; diff banco × schema vazio); backup `.infra/backups/maquina-2026-11-06-1152.sql.gz`. Efeito do enum novo: `JobType` do contrato ganhou `CHAMPION_PLATE` (`contratos/src/index.ts`) e `JOB_CHECKLIST` ganhou `CHAMPION_PLATE: ['erasing', 'checking']` (`api/src/jobs/job.presenter.ts`, 1 linha, só para o `Record<JobType>` compilar; o B1 pode trocar as etapas). `tsc --noEmit` limpo em `contratos`, `api`, `web` e `video`. `prisma generate` rodado.
 
 ```ts
 // api/src/iteracao/headline-plano.ts (backend, F1b). Puro. Sem `plateImpl`, o comportamento é o do F1a: a spec atual continua valendo.
@@ -1050,6 +1051,13 @@ rewriteHeadlineFit(i: { workspaceId: string; batchId: string; language: string; 
 6. **Fontes `close` e `same` da caixa com 3 vídeos:** `corr` 0,64 é logo abaixo do pior aprovado, então 1 vídeo novo pode cair. O efeito é não oferecer.
 7. **Haiku reescrevendo copy:** não medi a qualidade dessas reescritas. O lote real é onde o Gusta vê.
 
+**Deploy:** o que sobe quando o F1b fechar, a partir do `19cdef8` que está no ar, com as 14 migrações, backup e envs: [`deploy-f1b-plano.md`](deploy-f1b-plano.md).
+
 ### 16.10 Pro Gusta
 1. **Ok para AWS:** G0 e G1 (~US$ 0,03), deploy da função `hookmill-legenda` e, no fim, 1 lote real (~US$ 0,30)?
 2. **Caixa 05 e 06:** a §15.14 registra a Arimo e a translúcida do 02, mas não um "aprovado" para a fonte do 05 (Albert Sans) e do 06 (Montserrat 500). Vc viu na S4: ficaram boas? **Sem isso, a régua da caixa nasce de escolhas não aprovadas por vc.**
+
+### 16.11 Respostas do Gusta à §16.10 (06/11)
+1. **AWS:** ok para G0, G1, deploy da função `hookmill-legenda` e o lote real final (~US$ 0,30) que ele vê.
+2. **Caixa 05 e 06:** aprovadas. 05 = Albert Sans 500; 06 = Montserrat 500. A régua da caixa pode nascer dessas escolhas.
+3. Bugs B1–B8 do QA do F1a: corrigir. B9 fica com o arquiteto.

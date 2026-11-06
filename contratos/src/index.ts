@@ -129,7 +129,8 @@ export interface OfferReadMeta {
 export type JobType = 'OFFER_EXTRACT' | 'SCRIPTS_GENERATE' | 'SCRIPT_REGENERATE'
   | 'CHAMPION_RESOLVE' | 'CHAMPION_ANALYZE' | 'VARIATIONS_PLAN' | 'VARIATION_ITEM_REGENERATE'   // feature 2
   | 'AUTO_PLAN' | 'ZIP_BUILD'   // variacao-auto-v1
-  | 'META_SYNC' | 'META_IMPORT' | 'META_PUBLISH';   // meta-v1 (21/10)
+  | 'META_SYNC' | 'META_IMPORT' | 'META_PUBLISH'   // meta-v1 (21/10)
+  | 'CHAMPION_PLATE';   // troca-texto-queimado-v1 §16.5 (A0 06/11): job interno; a tela vê o item `preparing_plate` do AUTO_PLAN
 export type JobStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED';
 export interface Job extends Progress {
   id: string; type: JobType; status: JobStatus;
@@ -721,9 +722,16 @@ export interface LaunchBatchResponse { batch: VariationBatch; creatives: Creativ
 // ═════════════════════════ §13: manter a edição + take contínuo (06/10 noite) ═════════════════════════
 /** Retângulo em px na grade do campeão (ou do clipe, quando dito). */
 export interface Rect { x: number; y: number; w: number; h: number }
-/** Catálogo fechado de fontes empacotadas no video/ (FONT_CATALOG). */
+/** Catálogo fechado de fontes empacotadas no video/ (FONT_CATALOG). Os pesos médios entraram na V1 do F1b (troca-texto
+ *  §16.6, 06/11), quando o `CopyFontId` foi fundido aqui: todas OFL-1.1, licenças em video/public/fonts/licenses/. */
 export type FontId = 'montserrat-800' | 'montserrat-900' | 'inter-800' | 'anton-400' | 'oswald-700'
-  | 'bebas-neue-400' | 'archivo-black-400' | 'poppins-800' | 'roboto-condensed-700';
+  | 'bebas-neue-400' | 'archivo-black-400' | 'poppins-800' | 'roboto-condensed-700'
+  | 'montserrat-500' | 'montserrat-600' | 'montserrat-700'
+  | 'inter-400' | 'inter-500' | 'inter-600' | 'inter-700'
+  | 'poppins-500' | 'poppins-600'
+  | 'arimo-400' | 'arimo-500' | 'arimo-600' | 'arimo-700'
+  | 'tiktok-sans-400' | 'tiktok-sans-500' | 'tiktok-sans-600' | 'tiktok-sans-700'
+  | 'albert-sans-500';
 export interface TextStyle {
   fontId: FontId; uppercase: boolean; fontSizePx: number; lineHeight: number;
   color: string; highlightColor: string | null;          // karaokê: cor da palavra atual

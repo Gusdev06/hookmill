@@ -9,6 +9,7 @@ import type {
   AutoVariationType, BlockFn, BrainField, EndcardVariant, ProtectedBand,
   MetaDestinationSource, ListTemplateId,
   LibraryAdFormat, LibraryAdPlatform,
+  HeadlineCopyKind, HeadlineFitReject, HeadlineLook,
 } from '@maquina/contratos';
 import type { CaptionsAuto } from '@maquina/video';
 export type {
@@ -66,7 +67,8 @@ export interface ExtractSources {
 export type ExtractStage = 'fetching_page'|'rendering_page'|'walking_quiz'|'reading_subpages'|'reading_images'|'extracting'|'detecting_language';
 
 /** 25/10: `extends StaticTextCheckPort` (checkStaticText, estatico-montado-e-molduras-v1 §A6), ligado no fechamento do A-I. */
-export interface ClaudeService extends StaticTextCheckPort, CompetitorAiPort {
+/** troca-texto-queimado-v1 §16.5 (I1, 06/11): `extends HeadlineFitPort` (rewriteHeadlineFit). */
+export interface ClaudeService extends StaticTextCheckPort, CompetitorAiPort, HeadlineFitPort {
   /**
    * Lê a oferta em cascata (HTTP → render headless → subpáginas → imagens com visão) ou usa o texto colado, e devolve o
    * briefing com a origem de cada campo. Erros: PAGE_FORBIDDEN, PAGE_UNREADABLE (details.reason = login_wall | empty_after_render), RATE_LIMITED.
@@ -170,7 +172,12 @@ export interface AutoPlanInput {
   allowedFrames?: FrameTemplateId[];
   rules: { min: number; max: number; minDiversityPct: 0 | 40 };
   /** 25/10 (headline-e-legenda-v1 §1.2): o que a IA precisa pra escrever as headlines (backend, do editMap). Ausente = sem HEADLINE no `allowed`. */
-  headline?: { mode: 'replace' | 'add'; original: string | null; lines: number; maxChars: number; hasHighlight: boolean; language: string };
+  headline?: { mode: 'replace' | 'add'; original: string | null; lines: number; maxChars: number; hasHighlight: boolean; language: string;
+    /** troca-texto-queimado-v1 §14.4 / §16.3 (F1b, I1), todos opcionais (ausentes = comportamento do F1a). Vêm de
+     *  `HeadlineLook.fit` no `replace` medido: `charsPerLine` = `fit.originalLines[].chars` (o `<headline>` leva o alvo
+     *  85-115 % por linha; `maxChars` segue como teto), `caseStyle` = `fit.caseStyle`, `emphasisKind` = `look.emphasis.kind`,
+     *  `copy` = `look.kind`. Orientação pra IA; o veredito é `ajustarHeadlineCopia`. */
+    charsPerLine?: number[]; caseStyle?: 'upper' | 'sentence' | 'title'; emphasisKind?: 'underline' | 'color' | 'box' | null; copy?: HeadlineCopyKind };
   /** templates-creditos-v1 A6 (01/11): variantes de end card que o Brain sustenta (backend, `endcardVariants`). Só com
    *  ENDCARD em `allowed` (lote de template); ausente = as 4. */
   endcardVariants?: EndcardVariant[];
@@ -273,7 +280,43 @@ export type HeadlineSpec = Pick<AutoHeadlineDraft, 'mode' | 'text' | 'highlight'
   captions?: CaptionsAuto | null;
   /** legenda-protegida-v1 §2 (26/10): faixas da legenda queimada que a placa/faixa não pode cruzar (vira HEADLINE_NO_ROOM) */
   protectedBands?: ProtectedBand[];
+  /** troca-texto-queimado-v1 §16.5 (F1b, I1): medida do texto antigo (`editMap.headlineLook`) no `replace` copiado (`box` ou
+   *  `loose`). Ausente/null = caminho do F1a (placa pela cor, `add`). O `buildHeadlineInput` (V3) roda `ajustarHeadlineCopia(look.fit, text)`. */
+  look?: HeadlineLook | null;
 };
+
+// ---------- troca-texto-queimado-v1 §16.3 / §16.5 (F1b, I1): reescrita da headline que não ficou do tamanho da original ----------
+/** Assinatura da §16.5 + campos opcionais da I1 (aditivos). Uma chamada = UMA reescrita; o laço (até 3) é de quem chama
+ *  (`encaixarHeadline`, claude/laco-headline.ts). */
+export interface RewriteHeadlineFitInput {
+  workspaceId: string; batchId: string;
+  /** BCP 47 da headline */
+  language: string;
+  /** a headline do campeão (pode ter emoji: ele fica na peça, desenhado pelo render; o texto novo vem sem) */
+  original: string;
+  /** o texto que a função reprovou */
+  current: string;
+  /** motivo de `ajustarHeadlineCopia`, ou `rule` = reprovado pelo `headlineViolations` (detalhe em `rules`) */
+  reject: HeadlineFitReject | 'rule';
+  /** a medida, legível: "E 0.33 > 0.15", "chin gap -12 px", "needs 5 lines, max 4" */
+  measure: string;
+  /** alvo por linha da original (`alvosPorLinha`, 85-115 %) */
+  targetCharsPerLine: { min: number; max: number }[];
+  /** regras violadas / lembretes, em inglês, 1 por item (ex.: o `detail` do `headlineViolations`) */
+  rules: string[];
+  /** I1: a original tem destaque (só então volta `highlight`). Ausente = false */
+  hasHighlight?: boolean;
+  /** I1: as outras headlines do lote (a nova tem que ser diferente delas) */
+  others?: string[];
+  /** I1: só pra cost_entry */
+  jobId?: string;
+}
+export interface HeadlineFitPort {
+  /** §16.3 item 3: 1 chamada, modelo `ANTHROPIC_HEADLINE_FIT_MODEL` (padrão claude-haiku-4-5), SEM nova tentativa interna
+   *  (cada chamada conta como tentativa do laço). Texto sem emoji. Grava cost_entry LLM no lote (`batchId`); não cobra
+   *  crédito. Erros: SAFETY_BLOCK, RATE_LIMITED, PROVIDER_*, INVALID_SCRIPT (resposta vazia). */
+  rewriteHeadlineFit(i: RewriteHeadlineFitInput): Promise<{ text: string; highlight: string | null } & Usage>;
+}
 /** @deprecated fusão B1 (25/10): igual a `AutoParamsDraft`. */
 export type AutoParamsDraftWithFrame = AutoParamsDraft;
 

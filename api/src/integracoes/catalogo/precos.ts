@@ -142,6 +142,30 @@ export const STATIC_TEXT_CHECK_MODEL = {
   maxTokens: 4000,
 };
 
+/**
+ * troca-texto-queimado-v1 §16.3 item 5 (F1b, I1): reescrita da headline que não ficou do tamanho da original. Haiku 4.5
+ * (US$ 1 / 5 por milhão), sem visão, sem `effort` (o Haiku 4.5 recusa). ESTIMATIVA: ~1,2 mil tokens de entrada + ~150 de
+ * saída ≈ US$ 0,002 por chamada; até 3 por headline, 3 headlines por lote = 9 chamadas ≈ US$ 0,018 por lote (pior caso).
+ * Real = usage → cost_entry LLM do lote. `ANTHROPIC_HEADLINE_FIT_MODEL` troca o modelo (ex.: claude-haiku-5-5, não sondado).
+ */
+export const HEADLINE_FIT_MODEL = {
+  model: 'claude-haiku-4-5',
+  /** saída esperada ~150 tokens (JSON de 1-4 linhas); folga pra não cortar */
+  maxTokens: 800,
+  estInputTokens: 1200,
+  estOutputTokens: 150,
+  /** §16.3 item 3: reescritas por headline (4 medidas no total) */
+  maxRewrites: 3,
+  /** §16.3 item 1: alvo por linha, fração dos caracteres da linha original */
+  targetPct: { min: 0.85, max: 1.15 },
+};
+
+/** US$ estimados de `calls` reescritas no preço do Haiku 4.5 (US$ 1 / 5 por milhão). Pior caso do lote: `calls` = 3 × peças. */
+export function headlineFitUsd(calls: number, prices: { input: number; output: number } = { input: 1, output: 5 }): number {
+  const m = HEADLINE_FIT_MODEL;
+  return round4(calls * ((m.estInputTokens * prices.input + m.estOutputTokens * prices.output) / 1e6));
+}
+
 export const TTS_MODEL = {
   providerModel: 'minimax/speech-2.6-turbo',
   usdPerChar: 0.00006, // US$ 0,06 por mil caracteres

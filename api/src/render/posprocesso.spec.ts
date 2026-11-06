@@ -41,6 +41,38 @@ describe('comporSobreOCampeao com edição de vídeo', () => {
     expect(cor(saida, 10)[2]).toBeGreaterThan(200);
     expect(audioSec(saida)).toBeCloseTo(N / FPS, 0);
   });
+  it('fora da máscara = base ± 1 (sem os 6,3 % de vazamento do Y=16 da máscara, troca-texto §16.7)', async () => {
+    // base 102 e render 188 (cinza): com o bug, fora saía 107-108; dentro da caixa, o render; depois do intervalo, a base
+    const base = join(dir, 'base-cinza.mp4');
+    execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `color=c=0x666666:s=${W}x${H}:r=${FPS}:d=2`,
+      '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', '-c:a', 'aac', '-shortest', '-c:v', 'libx264', '-crf', '0', '-pix_fmt', 'yuv420p', base]);
+    const mudo = clipe('m-cinza.mp4', '0xBCBCBC', 60, false);
+    const saida = join(dir, 'mascara.mp4');
+    const region = { x: 100, y: 100, w: 50, h: 50 };
+    await comporSobreOCampeao(ff, { ...input(60), baseVideoUrl: base, audioPassthroughUrl: base,
+      overlays: [{ startFrame: 0, endFrame: 30, region, clipUrl: '', clipOffsetSec: 0, crop: region }] }, mudo, saida);
+    const y = (f: string, frame: number, x: number, yy: number) => execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', f,
+      '-vf', `select=eq(n\\,${frame}),format=gray,crop=10:10:${x}:${yy},scale=1:1:flags=area`, '-frames:v', '1', '-f', 'rawvideo', '-'])[0];
+    const ref = y(base, 10, 10, 10);
+    for (const frame of [10, 45]) {
+      expect(Math.abs(y(saida, frame, 10, 10) - ref)).toBeLessThanOrEqual(1);
+      expect(Math.abs(y(saida, frame, 250, 250) - ref)).toBeLessThanOrEqual(1);
+    }
+    expect(y(saida, 10, 120, 120) - ref).toBeGreaterThan(60);          // dentro, no intervalo: render
+    expect(Math.abs(y(saida, 45, 120, 120) - ref)).toBeLessThanOrEqual(1); // dentro, fora do intervalo: base
+  });
+  it('áudio copiado = duração do vídeo ± 1 quadro, também com áudio mais longo (ffmpeg 5.1 cortava ~1,8 s com -frames:v)', async () => {
+    const longo = join(dir, 'longo.mp4');   // vídeo de 5 s com 7 s de áudio: a peça fica nos 5 s
+    execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `color=c=blue:s=${W}x${H}:r=${FPS}:d=${N / FPS}`,
+      '-f', 'lavfi', '-i', `sine=frequency=440:duration=${N / FPS + 2}`, '-c:a', 'aac', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', longo]);
+    const videoSec = (f: string) => Number(execFileSync(ff.ffprobe, ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=duration', '-of', 'default=nw=1:nk=1', f], { encoding: 'utf8' }).trim());
+    for (const [nome, base] of [['igual', campeao], ['longo', longo]] as const) {
+      const saida = join(dir, `audio-${nome}.mp4`);
+      await comporSobreOCampeao(ff, { ...input(N), baseVideoUrl: base, audioPassthroughUrl: base }, clipe(`m-a-${nome}.mp4`, 'red', N, false), saida);
+      expect(await contarFrames(ff, saida)).toBe(N);
+      expect(Math.abs(audioSec(saida) - videoSec(saida))).toBeLessThanOrEqual(1 / FPS);
+    }
+  });
   it('aparado: nb_frames e áudio do corte; a base continua sendo o campeão', async () => {
     const saida = join(dir, 'b.mp4');
     await comporSobreOCampeao(ff, input(60, { video: { inFrame: 30, pintura: null } }), clipe('m2.mp4', 'red', 60, false), saida);

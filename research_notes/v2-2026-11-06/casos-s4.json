@@ -1,0 +1,11 @@
+[
+ {"nome":"s4-05","video":"../s4-demo-2026-11-06/origem/c05.mp4","W":720,"H":1280,"fps":30,"frames":191,
+  "layer":{"id":"headline-1","startFrame":5,"endFrame":200,"box":{"x":10,"y":600,"w":600,"h":200},"text":"If he doesn't call you within two minutes, I’ll pay you $50","background":{"kind":"solid","color":"#960101","box":{"x":0,"y":586,"w":628,"h":220}},"style":{"fontId":"albert-sans-500"}}},
+ {"nome":"s4-02","video":"../s4-demo-2026-11-06/origem/c02.mp4","W":716,"H":1278,"fps":30,"frames":198,
+  "layer":{"id":"headline-1","startFrame":0,"endFrame":200,"box":{"x":10,"y":15,"w":690,"h":215},"text":"Si en 2 minutos no te busca, es porque nunca fue para ti..","background":{"kind":"solid","color":"#0a3b8c","box":{"x":0,"y":0,"w":716,"h":246}},"style":{"fontId":"montserrat-600"}}},
+ {"nome":"s4-06","video":"../s4-demo-2026-11-06/origem/c06.mp4","W":720,"H":960,"fps":30,"frames":335,
+  "layer":{"id":"headline-1","startFrame":0,"endFrame":330,"box":{"x":5,"y":535,"w":470,"h":120},"text":"Él ya está con otra? Te propongo algo. Si en 7 días no te busca, dime mentirosa","background":{"kind":"solid","color":"#7a0a0a","box":{"x":0,"y":529,"w":481,"h":130}},"style":{"fontId":"montserrat-500"}}},
+ {"nome":"s4-solto","video":"../s4-demo-2026-11-06/origem/original.mp4","W":464,"H":832,"fps":30,"frames":564,
+  "layer":{"id":"headline-1","startFrame":0,"endFrame":159,"box":{"x":70,"y":535,"w":330,"h":65},"text":"How to view your man’s\nrecent following on IG 👀","style":{"fontId":"arimo-600"}},
+  "bandas":[{"x":90,"y":610,"w":290,"h":80,"startSec":0,"endSec":19}]}
+]

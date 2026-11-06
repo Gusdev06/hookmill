@@ -9,6 +9,7 @@ export * from './templates';
 export * from './tempo';
 export * from './legenda';
 export * from './remix';
+export * from './ajuste-headline';
 export * from './editor';
 export * from './editor/index';
 export * from './autoEdit';

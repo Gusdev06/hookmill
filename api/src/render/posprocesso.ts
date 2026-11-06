@@ -37,12 +37,18 @@ export async function comporSobreOCampeao(ff: Ff, input: RemixKeepRenderInput, m
   const ev = input.edicao?.video;
   const inicio = ev?.inFrame ? ['-ss', String(ev.inFrame / fps)] : [];
   const fimAudio = ev ? ['-t', String(frameCount / fps)] : [];
-  const filtro = ev?.pintura ? '[0:v]format=yuv420p[v]' : [
-    `color=c=black:s=${W}x${H}:r=${fps},format=gray${boxes.length ? ',' + boxes.join(',') : ''}[m]`,
+  // `lut=c0=0` ANTES dos drawbox (troca-texto §16.7): `color=black` em gray sai Y=16 (faixa limitada), ou seja, alfa
+  // 16/255 = 6,3 % do render vazando fora da máscara. Depois dos drawbox a correção falha (zera a borda do branco também).
+  // Nº exato de frames por `trim` NO FILTRO, nunca `-frames:v` na saída: na ffmpeg 5.1 (a da imagem da API), `-frames:v`
+  // fecha o arquivo quando o encoder recebe o N-ésimo frame e o áudio copiado perde o atraso do x264 (5 s de peça saíam
+  // com 3,23 s de áudio no preset medium). O `-t` da saída limita o áudio copiado à duração do vídeo.
+  const fim = `trim=end_frame=${frameCount}`;
+  const filtro = ev?.pintura ? `[0:v]format=yuv420p,${fim}[v]` : [
+    `color=c=black:s=${W}x${H}:r=${fps},format=gray,lut=c0=0${boxes.length ? ',' + boxes.join(',') : ''}[m]`,
     `[0:v]format=yuv420p[top]`,
     `[top][m]alphamerge[ta]`,
     `[1:v]format=yuv420p[base]`,
-    `[base][ta]overlay=format=yuv420:eof_action=pass:shortest=0[v]`,
+    `[base][ta]overlay=format=yuv420:eof_action=pass:shortest=0,${fim}[v]`,
   ].join(';');
   const cor = await corDoCampeao(ff, input.baseVideoUrl);
   // (B) voz do motor: o áudio é montado antes (campeão + voz nos trechos main) e entra no lugar do passthrough
@@ -51,7 +57,7 @@ export async function comporSobreOCampeao(ff: Ff, input: RemixKeepRenderInput, m
     await montarAudioSplice({ ffmpeg: ff.ffmpeg, ffprobe: ff.ffprobe }, input.audioPassthroughUrl, input.audioSplice!, input.canvas, audioMontado);
   }
   const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-i', mudo, ...inicio, '-i', input.baseVideoUrl, ...inicio, ...fimAudio, '-i', audioMontado ?? input.audioPassthroughUrl,
-    '-filter_complex', filtro, '-map', '[v]', '-map', '2:a:0?', '-frames:v', String(frameCount),
+    '-filter_complex', filtro, '-map', '[v]', '-map', '2:a:0?', '-t', String(frameCount / fps),
     '-c:v', 'libx264', '-preset', 'medium', '-crf', String(RENDER_REMIX.crfFinal), '-pix_fmt', 'yuv420p', ...cor,
     '-c:a', 'copy', '-movflags', '+faststart', saida];
   try {

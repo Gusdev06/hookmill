@@ -21,6 +21,7 @@ export const JOB_CHECKLIST: Record<JobType, string[]> = {
   META_SYNC: ['listing_campaigns', 'listing_adsets', 'listing_ads', 'reading_insights', 'scoring'], // campanhas-v1 §4
   META_IMPORT: ['fetching_video', 'downloading_video'],
   META_PUBLISH: ['uploading_video', 'processing_video', 'creating_campaign', 'creating_adset', 'creating_creative', 'creating_ad'],
+  CHAMPION_PLATE: ['erasing', 'checking'], // troca-texto-queimado-v1 §16.5 (A0): placa_headline → conferência A2
 };
 
 export const actionFor = jobAction;
