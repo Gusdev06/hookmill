@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { HEADLINE_PLATE_VERSION } from '../medicao/troca/porta';
 import type { EditResponse, EditSettings, Render, Template } from '@maquina/contratos';
 import type { Creative, Prisma, VideoFormat } from '@prisma/client';
 import { rm } from 'node:fs/promises';
@@ -72,11 +73,13 @@ export type AutoFailCode =
   | 'RENDER_TIMEOUT'
   /** headline-e-legenda-v1 §1.3/§1.4 (HeadlineError do buildHeadlineInput): refazer não adianta (Leave out) */
   | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE' | 'HEADLINE_PENDING'
+  /** troca-texto-queimado-v1 §16.3 (F1b, V3): o texto copiado não ficou perto do original no render (too_short/over_chin) */
+  | 'HEADLINE_NO_FIT'
   /** legenda-protegida-v1 §3/§4.2: o build caiu em `blocked` (Leave out) · a visão viu a legenda tampada (Retry, fora do zip) */
   | 'CAPTION_PROTECTED' | 'CAPTION_COVERED'
   /** iterate-v2 F1.7: texto do template não coube (Leave out) */
   | 'TEMPLATE_TEXT_OVERFLOW';
-export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE', 'HEADLINE_PENDING'] as const;
+export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE', 'HEADLINE_PENDING', 'HEADLINE_NO_FIT'] as const;
 
 /** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do formato (e da peça, no 9:16). */
 class AutoPieceError extends Error {
@@ -102,6 +105,7 @@ export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   HEADLINE_OVER_FACE: 'The headline would cover the face. Leave it out.',
   HEADLINE_LOW_CONFIDENCE: "We couldn't read the original headline style. Leave it out.",
   HEADLINE_PENDING: "This video's headline can't be rewritten yet. Leave it out.",
+  HEADLINE_NO_FIT: "The new headline can't match the size of the original. Leave it out.",
   CAPTION_PROTECTED: 'This format would cover the original captions. It needs the video without captions. Leave it out.',
   CAPTION_COVERED: 'The original captions came out covered or cut. Retry.',
   TEMPLATE_TEXT_OVERFLOW: 'The template text does not fit. Leave it out.',
@@ -999,6 +1003,16 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** §16.5: URL assinada da placa READY (versão vigente do método) da camada; null = sem placa (o build lança HEADLINE_PENDING). */
+  private async placaHeadlineUrl(championId: string | null, layerKey: string): Promise<string | null> {
+    if (!championId) return null;
+    const pl = await this.prisma.championPlate.findUnique({
+      where: { championId_kind_layerKey_version: { championId, kind: 'HEADLINE', layerKey, version: HEADLINE_PLATE_VERSION } },
+      include: { file: true },
+    });
+    return pl?.status === 'READY' && pl.file ? this.storage.signedUrl(pl.file) : null;
+  }
+
   /** Builder de hoje da peça AUTO (sem doc). `novaSegundaFonte: false` (editor) = não resolve 2ª fonte nova (custo). */
   private async inputAuto(r: AutoRow, ctx: AutoEditContext, format: VideoFormat, o: { novaSegundaFonte: boolean }): Promise<RenderInput> {
     // headline-e-legenda-v1 §2: legenda automática do lote (campeão sem legenda queimada) em toda peça de vídeo
@@ -1008,8 +1022,11 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const opts = await this.buildOpts(r);
     if (tipo === 'HEADLINE') {
       // §1.3: troca/acrescenta a headline pelo remix-keep (buildHeadlineInput do video), no aspecto do campeão
-      const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string };
-      return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx, opts);
+      const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string; copy?: string | null };
+      // troca-texto-queimado-v1 §16.5 (F1b): `replace` copiado leva a medida (`editMap.headlineLook`) e, no solto, a placa READY
+      const look = p.mode === 'replace' && (p.copy === 'box' || p.copy === 'loose') ? ctx.editMap?.headlineLook ?? null : null;
+      const plateUrl = look?.kind === 'loose' ? await this.placaHeadlineUrl(r.creative.championId, look.layerId) : null;
+      return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions, look }, ctx, { ...opts, plateUrl });
     }
     if (tipo === 'CHAT_DM' || tipo === 'PERSON_MOTION') {
       // iterate-v2 F1.4: template grátis (composição `Template`, buildTemplateInput do video); só 9:16

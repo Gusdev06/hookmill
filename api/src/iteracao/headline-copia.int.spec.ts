@@ -27,6 +27,7 @@ import { AppModule } from '../app.module';
 import { PlacasService } from '../campeoes/placas.service';
 import { hashPassword } from '../common/util/crypto';
 import { CLAUDE_SERVICE } from '../integracoes';
+import { CreditosService } from '../creditos/creditos.service';
 import { configureApp } from '../main';
 import { FakeTrocaTexto, TROCA_TEXTO, type FakeTrocaOpcoes, type TrocaTextoPort } from '../medicao/troca';
 import { IteracaoService } from './iteracao.service';
@@ -360,5 +361,61 @@ describe(isLocal ? 'F1b B1: headline copiada do criativo (integração local, po
     } finally {
       placas.cfg.impl = 'local';
     }
+  });
+  const startOf = (b: { id: string; pieces: unknown[]; cost: { generateEstimateUsd: number | null }; template: { quote: number } | null }) =>
+    call('POST', `/iterate/${b.id}/start`, { expectedPieces: (b.pieces as unknown[]).length, expectedCostUsd: b.cost.generateEstimateUsd ?? 0, ...(b.template && { expectedCredits: b.template.quote }) });
+  const terminou = (id: string) => until(() => call('GET', `/iterate/${id}`), (r) => (r.data?.pieces ?? []).length > 0 && (r.data.pieces as Piece[]).every((p) => ['ready', 'failed', 'left_out'].includes(p.status)));
+  /** Lote do template HEADLINE (crédito por peça), com o solto medido e a placa READY. */
+  const loteHeadline = async () => {
+    porta.usar({});
+    claude.opts.headlineFit = 'fit';
+    await setLayers('Tired every single morning\nno matter what you try?');
+    // setLayers zera a medida (campeão "antigo"): 1 lote normal mede e faz a placa
+    await planned((await call('POST', '/iterate', { championId })).data.id);
+    const h = await prisma.template.findFirstOrThrow({ where: { internalKey: 'HEADLINE', pack: false } });
+    const u = await call('POST', `/ad-templates/${h.slug}/use`, { championId });
+    expect([u.status, u.error]).toEqual([202, undefined]);
+    const b = await planned(u.data.id);
+    expect([b.data.status, b.data.error]).toEqual(['PLAN_READY', null]);
+    expect((b.data.pieces as Piece[]).length).toBeGreaterThan(0);
+    return b;
+  };
+
+  it('render: peça loose com placa READY chega ao render com a placa como base (plateUrl)', async () => {
+    const b = await loteHeadline();
+    const plate = await prisma.championPlate.findFirstOrThrow({ where: { championId, status: 'READY' }, include: { file: true } });
+    expect([(await startOf(b.data)).status]).toEqual([202]);
+    await terminou(b.data.id);
+    const renders = await prisma.render.findMany({ where: { creative: { variationBatchId: b.data.id } } });
+    expect(renders.length).toBeGreaterThan(0);
+    for (const r of renders) {
+      const input = r.input as { kind?: string; baseVideoUrl?: string };
+      expect(input.kind).toBe('remix-keep');
+      expect(input.baseVideoUrl).toContain(plate.file!.storageKey);
+    }
+  });
+
+  it('render: placa some depois do plano = HEADLINE_PENDING, leave out, sem crédito cobrado', async () => {
+    const b = await loteHeadline();
+    await prisma.championPlate.deleteMany({ where: { championId } });
+    expect([(await startOf(b.data)).status]).toEqual([202]);
+    const done = await terminou(b.data.id);
+    for (const p of done.data.pieces as (Piece & { errorCode: string | null; retryHint: string | null })[]) expect([p.status, p.errorCode, p.retryHint]).toEqual(['failed', 'HEADLINE_PENDING', 'leave_out']);
+    await app.get(CreditosService).settleAll(wsId); // o assentamento roda por intervalo; aqui na hora
+    const run = await prisma.templateRun.findUniqueOrThrow({ where: { batchId: b.data.id } });
+    expect([run.status, run.charged, run.refunded > 0]).toEqual(['SETTLED', 0, true]);
+  });
+
+  it('render: HEADLINE_NO_FIT (texto curto com placa READY) = leave out, sem crédito', async () => {
+    const b = await loteHeadline();
+    for (const it of await headlineItems(b.data.id)) {
+      await prisma.variationItem.update({ where: { id: it.id }, data: { payload: { ...(it.payload as object), params: { ...(it.payload as { params: object }).params, text: 'Tired?' } } as Prisma.InputJsonValue } });
+    }
+    expect([(await startOf(b.data)).status]).toEqual([202]);
+    const done = await terminou(b.data.id);
+    for (const p of done.data.pieces as (Piece & { errorCode: string | null; retryHint: string | null })[]) expect([p.status, p.errorCode, p.retryHint]).toEqual(['failed', 'HEADLINE_NO_FIT', 'leave_out']);
+    await app.get(CreditosService).settleAll(wsId); // o assentamento roda por intervalo; aqui na hora
+    const run = await prisma.templateRun.findUniqueOrThrow({ where: { batchId: b.data.id } });
+    expect([run.status, run.charged, run.refunded > 0]).toEqual(['SETTLED', 0, true]);
   });
 });
