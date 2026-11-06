@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { PlacasService } from './placas.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import type { AdLibraryMeta, AsyncErrorCode, Rect, TranscriptWord } from '@maquina/contratos';
 import { Prisma, type Champion, type File as FileRow } from '@prisma/client';
@@ -68,6 +69,7 @@ export class AnaliseService {
     @Inject(GENERATION_SERVICE) private readonly gen: GenerationService,
     @Inject(AD_LIBRARY) private readonly adlib: AdLibraryService,
     @Inject(LEITURA_MIDIA) private readonly leitura: LeituraMidia,
+    private readonly placas: PlacasService,
   ) {}
 
   // ───────── espera do TRANSCRIBE do campeão ─────────
@@ -281,6 +283,9 @@ export class AnaliseService {
         });
       });
       await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: { teardownId: teardown.id } });
+      // troca-texto-queimado-v1 §15.5.1 (F1b, decisão 06/11): mede a headline logo depois da análise, em segundo plano, pra
+      // galeria de templates já saber o estado. Desligada pro workspace = nada. Falhou ou demorou = segue headline_pending
+      this.placas.medirDepoisDaAnalise(championId);
     } catch (e) {
       const code: AsyncErrorCode = e instanceof AnalysisError ? e.code : asAsyncErrorCode(errorCodeOf(e));
       if (!(e instanceof AnalysisError)) this.log.error(`análise ${championId}: ${(e as Error).stack ?? e}`);

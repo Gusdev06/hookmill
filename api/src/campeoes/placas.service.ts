@@ -29,6 +29,8 @@ export class PlacasService {
   private readonly log = new Logger('Placas');
   /** Intervalo da espera (ms). Teste baixa. */
   pollMs = 1000;
+  /** Medidas em voo por campeão (processo): a de depois da análise e a do AUTO_PLAN não medem 2 vezes. */
+  private readonly emVoo = new Map<string, Promise<EditMap | null>>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -64,6 +66,33 @@ export class PlacasService {
    * função = não grava (estado do F1a, `headline_pending`; mede de novo no próximo lote). Devolve o editMap atualizado.
    */
   async medirSeFalta(i: { workspaceId: string; championId: string; batchId?: string | null; jobId?: string | null; editMap: EditMap | null }): Promise<EditMap | null> {
+    // medida já em voo (a de depois da análise, ou outro lote): espera ela em vez de medir 2 vezes
+    const voo = this.emVoo.get(i.championId);
+    if (voo) {
+      await voo.catch(() => undefined);
+      const td = await this.prisma.teardown.findUnique({ where: { championId: i.championId }, select: { editMap: true } });
+      const relido = editMapOf(td?.editMap);
+      if (relido && relido.headlineLook !== undefined) return { ...(i.editMap ?? relido), headlineLook: relido.headlineLook } as EditMap;
+    }
+    const p = this.medir(i);
+    this.emVoo.set(i.championId, p);
+    try {
+      return await p;
+    } finally {
+      if (this.emVoo.get(i.championId) === p) this.emVoo.delete(i.championId);
+    }
+  }
+
+  /** Depois da análise (decisão 06/11): mede em segundo plano, sem segurar o job; serve à galeria de templates. */
+  medirDepoisDaAnalise(championId: string): void {
+    void this.jobs.detach(null, `medida da headline do campeão ${championId}`, async () => {
+      const c = await this.prisma.champion.findUnique({ where: { id: championId }, select: { workspaceId: true, teardown: { select: { editMap: true } } } });
+      if (!c || this.implPara(c.workspaceId) === 'off') return;
+      await this.medirSeFalta({ workspaceId: c.workspaceId, championId, editMap: editMapOf(c.teardown?.editMap) });
+    });
+  }
+
+  private async medir(i: { workspaceId: string; championId: string; batchId?: string | null; jobId?: string | null; editMap: EditMap | null }): Promise<EditMap | null> {
     const m = i.editMap;
     if (!m || this.implPara(i.workspaceId) === 'off') return m;
     const alvo = camadaAlvo(m, 'local');

@@ -63,6 +63,8 @@ describe(isLocal ? 'F1b B1: headline copiada do criativo (integração local, po
   let dir = '';
   let championId = '';
   let baseMap: Record<string, unknown> = {};
+  let offerId = '';
+  let videoBytes: Buffer = Buffer.alloc(0);
   let claude: { headlineFitCalls: number; opts: { headlineFit?: 'fit' | 'same' | 'error' } };
   const base = `http://127.0.0.1:${PORT}/api/v1`;
   const call = async (method: string, path: string, body?: unknown) => {
@@ -121,16 +123,17 @@ describe(isLocal ? 'F1b B1: headline copiada do criativo (integração local, po
     wsId = w.id;
     const res = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: PASSWORD }) });
     token = (await res.json()).data.accessToken;
-    await prisma.offer.create({
+    offerId = (await prisma.offer.create({
       data: {
         workspaceId: w.id, name: 'Sleep app', language: 'en', what: 'A sleep app', audience: 'Busy parents', pains: 'Waking up tired every day',
         promise: 'Sleep better', proof: '"I finally sleep through the night" - Ana\n4.8 average rating', cta: 'Download', createdById: user.id,
       },
-    });
+    })).id;
     const path = join(dir, 'v30.mp4');
     await run(process.env.FFMPEG_PATH || 'ffmpeg', ['-hide_banner', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=720x1280:rate=25:duration=30', '-f', 'lavfi', '-i', 'sine=frequency=300:duration=30',
       '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'ultrafast', '-c:a', 'aac', '-shortest', path], { timeout: 60_000 });
     const bytes = await readFile(path);
+    videoBytes = bytes;
     const c = await call('POST', '/uploads', { purpose: 'CHAMPION_VIDEO', filename: 'champ.mp4', mimeType: 'video/mp4', sizeBytes: bytes.length });
     await fetch(c.data.url, { method: 'PUT', headers: { 'content-type': 'video/mp4', authorization: `Bearer ${token}` }, body: new Uint8Array(bytes) });
     await call('POST', `/uploads/${c.data.uploadId}/complete`, {});
@@ -307,6 +310,53 @@ describe(isLocal ? 'F1b B1: headline copiada do criativo (integração local, po
       // o lote planejado com a troca ligada: o HEADLINE copiado não vai pro Gerar com ela desligada
       const g = await call('GET', `/iterate/${ligado.data.id}`);
       expect((g.data.pieces as Piece[]).some((x) => x.type === 'HEADLINE')).toBe(false);
+    } finally {
+      placas.cfg.impl = 'local';
+    }
+  });
+  /** Campeão novo só pela análise (POST /champions), sem lote nenhum. */
+  const campeaoSoAnalisado = async (): Promise<string> => {
+    const c = await call('POST', '/uploads', { purpose: 'CHAMPION_VIDEO', filename: 'champ2.mp4', mimeType: 'video/mp4', sizeBytes: videoBytes.length });
+    await fetch(c.data.url, { method: 'PUT', headers: { 'content-type': 'video/mp4', authorization: `Bearer ${token}` }, body: new Uint8Array(videoBytes) });
+    await call('POST', `/uploads/${c.data.uploadId}/complete`, {});
+    const cr = await call('POST', '/champions', { offerId, uploadId: c.data.uploadId, rights: 'OWN' });
+    expect(cr.status).toBe(202);
+    const pronto = await until(() => call('GET', `/champions/${cr.data.id}`), (r) => r.data?.status === 'READY' || r.data?.status === 'FAILED');
+    expect(pronto.data.status).toBe('READY');
+    return cr.data.id;
+  };
+  const fitDaHeadline = async (id: string) => {
+    const h = await prisma.template.findFirstOrThrow({ where: { internalKey: 'HEADLINE', pack: false } });
+    return (await call('POST', '/ad-templates/fits', { slug: h.slug, sources: [{ championId: id }] })).data.items[0].fit;
+  };
+
+  it('decisão 06/11: com o motor ligado, a análise já mede a headline e a galeria mostra o estado certo, sem lote', async () => {
+    porta.usar({});
+    porta.chamadas = [];
+    const id = await campeaoSoAnalisado();
+    const td = await until(() => prisma.teardown.findUniqueOrThrow({ where: { championId: id } }), (t) => (t.editMap as { headlineLook?: unknown } | null)?.headlineLook !== undefined, 30_000);
+    expect((td.editMap as { headlineLook?: { kind: string } }).headlineLook).toMatchObject({ kind: 'box' }); // o mock lê headline com fundo chapado
+    expect(porta.chamadas).toEqual([{ op: 'medir', championId: id }]);
+    expect(await prisma.variationBatch.count({ where: { championId: id } })).toBe(0);
+    expect(await fitDaHeadline(id)).toEqual({ level: 'ok', reason: null });
+    // reprovada na medida: a galeria já mostra o motivo
+    porta.usar({ motivo: 'font_far' });
+    const id2 = await campeaoSoAnalisado();
+    await until(() => prisma.teardown.findUniqueOrThrow({ where: { championId: id2 } }), (t) => (t.editMap as { headlineLook?: unknown } | null)?.headlineLook !== undefined, 30_000);
+    expect(await fitDaHeadline(id2)).toEqual({ level: 'hard', reason: 'headline_font_far' });
+    porta.usar({});
+  });
+
+  it('decisão 06/11: com PLATE_IMPL=off a análise não mede nada e a galeria segue headline_pending (igual hoje)', async () => {
+    const placas = app.get(PlacasService) as unknown as { cfg: { impl: string } };
+    placas.cfg.impl = 'off';
+    try {
+      porta.chamadas = [];
+      const id = await campeaoSoAnalisado();
+      await new Promise((r) => setTimeout(r, 1500));
+      expect(porta.chamadas).toEqual([]);
+      expect((await prisma.teardown.findUniqueOrThrow({ where: { championId: id } }).then((t) => t.editMap as { headlineLook?: unknown })).headlineLook).toBeUndefined();
+      expect(await fitDaHeadline(id)).toEqual({ level: 'hard', reason: 'headline_pending' });
     } finally {
       placas.cfg.impl = 'local';
     }
