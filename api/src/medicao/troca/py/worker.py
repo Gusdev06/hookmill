@@ -66,7 +66,15 @@ def rodar(ev):
             r.update(ph.gerar(ev))
         elif op == "juntar":
             ps = sorted(n for n in ev.get("get", {}) if n.startswith("p"))
-            open("lista.txt", "w").write("".join(f"file '{n}'\n" for n in ps))
+            # `duration` exata por pedaço (quadros ÷ fps): sem ela o concat soma a duração do contêiner (com o atraso do
+            # x264) e a placa saía 10/15360 s adiantada depois do 1º pedaço; o OffthreadVideo do Remotion, que busca por
+            # tempo, pegava o quadro anterior (V3 real, solto: quadro 161 da peça com o quadro 160 na máscara)
+            from comum import sonda
+            linhas = []
+            for n in ps:
+                s_ = sonda(n)
+                linhas.append(f"file '{n}'\nduration {s_['n'] / s_['fps']:.9f}\n")
+            open("lista.txt", "w").write("".join(linhas))
             subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", "lista.txt", "-c", "copy",
                                    "-movflags", "+faststart", "placa.mp4"])
             from comum import sonda

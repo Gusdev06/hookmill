@@ -1,0 +1,131 @@
+{
+ "version": 2,
+ "kind": "loose",
+ "layerId": "headline-1",
+ "startFrame": 0,
+ "endFrame": 161,
+ "box": null,
+ "radiusPx": 0,
+ "plate": null,
+ "plateRef": {
+  "kind": "HEADLINE",
+  "layerKey": "headline-1",
+  "version": 0
+ },
+ "emoji": {
+  "char": "👀",
+  "image": "data:image/png;base64,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",
+  "x": 357,
+  "y": 568,
+  "w": 31,
+  "h": 25,
+  "lineIndex": 1,
+  "side": "end",
+  "gapPx": 8,
+  "marginLeftPx": 2,
+  "solidity": 0.834
+ },
+ "text": {
+  "lines": [
+   "How to view your man’s",
+   "recent following on IG"
+  ],
+  "textBox": {
+   "x": 82,
+   "y": 538,
+   "w": 304,
+   "h": 58
+  },
+  "firstBaselineY": 557,
+  "linePitchPx": 33.5,
+  "sizePx": 26.87,
+  "letterSpacingEm": 0,
+  "align": "center",
+  "caseStyle": "sentence",
+  "color": "#fffffc",
+  "stroke": null,
+  "shadow": null,
+  "stemPx": 2.29
+ },
+ "emphasis": null,
+ "font": {
+  "fontId": "arimo-600",
+  "corr": 0.8191,
+  "stemErr": 0.1074,
+  "widthErr": 0.0074,
+  "tier": "close",
+  "measuredIn": "chrome-linux"
+ },
+ "fit": {
+  "kind": "loose",
+  "canvas": {
+   "width": 464,
+   "height": 832
+  },
+  "fontId": "arimo-600",
+  "sizePx": 26.87,
+  "letterSpacingEm": 0,
+  "linePitchPx": 33.5,
+  "firstBaselineY": 557,
+  "align": "center",
+  "centerX": 233.25,
+  "caseStyle": "sentence",
+  "originalLines": [
+   {
+    "chars": 22,
+    "widthPx": 293
+   },
+   {
+    "chars": 22,
+    "widthPx": 269
+   }
+  ],
+  "erasedRects": [
+   {
+    "x": 87,
+    "y": 538,
+    "w": 293,
+    "h": 24
+   },
+   {
+    "x": 82,
+    "y": 571,
+    "w": 269,
+    "h": 25
+   }
+  ],
+  "bottomLimitY": 603,
+  "chinY": null,
+  "sideMarginPx": 23,
+  "emoji": {
+   "widthPx": 27,
+   "gapPx": 8,
+   "lineIndex": 1,
+   "side": "end"
+  },
+  "box": null
+ },
+ "verdict": {
+  "ok": true,
+  "reason": null,
+  "gates": {
+   "transicao_max": 0,
+   "caixa_area_rel": 1.27,
+   "caixa_quadro_rel": 0.044,
+   "caixa_chapada_p90": 12.7,
+   "temporal_p99": 133.7,
+   "px_letra": 2773,
+   "luz_letra": 254,
+   "emoji_ocupa": 0.797,
+   "emoji_solidez": 0.834,
+   "emoji_lobulos": 2,
+   "sombra_err_sem": 1.77,
+   "sombra_err_com": 1.59,
+   "distancia_legenda": 10,
+   "folga_legenda": 7,
+   "rosto_frac": 0,
+   "font_corr": 0.8191,
+   "font_candidatas": 5
+  }
+ }
+}

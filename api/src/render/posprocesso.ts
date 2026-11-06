@@ -38,21 +38,24 @@ export async function comporSobreOCampeao(ff: Ff, input: RemixKeepRenderInput, m
   // Aparado: base e áudio entram a partir de `inFrame` (o áudio copiado corta no pacote AAC mais perto).
   const ev = input.edicao?.video;
   const inicio = ev?.inFrame ? ['-ss', String(ev.inFrame / fps)] : [];
-  const fimAudio = ev ? ['-t', String(frameCount / fps)] : [];
+  const fimAudio = ['-t', String(frameCount / fps)];
   // `lut=c0=0` ANTES dos drawbox (troca-texto §16.7): `color=black` em gray sai Y=16 (faixa limitada), ou seja, alfa
   // 16/255 = 6,3 % do render vazando fora da máscara. Depois dos drawbox a correção falha (zera a borda do branco também).
   // Nº exato de frames por `trim` NO FILTRO, nunca `-frames:v` na saída: na ffmpeg 5.1 (a da imagem da API), `-frames:v`
   // fecha o arquivo quando o encoder recebe o N-ésimo frame e o áudio copiado perde o atraso do x264 (5 s de peça saíam
-  // com 3,23 s de áudio no preset medium). O `-t` da saída limita o áudio copiado à duração do vídeo.
+  // com 3,23 s de áudio no preset medium). O `-t` vai na ENTRADA do áudio (limita o copiado à duração do vídeo): na saída, com áudio de início negativo (02 real, lista de edição), ele cortava 1 quadro do vídeo.
   const fim = `trim=end_frame=${frameCount}`;
   // A8: +Y só com placa de base, calibrado neste render (o OffthreadVideo sai ~1-2 Y abaixo da base, e muda por máquina)
   const dy = input.placaComoBase && !ev?.pintura ? await calibrarY(ff, input, mudo) : 0;
   const corrige = dy ? `,lutyuv=y=clip(val${dy > 0 ? '+' : ''}${dy}\\,0\\,255)` : '';
   const filtro = ev?.pintura ? `[0:v]format=yuv420p,${fim}[v]` : [
     `color=c=black:s=${W}x${H}:r=${fps},format=gray,lut=c0=0${boxes.length ? ',' + boxes.join(',') : ''}[m]`,
-    `[0:v]format=yuv420p${corrige}[top]`,
+    `[0:v]format=yuv420p,setpts=round(N/(${fps}*TB))${corrige}[top]`,
     `[top][m]alphamerge[ta]`,
-    `[1:v]format=yuv420p[base]`,
+    // quadro n da base = quadro n do render, pelo índice: campeão com buraco no tempo (02 real: último quadro 2/30 s depois
+    // do penúltimo) virava quadro duplicado ou perdido na saída CFR (289 ou 291 contra 290). `round`: sem ele, N/(30*TB) em
+    // 1/90000 dá 2999, o render fica 1 tique adiantado e o framesync pega a máscara do quadro anterior (máscara 1 quadro a mais)
+    `[1:v]format=yuv420p,setpts=round(N/(${fps}*TB))[base]`,
     `[base][ta]overlay=format=yuv420:eof_action=pass:shortest=0,${fim}[v]`,
   ].join(';');
   const cor = await corDoCampeao(ff, input.baseVideoUrl);
@@ -62,7 +65,7 @@ export async function comporSobreOCampeao(ff: Ff, input: RemixKeepRenderInput, m
     await montarAudioSplice({ ffmpeg: ff.ffmpeg, ffprobe: ff.ffprobe }, input.audioPassthroughUrl, input.audioSplice!, input.canvas, audioMontado);
   }
   const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-i', mudo, ...inicio, '-i', input.baseVideoUrl, ...inicio, ...fimAudio, '-i', audioMontado ?? input.audioPassthroughUrl,
-    '-filter_complex', filtro, '-map', '[v]', '-map', '2:a:0?', '-t', String(frameCount / fps),
+    '-filter_complex', filtro, '-map', '[v]', '-map', '2:a:0?',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', String(RENDER_REMIX.crfFinal), '-pix_fmt', 'yuv420p', ...cor,
     '-c:a', 'copy', '-movflags', '+faststart', saida];
   try {

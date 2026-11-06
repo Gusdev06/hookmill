@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 def quadros(arq, W, H):
-    p = subprocess.Popen(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', arq, '-map', '0:v', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
+    p = subprocess.Popen(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', arq, '-map', '0:v', '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
     n = W * H * 3
     while True:
         b = p.stdout.read(n)
@@ -95,15 +95,15 @@ def main(pecas_json, saida):
         y0, y1 = max(0, ys.min() - 40), min(H, ys.max() + 41)
         folhas.append((p, [(f'original q{meio}', guarda[meio][0][y0:y1, x0:x1]), (f'peça q{meio}', guarda[meio][1][y0:y1, x0:x1]),
                            (f'original q{depois} (corte)', guarda[depois][0][y0:y1, x0:x1]), (f'peça q{depois} (corte)', guarda[depois][1][y0:y1, x0:x1])], linha))
-    json.dump(resultado, open(os.path.join(saida, 'conferencia.json'), 'w'), ensure_ascii=False, indent=1)
-    folha(folhas, os.path.join(saida, 'folha-v3.png'))
+    json.dump(resultado, open(os.path.join(saida, os.environ.get('CONFERENCIA', 'conferencia.json')), 'w'), ensure_ascii=False, indent=1)
+    folha(folhas, os.path.join(saida, os.environ.get('FOLHA', 'folha-v3.png')))
 
 
 def folha(folhas, dst):
     try:
         f = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 18)
     except OSError:
-        f = ImageFont.load_default()
+        f = ImageFont.load_default(size=18)
     larg_cel = 420
     linhas = []
     for p, cels, r in folhas:

@@ -1,0 +1,61 @@
+[
+ {
+  "nome": "s4-solto",
+  "video": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/original.mp4",
+  "placa": "/tmp/v3r/medida/placas/s4-solto.mp4",
+  "variantes": [
+   {
+    "nome": "mesmas",
+    "text": "How to view your man’s\nrecent following on IG"
+   },
+   {
+    "nome": "novo",
+    "text": "Tired of scrolling his endless following list?"
+   }
+  ]
+ },
+ {
+  "nome": "s4-02",
+  "video": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c02.mp4",
+  "variantes": [
+   {
+    "nome": "mesmas",
+    "text": "Si en 2 minutos no te\nbusca, es porque\nnunca fue para ti..",
+    "highlight": "es porque nunca fue para ti.."
+   },
+   {
+    "nome": "novo",
+    "text": "Si en 7 días no vuelve a escribirte, nunca fue para ti..",
+    "highlight": "nunca fue para ti.."
+   }
+  ]
+ },
+ {
+  "nome": "s4-05",
+  "video": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c05.mp4",
+  "variantes": [
+   {
+    "nome": "mesmas",
+    "text": "If he doesn't call you\nwithin two minutes,\nI’ll pay you $50"
+   },
+   {
+    "nome": "novo",
+    "text": "If he doesn't text you back within an hour, I’ll pay you $50"
+   }
+  ]
+ },
+ {
+  "nome": "s4-06",
+  "video": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c06.mp4",
+  "variantes": [
+   {
+    "nome": "mesmas",
+    "text": "Él ya está con otra? Te\npropongo algo. Si en 7 días\nno te busca, dime mentirosa"
+   },
+   {
+    "nome": "novo",
+    "text": "¿Ya está con otra? Te propongo algo. Si en 7 días no te escribe, dime mentirosa"
+   }
+  ]
+ }
+]

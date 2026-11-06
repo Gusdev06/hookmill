@@ -130,4 +130,27 @@ describe('comporSobreOCampeao com edição de vídeo', () => {
     expect(Math.abs(audioSec(saida) - 2)).toBeLessThan(0.1);
     await expect(calibrarY(ff, i8, cinza('m-a8-ruim.mp4', '0x5A5A5A', 60, false))).rejects.toThrow(/A8/);
    }, 30_000);
+
+  it('campeão com buraco no tempo no último quadro (02 real): saída com o mesmo nº de quadros', async () => {
+    const base = join(dir, 'buraco.mp4');
+    execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `color=c=blue:s=${W}x${H}:r=${FPS}:d=2`,
+      '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1.95', '-vf', `setpts='if(eq(N\,59),(N+1)/(${FPS}*TB),N/(${FPS}*TB))'`, '-fps_mode', 'passthrough',
+      '-c:a', 'aac', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', base]);
+    expect(await contarFrames(ff, base)).toBe(60);
+    const saida = join(dir, 'buraco-saida.mp4');
+    await comporSobreOCampeao(ff, { ...input(60), baseVideoUrl: base, audioPassthroughUrl: base }, clipe('m-buraco.mp4', 'red', 60, false), saida);
+    expect(await contarFrames(ff, saida)).toBe(60);
+  }, 30_000);
+
+  it('render em timescale 1/90000 (o do Remotion): a máscara acaba no quadro certo (sem o round, 1 quadro a mais)', async () => {
+    const base = cinza('b-90k.mp4', '0x666666', 60, true);
+    const mudo = join(dir, 'm-90k.mp4');
+    execFileSync(ff.ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `color=c=0xBCBCBC:s=${W}x${H}:r=${FPS}:d=2`,
+      '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-video_track_timescale', '90000', mudo]);
+    const saida = join(dir, '90k.mp4');
+    await comporSobreOCampeao(ff, { ...input(60), baseVideoUrl: base, audioPassthroughUrl: base, textLayers: [camadaTexto({ endFrame: 30 })] }, mudo, saida);
+    const ref = yDe(base, 10, 10, 10);
+    expect(yDe(saida, 29, 110, 110) - ref).toBeGreaterThan(60);
+    expect(Math.abs(yDe(saida, 30, 110, 110) - ref)).toBeLessThanOrEqual(1);
+  }, 30_000);
 });
