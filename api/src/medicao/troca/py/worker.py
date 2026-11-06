@@ -53,6 +53,8 @@ def rodar(ev):
         op = ev["op"]
         if op == "versoes":
             import numpy, cv2, PIL
+            from PIL import features
+            r.update(raqm=features.check("raqm"), freetype=features.version("freetype2"))
             r.update(numpy=numpy.__version__, cv2=cv2.__version__, pil=PIL.__version__,
                      ffmpeg=subprocess.check_output(["ffmpeg", "-version"]).decode().split("\n")[0])
         elif op == "sondar":

@@ -172,9 +172,14 @@ export function montarLook(o: {
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
 
-/** Pedaços da placa (§15.6.4): até `max`, balanceados pelo custo (quadro do intervalo = 1; fora = 0,05, só recodifica). */
+/** Custo relativo de um quadro FORA do intervalo na placa (decodifica, converte e recodifica; não apaga). Medido no G1
+ *  (06/11, Lambda, solto de 60 s a 720p): ~0,2 s por quadro dentro (TELEA + x264) e ~0,06-0,08 s fora. O 0,05 antigo
+ *  deixava o último pedaço com 1204 quadros fora: 96,6 s contra 13,7 s do 1º. */
+export const PESO_FORA_DO_INTERVALO = 0.35;
+
+/** Pedaços da placa (§15.6.4): até `max`, balanceados pelo custo (quadro do intervalo = 1; fora = PESO_FORA_DO_INTERVALO). */
 export function planejarPedacos(n: number, a: number, b: number, max = 4, minQuadros = 30): Array<[number, number]> {
-  const custo = (i: number) => (i >= a && i < b ? 1 : 0.05);
+  const custo = (i: number) => (i >= a && i < b ? 1 : PESO_FORA_DO_INTERVALO);
   let total = 0;
   for (let i = 0; i < n; i++) total += custo(i);
   const k = Math.max(1, Math.min(max, Math.floor(n / minQuadros)));

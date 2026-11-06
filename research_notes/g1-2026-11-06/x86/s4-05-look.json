@@ -1,0 +1,119 @@
+{
+ "version": 2,
+ "kind": "box",
+ "layerId": "headline-1",
+ "startFrame": 0,
+ "endFrame": 191,
+ "box": {
+  "x": 0,
+  "y": 586,
+  "w": 628,
+  "h": 220
+ },
+ "radiusPx": 0,
+ "plate": {
+  "color": "#970101",
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE4AAAAbCAIAAABdiy4OAAABpUlEQVRYw8VY146DQAxkkP//8T735jhQqIsbXrKKlILX9rg7+MHIQTmnhxgeHDQYeg890qnpOE7PMb8cOJdf+D7O2PUbKtnx4ocSKzksZjwow7IASKBl8xsaUK+Y3eJVY37lTO7CqhWWNzHMg0xWvANmk04z8v6Bi52bwz1ThuPPexeOJGTMMLJmp3aXDxNs5sGg06qPgC21wsHaCHocH8HZMDZWqM0WUVzBpG35QC26o7kI6iISNdGElqO8oVFYx6QiS2g5FnOq1miftsf4VnNAN+J6qHzSGehFCAUnnzW70dSbXrTo5+sTSG7FPCBULuoTmtn0un9qz0YpRnN0vg+P3YdDIXBNsmhVYLqsDF/Jtbkw7Fjkepp0H1IeD0UTnt9LDCfWjDGFE+V4EvLQv9nAScPSnrEHhqjVcQ5glE5nqM0HHLZzfMAzkqsNgF9cQ52BxISWormNPVVml8xR7ohNF9+/XdM9Om+q8G42VpuEq95m1jlz+TFDA7El7oXxu8JXAcUgCVHe/yfbjs1twf7/LtrX6fWqlyUiC5BCjJS7qeCczh8GG4ry6c1YlwAAAABJRU5ErkJggg==",
+  "temporalP99": 6.7,
+  "translucent": false
+ },
+ "plateRef": null,
+ "emoji": null,
+ "text": {
+  "lines": [
+   "If he doesn't call you",
+   "within two minutes,",
+   "I’ll pay you $50"
+  ],
+  "textBox": {
+   "x": 24,
+   "y": 611,
+   "w": 580,
+   "h": 173
+  },
+  "firstBaselineY": 654,
+  "linePitchPx": 60,
+  "sizePx": 60.07,
+  "letterSpacingEm": 0,
+  "align": "center",
+  "caseStyle": "sentence",
+  "color": "#fffefa",
+  "stroke": null,
+  "shadow": {
+   "dx": 4,
+   "dy": 3,
+   "blurPx": 8,
+   "color": "rgba(0,0,0,1)"
+  },
+  "stemPx": 5.06
+ },
+ "emphasis": null,
+ "font": {
+  "fontId": "tiktok-sans-500",
+  "corr": 0.7721,
+  "stemErr": 0.0684,
+  "widthErr": 0.0116,
+  "tier": "same",
+  "measuredIn": "chrome-linux"
+ },
+ "fit": {
+  "kind": "box",
+  "canvas": {
+   "width": 720,
+   "height": 1280
+  },
+  "fontId": "tiktok-sans-500",
+  "sizePx": 60.07,
+  "letterSpacingEm": 0,
+  "linePitchPx": 60,
+  "firstBaselineY": 654,
+  "align": "center",
+  "centerX": 313.5,
+  "caseStyle": "sentence",
+  "originalLines": [
+   {
+    "chars": 22,
+    "widthPx": 580
+   },
+   {
+    "chars": 19,
+    "widthPx": 548
+   },
+   {
+    "chars": 16,
+    "widthPx": 431
+   }
+  ],
+  "erasedRects": [],
+  "bottomLimitY": null,
+  "chinY": null,
+  "sideMarginPx": 24,
+  "emoji": null,
+  "box": {
+   "x": 0,
+   "y": 586,
+   "w": 628,
+   "h": 220
+  }
+ },
+ "verdict": {
+  "ok": true,
+  "reason": null,
+  "gates": {
+   "transicao_max": 0,
+   "caixa_area_rel": 1.36,
+   "caixa_quadro_rel": 0.15,
+   "caixa_chapada_p90": 6,
+   "temporal_p99": 6.7,
+   "sombra_err_sem": 11.64,
+   "sombra_err_com": 5.82,
+   "dilatacao": 17,
+   "halo_p99": 5.5,
+   "placa_bytes": 662,
+   "folga_legenda": 11,
+   "rosto_frac": 0,
+   "font_corr": 0.7721,
+   "font_candidatas": 9
+  }
+ }
+}

@@ -1,0 +1,186 @@
+{
+ "candidatas": [
+  {
+   "fontId": "tiktok-sans-600",
+   "cosPillow": 0.9295,
+   "sz": 66.04,
+   "preStemErr": 0.003
+  },
+  {
+   "fontId": "tiktok-sans-500",
+   "cosPillow": 0.9149,
+   "sz": 66.81,
+   "preStemErr": 0.099
+  },
+  {
+   "fontId": "inter-600",
+   "cosPillow": 0.8676,
+   "sz": 65.937,
+   "preStemErr": 0.038
+  },
+  {
+   "fontId": "albert-sans-500",
+   "cosPillow": 0.865,
+   "sz": 69.208,
+   "preStemErr": 0.112
+  },
+  {
+   "fontId": "inter-500",
+   "cosPillow": 0.8534,
+   "sz": 66.48,
+   "preStemErr": 0.087
+  },
+  {
+   "fontId": "arimo-700",
+   "cosPillow": 0.8489,
+   "sz": 66.916,
+   "preStemErr": 0.082
+  },
+  {
+   "fontId": "arimo-600",
+   "cosPillow": 0.838,
+   "sz": 68.351,
+   "preStemErr": 0.006
+  },
+  {
+   "fontId": "poppins-500",
+   "cosPillow": 0.82,
+   "sz": 63.333,
+   "preStemErr": 0.044
+  },
+  {
+   "fontId": "arimo-500",
+   "cosPillow": 0.7799,
+   "sz": 69.879,
+   "preStemErr": 0.101
+  },
+  {
+   "fontId": "montserrat-600",
+   "cosPillow": 0.7232,
+   "sz": 61.96,
+   "preStemErr": 0.011
+  }
+ ],
+ "regua": {
+  "proc_ok": true,
+  "exit": 0,
+  "frio": false,
+  "pico_arvore_MB": 99,
+  "funcao_s": 1.31,
+  "op": "medir_headline",
+  "baixar_s": 0,
+  "escolhida": "tiktok-sans-600",
+  "tier": "same",
+  "medidas": [
+   {
+    "fontId": "tiktok-sans-600",
+    "corr": 0.8937,
+    "stem": 6.719,
+    "stemErr": 0.0126,
+    "widthErr": 0.0074,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "tiktok-sans-500",
+    "corr": 0.8754,
+    "stem": 6.02,
+    "stemErr": -0.0926,
+    "widthErr": 0.0092,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "inter-600",
+    "corr": 0.8201,
+    "stem": 6.971,
+    "stemErr": 0.0507,
+    "widthErr": 0.0135,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "albert-sans-500",
+    "corr": 0.8171,
+    "stem": 5.953,
+    "stemErr": -0.1028,
+    "widthErr": 0.0106,
+    "baseErr720": 0,
+    "pitchErr720": 1.01
+   },
+   {
+    "fontId": "inter-500",
+    "corr": 0.8057,
+    "stem": 6.142,
+    "stemErr": -0.0743,
+    "widthErr": 0.012,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "arimo-700",
+    "corr": 0.7953,
+    "stem": 7.28,
+    "stemErr": 0.0973,
+    "widthErr": 0.0055,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "arimo-600",
+    "corr": 0.7871,
+    "stem": 6.689,
+    "stemErr": 0.0081,
+    "widthErr": 0.0045,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "poppins-500",
+    "corr": 0.7625,
+    "stem": 6.361,
+    "stemErr": -0.0413,
+    "widthErr": 0.015,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "arimo-500",
+    "corr": 0.7205,
+    "stem": 6.053,
+    "stemErr": -0.0877,
+    "widthErr": 0.0035,
+    "baseErr720": 2.01,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "montserrat-600",
+    "corr": 0.6449,
+    "stem": 6.581,
+    "stemErr": -0.0082,
+    "widthErr": 0.0129,
+    "baseErr720": 1.01,
+    "pitchErr720": 0.5
+   }
+  ],
+  "op_s": 1.2,
+  "subir_s": 0,
+  "total_s": 1.2,
+  "rss_python_MB": 104,
+  "cpu_python_s": 1.5,
+  "cpu_ffmpeg_s": 0,
+  "ok_op": true
+ },
+ "gates": {
+  "transicao_max": 0,
+  "caixa_area_rel": 1.19,
+  "caixa_quadro_rel": 0.192,
+  "caixa_chapada_p90": 12.7,
+  "temporal_p99": 17,
+  "sombra_err_sem": 4.77,
+  "sombra_err_com": 4.6,
+  "dilatacao": 9,
+  "halo_p99": 8.3,
+  "placa_bytes": 1666
+ }
+}

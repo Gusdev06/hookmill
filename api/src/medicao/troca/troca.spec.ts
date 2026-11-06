@@ -115,6 +115,9 @@ describe('troca de texto: partes puras', () => {
     for (let k = 1; k < p.length; k++) expect(p[k][0]).toBe(p[k - 1][1]);
     expect(p[0][1]).toBeLessThan(80);            // o intervalo pesa: 1º pedaço curto
     expect(planejarPedacos(40, 0, 40, 4)).toEqual([[0, 40]]);
+    // G1: vídeo longo com intervalo curto: nenhum pedaço fica com quase tudo o que está fora (antes: 1204 de 1800)
+    const longo = planejarPedacos(1800, 0, 161, 4);
+    expect(Math.max(...longo.map(([x, y]) => y - x))).toBeLessThan(700);
   });
 
   it('parâmetros da placa: ROI com emoji, dilatação ímpar escalada, redesenho pelo centro de cada linha', () => {
@@ -266,7 +269,7 @@ describe('troca de texto: orquestração', () => {
     const st = { tmpPrefix: 'troca-tmp/', presignPut: async (k: string) => `PUT:${k}`, presignGet: async (k: string) => `GET:${k}`, remove: async () => undefined };
     const ex = new ExecutorLambda(inv, st, { urlTtlSec: 60, memMb: 3008 });
     const r = await ex.executar({ v: 1, op: 'sondar' });
-    expect(r.costUsd).toBeCloseTo(2 * (3008 / 1024) * 0.0000133334 + 0.0000002, 9);
+    expect(r.costUsd).toBeCloseTo(2 * (3008 / 1024) * 0.0000166667 + 0.0000002, 9);   // x86_64 desde o G1
     const d = await ex.destino('p00.mp4', 'video/mp4');
     expect(d.destino).toMatch(/^PUT:troca-tmp\/.+\/p00\.mp4$/);
     expect(await ex.origem(d)).toBe(`GET:${d.ref}`);

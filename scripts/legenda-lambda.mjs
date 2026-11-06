@@ -1,9 +1,10 @@
 // Função AWS Lambda `hookmill-legenda` da troca de texto (troca-texto-queimado-v1 §15.6.4, §15.10, §16). Dono: video.
 // Monta a imagem SEM Docker, como scripts/leitura-lambda.mjs e o deploy.mjs da S1: base oficial
-// public.ecr.aws/lambda/python:3.12 arm64 + 1 camada com o código (api/src/medicao/troca/py, o MESMO do PLATE_IMPL=local),
+// public.ecr.aws/lambda/python:3.12 x86_64 + 1 camada com o código (api/src/medicao/troca/py, o MESMO do PLATE_IMPL=local),
 // as wheels fixadas (numpy 2.0.2, opencv-python-headless 5.0.0.93, pillow 11.3.0; sha256 do PyPI conferido), as fontes OFL
-// de video/public/fonts e o ffmpeg/ffprobe estático arm64 (sha256 conferido). Sobe pro ECR pela API do ECR e cria/atualiza
-// a função (3008 MB, arm64, efêmero 2048 MB, timeout 300 s), a role (só CloudWatch Logs: arquivos por URL assinada),
+// de video/public/fonts e o ffmpeg/ffprobe estático amd64 (md5 do publicador conferido, sha256 fixado).
+// x86_64 desde 06/11 (G1): no arm64 a pré-seleção em Pillow dava outro corpo e outra fonte que a VPS e a API (x86). Sobe pro ECR pela API do ECR e cria/atualiza
+// a função (3008 MB, x86_64, efêmero 2048 MB, timeout 300 s), a role (só CloudWatch Logs: arquivos por URL assinada),
 // a permissão de invocação do usuário da API e os logs (7 dias). Idempotente.
 //
 // Credencial: a cadeia padrão da AWS (perfil admin) — NUNCA as REMOTION_AWS_* (o usuário do render não cria ECR/IAM).
@@ -31,9 +32,14 @@ const MEM = Number(process.env.PLATE_LAMBDA_MEM_MB || 3008);
 const DIR = path.join(raiz, '.infra', 'legenda-lambda');
 const PY = path.join(raiz, 'api', 'src', 'medicao', 'troca', 'py');
 const FONTES = path.join(raiz, 'video', 'public', 'fonts');
-const BASE = { repo: 'lambda/python', tag: '3.12', arch: 'arm64' };
-const FFMPEG = { url: 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz', sha256: 'f4149bb2b0784e30e99bdda85471c9b5930d3402014e934a5098b41d0f7201b1' };
+const BASE = { repo: 'lambda/python', tag: '3.12', arch: 'amd64' };
+const ARQ_LAMBDA = 'x86_64';
+// 7.0.2-static; md5 7fa72b652e19bf84c9461e332ea1cdf3 = o .md5 publicado em 06/11
+const FFMPEG = { url: 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz', sha256: 'abda8d77ce8309141f83ab8edf0596834087c52467f6badf376a6a2a4c87cf67' };
 // §15.6.4: versões fixas, as da S1 (o x264 e o DIS mudam de resultado entre versões)
+// Raqm do Pillow (kerning, igual ao Chrome) carrega a libfribidi pelo dlopen; a imagem da AWS não tem. Pacote do Debian 12
+// (o mesmo da VPS), sha1 eb2357f7… conferido no snapshot.debian.org em 06/11; LGPL-2.1, ligação dinâmica, copyright junto.
+const FRIBIDI = { url: 'http://deb.debian.org/debian/pool/main/f/fribidi/libfribidi0_1.0.8-2.1_amd64.deb', sha256: '87fce56627aab7b2968501d370aa3ed6d1c792119efa765e71a690bdfe570e62' };
 const WHEELS = [['numpy', '2.0.2'], ['opencv-python-headless', '5.0.0.93'], ['pillow', '11.3.0']];
 const PARTE = 8 * 1024 * 1024;
 
@@ -58,12 +64,12 @@ async function baixar(url, dst, sha256) {
   return dst;
 }
 
-/** Wheel cp312 manylinux aarch64 da versão fixada, pelo JSON do PyPI (sha256 de lá). */
+/** Wheel cp312 manylinux x86_64 da versão fixada (as mesmas tags que o pip instala na VPS), pelo JSON do PyPI (sha256 de lá). */
 async function wheel(nome, versao) {
   const j = await (await fetch(`https://pypi.org/pypi/${nome}/${versao}/json`)).json();
-  const ok = (f) => /manylinux.*aarch64/.test(f.filename) && (/cp312-cp312/.test(f.filename) || /cp3\d-abi3/.test(f.filename) || /cp37-abi3/.test(f.filename));
+  const ok = (f) => /manylinux.*x86_64/.test(f.filename) && (/cp312-cp312/.test(f.filename) || /cp3\d-abi3/.test(f.filename) || /cp37-abi3/.test(f.filename));
   const f = j.urls.filter((u) => u.packagetype === 'bdist_wheel' && ok(u)).sort((a, b) => a.filename.localeCompare(b.filename)).pop();
-  if (!f) throw new Error(`sem wheel aarch64 para ${nome} ${versao}`);
+  if (!f) throw new Error(`sem wheel x86_64 para ${nome} ${versao}`);
   return baixar(f.url, path.join(DIR, 'cache', f.filename), f.digests.sha256);
 }
 
@@ -79,7 +85,17 @@ async function build() {
   for (const f of readdirSync(FONTES)) if (f.endsWith('.woff2')) cpSync(path.join(FONTES, f), path.join(task, 'fontes', f));
   for (const f of readdirSync(path.join(FONTES, 'licenses'))) cpSync(path.join(FONTES, 'licenses', f), path.join(task, 'fontes', 'licenses', f));
   for (const [n, v] of WHEELS) sh('unzip', ['-q', '-o', await wheel(n, v), '-d', task]);
-  const tar = await baixar(FFMPEG.url, path.join(DIR, 'cache', 'ffmpeg-arm64-static.tar.xz'), FFMPEG.sha256);
+  // libfribidi em /var/task/lib (está no LD_LIBRARY_PATH da imagem Python da AWS)
+  const deb = await baixar(FRIBIDI.url, path.join(DIR, 'cache', path.basename(FRIBIDI.url)), FRIBIDI.sha256);
+  const dx = path.join(DIR, 'fribidi'); rmSync(dx, { recursive: true, force: true }); mkdirSync(dx, { recursive: true });
+  sh('ar', ['x', deb], { cwd: dx });
+  const dataTar = readdirSync(dx).find((f) => f.startsWith('data.tar'));
+  sh('tar', ['-xf', dataTar], { cwd: dx });
+  mkdirSync(path.join(task, 'lib'), { recursive: true });
+  cpSync(path.join(dx, 'usr/lib/x86_64-linux-gnu/libfribidi.so.0.4.0'), path.join(task, 'lib', 'libfribidi.so.0'));
+  mkdirSync(path.join(task, 'licenses'), { recursive: true });
+  cpSync(path.join(dx, 'usr/share/doc/libfribidi0/copyright'), path.join(task, 'licenses', 'libfribidi0-copyright'));
+  const tar = await baixar(FFMPEG.url, path.join(DIR, 'cache', 'ffmpeg-amd64-static.tar.xz'), FFMPEG.sha256);
   const tmp = path.join(DIR, 'ffx'); rmSync(tmp, { recursive: true, force: true }); mkdirSync(tmp, { recursive: true });
   sh('tar', ['-xJf', tar, '-C', tmp]);
   const p = readdirSync(tmp)[0];
@@ -184,13 +200,13 @@ async function funcao(uri) {
   try { await cli.send(new Lm.GetFunctionCommand({ FunctionName: NOME })); } catch (e) { if (e.name === 'ResourceNotFoundException') existe = false; else throw e; }
   if (!existe) {
     for (let i = 0; ; i++) {
-      try { await cli.send(new Lm.CreateFunctionCommand({ ...cfg, PackageType: 'Image', Code: { ImageUri: uri }, Architectures: ['arm64'], Tags: { projeto: 'hookmill' } })); break; }
+      try { await cli.send(new Lm.CreateFunctionCommand({ ...cfg, PackageType: 'Image', Code: { ImageUri: uri }, Architectures: [ARQ_LAMBDA], Tags: { projeto: 'hookmill' } })); break; }
       catch (e) { if (i < 6 && /cannot be assumed|role/i.test(e.message)) { log('role ainda propagando…'); await dormir(8000); continue; } throw e; }
     }
     log(`função ${NOME} criada`);
   } else {
     await pronta(L);
-    await cli.send(new Lm.UpdateFunctionCodeCommand({ FunctionName: NOME, ImageUri: uri, Architectures: ['arm64'] }));
+    await cli.send(new Lm.UpdateFunctionCodeCommand({ FunctionName: NOME, ImageUri: uri, Architectures: [ARQ_LAMBDA] }));
     await pronta(L);
     await cli.send(new Lm.UpdateFunctionConfigurationCommand(cfg));
     log(`função ${NOME} atualizada`);

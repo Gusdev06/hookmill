@@ -32,10 +32,21 @@ def disponiveis():
 _cache = {}
 
 
+def exigir_raqm():
+    """Layout com kerning (Raqm + HarfBuzz + FriBiDi), como o Chrome. Sem a libfribidi, o Pillow cai calado no layout
+    básico, sem kerning: no G1 (06/11) a Lambda media outro corpo e escolhia outra fonte que a VPS (05: 62,4 px Albert
+    Sans × 60,07 px TikTok Sans). Ambiente sem Raqm não mede: erro, nunca resultado diferente."""
+    from PIL import features
+    if not features.check("raqm"):
+        raise RuntimeError("Pillow sem Raqm (falta libfribidi.so.0): a medida de fonte depende do kerning")
+
+
 def fonte(font_id, px):
     k = (font_id, round(px * 8) / 8)
     if k not in _cache:
-        _cache[k] = ImageFont.truetype(arquivo(font_id), k[1])
+        if not _cache:
+            exigir_raqm()
+        _cache[k] = ImageFont.truetype(arquivo(font_id), k[1], layout_engine=ImageFont.Layout.RAQM)
     return _cache[k]
 
 
@@ -89,6 +100,9 @@ def quebrar(texto, larguras_medidas, font_id="arimo-600"):
 
 # ───────── pré-seleção sem prova (§14.1.2 passo 1) ─────────
 
+MARGEM_PRE = 0.05
+
+
 def preselecionar(alvo, lines, medidas, candidatas=None, k=5, extra=(), transf=None):
     """Corpo pela mediana de (largura medida / largura a 100 px); nota = espalhamento entre linhas + erro de traço
     redesenhado no corpo estimado. `transf` leva o alfa desenhado ao mesmo modelo do alfa medido (no solto: compõe
@@ -110,7 +124,10 @@ def preselecionar(alvo, lines, medidas, candidatas=None, k=5, extra=(), transf=N
         e_st = abs(st - stem0) / max(stem0, 1e-3)
         notas.append((e_st + 2 * esp, fid, sz, round(e_st, 3), round(esp, 4)))
     notas.sort()
-    esc = [n for n in notas[:k]]
+    # §16.2 A3 "Pillow nunca decide": a nota só filtra o grosso. Quem fica a MARGEM_PRE da k-ésima também vai para a régua
+    # no Chrome, para um arredondamento (arm64 × x86, G1 06/11) não tirar nem pôr candidata
+    corte = notas[min(k, len(notas)) - 1][0] + MARGEM_PRE if notas else 0
+    esc = [n for n in notas if n[0] <= corte]
     for fid in extra:
         if fid not in [n[1] for n in esc]:
             esc += [n for n in notas if n[1] == fid]

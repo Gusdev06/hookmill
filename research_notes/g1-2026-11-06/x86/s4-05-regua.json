@@ -1,0 +1,171 @@
+{
+ "candidatas": [
+  {
+   "fontId": "tiktok-sans-500",
+   "cosPillow": 0.8266,
+   "sz": 60.067,
+   "preStemErr": 0.054
+  },
+  {
+   "fontId": "albert-sans-500",
+   "cosPillow": 0.8229,
+   "sz": 62.184,
+   "preStemErr": 0.041
+  },
+  {
+   "fontId": "tiktok-sans-400",
+   "cosPillow": 0.8037,
+   "sz": 61.216,
+   "preStemErr": 0.116
+  },
+  {
+   "fontId": "poppins-500",
+   "cosPillow": 0.795,
+   "sz": 57.154,
+   "preStemErr": 0.125
+  },
+  {
+   "fontId": "inter-500",
+   "cosPillow": 0.7677,
+   "sz": 59.506,
+   "preStemErr": 0.087
+  },
+  {
+   "fontId": "inter-400",
+   "cosPillow": 0.7147,
+   "sz": 59.96261032129038,
+   "preStemErr": 0.067
+  },
+  {
+   "fontId": "arimo-500",
+   "cosPillow": 0.6769,
+   "sz": 62.815897408342735,
+   "preStemErr": 0.084
+  },
+  {
+   "fontId": "montserrat-500",
+   "cosPillow": 0.6552,
+   "sz": 57.037,
+   "preStemErr": 0.066
+  },
+  {
+   "fontId": "arimo-400",
+   "cosPillow": 0.6307,
+   "sz": 64.61315031271229,
+   "preStemErr": 0.039
+  }
+ ],
+ "regua": {
+  "proc_ok": true,
+  "exit": 0,
+  "frio": false,
+  "pico_arvore_MB": 92,
+  "funcao_s": 1.35,
+  "op": "medir_headline",
+  "baixar_s": 0,
+  "escolhida": "tiktok-sans-500",
+  "tier": "same",
+  "medidas": [
+   {
+    "fontId": "tiktok-sans-500",
+    "corr": 0.7721,
+    "stem": 5.405,
+    "stemErr": 0.0684,
+    "widthErr": 0.0116,
+    "baseErr720": 2,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "albert-sans-500",
+    "corr": 0.7672,
+    "stem": 5.292,
+    "stemErr": 0.046,
+    "widthErr": 0.0116,
+    "baseErr720": 3,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "tiktok-sans-400",
+    "corr": 0.7401,
+    "stem": 4.575,
+    "stemErr": -0.0957,
+    "widthErr": 0.0139,
+    "baseErr720": 3,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "poppins-500",
+    "corr": 0.746,
+    "stem": 5.69,
+    "stemErr": 0.1247,
+    "widthErr": 0.0162,
+    "baseErr720": 4,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "inter-500",
+    "corr": 0.6942,
+    "stem": 5.5,
+    "stemErr": 0.0873,
+    "widthErr": 0.0162,
+    "baseErr720": 3,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "inter-400",
+    "corr": 0.6384,
+    "stem": 4.71,
+    "stemErr": -0.069,
+    "widthErr": 0.0209,
+    "baseErr720": 3,
+    "pitchErr720": 0.5
+   },
+   {
+    "fontId": "arimo-500",
+    "corr": 0.5925,
+    "stem": 5.463,
+    "stemErr": 0.0799,
+    "widthErr": 0.0232,
+    "baseErr720": 4,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "montserrat-500",
+    "corr": 0.5784,
+    "stem": 4.786,
+    "stemErr": -0.054,
+    "widthErr": 0.0456,
+    "baseErr720": 0,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "arimo-400",
+    "corr": 0.5419,
+    "stem": 4.87,
+    "stemErr": -0.0374,
+    "widthErr": 0.0186,
+    "baseErr720": 5,
+    "pitchErr720": 0.5
+   }
+  ],
+  "op_s": 1.24,
+  "subir_s": 0,
+  "total_s": 1.24,
+  "rss_python_MB": 97,
+  "cpu_python_s": 1.2,
+  "cpu_ffmpeg_s": 0,
+  "ok_op": true
+ },
+ "gates": {
+  "transicao_max": 0,
+  "caixa_area_rel": 1.36,
+  "caixa_quadro_rel": 0.15,
+  "caixa_chapada_p90": 6,
+  "temporal_p99": 6.7,
+  "sombra_err_sem": 11.64,
+  "sombra_err_com": 5.82,
+  "dilatacao": 17,
+  "halo_p99": 5.5,
+  "placa_bytes": 662
+ }
+}

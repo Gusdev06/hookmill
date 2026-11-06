@@ -68,3 +68,22 @@ O corte de 0,15 separa a aprovada (0,055) do primeiro texto curto testado (0,30)
 
 ## Custo AWS que fica
 O ECR guarda até 3 imagens (lifecycle), com ~260 MB de camadas compartilhadas, ≈ US$ 0,03/mês (ESTIMATIVA, US$ 0,10/GB-mês). A função parada não custa. Os logs ficam 7 dias. Para tirar tudo: `node scripts/legenda-lambda.mjs apagar`.
+
+## Rodada 2 (06/11, à tarde): os 2 achados resolvidos
+**Fonte e corpo iguais em qualquer lugar.** Lambda x86_64 e VPS, mesmos números:
+| caso | Lambda x86 | VPS |
+|---|---|---|
+| 05 | tiktok-sans-500, corr 0,7721, 60,07 px | idem |
+| 06 | tiktok-sans-500, corr 0,7627, 33,76 px | idem |
+| 02 | tiktok-sans-600, corr 0,8937, 66,04 px | idem |
+| solto | arimo-600, corr 0,8191, 26,87 px | idem |
+
+- **A causa não era a arquitetura.** Faltava a `libfribidi` na imagem da AWS, e sem ela o Pillow cai calado no layout básico, sem kerning ("If he doesn't call you" mede 989 px contra 983 com kerning). A **mesma** diferença apareceu no x86 antes da correção (`x86-05` no log: 05 → Albert Sans, 62,4 px).
+- **Correção:** `py/fontes.py` passa a exigir o layout Raqm, com kerning, como o Chrome. Ambiente sem Raqm dá erro e não mede diferente. A imagem passou a levar `libfribidi.so.0` do pacote Debian 12 (o mesmo da VPS; sha1 conferido no snapshot.debian.org, LGPL-2.1, copyright junto). A op `versoes` mostra `raqm: true`.
+- **(a) Pré-seleção:** quem fica a até 0,05 da nota da 5ª candidata também vai para a régua no Chrome (`MARGEM_PRE`). Hoje vão 7 a 10 candidatas, e quem escolhe é o Chrome (A3).
+- **(b) x86_64:** `scripts/legenda-lambda.mjs` usa a base `lambda/python:3.12` amd64, wheels `manylinux x86_64` (as mesmas tags da VPS) e ffmpeg 7.0.2 estático amd64 (md5 igual ao `.md5` publicado, sha256 fixado). O preço usado no custo passou para x86 (US$ 0,0000166667/GB-s).
+
+**Pedaços pelo custo real.** O peso de quadro fora do intervalo foi de 0,05 para 0,35 (`PESO_FORA_DO_INTERVALO`, `look.ts`). Medido no G1: ~0,2 s por quadro dentro e ~0,06-0,07 fora. No solto de 60 s (derivado), o pior pedaço caiu de **96,6 s para 37,3 s** (pedaços de 29-37 s), e a placa inteira de 99,6 s para 39,7 s. No solto real, o pior caiu de 18,1 s para 12,4 s.
+**Projeção para 120 s a 720p (3600 quadros):** pedaços de ~975 quadros. Pelo ritmo medido, ~65-80 s cada, contando que o último decodifica desde o início; placa em ~80 s de parede, longe dos 300 s. É ESTIMATIVA: falta rodar um de 120 s.
+
+**Custo desta rodada:** US$ 0,0121 (rodada x86 sem Raqm) + 0,0007 (diagnóstico do 05) + 0,0121 (rodada final) ≈ **US$ 0,025**. Teto: US$ 0,05. Evidência em `x86/` (`chamadas.json`, `resumo.json`, looks e `*-regua.json` com as candidatas).

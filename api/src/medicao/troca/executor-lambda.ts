@@ -1,12 +1,15 @@
 // Executor lambda das ops (PLATE_IMPL=lambda): invoca a função `hookmill-legenda` (scripts/legenda-lambda.mjs). Dono: video.
 // Arquivos entram e saem por GET/PUT pré-assinado; a role da função só tem CloudWatch Logs. Custo = REPORT da invocação
-// (Billed Duration × memória × preço arm64), lido do LogResult, sem Cost Explorer.
+// (Billed Duration × memória × preço x86_64), lido do LogResult, sem Cost Explorer.
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import { randomUUID } from 'node:crypto';
 import type { EventoTroca, ExecutorTroca, RespostaTroca, SaidaTroca } from './evento';
 
 /** Preço público do Lambda arm64 em us-east-1, por GB-s (verificado em 05/11 na S1). */
 export const PRECO_GBS_ARM = 0.0000133334;
+/** x86_64 em us-east-1, por GB-s (preço público, 06/11): a função roda em x86_64 desde o G1 (mesma arquitetura da API). */
+export const PRECO_GBS_X86 = 0.0000166667;
+export const PRECO_GBS = PRECO_GBS_X86;
 export const PRECO_INVOCACAO = 0.0000002;
 
 export interface InvocadorTroca {
@@ -62,7 +65,7 @@ export class ExecutorLambda implements ExecutorTroca {
     const t0 = Date.now();
     const { resposta, billedMs, memMb } = await this.inv.invocar(ev);
     const gbs = ((billedMs ?? 0) / 1000) * ((memMb ?? this.cfg.memMb) / 1024);
-    return { r: resposta, costUsd: gbs * PRECO_GBS_ARM + PRECO_INVOCACAO, ms: Date.now() - t0 };
+    return { r: resposta, costUsd: gbs * PRECO_GBS + PRECO_INVOCACAO, ms: Date.now() - t0 };
   }
 
   async destino(nome: string, contentType: string, chaveFinal?: string): Promise<SaidaTroca> {

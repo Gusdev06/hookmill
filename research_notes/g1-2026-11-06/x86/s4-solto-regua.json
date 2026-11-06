@@ -1,0 +1,143 @@
+{
+ "candidatas": [
+  {
+   "fontId": "arimo-600",
+   "cosPillow": 0.8613,
+   "sz": 26.87,
+   "preStemErr": 0.044
+  },
+  {
+   "fontId": "inter-600",
+   "cosPillow": 0.8232,
+   "sz": 25.585685144078884,
+   "preStemErr": 0.019
+  },
+  {
+   "fontId": "arimo-700",
+   "cosPillow": 0.8095,
+   "sz": 26.214,
+   "preStemErr": 0.073
+  },
+  {
+   "fontId": "tiktok-sans-600",
+   "cosPillow": 0.7841,
+   "sz": 25.48787422217841,
+   "preStemErr": 0.042
+  },
+  {
+   "fontId": "montserrat-600",
+   "cosPillow": 0.7838,
+   "sz": 23.71905359633548,
+   "preStemErr": 0.062
+  },
+  {
+   "fontId": "poppins-600",
+   "cosPillow": 0.7212,
+   "sz": 24.421319243015343,
+   "preStemErr": 0.122
+  },
+  {
+   "fontId": "poppins-500",
+   "cosPillow": 0.7195,
+   "sz": 24.660356966562368,
+   "preStemErr": 0.098
+  }
+ ],
+ "regua": {
+  "proc_ok": true,
+  "exit": 0,
+  "frio": false,
+  "pico_arvore_MB": 73,
+  "funcao_s": 0.65,
+  "op": "medir_headline",
+  "baixar_s": 0,
+  "escolhida": "arimo-600",
+  "tier": "close",
+  "medidas": [
+   {
+    "fontId": "arimo-600",
+    "corr": 0.8191,
+    "stem": 2.539,
+    "stemErr": 0.1074,
+    "widthErr": 0.0074,
+    "baseErr720": 0,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "inter-600",
+    "corr": 0.8119,
+    "stem": 2.633,
+    "stemErr": 0.1481,
+    "widthErr": 0.0137,
+    "baseErr720": 0,
+    "pitchErr720": 1.55
+   },
+   {
+    "fontId": "arimo-700",
+    "corr": 0.789,
+    "stem": 2.777,
+    "stemErr": 0.2111,
+    "widthErr": 0.0112,
+    "baseErr720": 0,
+    "pitchErr720": 1.55
+   },
+   {
+    "fontId": "tiktok-sans-600",
+    "corr": 0.7656,
+    "stem": 2.505,
+    "stemErr": 0.0924,
+    "widthErr": 0.0171,
+    "baseErr720": 9.31,
+    "pitchErr720": 7.76
+   },
+   {
+    "fontId": "montserrat-600",
+    "corr": 0.7411,
+    "stem": 2.428,
+    "stemErr": 0.0589,
+    "widthErr": 0.0171,
+    "baseErr720": 3.1,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "poppins-600",
+    "corr": 0.6859,
+    "stem": 2.804,
+    "stemErr": 0.2229,
+    "widthErr": 0.0149,
+    "baseErr720": 0,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "poppins-500",
+    "corr": 0.7094,
+    "stem": 2.344,
+    "stemErr": 0.0224,
+    "widthErr": 0.0112,
+    "baseErr720": 7.76,
+    "pitchErr720": 9.31
+   }
+  ],
+  "op_s": 0.55,
+  "subir_s": 0,
+  "total_s": 0.55,
+  "rss_python_MB": 80,
+  "cpu_python_s": 0.8,
+  "cpu_ffmpeg_s": 0,
+  "ok_op": true
+ },
+ "gates": {
+  "transicao_max": 0,
+  "caixa_area_rel": 1.27,
+  "caixa_quadro_rel": 0.044,
+  "caixa_chapada_p90": 12.7,
+  "temporal_p99": 133.7,
+  "px_letra": 2773,
+  "luz_letra": 254,
+  "emoji_ocupa": 0.797,
+  "emoji_solidez": 0.834,
+  "emoji_lobulos": 2,
+  "sombra_err_sem": 1.77,
+  "sombra_err_com": 1.59
+ }
+}

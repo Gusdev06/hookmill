@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { EditLayer, EditMap } from '@maquina/contratos';
-import { ExecutorLambda, InvocadorTrocaAws, PRECO_GBS_ARM, PRECO_INVOCACAO, type InvocadorTroca } from './executor-lambda';
+import { ExecutorLambda, InvocadorTrocaAws, PRECO_GBS, PRECO_INVOCACAO, type InvocadorTroca } from './executor-lambda';
 import type { EventoTroca } from './evento';
 import { TrocaTextoOrquestrada } from './orquestra';
 import { ProvaPuppeteer, pastaDeFontes } from './prova';
@@ -50,7 +50,7 @@ async function main() {
       const t0 = Date.now();
       const r = await real.invocar(ev);
       const gbs = ((r.billedMs ?? 0) / 1000) * ((r.memMb ?? 3008) / 1024);
-      const c: Chamada = { caso: atual, op: String(ev.op), ...(ev.fase ? { fase: String(ev.fase) } : {}), billedMs: r.billedMs, memMb: r.memMb, custoUsd: gbs * PRECO_GBS_ARM + PRECO_INVOCACAO,
+      const c: Chamada = { caso: atual, op: String(ev.op), ...(ev.fase ? { fase: String(ev.fase) } : {}), billedMs: r.billedMs, memMb: r.memMb, custoUsd: gbs * PRECO_GBS + PRECO_INVOCACAO,
         paredeMs: Date.now() - t0, ok_op: r.resposta.ok_op, frio: r.resposta.frio, pico_MB: r.resposta.pico_arvore_MB, total_s: r.resposta.total_s, ...(r.resposta.erro ? { erro: String(r.resposta.erro).slice(0, 300) } : {}) };
       chamadas.push(c);
       console.log('chamada', JSON.stringify(c));
@@ -59,7 +59,10 @@ async function main() {
   };
   const fontesDir = pastaDeFontes(process.env.TROCA_FONTES_DIR);
   const porta = new TrocaTextoOrquestrada(new ExecutorLambda(inv, storage, { urlTtlSec: 3600, memMb: 3008 }),
-    new ProvaPuppeteer({ browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE || null, fontesDir }), { log: console, maxPedacos: 4 });
+    new ProvaPuppeteer({ browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE || null, fontesDir }), { log: console, maxPedacos: 4, aoMedir: (md, rg) => {
+      const c = md.candidatas?.map((x) => ({ fontId: x.fontId, cosPillow: x.cosPillow, sz: x.layout.sz, preStemErr: x.preStemErr })) ?? [];
+      writeFileSync(path.join(saida, `${atual}-regua.json`), JSON.stringify({ candidatas: c, regua: rg, gates: md.gates }, null, 1));
+    } });
   const resumo: Record<string, unknown> = {};
   try {
     for (const c of casos) {

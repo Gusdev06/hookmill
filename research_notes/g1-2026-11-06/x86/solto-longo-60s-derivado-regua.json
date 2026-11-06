@@ -1,0 +1,158 @@
+{
+ "candidatas": [
+  {
+   "fontId": "arimo-600",
+   "cosPillow": 0.9097,
+   "sz": 41.46,
+   "preStemErr": 0.037
+  },
+  {
+   "fontId": "arimo-500",
+   "cosPillow": 0.8609,
+   "sz": 42.551,
+   "preStemErr": 0.073
+  },
+  {
+   "fontId": "inter-500",
+   "cosPillow": 0.8597,
+   "sz": 40.1268890475776,
+   "preStemErr": 0.056
+  },
+  {
+   "fontId": "inter-600",
+   "cosPillow": 0.8591,
+   "sz": 39.741137394873014,
+   "preStemErr": 0.095
+  },
+  {
+   "fontId": "tiktok-sans-500",
+   "cosPillow": 0.8011,
+   "sz": 40.19061362150883,
+   "preStemErr": 0.093
+  },
+  {
+   "fontId": "tiktok-sans-600",
+   "cosPillow": 0.7923,
+   "sz": 39.589489729558615,
+   "preStemErr": 0.045
+  },
+  {
+   "fontId": "montserrat-600",
+   "cosPillow": 0.7855,
+   "sz": 36.841913599346476,
+   "preStemErr": 0.006
+  },
+  {
+   "fontId": "poppins-500",
+   "cosPillow": 0.709,
+   "sz": 38.3036095533834,
+   "preStemErr": 0.034
+  }
+ ],
+ "regua": {
+  "proc_ok": true,
+  "exit": 0,
+  "frio": false,
+  "pico_arvore_MB": 76,
+  "funcao_s": 1.03,
+  "op": "medir_headline",
+  "baixar_s": 0,
+  "escolhida": "arimo-600",
+  "tier": "same",
+  "medidas": [
+   {
+    "fontId": "arimo-600",
+    "corr": 0.8692,
+    "stem": 3.941,
+    "stemErr": 0.1339,
+    "widthErr": 0.0024,
+    "baseErr720": 0,
+    "pitchErr720": 1
+   },
+   {
+    "fontId": "arimo-500",
+    "corr": 0.8281,
+    "stem": 3.557,
+    "stemErr": 0.0232,
+    "widthErr": 0.0024,
+    "baseErr720": 1,
+    "pitchErr720": 1
+   },
+   {
+    "fontId": "inter-500",
+    "corr": 0.8213,
+    "stem": 3.54,
+    "stemErr": 0.0183,
+    "widthErr": 0.0175,
+    "baseErr720": 0,
+    "pitchErr720": 1
+   },
+   {
+    "fontId": "inter-600",
+    "corr": 0.8238,
+    "stem": 4.071,
+    "stemErr": 0.1711,
+    "widthErr": 0.0154,
+    "baseErr720": 0,
+    "pitchErr720": 0
+   },
+   {
+    "fontId": "tiktok-sans-500",
+    "corr": 0.7788,
+    "stem": 3.455,
+    "stemErr": -0.0061,
+    "widthErr": 0.0197,
+    "baseErr720": 1,
+    "pitchErr720": 1
+   },
+   {
+    "fontId": "tiktok-sans-600",
+    "corr": 0.7683,
+    "stem": 3.864,
+    "stemErr": 0.1116,
+    "widthErr": 0.0197,
+    "baseErr720": 1,
+    "pitchErr720": 1
+   },
+   {
+    "fontId": "montserrat-600",
+    "corr": 0.7533,
+    "stem": 3.821,
+    "stemErr": 0.0993,
+    "widthErr": 0.0175,
+    "baseErr720": 3,
+    "pitchErr720": 1
+   },
+   {
+    "fontId": "poppins-500",
+    "corr": 0.6756,
+    "stem": 3.623,
+    "stemErr": 0.0423,
+    "widthErr": 0.0132,
+    "baseErr720": 1,
+    "pitchErr720": 1
+   }
+  ],
+  "op_s": 0.93,
+  "subir_s": 0,
+  "total_s": 0.93,
+  "rss_python_MB": 92,
+  "cpu_python_s": 0.9,
+  "cpu_ffmpeg_s": 0,
+  "ok_op": true
+ },
+ "gates": {
+  "transicao_max": 0,
+  "caixa_area_rel": 1.27,
+  "caixa_quadro_rel": 0.045,
+  "caixa_chapada_p90": 14.3,
+  "temporal_p99": 133,
+  "px_letra": 6374,
+  "luz_letra": 254,
+  "emoji_ocupa": 0.772,
+  "emoji_solidez": 0.851,
+  "emoji_lobulos": 2,
+  "sombra_err_sem": 2.74,
+  "sombra_err_com": 2.6
+ }
+}
