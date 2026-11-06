@@ -55,6 +55,17 @@ export interface StatusParamsByKey {
   'status.render_ready': Record<string, never>;
   'status.approved': Record<string, never>;
   'status.draft': Record<string, never>;
+  // lacunas-home-eddy-v1 §3.1/§5 (31/10): variantes sem número (Brain, cache 60 s) e etapas do lote
+  'status.scenes_generating_short': Record<string, never>;
+  'status.scenes_failed_short': Record<string, never>;
+  'status.rendering_short': Record<string, never>;
+  'status.batch_analyzing': Record<string, never>;
+  'status.batch_planning': Record<string, never>;
+  'status.batch_plan_ready': Record<string, never>;
+  'status.batch_failed': Record<string, never>;
+  'status.batch_generating': Record<string, never>;
+  'status.batch_pieces_ready': { n: number };
+  'status.batch_done': Record<string, never>;
 }
 export type StatusKey = keyof StatusParamsByKey;
 
@@ -219,6 +230,8 @@ export type ApiErrorCode =
   | 'VALIDATION_ERROR' | 'UNAUTHORIZED' | 'INVALID_CREDENTIALS' | 'REFRESH_INVALID' | 'FORBIDDEN' | 'NOT_FOUND'
   | 'INVALID_STATE' | 'CONFIRM_DOWNSTREAM_RESET' | 'OFFER_INCOMPLETE' | 'SPEND_CAP_EXCEEDED' | 'ESTIMATE_CHANGED' | 'PAYMENT_REQUIRED'
   | 'INVITE_INVALID' | 'EMAIL_TAKEN' | 'LAST_OWNER' | 'RATE_LIMITED' | 'PROVIDER_UNAVAILABLE' | 'INTERNAL_ERROR'
+  /** troca-texto-queimado-v1 §15.8: `POST`/`DELETE /iterate/:id/caption-blocked/force` (410, por uma versão) */
+  | 'CAPTION_FORCE_RETIRED'
   // feature 2
   | 'AD_LIBRARY_UNAVAILABLE' | 'MEDIA_TOO_LARGE' | 'MEDIA_TOO_SHORT' | 'MEDIA_TOO_LONG' | 'MEDIA_INVALID'
   | 'UPLOAD_EXPIRED' | 'UPLOAD_INCOMPLETE' | 'NO_SPEECH' | 'KIND_NOT_ENABLED' | 'BATCH_INCOMPLETE'
@@ -240,7 +253,13 @@ export type ApiErrorCode =
   // campanhas-v1 §4.1 (22/10): 422 síncrono ao ativar anúncio DISAPPROVED/WITH_ISSUES (homônimo do assíncrono do publish)
   | 'META_POLICY'
   // variacao-auto-v1 §5.3
-  | 'OFFER_REQUIRED' | 'PLAN_CHANGED' | 'NO_PRODUCT_PHOTO' | 'ITEM_NOT_SELECTABLE';
+  | 'OFFER_REQUIRED' | 'PLAN_CHANGED' | 'NO_PRODUCT_PHOTO' | 'ITEM_NOT_SELECTABLE'
+  // templates-creditos-v1 §9 (31/10)
+  | 'INSUFFICIENT_CREDITS' | 'CREDITS_CHANGED' | 'TEMPLATE_UNAVAILABLE' | 'TEMPLATE_DOESNT_FIT' | 'TEMPLATE_UNPRICED' | 'TEXT_INVALID'
+  // templates-multi-v1 (04/11)
+  | 'TEMPLATE_SELECTION_INVALID'
+  // editor-universal-v1 §7.1 (F-U1, 04/11): export com aviso que bloqueia (details: EditBlockedDetails)
+  | 'EDIT_BLOCKED';
 export interface ErrorDetails {
   /** rule: livre nos DTOs; no PUT /editor também os `EditDocRule` (editor-v1 §5.4). */
   VALIDATION_ERROR: { fields: { field: string; rule: EditDocRule | (string & {}) }[] };
@@ -250,8 +269,15 @@ export interface ErrorDetails {
     takeId?: string; estimateUsd?: number };
   CONFIRM_DOWNSTREAM_RESET: { scenesLost: number; rendersLost: number; spentUsd: number };
   OFFER_INCOMPLETE: { missing: OfferBriefField[] };
-  SPEND_CAP_EXCEEDED: { spentUsd: number; capUsd: number; estimateUsd: number };
+  /** ads-research-v1: `scope: 'research'` = teto mensal da pesquisa (Ad Radar), separado do monthlySpendCapUsd; ausente = teto geral */
+  SPEND_CAP_EXCEEDED: { spentUsd: number; capUsd: number; estimateUsd: number; scope?: 'research' };
   PAYMENT_REQUIRED: PaymentRequiredDetails; // amostra-gratis-v1 §4 (402)
+  INSUFFICIENT_CREDITS: InsufficientCreditsDetails; // templates-creditos-v1 §9 (402)
+  CREDITS_CHANGED: { credits: number };
+  TEMPLATE_UNAVAILABLE: TemplateUnavailableDetails;
+  TEMPLATE_DOESNT_FIT: TemplateDoesntFitDetails;
+  TEMPLATE_SELECTION_INVALID: TemplateSelectionInvalidDetails; // templates-multi-v1 (04/11)
+  TEXT_INVALID: { violations: { path: string; rule: string; detail: string }[] };
   ESTIMATE_CHANGED: { estimateUsd: number };
   RATE_LIMITED: { retryAfterSec: number };
   PROVIDER_UNAVAILABLE: { provider: 'ANTHROPIC' | 'WAVESPEED' | 'HIGGSFIELD' };
@@ -468,6 +494,8 @@ export type UpdateWorkspaceBody = Partial<{
   brandColor: string | null;
   onboardingStep: OnboardingStep;
   paused: boolean;
+  /** lacunas-home-eddy-v1 §1 (31/10): marca o cartão como confirmado (idempotente; vale com o onboarding concluído) */
+  confirm: import('./onboarding-v2').OnboardingConfirmItem;
 }>;
 export interface Member { userId: string; name: string; email: string; role: Role; initials: string }
 export interface Invite { id: string; email: string; role: Role; expiresAt: string }
@@ -499,7 +527,8 @@ export type CreativeEvent =
   | { event: 'take.updated'; data: Take & { summary: ScenesSummary } }   // §13.5
   | { event: 'render.updated'; data: Render }
   | { event: 'cost.updated'; data: { costUsd: number } }
-  | EditorUpdatedEvent;   // editor-v1 §9
+  | EditorUpdatedEvent    // editor-v1 §9
+  | EditorExportEvent;    // editor-universal-v1 §10 (F-U1): etapas do export do editor
 
 // ═════════════════════════ Feature 2: variar campeão (feature-2-variar-campeao.md) ═════════════════════════
 export type ChampionStatus = 'RESOLVING' | 'ANALYZING' | 'READY' | 'FAILED';
@@ -521,7 +550,7 @@ export interface VariationRef {
 
 // ── uploads ──
 /** PRODUCT_IMAGE: variacao-auto-v1 D4 (image/jpeg|png|webp, ≤ 10 MB). */
-export interface CreateUploadBody { purpose: 'CHAMPION_VIDEO' | 'PRODUCT_IMAGE'; filename: string; mimeType: string; sizeBytes: number }
+export interface CreateUploadBody { purpose: 'CHAMPION_VIDEO' | 'PRODUCT_IMAGE' | 'BRAND_LOGO' | 'BRAND_FILE' | 'BRAND_VIDEO'; filename: string; mimeType: string; sizeBytes: number }
 /** O web faz exatamente isto (XHR com progresso): `method url` com `headers` e o arquivo no corpo. */
 export interface CreateUploadResponse { uploadId: string; method: 'PUT'; url: string; headers: Record<string, string>; expiresAt: string }
 export type UploadWarning = 'no_audio' | 'low_resolution';
@@ -756,6 +785,8 @@ export interface EditMap {
   /** legenda-protegida-v1 §1 (26/10): faixas da legenda queimada que nenhum template pode tampar (px do arquivo, com folga).
    *  Ausente em mapas antigos (o backend recalcula das `layers`); [] = campeão sem legenda queimada. */
   protectedBands?: ProtectedBand[];
+  /** troca-texto-queimado-v1 §15.8 e §16: medida da headline pela função. Ausente = não medido; null = medido, sem headline. */
+  headlineLook?: HeadlineLook | null;
 }
 /** legenda-protegida-v1 §1: uma posição da legenda queimada num intervalo. Folga: 4 % da altura em cima/embaixo, 2 % nos lados (D-LP1). */
 export interface ProtectedBand { x: number; y: number; w: number; h: number; startSec: number; endSec: number }
@@ -779,7 +810,7 @@ import type { SceneSwap, SwapEngine, SwapKeepEditBlocker, SwapAsyncErrorCode, Sw
 
 // editor-v1 (09/10): editor no vídeo
 export * from './editor';
-import type { EditConflictDetails, EditDoc, EditDocRule, EditNotSupportedDetails, EditorUpdatedEvent } from './editor';
+import type { EditConflictDetails, EditDoc, EditDocRule, EditNotSupportedDetails, EditorExportEvent, EditorUpdatedEvent } from './editor';
 
 // fase2-agencia.md (12/10): agência multi-cliente
 export * from './agencia';
@@ -804,3 +835,19 @@ export * from './campanhas';
 // brain-3d-v1 (docs/contratos/brain-3d-v1.md, aprovado 22/10): GET /brain/graph e /brain/node/:id
 export * from './brain';
 import type { AccountMode, OnboardingSummary } from './onboarding-v2';
+
+// kit-marca-v1 (31/10): kit da marca do cliente
+export * from './brand-kit';
+
+// templates-creditos-v1 (31/10): biblioteca de templates com créditos
+export * from './templates';
+// templates-lista-v1 (04/11): tipo LIST_OVERLAY (Versus, Value stack)
+export * from './lista';
+import type { InsufficientCreditsDetails, TemplateDoesntFitDetails, TemplateSelectionInvalidDetails, TemplateUnavailableDetails } from './templates';
+
+// ads-research-v1 (04/11, PROPOSTA): Meta Ads Research (anúncios da Ad Library dos concorrentes)
+export * from './research';
+export type * from './variacao-ia';
+// troca-texto-queimado-v1 §16 (F0b, 06/11): headline copiada do criativo
+export type * from './troca-texto';
+import type { HeadlineLook } from './troca-texto';

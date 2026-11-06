@@ -1,0 +1,203 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 6 minutes ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Admin · Templates
+Settings
+Q
+QA Dono Alfa
+Owner
+EN
+PT
+QA ALFA · META
+Campaigns
+Mock Store (USD)
+act_mock_1
+USD
+Synced with Meta 6 minutes ago
+History
+Sync now
+Campaigns
+Ads only
+Last 30 days
+Last 7 days
+All
+Active
+Paused
+Issues
+1
+All
+HM
+HookMill
+Search campaigns, ad sets, ads
+Status	Name	Budget	Spend
+	Link clicks	Cost / click	CTR	Hook rate	Verdict	
+Actions
+
+Total · 11 ads · Last 30 days		$1,755	77	$22.79	2.09%			
+
+	
+Hook A — the pain
+AD
+·
+Video
+·
+Mock — Prospecting (CBO) › Mock — Broad US
+		$420	21	$20.00	2.50%	40.0%	
+Winner
+Working
+	
+Iterate
+
+
+	
+Hook B — the proof
+AD
+·
+Video
+·
+Mock — Prospecting (CBO) › Mock — Broad US
+		$380	16	$23.75	2.30%	38.0%	
+Winner
+Steady
+	
+Iterate
+
+
+	
+Hook C — the demo
+AD
+·
+Video
+·
+Mock — Prospecting (CBO) › Mock — Lookalike 1%
+		$310	10	$31.00	1.80%	32.0%	
+OK
+Tiring
+	
+Iterate
+
+
+	
+Hook D — the testimonial
+AD
+·
+Video
+·
+Mock — Testing (ABO) › Mock — Interests
+		$260	7	$37.14	1.85%	30.0%	
+OK
+	
+Iterate
+
+
+	
+Image — static offer [mock:meta-rate]
+AD
+·
+Image
+·
+Mock — Prospecting (CBO) › Mock — Broad US
+		$210	9	$23.33	1.89%	—	
+Winner
+Steady
+	
+Iterate
+
+
+Rejected by Meta
+	
+Hook G — disapproved
+AD
+·
+Video
+·
+Mock — Testing (ABO) › Mock — Interests
+		$48	6	$8.00	2.00%	36.7%	
+Low data
+	
+Iterate
+
+
+Not delivering · ad set off
+	
+Hook E — new this week
+AD
+·
+Video
+·
+Mock — Testing (ABO) › Mock — Paused test
+		$40	1	$40.00	2.14%	37.1%	
+Low data
+	
+Iterate
+
+
+	
+Image — carousel [mock:meta-token]
+AD
+·
+Image
+·
+Mock — Launch (lifetime) › Mock — Launch audience
+		$35	1	$35.00	1.71%	—	
+Low data
+	
+Iterate
+
+
+	
+Hook H — video not downloadable
+AD
+·
+Video
+·
+Mock — Launch (lifetime) › Mock — Launch audience
+		$30	6	$5.00	1.83%	35.0%	
+Low data
+	
+Iterate
+
+
+Off
+	
+Hook F — new this week
+AD
+·
+Video
+·
+Mock — Testing (ABO) › Mock — Retargeting [mock:stale]
+		$22	—	—	2.00%	34.3%	
+Low data
+	
+Iterate
+
+
+Off
+	
+HEADLINE-04
+AD
+·
+Video
+·
+Hunt — Hunt sleep 🧪 › Hunt sleep 🧪 — 2026-11-04 — 1
+HOOKMILL
+		$0	—	—	—	—	
+Low data
+	
+Iterate

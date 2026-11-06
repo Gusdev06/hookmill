@@ -5,7 +5,9 @@
 //   [mock:auto-plan-invalid]   → as duas chamadas (com ou sem `violations`) devolvem um plano que viola as regras e que
 //                                nem o reparo determinístico salva (só HOOK_TEXT, com número inventado) → PLAN_INVALID.
 //   [mock:page-403]            → nunca planeja SPLIT_LP (a captura falhou), mesmo se vier em `allowed`.
+//   [mock:picked-drop]         → (templates-multi-v1) com `picked`, as duas chamadas deixam de fora o último marcado.
 //   [mock:auto-fail:reading]   → mora no analyzeChampion do FakeClaudeService (falha na leitura).
+//   [mock:list-thin] / [mock:list-no-room] / [mock:list-invented] → LIST_OVERLAY (templates-lista-v1), ver fake-template.ts.
 // STATIC (25/10, estatico-montado §A2/§A9): anúncio montado V2. Cada texto de tela sai de um campo do Brain (ou da fala),
 // com a fonte; bloco sem dado no Brain do fixture é OMITIDO (null/[]), nunca preenchido com frase genérica de promessa.
 // 2 conceitos visuais fixos em inglês (emoções diferentes: relief e pride, a peça ataca a prova), refAtSec = frame-chave
@@ -17,14 +19,16 @@ import type {
   StaticCopy, StaticVisualV2, WhyDraft,
 } from '../contrato';
 import { IntegracaoError } from '../erros';
-import { mockChatDm, mockPersonMotion } from './fake-template';
-import { AUTO_LIMITS, PLAN_TYPES, brainFieldsFilled, clip, type AutoItemDraftWithFrame, type AutoPlanDraftWithFrame } from '../claude/auto-plano';
+import { mockChatDm, mockListOverlay, mockPersonMotion } from './fake-template';
+import { listTemplatesOf } from '../claude/auto-plano-lista';
+import type { AutoListOverlayDraft } from '../contrato';
+import { AUTO_LIMITS, brainFieldsFilled, planTypesFor, clip, type AutoItemDraftWithFrame, type AutoPlanDraftWithFrame } from '../claude/auto-plano';
 import { STATIC_V2_LIMITS, staticCopyLength } from '../claude/auto-plano-estatico';
 import { FRAME_LIMITS, FRAME_MAX_PER_BATCH, PRICE_RE, allowedFramesOf, cutWidth, frameTextPaths, type AutoPlanInputWithFrame } from '../claude/auto-plano-moldura';
 type AutoVariationType = AutoVariationTypeWithFrame | 'HEADLINE';
 
 type Lang = 'en' | 'pt';
-const DIVERSITY: AutoVariationType[] = ['CHAT_DM', 'PERSON_MOTION', 'SPLIT_LP', 'STORY', 'REVIEW', 'STATIC', 'FRAME', 'NATIVE_SEARCH'];
+const DIVERSITY: AutoVariationType[] = ['LIST_OVERLAY', 'CHAT_DM', 'PERSON_MOTION', 'SPLIT_LP', 'STORY', 'REVIEW', 'STATIC', 'FRAME', 'NATIVE_SEARCH'];
 /** Ordem de escolha das molduras no mock (as 2 primeiras permitidas). */
 export const FRAME_PICK: FrameTemplateId[] = [
   'news', 'question_box', 'pov_testimonial', 'meme', 'read_caption', 'direct_offer', 'cinema', 'story', 'post_card', 'ranking', 'call', 'live',
@@ -41,6 +45,7 @@ const UI = {
       CUT: 'Cut to {n} s, whole blocks', COLD_OPEN: 'Opens on a teaser from {t} s', HOOK_TEXT: 'New written hook: "{x}"', ENDCARD: 'End card ({v}) added',
       SPLIT_LP: 'Landing page on top, video below', STORY: 'Framed as a story', REVIEW: 'Review card above the video', NATIVE_SEARCH: 'Opens on a search for "{x}"', STATIC: 'Assembled ad: {x}', FRAME: 'Inside the {x} frame', HEADLINE: 'New headline: "{x}"',
       CHAT_DM: 'The story becomes a Direct conversation', PERSON_MOTION: 'Motion graphics over the same face and voice',
+      LIST_OVERLAY: 'The speech becomes a before × after table', LIST_OVERLAY_STACK: 'Each benefit becomes a bar that stays',
     },
     rationale: { hook: 'Attacks the hook: a new first impression for the same pitch.', proof: 'Attacks the proof: shows it earlier or in a new frame.', cta: 'Attacks the CTA: makes the ask clearer.' },
   },
@@ -51,6 +56,7 @@ const UI = {
       CUT: 'Corte de {n} s, blocos inteiros', COLD_OPEN: 'Abre com teaser de {t} s', HOOK_TEXT: 'Gancho escrito novo: "{x}"', ENDCARD: 'End card ({v}) no fim',
       SPLIT_LP: 'Página em cima, vídeo embaixo', STORY: 'Enquadrado como story', REVIEW: 'Card de review em cima do vídeo', NATIVE_SEARCH: 'Abre numa busca por "{x}"', STATIC: 'Anúncio montado: {x}', FRAME: 'Dentro da moldura {x}', HEADLINE: 'Headline nova: "{x}"',
       CHAT_DM: 'A história vira uma conversa no Direct', PERSON_MOTION: 'Motion por cima do mesmo rosto e voz',
+      LIST_OVERLAY: 'A fala vira uma tabela de antes × depois', LIST_OVERLAY_STACK: 'Cada benefício vira uma barra que fica',
     },
     rationale: { hook: 'Ataca o gancho: primeira impressão nova pro mesmo discurso.', proof: 'Ataca a prova: mostra antes ou num quadro novo.', cta: 'Ataca o CTA: deixa o pedido mais claro.' },
   },
@@ -151,21 +157,29 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   const max = new Map(i.allowed.map((a) => [a.type, a.max]));
   if (notes.includes('[mock:page-403]') || !i.page.captured) max.delete('SPLIT_LP');
   // 25/10 (decisão do Gusta): lote novo só com CUT, REVIEW, NATIVE_SEARCH, STATIC e FRAME (até 8, templates diferentes)
-  for (const ty of [...max.keys()]) if (!PLAN_TYPES.includes(ty)) max.delete(ty);
+  // A6 (01/11): + COLD_OPEN/ENDCARD quando o backend os manda (lote de template)
+  const planTypes = planTypesFor(i.allowed);
+  for (const ty of [...max.keys()]) if (!planTypes.includes(ty)) max.delete(ty);
   const frames = FRAME_PICK.filter((f) => allowedFramesOf(i).includes(f));
-  if (max.has('FRAME')) max.set('FRAME', Math.min(max.get('FRAME') ?? 0, FRAME_MAX_PER_BATCH, frames.length));
+  // templates-multi-v1: com `picked`, cada moldura marcada ganha a sua peça (até 12 marcados, acima do teto de 8 do lote auto)
+  const pickedFrames = (i.picked ?? []).filter((k) => k.startsWith('FRAME:')).length;
+  if (max.has('FRAME')) max.set('FRAME', Math.min(max.get('FRAME') ?? 0, Math.max(FRAME_MAX_PER_BATCH, pickedFrames), frames.length));
   // HEADLINE (headline-e-legenda-v1): só com `headline` no input; 3 (replace) ou 2 (add), o que o backend mandar
   if (!i.headline) max.delete('HEADLINE');
+  // templates-lista-v1 §1: LIST_OVERLAY chega 1 entrada por template (o Map ficou com a última): 1 peça por template liberado
+  const listIds = listTemplatesOf(i);
+  if (max.has('LIST_OVERLAY')) max.set('LIST_OVERLAY', listIds.length);
   const used = new Map<AutoVariationType, number>();
   const can = (ty: AutoVariationType) => (used.get(ty) ?? 0) < (max.get(ty) ?? 0);
   const order: AutoVariationType[] = [];
-  const target = Math.min(i.rules.max, Math.max(i.rules.min, i.rules.max > 12 ? 16 : 10));
+  // templates-multi-v1: seleção = tudo o que cabe (o teto já é a soma dos marcados)
+  const target = i.picked?.length ? i.rules.max : Math.min(i.rules.max, Math.max(i.rules.min, i.rules.max > 12 ? 16 : 10));
   // HEADLINE entra inteira (3 ou 2: é a alavanca pedida); depois 1 de cada tipo (diversidade primeiro) e repetições
   while (can('HEADLINE')) {
     order.push('HEADLINE');
     used.set('HEADLINE', (used.get('HEADLINE') ?? 0) + 1);
   }
-  for (let pass = 0; pass < 10 && order.length < target; pass++) {
+  for (let pass = 0; pass < 16 && order.length < target; pass++) {
     for (const ty of [...DIVERSITY, ...ITERATION]) {
       if (order.length >= target) break;
       if (can(ty)) {
@@ -190,7 +204,9 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
   const promise = noDigits(i.offer.promise ?? '') || noDigits(hookSpoken);
   // iterate-v2 F1.2: roteiro dos templates grátis na mesma resposta (sem dado = a peça não entra)
   const templates = { CHAT_DM: plan.includes('CHAT_DM') ? mockChatDm(i) : null, PERSON_MOTION: plan.includes('PERSON_MOTION') ? mockPersonMotion(i) : null };
-  const items = plan.filter((type) => (type !== 'CHAT_DM' && type !== 'PERSON_MOTION') || templates[type]).map((type): AutoItemDraftWithFrame => {
+  // templates-lista-v1 §2: 1 lista por template liberado, na ordem do catálogo (sem dado = a peça não entra)
+  const lists = listIds.slice(0, plan.filter((x) => x === 'LIST_OVERLAY').length).map((id) => mockListOverlay(i, id)).filter((x): x is AutoListOverlayDraft => !!x);
+  const items = plan.filter((type) => type !== 'LIST_OVERLAY').filter((type) => (type !== 'CHAT_DM' && type !== 'PERSON_MOTION') || templates[type]).map((type): AutoItemDraftWithFrame => {
     const k = nth.get(type) ?? 0;
     nth.set(type, k + 1);
     if (type === 'HEADLINE') {
@@ -214,8 +230,20 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
     if (params.type === 'NATIVE_SEARCH') v.x = clip(params.query, 40);
     if (params.type === 'ENDCARD') v.v = params.variant;
     const whyKey = type === 'ENDCARD' ? 'cta' : type === 'REVIEW' || type === 'COLD_OPEN' || type === 'STATIC' ? 'proof' : 'hook';
+    if (type === 'AI_VIDEO') throw new Error('AI_VIDEO uses the semantic production planner');
     return { type, change: clip(fill(ui.change[type], v), AUTO_LIMITS.change), rationale: ui.rationale[whyKey], whyKey, params };
   });
+  // listas no fim do plano (grupo DIVERSITY), cada uma com o seu template
+  items.push(...lists.map((params): AutoItemDraftWithFrame => ({
+    type: 'LIST_OVERLAY', change: params.templateId === 'versus' ? ui.change.LIST_OVERLAY : ui.change.LIST_OVERLAY_STACK, rationale: ui.rationale.proof, whyKey: 'proof', params,
+  })));
+  // [mock:picked-drop] (templates-multi-v1): as duas chamadas esquecem o ÚLTIMO template marcado → `skipped: not_planned`
+  if (notes.includes('[mock:picked-drop]') && i.picked?.length) {
+    const drop = i.picked[i.picked.length - 1];
+    const keyOf = (it: AutoItemDraftWithFrame) => (it.type === 'FRAME' ? `FRAME:${(it.params as AutoFrameDraft).template}`
+      : it.type === 'LIST_OVERLAY' ? `LIST_OVERLAY:${(it.params as AutoListOverlayDraft).templateId}` : String(it.type));
+    return { blocks, why, kept, items: items.filter((it) => keyOf(it) !== drop) };
+  }
   return { blocks, why, kept, items };
 
   /** HEADLINE k: ângulo dor / promessa / prova, do Brain (sem dígito), no limite de caracteres; destaque = as 2
@@ -232,8 +260,9 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
     return { type: 'HEADLINE', mode: h.mode, text, highlight, sources: highlight ? { text: source, highlight: source } : { text: source } };
   }
 
-  function paramsFor(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE' | 'CHAT_DM' | 'PERSON_MOTION'>, k: number): AutoParamsDraft {
+  function paramsFor(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE' | 'CHAT_DM' | 'PERSON_MOTION' | 'LIST_OVERLAY'>, k: number): AutoParamsDraft {
     switch (type) {
+      case 'AI_VIDEO': throw new Error('AI_VIDEO uses the semantic production planner');
       case 'CUT': {
         const targetSec = k === 0 ? 15 : 20;
         const must = [...new Set([0, ...kept.map((x) => x.blockIndex).filter((x): x is number => x != null)])].filter((x) => x < tb.length);
@@ -257,7 +286,9 @@ export function mockAutoPlan(i: AutoPlanInputWithFrame): AutoPlanDraftWithFrame 
       case 'HOOK_TEXT':
         return { type, text: clip(`${scr.hookPrefix[k % scr.hookPrefix.length]}${promise}`, AUTO_LIMITS.hookText) };
       case 'ENDCARD': {
-        const variant = brain.has('offerAndPrice') ? 'offer' : 'cta';
+        // A6: a variante que o backend liberou (endcardVariants); sem a lista, a regra antiga do mock
+        const vs = i.endcardVariants?.length ? i.endcardVariants : [brain.has('offerAndPrice') ? 'offer' as const : 'cta' as const];
+        const variant = vs.includes('offer') ? 'offer' : vs.includes('cta') ? 'cta' : vs[0];
         const ctaSrc = noDigits(i.offer.cta ?? '') || noDigits(t.offerProofCta.data?.ctaSpoken ?? '') || scr.cta;
         return { type, variant, headline: clip(noDigits(i.offer.name), AUTO_LIMITS.endHeadline), subline: variant === 'offer' ? clip(noDigits(i.offer.offerAndPrice ?? ''), AUTO_LIMITS.endSubline) || null : null, ctaText: clip(ctaSrc, AUTO_LIMITS.endCta) };
       }

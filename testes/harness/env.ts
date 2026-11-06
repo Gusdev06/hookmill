@@ -140,6 +140,18 @@ export function apiTestEnv(): Record<string, string> {
     REMOTION_LAMBDA_FUNCTION: '',
     REMOTION_SERVE_URL: '',
     PEXELS_API_KEY: '',
+    // 01/11 (leitura-lambda-v1): a leitura do anúncio pode ir pra Lambda (ANALYZE_IMPL=lambda); na API do QA sempre local e sem AWS
+    ANALYZE_IMPL: 'local',
+    ANALYZE_LAMBDA_FUNCTION: '',
+    AWS_ACCESS_KEY_ID: '',
+    AWS_SECRET_ACCESS_KEY: '',
+    AWS_SESSION_TOKEN: '',
+    AWS_PROFILE: '',
+    // 06/11 (QA F1a): o api/.env do dev tem TEST_MODE=on, que transforma todo mundo em INTERNAL (sem pool de crédito): teste de cobrança passaria sem provar nada
+    TEST_MODE: process.env.E2E_TEST_MODE ?? 'off',
+    // templates-creditos-v1: flags explícitas (não herdar do api/.env)
+    TEMPLATES: process.env.E2E_TEMPLATES ?? 'on',
+    ITERATE_TEMPLATES: process.env.E2E_ITERATE_TEMPLATES ?? 'on',
     // META_APP_ID/SECRET ficam: o mock da Meta usa (sem eles o META_SYNC do mock falha; conferido no meta.int 27/10)
   };
 }

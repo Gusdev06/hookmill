@@ -2,7 +2,7 @@
 // /meta/campaigns/:id (conjuntos + anúncios de todos os formatos) e GET /meta/changes (History). Só snapshot: nunca chama a Graph.
 import { Injectable } from '@nestjs/common';
 import type {
-  MetaAdsetRow, MetaCampaignDetail, MetaCampaignRow, MetaCampaignsMeta, MetaChangeRow, MetaLevel, MetaObjectRef, MetaPeriod, MetaSort, MetaStatusFilter,
+  MetaAdsetRow, MetaCampaignDetail, MetaCampaignRow, MetaCampaignsMeta, MetaChangeRow, MetaLevel, MetaObjectRef, MetaOfferCounts, MetaOfferListMeta, MetaOfferScope, MetaPeriod, MetaSort, MetaStatusFilter,
 } from '@maquina/contratos';
 import type { MetaAdSnapshot, MetaAdsetSnapshot, MetaCampaignSnapshot, MetaChange, MetaConnection, MetaObjectLevel } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
@@ -11,10 +11,12 @@ import { DEFAULT_LIMIT, afterCursor, decodeCursor, page } from '../common/http/p
 import { initials } from '../common/util/format';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  type MetaCampaignAdRow, type RowCtx, countsOf, matchesStatus, periodMetrics, presentAdset, presentCampaign, sortRows, statusCounts,
+  type MetaCampaignAdRow, type RowCtx, campaignFitOf, countsOf, matchesStatus, periodMetrics, presentAdset, presentCampaign, sortRows, statusCounts,
 } from './campanhas.views';
+import { MetaOfferLinksService, type OfferMatch } from './oferta-links.service';
+import { FIT_RANK, linkCoverage } from './oferta-match';
 import { assertHealthy, assertSelected } from './comum';
-import { MetaSyncService, aggregate, decodeOffset, encodeOffset, presentAd } from './sync.service';
+import { MetaSyncService, aggregate, decodeOffset, encodeOffset, fitCounts, offerVerdicts, presentAd, CHAMP_LINK_SELECT, lastIteratedBy } from './sync.service';
 
 export const LEVEL_DB: Record<MetaLevel, MetaObjectLevel> = { campaign: 'CAMPAIGN', adset: 'ADSET', ad: 'AD' };
 const LEVEL_API: Record<MetaObjectLevel, MetaLevel> = { CAMPAIGN: 'campaign', ADSET: 'adset', AD: 'ad' };
@@ -30,6 +32,8 @@ export interface AccountView {
   pubAdsets: Set<string>;
   pubBy: Map<string, { id: string; name: string; adName: string | null }>;
   champBy: Map<string, string>;
+  /** lacunas-home-eddy-v1 §4 */
+  iterBy: Map<string, Date>;
 }
 
 type ChangeWithUser = MetaChange & { user: { id: string; name: string } };
@@ -65,6 +69,7 @@ export class MetaCampanhasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sync: MetaSyncService,
+    private readonly offerLinks: MetaOfferLinksService,
   ) {}
 
   /** Conexão saudável com conta escolhida (Gusta 25/10: login vencido ou permissão faltando = 422, nunca o snapshot guardado). */
@@ -83,7 +88,7 @@ export class MetaCampanhasService {
         where: { workspaceId: c.workspaceId, adAccountId: c.adAccountId!, OR: [{ campaignId: { not: null } }, { metaAdId: { not: null } }] },
         select: { campaignId: true, adsetId: true, metaAdId: true, creative: { select: { id: true, name: true, adName: true } } }, orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.champion.findMany({ where: { workspaceId: c.workspaceId, metaAdId: { not: null }, archivedAt: null }, select: { id: true, metaAdId: true }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.champion.findMany({ where: { workspaceId: c.workspaceId, metaAdId: { not: null }, archivedAt: null }, select: CHAMP_LINK_SELECT, orderBy: { createdAt: 'desc' } }),
     ]);
     const pubBy = new Map<string, { id: string; name: string; adName: string | null }>();
     for (const p of pubs) if (p.metaAdId && !pubBy.has(p.metaAdId)) pubBy.set(p.metaAdId, p.creative);
@@ -93,7 +98,7 @@ export class MetaCampanhasService {
       conn: c, ctx: this.sync.rowCtx(auth, c), campaigns, adsets, ads,
       pubCampaigns: new Set(pubs.map((p) => p.campaignId).filter((x): x is string => !!x)),
       pubAdsets: new Set(pubs.map((p) => p.adsetId).filter((x): x is string => !!x)),
-      pubBy, champBy,
+      pubBy, champBy, iterBy: lastIteratedBy(champs),
     };
   }
 
@@ -112,8 +117,17 @@ export class MetaCampanhasService {
     return presentAdset(a, parent, { ...v.ctx, fromHookMill: v.pubAdsets.has(a.adsetId), counts: counts.adset(a.adsetId) });
   }
 
-  adRow(v: AccountView, r: MetaAdSnapshot, now = Date.now()): MetaCampaignAdRow {
-    return presentAd(r, v.pubBy.get(r.metaAdId) ?? null, v.champBy.get(r.metaAdId) ?? null, now, v.ctx);
+  /** meta-oferta-v1 §4.5: com `om`, a linha ganha `offer` (e o veredito da oferta, §4.3, quando valer). */
+  adRow(v: AccountView, r: MetaAdSnapshot, now = Date.now(), om?: OfferMatch, verdicts?: Map<string, MetaCampaignAdRow['verdict']>): MetaCampaignAdRow {
+    const row = presentAd(r, v.pubBy.get(r.metaAdId) ?? null, v.champBy.get(r.metaAdId) ?? null, now, v.ctx, v.iterBy.get(r.metaAdId) ?? null, om?.info(r));
+    const verdict = verdicts?.get(r.metaAdId);
+    return verdict ? { ...row, verdict } : row;
+  }
+
+  /** meta-oferta-v1 §4.1: offerScope só com offerId (400 requires_offer); offerId de outro workspace = 404. */
+  private async offerOf(auth: AuthContext, offerId?: string, offerScope?: MetaOfferScope): Promise<void> {
+    if (offerScope && !offerId) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'offerScope', rule: 'requires_offer' }] });
+    if (offerId) await this.offerLinks.assertOffer(auth.workspaceId, offerId);
   }
 
   /** Objeto de um nível já apresentado (resposta das escritas). 404 se saiu do snapshot. */
@@ -134,7 +148,8 @@ export class MetaCampanhasService {
 
   // ───────── GET /meta/campaigns ─────────
 
-  async list(auth: AuthContext, q: { period?: MetaPeriod; status?: MetaStatusFilter; origin?: 'all' | 'hookmill'; q?: string; sort?: MetaSort; dir?: 'asc' | 'desc'; limit?: number; cursor?: string }): Promise<{ items: MetaCampaignRow[]; meta: MetaCampaignsMeta }> {
+  async list(auth: AuthContext, q: { period?: MetaPeriod; status?: MetaStatusFilter; origin?: 'all' | 'hookmill'; q?: string; sort?: MetaSort; dir?: 'asc' | 'desc'; limit?: number; cursor?: string; offerId?: string; offerScope?: MetaOfferScope }): Promise<{ items: MetaCampaignRow[]; meta: MetaCampaignsMeta }> {
+    await this.offerOf(auth, q.offerId, q.offerScope);
     const v = await this.load(auth);
     const period = q.period ?? '30d';
     const counts = countsOf(v.ads);
@@ -159,7 +174,26 @@ export class MetaCampanhasService {
         : undefined;
       return this.campaignRow(v, k, counts, matchedIn as ('adset' | 'ad')[] | undefined);
     });
+    // meta-oferta-v1 §4.2 passo 6: grupo da campanha pelo mix dos anúncios; counts antes do offerScope; offerMix na linha
+    let offerMeta: MetaOfferListMeta | undefined;
+    let fitOfRow: ((r: MetaCampaignRow) => 'this' | 'unknown' | 'other') | null = null;
+    if (q.offerId) {
+      const om = await this.offerLinks.match(auth, v.conn, v.ads, q.offerId);
+      const ov = offerVerdicts(v.ads, om, this.sync.ruleOf(), v.conn.currency);
+      const mixOf = new Map<string, MetaOfferCounts>();
+      for (const [id, xs] of adsOf) mixOf.set(id, fitCounts(xs, (a) => om.fit(a.metaAdId)));
+      const mix = (id: string) => mixOf.get(id) ?? { this: 0, unknown: 0, other: 0 };
+      rows = rows.map((r) => ({ ...r, offerMix: mix(r.id) }));
+      fitOfRow = (r) => campaignFitOf(mix(r.id));
+      offerMeta = {
+        offerId: q.offerId, counts: fitCounts(rows, fitOfRow), verdictScope: ov.scope, medianCpa: ov.medianCpa,
+        links: linkCoverage(rows.flatMap((r) => adsOf.get(r.id) ?? []).map((a) => ({ destinationUrls: a.destinationUrls ?? [], destinationSource: a.destinationSource }))),
+        offerHasUrl: om.offerHasUrl(),
+      };
+      if (q.offerScope && q.offerScope !== 'all') rows = rows.filter((r) => fitOfRow!(r) === q.offerScope);
+    }
     rows = sortRows(rows, (r) => ({ m: period === '7d' ? r.metrics7d : r.metrics, budget: r.budget.amountMinor, name: r.name }), q.sort ?? 'spend', q.dir);
+    if (fitOfRow) rows = [...rows].sort((a, b) => FIT_RANK[fitOfRow!(a)] - FIT_RANK[fitOfRow!(b)]);
     const totals = aggregate(rows.map((r) => (period === '7d' ? r.metrics7d : r.metrics)));
     const limit = q.limit ?? DEFAULT_LIMIT;
     const offset = decodeOffset(q.cursor);
@@ -172,6 +206,7 @@ export class MetaCampanhasService {
         totals: { count: rows.length, spend: totals.spend, results: totals.results, resultType: totals.resultType, cpa: totals.cpa, ctr: totals.ctr, hookRate: totals.hookRate },
         truncated: await this.truncated(v.conn),
         sync: await this.sync.syncState(v.conn, v.ads.length > 0),
+        ...(offerMeta && { offer: offerMeta }),
       },
     };
   }
@@ -186,19 +221,25 @@ export class MetaCampanhasService {
 
   // ───────── GET /meta/campaigns/:id ─────────
 
-  async detail(auth: AuthContext, campaignId: string, period: MetaPeriod = '30d'): Promise<MetaCampaignDetail> {
+  async detail(auth: AuthContext, campaignId: string, period: MetaPeriod = '30d', offerId?: string): Promise<MetaCampaignDetail> {
+    await this.offerOf(auth, offerId);
     const v = await this.load(auth);
     const k = v.campaigns.find((x) => x.campaignId === campaignId);
     if (!k) throw new AppException('NOT_FOUND');
     const counts = countsOf(v.ads);
     const now = Date.now();
+    // meta-oferta-v1 §4.2: com offerId, anúncios com `offer.fit` e cada conjunto ordenado pelo grupo (gasto dentro dele)
+    const om = await this.offerLinks.match(auth, v.conn, v.ads, offerId ?? null);
+    const verdicts = offerId ? offerVerdicts(v.ads, om, this.sync.ruleOf(), v.conn.currency).verdicts : undefined;
     const bySpend = <T extends { metrics: unknown; metrics7d: unknown; name: string }>(xs: T[]) =>
       sortRows(xs, (x) => ({ m: periodMetrics(x, period), budget: null, name: x.name }), 'spend');
+    const byGroup = (xs: MetaAdSnapshot[]) => (offerId ? [...xs].sort((a, b) => FIT_RANK[om.fit(a.metaAdId) ?? 'unknown'] - FIT_RANK[om.fit(b.metaAdId) ?? 'unknown']) : xs);
     const adsets = bySpend(v.adsets.filter((a) => a.campaignId === campaignId)).map((a) => ({
       ...this.adsetRow(v, a, counts),
-      ads: bySpend(v.ads.filter((r) => r.adsetId === a.adsetId)).map((r) => this.adRow(v, r, now)),
+      ads: byGroup(bySpend(v.ads.filter((r) => r.adsetId === a.adsetId))).map((r) => this.adRow(v, r, now, om, verdicts)),
     }));
-    return { campaign: this.campaignRow(v, k, counts), adsets };
+    const mix = offerId ? fitCounts(v.ads.filter((r) => r.campaignId === campaignId), (r) => om.fit(r.metaAdId)) : null;
+    return { campaign: { ...this.campaignRow(v, k, counts), ...(mix && { offerMix: mix }) }, adsets };
   }
 
   // ───────── GET /meta/changes ─────────

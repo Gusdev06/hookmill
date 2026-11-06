@@ -12,6 +12,8 @@ import { Icon } from "@/components/icon"
 import { useMoney } from "@/hooks/use-meta"
 import { cn } from "@/lib/utils"
 import { deltaOf, hmOf, isVideoAd, nodeId, statusInfo, statusOf, type MetricKey, type Node } from "./model"
+import { TEMPLATES } from "@/lib/flags"
+import { templatesHref } from "@/lib/routes"
 
 /* The small pieces of the Campaigns table and cards (spec §2-§4): chips, status, budget, deltas, row menu. */
 
@@ -195,7 +197,7 @@ export function AdThumbSmall({ n, big }: { n: Node; big?: boolean }) {
 }
 
 /** ⋯ menu (spec §2.9): Iterate this ad · Open the HookMill creative · History of this item · Open in Ads Manager */
-export function RowMenu({ n, canIterate, onHistory, outline }: { n: Node; canIterate: boolean; onHistory: () => void; outline?: boolean }) {
+export function RowMenu({ n, canIterate, onHistory, outline, extra }: { n: Node; canIterate: boolean; onHistory: () => void; outline?: boolean; /** meta-oferta-v1: the offer correction items */ extra?: React.ReactNode }) {
   const t = useTranslations("campaigns")
   const creative = n.level === "ad" ? n.row.creative : null
   return (
@@ -206,7 +208,7 @@ export function RowMenu({ n, canIterate, onHistory, outline }: { n: Node; canIte
       <DropdownMenuContent align="end" className="min-w-[220px]">
         {n.level === "ad" && isVideoAd(n) && canIterate ? (
           <DropdownMenuItem asChild>
-            <Link href={`/iterate/new?metaAdId=${encodeURIComponent(nodeId(n))}`}>
+            <Link href={TEMPLATES ? templatesHref({ metaAdId: nodeId(n) }) : `/iterate/new?metaAdId=${encodeURIComponent(nodeId(n))}`}>
               <Icon name="iter" />
               {t("iterateFull")}
             </Link>
@@ -224,6 +226,7 @@ export function RowMenu({ n, canIterate, onHistory, outline }: { n: Node; canIte
           <Icon name="clock" />
           {t("histOf")}
         </DropdownMenuItem>
+        {extra}
         {n.row.adsManagerUrl ? (
           <>
             <DropdownMenuSeparator />
@@ -256,7 +259,7 @@ export function IterateButton({ n, full, className }: { n: Node; full?: boolean;
     )
   return (
     <Link
-      href={`/iterate/new?metaAdId=${encodeURIComponent(nodeId(n))}`}
+      href={TEMPLATES ? templatesHref({ metaAdId: nodeId(n) }) : `/iterate/new?metaAdId=${encodeURIComponent(nodeId(n))}`}
       className={cn(buttonVariants({ variant: n.row.verdict === "WINNER" ? "brand" : "outline", size: "sm" }), !full && "h-[30px] rounded-[9px] px-2.5 text-xs", className)}
     >
       <Icon name="iter" className={full ? undefined : "size-[13px]"} />

@@ -13,7 +13,6 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icon } from "@/components/icon"
-import { SoonBlock } from "@/components/soon"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { BRAIN_SECTIONS, brainCompleteness } from "@/lib/brain"
 import { ME_KEY } from "@/hooks/use-me"
@@ -21,11 +20,11 @@ import { metaReady, mk, useMetaConnection, useMoney } from "@/hooks/use-meta"
 import { metaGateOf } from "@/components/meta/meta-gate"
 import { TOUR_STEP_KEY } from "@/components/tour/tour-state"
 import { cn } from "@/lib/utils"
-import { BackLink, BRAIN_ITEM_STEP, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
+import { BackLink, brainItemHref, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
 
 type Ctx = ReturnType<typeof useOnboarding>
 
-/** Step 5 · Goals & guardrails: only the monthly spend cap is real (PATCH /workspace). The rest is "Soon". */
+/** Step 5 · Goals & guardrails: the monthly spend cap (PATCH /workspace). Hidden from the flow since 31/10 (HIDDEN_STEPS). */
 export function GoalsStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const t = useTranslations("onboarding")
   const { move, canEdit } = ctx
@@ -84,25 +83,6 @@ export function GoalsStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         </div>
       </Card>
 
-      <SoonBlock what={t.rich("goals.soonTargets", { b: (c) => <b>{c}</b> })} example>
-        <div className="grid gap-3 tablet:grid-cols-2">
-          {[
-            ["Target cost per purchase", "$28"],
-            ["Monthly ad budget", "$12,000"],
-            ["Budget for each test round", "$600"],
-            ["Daily spend ceiling", "$450"],
-          ].map(([l, v]) => (
-            <div key={l} className="grid gap-1">
-              <span className="text-[13px] font-semibold">{l}</span>
-              <span className="rounded-md border border-line-strong bg-card px-3 py-2.5 font-mono">{v}</span>
-            </div>
-          ))}
-        </div>
-      </SoonBlock>
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-[18px] desktop:grid-cols-2">
-        <SoonBlock what={t.rich("goals.soonApprovals", { b: (c) => <b>{c}</b> })} />
-        <SoonBlock what={t.rich("goals.soonAutonomy", { b: (c) => <b>{c}</b> })} />
-      </div>
     </OnboardingFrame>
   )
 }
@@ -111,7 +91,7 @@ const SECTION_ORDER: BrainSection[] = ["business_offer", "audience", "proof", "c
 
 /**
  * Step 6 · Build the Brain: POST /workspace/onboarding/complete once on arrival (idempotent; 422 ONBOARDING_INCOMPLETE
- * lists what's missing), the Brain v0 summary + % from lib/brain, and the two ways to start. The 90-day Meta read is "Soon".
+ * lists what's missing), the Brain v0 summary + % from lib/brain, and "Start the tour" (31/10: no "where to start" paths, no Soon block).
  */
 export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const t = useTranslations("onboarding")
@@ -120,6 +100,9 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const qc = useQueryClient()
   const { canEdit, list } = ctx
   const brain = brainCompleteness(ws, list)
+  // 31/10: no "Soon" block in the onboarding; the Meta panel shows only with the ad account usable
+  const conn = useMetaConnection()
+  const metaOk = metaReady(conn.data) && metaGateOf(conn.data) === "ready"
 
   const complete = useMutation({
     mutationFn: () => api.workspace.completeOnboarding(),
@@ -153,7 +136,7 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       onSaveExit={() => ctx.move.mutate({ step: 6, to: ctx.exitTo })}
       error={ctx.move.error}
       hint={live ? tb("liveHint") : null}
-      back={<BackLink href={onboardingHref(5)}>{t("back")}</BackLink>}
+      back={<BackLink href={ctx.prev(6)}>{t("back")}</BackLink>}
       primary={
         <Button
           variant="brand"
@@ -224,7 +207,7 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         </Alert>
       ) : null}
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-[18px] desktop:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className={cn("grid grid-cols-[minmax(0,1fr)] gap-[18px]", metaOk && "desktop:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]")}>
         <Card title={tb("knows")}>
           <ul className="m-0 grid list-none gap-0 p-0">
             {SECTION_ORDER.map((s) => {
@@ -255,7 +238,7 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
                   </span>
                   {st !== "ok" ? (
                     <Link
-                      href={onboardingHref(BRAIN_ITEM_STEP[BRAIN_SECTIONS[s].find((i) => brain.missing.includes(i)) ?? "offer"])}
+                      href={brainItemHref(BRAIN_SECTIONS[s].find((i) => brain.missing.includes(i)) ?? "offer")}
                       className={buttonVariants({ size: "sm", variant: "ghost" })}
                     >
                       {tb("fill")}
@@ -284,51 +267,21 @@ export function BrainStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
           </div>
         </Card>
 
-        <FromMeta />
+        {metaOk ? <FromMeta /> : null}
       </div>
-
-      <Card title={tb("start")}>
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-3 tablet:grid-cols-2">
-          <PathCard href="/iterate/new" eyebrow={tb("path1")} title={tb("iterate")} body={tb("iterateBody")} />
-          <PathCard href="/creatives/new" eyebrow={tb("path2")} title={tb("concepts")} body={tb("conceptsBody")} />
-        </div>
-      </Card>
     </OnboardingFrame>
   )
 }
 
-function PathCard({ href, eyebrow, title, body }: { href: string; eyebrow: string; title: string; body: string }) {
-  return (
-    <Link href={href} className="group flex min-h-11 flex-col gap-1.5 rounded-xl border border-line bg-card p-4 no-underline hover:border-fg focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring">
-      <span className="eyebrow">{eyebrow}</span>
-      <strong className="flex items-center gap-2 text-base">
-        {title}
-        <Icon name="arrowr" className="transition-transform group-hover:translate-x-0.5" />
-      </strong>
-      <span className="text-[13px] text-fg-3">{body}</span>
-    </Link>
-  )
-}
-
-/** The dark panel on the right of step 6: what Meta already read (bridge to the tour). Without a ready connection, the Soon block. */
+/** The dark panel on the right of step 6: what Meta already read (bridge to the tour). Rendered only with a ready connection. */
 function FromMeta() {
   const tb = useTranslations("onboarding.brain")
   const conn = useMetaConnection()
-  // Gusta 25/10: numbers only with the ad account usable (expired / permission missing = the Soon block, no numbers)
+  // Gusta 25/10: numbers only with the ad account usable (expired / permission missing = no panel, no numbers)
   const ready = metaReady(conn.data) && metaGateOf(conn.data) === "ready"
   const summary = useQuery({ queryKey: mk.summary("30d"), queryFn: ({ signal }) => api.meta.summary({ period: "30d" }, { signal }), enabled: ready })
   const winner = useQuery({ queryKey: mk.ads({ verdict: "WINNER", limit: 1 }), queryFn: ({ signal }) => api.meta.ads({ verdict: "WINNER", limit: 1 }, { signal }), enabled: ready })
   const money = useMoney(summary.data?.currency)
-  if (!ready) {
-    return (
-      <SoonBlock what={tb.rich("soonRead", { b: (c) => <b>{c}</b> })} example>
-        <div className="flex flex-col gap-2.5 rounded-xl bg-ink p-4 text-ink-fg-2">
-          <span className="font-mono text-[11px] tracking-[0.08em] text-brand uppercase">Best ad</span>
-          <span className="text-[13px]">&ldquo;I tried 11 sleep masks&rdquo; costs $19.40 per purchase, 31% under the $28 target.</span>
-        </div>
-      </SoonBlock>
-    )
-  }
   const s = summary.data
   const w = winner.data?.data[0] ?? null
   const rows: [string, React.ReactNode][] = [

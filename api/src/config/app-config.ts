@@ -55,6 +55,8 @@ export class AppConfig {
   get uploadMaxBytes() { return this.int('UPLOAD_MAX_BYTES', 524_288_000); }
   get championMinSec() { return this.int('CHAMPION_MIN_SEC', 4); }
   get championMaxSec() { return this.int('CHAMPION_MAX_SEC', 180); }
+  /** editor-universal-v1 §7.1: exports grátis do editor por workspace por dia (UTC). Padrão 300 (≈ US$ 12 no pior caso). */
+  get editorExportsPerDay() { return this.int('EDITOR_EXPORTS_PER_DAY', 300); }
 
   get defaultMonthlySpendCapUsd(): number | null {
     const v = Number(this.env.get<string>('DEFAULT_MONTHLY_SPEND_CAP_USD'));

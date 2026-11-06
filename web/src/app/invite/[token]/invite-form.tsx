@@ -87,8 +87,7 @@ export function InviteForm({ token }: { token: string }) {
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="password">{t("invite.password")}</Label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={10} required />
-        <span className="text-xs text-fg-3">{t("invite.passwordHint")}</span>
+        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={6} required />
       </div>
       <Button type="submit" variant="default" size="lg" disabled={pending} className="w-full">
         {pending ? t("invite.submitting") : t("invite.submit")}

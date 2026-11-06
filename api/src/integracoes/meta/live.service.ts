@@ -4,6 +4,7 @@ import type {
   MetaAdAccountInfo, MetaAuth, MetaHealthInput, MetaHealthResult, MetaOAuthState, MetaPublishIds, MetaPublishInput, MetaReturnTo, MetaService,
   MetaServiceStatus, MetaSyncInput, MetaSyncResult, MetaSyncStage, MetaTokenGrant, MetaTokenInfo, MetaWinnerRule,
   MetaLiveObject, MetaObjectLevelPort, MetaUsage, MetaTemplateSourceRead,
+  MetaInstagramAccountsResponse, MetaCustomAudiencesResponse, MetaLocalesResponse,
 } from '../contrato';
 import * as campanhas from './campanhas';
 import { GraphClient } from './cliente';
@@ -15,6 +16,7 @@ import * as pub from './publicacao';
 import { buildHealth } from './saude';
 import { scoreAllAds } from './vencedor';
 import * as templates from './templates';
+import * as listas from './listas';
 
 export interface LiveMetaOptions {
   appId: string; appSecret: string; configId: string;
@@ -37,6 +39,8 @@ export class LiveMetaService implements MetaService {
   readonly graph: GraphClient;
   private readonly cfg: OAuthConfig;
   private readonly now: () => Date;
+  /** meta-templates-v2 §4: cache do processo (públicos 5 min por conta; idiomas 24 h por versão da Graph) */
+  readonly listas = new listas.ListasCache();
   constructor(private readonly opts: LiveMetaOptions) {
     this.graph = new GraphClient({ appId: opts.appId, appSecret: opts.appSecret, version: opts.graphVersion, fetchImpl: opts.fetchImpl, baseUrl: opts.baseUrl, sleep: opts.sleep });
     this.cfg = { appId: opts.appId, appSecret: opts.appSecret, configId: opts.configId, redirectUri: opts.redirectUri };
@@ -118,7 +122,7 @@ export class LiveMetaService implements MetaService {
       campaigns: r.campaigns, adsets: r.adsets, truncated: r.truncated,
     };
   }
-  videoSource(auth: MetaAuth, videoId: string, ctx?: { adAccountId?: string | null; pageId?: string | null }) {
+  videoSource(auth: MetaAuth, videoId: string, ctx?: { adAccountId?: string | null; pageId?: string | null; metaAdId?: string | null }) {
     return leitura.videoSource(this.graph, auth.accessToken, videoId, ctx);
   }
 
@@ -133,12 +137,14 @@ export class LiveMetaService implements MetaService {
   }
   async createAdSet(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds) {
     let account: { currency: string | null; minimumDailyBudgetMinor: number | null } = { currency: null, minimumDailyBudgetMinor: null };
+    const now = this.now();
     try {
-      return await pub.createAdSet(this.graph, auth.accessToken, i, ids, account);
+      return await pub.createAdSet(this.graph, auth.accessToken, i, ids, account, now);
     } catch (e) {
       if (isMetaError(e) && e.code === 'META_BUDGET_TOO_LOW' && e.details?.minimumMinor == null) {
         account = await leitura.readAdAccount(this.graph, auth.accessToken, i.adAccountId).catch(() => account);
-        throw new MetaError('META_BUDGET_TOO_LOW', e.message, { ...e.options, details: { minimumMinor: account.minimumDailyBudgetMinor, currency: account.currency } });
+        // v2: com LIFETIME o detalhe vira o total (mínimo diário da conta × dias)
+        throw new MetaError('META_BUDGET_TOO_LOW', e.message, { ...e.options, details: pub.budgetTooLowDetails(i, account.minimumDailyBudgetMinor, account.currency, now) });
       }
       throw e;
     }
@@ -174,5 +180,16 @@ export class LiveMetaService implements MetaService {
   // ---------- meta-templates-v1 §3 ----------
   readTemplateSource(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string; hint?: { adsetId?: string | null; adId?: string | null } }): Promise<MetaTemplateSourceRead> {
     return templates.readTemplateSource(this.graph, auth.accessToken, i);
+  }
+
+  // ---------- meta-templates-v2 §4 ----------
+  listInstagramAccounts(auth: MetaAuth, i: { adAccountId: string; pageId: string | null }): Promise<MetaInstagramAccountsResponse> {
+    return listas.listInstagramAccounts(this.graph, auth.accessToken, i);
+  }
+  listCustomAudiences(auth: MetaAuth, i: { adAccountId: string }): Promise<MetaCustomAudiencesResponse> {
+    return listas.listCustomAudiences(this.graph, auth.accessToken, i, this.listas, this.now().getTime());
+  }
+  listLocales(auth: MetaAuth): Promise<MetaLocalesResponse> {
+    return listas.listLocales(this.graph, auth.accessToken, this.listas, this.now().getTime());
   }
 }

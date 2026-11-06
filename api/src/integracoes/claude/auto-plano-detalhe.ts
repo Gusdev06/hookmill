@@ -7,7 +7,8 @@
 //      encarecia o plano); mesmo sistema e mesmo contexto do lote (prefixo cacheado), em paralelo;
 //   3. a resposta é encaixada no item cru e o `parseAutoPlan` de sempre lê tudo: a saída pro backend não muda.
 // Peça cuja 2ª etapa falhou sai do plano (o backend completa no reparo, como qualquer peça inválida).
-import type { FrameTemplateId, StaticEmotion } from '../contrato';
+import type { FrameTemplateId, ListTemplateId, StaticEmotion } from '../contrato';
+import { isListTemplate } from './auto-plano-lista';
 import { STATIC_COPY_SCHEMA, STATIC_EMOTIONS, STATIC_VISUAL_V2_SCHEMA } from './auto-plano-estatico';
 import { FRAME_SCHEMA, FRAME_TEMPLATES } from './auto-plano-moldura';
 
@@ -33,14 +34,18 @@ const o = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' &
 /** Item cru do plano que precisa da 2ª etapa. `live` não tem texto: dispensa. */
 export interface DetailTarget {
   index: number;
-  kind: 'STATIC' | 'FRAME' | 'CHAT_DM' | 'PERSON_MOTION';
+  kind: 'STATIC' | 'FRAME' | 'CHAT_DM' | 'PERSON_MOTION' | 'LIST_OVERLAY';
   whyKey: string; change: string; rationale: string;
   concept: string; emotion: StaticEmotion | null; template: FrameTemplateId | null;
+  /** templates-lista-v1: template de lista JÁ resolvido (o pedido no plano, ou o 1º liberado ainda livre) */
+  listTemplate?: ListTemplateId;
 }
 
-export function detailTargets(root: Record<string, unknown>, allowedFrames: FrameTemplateId[]): DetailTarget[] {
+/** `listTemplates` = templates de lista liberados (1 peça por template): pedido fora/repetido vira o 1º livre; sem livre, a peça sai. */
+export function detailTargets(root: Record<string, unknown>, allowedFrames: FrameTemplateId[], listTemplates: readonly ListTemplateId[] = []): DetailTarget[] {
   const items = Array.isArray(root.items) ? root.items.map(o) : [];
   const out: DetailTarget[] = [];
+  const listsUsed = new Set<ListTemplateId>();
   items.forEach((it, index) => {
     const type = s(it.type);
     const p = o(it.params);
@@ -53,6 +58,14 @@ export function detailTargets(root: Record<string, unknown>, allowedFrames: Fram
     } else if (type === 'CHAT_DM' || type === 'PERSON_MOTION') {
       // iterate-v2 F1.2: o roteiro do template sai na 2ª etapa (1 chamada por template)
       out.push({ ...base, kind: type, concept: '', emotion: null, template: null });
+    } else if (type === 'LIST_OVERLAY') {
+      // templates-lista-v1 §2: 1 chamada por template de lista; o modo vem do template
+      const asked = s(p.listTemplate);
+      const id = isListTemplate(asked) && listTemplates.includes(asked) && !listsUsed.has(asked) ? asked : listTemplates.find((x) => !listsUsed.has(x));
+      if (id) {
+        listsUsed.add(id);
+        out.push({ ...base, kind: 'LIST_OVERLAY', concept: '', emotion: null, template: null, listTemplate: id });
+      }
     }
   });
   return out;
@@ -135,6 +148,9 @@ export function mergeDetails(root: Record<string, unknown>, targets: DetailTarge
       p.visualV2 = d.visualV2;
     } else if (t.kind === 'CHAT_DM' || t.kind === 'PERSON_MOTION') {
       p.template = d.template;
+    } else if (t.kind === 'LIST_OVERLAY') {
+      p.listTemplate = t.listTemplate;
+      p.list = d.list;
     } else {
       p.frame = d.frame;
     }

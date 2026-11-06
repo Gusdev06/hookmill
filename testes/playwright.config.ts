@@ -20,7 +20,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   globalSetup: './harness/global-setup.ts',
-  outputDir: 'test-results',
+  outputDir: 'test-results/padrao', // subpasta: o Playwright limpa este diretório ao iniciar (incidente de 06/11)
   use: { trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [
     { name: 'fumaca', testDir: './specs/fumaca' },
@@ -81,6 +81,8 @@ export default defineConfig({
       timeout: 600_000,
       use: { baseURL: ENV.webUrl, browserName: 'chromium', channel: CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
     },
+    // QA 01/11 (templates-creditos-v1): isolamento, pagador, Gerar duplo, validações e admin contra a API do QA
+    { name: 'qa0111-api', testDir: './specs/qa-0111-api', timeout: 900_000 },
     // Estático montado (A) + molduras (B1) — estatico-montado-e-molduras-v1 (25/10). Pendente até as entregas da §C.1:
     // os projetos só existem com E2E_EM=1, então `contrato`/`e2e`/`iterate` não mudam. Cada spec ainda pula sozinho
     // (motivo no relatório) enquanto a API do QA não tiver a entrega (harness/estatico-molduras.ts › entrega()).

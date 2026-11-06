@@ -1,0 +1,587 @@
+[
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:11.472Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "manual-kit"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:12.646Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Pular por agora",
+      "nameTag": "manual-kit-pular"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:22:12.798Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:22:12.877Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace/onboarding/complete",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:22:12.909Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:13.133Z",
+    "action": {
+      "op": "wait",
+      "ms": 600,
+      "nameTag": "manual-eddy-pronto"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:14.111Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Ir pra Home",
+      "nameTag": "manual-tour"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:14.893Z",
+    "action": {
+      "op": "wait",
+      "ms": 1200,
+      "nameTag": "manual-tour-inicio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:16.806Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Avançar",
+      "nameTag": "manual-tour-2"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:17.402Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "manual-tour-2-ok"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:18.267Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Avançar",
+      "nameTag": "manual-tour-3"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:18.697Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "manual-tour-3-ok"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:19.521Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Avançar",
+      "nameTag": "manual-tour-4"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:19.997Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "manual-tour-4-ok"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:20.870Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Concluir",
+      "nameTag": "manual-tour-fim"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace/tour/complete",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:22:20.941Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:21.298Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Enviar um anúncio vencedor",
+      "nameTag": "manual-galeria"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:21.886Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "manual-templates"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:49.454Z",
+    "action": {
+      "op": "click",
+      "role": "checkbox",
+      "name": "Selecionar Notícia urgente",
+      "nameTag": "manual-escolher-noticia"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:49.938Z",
+    "action": {
+      "op": "click",
+      "role": "checkbox",
+      "name": "Selecionar Meme POV",
+      "nameTag": "manual-escolher-meme"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:57.568Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Continuar",
+      "nameTag": "manual-anuncio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:57.983Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "manual-upload-tela"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:58.888Z",
+    "action": {
+      "op": "upload",
+      "selector": "input[type=file]",
+      "path": "testes/fixtures/campeoes/fala-split-20s.mp4",
+      "nameTag": "manual-upload"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/uploads",
+    "method": "POST",
+    "status": 201,
+    "at": "2026-11-04T05:22:58.928Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/uploads/cmw1o7njd004f22hs1isdoet3/content",
+    "method": "PUT",
+    "status": 200,
+    "at": "2026-11-04T05:22:58.981Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/uploads/cmw1o7njd004f22hs1isdoet3/complete",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:22:59.050Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/ad-templates/fits",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:22:59.066Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:22:59.225Z",
+    "action": {
+      "op": "wait",
+      "ms": 600,
+      "nameTag": "manual-enviado"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:23:00.128Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Continuar",
+      "nameTag": "manual-ler"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/ad-templates/use",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:23:00.219Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:23:00.594Z",
+    "action": {
+      "op": "wait",
+      "ms": 8000,
+      "nameTag": "manual-plano"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:24:24.396Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "manual-rotulos-corrigidos"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:24:26.251Z",
+    "action": {
+      "op": "click",
+      "role": "radio",
+      "name": "EN",
+      "nameTag": "manual-plano-en"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:24:27.114Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "manual-plano-en-pronto"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:24:27.565Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:25:04.211Z",
+    "action": {
+      "op": "reload",
+      "nameTag": "reteste-plano-en-reload"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:25:05.484Z",
+    "action": {
+      "op": "wait",
+      "ms": 2000,
+      "nameTag": "reteste-plano-en"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:25:57.201Z",
+    "action": {
+      "op": "click",
+      "role": "radio",
+      "name": "PT",
+      "nameTag": "manual-plano-pt"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:25:57.445Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:25:57.648Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "reteste-plano-pt"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:25:58.973Z",
+    "action": {
+      "op": "reload",
+      "nameTag": "reteste-contadores-carregar"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:25:59.853Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "pronto-gerar-manual"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:01.161Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Gerar amostra grátis",
+      "nameTag": "manual-gerar"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1o7oht004l22hsa5r1hqbl/start",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:26:01.287Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:01.521Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "manual-geracao-pt"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:17.404Z",
+    "action": {
+      "op": "click",
+      "role": "radio",
+      "name": "EN",
+      "nameTag": "manual-geracao-en"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:26:17.500Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:17.817Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "reteste-geracao-en"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:18.845Z",
+    "action": {
+      "op": "viewport",
+      "value": {
+        "width": 390,
+        "height": 844
+      },
+      "nameTag": "manual-mobile"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:19.280Z",
+    "action": {
+      "op": "wait",
+      "ms": 3000,
+      "nameTag": "manual-resultado"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:53.692Z",
+    "action": {
+      "op": "viewport",
+      "value": {
+        "width": 1440,
+        "height": 900
+      },
+      "nameTag": "manual-resultado-desktop"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:54.052Z",
+    "action": {
+      "op": "click",
+      "role": "radio",
+      "name": "PT",
+      "nameTag": "resultado-pt"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:26:54.177Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:54.443Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "resultado-pt-final"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:55.818Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Biblioteca",
+      "nameTag": "manual-reusar"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:56.228Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "manual-biblioteca"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:57.273Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Usar num template",
+      "nameTag": "manual-reusar-galeria"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:26:57.712Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "manual-mais-templates"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:27:06.547Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Usar o pack",
+      "nameTag": "reteste-limite-pack"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/ad-templates/let-hookmill-pick/use",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:27:06.737Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:27:07.012Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "reteste-limite-anuncio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:27:14.232Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "reteste-usos-insuficientes"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:27:38.815Z",
+    "action": {
+      "op": "click",
+      "role": "radio",
+      "name": "EN",
+      "nameTag": "reteste-usos-en"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:27:38.955Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:27:39.257Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "reteste-usos-en-pronto"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:27:40.396Z",
+    "action": {
+      "op": "stop"
+    }
+  }
+]

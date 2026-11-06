@@ -3,15 +3,19 @@ import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Rect } from '@maquina/contratos';
 import { MediaInvalidError, type FaceTrackResult, type MediaAnalysisService } from './contrato';
-import { run, streamFrames, MediaToolError, type Bins } from './ffmpeg';
+import { run, streamFrames, MediaToolError, PrazoEsgotado, type Bins } from './ffmpeg';
 import { measureLayout, DEFAULT_LAYOUT, type LayoutMeasure, type LayoutOptions } from './layout';
 import { detectFaces } from './rostos';
 import { panelAroundFace } from './painel';
 import type { RgbFrame } from './celulas';
 import { buildFaceTrack, fitCrop, refineEdge, regionStats, sameRect, timeline, trackBlockers } from './trilha';
-import { boxDistances, presenceRun, solidBackground } from './camadas';
+import { boxDistancesMany, presenceRun, solidBackground } from './camadas';
 import { concatClips, identityScore, lastFrame, timeStretch, trimToFrames } from './troca-motor';
 import { captionBox } from './legenda';
+
+// Laço por pixel usa `abs` do módulo, não `Math.abs`: no Jest (vm própria) cada leitura do global `Math` é ~20x mais
+// lenta e a API dos int specs travava o event loop por segundos (F3 do QA 01/11). Em node puro dá na mesma.
+const abs = Math.abs;
 
 export class NoAudioError extends Error {
   constructor(path: string) { super(`sem trilha de áudio: ${path}`); this.name = 'NoAudioError'; }
@@ -287,7 +291,7 @@ export class FfmpegMediaAnalysisService implements MediaAnalysisService {
     await streamFrames(this.bins.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-ss', (Math.max(0, from - 0.5) / fps).toFixed(4), '-i', file, '-an',
       '-frames:v', String(to - from + 1), '-vf', `crop=${w}:${h}:${Math.round(region.x)}:${Math.round(region.y)},scale=${sw}:${sh}:flags=area`,
       '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], bytes, (buf) => {
-      if (prev) { let t = 0; for (let i = 0; i < bytes; i++) t += Math.abs(buf[i] - prev[i]); out.push(t / bytes); }
+      if (prev) { let t = 0; for (let i = 0; i < bytes; i++) t += abs(buf[i] - prev[i]); out.push(t / bytes); }
       prev = Buffer.from(buf);
     });
     // índice k de out = frame from+k+1; refineEdge espera diffs a partir de (lo-2) com lo-2 = from+1
@@ -314,10 +318,26 @@ export class FfmpegMediaAnalysisService implements MediaAnalysisService {
   }
 
   async layerPresence(videoPath: string, box: Rect, refAtSec: number): Promise<{ startFrame: number; endFrame: number }> {
+    const [r] = await this.layersPresence(videoPath, [{ box, refAtSec }]);
+    if (r instanceof Error) throw r;
+    return r;
+  }
+
+  /** `layerPresence` de várias caixas numa decodificação só (refinar da leitura, F3 01/11). Erro por caixa, na posição dela. */
+  async layersPresence(videoPath: string, items: { box: Rect; refAtSec: number }[]): Promise<({ startFrame: number; endFrame: number } | Error)[]> {
+    if (!items.length) return [];
     const p = await this.probe(videoPath);
-    const refFrame = Math.max(0, Math.round(refAtSec * (p.fps || 30)));
-    const { d, contrast } = await boxDistances(this.bins, videoPath, box, refFrame);
-    return presenceRun(d, Math.min(refFrame, d.length - 1), contrast);
+    const pedidos = items.map((it) => ({ box: it.box, refFrame: Math.max(0, Math.round(it.refAtSec * (p.fps || 30))) }));
+    let ds: Awaited<ReturnType<typeof boxDistancesMany>>;
+    try {
+      ds = await boxDistancesMany(this.bins, videoPath, { w: p.width, h: p.height }, pedidos);
+    } catch (e) {
+      if (pedidos.length === 1 || e instanceof PrazoEsgotado) throw e;
+      // a passada conjunta falhou: uma por caixa, pra falha de uma não levar as outras (como antes de 01/11)
+      ds = [];
+      for (const pd of pedidos) ds.push(await boxDistancesMany(this.bins, videoPath, null, [pd]).then((r) => r[0], (x: Error) => x));
+    }
+    return ds.map((r, i) => (r instanceof Error ? r : presenceRun(r.d, Math.min(pedidos[i].refFrame, r.d.length - 1), r.contrast)));
   }
 
   async solidBackground(videoPath: string, atSec: number, approxBox: Rect) {

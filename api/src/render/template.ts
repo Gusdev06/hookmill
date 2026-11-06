@@ -16,7 +16,11 @@ import {
   PERSON_END_SEC, PERSON_GEO, TEMPLATE_SAFE, alturaDoBeat, beatFits, chatLayout, chatTimeline, faixasProtegidasDe, fechoChatGeo, limparTexto, naoCouberam,
   personLayout, personMotionLayout, propsDeTemplateInput, type ChatDmProps, type FaceMapLike, type PersonBeatProps, type PersonMotionProps, type TemplateProps,
 } from '@maquina/video';
+import {
+  LISTA_UI, checkpointsLista, linhasDoNeed, medirLista, needLista, posicionarLista, rostoPrincipal, type ListOverlayProps, type ListPlacement,
+} from '@maquina/video';
 import type { FrameBrand, TemplateSpec } from '../integracoes/contrato';
+import { listModeOf, type ListSpec } from '../iteracao/lista-plano';
 import type { AutoEditContext } from './auto-edit';
 import type { TemplateRenderInput } from './contrato';
 import { CaptionProtectedError } from './frame';
@@ -38,7 +42,11 @@ const r3 = (v: number) => Math.round(v * 1000) / 1000;
 const idioma = (spec: { screenLanguage: string }, ctx: AutoEditContext) =>
   !spec.screenLanguage.includes('-') && ctx.language.toLowerCase().startsWith(spec.screenLanguage.toLowerCase()) ? ctx.language : spec.screenLanguage;
 
-const marca = (b: FrameBrand): TemplateProps['brand'] => ({ name: limparTexto(b.name) || 'Brand', handle: limparTexto(b.handle), initials: limparTexto(b.initials).slice(0, 3) || 'B', color: b.color });
+/** Marca do template. kit-marca-v1 §5: com logo no kit (`ctx.brandLogo`, URL assinada) a composição troca o monograma pelo
+ *  logo; o `logoFileId` não vai pro render. */
+const marca = (b: FrameBrand, logo?: AutoEditContext['brandLogo']): TemplateProps['brand'] => ({
+  name: limparTexto(b.name) || 'Brand', handle: limparTexto(b.handle), initials: limparTexto(b.initials).slice(0, 3) || 'B', color: b.color, ...(logo && { logo }),
+});
 
 /** Segundo do campeão → segundo da peça (timeline emendado). null = fora dos trechos. */
 export function paraSaida(timeline: { startSec: number; endSec: number }[], t: number): number | null {
@@ -138,10 +146,63 @@ function buildPerson(spec: Extract<TemplateSpec, { type: 'PERSON_MOTION' }>, ctx
   return { props, durSec: fala + (endCard ? PERSON_END_SEC : 0), checkpoints };
 }
 
-export function buildTemplateInput(spec: TemplateSpec, ctx: AutoEditContext, format: VideoFormat): TemplateRenderInput {
+// ───────── templates-lista-v1 §3: versus / value-stack (composição `Template` → ListOverlay do video) ─────────
+
+const FORMAT_CODE_OF: Record<VideoFormat, '9x16' | '4x5' | '1x1'> = { VERTICAL_9_16: '9x16', PORTRAIT_4_5: '4x5', SQUARE_1_1: '1x1' };
+
+/** O que a lista precisa do campeão: vídeo (URL assinada) e o editMap (rosto e legenda). */
+export interface ListSourceCtx { source: AutoEditContext['source']; editMap: AutoEditContext['editMap'] }
+
+/**
+ * `ListOverlayProps` da peça num formato (o mesmo cálculo no build e na prévia do Plan): `posicionarLista` (rosto +
+ * legenda queimada, união no vídeo inteiro) → linhas no tempo do spec → `medirLista`. `placement.mode === 'none'` ou
+ * `overflow` não vazio = o build lança; a prévia mostra null.
+ */
+export function listOverlayPropsOf(spec: ListSpec, c: ListSourceCtx, format: VideoFormat, language = spec.screenLanguage): { props: ListOverlayProps | null; placement: ListPlacement; overflow: string[] } {
+  const src = c.source;
+  const r = rostoPrincipal(src, c.editMap as never);
+  const faceSafeBand = r ? { x: r.cx - r.w / 2, y: r.cy - r.h / 2, w: r.w, h: r.h } : null;
+  const protectedBands = c.editMap ? faixasProtegidasDe(c.editMap as never, src) : [];
+  const mode = listModeOf(spec.templateId, spec.columns, FORMAT_CODE_OF[format]);
+  const placement = posicionarLista({ format, source: { width: src.width, height: src.height, durationSec: src.durationSec }, faceSafeBand, protectedBands, need: needLista(mode, linhasDoNeed(mode, spec.lines)) });
+  if (placement.mode === 'none') return { props: null, placement, overflow: [] };
+  const lines = spec.lines.map((l) => ({ id: l.id, side: l.side, kind: l.kind, text: limparTexto(l.text), atSec: r3(Math.min(Math.max(0, l.atSec), Math.max(0, src.durationSec - 0.2))) }));
+  const base = {
+    mode, look: spec.look, brandColor: spec.brand.color,
+    source: { videoUrl: src.videoUrl, width: src.width, height: src.height, fps: src.fps, durationSec: src.durationSec },
+    guard: { faceSafeBand, protectedBands }, placement,
+    // 1 coluna (opção ou 1:1) = sem cabeçalho (§3.2 da spec)
+    heads: spec.heads && mode === 'two-col' ? { bad: limparTexto(spec.heads.bad.text), good: limparTexto(spec.heads.good.text) } : null,
+    title: spec.title ? limparTexto(spec.title.text) : null,
+    sfx: { pop: TEMPLATE_SFX.pop, ding: TEMPLATE_SFX.ding },
+  };
+  const m = medirLista({ ...base, lines, language });
+  return { props: { ...base, lines: lines.map((l, k) => ({ ...l, fit: m.lines[k] })) }, placement, overflow: m.overflow };
+}
+
+function buildList(spec: ListSpec, ctx: AutoEditContext, format: VideoFormat): TemplateRenderInput {
+  const lang = idioma(spec, ctx);
+  const { props, placement, overflow } = listOverlayPropsOf(spec, ctx, format, lang);
+  // §3.2: sem lugar = CAPTION_PROTECTED (o painel cobriria a legenda/o rosto); texto abaixo do piso = TEMPLATE_TEXT_OVERFLOW
+  if (!props || placement.mode === 'none') throw new CaptionProtectedError('no_room', []);
+  if (overflow.length) throw new TemplateTextOverflowError(overflow.map((slot) => ({ slot, overflow: 'lines', size: 0, lines: 0 })));
+  const input = {
+    format, fps: 30 as const, language: lang, brand: marca(spec.brand, ctx.brandLogo), palette: ctx.palette ?? [],
+    safeArea: { ...LISTA_UI[format] }, sfx: { ...TEMPLATE_SFX },
+    // sem legenda nossa (§3.1): o vídeo vai inteiro, com o áudio
+    durationInFrames: Math.max(1, Math.round(ctx.source.durationSec * 30)),
+    checkpoints: checkpointsLista(props),
+    templateId: spec.templateId, props,
+  } as TemplateProps;
+  propsDeTemplateInput(input as unknown as Record<string, unknown>);
+  return { kind: 'template', renderId: ctx.renderId, ...input };
+}
+
+export function buildTemplateInput(spec: TemplateSpec | ListSpec, ctx: AutoEditContext, format: VideoFormat): TemplateRenderInput {
+  if (spec.type === 'LIST_OVERLAY') return buildList(spec, ctx, format);
   if (format !== 'VERTICAL_9_16') throw new Error(`template ${spec.templateId}: só 9:16 na v1 (pedido ${format})`);
   const lang = idioma(spec, ctx);
-  const brand = marca(spec.brand);
+  const brand = marca(spec.brand, ctx.brandLogo);
   const comum = {
     format: 'VERTICAL_9_16' as const, fps: 30 as const, language: lang, brand, palette: ctx.palette ?? [], safeArea: { ...TEMPLATE_SAFE }, sfx: { ...TEMPLATE_SFX },
   };

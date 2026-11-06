@@ -1,0 +1,1 @@
+Pages directory cannot be found at /Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/pages or /Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/src/pages. If using a custom path, please configure with the `no-html-link-for-pages` rule in your eslint config file.

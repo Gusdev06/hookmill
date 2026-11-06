@@ -47,20 +47,38 @@ export const BRAIN_ITEM_STEP: Record<BrainItem, number> = {
   spendCap: 5,
 }
 
+/**
+ * Steps the web hides for now (Gusta 31/10: "Goals & limits" is out until it has more than the spend cap). The API still
+ * knows the 6 steps; the web skips the hidden ones and counts "Step X of N" and the % over the visible ones only.
+ */
+export const HIDDEN_STEPS: ReadonlySet<OnboardingSlug> = new Set<OnboardingSlug>(["goals"])
+
+/** The contract's spendCap item has no onboarding step while "Goals & limits" is hidden: it points to Settings. */
+export const brainItemHref = (item: BrainItem) => (HIDDEN_STEPS.has("goals") && item === "spendCap" ? "/settings" : onboardingHref(BRAIN_ITEM_STEP[item]))
+
 type Ob = Pick<Workspace, "onboarding">
-/** The enabled steps (5 with META_MODE=off). Falls back to the 6 positional steps when the API doesn't send `steps`. */
+/** The visible steps (enabled by the API — 5 with META_MODE=off — and not hidden). Falls back to the positional steps when the API doesn't send `steps`. */
 export function stepsOf(ws: Ob): OnboardingStepInfo[] {
-  const api = ws.onboarding.steps?.filter((s) => s.enabled)
+  const api = ws.onboarding.steps?.filter((s) => s.enabled && !HIDDEN_STEPS.has(s.key))
   if (api?.length) return api
   const cur = ws.onboarding.completedAt ? 7 : ws.onboarding.step
   return ONBOARDING_SLUGS.map((key, i) => ({
-    step: (i + 1) as OnboardingStep, key, enabled: true, state: i + 1 < cur ? "done" : i + 1 === cur ? "current" : "todo",
-  }))
+    step: (i + 1) as OnboardingStep, key, enabled: true, state: (i + 1 < cur ? "done" : i + 1 === cur ? "current" : "todo") as OnboardingStepInfo["state"],
+  })).filter((s) => !HIDDEN_STEPS.has(s.key))
 }
+/**
+ * The API's rule (onboarding.ts `onboardingPercent`: done AND already passed ÷ enabled steps) over the VISIBLE steps,
+ * so a hidden step never holds the bar below 100 nor counts in it.
+ */
 export function percentOf(ws: Ob): number {
-  if (typeof ws.onboarding.percent === "number") return ws.onboarding.percent
   if (ws.onboarding.completedAt) return 100
-  return Math.round(((ws.onboarding.step - 1) / 6) * 100)
+  const steps = stepsOf(ws)
+  if (!steps.length) return 0
+  if (ws.onboarding.steps?.length) {
+    const counted = steps.filter((s) => s.state === "done" && s.step < ws.onboarding.step).length
+    return Math.round((counted / steps.length) * 100)
+  }
+  return Math.round((steps.filter((s) => s.step < ws.onboarding.step).length / steps.length) * 100)
 }
 /** Next / previous ENABLED step number (skips Connect Meta when it is off). */
 export function nextStepOf(ws: Ob, from: number): number {

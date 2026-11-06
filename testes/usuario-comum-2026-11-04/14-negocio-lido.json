@@ -1,0 +1,154 @@
+{
+  "step": 14,
+  "url": "http://localhost:3311/onboarding/business",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nConfigurando A SonoLeve vende colchões online para adultos no Brasil que\ncom o Eddy · uns 5 minutos\nSair\nEd\nEddy\n\nOi, eu sou o Eddy. Vou montar o Cérebro de A SonoLeve vende colchões online para adultos no Brasil que com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.\n\nQual é o site? Eu leio e você só corrige o que eu errar.\n\nA SonoLeve vende colchões online para adultos no Brasil que acordam com dor nas costas. Colchão casal por R$ 1.299, teste de 30 noites e entrega em todo o Brasil. Temos avaliações de clientes. Quero gerar novas versões do vídeo de anúncio que já uso no Instagram.\nEd\nEddy\n\nLi a sua descrição.\n\nLido do texto colado\nEd\nEddy\n\nEste é o negócio como eu li. Corrija o que estiver errado direto no cartão.\n\nO negócio\nNome\nA SonoLeve vende colchões online para adultos no Brasil que\nEditar\nRamo\nProduto digital\nEditar\nOnde você vende\nBrasil\nEditar\nO que conta como resultado\nCompra\nLead\nMensagem\nAgendamento\nCadastro\nMais…\nLoja, infoproduto, low ticket\nEstá certo\nEdite qualquer linha antes, se precisar.\n↑\n\nAqui o Eddy só monta o Cérebro. Tudo o que você confirmar dá pra editar depois em Cérebro › Marca.\n\nCÉREBRO DE A SONOLEVE VENDE COLCHÕES ONLINE PARA ADULTOS NO BRASIL QUE\n85%\n11 de 13 coisas conhecidas\nNegócio\n0 / 3\nRamo\nlido, esperando você\nOnde você vende\nlido, esperando você\nResultado\nlido, esperando você\nOferta\n0 / 5\nOferta\nlido, esperando você\nO que é\nlido, esperando você\nPromessa\nlido, esperando você\nOferta e preço\n—\nChamada pra ação\nlido, esperando você\nPúblico\n0 / 3\nPra quem é\nlido, esperando você\nDores\nlido, esperando você\nInstruções\n—\nProvas\n0 / 1\nProvas\nlido, esperando você\nMetas\n0 / 2\nTeto de gasto\nlido, esperando você\nCPA alvo\n—\nMeta\n0 / 1\nConta de anúncios\n—\nKit da marca\n0 / 4\nLogo\n—\nCores\n—\nArquivos\n—\nVídeo demo\n—\nO % conta as 13 coisas que os roteiros leem. Meta e kit da marca alimentam resultados e estáticos; não contam.",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Sair",
+      "label": "Sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Nome",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Ramo",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Onde você vende",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Compra",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Lead",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Mensagem",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Agendamento",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Cadastro",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mais…",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Está certo",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Sua resposta",
+      "id": "",
+      "type": null,
+      "placeholder": "Responda pelo cartão acima",
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "↑",
+      "label": "Enviar",
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

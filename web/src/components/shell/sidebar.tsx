@@ -17,11 +17,17 @@ import { switchWorkspace } from "@/lib/session/token"
 import { cn } from "@/lib/utils"
 import { SoonBadge } from "@/components/soon"
 import { startReplay } from "@/components/tour/tour-state"
+import { useResetTips } from "@/components/tour/tip"
 import { useAccountMode, useMe } from "@/hooks/use-me"
+import { useResearchStatus } from "@/hooks/use-research"
 import { isMetaOff, metaReady, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
 import { LanguageToggle } from "./language-toggle"
 import { ClientAvatar, LogoMark } from "./logo"
 import { NavIcon, type NavIconName } from "./nav-icon"
+import { TEMPLATES } from "@/lib/flags"
+import { TEMPLATES_ADMIN_HREF } from "@/lib/routes"
+import { CreditsMeter, CreditsPill } from "@/components/templates/credits-meter"
+import { useIsTeamOwner } from "@/components/templates/admin"
 
 /*
  * App shell (fase2-telas-novas §4, plan §1): dark sidebar instead of the header with tabs.
@@ -30,9 +36,10 @@ import { NavIcon, type NavIconName } from "./nav-icon"
  * nav in a sheet from the top. onboarding-v2 decision 11: in OWN mode the client selector becomes the workspace identity
  * card (name + Meta status → Settings › Connections); no "All clients", no "New client"; role shown as "Owner".
  */
-type NavKey = "home" | "campaigns" | "eddy" | "brain" | "iterate" | "concepts" | "review" | "library" | "clients" | "settings"
+type NavKey = "home" | "campaigns" | "eddy" | "brain" | "radar" | "iterate" | "templates" | "aiVariations" | "concepts" | "review" | "library" | "clients" | "settings" | "admin"
 
-export const REVIEW_HREF = "/?filter=needs_you"
+/** Home v2 (31/10): the full list left Home; Review opens it filtered */
+export const REVIEW_HREF = "/creatives?filter=needs_you"
 const NAV: { group: "groupWorkspace" | "groupMakeAds"; items: { key: NavKey; href: string; icon: NavIconName; soon?: boolean }[] }[] = [
   {
     group: "groupWorkspace",
@@ -47,7 +54,10 @@ const NAV: { group: "groupWorkspace" | "groupMakeAds"; items: { key: NavKey; hre
   {
     group: "groupMakeAds",
     items: [
-      { key: "iterate", href: "/iterate/new", icon: "iter" },
+      // ads-research-v1 C.1: Ad Radar on top of Make ads (the step before Templates); "Soon" while ADS_RESEARCH_MODE=off
+      { key: "radar", href: "/radar", icon: "radar" },
+      // templates-creditos-v1 T1 (31/10): Templates replaces "Iterate a winner" (/iterate stays reachable from the links to it)
+      TEMPLATES ? { key: "templates", href: "/templates", icon: "iter" } : { key: "iterate", href: "/iterate/new", icon: "iter" },
       { key: "concepts", href: "/creatives/new", icon: "bulb" },
       { key: "review", href: REVIEW_HREF, icon: "review" },
       { key: "library", href: "/library", icon: "lib" },
@@ -58,11 +68,14 @@ const NAV: { group: "groupWorkspace" | "groupMakeAds"; items: { key: NavKey; hre
 function useActive(): NavKey | null {
   const pathname = usePathname()
   const filter = useSearchParams().get("filter")
-  if (pathname === "/") return filter === "needs_you" ? "review" : "home"
+  if (pathname === "/") return "home"
+  if (pathname === "/creatives") return filter === "needs_you" ? "review" : "library"
+  if (pathname.startsWith("/templates/admin")) return "admin"
   const first = pathname.split("/")[1]
   const map: Record<string, NavKey> = {
-    campaigns: "campaigns", eddy: "eddy", brain: "brain", offers: "brain",
-    variations: "iterate", iterate: "iterate", creatives: "concepts", library: "library", clients: "clients", onboarding: "clients", settings: "settings",
+    campaigns: "campaigns", eddy: "eddy", brain: "brain", offers: "brain", radar: "radar",
+    "ai-variations": "aiVariations",
+    variations: TEMPLATES ? "templates" : "iterate", iterate: TEMPLATES ? "templates" : "iterate", templates: "templates", credits: "templates", creatives: "concepts", library: "library", clients: "clients", onboarding: "clients", settings: "settings",
   }
   return map[first] ?? null
 }
@@ -182,9 +195,9 @@ function WorkspaceIdentity({ compact, onNavigate }: { compact?: boolean; onNavig
 
 function Account({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations()
-  const router = useRouter()
   const { session, logout } = useSession()
   const mode = useAccountMode()
+  const resetTips = useResetTips()
   const initials = session.user.name.slice(0, 1).toUpperCase()
   const role = mode === "OWN" && session.workspace.role === "OWNER" ? t("shell.ownRole") : t(`shell.roleLabel.${session.workspace.role}`)
   return (
@@ -213,15 +226,26 @@ function Account({ onNavigate }: { onNavigate?: () => void }) {
               {t("shell.nav.settings")}
             </Link>
           </DropdownMenuItem>
+          {/* tour-v2: the provider takes the replay to its first stop; "Show tips again" clears the tips seen */}
           <DropdownMenuItem
             onSelect={() => {
               startReplay()
               onNavigate?.()
-              router.push("/brain")
             }}
           >
             {t("tour.replay")}
           </DropdownMenuItem>
+          {session.workspace.role === "CLIENT" ? null : (
+            <DropdownMenuItem
+              onSelect={() => {
+                resetTips()
+                onNavigate?.()
+                toast(t("tour.tipsResetDone"))
+              }}
+            >
+              {t("tour.tipsReset")}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => void logout()}>{t("common.logout")}</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -238,6 +262,10 @@ function SidebarNav({ onNavigate, showClient = true }: { onNavigate?: () => void
   const mode = useAccountMode()
   const metaConn = useMetaConnection()
   const metaOff = metaConn.isError && isMetaOff(metaConn.error)
+  const team = useIsTeamOwner()
+  const radar = useResearchStatus()
+  const tr = useTranslations("radar.bar")
+  const radarSyncing = radar.data?.discovery.status === "QUEUED" || radar.data?.discovery.status === "RUNNING"
   return (
     <>
       {showClient ? mode === "OWN" ? <WorkspaceIdentity onNavigate={onNavigate} /> : <ClientSwitcher onNavigate={onNavigate} /> : null}
@@ -247,7 +275,10 @@ function SidebarNav({ onNavigate, showClient = true }: { onNavigate?: () => void
           {g.items.map((it) => (
             <NavLink key={it.key} href={it.href} icon={it.icon} active={active === it.key} onNavigate={onNavigate}>
               {t(`nav.${it.key}`)}
-              {it.soon || (it.key === "campaigns" && metaOff) ? <SoonBadge mini /> : null}
+              {it.soon || (it.key === "campaigns" && metaOff) || (it.key === "radar" && radar.data?.mode === "off") ? <SoonBadge mini /> : null}
+              {it.key === "radar" && radarSyncing ? (
+                <span className="ml-auto rounded-full border border-ink-line bg-ink-3 px-1.5 font-mono text-[10px] text-ink-fg-2">{tr("syncing")}</span>
+              ) : null}
               {it.key === "review" && review > 0 ? (
                 <span className="ml-auto rounded-full bg-brand px-[7px] py-px font-mono text-[11px] font-semibold text-[#15171a]">
                   {review}
@@ -259,6 +290,12 @@ function SidebarNav({ onNavigate, showClient = true }: { onNavigate?: () => void
         </div>
       ))}
       <div className="mt-auto flex flex-col gap-2.5 border-t border-ink-line pt-3">
+        {TEMPLATES ? <CreditsMeter onNavigate={onNavigate} id={onNavigate ? undefined : "t-credits"} /> : null}
+        {TEMPLATES && team ? (
+          <NavLink href={TEMPLATES_ADMIN_HREF} icon="folder" active={active === "admin"} onNavigate={onNavigate}>
+            {t("nav.admin")}
+          </NavLink>
+        ) : null}
         {mode === "OWN" ? (
           <NavLink href="/settings" icon="gear" active={active === "settings"} onNavigate={onNavigate}>
             {t("nav.settings")}
@@ -284,13 +321,16 @@ function Brand() {
   )
 }
 
-/** Desktop sidebar (≥761 px). */
+/** Desktop sidebar (≥761 px): a dark floating card of the panel shell (31/10), scrolling on its own. */
+const SIDEBAR_CARD =
+  "on-ink hidden min-h-0 flex-col gap-[18px] rounded-[22px] border border-ink-line bg-ink px-3.5 pt-[18px] pb-5 shadow-[0_1px_2px_rgba(0,0,0,.12),0_10px_30px_rgba(21,23,26,.18)] tablet:flex"
+
 export function Sidebar() {
   const t = useTranslations("common")
   return (
     <nav
       aria-label={t("main")}
-      className="on-ink sticky top-0 hidden h-dvh flex-col gap-[18px] overflow-y-auto bg-ink px-3.5 pt-[18px] pb-5 text-ink-fg-2 tablet:flex"
+      className={cn(SIDEBAR_CARD, "no-scrollbar overflow-y-auto overscroll-contain text-ink-fg-2")}
     >
       <Brand />
       <SidebarNav />
@@ -310,6 +350,7 @@ export function MobileTopbar() {
         <LogoMark />
       </Link>
       <div className="min-w-0 flex-1">{mode === "OWN" ? <WorkspaceIdentity compact /> : <ClientSwitcher compact />}</div>
+      {TEMPLATES ? <CreditsPill /> : null}
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <DialogPrimitive.Trigger
           aria-label={t("shell.openMenu")}
@@ -349,8 +390,8 @@ export function MobileTopbar() {
 /** Same footprint while the session is restored (no layout jump). */
 export function ShellSkeleton() {
   return (
-    <div className="min-h-dvh tablet:grid tablet:grid-cols-[248px_minmax(0,1fr)]">
-      <div className="on-ink sticky top-0 hidden h-dvh flex-col gap-[18px] bg-ink px-3.5 pt-[18px] pb-5 tablet:flex" aria-hidden="true">
+    <div className="min-h-dvh tablet:grid tablet:h-dvh tablet:grid-cols-[248px_minmax(0,1fr)] tablet:gap-3 tablet:overflow-hidden tablet:bg-[color-mix(in_oklab,var(--bg)_88%,var(--fg))] tablet:p-3">
+      <div className={SIDEBAR_CARD} aria-hidden="true">
         <div className="flex min-h-11 items-center gap-2.5 px-1.5">
           <LogoMark />
           <span className="sk h-3 w-20" />
@@ -360,6 +401,7 @@ export function ShellSkeleton() {
           <span key={i} className="sk mx-2.5 h-3" style={{ width: 90 + ((i * 37) % 60) }} />
         ))}
       </div>
+      <div className="hidden rounded-[22px] border border-line bg-bg tablet:block" aria-hidden="true" />
       <div className="on-ink flex h-14 items-center gap-2.5 bg-ink px-4 tablet:hidden" aria-hidden="true">
         <LogoMark />
         <span className="sk h-3 w-28" />

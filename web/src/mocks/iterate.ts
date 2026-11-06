@@ -24,6 +24,7 @@
 import type { AutoInsight, AutoVariationType, FrameTemplateId, StaticRenderStage, StaticTextCheck, BlockFn, BrainField, FormatCode, IterateBatch, IterateConfig, IteratePiece, IterateStatus, LibraryItem, PieceFile, PieceFormat, PieceFormatState, PieceStatus, SwapReason, UserRef, VariationAxis, WhyLine } from "@/lib/api/types"
 import type { PieceHeadline, WaitingBatchRef } from "@/lib/api/types"
 import { db, mockArt, mockId, MOCK_VIDEO, save as saveDb } from "./db"
+import { entryOf as editorEntryU, pieceEditorView } from "./editor-universal"
 import { blobUrl } from "./variar"
 import { sampleLocked } from "./amostra"
 
@@ -39,8 +40,9 @@ const USD_PER_SEC = 0.01 // transcription + teardown with frames (mock)
 const PLAN_USD = 0.02
 const FORMATS: FormatCode[] = ["9x16", "4x5", "1x1"]
 const AXIS: Record<AutoVariationType, VariationAxis> = {
+  AI_VIDEO: 'DIVERSITY',
   CUT: "ITERATION", COLD_OPEN: "ITERATION", HOOK_TEXT: "ITERATION", ENDCARD: "ITERATION",
-  SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY", FRAME: "DIVERSITY", HEADLINE: "ITERATION", CHAT_DM: "DIVERSITY", PERSON_MOTION: "DIVERSITY",
+  SPLIT_LP: "DIVERSITY", STORY: "DIVERSITY", REVIEW: "DIVERSITY", NATIVE_SEARCH: "DIVERSITY", STATIC: "DIVERSITY", FRAME: "DIVERSITY", HEADLINE: "ITERATION", CHAT_DM: "DIVERSITY", PERSON_MOTION: "DIVERSITY", LIST_OVERLAY: "DIVERSITY",
 }
 // ───────────── frames (§B2/§B7) ─────────────
 const FRAME_IDS: FrameTemplateId[] = [
@@ -229,9 +231,13 @@ function planRows(b: MIter): Row[] {
   const frames: FrameTemplateId[] = all ? FRAME_IDS : b.shortVideo || b.brainEmpty ? ["meme"] : ["news", "meme", "split_stack"]
   return [...rows, ...frames.map(frameRow)]
 }
-/** headline-e-legenda §1.1: 3 HEADLINE (`replace`) or 2 (`add`, champion without a headline: [mock:headline-none]) */
+/**
+ * troca-texto-queimado-v1 §15.4 (F1a): only `add` (2 pieces, champion without a headline: [mock:headline-none]). A champion with a
+ * headline gets none and `insight.headlineBlocked: headline_pending`. `replace` rows only in ?mockcaptions=legacy (old pieces).
+ */
 function headlineRows(b: MIter): Row[] {
-  const add = notesOf(b.offerId).includes("[mock:headline-none]")
+  const add = noHeadlineOf(b)
+  if (!add && !legacyFlag()) return []
   return HEADLINES.slice(0, add ? 2 : 3).map((_, i): Row => add
     ? ["HEADLINE", "add", "Adds a headline band in the brand color. The rest of the video stays the same.", "Põe uma faixa de headline na cor da marca. O resto do vídeo fica igual.", i]
     : ["HEADLINE", "replace", "Only the headline changes: same place, same style. Cuts, voice and framing stay.", "Só a headline muda: mesmo lugar, mesmo estilo. Cortes, voz e enquadramento ficam.", i])
@@ -413,6 +419,8 @@ function toLibrary(b: MIter, p: MPiece, now: number) {
   }
   db.library.unshift(item as LibraryItem)
   saveDb()
+  // the piece's creativeId has to survive a reload: the editor (handlers-editor-universal) finds the piece by it
+  saveIter()
 }
 
 // ───────────── view (GET /iterate/:id) ─────────────
@@ -454,9 +462,13 @@ function insightOf(b: MIter, status: IterateStatus): AutoInsight | null {
   const burned = burnedOf(b) && !b.cleanUploadId
   const captionsAuto = !burnedOf(b) || !!b.cleanUploadId
   const captionBlocked = burned
-    ? [{ type: "FRAME" as const, template: "cinema" as const, reason: "burned_captions" as const }, { type: "FRAME" as const, template: "question_box" as const, reason: "burned_captions" as const }, { type: "HEADLINE" as const, template: null, reason: "burned_captions" as const }]
+    ? [
+        { type: "FRAME" as const, template: "cinema" as const, reason: "burned_captions" as const, ...(legacyFlag() && { forced: true }) },
+        { type: "FRAME" as const, template: "question_box" as const, reason: "burned_captions" as const },
+      ]
     : []
-  return { blocks, why, kept, flags, swaps, captionsAuto, captionBlocked, cleanVersion: b.cleanVersion ?? undefined } as AutoInsight
+  const headlineBlocked = noHeadlineOf(b) || legacyFlag() ? null : { reason: "headline_pending", mode: "replace" }
+  return { blocks, why, kept, flags, swaps, captionsAuto, captionBlocked, headlineBlocked, cleanVersion: b.cleanVersion ?? undefined, ...(legacyFlag() && { captionNote: true }) } as AutoInsight
 }
 
 function analysisOf(b: MIter, status: IterateStatus, now: number): IterateBatch["analysis"] {
@@ -542,7 +554,7 @@ function iterViewRaw(b: MIter, now: number): IterateBatch {
       : p.frame && s === "ready" ? frameStill(p.frame) : phase?.imageReady ? { id: `f_${p.id}_poster`, url: running?.text && twoImages(running.text) ? "/mock/static-volta.jpg" : "/mock/static-2k.jpg", mimeType: "image/jpeg" } : null
     const retake = still && s === "ready" && textCheck?.status === "mismatch" && !running
     return {
-      id: p.id, index: p.index, type: p.type, code: code(b, p), axis: AXIS[p.type], change: pt() ? p.change.pt : p.change.en, status: s,
+      id: p.id, index: p.index, type: p.type, code: code(b, p) + (launched && p.creativeId && editorEntryU(p.creativeId).exported ? "-ED" : ""), axis: AXIS[p.type], change: pt() ? p.change.pt : p.change.en, status: s,
       previewReady: files.some((f) => f.format === "9x16"), media: still ? "image" : "video",
       render: running ? {
         format: running.format, progress: still ? 0 : Math.round(((now - running.startAt) / (running.endAt - running.startAt)) * 100), frame: still ? null : Math.round(((now - running.startAt) / (running.endAt - running.startAt)) * frames), frames: still ? null : frames,
@@ -562,9 +574,17 @@ function iterViewRaw(b: MIter, now: number): IterateBatch {
       // legenda-protegida §2.2: the frame cropped the burned captions out and redrew ours in the original style
       captionNote: p.frame === "meme" && burnedOf(b) && !b.cleanUploadId ? ("replaced" as const) : null,
       headline: p.type === "HEADLINE"
-        ? { mode: p.variant as PieceHeadline["mode"], original: p.variant === "add" ? null : HEADLINE_ORIGINAL, ...HEADLINES[p.n % HEADLINES.length] }
+        ? { mode: p.variant as PieceHeadline["mode"], original: p.variant === "add" ? null : HEADLINE_ORIGINAL, ...HEADLINES[p.n % HEADLINES.length], ...(legacyFlag() && { copy: "plate" }) }
         : null,
+      // ?mockcaptions=legacy: a piece made before F1a, still carrying the retired field (the web ignores it)
+      ...(legacyFlag() && (p.type === "HEADLINE" || p.frame) ? { captionOverride: true } : {}),
       textCheck,
+      // editor-universal-v1 §7.5: Edit on the card (FRAME/HEADLINE once the 9:16 is ready), Edited badge, export pending
+      editor: launched
+        ? legacyFlag() && p.type === "HEADLINE"
+          ? ({ ...pieceEditorView(p.creativeId, p.type, s === "ready"), available: false, reason: "headline_plate_retired" } as unknown as IteratePiece["editor"])
+          : pieceEditorView(p.creativeId, p.type, s === "ready")
+        : null,
       suggestedPrimaryText: p.frame === "read_caption" ? L("Most people stretch in the morning. That's the mistake. Here is what 10 minutes at night does instead…", "Quase todo mundo alonga de manhã. Esse é o erro. Veja o que 10 minutos à noite fazem no lugar…") : null,
     } as IteratePiece
   })
@@ -800,8 +820,10 @@ function frameFailOf(notes: string): MIter["frameFail"] {
 }
 /** legenda-protegida (web-mock): ?mockcaptions=burned|covered (sessionStorage mock:captions) or [mock:captions-burned] in the notes */
 const captionsFlag = () => (typeof window === "undefined" ? null : sessionStorage.getItem("mock:captions"))
+const legacyFlag = () => captionsFlag() === "legacy"
+const noHeadlineOf = (b: MIter) => notesOf(b.offerId).includes("[mock:headline-none]")
 function burnedOf(b: MIter) {
-  return notesOf(b.offerId).includes("[mock:captions-burned]") || captionsFlag() === "burned" || captionsFlag() === "covered"
+  return notesOf(b.offerId).includes("[mock:captions-burned]") || captionsFlag() === "burned" || captionsFlag() === "covered" || legacyFlag()
 }
 export function batchOfChampion(championId: string) {
   return it.batches.find((b) => b.championId === championId && !b.archived) ?? null

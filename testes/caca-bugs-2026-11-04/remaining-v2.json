@@ -1,0 +1,20 @@
+[
+  {
+    "name": "single-upload",
+    "ok": false,
+    "error": "locator.waitFor: Error: strict mode violation: getByRole('alert') resolved to 2 elements:\n    1) <div role=\"alert\" data-slot=\"alert\" class=\"flex w-full flex-wrap items-start gap-3 rounded-[14px] border px-4 py-3.5 text-sm [&>svg]:mt-0.5 [&>svg]:size-4 [&>svg]:shrink-0 border-status-failed-edge bg-status-failed-bg [&>svg]:text-status-failed\">…</div> aka getByRole('alert').filter({ hasText: 'produto-qa.pngOnly MP4 or MOV' })\n    2) <div role=\"alert\" aria-live=\"assertive\" id=\"__next-route-announcer__\"></div> aka locator('[id=\"__next-route-announcer__\"]')\n\nCall log:\n\u001b[2m  - waiting for getByRole('alert') to be visible\u001b[22m\n"
+  },
+  {
+    "name": "meta-create-edit",
+    "ok": false,
+    "error": "page.waitForURL: Timeout 45000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/settings/connections/templates\" until \"load\"\n============================================================"
+  },
+  {
+    "name": "meta-import",
+    "ok": true
+  },
+  {
+    "name": "meta-error-retry",
+    "ok": true
+  }
+]

@@ -3,6 +3,7 @@ import type { ProtectedBand } from './captionsSchema';
 import { caixaLegendaAutoEdit, caixaLegendaMoldura } from './legendaAuto';
 import { FORMATOS } from './formatos';
 import type { AutoEditProps } from './autoEdit';
+import type { ListOverlayProps } from './listaOverlay';
 import { layoutDaPeca, pinturaNaCaixa, reframeNaCaixa, textosQueNaoCouberam, type Focus, type FrameLayout, type MolduraProps, type Rect } from './molduras';
 
 // Legenda queimada protegida (docs/contratos/legenda-protegida-v1.md, aprovado 26/10): nenhum template tampa a legenda
@@ -86,7 +87,11 @@ export interface ChecagemLegenda { ok: boolean; hits: { element: string; atSec: 
  * por cima: slots de texto, rosto redondo, 2ª fonte e a legenda nossa. `avoid`: a faixa tem que estar inteira dentro do
  * vídeo visível (`clipped` se cortada) e sem nada por cima. `replace`: a faixa original não pode aparecer (`leak`).
  */
-export const checarLegendaProtegida = (p: MolduraProps, L: FrameLayout = layoutDaPeca(p)): ChecagemLegenda => {
+export function checarLegendaProtegida(p: MolduraProps, L?: FrameLayout): ChecagemLegenda;
+export function checarLegendaProtegida(p: ListaChecavel): ChecagemLegenda;
+export function checarLegendaProtegida(p: MolduraProps | ListaChecavel, L0?: FrameLayout): ChecagemLegenda {
+  if (ehLista(p)) return checarLegendaLista(p);
+  const L = L0 ?? layoutDaPeca(p);
   const hits: ChecagemLegenda['hits'] = [];
   const vb = L.videoBox;
   const vis = visivel(p, vb);
@@ -123,6 +128,75 @@ export const checarLegendaProtegida = (p: MolduraProps, L: FrameLayout = layoutD
     }
   }
   return { ok: hits.length === 0, hits };
+}
+
+// ───────────────────────── templates de lista (templates-lista-v1 §3.2) ─────────────────────────
+
+/** O que a checagem precisa de um `ListOverlayProps` (a composição `Template` com `versus`/`value-stack`). */
+export type ListaChecavel = Pick<ListOverlayProps, 'source' | 'guard' | 'placement' | 'lines'>;
+const ehLista = (p: MolduraProps | ListaChecavel): p is ListaChecavel => 'placement' in p && 'guard' in p;
+
+/** Caixa do vídeo da lista e a fonte (px) na saída por ela (= fonteNaSaida do listaOverlay, sem importar o módulo). */
+const naSaidaLista = (r: Rect, p: ListaChecavel): Rect | null => {
+  const pl = p.placement;
+  if (pl.mode === 'none') return null;
+  const v = pl.mode === 'body' ? pl.video : { box: pl.video.box, ...pl.video.frame };
+  const C = v.contentBox ?? { x: 0, y: 0, w: p.source.width, h: p.source.height };
+  const pt = pinturaNaCaixa(v.box, p.source, v.reframe, v.contentBox);
+  return { x: v.box.x + pt.area.left + (r.x - C.x) * pt.s, y: v.box.y + pt.area.top + (r.y - C.y) * pt.s, w: r.w * pt.s, h: r.h * pt.s };
+};
+const visivelLista = (p: ListaChecavel): Rect | null => {
+  const pl = p.placement;
+  if (pl.mode === 'none') return null;
+  const box = pl.mode === 'body' ? pl.video.box : pl.video.box;
+  const area0 = naSaidaLista({ x: 0, y: 0, w: p.source.width, h: p.source.height }, p)!;
+  const x0 = Math.max(box.x, area0.x), y0 = Math.max(box.y, area0.y);
+  const x1 = Math.min(box.x + box.w, area0.x + area0.w), y1 = Math.min(box.y + box.h, area0.y + area0.h);
+  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
+};
+
+/**
+ * §3.2 do contrato de lista: o painel é um elemento por cima do vídeo a partir do `atSec` da 1ª linha. Cada faixa protegida
+ * (no espaço da saída) tem que estar inteira no vídeo visível (`clipped`) e sem o painel por cima (`list_panel`); o rosto
+ * não pode ser coberto (`face_covered:list_panel`, > 0 px: o painel nunca encosta no rosto) nem cortado (`face_clipped`).
+ * `placement: none` = `no_room` (o build já acusa CAPTION_PROTECTED antes).
+ */
+export const checarLegendaLista = (p: ListaChecavel): ChecagemLegenda => {
+  const hits: ChecagemLegenda['hits'] = [];
+  if (p.placement.mode === 'none') return { ok: false, hits: [{ element: 'no_room', atSec: 0, overlapPx: 0 }] };
+  const painel = p.placement.panel;
+  const de = p.lines.length ? Math.min(...p.lines.map((l) => l.atSec)) : 0;
+  const vis = visivelLista(p)!;
+  if (p.guard.faceSafeBand) {
+    const face = naSaidaLista(p.guard.faceSafeBand, p)!;
+    const fa = face.w * face.h;
+    if (area(face, vis) < fa * 0.92) hits.push({ element: 'face_clipped', atSec: 0, overlapPx: Math.round(fa - area(face, vis)) });
+    const ov = area(face, painel);
+    if (ov > 0) hits.push({ element: 'face_covered:list_panel', atSec: Math.round(de * 10) / 10, overlapPx: Math.round(ov) });
+  }
+  for (const b of p.guard.protectedBands) {
+    if (b.endSec <= 0 || b.startSec >= p.source.durationSec) continue;
+    const r = naSaidaLista(b, p)!;
+    const dentro = area(r, vis);
+    if (dentro < r.w * r.h * 0.99) hits.push({ element: 'clipped', atSec: Math.round(b.startSec * 10) / 10, overlapPx: Math.round(r.w * r.h - dentro) });
+    if (b.endSec <= de) continue; // a faixa some antes do painel aparecer
+    const ov = area(r, painel);
+    if (ov > 0) hits.push({ element: 'list_panel', atSec: Math.round(Math.max(de, b.startSec) * 10) / 10, overlapPx: Math.round(ov) });
+  }
+  return { ok: hits.length === 0, hits };
+};
+
+/** Lista: faixas protegidas na saída (checagem por visão §4.2), pela caixa do vídeo do `placement`. */
+export const faixasProtegidasNaSaidaLista = (p: ListaChecavel & { format: keyof typeof FORMATOS }): FaixaNaSaida[] => {
+  const { width: W, height: H } = FORMATOS[p.format];
+  const out: FaixaNaSaida[] = [];
+  for (const b of p.guard.protectedBands) {
+    const r0 = naSaidaLista(b, p);
+    const r = r0 && recortarNoCanvas(r0, W, H);
+    if (!r) continue;
+    out.push({ kind: 'original', ...r, startSec: b.startSec, endSec: Math.min(b.endSec, p.source.durationSec) });
+  }
+  return out;
 };
 
 export type DecisaoLegenda =

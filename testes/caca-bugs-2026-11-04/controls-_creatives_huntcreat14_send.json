@@ -1,0 +1,210 @@
+[
+  {
+    "tag": "A",
+    "txt": "HMHookMill",
+    "role": null,
+    "label": "Home",
+    "id": "",
+    "href": "/"
+  },
+  {
+    "tag": "A",
+    "txt": "QQA AlfaMeta · synced 2 minutes ago",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/settings/connections"
+  },
+  {
+    "tag": "A",
+    "txt": "Home",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/"
+  },
+  {
+    "tag": "A",
+    "txt": "Campaigns",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/campaigns"
+  },
+  {
+    "tag": "A",
+    "txt": "EddySoon",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/eddy"
+  },
+  {
+    "tag": "A",
+    "txt": "Brain",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/brain"
+  },
+  {
+    "tag": "A",
+    "txt": "Templates",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/templates"
+  },
+  {
+    "tag": "A",
+    "txt": "New concepts",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/creatives/new"
+  },
+  {
+    "tag": "A",
+    "txt": "Review",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/creatives?filter=needs_you"
+  },
+  {
+    "tag": "A",
+    "txt": "Library",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/library"
+  },
+  {
+    "tag": "A",
+    "txt": "Get credits",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/credits"
+  },
+  {
+    "tag": "A",
+    "txt": "Admin · Templates",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/templates/admin"
+  },
+  {
+    "tag": "A",
+    "txt": "Settings",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/settings"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "QQA Dono AlfaOwner",
+    "role": null,
+    "label": "Account",
+    "id": "radix-_r_0_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "EN",
+    "role": "radio",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "PT",
+    "role": "radio",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "A",
+    "txt": "HM",
+    "role": null,
+    "label": "Home",
+    "id": "",
+    "href": "/"
+  },
+  {
+    "tag": "A",
+    "txt": "QQA Alfa",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/settings/connections"
+  },
+  {
+    "tag": "A",
+    "txt": "Unlimited",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/credits"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Open menu",
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "A",
+    "txt": "Back to Final OK",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/creatives/huntcreat14/review"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Retry",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Publish again",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "A",
+    "txt": "Download MP4",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/huntcreat6.mp4huntcreat14f?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T043736Z&X-Amz-Expires=21600&X-Amz-Signature=e09c65f8dd1f62abc54be1f297e8aa568cdb4ee8bdd04306fd0d6f968b499205&X-Amz-SignedHeaders=host&x-id=GetObject"
+  },
+  {
+    "tag": "A",
+    "txt": "Manage in Settings",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": "/settings/connections"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Open Next.js Dev Tools",
+    "id": "next-logo",
+    "href": null
+  }
+]

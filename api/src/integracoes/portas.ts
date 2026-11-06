@@ -99,6 +99,10 @@ export interface NewCostEntry {
   amountUsd: number;
   providerTaskId?: string;
   jobId?: string;
+  /** ads-research-v1 (C.5): coleta da Apify que gerou o custo (ledger do teto da pesquisa) */
+  researchSyncId?: string | null;
+  /** ads-research-v1 (C.5): descoberta de concorrentes (Claude do D1/D4 e parte atribuída das sondas) */
+  discoveryId?: string | null;
 }
 
 export interface CostStore {
@@ -128,3 +132,7 @@ export interface ProviderTaskFinishedEvent {
 export interface TaskEventBus {
   emit(event: typeof PROVIDER_TASK_FINISHED, payload: ProviderTaskFinishedEvent): unknown;
 }
+
+/** ads-research-v1 (Ad Radar): token de injeção da AdLibraryResearchService (contrato.ts). Modo em ADS_RESEARCH_MODE
+ *  (mock | live | off; sem a env, segue o INTEGRACOES_MODE). O Claude da descoberta vem no CLAUDE_SERVICE. */
+export const ADS_RESEARCH_SERVICE = Symbol('ADS_RESEARCH_SERVICE');

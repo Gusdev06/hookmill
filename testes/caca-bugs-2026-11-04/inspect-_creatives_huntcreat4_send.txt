@@ -1,0 +1,49 @@
+HM
+Q
+QA Alfa
+Unlimited
+Back to Final OK
+Publish to Meta
+
+Create a paused campaign in Mock Store (USD) with this video. Nothing spends until you press Activate.
+
+Created, paused
+Paused
+
+Campaign, ad set and ad are in Mock Store (USD), paused. Review them in Ads Manager, then Activate to start spending.
+
+Published 10 seconds ago · by QA Dono Alfa
+$40.00/day · US · Sales
+Campaign
+mock_campaign_3495d392
+Ad set
+mock_adset_5d7868e3
+Ad
+mock_ad_ca44abbd
+Video
+mock_video_b7926e82
+Creative
+mock_creative_26b5850e
+Results
+Spend
+$0.00
+Results
+0
+Cost / result
+—
+CTR
+0.00%
+Activate
+Open in Ads Manager
+Hunt ad 4
+HUNT_1104_4.mp4
+Hunt sleep 🧪
+0:20 · 9:16
+Approved · ready to send
+Download MP4
+f
+Mock Store (USD)
+act_mock_1 · USD
+Page: Mock Page
+Pixel: Mock Pixel
+Manage in Settings

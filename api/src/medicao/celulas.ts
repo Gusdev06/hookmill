@@ -7,6 +7,10 @@
 import type { Rect } from '@maquina/contratos';
 import { median } from './layout';
 
+// Laço por pixel usa `abs` do módulo, não `Math.abs`: no Jest (vm própria) cada leitura do global `Math` é ~20x mais
+// lenta e a API dos int specs travava o event loop por segundos (F3 do QA 01/11). Em node puro dá na mesma.
+const abs = Math.abs;
+
 /** Frame rgb24 cru (w*h*3). */
 export interface RgbFrame { data: Uint8Array; w: number; h: number }
 
@@ -89,7 +93,7 @@ export function pixelGradient(f: RgbFrame, r: Rect, axis: 'x' | 'y'): Float64Arr
       const x = axis === 'y' ? r.x + j : r.x + i;
       const y = axis === 'y' ? r.y + i : r.y + j;
       const o = (y * f.w + x) * 3;
-      t += Math.abs(f.data[o + step] - f.data[o]) + Math.abs(f.data[o + step + 1] - f.data[o + 1]) + Math.abs(f.data[o + step + 2] - f.data[o + 2]);
+      t += abs(f.data[o + step] - f.data[o]) + abs(f.data[o + step + 1] - f.data[o + 1]) + abs(f.data[o + step + 2] - f.data[o + 2]);
     }
     g[i] = t / (3 * m);
   }
@@ -103,7 +107,7 @@ function lineDiff(f: RgbFrame, r: Rect, axis: 'x' | 'y', a: number, b: number): 
   for (let j = 0; j < m; j++) {
     const oa = axis === 'y' ? ((r.y + a) * f.w + r.x + j) * 3 : ((r.y + j) * f.w + r.x + a) * 3;
     const ob = axis === 'y' ? ((r.y + b) * f.w + r.x + j) * 3 : ((r.y + j) * f.w + r.x + b) * 3;
-    t += Math.abs(f.data[oa] - f.data[ob]) + Math.abs(f.data[oa + 1] - f.data[ob + 1]) + Math.abs(f.data[oa + 2] - f.data[ob + 2]);
+    t += abs(f.data[oa] - f.data[ob]) + abs(f.data[oa + 1] - f.data[ob + 1]) + abs(f.data[oa + 2] - f.data[ob + 2]);
   }
   return t / (3 * m);
 }

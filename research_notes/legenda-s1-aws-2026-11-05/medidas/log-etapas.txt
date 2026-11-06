@@ -1,0 +1,53 @@
+detectar 120 sem-caixa: relógio 130.3s, billed 127526 ms, mem 1038 MB, US$ 0.005001 (acum 0.0111)
+detectar 120 caixa: relógio 131.85s, billed 131516 ms, mem 1038 MB, US$ 0.005157 (acum 0.0162)
+ajustar 120: relógio 24.6s, billed 24240 ms, mem 1038 MB, US$ 0.000951 (acum 0.0172)
+{"altura_letra_px":33,"tabela_s":2.72,"iou_s":7.646,"alinha_s":1.291,"contorno_s":10.068,"cores_s":1.472,"total_s":23.198} {"fonte":{"arq":"Gabarito-Variable.ttf","var":"Black"},"tam":55,"tr":0.02,"esp":1,"stroke":4,"sombra":[0,0],"base":1049,"cx":386.5,"branco":[202,201,198],"amarelo":null}
+telea 13: relógio 154.6s, billed 151818 ms, mem 1038 MB, US$ 0.005953 (acum 0.0231)
+placa E2 13: relógio 108.6s, billed 108263 ms, mem 1542 MB, US$ 0.004246 (acum 0.0274)
+W1 13: relógio 26.88s, billed 26465 ms, mem 1542 MB, US$ 0.001038 (acum 0.0284)
+telea 02: relógio 201.18s, billed 198402 ms, mem 1542 MB, US$ 0.00778 (acum 0.0362)
+placa E2 02: relógio 115.67s, billed 115333 ms, mem 1542 MB, US$ 0.004523 (acum 0.0407)
+W1 02: relógio 31.75s, billed 31411 ms, mem 1542 MB, US$ 0.001232 (acum 0.0420)
+telea 05: relógio 286.46s, billed 286127 ms, mem 1542 MB, US$ 0.01122 (acum 0.0532)
+placa E2 05: relógio 188.48s, billed 188145 ms, mem 1542 MB, US$ 0.007378 (acum 0.0606)
+W1 05: relógio 36.79s, billed 36452 ms, mem 1542 MB, US$ 0.00143 (acum 0.0620)
+placa E2 ROI 05: relógio 186.36s, billed 186020 ms, mem 1542 MB, US$ 0.007295 (acum 0.0693)
+detectar 120 sem-caixa faixa-dica: relógio 33.77s, billed 31033 ms, mem 373 MB, US$ 0.001217 (acum 0.0709)
+detectar 120 caixa faixa-dica: relógio 31.8s, billed 31434 ms, mem 381 MB, US$ 0.001233 (acum 0.0721)
+ajustar 120 faixa-dica: relógio 19.3s, billed 18945 ms, mem 381 MB, US$ 0.000743 (acum 0.0729)
+{"altura_letra_px":33,"tabela_s":1.569,"iou_s":3.601,"alinha_s":0.518,"contorno_s":9.082,"cores_s":0.777,"total_s":15.547} {"fonte":{"arq":"Gabarito-Variable.ttf","var":"Black"},"tam":53,"tr":0.02,"esp":1,"stroke":3,"sombra":[0,2],"base":140,"cx":365.5,"branco":[246,249,246],"amarelo":null}
+N 3844 cortes [ 0, 961, 2058, 2904, 3844 ] em troca de tomada: [ true, false, true, true, true ]
+placa 120 pedaco 4/4: relógio 62.62s, billed 57313 ms, mem 687 MB, US$ 0.002248 (acum 0.0751)
+placa 120 pedaco 3/4: relógio 95.28s, billed 89970 ms, mem 896 MB, US$ 0.003528 (acum 0.0764)
+placa 120 pedaco 2/4: relógio 120.92s, billed 118027 ms, mem 1032 MB, US$ 0.004628 (acum 0.0775)
+placa 120 pedaco 1/4: relógio 125.46s, billed 122356 ms, mem 845 MB, US$ 0.004798 (acum 0.0777)
+juntar 120: relógio 2.27s, billed 1939 ms, mem 845 MB, US$ 0.000076 (acum 0.0882)
+paralelo relógio 125.466 s; maior pedaço 125.46 juntar 2.27 quadros 3844
+N 3844 cortes [ 0, 961, 2058, 2904, 3844 ] em troca de tomada: [ true, false, true, true, true ]
+gasto Lambda 0.0882
+placa 120 1 funcao: relógio 489.5s, billed 486709 ms, mem 1706 MB, US$ 0.019086 (acum 0.1073)
+gasto Lambda 0.1073
+05 cortes [ 0, 193, 450, 675, 900 ]
+placa 05 pedaco 2/4: relógio 44.81s, billed 41993 ms, mem 1032 MB, US$ 0.001647 (acum 0.1089)
+placa 05 pedaco 4/4: relógio 51.42s, billed 48210 ms, mem 657 MB, US$ 0.001891 (acum 0.1091)
+placa 05 pedaco 1/4: relógio 51.86s, billed 49054 ms, mem 1706 MB, US$ 0.001924 (acum 0.1092)
+placa 05 pedaco 3/4: relógio 64.33s, billed 61069 ms, mem 739 MB, US$ 0.002395 (acum 0.1096)
+juntar 05: relógio 1.92s, billed 1583 ms, mem 739 MB, US$ 0.000062 (acum 0.1152)
+05 paralelo 64.331 juntar 1.92 quadros 900
+02 cortes [ 0, 198, 450, 709, 900 ]
+placa 02 pedaco 4/4: relógio 24.88s, billed 24544 ms, mem 739 MB, US$ 0.000963 (acum 0.1161)
+placa 02 pedaco 3/4: relógio 26.79s, billed 26407 ms, mem 1032 MB, US$ 0.001036 (acum 0.1162)
+placa 02 pedaco 1/4: relógio 27.56s, billed 27221 ms, mem 1706 MB, US$ 0.001068 (acum 0.1162)
+placa 02 pedaco 2/4: relógio 35.67s, billed 35296 ms, mem 657 MB, US$ 0.001384 (acum 0.1166)
+juntar 02: relógio 1.75s, billed 1366 ms, mem 657 MB, US$ 0.000054 (acum 0.1197)
+02 paralelo 35.677 juntar 1.75 quadros 900
+N 3844 cortes [ 0, 961, 2058, 2904, 3844 ] em troca de tomada: [ true, false, true, true, true ]
+W1 120: relógio 110.18s, billed 107140 ms, mem 999 MB, US$ 0.004202 (acum 0.1239)
+13 cortes [ 0, 158, 316, 474, 632 ]
+gasto Lambda 0.1239
+placa 13 pedaco 4/4: relógio 24.51s, billed 21442 ms, mem 1032 MB, US$ 0.000841 (acum 0.1247)
+placa 13 pedaco 1/4: relógio 40.44s, billed 37414 ms, mem 739 MB, US$ 0.001467 (acum 0.1253)
+placa 13 pedaco 2/4: relógio 43.03s, billed 40016 ms, mem 1706 MB, US$ 0.001569 (acum 0.1254)
+placa 13 pedaco 3/4: relógio 43.67s, billed 40670 ms, mem 999 MB, US$ 0.001595 (acum 0.1255)
+juntar 13: relógio 1.74s, billed 1413 ms, mem 999 MB, US$ 0.000056 (acum 0.1294)
+13 paralelo 43.694 juntar 1.74 quadros 632

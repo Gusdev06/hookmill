@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { forgetShapes } from "skullet"
 import { getSession, refreshSession, setSession, subscribeSession, type ClientSession } from "@/lib/session/token"
 
 const Ctx = createContext<{ session: ClientSession; logout: () => Promise<void> } | null>(null)
@@ -40,6 +41,7 @@ export function SessionProvider({ children, fallback }: { children: ReactNode; f
   const logout = async () => {
     await fetch("/api/session", { method: "DELETE", headers: { Authorization: `Bearer ${session.accessToken}` } })
     setSession(null)
+    forgetShapes() // skullet: remembered skeleton shapes are per account
     window.location.assign("/login")
   }
   return <Ctx.Provider value={{ session, logout }}>{children}</Ctx.Provider>

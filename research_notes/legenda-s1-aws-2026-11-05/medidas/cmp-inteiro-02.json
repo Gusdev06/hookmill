@@ -1,0 +1,1 @@
+{"quadros": 900, "psnr_quadro_mediana": 43.47, "psnr_faixa_mediana": 41.22, "psnr_faixa_p5": 37.17, "psnr_faixa_min": 32.23, "ssim_faixa_media": 0.9855, "ssim_faixa_min": 0.9631, "iguais_pct": 0.1, "piores": [39, 40, 41, 38, 43, 44, 548, 554, 559, 552, 558, 557]}

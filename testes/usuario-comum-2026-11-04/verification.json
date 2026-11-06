@@ -1,0 +1,41 @@
+{
+  "checks": [
+    "user: real count 6 in PT",
+    "user: real count 6 in EN",
+    "user: corrected unlock copy and no horizontal overflow at 390px",
+    "manual: real count 2 in PT",
+    "manual: real count 2 in EN",
+    "manual: corrected unlock copy and no horizontal overflow at 390px",
+    "shortage: free uses in EN, generation disabled",
+    "shortage: free uses and recovery instruction in PT"
+  ],
+  "http": [
+    {
+      "who": "user",
+      "status": 200,
+      "access": "SAMPLE",
+      "batch": "cmw1nr9ss000922hspx7jo4i4",
+      "phase": "download",
+      "ready": 6,
+      "pool": "SAMPLE",
+      "charged": 4,
+      "locked": true,
+      "previews": true,
+      "originalsExposed": false
+    },
+    {
+      "who": "manual",
+      "status": 200,
+      "access": "SAMPLE",
+      "batch": "cmw1o7oht004l22hsa5r1hqbl",
+      "phase": "download",
+      "ready": 2,
+      "pool": "SAMPLE",
+      "charged": 2,
+      "locked": true,
+      "previews": true,
+      "originalsExposed": false
+    }
+  ],
+  "errors": []
+}

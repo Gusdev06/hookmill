@@ -1,0 +1,221 @@
+--- web/messages/en.json (antes desta revisão)
++++ web/messages/en.json
+@@ -4866,6 +4866,7 @@
+     }
+   },
+   "sample": {
++    "badgeTemplates": "Free sample · {n, plural, one {# variation} other {# variations}}, no cost",
+     "badge": "Free sample · up to {n} variations, no cost",
+     "eyebrowReady": "Free sample · {ready} of {total} ready",
+     "title": "{n, plural, one {Your variation is ready. Watch its hook.} other {Your # variations are ready. Watch the hook of each one.}}",
+@@ -4916,11 +4917,13 @@
+       "subUsed": "Iterate on every winner you upload, with the free variations and, on a plan, the ones with AI.",
+       "li1": "Full videos in 9:16, plus 4:5 and 1:1 on request",
+       "li2": "Download as a zip or send straight to your Meta ad set",
++      "li3Templates": "New variations using your credits",
+       "li3": "New free variations every time you upload a winner",
+       "cta": "Unlock: talk to us",
+       "aiTitle": "With AI",
+       "aiTag": "paid plan",
+       "aiBody": "New avatar on your script, new formats from your ad. Shown here, available once you're on a plan.",
++      "noteTemplates": "The sample uses 1 use per Editing template. One template can produce more than one video.",
+       "note": "Free sample: 1 per account, up to {n} variations, never AI."
+     },
+     "contact": {
+@@ -5483,7 +5486,7 @@
+     },
+     "run": {
+       "noteTeam": "Team account · no credits used.",
+-      "noteSample": "Free sample · 1 use. It comes back if the video fails.",
++      "noteSample": "Free sample · {held, plural, one {# use reserved} other {# uses reserved}}. Uses for templates that fail are returned.",
+       "noteSampleSettled": "Free sample · {charged} used, {refunded} back.",
+       "noteRefunded": "{charged} charged · {refunded} back to you (a piece failed).",
+       "noteCharged": "{charged} charged. 4:5 and 1:1 don't cost extra.",
+@@ -5527,6 +5530,8 @@
+       "notEnough": "not enough",
+       "refundAi": "Covers script, faces, generation and retries. If a piece fails for good, its share comes back.",
+       "refundEdit": "If it fails, the credit comes back. 4:5 and 1:1 versions don't cost extra.",
++      "needMoreSample": "{n, plural, one {# more free use needed} other {# more free uses needed}}",
++      "reduceSample": "Select fewer templates to fit your free uses. Your plan and ad reading stay saved.",
+       "needMore": "{n, plural, one {You need # more credit} other {You need # more credits}}",
+       "saved": "Your plan and the read of your ad stay saved.",
+       "changedTitle": "The cost changed: now {to}",
+@@ -5565,7 +5570,11 @@
+         "pov": "POV line",
+         "body": "Text",
+         "name": "Name",
+-        "kicker": "Kicker"
++        "kicker": "Kicker",
++        "topic": "Topic",
++        "headline_lead": "Headline",
++        "headline_highlight": "Headline highlight",
++        "dek": "Supporting text"
+       },
+       "rule": {
+         "maxChars": "Too long for this template.",
+--- web/messages/pt-BR.json (antes desta revisão)
++++ web/messages/pt-BR.json
+@@ -4866,6 +4866,7 @@
+     }
+   },
+   "sample": {
++    "badgeTemplates": "Amostra grátis · {n, plural, one {# variação} other {# variações}}, sem custo",
+     "badge": "Amostra grátis · até {n} variações, sem custo",
+     "eyebrowReady": "Amostra grátis · {ready} de {total} prontas",
+     "title": "{n, plural, one {Sua variação está pronta. Veja o gancho dela.} other {Suas # variações estão prontas. Veja o gancho de cada uma.}}",
+@@ -4916,11 +4917,13 @@
+       "subUsed": "Varie cada campeão que você subir, com as variações grátis e, no plano, as com IA.",
+       "li1": "Vídeos completos em 9:16, e 4:5 e 1:1 quando pedir",
+       "li2": "Baixe num zip ou mande direto pro seu conjunto na Meta",
++      "li3Templates": "Novas variações usando seus créditos",
+       "li3": "Variações grátis novas a cada campeão que você subir",
+       "cta": "Liberar: fale com a gente",
+       "aiTitle": "Com IA",
+       "aiTag": "plano pago",
+       "aiBody": "Avatar novo no seu roteiro, formatos novos a partir do seu anúncio. Aparece aqui e fica disponível quando você tiver um plano.",
++      "noteTemplates": "A amostra usa 1 uso por template de Edição. Um template pode gerar mais de um vídeo.",
+       "note": "Amostra grátis: 1 por conta, até {n} variações, nunca com IA."
+     },
+     "contact": {
+@@ -5483,7 +5486,7 @@
+     },
+     "run": {
+       "noteTeam": "Conta da equipe · nenhum crédito usado.",
+-      "noteSample": "Amostra grátis · 1 uso. Volta se o vídeo falhar.",
++      "noteSample": "Amostra grátis · {held, plural, one {# uso reservado} other {# usos reservados}}. Usos de templates que falharem são devolvidos.",
+       "noteSampleSettled": "Amostra grátis · {charged} usado(s), {refunded} devolvido(s).",
+       "noteRefunded": "{charged} cobrado(s) · {refunded} de volta pra você (uma peça falhou).",
+       "noteCharged": "{charged} cobrado(s). 4:5 e 1:1 não custam a mais.",
+@@ -5527,6 +5530,8 @@
+       "notEnough": "insuficiente",
+       "refundAi": "Cobre roteiro, rostos, geração e refações. Se uma peça falhar de vez, a parte dela volta.",
+       "refundEdit": "Se falhar, o crédito volta. As versões 4:5 e 1:1 não custam a mais.",
++      "needMoreSample": "{n, plural, one {Falta # uso grátis} other {Faltam # usos grátis}}",
++      "reduceSample": "Selecione menos templates para caber nos seus usos grátis. Seu plano e a leitura ficam salvos.",
+       "needMore": "{n, plural, one {Faltam # crédito} other {Faltam # créditos}}",
+       "saved": "Seu plano e a leitura do anúncio ficam salvos.",
+       "changedTitle": "O custo mudou: agora {to}",
+@@ -5565,7 +5570,11 @@
+         "pov": "Linha do POV",
+         "body": "Texto",
+         "name": "Nome",
+-        "kicker": "Chamada de topo"
++        "kicker": "Chamada de topo",
++        "topic": "Tema",
++        "headline_lead": "Manchete",
++        "headline_highlight": "Destaque da manchete",
++        "dek": "Texto de apoio"
+       },
+       "rule": {
+         "maxChars": "Longo demais pra este template.",
+--- web/src/components/templates/run-screen.tsx (antes desta revisão)
++++ web/src/components/templates/run-screen.tsx
+@@ -96,7 +96,7 @@
+     tpl.pool === null
+       ? t("noteTeam")
+       : tpl.pool === "SAMPLE"
+-        ? tpl.status === "SETTLED" ? t("noteSampleSettled", { charged: tpl.charged, refunded: tpl.refunded }) : t("noteSample")
++        ? tpl.status === "SETTLED" ? t("noteSampleSettled", { charged: tpl.charged, refunded: tpl.refunded }) : t("noteSample", { held: tpl.held })
+         : tpl.status === "SETTLED"
+           ? tpl.refunded ? t("noteRefunded", { charged: label(tpl.charged), refunded: label(tpl.refunded) }) : t("noteCharged", { charged: label(tpl.charged) })
+           : t("noteHeld", { held: label(tpl.held) })
+@@ -343,8 +343,8 @@
+       )}
+       {!tpl.enough && !team ? (
+         <div className="grid gap-2 rounded-btn border border-ink-line bg-ink-2 p-3">
+-          <b>{t("needMore", { n: need })}</b>
+-          <span className="text-xs text-ink-fg-3">{t("saved")}</span>
++          <b>{t(sample ? "needMoreSample" : "needMore", { n: need })}</b>
++          <span className="text-xs text-ink-fg-3">{t(sample ? "reduceSample" : "saved")}</span>
+           <GetCreditsLink className="border-ink-line bg-ink-3 text-ink-fg hover:border-ink-fg" />
+         </div>
+       ) : null}
+@@ -550,7 +550,7 @@
+   )
+ }
+ 
+-const LABEL_KEYS = new Set(["headline", "title", "subtitle", "question", "answer", "caption", "handle", "cta", "primaryText", "pov", "body", "name", "kicker"])
++const LABEL_KEYS = new Set(["headline", "title", "subtitle", "question", "answer", "caption", "handle", "cta", "primaryText", "pov", "body", "name", "kicker", "topic", "dek", "headline_lead", "headline_highlight"])
+ 
+ /** Save on blur (PATCH .../texts, free). 422 TEXT_INVALID shows the rule under the field and keeps what was typed. */
+ function TextField({ batchId, pieceId, item }: { batchId: string; pieceId: string; item: EditableText }) {
+@@ -582,8 +582,12 @@
+   })
+   const id = `txt-${pieceId}-${item.path}`
+   const leaf = item.label.split(".")
+-  const key = leaf[0]
+-  const label = LABEL_KEYS.has(key) ? t(`label.${key}` as never) + (leaf[1] ? ` ${Number(leaf[1]) + 1}` : "") : item.label.replace(/[._]/g, " ")
++  const key = item.label.replaceAll(".", "_")
++  const label = LABEL_KEYS.has(key)
++    ? t(`label.${key}` as never)
++    : LABEL_KEYS.has(leaf[0]) && leaf.length === 2 && /^\d+$/.test(leaf[1])
++      ? `${t(`label.${leaf[0]}` as never)} ${Number(leaf[1]) + 1}`
++      : item.label.replace(/[._]/g, " ")
+   const long = item.maxChars > 70
+   const over = value.length > item.maxChars
+   const commit = () => {
+--- web/src/components/iterate/sample.tsx (antes desta revisão)
++++ web/src/components/iterate/sample.tsx
+@@ -58,9 +58,9 @@
+ }
+ 
+ /** "Free sample · up to 4 variations, no cost" — the line the analysis and the generation show for the sample batch. */
+-export function SampleEyebrow() {
+-  const t = useTranslations("sample")
+-  return <>{t("badge", { n: SAMPLE_MAX_PIECES })}</>
++export function SampleEyebrow({ pieces }: { pieces?: number } = {}) {
++  const t = useTranslations("sample")
++  return <>{pieces == null ? t("badge", { n: SAMPLE_MAX_PIECES }) : t("badgeTemplates", { n: pieces })}</>
+ }
+ 
+ // ───────────── Download (locked) ─────────────
+@@ -94,7 +94,7 @@
+             ))}
+           </section>
+         }
+-        side={<UnlockPanel ref={panelRef} pieces={n} contact={contact} onContact={setContact} />}
++        side={<UnlockPanel ref={panelRef} pieces={n} template={!!batch.template} contact={contact} onContact={setContact} />}
+       />
+       {/* review 29/10 F6: one lime per screen and no dead buttons in the bar; the hint says what opens on unlock */}
+       <IterActionBar hint={t("lockedActions")}>
+@@ -170,9 +170,9 @@
+  * sample. The CTA opens "Talk to us" (P2): the e-mail to copy and the account id the team needs to unlock it.
+  */
+ export function UnlockPanel({
+-  pieces, reason = "locked", contact, onContact, ref, className,
++  pieces, reason = "locked", contact, onContact, ref, className, template = false,
+ }: {
+-  pieces: number; reason?: "locked" | "sample_used"; contact: boolean; onContact: (v: boolean) => void
++  pieces: number; template?: boolean; reason?: "locked" | "sample_used"; contact: boolean; onContact: (v: boolean) => void
+   ref?: React.Ref<HTMLElement>; className?: string
+ }) {
+   const t = useTranslations("sample")
+@@ -192,7 +192,7 @@
+             {(["li1", "li2", "li3"] as const).map((k) => (
+               <li key={k} className="flex items-start gap-2">
+                 <span aria-hidden="true" className="mt-1.5 size-[7px] flex-none rounded-[2px] bg-brand" />
+-                {t(`panel.${k}`)}
++                {t(template && k === "li3" ? "panel.li3Templates" : `panel.${k}`)}
+               </li>
+             ))}
+           </ul>
+@@ -210,7 +210,7 @@
+         </b>
+         <span className="text-xs text-ink-fg-2">{t("panel.aiBody")}</span>
+       </div>
+-      <span className="text-xs text-ink-fg-2">{t("panel.note", { n: SAMPLE_MAX_PIECES })}</span>
++      <span className="text-xs text-ink-fg-2">{template ? t("panel.noteTemplates") : t("panel.note", { n: SAMPLE_MAX_PIECES })}</span>
+     </aside>
+   )
+ }
+--- web/src/components/iterate/generate-screen.tsx (antes desta revisão)
++++ web/src/components/iterate/generate-screen.tsx
+@@ -56,7 +56,7 @@
+         main={
+           <>
+             <Head
+-              eyebrow={locked ? <SampleEyebrow /> : settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
++              eyebrow={locked ? <SampleEyebrow pieces={batch.template ? total : undefined} /> : settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
+               title={allReady ? t("titleDone", { total }) : settled ? t("titleSettled", { ready: s.ready, total }) : t("titleRunning", { total, ready: s.ready })}
+             />
+             <CaptionsBadge batch={batch} />

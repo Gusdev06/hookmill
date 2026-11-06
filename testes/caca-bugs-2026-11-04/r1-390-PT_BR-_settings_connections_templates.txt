@@ -1,0 +1,19 @@
+HM
+Q
+QA Alfa
+Ilimitado
+Configurações
+›
+Meta
+›
+Templates de publicação
+Templates de publicação
+Mock Store (USD) (act_mock_1)
+Importar de uma campanha
+Novo template
+
+Defina uma vez como o HookMill cria campanhas, conjuntos e anúncios na sua conta. Todo "Enviar pra Meta" usa o template padrão, a menos que você escolha outro.
+
+Nenhum template de publicação ainda
+
+Crie do zero ou importe as configurações de uma campanha que já roda. O primeiro vira o padrão.

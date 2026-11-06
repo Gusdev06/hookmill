@@ -17,7 +17,8 @@ import { IMAGE_LIMITS, captureImages, imageTrigger, type CapturedImage, type Ima
 import { LOGIN_WALL_CHARS, MIN_TEXT_CHARS, NO_TEXT_DETAIL, RENDER_BELOW_CHARS, fetchHtmlPage, loginWall, mergeRendered, type HttpPage, type PageText } from './pagina';
 import type { FunnelWalker, WalkResult } from './caminhante';
 import type { RenderPageOptions, RenderedPage } from './render-pagina';
-import { brandColorOf, type BrandColorPick } from './cor-marca';
+import { brandColorOf, secondColorOf, type BrandColorPick, type SecondColorPick } from './cor-marca';
+import type { LogoPick } from './logo-marca';
 import { pickCandidates, readSubpages, type SubpageOptions } from './subpaginas';
 
 /** §1: relógio da leitura inteira (a+b+c+d). */
@@ -62,6 +63,10 @@ export interface OfferReading {
   walk?: { screens: number; stoppedBy: WalkResult['stoppedBy']; actions: number; ms: number; blocked: number } | null;
   /** resultado-v1 (A2): cor de destaque (CTA renderizado > theme-color); null = não achou */
   brandColor?: BrandColorPick | null;
+  /** lacunas-home-eddy-v1 §2: logo do HTML; null = não achou */
+  logo?: LogoPick | null;
+  /** lacunas-home-eddy-v1 §2: 2ª cor de destaque, diferente da brandColor; null = não achou */
+  secondaryColor?: SecondColorPick | null;
 }
 
 /** Teto da sonda de cor depois que a leitura acabou (ela roda em paralelo; aqui só espera o resto). */
@@ -174,7 +179,13 @@ export async function readOffer(url: string, opts: ReadOfferOptions, onStage: (s
   if (walk) log.log(`caminhante ${page.url}: ${walk.screens} telas, ${walk.actions} ações, parou por ${walk.stoppedBy}, ${walk.blocked} requisições barradas, ${walk.ms} ms`);
   const probed = probe ? await Promise.race([probe, new Promise<null>((r) => setTimeout(() => r(null), COLOR_PROBE_WAIT_MS).unref?.())]) : null;
   const brandColor = brandColorOf(ctaFromRender ?? probed, http.themeColor ?? null);
-  return { page: { ...page, readMode }, images, imageReason, readMs: now() - start, walk, brandColor };
+  // lacunas-home-eddy-v1 §2: 2ª cor = outro grupo dos CTAs (só com render) → theme-color → variáveis CSS de marca; logo do HTML
+  const secondaryColor = secondColorOf(brandColor?.hex, [
+    ...(rendered?.ctaColors ?? []).map((hex) => ({ hex, source: 'cta' as const })),
+    { hex: http.themeColor ?? null, source: 'theme_color' as const },
+    ...(http.cssColors ?? []).map((hex) => ({ hex, source: 'css' as const })),
+  ]);
+  return { page: { ...page, readMode }, images, imageReason, readMs: now() - start, walk, brandColor, logo: http.logo ?? null, secondaryColor };
 }
 
 function stripHttp(h: HttpPage): PageText {

@@ -105,17 +105,18 @@ function iou(a: Rect, b: Rect): number {
 /** Saídas cruas do YuNet → rostos em px da entrada 640x640, score ≥ minScore, NMS 0,3, maior score primeiro. */
 export function decodeYunet(out: Record<string, Float32Array>, minScore: number, nmsIou = 0.3): Face[] {
   const cand: Face[] = [];
+  const { min, max, sqrt, exp } = Math; // 8400 âncoras por amostra: sem ler o global `Math` em cada uma (lento no Jest, F3 01/11)
   for (const stride of [8, 16, 32]) {
     const cols = YUNET_SIZE / stride, rows = YUNET_SIZE / stride;
     const cls = out[`cls_${stride}`], obj = out[`obj_${stride}`], bb = out[`bbox_${stride}`], kp = out[`kps_${stride}`];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const i = r * cols + c;
-        const cs = Math.min(1, Math.max(0, cls[i])), os = Math.min(1, Math.max(0, obj[i]));
-        const score = Math.sqrt(cs * os);
+        const cs = min(1, max(0, cls[i])), os = min(1, max(0, obj[i]));
+        const score = sqrt(cs * os);
         if (score < minScore) continue;
         const cx = (c + bb[i * 4]) * stride, cy = (r + bb[i * 4 + 1]) * stride;
-        const w = Math.exp(bb[i * 4 + 2]) * stride, h = Math.exp(bb[i * 4 + 3]) * stride;
+        const w = exp(bb[i * 4 + 2]) * stride, h = exp(bb[i * 4 + 3]) * stride;
         const kps = kp ? Array.from({ length: 10 }, (_, j) => (kp[i * 10 + j] + (j % 2 ? r : c)) * stride) : undefined;
         cand.push({ box: { x: cx - w / 2, y: cy - h / 2, w, h }, score, kps });
       }
@@ -142,11 +143,12 @@ export function alignFace(bgr: Uint8Array, w: number, h: number, kps: number[]):
   }
   const a = num1 / den, b = num2 / den, n2 = a * a + b * b;
   const out = new Float32Array(3 * 112 * 112);
+  const floor = Math.floor;
   for (let v = 0; v < 112; v++) for (let u = 0; u < 112; u++) {
     // destino → origem: s = R^-1 (d - md) + ms
     const qx = u - dx, qy = v - dy;
     const x = (a * qx + b * qy) / n2 + sx, y = (-b * qx + a * qy) / n2 + sy;
-    const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+    const x0 = floor(x), y0 = floor(y), fx = x - x0, fy = y - y0;
     for (let c = 0; c < 3; c++) {
       const get = (xx: number, yy: number) => (xx < 0 || yy < 0 || xx >= w || yy >= h ? 0 : bgr[(yy * w + xx) * 3 + c]);
       const val = (1 - fy) * ((1 - fx) * get(x0, y0) + fx * get(x0 + 1, y0)) + fy * ((1 - fx) * get(x0, y0 + 1) + fx * get(x0 + 1, y0 + 1));

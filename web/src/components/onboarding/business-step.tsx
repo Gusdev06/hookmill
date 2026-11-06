@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Icon } from "@/components/icon"
-import { ExtractChecklist, hostOf, ReadFrom, useOfferExtract } from "@/components/offer-extract"
+import { ExtractStatus, hostOf, ReadFrom, useOfferExtract } from "@/components/offer-extract"
 import { choiceCardClass } from "@/components/ui/choice-card"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { cn } from "@/lib/utils"
@@ -24,8 +24,6 @@ type Ctx = ReturnType<typeof useOnboarding>
 const RESULT_TYPES: ResultType[] = ["PURCHASE", "LEAD", "MESSAGE", "APPOINTMENT", "SIGNUP", "SUBSCRIPTION", "APP_INSTALL", "OTHER"]
 /** review 29/10 L2: the five common ones as chips; "More…" opens the rest (and Other). */
 const MAIN_RESULT_TYPES = RESULT_TYPES.slice(0, 5)
-/** Fields the site reading can pre-fill (A2); the "from your site" tag shows while the value is still the suggested one. */
-type SiteKey = "name" | "industry" | "market" | "brandColor" | "result" | "code"
 const DEFAULT_NAMES = new Set(["", "New client", "Workspace"])
 const BRIEF_KEYS: (keyof OfferBrief)[] = ["what", "promise", "offerAndPrice", "proof", "cta", "audience", "pains"]
 const CODE_RE = /^[A-Z0-9]{2,6}$/
@@ -79,8 +77,6 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const [goal, setGoal] = useState<ResultType | null>(ws.resultType ?? null)
   const [resultOther, setResultOther] = useState(ws.resultTypeOther ?? "")
   const [code, setCode] = useState(ws.shortCode)
-  // A2: what the last reading filled (key → suggested value); the tag goes away once the person edits the field
-  const [fromSite, setFromSite] = useState<Partial<Record<SiteKey, string>>>({})
   const [codeTouched, setCodeTouched] = useState(false)
   const [locale, setLocale] = useState<UiLocale>(ws.uiLocale)
   const [brandColor, setBrandColor] = useState(ws.brandColor ?? "")
@@ -110,32 +106,24 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
   const prefill = (out: OfferExtractOutput) => {
     if (!canEdit) return
     const b: BusinessSuggestion | undefined = out.business
-    const filled: Partial<Record<SiteKey, string>> = {}
-    const take = (key: SiteKey, empty: boolean, value: string | null | undefined, set: (v: string) => void) => {
-      if (!empty || !value) return
-      set(value)
-      filled[key] = value
+    // 31/10: no "from your site" tag on the fields any more, only the pre-fill
+    const take = (empty: boolean, value: string | null | undefined, set: (v: string) => void) => {
+      if (empty && value) set(value)
     }
-    take("name", DEFAULT_NAMES.has(name.trim()), out.name?.slice(0, 80), setName)
-    take("industry", !industry.trim(), b?.industry, setIndustry)
-    take("market", !market.trim(), b?.market, setMarket)
-    take("brandColor", !brandColor.trim(), b?.brandColor, setBrandColor)
-    take("result", goal === null, b?.resultType, (v) => {
+    take(DEFAULT_NAMES.has(name.trim()), out.name?.slice(0, 80), setName)
+    take(!industry.trim(), b?.industry, setIndustry)
+    take(!market.trim(), b?.market, setMarket)
+    take(!brandColor.trim(), b?.brandColor, setBrandColor)
+    take(goal === null, b?.resultType, (v) => {
       setGoal(v as ResultType)
       if (!MAIN_RESULT_TYPES.includes(v as ResultType)) setMoreTypes(true)
     })
-    take("code", !codeTouched && (!ws.onboarding.completedAt || !CODE_RE.test(code)), b?.shortCode, setCode)
-    setFromSite(filled)
+    take(!codeTouched && (!ws.onboarding.completedAt || !CODE_RE.test(code)), b?.shortCode, setCode)
   }
   const prefillRef = useRef(prefill)
   useEffect(() => {
     prefillRef.current = prefill
   })
-  const siteTag = (key: SiteKey, current: string | null) =>
-    fromSite[key] !== undefined && fromSite[key] === current ? (
-      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-ink">{t("business.fromSite")}</span>
-    ) : null
-
   // apply each finished reading once
   const applied = useRef<unknown>(null)
   const { result } = ex
@@ -221,8 +209,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         {!reading && !found && !readFailed ? <p className="m-0 text-[13px] text-fg-3">{t("business.readHint")}</p> : null}
         {reading ? (
           <div className="flex flex-col gap-2 rounded-lg bg-card-2 p-3.5">
-            <ExtractChecklist job={ex.job} url={site} />
-            {apply.isPending ? <span className="text-[13px] text-fg-2">{t("business.saving")}</span> : null}
+            <ExtractStatus job={ex.job} label={apply.isPending ? t("business.saving") : t("business.readingSite")} />
           </div>
         ) : null}
         {found && !reading ? (
@@ -264,17 +251,11 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       <Card title={t("business.details")}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3.5 tablet:grid-cols-2">
           <div className="grid min-w-0 content-start gap-1.5">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="ob-name">{t("business.name")}</Label>
-              {siteTag("name", name)}
-            </div>
+            <Label htmlFor="ob-name">{t("business.name")}</Label>
             <Input id="ob-name" value={name} maxLength={80} disabled={!canEdit} aria-invalid={!nameOk && name !== ""} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid min-w-0 content-start gap-1.5">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="ob-code">{t("business.code")}</Label>
-              {siteTag("code", code)}
-            </div>
+            <Label htmlFor="ob-code">{t("business.code")}</Label>
             <Input
               id="ob-code"
               value={code}
@@ -299,26 +280,17 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
             </span>
           </div>
           <div className="grid min-w-0 content-start gap-1.5">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="ob-industry">{t("business.industry")}</Label>
-              {siteTag("industry", industry)}
-            </div>
+            <Label htmlFor="ob-industry">{t("business.industry")}</Label>
             <Input id="ob-industry" value={industry} maxLength={80} disabled={!canEdit} onChange={(e) => setIndustry(e.target.value)} placeholder={t("business.industryPh")} />
           </div>
           <div className="grid min-w-0 content-start gap-1.5">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="ob-market">{t("business.market")}</Label>
-              {siteTag("market", market)}
-            </div>
+            <Label htmlFor="ob-market">{t("business.market")}</Label>
             <Input id="ob-market" value={market} maxLength={80} disabled={!canEdit} onChange={(e) => setMarket(e.target.value)} placeholder={t("business.marketPh")} />
           </div>
         </div>
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className="mb-2 flex items-center gap-2 p-0 text-[13px] font-semibold">
-            {t("business.resultLegend")}
-            {siteTag("result", goal)}
-          </legend>
+          <legend className="mb-2 p-0 text-[13px] font-semibold">{t("business.resultLegend")}</legend>
           <div className="flex flex-wrap gap-2">
             {(moreTypes ? RESULT_TYPES : MAIN_RESULT_TYPES).map((rt) => (
               <button
@@ -385,7 +357,7 @@ export function BusinessStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
                 </Select>
               </div>
 
-              <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} badge={siteTag("brandColor", brandColor)} />
+              <BrandColorField id="ob-brand-color" value={brandColor} onChange={setBrandColor} disabled={!canEdit} />
 
               <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
                 <legend className="mb-2 p-0 text-[13px] font-semibold">{t("business.cpaLegend")}</legend>

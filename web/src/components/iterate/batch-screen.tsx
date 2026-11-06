@@ -1,7 +1,8 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { isApiError } from "@/lib/api/errors"
 import type { IterateBatch } from "@/lib/api/types"
@@ -10,6 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { useIterate } from "@/hooks/use-iterate"
+import { templateRunHref } from "@/lib/routes"
 import { AnalyzeScreen } from "./analyze-screen"
 import { DownloadScreen } from "./download-screen"
 import { GenerateScreen } from "./generate-screen"
@@ -22,7 +24,13 @@ import { Card, Cols, IterFlow, IterWrap } from "./parts"
 export function BatchScreen({ id }: { id: string }) {
   const q = useIterate(id)
   const view = useSearchParams().get("view")
-  if (q.isPending) return <BatchSkeleton />
+  const router = useRouter()
+  // templates-creditos-v1: a batch born from a template lives in /templates/run/:id (its plan carries the credits and the texts)
+  const isTemplate = !!q.data?.template
+  useEffect(() => {
+    if (isTemplate) router.replace(templateRunHref(id) + (view ? `?view=${view}` : ""))
+  }, [isTemplate, id, view, router])
+  if (q.isPending || isTemplate) return <BatchSkeleton />
   if (q.isError && !q.data) return <BatchError error={q.error} onRetry={() => q.refetch()} />
   const b = q.data
   return pick(b, view)
@@ -37,7 +45,7 @@ function pick(b: IterateBatch, view: string | null) {
 }
 
 /** Loading: Skeleton in the same layout (spec §4.1 "Carregando a tela"). */
-function BatchSkeleton() {
+export function BatchSkeleton() {
   return (
     <IterWrap>
       <IterFlow current="analyze" />
@@ -74,7 +82,7 @@ function BatchSkeleton() {
   )
 }
 
-function BatchError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+export function BatchError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const t = useTranslations("iterate")
   const errorMessage = useErrorMessage()
   const notFound = isApiError(error) && error.status === 404

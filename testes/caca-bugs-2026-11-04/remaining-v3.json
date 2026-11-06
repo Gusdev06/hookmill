@@ -1,0 +1,330 @@
+[
+  {
+    "single": {
+      "id": "cmw1mo96g007i22a18l9gro95",
+      "status": "LAUNCHED",
+      "phase": "download",
+      "offer": {
+        "id": "cmw1lzn97000f226yzski1cc8",
+        "name": "Hunt sleep 🧪",
+        "language": "en"
+      },
+      "codeLanguage": "EN",
+      "source": {
+        "championId": "cmw1mo96e007g22a190nw6a63",
+        "name": "curto-6s",
+        "fromLibrary": false,
+        "fromMeta": false,
+        "durationSec": 6,
+        "width": 720,
+        "height": 1280,
+        "ratioLabel": "9:16",
+        "cuts": 0,
+        "thumbnail": {
+          "id": "cmw1mobyf008822a1rtbtxroc",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_frame/ac124568-1c1b-46c2-8cec-35214f62ef1a.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044004Z&X-Amz-Expires=21600&X-Amz-Signature=8965e75f0b02726dbbb84070a6a3fc8f326ef01bc523410fb885dca0ce962292&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "image/jpeg"
+        },
+        "video": {
+          "id": "cmw1mo92x007e22a1p511hlaz",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_video/ecf3a2aa-90d3-49f7-821d-5d6858c55b8e.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044004Z&X-Amz-Expires=21600&X-Amz-Signature=4c00d487387b20a48bf6404bbaac51556f1c8e3c74ba72d510fb7292c9f34a3b&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "video/mp4",
+          "width": 720,
+          "height": 1280,
+          "durationSec": 6
+        }
+      },
+      "analysis": {
+        "stage": null,
+        "step": 3,
+        "progress": 100,
+        "etaSec": null,
+        "checklist": [
+          {
+            "key": "decode",
+            "status": "done"
+          },
+          {
+            "key": "transcribe",
+            "status": "done"
+          },
+          {
+            "key": "cuts",
+            "status": "done"
+          },
+          {
+            "key": "edit_map",
+            "status": "done"
+          },
+          {
+            "key": "blocks",
+            "status": "done"
+          },
+          {
+            "key": "audience",
+            "status": "done"
+          },
+          {
+            "key": "offer",
+            "status": "done"
+          },
+          {
+            "key": "proof",
+            "status": "done"
+          },
+          {
+            "key": "page",
+            "status": "done"
+          },
+          {
+            "key": "planning",
+            "status": "done"
+          }
+        ]
+      },
+      "insight": {
+        "why": [
+          {
+            "key": "hook",
+            "ref": "Poor sleep; back pain; heat at night",
+            "text": "The opening names the pain in the first seconds.",
+            "refSource": "brain",
+            "brainField": "pains"
+          },
+          {
+            "key": "proof",
+            "ref": "Verified customer reviews. Tested for durability.",
+            "text": "Proof shows up before the ask.",
+            "refSource": "brain",
+            "brainField": "proof"
+          },
+          {
+            "key": "cta",
+            "ref": "$500, 30-day trial",
+            "text": "One clear action at the end.",
+            "refSource": "brain",
+            "brainField": "offerAndPrice"
+          }
+        ],
+        "kept": [
+          "Spoken hook",
+          "Closing CTA"
+        ],
+        "flags": {
+          "brainEmpty": false,
+          "shortVideo": true,
+          "smallBatch": true,
+          "pageCaptured": true,
+          "metaConnected": false
+        },
+        "swaps": [],
+        "blocks": [
+          {
+            "fn": "hook",
+            "kept": true,
+            "index": 0,
+            "label": "Hook",
+            "endSec": 2.094,
+            "startSec": 0
+          },
+          {
+            "fn": "mechanism",
+            "kept": false,
+            "index": 1,
+            "label": "Body",
+            "endSec": 3.248,
+            "startSec": 2.094
+          },
+          {
+            "fn": "cta",
+            "kept": true,
+            "index": 2,
+            "label": "CTA",
+            "endSec": 6,
+            "startSec": 3.248
+          }
+        ],
+        "captionsAuto": true,
+        "headlineBlocked": null
+      },
+      "error": null,
+      "sample": false,
+      "template": {
+        "runId": "cmw1mo96h007k22a1lymtocy4",
+        "slug": "meme-pov",
+        "name": "Meme POV",
+        "pack": false,
+        "tier": "EDIT",
+        "status": "RESERVED",
+        "cap": null,
+        "lines": [
+          {
+            "key": "FRAME:meme",
+            "slug": "meme-pov",
+            "name": "Meme POV",
+            "tier": "EDIT",
+            "credits": 1,
+            "pieces": 1,
+            "state": "held",
+            "delivered": null
+          }
+        ],
+        "quote": 0,
+        "balance": null,
+        "after": null,
+        "enough": true,
+        "pool": null,
+        "held": 1,
+        "charged": 0,
+        "refunded": 0,
+        "selection": null,
+        "fit": {
+          "level": "ok",
+          "reason": null
+        },
+        "texts": []
+      },
+      "quizEnabled": false,
+      "answers": null,
+      "selectionInfo": {
+        "goal": "both",
+        "goalReasonKey": "auto_default",
+        "stretchMax": 4
+      },
+      "notSelected": [],
+      "leftOut": [],
+      "pieces": [
+        {
+          "id": "cmw1moenj008r22a11231ub1l",
+          "index": 0,
+          "type": "FRAME",
+          "code": "FRAME-MEME",
+          "axis": "DIVERSITY",
+          "change": "Inside the meme frame",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1moflj008v22a10jldasi9",
+          "poster": {
+            "id": "cmw1mogu6009022a1o77uxwb8",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/f80c27a5-beb8-4450-b393-65a070c6a1cb.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044004Z&X-Amz-Expires=21600&X-Amz-Signature=41a435c219f29505788996c6035b231b7c17880442b8f736bd18404aa84f2a75&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_FRAME-MEME_2_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/dd6d3db4-00c4-4efa-a35d-3cb717cf6332.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044004Z&X-Amz-Expires=21600&X-Amz-Signature=59c153556e6e2d7a6e9764e0c7ffa985643d64815a5443def015b0cf03e7b670&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_FRAME-MEME_2_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 10514,
+              "durationSec": 6
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "meme",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        }
+      ],
+      "summary": {
+        "pieces": 1,
+        "stretch": 0,
+        "newAudience": 1,
+        "files": 1,
+        "ready": 1,
+        "failed": 0,
+        "leftOut": 0,
+        "renderEtaSec": 0,
+        "videoCreditsUsd": 0
+      },
+      "cost": {
+        "analysisEstimateUsd": 0.8247,
+        "analysisUsd": 0,
+        "generateEstimateUsd": null,
+        "imagesUsd": 0,
+        "renderUsd": 0,
+        "totalUsd": 0
+      },
+      "zip": {
+        "status": "none",
+        "fileName": "QA_1104_CURTO-6S_variations.zip",
+        "url": null,
+        "sizeBytes": null,
+        "pieces": 1,
+        "files": 1,
+        "folders": {
+          "stretch": "1-stretch-its-life",
+          "newAudience": "2-new-audience"
+        }
+      },
+      "downloadedAt": null,
+      "createdBy": {
+        "id": "qa_user_dono_a",
+        "name": "QA Dono Alfa",
+        "initials": "QA"
+      },
+      "createdAt": "2026-11-04T04:39:54.232Z",
+      "launchedAt": "2026-11-04T04:40:02.549Z"
+    }
+  },
+  {
+    "name": "single-upload",
+    "ok": true
+  },
+  {
+    "name": "meta-create-edit",
+    "ok": true
+  }
+]

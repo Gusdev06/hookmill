@@ -1,0 +1,255 @@
+[
+  {
+    "path": "/workspace",
+    "input": {
+      "name": null
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "maxLength"
+          },
+          {
+            "field": "name",
+            "rule": "minLength"
+          },
+          {
+            "field": "name",
+            "rule": "isString"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {
+      "uiLocale": null
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "uiLocale",
+            "rule": "isIn"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {
+      "name": "   "
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "minLength"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {
+      "name": "\n\t"
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "minLength"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {
+      "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "maxLength"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {},
+    "status": 200
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "name": null
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "maxLength"
+          },
+          {
+            "field": "name",
+            "rule": "minLength"
+          },
+          {
+            "field": "name",
+            "rule": "isString"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "uiLocale": null
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "uiLocale",
+            "rule": "isIn"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "name": "   "
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "minLength"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "name": "\n\t"
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "minLength"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "maxLength"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {},
+    "status": 200
+  },
+  {
+    "browserStatus": 400,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "name",
+              "rule": "maxLength"
+            },
+            {
+              "field": "name",
+              "rule": "minLength"
+            },
+            {
+              "field": "name",
+              "rule": "isString"
+            }
+          ]
+        }
+      }
+    }
+  }
+]

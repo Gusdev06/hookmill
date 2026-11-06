@@ -1,10 +1,12 @@
 import { delay, http, HttpResponse } from "msw"
 import { API_URL } from "@/lib/api/client"
 import type {
-  BrainCounts, BrainEdge, BrainEdgeKind, BrainGraph, BrainNeighbor, BrainNode, BrainNodeDetail, BrainNodeField, BrainNodeMeta, BrainOpenTarget, CreativeState, Engine, Offer,
+  BrainCounts, BrainEdge, BrainEdgeKind, BrainGraph, BrainNeighbor, BrainNode, BrainNodeDetail, BrainNodeField, BrainNodeMeta, BrainOfferFieldKey, BrainOpenTarget, BrandAsset, CreativeState, Engine,
+  FieldOrigin, Offer, OfferReadMeta, PageRole, ReadPageRef,
 } from "@/lib/api/types"
 import { BRAIN_KINDS as BRAIN_NODE_KINDS, CATEGORY_OF as BRAIN_CATEGORY_OF } from "@/lib/brain-graph"
 import { mockWorkspaceOf } from "./auth"
+import { kitOf } from "./handlers-brand-kit"
 import { db } from "./db"
 import { metaOf, selectedOf } from "./handlers-meta"
 import { scenario } from "./scenario"
@@ -50,6 +52,66 @@ function hash(s: string) {
 }
 const cut = (s: string | null | undefined, n: number) => (s ? (s.length > n ? s.slice(0, n - 1) + "…" : s) : null)
 
+// ───── brain-preenchido-v1 (04/11): the same pure rules as api brain.montagem (dividirItens §2, normalizaUrl §4)
+const filled = (v: string | null | undefined): v is string => !!v && v.trim().length > 0
+const MAX_ITEMS = 8
+const MAX_SOURCES = 12
+const MAX_SOURCES_PER_OFFER = 6
+const MAX_BRAND_FILES = 8
+const OFFER_FIELDS: readonly BrainOfferFieldKey[] = ["what", "promise", "offerAndPrice", "cta"]
+const SENTENCE = /(?<=[.!?…])\s+(?=[\p{Lu}\p{N}"“'¿¡])/u
+const INLINE_BULLET = /\s+(?:•|-|–|—)\s+|•/
+export function splitItems(text: string | null | undefined, max = MAX_ITEMS): string[] {
+  if (!filled(text)) return []
+  const t = text.replace(/\r\n/g, "\n")
+  const lines = t.split("\n").filter((l) => l.trim())
+  const bullets = (t.match(/•|\s(?:-|–|—)\s/g) ?? []).length
+  const raw = lines.length >= 2 ? lines : t.includes(";") ? t.split(";") : bullets >= 2 ? t.split(INLINE_BULLET) : t.split(SENTENCE)
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const c of raw) {
+    const v = c.replace(/^\s*(?:[-*•·–—]|\d{1,2}[.)])\s+/, "").trim().replace(/[;,]+$/, "").trim()
+    if (v.length < 3 || seen.has(norm(v))) continue
+    seen.add(norm(v))
+    out.push(v)
+  }
+  return out.length ? out.slice(0, max) : [cut(text, 200)!]
+}
+/** host without www. + path without the trailing "/" + query; null = not a URL */
+function normUrl(url: string): { key: string; host: string } | null {
+  try {
+    const x = new URL(url)
+    if (x.protocol !== "http:" && x.protocol !== "https:") return null
+    const host = x.hostname.toLowerCase().replace(/^www\./, "")
+    return { key: host + x.pathname.replace(/\/+$/, "") + x.search, host }
+  } catch {
+    return null
+  }
+}
+/**
+ * The sample client's offers don't carry a reading in the fixtures, so the mock gives the first one "main page + 2 quiz
+ * steps" and the others their main page (example data, the shape of briefing-leitura-v2 D5).
+ */
+function readMetaOf(o: Offer, i: number): OfferReadMeta | null {
+  if (o.readMeta) return o.readMeta
+  if (!o.sourceUrl) return null
+  const base = o.sourceUrl.replace(/\/+$/, "")
+  const pages: ReadPageRef[] =
+    i === 0
+      ? [
+          { url: `${base}/`, role: "main", via: "http", chars: 8420 },
+          { url: `${base}/quiz/2`, role: "quiz_step", via: "rendered", chars: 1180 },
+          { url: `${base}/quiz/3`, role: "quiz_step", via: "rendered", chars: 960 },
+        ]
+      : [{ url: `${base}/`, role: "main", via: "http", chars: 5200 + i * 700 }]
+  const main: FieldOrigin[] = [{ role: "main", url: `${base}/` }]
+  return {
+    readMode: "rendered", pages, imagesRead: i === 0 ? [{ index: 1, src: `${base}/hero.png`, alt: null, kind: "img", widthPx: 1200, heightPx: 800 }] : [],
+    fieldOrigins: { what: main, promise: main, cta: main, offerAndPrice: i === 0 ? [{ role: "quiz_step", url: `${base}/quiz/3` }] : main },
+    costUsd: 0.02, readAt: new Date(Date.now() - (i + 2) * 86_400_000).toISOString(),
+  }
+}
+
 function build(req: Request): Built {
   const ref = mockWorkspaceOf(req.headers.get("Authorization"))
   const fresh = ref.id !== db.workspace.id || scenario() === "empty"
@@ -78,9 +140,48 @@ function build(req: Request): Built {
 
   add({ ...base, id: `workspace:${wid}`, kind: "workspace", refId: wid, label: w.name, weight: 1, meta: { kind: "workspace" } }, [f("workspace.name", w.name)])
   const center = `workspace:${wid}`
-  if (w.businessType || w.industry || w.market || fresh) {
+  const offers: Offer[] = fresh ? db.offers.slice(0, 1) : db.offers
+
+  // brain-preenchido-v1 §1/§3: brand kit (logo, demo videos, the 8 newest files) and the sources (website + pages read)
+  const kit = scenario() === "empty" ? { logo: null, files: [], demoVideos: [] } : kitOf(wid)
+  const assets: BrandAsset[] = [...(kit.logo ? [kit.logo] : []), ...kit.demoVideos.toReversed(), ...kit.files.toReversed().slice(0, MAX_BRAND_FILES)]
+  const website = w.websiteUrl ?? (wid === db.workspace.id && !fresh ? (offers[0]?.sourceUrl ?? null) : null)
+  type Src = { id: string; url: string; host: string; isWebsite: boolean; roles: PageRole[]; offers: string[]; readAt: string | null; via: string | null; chars: number | null }
+  const sources = new Map<string, Src>()
+  const pagesOf = new Map<string, string[]>()
+  const source = (url: string, page: ReadPageRef | null, offerId: string | null, readAt: string | null) => {
+    const k = normUrl(url)
+    if (!k) return null
+    const id = `source:${hash(k.key).slice(0, 12)}`
+    let src = sources.get(id)
+    if (!src) {
+      if (sources.size >= MAX_SOURCES) return null
+      src = { id, url, host: k.host, isWebsite: !page, roles: [], offers: [], readAt: null, via: page?.via ?? null, chars: page?.chars ?? null }
+      sources.set(id, src)
+    }
+    if (page && !src.roles.includes(page.role)) src.roles.push(page.role)
+    if (page) {
+      src.via ??= page.via
+      src.chars ??= page.chars
+    }
+    if (offerId && !src.offers.includes(offerId)) src.offers.push(offerId)
+    if (readAt && (!src.readAt || readAt > src.readAt)) src.readAt = readAt
+    return id
+  }
+  if (website) source(website, null, null, null)
+  const readMetas = new Map(offers.map((o, i) => [o.id, fresh ? (o.readMeta ?? null) : readMetaOf(o, i)]))
+  for (const o of offers) {
+    const rm = readMetas.get(o.id)
+    if (!rm) continue
+    const pages = [...rm.pages].sort((a, b) => Number(b.role === "main") - Number(a.role === "main")).slice(0, MAX_SOURCES_PER_OFFER)
+    pagesOf.set(o.id, pages.map((pg) => source(pg.url, pg, o.id, rm.readAt)).filter((x): x is string => !!x))
+  }
+
+  if (w.businessType || w.industry || w.market || fresh || assets.length > 0 || sources.size > 0) {
+    const firstHost = [...sources.values()][0]?.host
+    const bizLabel = w.industry || w.market ? [w.industry ?? "Online business", w.market].filter(Boolean).join(" · ") : fresh ? "Online business" : (firstHost ?? w.name)
     add(
-      { ...base, id: `business:${wid}`, kind: "business", refId: wid, label: [w.industry ?? "Online business", w.market].filter(Boolean).join(" · "), summary: w.websiteUrl ?? null, weight: 0.5, meta: { kind: "business", setupStep: 1 } },
+      { ...base, id: `business:${wid}`, kind: "business", refId: wid, label: cut(bizLabel, 80)!, summary: w.websiteUrl ?? null, weight: 0.5, meta: { kind: "business", setupStep: 1 } },
       [f("business.businessType", w.businessType ?? "ONLINE_STORE"), f("business.industry", w.industry ?? "Online business"), f("business.market", w.market ?? "US"), f("business.websiteUrl", w.websiteUrl)],
       { route: "setup", step: 1 }
     )
@@ -96,7 +197,6 @@ function build(req: Request): Built {
     link(center, `goal:${wid}`, "part_of")
   }
 
-  const offers: Offer[] = fresh ? db.offers.slice(0, 1) : db.offers
   const creativesOf = new Map<string, number>()
   const winnersOf = new Map<string, number>()
   for (const o of offers) {
@@ -110,17 +210,19 @@ function build(req: Request): Built {
     add(
       { ...base, id: oid, kind: "offer", refId: o.id, label: cut(o.name, 80)!, summary: cut(o.promise, 200), weight: Math.max(0.4, (creativesOf.get(o.id) ?? 0) / maxC),
         meta: { kind: "offer", setupStep: 3, creatives: creativesOf.get(o.id) ?? 0, winners: winnersOf.get(o.id) ?? 0 } },
-      [f("offer.name", o.name), f("offer.kind", o.kind), f("offer.language", o.language), f("offer.what", o.what), f("offer.promise", o.promise), f("offer.offerAndPrice", o.offerAndPrice), f("offer.cta", o.cta), f("offer.creatives", creativesOf.get(o.id) ?? 0), f("offer.winners", winnersOf.get(o.id) ?? 0)],
+      [f("offer.name", o.name), f("offer.kind", o.kind), f("offer.language", o.language), f("offer.what", o.what), f("offer.promise", o.promise), f("offer.offerAndPrice", o.offerAndPrice), f("offer.cta", o.cta), f("offer.creatives", creativesOf.get(o.id) ?? 0), f("offer.winners", winnersOf.get(o.id) ?? 0), f("offer.imagesRead", readMetas.get(o.id)?.imagesRead.length ?? null)],
       { route: "offer", id: o.id }
     )
     link(center, oid, "part_of")
-    if (o.audience) {
-      add({ ...base, id: `audience:${o.id}`, kind: "audience", refId: o.id, label: cut(o.audience, 60)!, summary: cut(o.pains, 200), weight: 0.5, meta: { kind: "audience", setupStep: 4 } },
+    const pains = splitItems(o.pains)
+    const proofs = splitItems(o.proof)
+    if (filled(o.audience) || pains.length) {
+      add({ ...base, id: `audience:${o.id}`, kind: "audience", refId: o.id, label: cut(filled(o.audience) ? o.audience : o.name, 80)!, summary: cut(o.pains, 200), weight: 0.5, meta: { kind: "audience", setupStep: 4 } },
         [f("offer.audience", o.audience), f("offer.pains", o.pains)], { route: "setup", step: 4 })
       link(oid, `audience:${o.id}`, "targets")
     }
     if (o.proof) {
-      add({ ...base, id: `proof:${o.id}`, kind: "proof", refId: o.id, label: cut(`Proof · ${o.proof}`, 60)!, summary: cut(o.proof, 200), weight: 0.5, meta: { kind: "proof", setupStep: 3 } },
+      add({ ...base, id: `proof:${o.id}`, kind: "proof", refId: o.id, label: cut(proofs.length >= 2 ? proofs[0] : `Proof · ${o.proof}`, 80)!, summary: cut(o.proof, 200), weight: 0.5, meta: { kind: "proof", setupStep: 3 } },
         [f("offer.proof", o.proof)], { route: "setup", step: 3 })
       link(oid, `proof:${o.id}`, "uses_proof")
     }
@@ -129,6 +231,83 @@ function build(req: Request): Built {
         [f("offer.notes", o.notes)], { route: "setup", step: 4 })
       link(oid, `instructions:${o.id}`, "instructed_by")
     }
+  }
+
+  // brain-preenchido-v1 §1/§5/§6: kit, logo colors and website (after the center), then the detail of each offer
+  const biz = `business:${wid}`
+  const inGraph = new Set(offers.map((o) => o.id))
+  const offerName = (id: string | null) => (id ? (db.offers.find((o) => o.id === id)?.name ?? null) : null)
+  // fallback label number = position inside the kind by createdAt asc, from 1 (§1.1)
+  const nth = new Map<string, number>()
+  const perKind = new Map<string, number>()
+  for (const a of assets.toSorted((x, y) => x.createdAt.localeCompare(y.createdAt))) {
+    perKind.set(a.kind, (perKind.get(a.kind) ?? 0) + 1)
+    nth.set(a.id, perKind.get(a.kind)!)
+  }
+  const logo = kit.logo
+  for (const a of assets) {
+    const id = `brand_asset:${a.id}`
+    const image = a.file.mimeType.startsWith("image/")
+    const video = a.kind === "DEMO_VIDEO"
+    const fallback = a.kind === "LOGO" ? "Logo" : a.kind === "FILE" ? `Brand file ${nth.get(a.id)}` : `Demo video ${nth.get(a.id)}`
+    add(
+      { ...base, id, kind: "brand_asset", refId: a.id, label: cut(a.label?.trim() || fallback, 80)!, summary: offerName(a.offerId), weight: a.kind === "LOGO" ? 0.5 : 0.4,
+        meta: { kind: "brand_asset", assetKind: a.kind, customLabel: a.label?.trim() || null, mimeType: a.file.mimeType, offerId: a.offerId, thumbnailUrl: image ? a.file.url : null, durationSec: video ? (a.file.durationSec ?? null) : null, createdAt: a.createdAt } },
+      [f("brand.kind", a.kind), f("brand.label", a.label), f("brand.mimeType", a.file.mimeType), f("brand.sizeBytes", (video ? 18_400_000 : a.file.mimeType === "application/pdf" ? 2_350_000 : 184_000)),
+        f("brand.durationSec", video ? (a.file.durationSec ?? null) : null), f("brand.colors", a.kind === "LOGO" ? a.colors.join(", ") || null : null), f("brand.offerName", offerName(a.offerId)),
+        f("brand.createdAt", a.createdAt), f("brand.downloadUrl", a.file.url)],
+      { route: "brand", id: a.id },
+      video ? { videoUrl: a.file.url, posterUrl: null } : image ? { videoUrl: null, posterUrl: a.file.url } : null
+    )
+    if (a.kind !== "LOGO" && a.offerId && inGraph.has(a.offerId)) link(id, `offer:${a.offerId}`, "for_offer")
+    else link(biz, id, "has_brand")
+  }
+  if (logo)
+    for (const hex of [...new Set(logo.colors.map((c) => c.toUpperCase()))].slice(0, 5)) {
+      const id = `brand_color:${hex.slice(1).toLowerCase()}`
+      add({ ...base, id, kind: "brand_color", refId: hex.slice(1).toLowerCase(), label: hex, weight: 0.2, meta: { kind: "brand_color", hex } },
+        [f("brand.hex", hex), f("brand.logo", logo.label?.trim() || "Logo")], { route: "brand" })
+      link(`brand_asset:${logo.id}`, id, "has_color")
+    }
+  for (const src of sources.values()) {
+    const names = src.offers.map(offerName).filter(Boolean).join(" · ") || null
+    add(
+      { ...base, id: src.id, kind: "source", refId: src.id.slice(7), label: cut(normUrl(src.url)!.key, 80)!, summary: cut(src.url, 200), weight: src.isWebsite ? 0.45 : 0.3,
+        meta: { kind: "source", url: src.url, host: src.host, isWebsite: src.isWebsite, roles: src.roles, offers: src.offers.length, readAt: src.readAt } },
+      [f("source.url", src.url), f("source.roles", src.roles.join(",") || null), f("source.via", src.via), f("source.chars", src.chars), f("source.readAt", src.readAt), f("source.offers", names), f("source.isWebsite", src.isWebsite ? 1 : 0)],
+      src.isWebsite ? { route: "setup", step: 1 } : { route: "offer", id: src.offers[0] }
+    )
+    link(biz, src.id, "read_from")
+  }
+  for (const o of offers) {
+    const oid = `offer:${o.id}`
+    const origins = readMetas.get(o.id)?.fieldOrigins ?? {}
+    for (const key of OFFER_FIELDS) {
+      const v = o[key]
+      if (!filled(v)) continue
+      const id = `offer_field:${o.id}:${key}`
+      add({ ...base, id, kind: "offer_field", refId: `${o.id}:${key}`, label: cut(v, 80)!, summary: cut(v, 200), weight: 0.35, meta: { kind: "offer_field", setupStep: 3, offerId: o.id, field: key, from: o.fieldSources[key] ?? null } },
+        [f(`offer.${key}`, v), f("offer.readFrom", origins[key] ? JSON.stringify(origins[key]) : null), f("offer.fieldSource", o.fieldSources[key] ?? null), f("offer.offerName", o.name)], { route: "setup", step: 3 })
+      link(oid, id, "has_field")
+    }
+    const pains = splitItems(o.pains)
+    pains.forEach((item, index) => {
+      const h = hash(norm(item)).slice(0, 12)
+      const id = `pain:${o.id}:${h}`
+      add({ ...base, id, kind: "pain", refId: `${o.id}:${h}`, label: cut(item, 80)!, summary: cut(item, 200), weight: 0.3, meta: { kind: "pain", setupStep: 4, offerId: o.id, index, of: pains.length } },
+        [f("pain.item", item), f("pain.position", index + 1), f("pain.of", pains.length), f("pain.offerName", o.name)], { route: "setup", step: 4 })
+      link(`audience:${o.id}`, id, "has_pain")
+    })
+    const proofs = splitItems(o.proof)
+    if (proofs.length >= 2)
+      proofs.forEach((item, index) => {
+        const h = hash(norm(item)).slice(0, 12)
+        const id = `proof_item:${o.id}:${h}`
+        add({ ...base, id, kind: "proof_item", refId: `${o.id}:${h}`, label: cut(item, 80)!, summary: cut(item, 200), weight: 0.3, meta: { kind: "proof_item", setupStep: 3, offerId: o.id, index, of: proofs.length } },
+          [f("proof.item", item), f("proof.position", index + 1), f("proof.of", proofs.length), f("proof.offerName", o.name)], { route: "setup", step: 3 })
+        link(`proof:${o.id}`, id, "has_proof")
+      })
+    for (const sid of pagesOf.get(o.id) ?? []) link(oid, sid, "read_from")
   }
 
   const meta = metaOf(req)

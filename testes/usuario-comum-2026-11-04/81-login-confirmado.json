@@ -1,0 +1,316 @@
+{
+  "step": 81,
+  "url": "http://localhost:3311/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nS\nSonoLeve\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n0\nComprar créditos\nConfigurações\nM\nMarina Costa\nDono\nEN\nPT\nSonoLeve\nfala-split-20s\nEsperando você · 6 peças prontas\n85%\n85% conhecido · faltam 2 itens\nAbrir Cérebro\nNegócio 2\nOfertas 4\nPúblico 2\nMetas 1\nGanchos e ângulos\nRoteiros\nCriativos 7\nAnúncios Meta\n17 nós · 16 conexões\nEd\nEM BREVE\n\nO Eddy vai receber pedidos assim aqui. Até lá, Próximos passos mostra o que fazer.\n\nRecentes\n6\nTodos os criativos\nfala-split-20s · LAYOUT-REVIEW\nAprovado\nfala-split-20s · CHAT-DM\nAprovado\nfala-split-20s · COLD-OPEN\nAprovado\nfala-split-20s · HEADLINE-3\nAprovado\nfala-split-20s · HEADLINE-2\nAprovado\nSEU NEGÓCIO · SONOLEVE\nBoa tarde, Marina\nSonoLeve\nProduto digital · Brasil\nMeta · custo por compra\nSem faixa alvo\nO número real aparece aqui quando a Meta estiver conectada.\n85%\nVer marca\nPróximos passos\n3\nfala-split-20s\n6 peças prontas · A SonoLeve vende colchões online para adultos no Brasil que\nBaixar\nf\nConectar a Meta\nPro Cérebro ler seus anúncios e marcar o vencedor.\nConectar\nB\nCompletar o Cérebro\nFaltam 2 itens: oferta e preço, notas.\nPreencher\nConexões\nf\nMeta\nNão conectada\nConectar",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "S\nSonoLeve\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "M\nMarina Costa\nDono",
+      "label": "Conta",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "fala-split-20s\nEsperando você · 6 peças prontas",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "85%\n85% conhecido · faltam 2 itens",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Abrir Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain?view=map"
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Pergunte ao Eddy",
+      "id": "",
+      "type": null,
+      "placeholder": "Peça ao Eddy pra transformar este briefing em conceitos de anúncio…",
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Todos os criativos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "fala-split-20s · LAYOUT-REVIEW\nAprovado",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library?new=cmw1nsp9r002b22hst96kgz12"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "fala-split-20s · CHAT-DM\nAprovado",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library?new=cmw1nsp9r002922hsbilkcmd9"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "fala-split-20s · COLD-OPEN\nAprovado",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library?new=cmw1nsp9q002722hsmnmb209l"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "fala-split-20s · HEADLINE-3\nAprovado",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library?new=cmw1nsp9q002522hsd6nmbc6l"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "fala-split-20s · HEADLINE-2\nAprovado",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library?new=cmw1nsp9p002322hspabhku1o"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Ver marca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/iterate/cmw1nr9ss000922hspx7jo4i4"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conectar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Preencher",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conectar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    }
+  ]
+}

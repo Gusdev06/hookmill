@@ -1,0 +1,27 @@
+{
+ "quadros": 564,
+ "ini": 0,
+ "fim": 160,
+ "endFrame": 161,
+ "px_letra": 2773,
+ "mascara_px": 13581,
+ "iou_mascara_aprovada": 0.91,
+ "so_na_aprovada": 695,
+ "so_na_servidor": 587,
+ "emoji": {
+  "x": 357,
+  "y": 568,
+  "w": 31,
+  "h": 25,
+  "bbox_x0": 359,
+  "bbox_x1": 385,
+  "bbox_y0": 570,
+  "bbox_y1": 590,
+  "px": 452,
+  "ocupa": 0.797,
+  "gap_arimo": 6.12,
+  "recorte_margem_esq": 2
+ },
+ "seg_placa": 2.9,
+ "seg_total": 3.3
+}

@@ -1,0 +1,11 @@
+HM
+Q
+QA Alfa
+Unlimited
+ADMIN · VISIBLE TO HOOKMILL STAFF ONLY
+Template catalog
+
+Upload the example video for each template. A template without an example stays hidden from customers.
+
+Only the HookMill team sees this page
+It needs a team account that owns the active workspace.

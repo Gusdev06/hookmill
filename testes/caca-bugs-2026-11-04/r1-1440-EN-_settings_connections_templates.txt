@@ -1,0 +1,41 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 18 seconds ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Admin · Templates
+Settings
+Q
+QA Dono Alfa
+Owner
+EN
+PT
+Settings
+›
+Meta
+›
+Publish templates
+Publish templates
+Mock Store (USD) (act_mock_1)
+Import from a campaign
+New template
+
+Set once how HookMill creates campaigns, ad sets and ads in your account. Every "Send to Meta" uses the default template unless you pick another one.
+
+No publish template yet
+
+Create one from scratch or import the settings of a campaign that already runs. The first one becomes the default.

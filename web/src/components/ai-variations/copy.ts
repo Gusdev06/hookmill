@@ -1,0 +1,46 @@
+/** Textos desta fatia isolados para evitar colisão com as traduções dos templates em desenvolvimento. */
+const en = {
+  title: 'AI variations', subtitle: 'Turn one ad into new angles, audiences and formats.',
+  stage: 'Plan your variations', stageNote: 'Get three concepts with scripts. Video production is the next step.',
+  original: 'Original ad', choose: 'Choose an analyzed ad', loading: 'Loading…', loadMore: 'Load more ads', empty: 'No analyzed ads yet. Add a video to get started.', add: 'Add a video',
+  focus: 'What do you want to explore?', focusOptions: { AUTO: 'Explore combinations', FORMAT: 'A new format', AUDIENCE: 'A new audience', ANGLE: 'A new angle' },
+  formats: 'Formats to explore', formatsHint: 'Choose up to three. We will cover each format in the plan.',
+  instructions: 'Your direction', optional: 'Optional', placeholder: 'Turn this into a podcast conversation for people with an irregular routine, focusing on convenience…',
+  generate: 'Create three proposals', writing: 'Writing your proposals…', history: 'Saved plans', noHistory: 'Your plans will appear here.', open: 'Open plan',
+  failed: 'This plan could not be completed. You can start a new attempt.', failedCode: 'Reason', retry: 'Try again',
+  loadError: 'Variation planning could not be loaded. Please try again in a moment.',
+  pending: 'Reading the ad and writing three proposals. You can leave this page and return to the saved plan.',
+  disabled: 'AI variation planning is not enabled in this environment.', notConfigured: 'The AI provider is not configured yet.', accessRequired: 'This development preview is currently available to the internal team.', readOnly: 'Your role can review plans but cannot create them.',
+  mock: 'Development simulation — these proposals were not written by the AI model.', review: 'Draft hypotheses · review claims and evidence before production',
+  diagnosis: 'Reading of the original', gaps: 'What is missing', audience: 'Audience', angle: 'Angle', hypothesis: 'What to test', changes: 'What changes', preserved: 'What stays', script: 'Script and scenes', requirements: 'Needed for production', facts: 'Offer sources', sourceNote: 'These fields come from the offer. They have not been independently verified.',
+  download: 'Download plan', selected: 'Selected', factsLabel: 'Sources', fit: 'Review whether the offer fits this audience.',
+  before: 'Before', after: 'After', host: 'Host', presenter: 'Presenter', narrator: 'Narrator',
+  status: { QUEUED: 'Queued', RUNNING: 'Writing', SUCCEEDED: 'Ready to review', PARTIAL: 'Partial', FAILED: 'Failed' },
+  formatNames: { F02: 'Product demo', F04: 'FAQ / objection', F08: 'Static ad', F09: 'Solo podcast', F10: 'Podcast conversation', F11: 'Narrated B-roll' },
+  formatDescriptions: { F02: 'Show the product in action.', F04: 'Answer a barrier to buying.', F08: 'One clear, readable message.', F09: 'One presenter, a useful explanation.', F10: 'Questions and answers between two people.', F11: 'Narration supported by relevant scenes.' },
+  axes: { audience: 'Audience', situation: 'Situation', pain: 'Pain', desire: 'Desire', objection: 'Objection', awareness: 'Awareness', angle: 'Angle', mechanism: 'Mechanism', proof: 'Proof', narrative: 'Narrative', presentation_format: 'Format', messenger: 'Messenger', hook: 'Hook', execution: 'Execution', offer_cta: 'Offer / CTA', localization: 'Localization', placement: 'Placement' },
+};
+type Copy = { [K in keyof typeof en]: (typeof en)[K] extends string ? string : { [P in keyof (typeof en)[K]]: string } };
+const pt: Copy = {
+  title: 'Variações com IA', subtitle: 'Transforme um anúncio em novos ângulos, públicos e formatos.',
+  stage: 'Planeje suas variações', stageNote: 'Receba três conceitos com roteiro. A produção do vídeo é a próxima etapa.',
+  original: 'Anúncio de origem', choose: 'Escolha um anúncio analisado', loading: 'Carregando…', loadMore: 'Carregar mais anúncios', empty: 'Ainda não há anúncios analisados. Adicione um vídeo para começar.', add: 'Adicionar um vídeo',
+  focus: 'O que você quer explorar?', focusOptions: { AUTO: 'Explorar combinações', FORMAT: 'Outro formato', AUDIENCE: 'Outro público', ANGLE: 'Outro ângulo' },
+  formats: 'Formatos para explorar', formatsHint: 'Escolha até três. O plano terá propostas para cada formato selecionado.',
+  instructions: 'Sua direção', optional: 'Opcional', placeholder: 'Transforme em uma conversa de podcast para pessoas com rotina irregular, focando na praticidade…',
+  generate: 'Criar três propostas', writing: 'Escrevendo suas propostas…', history: 'Planos salvos', noHistory: 'Seus planejamentos aparecerão aqui.', open: 'Abrir plano',
+  failed: 'Não foi possível concluir este plano. Você pode iniciar uma nova tentativa.', failedCode: 'Motivo', retry: 'Tentar de novo',
+  loadError: 'Não foi possível carregar o planejamento de variações. Tente novamente em instantes.',
+  pending: 'Lendo o anúncio e escrevendo três propostas. Você pode sair e voltar ao plano salvo.',
+  disabled: 'O planejamento com IA ainda não está habilitado neste ambiente.', notConfigured: 'O provedor de IA ainda não foi configurado.', accessRequired: 'Esta prévia de desenvolvimento está disponível para a equipe interna.', readOnly: 'Seu perfil pode revisar os planos, mas não criar novos.',
+  mock: 'Simulação de desenvolvimento — estas propostas não foram escritas pelo modelo de IA.', review: 'Hipóteses em rascunho · revise as afirmações e provas antes de produzir',
+  diagnosis: 'Leitura do original', gaps: 'O que falta', audience: 'Público', angle: 'Ângulo', hypothesis: 'O que testar', changes: 'O que muda', preserved: 'O que permanece', script: 'Roteiro e cenas', requirements: 'Necessário para produzir', facts: 'Fontes da oferta', sourceNote: 'Estes campos vêm da oferta. Eles não foram verificados de forma independente.',
+  download: 'Baixar plano', selected: 'Selecionado', factsLabel: 'Fontes', fit: 'Revisar se a oferta atende a este público.',
+  before: 'Antes', after: 'Depois', host: 'Apresentador', presenter: 'Convidado / narrador', narrator: 'Narração',
+  status: { QUEUED: 'Na fila', RUNNING: 'Escrevendo', SUCCEEDED: 'Pronto para revisar', PARTIAL: 'Parcial', FAILED: 'Falhou' },
+  formatNames: { F02: 'Demonstração', F04: 'FAQ / objeção', F08: 'Anúncio estático', F09: 'Podcast solo', F10: 'Conversa de podcast', F11: 'Narrado com B-roll' },
+  formatDescriptions: { F02: 'Mostre o produto funcionando.', F04: 'Responda a uma barreira de compra.', F08: 'Uma mensagem clara e legível.', F09: 'Uma pessoa, uma explicação útil.', F10: 'Perguntas e respostas entre duas pessoas.', F11: 'Narração acompanhada de cenas relevantes.' },
+  axes: { audience: 'Público', situation: 'Situação', pain: 'Dor', desire: 'Desejo', objection: 'Objeção', awareness: 'Consciência', angle: 'Ângulo', mechanism: 'Mecanismo', proof: 'Prova', narrative: 'Narrativa', presentation_format: 'Formato', messenger: 'Mensageiro', hook: 'Hook', execution: 'Execução', offer_cta: 'Oferta / CTA', localization: 'Localização', placement: 'Posicionamento' },
+};
+export const semanticCopy = (locale: string): Copy => locale.startsWith('pt') ? pt : en;
+export type SemanticCopy = Copy;

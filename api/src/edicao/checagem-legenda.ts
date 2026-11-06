@@ -76,6 +76,8 @@ export function outputCheckTimes(bands: FaixaNaSaida[], mode: 'avoid' | 'replace
 export function captionTargetOf(input: RenderInput, championBands: ProtectedBand[] = []): CaptionCheckTarget | null {
   const t = captionTargetBase(input, championBands);
   const out = (input as unknown as { outputProtectedBands?: FaixaNaSaida[] }).outputProtectedBands;
+  // HEADLINE com o vídeo editado (F-U2): a faixa saiu do corte ou do quadro; as do campeão não valem no tempo/posição da saída
+  if (t && input.kind === 'remix-keep' && input.edicao && !out?.length) return null;
   return t && out?.length ? { ...t, output: out } : t;
 }
 

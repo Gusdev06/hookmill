@@ -1,0 +1,205 @@
+{
+  "step": 60,
+  "url": "http://localhost:3311/templates/run/cmw1nr9ss000922hspx7jo4i4",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nS\nSonoLeve\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n0\nComprar créditos\nConfigurações\nM\nMarina Costa\nDono\nEN\nPT\nNEW CLIENT\nTemplates\nPlanejar\n3 feitos\nPRODUZIR\n4\nGeração\n(rodando)\n3\nEntregar\nBaixar\nSair\n\nDeixa o HookMill escolher\nAmostra grátis · 1 uso. Volta se o vídeo falhar.\n\nAMOSTRA GRÁTIS · ATÉ 4 VARIAÇÕES, SEM CUSTO\nRenderizando 6 peças · 0 prontas\nLegenda adicionada\nO campeão não tem legenda queimada, então toda peça de vídeo ganha legenda palavra a palavra.\nEsticar a vida\n· 4\nMesmo conceito, edição nova. A Meta lê como o mesmo anúncio.\nHEADLINE-1\nRenderizando · 0%\nHeadline nova\nHeadline nova: \"Você já tentou de tudo e nada funciona\"\n“I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.”\n→\nvira\n“Você já tentou de tudo e nada funciona”\n9:16 · criando a imagem\nHEADLINE-2\nNa fila\nHeadline nova\nHeadline nova: \"Resultado visível na primeira semana\"\n“I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.”\n→\nvira\n“Resultado visível na primeira semana”\nHEADLINE-3\nNa fila\nHeadline nova\nHeadline nova: \"Milhares de pessoas já usam todo dia\"\n“I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.”\n→\nvira\n“Milhares de pessoas já usam todo dia”\nCOLD-OPEN\nNa fila\nCold open\nAbre com teaser de 9.15 s\nPúblico novo\n· 2\nPrimeiro frame e layout diferentes. A Meta lê como anúncios novos.\nCHAT-DM\nNa fila\nChat · conversa no Direct\nTemplate novo · Grátis\nA história vira uma conversa no Direct\nLAYOUT-REVIEW\nNa fila\nLayout · fundo com review\nCard de review em cima do vídeo\nRENDERIZANDO\n0/6\npeças\nAgora\nHEADLINE-1\nArquivos\n0 de 6\nCusto pra você\nNenhum\nCréditos de vídeo\nNenhum usado\n\nPode fechar esta página. O lote continua renderizando e aparece em Início › Esperando por você.\n\nVoltar ao Início\nAmostra grátis: renderizando. Pode sair desta página; continua sozinho.\nContinuar pro download",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "S\nSonoLeve\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "M\nMarina Costa\nDono",
+      "label": "Conta",
+      "id": "radix-_r_16_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Planejar\n3 feitos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Sair",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Voltar ao Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Continuar pro download",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

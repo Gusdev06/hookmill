@@ -13,10 +13,10 @@ import { cn } from "@/lib/utils"
  * clickable to go back); future phases show their name and steps as text. Soon steps (Concepts) have a
  * dashed circle and stay out of the "Step N of M" count. ≤760 px: one line + a segment ruler + Exit.
  */
-export type FlowKind = "concepts" | "iterate"
+export type FlowKind = "concepts" | "iterate" | "templates"
 export type FlowStep =
   | "know" | "concepts" | "scripts" | "face" | "engine" | "generate" | "edit" | "review" | "send"
-  | "analyze" | "download"
+  | "analyze" | "download" | "template" | "ad" | "plan"
 type Phase = "plan" | "make" | "ship"
 
 export const FLOWS: Record<FlowKind, { phase: Phase; steps: { id: FlowStep; soon?: boolean }[] }[]> = {
@@ -28,6 +28,12 @@ export const FLOWS: Record<FlowKind, { phase: Phase; steps: { id: FlowStep; soon
   // variacao-auto-v1 (13/10): caminho 1 goes from 6 steps to 3 (Analyze → Generate → Download, one route)
   iterate: [
     { phase: "plan", steps: [{ id: "analyze" }] },
+    { phase: "make", steps: [{ id: "generate" }] },
+    { phase: "ship", steps: [{ id: "download" }] },
+  ],
+  // templates-creditos-v1 (31/10): Template → Ad → Plan → Generate → Download (mockup-templates)
+  templates: [
+    { phase: "plan", steps: [{ id: "template" }, { id: "ad" }, { id: "plan" }] },
     { phase: "make", steps: [{ id: "generate" }] },
     { phase: "ship", steps: [{ id: "download" }] },
   ],

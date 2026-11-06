@@ -3,16 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogServiceImpl } from './catalogo/catalog.service';
-import type { AdLibraryService, ClaudeService, GenerationService, MetaService } from './contrato';
+import type { AdLibraryResearchService, AdLibraryService, ClaudeService, CompetitorAiPort, GenerationService, MetaService } from './contrato';
 import { buildMetaService, metaMode } from './meta/modo';
 import { ApifyAdLibraryService, OffAdLibraryService } from './adlibrary/ad-library.service';
 import { FakeAdLibraryService } from './adlibrary/fake-ad-library.service';
+import { ApifyResearchService, OffResearchService } from './adlibrary/research.service';
+import { FakeResearchService } from './adlibrary/fake-research.service';
+import { FakeCompetitorAi } from './mock/fake-concorrentes';
 import { IntegracaoError } from './erros';
 import { FakeClaudeService } from './mock/fake-claude.service';
 import { FakeGenerationService } from './mock/fake-generation.service';
 import { MockMediaController } from './mock/mock-media.controller';
 import { mockVoiceSampleUrl } from './mock/midia';
-import type { CostStore, ProviderTaskStore } from './portas';
+import { ADS_RESEARCH_SERVICE, type CostStore, type ProviderTaskStore } from './portas';
 import { PrismaCostStore, PrismaTaskStore } from './store/prisma.store';
 import Anthropic from '@anthropic-ai/sdk';
 import { ClaudeLiveService } from './claude/claude.service';
@@ -35,6 +38,7 @@ export const CATALOG_SERVICE = Symbol('CATALOG_SERVICE');
 export const AD_LIBRARY_SERVICE = Symbol('AD_LIBRARY_SERVICE');
 /** meta-v1 (21/10): MetaService. Modo em META_MODE (mock padrão | live | off), independente do INTEGRACOES_MODE. */
 export const META_SERVICE = Symbol('META_SERVICE');
+export { ADS_RESEARCH_SERVICE };
 const TASK_STORE = Symbol('INTEGRACOES_TASK_STORE');
 const COST_STORE = Symbol('INTEGRACOES_COST_STORE');
 
@@ -49,6 +53,30 @@ export type AdLibraryMode = 'mock' | 'live' | 'off';
 export function adLibraryMode(v: string | undefined, mode: IntegracoesMode): AdLibraryMode {
   const m = (v ?? '').trim().toLowerCase();
   return m === 'mock' || m === 'live' || m === 'off' ? m : mode;
+}
+
+/** ads-research-v1 (Ad Radar): mock | live | off. Desvio consciente do §10 ("sem a env, segue INTEGRACOES_MODE"): sem a env
+ *  (ou valor inválido) = **mock**, mesmo com INTEGRACOES_MODE=live. Live só com ADS_RESEARCH_MODE=live explícito, porque
+ *  o live cobra na conta da Apify e a conta própria (R7) ainda não existe (o APIFY_TOKEN do .env é o do Trendcat). */
+export type AdsResearchMode = 'mock' | 'live' | 'off';
+export function adsResearchMode(v: string | undefined): AdsResearchMode {
+  const m = (v ?? '').trim().toLowerCase();
+  return m === 'live' || m === 'off' ? m : 'mock';
+}
+
+/** 1ª palavra do valor (o .env às vezes carrega comentário colado). */
+const firstToken = (v: string | undefined) => (v ?? '').trim().split(/\s+/)[0] ?? '';
+
+/** D1/D4 do Ad Radar seguem o ADS_RESEARCH_MODE, não o INTEGRACOES_MODE: enxerta no ClaudeService já montado. */
+function withResearchAi(claude: ClaudeService, mode: AdsResearchMode): ClaudeService {
+  if (mode === 'live') return claude;
+  const port: CompetitorAiPort = mode === 'mock'
+    ? new FakeCompetitorAi()
+    : {
+        proposeCompetitors: () => Promise.reject(new IntegracaoError('AD_LIBRARY_UNAVAILABLE', 'ADS_RESEARCH_MODE=off', { reason: 'not_configured', retryAfter: null })),
+        judgeCompetitors: () => Promise.reject(new IntegracaoError('AD_LIBRARY_UNAVAILABLE', 'ADS_RESEARCH_MODE=off', { reason: 'not_configured', retryAfter: null })),
+      };
+  return Object.assign(claude, { proposeCompetitors: port.proposeCompetitors.bind(port), judgeCompetitors: port.judgeCompetitors.bind(port) });
 }
 
 function publicApiUrl(cfg: ConfigService): string {
@@ -69,6 +97,40 @@ function effortOf(v: string | undefined): SdkTransportOptions['effort'] {
 
 function webhooksOn(cfg: ConfigService): boolean {
   return (cfg.get<string>('WAVESPEED_WEBHOOKS') ?? 'on').toLowerCase() !== 'off';
+}
+
+/** ClaudeService do modo (mock = fake; live sem chave = NOT_CONFIGURED em toda chamada). */
+function buildClaude(costs: CostStore, cfg: ConfigService, mode: IntegracoesMode): ClaudeService {
+  const model = cfg.get<string>('ANTHROPIC_MODEL') || 'claude-opus-5-5';
+  if (mode === 'mock') return new FakeClaudeService(costs, { model });
+  const apiKey = cfg.get<string>('ANTHROPIC_API_KEY');
+  if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption', 'proposeCompetitors', 'judgeCompetitors']);
+  const transport = new SdkClaudeTransport(new Anthropic({ apiKey, maxRetries: 2 }), {
+    model,
+    effort: effortOf(cfg.get<string>('ANTHROPIC_EFFORT')),
+    fallbacks: (cfg.get<string>('ANTHROPIC_FALLBACKS') ?? 'on').toLowerCase() !== 'off',
+  });
+  // leitura v2 (22/10): página JS (quiz, SPA) → chrome-headless-shell do Remotion (custo zero); subpáginas com render
+  // curto; imagens com visão na mesma chamada. Sem binário, a cascata segue como antes (só HTTP).
+  const browser = { browserExecutable: cfg.get<string>('REMOTION_BROWSER_EXECUTABLE') || null };
+  return new ClaudeLiveService(transport, costs, {
+    model,
+    // §A6: checagem de texto do STATIC (Haiku por padrão; ffmpeg recorta a imagem 2k em 2 metades)
+    textCheckModel: cfg.get<string>('ANTHROPIC_TEXT_CHECK_MODEL') || undefined,
+    runFfmpeg: ffmpegRunner(cfg.get<string>('FFMPEG_PATH') || 'ffmpeg'),
+    // ads-research-v1 (C.3): D1 Sonnet / D4 Haiku
+    researchProposeModel: cfg.get<string>('ADS_RESEARCH_PROPOSE_MODEL') || undefined,
+    researchJudgeModel: cfg.get<string>('ADS_RESEARCH_JUDGE_MODEL') || undefined,
+    pageOptions: {
+      renderMain: makePageRenderer(browser),
+      render: makePageRenderer({ ...browser, timeoutMs: 8_000, scrollTimeoutMs: 5_000 }),
+      // A1 (28/10): quiz/funil → caminha até a oferta final e para (nunca paga; POST/pixel barrados)
+      walk: makeFunnelWalker(browser),
+      browser,
+      // resultado-v1 (A2): cor dos CTAs quando o HTTP bastou (sem scroll: só a 1ª tela importa)
+      colorProbe: async (u: string) => (await renderPage(u, { ...browser, timeoutMs: 10_000, scroll: false }))?.ctaColor ?? null,
+    },
+  });
 }
 
 /**
@@ -92,36 +154,25 @@ export class IntegracoesModule {
       },
       {
         provide: CLAUDE_SERVICE,
-        useFactory: (costs: CostStore, cfg: ConfigService): ClaudeService => {
-          const model = cfg.get<string>('ANTHROPIC_MODEL') || 'claude-opus-5-5';
-          if (mode === 'mock') return new FakeClaudeService(costs, { model });
-          const apiKey = cfg.get<string>('ANTHROPIC_API_KEY');
-          if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption']);
-          const transport = new SdkClaudeTransport(new Anthropic({ apiKey, maxRetries: 2 }), {
-            model,
-            effort: effortOf(cfg.get<string>('ANTHROPIC_EFFORT')),
-            fallbacks: (cfg.get<string>('ANTHROPIC_FALLBACKS') ?? 'on').toLowerCase() !== 'off',
-          });
-          // leitura v2 (22/10): página JS (quiz, SPA) → chrome-headless-shell do Remotion (custo zero); subpáginas com render
-          // curto; imagens com visão na mesma chamada. Sem binário, a cascata segue como antes (só HTTP).
-          const browser = { browserExecutable: cfg.get<string>('REMOTION_BROWSER_EXECUTABLE') || null };
-          return new ClaudeLiveService(transport, costs, {
-            model,
-            // §A6: checagem de texto do STATIC (Haiku por padrão; ffmpeg recorta a imagem 2k em 2 metades)
-            textCheckModel: cfg.get<string>('ANTHROPIC_TEXT_CHECK_MODEL') || undefined,
-            runFfmpeg: ffmpegRunner(cfg.get<string>('FFMPEG_PATH') || 'ffmpeg'),
-            pageOptions: {
-              renderMain: makePageRenderer(browser),
-              render: makePageRenderer({ ...browser, timeoutMs: 8_000, scrollTimeoutMs: 5_000 }),
-              // A1 (28/10): quiz/funil → caminha até a oferta final e para (nunca paga; POST/pixel barrados)
-              walk: makeFunnelWalker(browser),
-              browser,
-              // resultado-v1 (A2): cor dos CTAs quando o HTTP bastou (sem scroll: só a 1ª tela importa)
-              colorProbe: async (u: string) => (await renderPage(u, { ...browser, timeoutMs: 10_000, scroll: false }))?.ctaColor ?? null,
-            },
+        useFactory: (costs: CostStore, cfg: ConfigService): ClaudeService =>
+          withResearchAi(buildClaude(costs, cfg, mode), adsResearchMode(cfg.get<string>('ADS_RESEARCH_MODE'))),
+        inject: [COST_STORE, ConfigService],
+      },
+      {
+        provide: ADS_RESEARCH_SERVICE,
+        useFactory: (cfg: ConfigService): AdLibraryResearchService => {
+          const m = adsResearchMode(cfg.get<string>('ADS_RESEARCH_MODE'));
+          if (m === 'off') return new OffResearchService();
+          if (m === 'mock') return new FakeResearchService({ publicApiUrl: publicApiUrl(cfg) });
+          // live sem token: status() = not_configured e scrape() falha AD_LIBRARY_UNAVAILABLE (nunca mock)
+          return new ApifyResearchService({
+            token: firstToken(cfg.get<string>('ADS_RESEARCH_APIFY_TOKEN')) || firstToken(cfg.get<string>('APIFY_TOKEN')),
+            actor: firstToken(cfg.get<string>('ADS_RESEARCH_ACTOR')) || firstToken(cfg.get<string>('APIFY_AD_LIBRARY_ACTOR')) || undefined,
+            timeoutMs: Number(cfg.get<string>('ADS_RESEARCH_SYNC_TIMEOUT_MS')) || undefined,
+            concurrency: Number(cfg.get<string>('ADS_RESEARCH_APIFY_CONCURRENCY')) || undefined,
           });
         },
-        inject: [COST_STORE, ConfigService],
+        inject: [ConfigService],
       },
       {
         provide: WAVESPEED_LIVE,
@@ -170,7 +221,7 @@ export class IntegracoesModule {
         provide: META_SERVICE,
         useFactory: (cfg: ConfigService): MetaService => {
           const env = { ...process.env } as NodeJS.ProcessEnv;
-          for (const k of ['META_MODE', 'META_APP_ID', 'META_APP_SECRET', 'META_CONFIG_ID', 'META_TOKEN_KEY', 'META_GRAPH_VERSION', 'JWT_ACCESS_SECRET', 'META_WINNER_MIN_SPEND_USD', 'META_WINNER_MIN_RESULTS', 'META_TREND_BETTER', 'META_TREND_WORSE', 'META_TREND_FREQ', 'META_USD_RATES']) {
+          for (const k of ['META_MODE', 'META_APP_ID', 'META_APP_SECRET', 'META_CONFIG_ID', 'META_TOKEN_KEY', 'META_GRAPH_VERSION', 'JWT_ACCESS_SECRET', 'META_WINNER_MIN_SPEND_USD', 'META_WINNER_MIN_RESULTS', 'META_TREND_BETTER', 'META_TREND_WORSE', 'META_TREND_FREQ', 'META_USD_RATES', 'META_CALLBACK_BASE_URL']) {
             const v = cfg.get<string>(k);
             if (v !== undefined) env[k] = v;
           }
@@ -185,7 +236,7 @@ export class IntegracoesModule {
       module: IntegracoesModule,
       controllers: mode === 'mock' ? [MockMediaController] : [WaveSpeedWebhookController],
       providers,
-      exports: [CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, AD_LIBRARY_SERVICE, META_SERVICE],
+      exports: [CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, AD_LIBRARY_SERVICE, META_SERVICE, ADS_RESEARCH_SERVICE],
     };
   }
 }

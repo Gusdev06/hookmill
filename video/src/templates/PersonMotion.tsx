@@ -6,12 +6,14 @@
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Easing, OffthreadVideo, Sequence, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { LegendaAuto } from '../componentes/LegendaAuto';
+import { LogoMarca } from '../componentes/LogoMarca';
+import type { BrandLogo } from '../lib/logo';
 import { resolverSrc } from '../componentes/midia';
 import { trechosEmFrames } from '../lib/autoEdit';
 import type { CaixaLegenda } from '../lib/legendaAuto';
 import type { FittedText } from '../lib/molduras';
 import {
-  PERSON_GEO, PROOF_ROW, TEMPLATE_SAFE, TEMPLATE_W, personLayout, type PersonBeatProps, type PersonMotionProps, type TemplateProps,
+  PERSON_GEO, PROOF_ROW, TEMPLATE_SAFE, TEMPLATE_W, personLayout, type PersonBeatProps, type PersonMotionProps, type TemplateProps, LOGO_FECHO
 } from '../lib/templatesFormato';
 import { BotaoCTA, clamp, Contador, coresDaMarca, entrada, FPS, FundoMarca, Icone, iconeDaProva, Linhas, Seta, Sfx, surge, VERDE, VERMELHO, type Cores } from './comum';
 
@@ -144,12 +146,19 @@ const Rosto: React.FC<{ p: PersonMotionProps; t: number; fimFala: number; cores:
   );
 };
 
-const Fim: React.FC<{ p: NonNullable<PersonMotionProps['endCard']>; t: number; fits: Fits; cores: Cores }> = ({ p, t, fits, cores }) => {
+const Fim: React.FC<{ p: NonNullable<PersonMotionProps['endCard']>; t: number; fits: Fits; cores: Cores; logo?: BrandLogo | null }> = ({ p, t, fits, cores, logo }) => {
   const de = p.fromSec + 0.05;
+  // kit-marca-v1 §5: logo do kit no topo (cabe nos 150 px livres acima da prova, sem mexer no resto)
   const topo = TEMPLATE_SAFE.top + 150;
   const topoCta = topo + p.proof.length * (PROOF_ROW.h + 22) + 60;
+  const ladoLogo = Math.min(LOGO_FECHO.lado, topo - LOGO_FECHO.topo - 16);
   return (
     <>
+      {logo ? (
+        <div style={{ position: 'absolute', top: LOGO_FECHO.topo, width: W, display: 'flex', justifyContent: 'center', ...surge(t, de) }}>
+          <LogoMarca logo={logo} tam={ladoLogo} forma="quadrado" raio={ladoLogo * 0.24} reserva={null} style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
+        </div>
+      ) : null}
       <div style={{ position: 'absolute', top: topo, left: (W - PROOF_ROW.w) / 2, width: PROOF_ROW.w, display: 'flex', flexDirection: 'column', gap: 22 }}>
         {p.proof.map((pp, i) => {
           const em = de + i * 0.18;
@@ -185,7 +194,7 @@ export const PersonMotion: React.FC<{ p: PersonMotionProps; c: Comum }> = ({ p, 
       <div style={{ position: 'absolute', left: 0, top: PERSON_GEO.stage.y, width: W, height: PERSON_GEO.stage.h, overflow: 'hidden' }}>
         {atual >= 0 && naFala ? <Cena b={p.beats[atual]} i={atual} t={t} fits={fits} cores={cores} /> : null}
       </div>
-      {p.endCard && t >= p.endCard.fromSec - 0.05 ? <Fim p={p.endCard} t={t} fits={fits} cores={cores} /> : null}
+      {p.endCard && t >= p.endCard.fromSec - 0.05 ? <Fim p={p.endCard} t={t} fits={fits} cores={cores} logo={c.brand.logo} /> : null}
       {naFala ? <LegendaAuto captions={{ ...p.captions, highlightColor: cores.acento }} timeline={p.timeline} caixa={caixa} ateSec={fimFala} /> : null}
       <Rosto p={p} t={t} fimFala={fimFala} cores={cores} />
       {p.beats.slice(1).map((b, i) => <Sfx key={`b${i}`} sfx={c.sfx} arquivo="send" emSec={Math.max(0, b.fromSec - 0.05)} volume={0.35} />)}

@@ -3,7 +3,7 @@
 // Nada aqui grava status: `onboardingStep` continua dizendo só onde retomar; `onboardingCompletedAt` continua o único
 // marcador de "concluído".
 import { Injectable } from '@nestjs/common';
-import type { Onboarding, OnboardingStep, OnboardingStepInfo, OnboardingSummary, UserRef } from '@maquina/contratos';
+import type { Onboarding, OnboardingConfirmItem, OnboardingStep, OnboardingStepInfo, OnboardingSummary, UserRef } from '@maquina/contratos';
 import type { Prisma, Workspace } from '@prisma/client';
 import { initials } from '../common/util/format';
 import { AppConfig } from '../config/app-config';
@@ -28,7 +28,19 @@ export interface OnboardingFacts {
 }
 export const NO_FACTS: OnboardingFacts = { offerComplete: false, audience: false, metaConnected: false };
 
-export type OnboardingWs = Pick<Workspace, 'name' | 'resultType' | 'monthlySpendCapUsd' | 'onboardingStep' | 'onboardingCompletedAt'>;
+export type OnboardingWs = Pick<Workspace, 'name' | 'resultType' | 'monthlySpendCapUsd' | 'onboardingStep' | 'onboardingCompletedAt'>
+  & Partial<Pick<Workspace, 'onboardingConfirmed'>>;
+
+/** lacunas-home-eddy-v1 §1: ordem preservada, sem repetição; linha sem a coluna (select antigo) = []. */
+export const ONBOARDING_CONFIRM_ITEMS: readonly OnboardingConfirmItem[] = ['business', 'offer', 'meta', 'goals', 'kit'];
+export function confirmedOf(ws: Partial<Pick<Workspace, 'onboardingConfirmed'>>): OnboardingConfirmItem[] {
+  return [...new Set((ws.onboardingConfirmed ?? []) as OnboardingConfirmItem[])];
+}
+/** Acrescenta `item` se faltar (idempotente). */
+export function withConfirmed(list: readonly string[] | null | undefined, item: OnboardingConfirmItem): OnboardingConfirmItem[] {
+  const cur = confirmedOf({ onboardingConfirmed: (list ?? []) as Workspace['onboardingConfirmed'] });
+  return cur.includes(item) ? cur : [...cur, item];
+}
 
 /** Um passo está preenchido? (tabela do §2) */
 function isDone(key: StepKey, ws: OnboardingWs, f: OnboardingFacts): boolean {
@@ -51,7 +63,8 @@ export function onboardingSteps(ws: OnboardingWs, facts: OnboardingFacts, metaEn
   const completed = ws.onboardingCompletedAt != null;
   return STEP_KEYS.map((key, i) => {
     const step = (i + 1) as OnboardingStep;
-    const enabled = key !== 'meta' || metaEnabled;
+    // 31/10 (Gusta): o passo "Metas e limites" está oculto no wizard; não conta na % (o teto vive em Settings)
+    const enabled = key !== 'goals' && (key !== 'meta' || metaEnabled);
     let state: OnboardingStepInfo['state'];
     if (isDone(key, ws, facts)) state = 'done';
     else if (key === 'meta' && (completed || current > step)) state = 'skipped';
@@ -86,7 +99,7 @@ export function onboardingCalc(ws: OnboardingWs, facts: OnboardingFacts, metaEna
 /** Versão curta pro seletor de cliente (WorkspaceRef.onboarding). */
 export function onboardingSummaryOf(ws: OnboardingWs, calc: OnboardingCalc): OnboardingSummary {
   const o = onboardingOf(ws);
-  return { step: o.step, percent: calc.percent, completedAt: o.completedAt };
+  return { step: o.step, percent: calc.percent, completedAt: o.completedAt, confirmed: confirmedOf(ws) };
 }
 
 export type UpdatedByRow = { id: string; name: string } | null | undefined;
@@ -103,6 +116,7 @@ export function onboardingFull(
     steps: calc.steps,
     updatedBy: ref,
     updatedAt: ws.onboardingUpdatedAt?.toISOString() ?? null,
+    confirmed: confirmedOf(ws),
   };
 }
 

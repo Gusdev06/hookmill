@@ -10,8 +10,9 @@ import {
 } from 'class-validator';
 import type {
   MetaPublishBatchBody, MetaTemplateAd, MetaTemplateAdset, MetaTemplateBody, MetaTemplateCampaign, MetaTemplateImportBody, MetaTemplateImportedFrom,
-  UpdateMetaTemplateBody,
+  MetaTemplateOverride, UpdateMetaTemplateBody,
 } from '@maquina/contratos';
+import type { MetaOfferLinkBody, MetaOfferLinkLevel, MetaOfferLinkQuery, MetaOfferScope } from '@maquina/contratos';
 import type {
   MetaAdFormat, MetaBudgetBody, MetaCampaignDetailQuery, MetaCampaignsQuery, MetaChangesQuery, MetaLevel, MetaOrigin, MetaSort, MetaStatusBody,
   MetaStatusFilter, MetaToggleStatus,
@@ -29,6 +30,9 @@ const PUB_STATUSES: readonly MetaPublicationStatus[] = ['PUBLISHING', 'PAUSED', 
 const STATUS_FILTERS: readonly MetaStatusFilter[] = ['active', 'paused', 'issues', 'all'];
 const SORTS: readonly MetaSort[] = ['spend', 'cpa', 'results', 'ctr', 'hookRate', 'budget', 'name'];
 const LEVELS: readonly MetaLevel[] = ['campaign', 'adset', 'ad'];
+// meta-oferta-v1 §4.1/§5.1
+const OFFER_SCOPES: readonly MetaOfferScope[] = ['all', 'this', 'unknown', 'other'];
+const OFFER_LINK_LEVELS: readonly MetaOfferLinkLevel[] = ['AD', 'CAMPAIGN'];
 
 export class MetaConnectDto implements MetaConnectBody {
   @IsOptional() @IsIn(RETURN_TOS) returnTo?: (typeof RETURN_TOS)[number];
@@ -60,6 +64,9 @@ export class MetaAdsQueryDto implements MetaAdsQuery {
   @IsOptional() @IsIn(['video', 'all']) format?: MetaAdFormat;
   @IsOptional() @IsIn(['7d', '30d']) period?: MetaPeriod;
   @IsOptional() @IsIn(['asc', 'desc']) dir?: 'asc' | 'desc';
+  // meta-oferta-v1 §4.1 (offerScope sem offerId = 400 requires_offer, no service)
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) offerId?: string;
+  @IsOptional() @IsIn(OFFER_SCOPES) offerScope?: MetaOfferScope;
 }
 
 // ───────── campanhas-v1 §4 ─────────
@@ -74,10 +81,30 @@ export class MetaCampaignsQueryDto implements MetaCampaignsQuery {
   @IsOptional() @IsIn(['asc', 'desc']) dir?: 'asc' | 'desc';
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number;
   @IsOptional() @IsString() @MaxLength(200) cursor?: string;
+  // meta-oferta-v1 §4.1
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) offerId?: string;
+  @IsOptional() @IsIn(OFFER_SCOPES) offerScope?: MetaOfferScope;
 }
 
 export class MetaCampaignDetailQueryDto implements MetaCampaignDetailQuery {
   @IsOptional() @IsIn(['7d', '30d']) period?: MetaPeriod;
+  // meta-oferta-v1 §4.2
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(64) offerId?: string;
+}
+
+/** meta-oferta-v1 §5.1: PUT /meta/offer-links. ADSET = 400. */
+export class MetaOfferLinkBodyDto implements MetaOfferLinkBody {
+  @IsIn(OFFER_LINK_LEVELS) level: MetaOfferLinkLevel;
+  @IsString() @MinLength(1) @MaxLength(64) objectId: string;
+  @IsString() @MinLength(1) @MaxLength(64) offerId: string;
+  @IsBoolean() belongs: boolean;
+}
+
+/** meta-oferta-v1 §5.1: DELETE /meta/offer-links?level=&objectId=&offerId= */
+export class MetaOfferLinkQueryDto implements MetaOfferLinkQuery {
+  @IsIn(OFFER_LINK_LEVELS) level: MetaOfferLinkLevel;
+  @IsString() @MinLength(1) @MaxLength(64) objectId: string;
+  @IsString() @MinLength(1) @MaxLength(64) offerId: string;
 }
 
 export class MetaChangesQueryDto implements MetaChangesQuery {
@@ -117,6 +144,8 @@ const noTemplate = (o: { templateId?: unknown }) => o.templateId === undefined;
 export class MetaPublishDto implements MetaPublishBody {
   /** meta-templates-v1: publicar com um template (alternativa ao corpo inteiro); os demais campos ficam proibidos */
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) templateId?: string;
+  /** meta-templates-v2 §14 (04/11): só com `templateId`; formato fino por `overrideErrors` (meta/templates.ts) */
+  @IsOptional() @IsObject() override?: MetaTemplateOverride;
   @ValidateIf(noTemplate) @IsInt() @Min(1) dailyBudgetMinor: number;
   @ValidateIf(noTemplate) @IsArray() @ArrayMinSize(1) @ArrayMaxSize(10) @Matches(/^[A-Z]{2}$/, { each: true }) countries: string[];
   @IsOptional() @IsIn(OBJECTIVES) objective?: MetaObjective;
@@ -161,6 +190,8 @@ export class MetaTemplateImportDto implements MetaTemplateImportBody {
 export class MetaPublishBatchDto implements MetaPublishBatchBody {
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(50) @ArrayUnique() @IsString({ each: true }) @MinLength(1, { each: true }) @MaxLength(64, { each: true }) creativeIds: string[];
   @IsString() @MinLength(1) @MaxLength(64) templateId: string;
+  /** meta-templates-v2 §14 (04/11): o mesmo override pra todo o lote; formato fino por `overrideErrors` */
+  @IsOptional() @IsObject() override?: MetaTemplateOverride;
 }
 
 export class MetaActivateDto implements MetaActivateBody {

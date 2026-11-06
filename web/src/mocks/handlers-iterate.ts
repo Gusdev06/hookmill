@@ -3,7 +3,7 @@
  */
 import { delay, http, HttpResponse } from "msw"
 import { API_URL } from "@/lib/api/client"
-import type { CreateIterateBody, LibraryItem, RequestPieceFormatBody, RetryPieceBody, StartIterateBody, UpdatePieceBody } from "@/lib/api/types"
+import type { CreateIterateBody, IterateBatchRow, IterateBatchStage, LibraryItem, RequestPieceFormatBody, RetryPieceBody, StartIterateBody, UpdatePieceBody } from "@/lib/api/types"
 import { db, save as saveDb } from "./db"
 import { mockWorkspaceOf } from "./auth"
 import { adRows } from "./v2"
@@ -95,6 +95,38 @@ export const iterateHandlers = [
   http.get(u("/iterate/config"), async ({ request }) => {
     const s = await listScenario(request.url)
     return ok(iterConfig(s === "empty"))
+  }),
+
+  // lacunas-home-eddy-v1 §5: GET /iterate (batches, updatedAt desc). Stage = api/src/iteracao/lote-etapa.ts (mock batches are AUTO).
+  http.get(u("/iterate"), async ({ request }) => {
+    const url = new URL(request.url)
+    if ((await listScenario(request.url)) === "empty") return HttpResponse.json({ success: true, data: [], meta: { nextCursor: null } })
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 20, 1), 50)
+    const now = Date.now()
+    const rows: IterateBatchRow[] = it.batches.filter((b) => !b.archived).map((raw) => {
+      const b = advanceIter(raw)
+      const v = iterView(b, now)
+      const live = v.pieces.filter((p) => p.status !== "left_out")
+      const ready = live.filter((p) => p.status === "ready").length
+      const stage: IterateBatchStage =
+        v.status === "ANALYZING" ? "analyzing"
+        : v.status === "PLANNING" ? "planning"
+        : v.status === "PLAN_READY" ? "plan_ready"
+        : v.status === "ANALYSIS_FAILED" ? "failed"
+        : live.some((p) => p.status === "queued" || p.status === "rendering") ? "generating"
+        : live.length > 0 && !b.downloadedAt ? "pieces_ready" : "done"
+      const last = Math.max(b.createdAt, b.launchedAt ?? 0, ...b.jobs.map((j) => (j.endAt <= now ? j.endAt : 0)))
+      return {
+        id: b.id, mode: "AUTO", stage, needsYou: stage === "plan_ready" || stage === "failed" || stage === "pieces_ready",
+        statusKey: `status.batch_${stage}`, statusParams: (stage === "pieces_ready" ? { n: ready } : {}) as Record<string, number>,
+        champion: { id: b.championId, name: b.name }, offer: { id: v.offer.id, name: v.offer.name },
+        source: { metaAdId: v.source.fromMeta ? b.championId : null, creativeId: b.sourceCreativeId },
+        pieces: live.length, ready, thumbnail: v.source.thumbnail,
+        createdAt: new Date(b.createdAt).toISOString(), updatedAt: new Date(last).toISOString(),
+      }
+    })
+    rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    return HttpResponse.json({ success: true, data: rows.slice(0, limit), meta: { nextCursor: null } })
   }),
 
   http.post(u("/iterate"), async ({ request }) => {

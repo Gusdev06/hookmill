@@ -1,0 +1,92 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · sincronizada há 1 minuto
+WORKSPACE
+Início
+Campanhas
+Eddy
+EM BREVE
+Cérebro
+FAZER ANÚNCIOS
+Templates
+Conceitos novos
+Revisar
+Biblioteca
+Equipe · ilimitado
+∞
+Comprar créditos
+Admin · Templates
+Configurações
+Q
+QA Dono Alfa
+Dono
+EN
+PT
+QA ALFA · META
+Campanhas
+Mock Store (USD)
+act_mock_1
+USD
+Sincronizado com a Meta há 1 minuto
+Histórico
+Sincronizar
+Campanhas
+Só anúncios
+Últimos 30 dias
+Últimos 7 dias
+Todas
+Ativas
+Pausadas
+Com problema
+1
+Todas
+HM
+HookMill
+Buscar campanha, conjunto, anúncio
+Status	Nome	Orçamento	Gasto
+	Cliques no link	Custo / clique	CTR	Hook rate	Veredito	
+Ações
+
+Total · 3 campanhas · Últimos 30 dias		US$ 1.755	77	US$ 22,79	2,09%			
+
+	
+Mock — Prospecting (CBO)
+CAMPANHA
+·
+2 conjuntos
+·
+4 anúncios
+	
+CBO
+US$ 50,00
+/dia
+	US$ 1.320	56	US$ 23,57	2,16%	30,0%	
+3 vencedores
+1 cansando
+	
+
+
+	
+Mock — Testing (ABO)
+CAMPANHA
+·
+3 conjuntos
+·
+4 anúncios
+	No conjunto	US$ 370	14	US$ 26,43	1,92%	32,1%	—	
+
+
+	
+Mock — Launch (lifetime)
+CAMPANHA
+·
+1 conjunto
+·
+2 anúncios
+	
+CBO
+US$ 300,00
+vitalício
+	US$ 65	7	US$ 9,29	1,77%	16,1%	—	

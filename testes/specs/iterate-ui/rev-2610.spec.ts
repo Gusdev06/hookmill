@@ -2,7 +2,7 @@
 // QA (mock, render fake, banco *_test próprio). 1440 e 390 (Playwright aplica a viewport por Emulation em cada rota).
 // Screenshots em test-results/telas/<projeto>/r26-*.png. Nada pago. Dono: maquina-qa.
 //   R26-UI-01 bloqueio sem Meta (Home, Campaigns, Iterate › New): none → Connect Meta; TOKEN_INVALID → Reconnect; MEMBER → "Ask an admin"
-//   R26-UI-02 AUTO com HEADLINE: plano com HEADLINE-1..3 ("original → nova"), selo "Captions added", gerar, Download,
+//   R26-UI-02 AUTO com headline escrita (F1a: HEADLINE replace não é oferecida, §15.4): linha "headline can't be rewritten yet", selo "Captions added", gerar, Download,
 //             "Make another batch with this champion" → lote novo do mesmo campeão (PLAN_READY sem upload)
 //   R26-UI-03 legenda queimada: "N formats left out", "Send version without captions" (upload) → salvo → Replan → plano novo
 import { test, expect } from '../../harness/fixtures.ts';
@@ -101,7 +101,7 @@ test('R26-UI-01 bloqueio sem Meta: Home, Campaigns e Iterate › New mostram o c
   info.annotations.push({ type: 'erros de console', description: spy.erros.slice(0, 5).join(' | ') || '(nenhum)' });
 });
 
-test('R26-UI-02 AUTO com HEADLINE: plano mostra HEADLINE-1..3 com "original → nova" e "Captions added"; gerar → Download → lote novo do mesmo campeão', async ({ page }, info) => {
+test('R26-UI-02 AUTO com headline escrita: sem HEADLINE, com a linha headline_pending e "Captions added"; gerar → Download → lote novo do mesmo campeão', async ({ page }, info) => {
   test.setTimeout(1_500_000);
   await oferta('A');
   const spy = espiao(page);
@@ -114,12 +114,9 @@ test('R26-UI-02 AUTO com HEADLINE: plano mostra HEADLINE-1..3 com "original → 
   const gerar = page.getByRole('button', { name: /^Generate \d+ pieces/ });
   await expect(gerar).toBeVisible(LONGO);
   const b = (await as('donoA').get(`/iterate/${batchId}`)).data;
-  const hs = b.pieces.filter((p: any) => p.type === 'HEADLINE');
-  expect(hs.length).toBe(3);
-  for (const p of hs) {
-    await expect(page.getByText(p.code, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(`“${p.headline.original}”`).first(), `${p.code}: original riscada`).toBeVisible();
-  }
+  expect(b.pieces.filter((p: any) => p.type === 'HEADLINE').length, 'F1a: replace fora do plano').toBe(0);
+  expect(b.insight.headlineBlocked).toEqual({ reason: 'headline_pending', mode: 'replace' });
+  await expect(page.getByText("This video's headline can't be rewritten yet").first()).toBeVisible();
   await expect(page.getByText('Captions added').first()).toBeVisible();
   await expect(page.getByText(/HOOK_TEXT|\b(iterate|captions)\.[a-z][A-Za-z.]+/)).toHaveCount(0); // sem chave i18n crua
   await semRolagemHorizontal(page, 'plano headline');

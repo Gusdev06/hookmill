@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
+import { SkeletonBox } from "skullet/react"
 import { useQuery } from "@tanstack/react-query"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -25,6 +26,7 @@ function Connections() {
   const t = useTranslations("settings")
   const tm = useTranslations("meta")
   const tt = useTranslations("metaTemplates")
+  const tl = useTranslations("skeleton")
   const { session } = useSession()
   const ws = useQuery({ queryKey: ["workspace"], queryFn: api.workspace.get })
   const m = useMetaConnect("/settings/connections")
@@ -38,8 +40,11 @@ function Connections() {
             case), instead of the short "Connect" card that grew and pushed the page down */}
         {m.connection.isPending ? (
           <>
-            <span className="sk h-[627px] rounded-xl tablet:h-[554px]" aria-hidden="true" />
-            <span className="sk h-[152px] rounded-xl tablet:h-[89px]" aria-hidden="true" />
+            {/* skullet (04/11): MetaConnect runs the connect flow, so it isn't rendered from a sample; boxes at the cards' size */}
+            <span role="status" aria-label={tl("connections")} className="contents">
+              <SkeletonBox width="100%" height="var(--h)" radius={12} className="[--h:627px] tablet:[--h:554px]" />
+              <SkeletonBox width="100%" height="var(--h)" radius={12} className="[--h:152px] tablet:[--h:89px]" />
+            </span>
           </>
         ) : m.state === "off" ? null : (
           <section className="flex min-w-0 flex-col gap-3.5 rounded-xl border border-line bg-card p-4 tablet:p-5">

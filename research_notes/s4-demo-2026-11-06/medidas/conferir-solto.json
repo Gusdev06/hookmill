@@ -1,0 +1,87 @@
+{
+ "aprovada": {
+  "quadros": 564,
+  "audio_igual": true,
+  "fora_mascara_media": 1.11,
+  "fora_mascara_pior": 1.29,
+  "fora_trecho_media": 0.93,
+  "fora_trecho_pior": 1.47,
+  "banda_legenda_media": 1.34,
+  "banda_legenda_pior": 1.64,
+  "primeiro_sem_mudanca": 161,
+  "fantasma_px_livre": 585,
+  "fantasma_original": 107.9,
+  "fantasma_peca": -17.2
+ },
+ "longa": {
+  "quadros": 564,
+  "audio_igual": true,
+  "fora_mascara_media": 1.11,
+  "fora_mascara_pior": 1.28,
+  "fora_trecho_media": 0.93,
+  "fora_trecho_pior": 1.47,
+  "banda_legenda_media": 1.35,
+  "banda_legenda_pior": 1.69,
+  "primeiro_sem_mudanca": 161,
+  "fantasma_px_livre": 428,
+  "fantasma_original": 96.6,
+  "fantasma_peca": -28.4
+ },
+ "longa2": {
+  "quadros": 564,
+  "audio_igual": true,
+  "fora_mascara_media": 1.1,
+  "fora_mascara_pior": 1.28,
+  "fora_trecho_media": 0.93,
+  "fora_trecho_pior": 1.47,
+  "banda_legenda_media": 1.33,
+  "banda_legenda_pior": 1.63,
+  "primeiro_sem_mudanca": 161,
+  "fantasma_px_livre": 434,
+  "fantasma_original": 100.4,
+  "fantasma_peca": -26.9
+ },
+ "curta": {
+  "quadros": 564,
+  "audio_igual": true,
+  "fora_mascara_media": 1.1,
+  "fora_mascara_pior": 1.28,
+  "fora_trecho_media": 0.93,
+  "fora_trecho_pior": 1.47,
+  "banda_legenda_media": 1.33,
+  "banda_legenda_pior": 1.64,
+  "primeiro_sem_mudanca": 161,
+  "fantasma_px_livre": 1763,
+  "fantasma_original": 99.5,
+  "fantasma_peca": -3.8
+ },
+ "minima": {
+  "quadros": 564,
+  "audio_igual": true,
+  "fora_mascara_media": 1.11,
+  "fora_mascara_pior": 1.29,
+  "fora_trecho_media": 0.93,
+  "fora_trecho_pior": 1.47,
+  "banda_legenda_media": 1.33,
+  "banda_legenda_pior": 1.63,
+  "primeiro_sem_mudanca": 161,
+  "fantasma_px_livre": 3218,
+  "fantasma_original": 96.8,
+  "fantasma_peca": -5.0
+ },
+ "remotion_x_placa": {
+  "area": [
+   73,
+   531,
+   321,
+   71
+  ],
+  "media": 2.14,
+  "pior_quadro": 2.27,
+  "desvio_bgr": [
+   -2.06,
+   -1.75,
+   -2.23
+  ]
+ }
+}

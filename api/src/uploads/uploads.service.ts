@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, PayloadTooLargeException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import type { CompleteUploadResponse, CreateUploadResponse, UploadWarning } from '@maquina/contratos';
-import type { Upload } from '@prisma/client';
+import type { FileKind, Upload } from '@prisma/client';
 import type { Request } from 'express';
 import { Transform, type Readable } from 'node:stream';
 import { MediaInvalidError, probeHeader } from '../arquivos/media-validator';
@@ -13,6 +13,10 @@ import { CATALOG_SERVICE, type CatalogService } from '../integracoes';
 import { PrismaService } from '../prisma/prisma.service';
 import { CHAMPION_MIME_TYPES, LOW_RES_SIDE_PX, MIN_SIDE_PX, PRODUCT_IMAGE_MAX_BYTES, PRODUCT_IMAGE_MIME_TYPES, UPLOAD_TTL_MS, autoAnalysisEstimateUsd } from '../campeoes/limites';
 import type { CreateUploadDto } from './uploads.dto';
+import {
+  BRAND_FILE_MAX_BYTES, BRAND_FILE_MIME_TYPES, BRAND_LOGO_MAX_BYTES, BRAND_LOGO_MIME_TYPES, BRAND_VIDEO_MAX_SEC, BRAND_VIDEO_MIME_TYPES,
+  BRAND_VIDEO_MIN_SEC,
+} from '../brand-kit/limites';
 
 /**
  * Upload do navegador (feature-2 §4.1). O web segue method/url/headers da resposta:
@@ -31,15 +35,23 @@ export class UploadsService {
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
   ) {}
 
+  /** Tipos, teto e FileKind de cada purpose (D4: foto do produto; kit-marca-v1 §2: assets do kit da marca). */
+  private rule(purpose: UploadPurpose): { mimes: readonly string[]; maxBytes: number; kind: FileKind } {
+    switch (purpose) {
+      case 'PRODUCT_IMAGE': return { mimes: PRODUCT_IMAGE_MIME_TYPES, maxBytes: PRODUCT_IMAGE_MAX_BYTES, kind: 'PRODUCT_IMAGE' };
+      case 'BRAND_LOGO': return { mimes: BRAND_LOGO_MIME_TYPES, maxBytes: BRAND_LOGO_MAX_BYTES, kind: 'BRAND_LOGO' };
+      case 'BRAND_FILE': return { mimes: BRAND_FILE_MIME_TYPES, maxBytes: BRAND_FILE_MAX_BYTES, kind: 'BRAND_FILE' };
+      case 'BRAND_VIDEO': return { mimes: BRAND_VIDEO_MIME_TYPES, maxBytes: this.config.uploadMaxBytes, kind: 'BRAND_VIDEO' };
+      default: return { mimes: CHAMPION_MIME_TYPES, maxBytes: this.config.uploadMaxBytes, kind: 'CHAMPION_VIDEO' };
+    }
+  }
+
   async create(auth: AuthContext, dto: CreateUploadDto): Promise<CreateUploadResponse> {
-    // variacao-auto-v1 D4: PRODUCT_IMAGE = foto do produto da oferta (jpeg/png/webp, ≤ 10 MB)
-    const image = dto.purpose === 'PRODUCT_IMAGE';
-    const mimes: readonly string[] = image ? PRODUCT_IMAGE_MIME_TYPES : CHAMPION_MIME_TYPES;
-    const maxBytes = image ? PRODUCT_IMAGE_MAX_BYTES : this.config.uploadMaxBytes;
+    const { mimes, maxBytes, kind } = this.rule(dto.purpose);
     if (!mimes.includes(dto.mimeType)) throw new AppException('MEDIA_INVALID', { reason: 'mime' });
     if (dto.sizeBytes > maxBytes) throw new AppException('MEDIA_TOO_LARGE', { maxBytes });
     const expiresAt = new Date(Date.now() + UPLOAD_TTL_MS);
-    const storageKey = this.storage.newKey(auth.workspaceId, image ? 'PRODUCT_IMAGE' : 'CHAMPION_VIDEO', dto.mimeType);
+    const storageKey = this.storage.newKey(auth.workspaceId, kind, dto.mimeType);
     const up = await this.prisma.upload.create({
       data: {
         workspaceId: auth.workspaceId, purpose: dto.purpose, filename: dto.filename, mimeType: dto.mimeType, sizeBytes: dto.sizeBytes,
@@ -109,7 +121,10 @@ export class UploadsService {
     if (!head || head.sizeBytes !== up.sizeBytes) {
       throw new AppException('UPLOAD_INCOMPLETE', { expectedBytes: up.sizeBytes, actualBytes: head?.sizeBytes ?? null });
     }
-    if (up.purpose === 'PRODUCT_IMAGE') return this.completeImage(up, head.sizeBytes);
+    if (up.purpose === 'PRODUCT_IMAGE' || up.purpose === 'BRAND_LOGO' || up.purpose === 'BRAND_FILE') {
+      return this.completeImage(up, head.sizeBytes, this.rule(up.purpose as UploadPurpose).kind);
+    }
+    const brandVideo = up.purpose === 'BRAND_VIDEO';
     let info;
     try {
       info = await probeHeader(await this.storage.signedUrlForKey(up.storageKey));
@@ -121,13 +136,16 @@ export class UploadsService {
     const minSide = Math.min(info.width ?? 0, info.height ?? 0);
     if (minSide < MIN_SIDE_PX) return this.fail(up, 'MEDIA_INVALID', { reason: 'too_small' });
     const d = info.durationSec ?? 0;
-    if (d < this.config.championMinSec) return this.fail(up, 'MEDIA_TOO_SHORT', { durationSec: round3(d), minSec: this.config.championMinSec });
-    if (d > this.config.championMaxSec) return this.fail(up, 'MEDIA_TOO_LONG', { durationSec: round3(d), maxSec: this.config.championMaxSec });
+    // kit-marca-v1 §2: vídeo demo tem limites próprios (1 s a 10 min)
+    const minSec = brandVideo ? BRAND_VIDEO_MIN_SEC : this.config.championMinSec;
+    const maxSec = brandVideo ? BRAND_VIDEO_MAX_SEC : this.config.championMaxSec;
+    if (d < minSec) return this.fail(up, 'MEDIA_TOO_SHORT', { durationSec: round3(d), minSec });
+    if (d > maxSec) return this.fail(up, 'MEDIA_TOO_LONG', { durationSec: round3(d), maxSec });
 
     const file = await this.prisma.$transaction(async (tx) => {
       const f = await tx.file.create({
         data: {
-          workspaceId: up.workspaceId, kind: 'CHAMPION_VIDEO', storageKey: up.storageKey, mimeType: up.mimeType, sizeBytes: head.sizeBytes,
+          workspaceId: up.workspaceId, kind: brandVideo ? 'BRAND_VIDEO' : 'CHAMPION_VIDEO', storageKey: up.storageKey, mimeType: up.mimeType, sizeBytes: head.sizeBytes,
           durationSec: round3(d), width: info.width, height: info.height,
         },
       });
@@ -138,14 +156,17 @@ export class UploadsService {
     return this.ready(fresh, file, { hasAudio: info.hasAudio, minSide });
   }
 
-  /** D4: foto do produto. Confere a assinatura do arquivo (jpeg/png/webp) pelos primeiros bytes; sem ffprobe. */
-  private async completeImage(up: Upload, sizeBytes: number): Promise<CompleteUploadResponse> {
-    const res = await fetch(await this.storage.signedUrlForKey(up.storageKey), { headers: { range: 'bytes=0-15' } }).catch(() => null);
+  /**
+   * D4: foto do produto; kit-marca-v1: logo e arquivos do kit. Confere a assinatura do arquivo pelos primeiros bytes
+   * (jpeg/png/webp, `%PDF-`, `<svg` no 1º KB); sem ffprobe.
+   */
+  private async completeImage(up: Upload, sizeBytes: number, kind: FileKind): Promise<CompleteUploadResponse> {
+    const res = await fetch(await this.storage.signedUrlForKey(up.storageKey), { headers: { range: 'bytes=0-1023' } }).catch(() => null);
     const head = res && res.ok ? Buffer.from(await res.arrayBuffer()) : null;
-    if (!head || imageMimeOf(head) !== up.mimeType) return this.fail(up, 'MEDIA_INVALID', { reason: 'mime' });
+    if (!head || sniffMime(head) !== up.mimeType) return this.fail(up, 'MEDIA_INVALID', { reason: 'mime' });
     const file = await this.prisma.$transaction(async (tx) => {
       const f = await tx.file.create({
-        data: { workspaceId: up.workspaceId, kind: 'PRODUCT_IMAGE', storageKey: up.storageKey, mimeType: up.mimeType, sizeBytes },
+        data: { workspaceId: up.workspaceId, kind, storageKey: up.storageKey, mimeType: up.mimeType, sizeBytes },
       });
       await tx.upload.update({ where: { id: up.id }, data: { status: 'READY', fileId: f.id, completedAt: new Date(), errorCode: null } });
       return f;
@@ -156,7 +177,7 @@ export class UploadsService {
   private async ready(
     up: Upload, file: import('@prisma/client').File, probe?: { hasAudio: boolean; minSide: number },
   ): Promise<CompleteUploadResponse> {
-    if (up.purpose === 'PRODUCT_IMAGE') return { uploadId: up.id, status: 'READY', file: await this.storage.fileRef(file), warnings: [], analysisEstimateUsd: 0 };
+    if (up.purpose !== 'CHAMPION_VIDEO') return { uploadId: up.id, status: 'READY', file: await this.storage.fileRef(file), warnings: [], analysisEstimateUsd: 0 };
     let p = probe;
     if (!p) {
       const info = await probeHeader(await this.storage.signedUrl(file)).catch(() => null);
@@ -222,7 +243,17 @@ function failedAgain(stored: string | null): AppException {
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
-export type UploadPurpose = 'CHAMPION_VIDEO' | 'PRODUCT_IMAGE';
+export type UploadPurpose = 'CHAMPION_VIDEO' | 'PRODUCT_IMAGE' | 'BRAND_LOGO' | 'BRAND_FILE' | 'BRAND_VIDEO';
+
+/** kit-marca-v1: imagem (assinatura), PDF (`%PDF-`) ou SVG (`<svg` no começo, depois de prólogo/comentário). */
+export function sniffMime(b: Buffer): string | null {
+  const img = imageMimeOf(b);
+  if (img) return img;
+  if (b.length >= 5 && b.subarray(0, 5).toString('latin1') === '%PDF-') return 'application/pdf';
+  const text = b.toString('utf8').replace(/^\uFEFF/, '').trimStart();
+  if (text.startsWith('<') && /<svg[\s>]/i.test(text)) return 'image/svg+xml';
+  return null;
+}
 
 /** Tipo real da imagem pelos primeiros bytes (null = não é jpeg/png/webp). */
 export function imageMimeOf(b: Buffer): string | null {

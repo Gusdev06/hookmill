@@ -50,7 +50,17 @@
     "render_failed": "Render failed",
     "render_ready": "Ready for review",
     "approved": "Approved",
-    "draft": "Draft"
+    "draft": "Draft",
+    "scenes_generating_short": "Generating scenes",
+    "scenes_failed_short": "Some scenes failed",
+    "rendering_short": "Rendering",
+    "batch_analyzing": "Reading the ad",
+    "batch_planning": "Planning variations",
+    "batch_plan_ready": "Plan ready",
+    "batch_failed": "Needs a fix",
+    "batch_generating": "Generating pieces",
+    "batch_pieces_ready": "{n, plural, one {# piece ready} other {# pieces ready}}",
+    "batch_done": "Done"
   },
   "home": {
     "title": "Home",
@@ -156,7 +166,109 @@
       "allIn": "Everything is in.",
       "fill": "Fill in the Brain"
     },
-    "seeAllWaiting": "See all {count}"
+    "seeAllWaiting": "See all {count}",
+    "hello": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}",
+      "plain": "Hello, {name}"
+    },
+    "resultNoun": {
+      "PURCHASE": "purchase",
+      "LEAD": "lead",
+      "MESSAGE": "message",
+      "APPOINTMENT": "appointment",
+      "SIGNUP": "sign-up",
+      "SUBSCRIPTION": "subscription",
+      "APP_INSTALL": "install",
+      "OTHER": "result"
+    },
+    "goal": {
+      "label": "Goal · cost per {result}",
+      "none": "No target yet",
+      "inTarget": "In target · 30 days",
+      "under": "Under target · 30 days",
+      "over": "{amount} over",
+      "noResults": "No results in 30 days yet",
+      "reading": "Reading…",
+      "noMeta": "Your real number shows here once Meta is connected.",
+      "noTarget": "Set a target range in Brand to see this number against it.",
+      "spendCap": "Spend {spend} of {cap} cap",
+      "spend": "Spend {spend} in 30 days",
+      "roas": "ROAS {roas}x",
+      "meter": "Account cost per {result} {cpa} against a {min} to {max} target",
+      "lastData": "Last data {date}",
+      "otherCurrency": "The target is in {target}; the account reports in {account}."
+    },
+    "viewBrand": "View brand",
+    "brainFull": "Brain {pct}% full",
+    "next": {
+      "title": "Next steps",
+      "more": "{count, plural, one {Show # more step} other {Show # more steps}}",
+      "less": "Show less",
+      "empty": "Nothing waiting on you. Start something new from the sidebar.",
+      "iterateT": "Iterate your winner",
+      "iterateOfferT": "Best ad for {offer}",
+      "iterateIn": "{name} is inside your target at {cpa}.",
+      "iterateBest": "{name} is your best ad at {cpa}.",
+      "iterateCta": "Iterate this ad",
+      "uploadT": "Start from an ad that sells",
+      "uploadB": "Upload a winning video ad and get variations of it.",
+      "uploadCta": "Upload a winning ad",
+      "connectT": "Connect Meta",
+      "connectB": "So the Brain reads your ads and marks the winner.",
+      "connectCta": "Connect",
+      "chooseT": "Choose an ad account",
+      "chooseB": "Meta is connected. Pick the ad account and Page to read.",
+      "chooseCta": "Choose",
+      "reconnectT": "Reconnect Meta",
+      "reconnectB": "Meta stopped answering {ago}. The numbers here are from then.",
+      "reconnectB0": "Meta stopped answering. Reconnect to read your ads again.",
+      "reconnectCta": "Reconnect",
+      "readingT": "Reading your ads",
+      "readingB": "You can leave, it keeps going. {done} of {total} ads.",
+      "readingB0": "You can leave, it keeps going.",
+      "brainT": "Finish the Brain",
+      "brainB": "{count, plural, one {# thing missing} other {# things missing}}: {items}.",
+      "brainOneT": "Add {item}",
+      "brainOneB": "The Brain's last gap. Scripts get sharper with it.",
+      "fill": "Fill"
+    },
+    "eddy": {
+      "label": "Ask Eddy",
+      "placeholder": "Ask Eddy to turn this brief into ad concepts…",
+      "soon": "Soon",
+      "note": "Eddy will take requests like this here. Until then, Next steps has what to do."
+    },
+    "strip": {
+      "title": "Recent",
+      "all": "All creatives",
+      "empty": "Nothing made yet. Batches and concepts show up here with their stage, live.",
+      "failed": "Couldn't load the recent creatives"
+    },
+    "conn": {
+      "title": "Connections",
+      "meta": "Meta",
+      "notConnected": "Not connected",
+      "on": "On",
+      "attention": "Needs attention",
+      "choose": "Choose account",
+      "connect": "Connect",
+      "synced": "synced {ago}",
+      "off": "Not available on this server",
+      "loading": "Checking…"
+    },
+    "stage": {
+      "open": "Open Brain",
+      "winner": "Winner · CPA {cpa}",
+      "winnerNoCpa": "Winner",
+      "waiting": "Waiting for you",
+      "waitingWith": "Waiting for you · {what}",
+      "nogl": "The 3D view isn't available in this browser. What's live on the map:",
+      "nothing": "Nothing live on the map right now.",
+      "close": "Close",
+      "label": "{name}'s Brain. Use Open Brain for the list view."
+    }
   },
   "offers": {
     "title": "Offers",
@@ -224,6 +336,25 @@
     "markWinner": "Mark as winner",
     "unmarkWinner": "Remove winner mark",
     "noWinners": "No winners for this filter yet.",
+    "uploadedTitle": "Your ads",
+    "uploadedSub": "Videos you uploaded and ads read from Meta. Pick one to make variations with a template.",
+    "creativesTitle": "Approved creatives",
+    "noneInFilter": "Nothing in this filter yet.",
+    "srcUpload": "Uploaded",
+    "srcMeta": "From Meta",
+    "srcAdLibrary": "Ad Library",
+    "stReading": "Reading…",
+    "stFailed": "Couldn't read it",
+    "useInTemplate": "Use in a template",
+    "delete": {
+      "label": "Delete",
+      "action": "Delete {name}",
+      "title": "Delete “{name}”?",
+      "bodyChampion": "It leaves your Library and the ad picker. Variations already made from it stay.",
+      "bodyCreative": "It leaves your Library. Ads already sent to Meta are not touched.",
+      "confirm": "Delete",
+      "done": "“{name}” deleted"
+    },
     "emptyTitle": "No approved creatives yet",
     "emptyBody": "A creative lands here when you give it the final OK. Mark the winners and the next scripts for that offer are written with them in mind.",
     "errorTitle": "Couldn't load the library",
@@ -292,7 +423,8 @@
       "cancel": "Cancel",
       "confirm": "Switch",
       "changed": "Account mode: {mode}"
-    }
+    },
+    "capSaved": "Monthly cap saved"
   },
   "login": {
     "title": "Log in",
@@ -674,7 +806,17 @@
     "BROLL_UNAVAILABLE": "The b-roll clip is no longer available. Retry picks the next one.",
     "CLEAN_VERSION_MISMATCH": "This isn't the same video without captions.",
     "CAPTION_COVERED": "Something covered the video's captions. Retry tries another layout.",
-    "CAPTION_PROTECTED": "This format would cover the video's captions. Leave it out."
+    "CAPTION_PROTECTED": "This format would cover the video's captions. Leave it out.",
+    "CAPTION_FORCE_RETIRED": "This option is no longer available. Reload the page to see your choices.",
+    "HEADLINE_PENDING": "This video's headline can't be rewritten yet.",
+    "INSUFFICIENT_CREDITS": "Not enough credits for this.",
+    "CREDITS_CHANGED": "The cost changed. Check it and try again.",
+    "TEMPLATE_UNAVAILABLE": "This template isn't available right now.",
+    "TEMPLATE_DOESNT_FIT": "This template doesn't fit this ad.",
+    "TEMPLATE_UNPRICED": "Set a price before making it live.",
+    "TEMPLATE_SELECTION_INVALID": "Check your selection: some templates can't run together.",
+    "TEXT_INVALID": "This text doesn't fit the template's rules.",
+    "EDIT_NOT_SUPPORTED": "This template's texts can't be edited yet."
   },
   "template": {
     "clean": "Clean",
@@ -694,7 +836,7 @@
     "sub": "You were invited as {role} with {email}.",
     "name": "Your name",
     "password": "Password",
-    "passwordHint": "At least 10 characters.",
+    "passwordHint": "At least 6 characters.",
     "submit": "Join workspace",
     "submitting": "Joining…",
     "invalidTitle": "This invite doesn't work anymore",
@@ -1540,7 +1682,11 @@
       "review": "Review",
       "library": "Library",
       "clients": "All clients",
-      "settings": "Settings"
+      "settings": "Settings",
+      "templates": "Templates",
+      "admin": "Admin · Templates",
+      "aiVariations": "AI variations",
+      "radar": "Ad Radar"
     },
     "groupWorkspace": "Workspace",
     "groupMakeAds": "Make ads",
@@ -1624,7 +1770,8 @@
   "flow": {
     "names": {
       "iterate": "Iterate a winner",
-      "concepts": "New concepts"
+      "concepts": "New concepts",
+      "templates": "Templates"
     },
     "phases": {
       "plan": "Plan",
@@ -1645,7 +1792,9 @@
       "breakdown": "Breakdown",
       "plan": "Plan",
       "analyze": "Analyze",
-      "download": "Download"
+      "download": "Download",
+      "template": "Template",
+      "ad": "Ad"
     },
     "aria": "{name} steps",
     "stepOf": "Step {n} of {total}",
@@ -1797,6 +1946,7 @@
       "readAgain": "Read the site again",
       "readHint": "Reading takes about 20 seconds. It fills only empty fields of the offer, never what you typed.",
       "saving": "Saving what we found to the offer…",
+      "readingSite": "Reading your site…",
       "readDone": "Read the site. You'll check what we found in steps 3 and 4.",
       "readEmpty": "Read the site, but found nothing new for the offer. Fill it in step 3.",
       "readFailed": "We couldn't read that site",
@@ -1805,8 +1955,8 @@
       "name": "Business name",
       "industry": "Industry",
       "industryPh": "e.g. Dental clinic",
-      "market": "Main market",
-      "marketPh": "e.g. United States",
+      "market": "Which country do you sell in?",
+      "marketPh": "Country, e.g. United States",
       "language": "Workspace language",
       "resultLegend": "What counts as a result?",
       "resultHint": "Meta ads optimize for this, and it is what we count as a result. Reading the site picks one; change it if it is wrong.",
@@ -1895,7 +2045,8 @@
       "soonVoice": "<b>Voice</b> sliders and a line that sounds like the brand.",
       "soonWords": "<b>Words</b> we say and never say.",
       "soonBrand": "<b>Brand kit</b>: logo, colors, fonts and the footage folder.",
-      "continue": "Continue: goals & guardrails"
+      "continue": "Continue: goals & guardrails",
+      "brandKitOptional": "Optional. Statics and end cards use these."
     },
     "goals": {
       "title": "Goals and guardrails",
@@ -1943,7 +2094,7 @@
       "item": {
         "businessType": "what counts as a result",
         "industry": "industry",
-        "market": "market",
+        "market": "where you sell",
         "offer": "an offer",
         "what": "what it is",
         "promise": "promise",
@@ -1992,7 +2143,7 @@
     "name": "Your name",
     "email": "Work email",
     "password": "Password",
-    "passwordHint": "At least 10 characters.",
+    "passwordHint": "At least 6 characters.",
     "agencyName": "Agency name",
     "optional": "(optional)",
     "agencyPlaceholder": "Your agency or first client",
@@ -2005,172 +2156,535 @@
       "emailTaken": "An account with this email already exists.",
       "name": "Enter your name (up to 120 characters).",
       "email": "Enter a valid email.",
-      "password": "Use 10 to 200 characters.",
-      "passwordShort": "Use at least 10 characters.",
+      "password": "Use 6 to 200 characters.",
+      "passwordShort": "Use at least 6 characters.",
       "agencyName": "Use up to 80 characters, or leave it empty.",
       "rateLimited": "Too many attempts. Try again in {sec} s.",
       "closed": "Sign-ups are closed right now."
     }
   },
   "landing": {
-    "metaTitle": "HookMill · Video ads for any offer",
-    "metaDescription": "Iterate a winning ad into new faces and hooks, or go from an offer to an approved MP4. Built for agencies with many clients.",
+    "metaTitle": "HookMill · Your next ads, made from the one that sells",
+    "metaDescription": "Upload an ad that's working. HookMill reads why it works and turns it into a batch of new hooks, cuts and formats, ready to publish on Meta. Test it with your ad, free.",
     "nav": {
       "logIn": "Log in",
       "createAccount": "Create account",
       "home": "HookMill home",
-      "skip": "Skip to content"
+      "skip": "Skip to content",
+      "tryFree": "Try it free",
+      "main": "Main",
+      "account": "Account",
+      "product": "Product",
+      "agencies": "For agencies",
+      "results": "Results",
+      "pricing": "Pricing"
     },
     "hero": {
-      "eyebrow": "Video ad desk for agencies",
-      "titleA": "Video ads for any offer,",
-      "titleB": "made from the ones that already sell.",
-      "sub": "Upload a winning ad and get new faces and hooks in one batch. Or start from the offer and go from script to an approved MP4. Each client keeps a Brain, so every script starts from what you already know.",
-      "ctaPrimary": "Create account",
-      "ctaSecondary": "Log in",
-      "note": "English and Portuguese. Works on your phone."
+      "eyebrow": "Video ads for any offer",
+      "titleA": "Your next ads,",
+      "titleB": "made from",
+      "titleMark": "the one that sells.",
+      "sub": "Upload an ad that's working. HookMill reads why it works and turns it into a batch of new hooks, cuts and formats, ready to publish on Meta.",
+      "cta": "Test it with your ad, free",
+      "agencies": "For agencies",
+      "note": "<b>4 free variations</b> from your own ad. Pay when you want more."
     },
-    "panel": {
-      "label": "This batch",
+    "collage": {
+      "label": "What HookMill shows you (example)",
+      "winner": "Your winner",
+      "read": "Read",
+      "winnerMeta": "0:20 · speech · talking head",
+      "why": "Why it works",
       "example": "Example",
-      "winner": "Winner",
-      "winnerNote": "Broken down into hook, body and CTA",
-      "control": "Control",
-      "controlNote": "Original hook, same face",
-      "newFace": "New face",
-      "newHook": "New hook",
-      "ready": "Ready",
-      "generating": "Generating",
-      "waiting": "Waiting on you",
-      "foot": "Each one goes to Review. Approved ones land in the Library under this name."
-    },
-    "paths": {
-      "eyebrow": "How it works",
-      "title": "Two ways in. Both end in a file you approved.",
-      "iterate": {
-        "tag": "Path 1",
-        "title": "Iterate a winner",
-        "sub": "You already have an ad that sells. Keep what works and change one thing at a time.",
-        "steps": [
-          {
-            "t": "Upload the winner",
-            "d": "The MP4 of the ad that's working."
-          },
-          {
-            "t": "Breakdown",
-            "d": "Hook, body, CTA and why it holds attention, read from the video."
-          },
-          {
-            "t": "Plan the batch",
-            "d": "Pick new faces, new hooks, or both. A control with the original hook comes along."
-          },
-          {
-            "t": "Estimate",
-            "d": "What the batch costs, before anything runs."
-          },
-          {
-            "t": "Generate",
-            "d": "Every variation at once. See each one's real step."
-          },
-          {
-            "t": "Review",
-            "d": "Approve, retry or drop each one, then download."
-          }
-        ]
-      },
-      "scratch": {
-        "tag": "Path 2",
-        "title": "New concepts",
-        "sub": "No winner yet, or a new offer. Start from the brief and make the ad step by step.",
-        "steps": [
-          {
-            "t": "Offer",
-            "d": "Paste the sales page link or fill the brief by hand."
-          },
-          {
-            "t": "Scripts",
-            "d": "Written from the client's Brain. Edit any line."
-          },
-          {
-            "t": "Face",
-            "d": "Pick who speaks, or generate new options."
-          },
-          {
-            "t": "Engine",
-            "d": "Scenes with native audio, or avatar with voice and lipsync. Cost shows here."
-          },
-          {
-            "t": "Generate",
-            "d": "Scene by scene, with progress you can leave and come back to."
-          },
-          {
-            "t": "Edit",
-            "d": "Template, captions, hook text and CTA, or open the full video editor."
-          },
-          {
-            "t": "Review",
-            "d": "Final OK, then download the MP4."
-          }
-        ]
+      "hook": "Hook",
+      "proof": "Proof",
+      "cta": "CTA",
+      "whyHook": "Opens mid-thought: \"Okay, I have to show you this.\"",
+      "whyProof": "One plain number: \"I saved 400 bucks\" in three weeks.",
+      "whyCta": "\"Links right below\": one line, at the very end.",
+      "plan": "Variation plan",
+      "planCount": "<n>4</n> of 4",
+      "free": "Free",
+      "withAi": "With AI · paid plan",
+      "newFaces": "new faces",
+      "publish": "Publish template",
+      "default": "Default",
+      "budget": "Budget",
+      "budgetV": "CBO · lowest cost",
+      "adsets": "Ad sets",
+      "adsetsV": "4 to 8 ads each",
+      "status": "Status",
+      "statusV": "Paused on Meta",
+      "adsetsLabel": "Approved ads split into ad sets of 8 and 4",
+      "ads8": "8 ads",
+      "ads4": "4 ads",
+      "next": "next",
+      "reading": "Reading",
+      "statusDraft": "Draft",
+      "pause": "Pause animation",
+      "play": "Play animation",
+      "playPreview": "Play preview",
+      "rail": {
+        "r0": "Read",
+        "r1": "Batch",
+        "r2": "Template",
+        "r3": "Paused",
+        "c0": "Reading your winner…",
+        "c0b": "<b>Hook, proof and CTA</b> found",
+        "c1": "<b><n>4</n> of 4</b> variations, free",
+        "c2": "<b>Ad sets of 8 and 4</b>, budget set",
+        "c3": "<b>Paused on Meta</b> until you turn it on"
       }
     },
-    "bento": {
-      "eyebrow": "What's inside",
-      "title": "The parts that save you a week per client.",
+    "facts": {
+      "label": "What you get",
+      "items": [
+        {
+          "t": "Meta Ads",
+          "d": "Connect your ad account. Publish and read results."
+        },
+        {
+          "t": "9:16 · 4:5 · 1:1",
+          "d": "Every approved ad, in the placements Meta asks for."
+        },
+        {
+          "t": "Captions kept intact",
+          "d": "If your ad has captions, nothing we add covers them."
+        },
+        {
+          "t": "English & Portuguese",
+          "d": "Ads come out in your offer's language. Works on your phone."
+        }
+      ]
+    },
+    "vision": {
+      "eyebrow": "How we see it",
+      "title": "You keep the taste. HookMill does the production.",
+      "lede": "You know which ad sells and why. Turning one winner into twelve tests used to take an editor a week. Now it takes a batch.",
+      "label": "Who does what",
+      "you": "You",
+      "hm": "HookMill",
+      "youItems": [
+        "Pick the winner",
+        "Answer what the batch is for",
+        "Approve or drop each ad",
+        "Turn on the campaign"
+      ],
+      "hmItems": [
+        "Reads the ad and your brand",
+        "Plans the variations and says why",
+        "Renders, captions, formats",
+        "Publishes paused on Meta"
+      ]
+    },
+    "examples": {
+      "eyebrow": "Real examples",
+      "title": "One winning ad. Every template.",
+      "lede": "Each video below was made by HookMill from the same 20-second ad on the left. No new filming, no editor: pick the templates, press Generate.",
+      "label": "Template examples",
+      "champion": "The winning ad (original)",
+      "items": [
+        {
+          "slug": "breaking-news",
+          "name": "Breaking news"
+        },
+        {
+          "slug": "meme-pov",
+          "name": "Meme POV"
+        },
+        {
+          "slug": "post-card",
+          "name": "Post card"
+        },
+        {
+          "slug": "question-box",
+          "name": "Question box"
+        },
+        {
+          "slug": "top-5",
+          "name": "Top 5"
+        },
+        {
+          "slug": "live",
+          "name": "Live"
+        },
+        {
+          "slug": "call",
+          "name": "Call"
+        },
+        {
+          "slug": "cinema",
+          "name": "Cinema"
+        },
+        {
+          "slug": "story",
+          "name": "Story"
+        },
+        {
+          "slug": "read-the-caption",
+          "name": "Read the caption"
+        },
+        {
+          "slug": "pov-testimonial",
+          "name": "POV testimonial"
+        },
+        {
+          "slug": "direct-offer",
+          "name": "Direct offer"
+        },
+        {
+          "slug": "split-screen",
+          "name": "Split screen"
+        },
+        {
+          "slug": "split-torn",
+          "name": "Split torn"
+        },
+        {
+          "slug": "meet-dialog",
+          "name": "Meet dialog"
+        },
+        {
+          "slug": "gossip-page",
+          "name": "Gossip page"
+        },
+        {
+          "slug": "gossip-white",
+          "name": "Gossip white"
+        },
+        {
+          "slug": "gossip-pink",
+          "name": "Gossip pink"
+        },
+        {
+          "slug": "new-headline",
+          "name": "New headline"
+        },
+        {
+          "slug": "native-search",
+          "name": "Native search"
+        },
+        {
+          "slug": "chat-dm",
+          "name": "Chat DM"
+        },
+        {
+          "slug": "person-motion",
+          "name": "Person + motion"
+        }
+      ]
+    },
+    "numbers": {
+      "eyebrow": "In numbers",
+      "title": "What one ad gets you.",
+      "items": [
+        {
+          "d": "variations from your own ad in the free sample, each with a preview you can watch."
+        },
+        {
+          "d": "variations in a single batch on a paid plan, without spending a cent on AI generation."
+        }
+      ],
+      "multiplyLabel": "One winner in the middle, twelve variations around it (example)",
+      "champion": "Winner",
+      "formatsLabel": "Variation formats",
+      "formats": [
+        "Headline",
+        "Frame",
+        "Chat DM",
+        "Person motion",
+        "Avatar face",
+        "Avatar persona",
+        "Remix",
+        "9:16",
+        "4:5",
+        "1:1"
+      ]
+    },
+    "flow": {
+      "eyebrow": "The whole cycle",
+      "title": "One desk, from the ad that works to the next one that will.",
+      "stages": [
+        {
+          "t": "Brand Brain",
+          "d": "Paste your site. HookMill reads the business, the offer, who buys and the proof you have, and keeps it as the Brain every script starts from.",
+          "feats": [
+            "Read from your site",
+            "Offer, audience, proof",
+            "Your own instructions"
+          ]
+        },
+        {
+          "t": "Ad breakdown",
+          "d": "Upload the ad that's selling. HookMill marks the hook, the proof and the call to action on the timeline and writes down why each one holds attention.",
+          "feats": [
+            "Hook, proof, CTA",
+            "Read from the video",
+            "Burned captions found"
+          ]
+        },
+        {
+          "t": "Variations",
+          "d": "Tell it what the batch is for. Template variations reuse your own footage and are free. AI variations add new faces and new formats on a paid plan. Each one comes with its reason.",
+          "feats": [
+            "Free templates",
+            "AI variations",
+            "Your captions kept"
+          ]
+        },
+        {
+          "t": "New concepts",
+          "d": "No winner yet, or a new offer. Go step by step from the brief to an approved video, and see the real step while it renders. Leave and come back.",
+          "feats": [
+            "Scripts from the Brain",
+            "Pick who speaks",
+            "Cost before it runs"
+          ]
+        },
+        {
+          "t": "Review & formats",
+          "d": "Approve, retry or drop each ad. Approved ones come in every placement size and with a name your ad account can match later.",
+          "feats": [
+            "9:16, 4:5, 1:1",
+            "Standard file names",
+            "Download as zip"
+          ]
+        },
+        {
+          "t": "Publish on Meta",
+          "d": "Save how you publish once: budget, ad sets, audience, copy. Or import it from a campaign that's already running. Every approved batch goes in paused, split into ad sets.",
+          "feats": [
+            "CBO, 4–8 ads per ad set",
+            "Import a campaign",
+            "Lands paused"
+          ]
+        },
+        {
+          "t": "Results",
+          "d": "With Meta connected, each ad shows its CPA against the range you set. The ones under it are your next winners, one click from a new batch.",
+          "feats": [
+            "CPA vs your target range",
+            "Winners marked",
+            "Back to step 02"
+          ]
+        }
+      ],
+      "example": "Example",
       "brain": {
-        "title": "A Brain for each client",
-        "body": "Business, offer, audience, proof and your custom instructions, in one place. Every script is written from it. Mark the ads that win and new scripts for the same offer learn from them.",
+        "title": "Brain · Mooncloth",
+        "read": "Read",
+        "filled": "Filled",
+        "partial": "Partial",
         "rows": [
-          "Business & offer",
-          "Audience",
-          "Proof",
-          "Custom instructions",
-          "Goals"
-        ],
-        "ok": "Filled",
-        "partial": "Partial"
-      },
-      "names": {
-        "title": "Files named for the ad account",
-        "body": "Every approved MP4 gets a standard name, so results match the creative later.",
-        "parts": [
-          "Client",
-          "Path",
-          "Date",
-          "Script",
-          "Face",
-          "Format"
+          {
+            "t": "Business & offer",
+            "s": "from site",
+            "ok": true
+          },
+          {
+            "t": "Audience",
+            "s": "from site",
+            "ok": true
+          },
+          {
+            "t": "Proof",
+            "s": "2 found, add more",
+            "ok": false
+          },
+          {
+            "t": "Goals",
+            "s": "CPA target $18–24",
+            "ok": true
+          }
         ]
       },
-      "wait": {
-        "title": "Waiting you can read",
-        "body": "The real step, how many are done and what's left. Close the tab and come back; it keeps going.",
+      "breakdown": {
+        "hook": "HOOK",
+        "proof": "PROOF",
+        "cta": "CTA",
+        "reasons": [
+          {
+            "t": "Hook",
+            "d": "A question the buyer asks herself at night. Said in the first 2 seconds, before any product.",
+            "at": "0:00–0:03"
+          },
+          {
+            "t": "Proof",
+            "d": "Her own sleep score on screen. Real number, no claim.",
+            "at": "0:09"
+          },
+          {
+            "t": "CTA",
+            "d": "One offer, said once and shown once: 30-night trial.",
+            "at": "0:26"
+          }
+        ]
+      },
+      "variations": {
+        "templates": "Templates",
+        "free": "Free",
+        "ai": "With AI",
+        "paid": "Paid plan",
+        "tpl": [
+          {
+            "c": "HEADLINE-01…03",
+            "d": "New hook text over the same opening"
+          },
+          {
+            "c": "CUT-01",
+            "d": "Shorter edit, proof moved up"
+          },
+          {
+            "c": "CHAT-DM",
+            "d": "The objection as a DM, answered by the brand"
+          },
+          {
+            "c": "PERSON-MOTION",
+            "d": "Your speaker, with motion over the words"
+          }
+        ],
+        "aiItems": [
+          {
+            "c": "AVATAR-FACE ×3",
+            "d": "Same script and voice, new faces"
+          },
+          {
+            "c": "AVATAR-PERSONA ×3",
+            "d": "New speaker for each buyer in the Brain"
+          },
+          {
+            "c": "REMIX-DISCOVERY",
+            "d": "New script, 1 video and 2 hooks"
+          }
+        ],
+        "note": "Burned captions found at the bottom of the frame. No template will cover them."
+      },
+      "concepts": {
+        "steps": [
+          "Offer",
+          "Scripts",
+          "Face",
+          "Engine",
+          "Generate",
+          "Edit",
+          "Review"
+        ],
         "status": "Generating · 2 of 5 scenes ready",
-        "step": "Scene 3 · rendering voice"
+        "detail": "Scene 3 · rendering voice · you can close this tab"
       },
-      "editor": {
-        "title": "A real editor when the template isn't enough",
-        "body": "Trim clips, move captions word by word, swap the end card. Export goes back into the same review."
+      "formats": {
+        "label": "File name: client, path, date, script, face, format"
       },
-      "cost": {
-        "title": "Cost before it runs",
-        "body": "Each creative shows its estimate. Set a monthly cap per client; past it, nothing generates.",
-        "estimate": "Estimate",
-        "approve": "Approve and generate",
-        "cap": "Monthly cap"
+      "meta": {
+        "title": "Default template",
+        "default": "Default",
+        "campaign": "Campaign",
+        "campaignV": "HookMill tests · CBO · lowest cost",
+        "adset": "Ad set",
+        "adsetV": "4 to 8 ads · US · 25–54 · Advantage+",
+        "ad": "Ad",
+        "adV": "Copy from the offer · Shop now",
+        "imported": "Imported",
+        "importedV": "from \"Sleep · Prospecting · Sep\"",
+        "goesIn": "12 approved ads go in as",
+        "set1": "Ad set 1 · 8",
+        "set2": "Ad set 2 · 4"
+      },
+      "results": {
+        "title": "Target CPA $18–24",
+        "ad": "Ad",
+        "spend": "Spend",
+        "cpa": "CPA",
+        "vs": "vs target",
+        "winner": "Winner",
+        "inRange": "In range",
+        "edge": "Edge",
+        "above": "Above"
       }
+    },
+    "fn": {
+      "eyebrow": "Behind every batch",
+      "title": "Eight jobs your editor used to do by hand.",
+      "items": [
+        {
+          "t": "Brand reader",
+          "d": "Turns your site into offer, audience and proof.",
+          "io": "site → Brain"
+        },
+        {
+          "t": "Ad analyst",
+          "d": "Finds the hook, proof and CTA, and why they hold.",
+          "io": "video → breakdown"
+        },
+        {
+          "t": "Batch planner",
+          "d": "Picks the variations that fit what you asked for.",
+          "io": "breakdown + answers → plan"
+        },
+        {
+          "t": "Script writer",
+          "d": "Writes hooks and scripts from the Brain, in your offer's language.",
+          "io": "Brain → scripts"
+        },
+        {
+          "t": "Caption guard",
+          "d": "Checks every frame so nothing covers your captions.",
+          "io": "render → checked"
+        },
+        {
+          "t": "Editor",
+          "d": "Cuts, captions word by word, resizes to every placement.",
+          "io": "plan → MP4s"
+        },
+        {
+          "t": "Media buyer",
+          "d": "Fills ad sets from your template and publishes paused.",
+          "io": "approved → Meta"
+        },
+        {
+          "t": "Performance reader",
+          "d": "Puts CPA next to your target and marks the winners.",
+          "io": "Meta → winners"
+        }
+      ]
+    },
+    "ask": {
+      "eyebrow": "You decide, it runs",
+      "title": "Answer one question. Get the batch.",
+      "lede": "No prompts to write. Say what the batch is for and HookMill picks the variations, tells you why, and renders them. Changing your answer is free and instant.",
+      "label": "Try the question (example)",
+      "q": "What is this batch for?",
+      "group": "Batch goal",
+      "example": "Example",
+      "opts": {
+        "stretch": {
+          "t": "Stretch the winner",
+          "d": "Same ad, more hooks and cuts."
+        },
+        "new": {
+          "t": "Reach new people",
+          "d": "Different formats for the same offer."
+        },
+        "both": {
+          "t": "Both",
+          "d": "A mix, chosen for you."
+        }
+      },
+      "picks": "HookMill picks",
+      "foot": "Free sample: 4 of these, with preview.",
+      "cta": "Test it with your ad, free"
     },
     "agency": {
-      "eyebrow": "Built for agencies",
-      "title": "Every client in one place, and they approve their own ads.",
+      "eyebrow": "For agencies",
+      "title": "Every client on one desk. They approve their own ads.",
       "points": [
         {
           "t": "One workspace per client",
-          "d": "Its own Brain, Library and spend cap. Switch clients from the sidebar."
+          "d": "Its own Brain, library, Meta account and spend cap."
         },
         {
           "t": "What's waiting on you",
-          "d": "The Clients page shows which ads and batches need a decision."
+          "d": "See which batches and ads need a decision, across clients."
         },
         {
           "t": "Your team, with roles",
@@ -2178,52 +2692,51 @@
         },
         {
           "t": "The client approves",
-          "d": "Invite the client to approve or reject ads. They can't spend or change settings."
+          "d": "Clients approve or reject ads. They can't spend or change settings."
         }
       ],
+      "cta": "Talk to us about agency access",
       "list": {
         "title": "Clients",
         "example": "Example",
         "live": "Live",
         "setup": "Setup",
-        "waiting": "{n} waiting on you",
-        "step": "Onboarding · step {n} of 6",
+        "waiting": "{n} ads waiting on you",
+        "step": "Setup · step {n} of 6",
         "clientRole": "Client · approves ads"
       }
     },
-    "soon": {
-      "eyebrow": "Coming soon",
-      "title": "Not built yet. We say so.",
-      "sub": "These show up in the app as Coming soon too. Nothing here is counted, charged or faked.",
-      "badge": "Soon",
-      "items": [
-        {
-          "t": "Send to Meta",
-          "d": "Upload approved ads to the ad account and read results every day. Needs the Meta connection."
-        },
-        {
-          "t": "Campaigns",
-          "d": "Each client's Meta results by campaign and ad, matched to the file names."
-        },
-        {
-          "t": "Eddy",
-          "d": "Reads the results and tells you what to make next, as proposals you approve."
-        },
-        {
-          "t": "New layout and new copy",
-          "d": "Two more variation types for a winner: same footage in a new layout, and new scripts in the same edit."
-        }
-      ]
+    "testimonials": {
+      "eyebrow": "What people say",
+      "title": "From the people running it.",
+      "items": []
+    },
+    "cases": {
+      "eyebrow": "Results",
+      "title": "What a batch did for the account.",
+      "items": []
     },
     "final": {
       "title": "Bring the ad that's working.",
-      "sub": "Create an account, set up your first client, then make the first batch or the first concept.",
-      "cta": "Create account",
+      "sub": "Upload it and see 4 variations with preview, free. Unlock them when you like what you see.",
+      "cta": "Test it with your ad, free",
       "secondary": "I have an account"
     },
     "footer": {
-      "tagline": "Video ads for any offer.",
+      "tagline": "Video ads for any offer, made from the ones that already sell.",
       "language": "Language",
+      "product": "Product",
+      "iterate": "Iterate a winner",
+      "concepts": "New concepts",
+      "brain": "Brand Brain",
+      "publish": "Publish on Meta",
+      "agencies": "For agencies",
+      "compare": "Compare",
+      "compareItems": [],
+      "cases": "Cases",
+      "allCases": "All cases",
+      "company": "Company",
+      "pricing": "Pricing",
       "rights": "© 2026 HookMill"
     }
   },
@@ -2329,7 +2842,9 @@
         "FRAME": "Frame",
         "HEADLINE": "New headline",
         "CHAT_DM": "Chat · Direct conversation",
-        "PERSON_MOTION": "Person + motion"
+        "PERSON_MOTION": "Person + motion",
+        "LIST_OVERLAY": "List · over the video",
+        "AI_VIDEO": "AI video"
       },
       "thisBatch": "This batch",
       "pieces": "{n, plural, one {piece} other {pieces}}",
@@ -2465,6 +2980,7 @@
         "FRAME_TEXT_OVERFLOW": "The frame text didn't fit at the minimum size.",
         "BROLL_UNAVAILABLE": "The second clip is no longer available. Retry picks the next one.",
         "HEADLINE_TOO_LONG": "The new headline doesn't fit the original box. Leave it out.",
+        "HEADLINE_PENDING": "This video's headline can't be rewritten yet. Leave it out.",
         "HEADLINE_NO_ROOM": "There's no free room for a headline in this video. Leave it out.",
         "HEADLINE_OVER_FACE": "The headline would cover the face. Leave it out.",
         "HEADLINE_LOW_CONFIDENCE": "We couldn't read the original headline's style. Leave it out.",
@@ -2574,6 +3090,9 @@
       "iterateAgain": "Iterate again",
       "pickOffer": "Pick the offer first.",
       "seeAll": "See all {n} active ads",
+      "seeAllAds": "See all ads in the account ({n})",
+      "loadMore": "Load more",
+      "showLess": "Show less",
       "rule": "Winner = spend ≥ ${spend}, ≥ {results} results, cost per result at or under the account median.",
       "noAds": "No video ads with results in this account yet.",
       "openRunning": "Open — working"
@@ -3016,7 +3535,9 @@
         "OUTCOME_SALES": "Sales",
         "OUTCOME_LEADS": "Leads",
         "OUTCOME_APP_PROMOTION": "App promotion",
-        "OUTCOME_TRAFFIC": "Traffic"
+        "OUTCOME_TRAFFIC": "Traffic",
+        "OUTCOME_AWARENESS": "Awareness",
+        "OUTCOME_ENGAGEMENT": "Engagement"
       },
       "objectiveReason": {
         "business_type": "From the business type set in setup.",
@@ -3166,27 +3687,32 @@
     "counter": "Tour · {n} of {total}",
     "back": "Back",
     "next": "Next",
-    "finish": "Finish",
+    "skip": "Skip tour",
+    "finish": "Pick templates",
+    "finishClient": "Done",
     "replay": "Replay tour",
+    "tipsReset": "Show tips again",
+    "tipsResetDone": "Tips will show again",
     "brain": {
-      "title": "We're building {name}'s Brain",
-      "body": "Everything from setup is already in: business, offer, audience, goals. Every ad starts here. The more it knows, the better the ads; the missing items are a 5-minute job."
+      "title": "This is {name}'s Brain",
+      "body": "What we read from your site and setup: brand kit, colors, offer, pains and proof. Every ad starts here. {missing, plural, =0 {Nothing is missing.} one {1 item is missing; fill it when you can.} other {# items are missing; fill them when you can.}}",
+      "bodyLoading": "What we read from your site and setup: brand kit, colors, offer, pains and proof. Every ad starts here."
     },
-    "iterate": {
-      "title": "This ad is already working",
-      "body": "From your Meta account: the ad marked here costs the least per result, under the account median. The fastest win is more versions of it. That is Iterate a winner."
+    "templates": {
+      "title": "Make ads from templates",
+      "body": "Tick one or more templates. They run as one batch on the ad you pick, and the credits add up. Each card tells you if it fits before you spend anything.",
+      "bodyWinner": "Your winner, {ad}, is already pinned: each card says if it fits it. Tick one or more templates; they run as one batch and the credits add up.",
+      "bodySample": "You have {left} free uses. Tick up to {left} Edit templates and get your first batch: the hook comes back sharp, the rest blurred until you pick a plan."
     },
-    "concepts": {
-      "title": "Or start from a blank page",
-      "body": "New concepts writes scripts from the Brain, picks a face, generates the scenes and edits the video. About 12 minutes, in the background; you get called when it needs you."
+    "credits": {
+      "title": "Your credits",
+      "body": "An Edit template costs 1, a Static 2. Credits are held when you hit Generate and refunded if a piece fails.",
+      "titleSample": "Your free uses",
+      "bodySample": "{left} of {total} left. When you want to download or send to Meta, get credits here."
     },
-    "eddy": {
-      "title": "Eddy will read your campaigns",
-      "body": "Soon you can ask Eddy what's tiring, what to scale and what to iterate, from the same numbers Home shows. Not live yet; you'll see it in the sidebar when it is."
-    },
-    "home": {
-      "title": "Home is your scoreboard",
-      "body": "Spend, cost per purchase, ROAS and the ads running, from Meta. The top ads to iterate, and whatever is waiting on you. That is the tour. Go make an ad."
+    "review": {
+      "title": "Your approvals land here",
+      "body": "Ads your team made for {name} wait here for your OK. You can watch, approve or ask for changes."
     }
   },
   "brain": {
@@ -3259,7 +3785,7 @@
         "meta_ads": "Meta ads"
       },
       "ghost": {
-        "business": "Comes from setup, step 1",
+        "business": "Comes from setup, step 1, or the brand kit",
         "offers": "Comes from setup, step 3",
         "audience": "Comes from setup, step 4",
         "goals": "Comes from setup, step 5",
@@ -3295,7 +3821,30 @@
         "made_from": "made from",
         "published_as": "published as",
         "uses_hook": "uses hook",
-        "iterated_from": "iterated from"
+        "iterated_from": "iterated from",
+        "in_batch": "in batch",
+        "has_brand": "brand",
+        "has_color": "color",
+        "has_field": "detail",
+        "has_pain": "pain",
+        "has_proof": "proof",
+        "read_from": "read from"
+      },
+      "kind": {
+        "brand_asset": {
+          "LOGO": "Logo",
+          "FILE": "Brand file {n}",
+          "DEMO_VIDEO": "Demo video {n}"
+        }
+      },
+      "eyebrow": {
+        "brand_asset": "Brand kit",
+        "brand_color": "Brand color",
+        "offer_field": "Offer detail",
+        "pain": "Pain",
+        "proof_item": "Proof",
+        "source": "Source",
+        "website": "Website"
       },
       "list": {
         "connections": "{count, plural, one {# connection} other {# connections}}",
@@ -3324,7 +3873,7 @@
         "field": {
           "businessType": "Result type",
           "industry": "Industry",
-          "market": "Market",
+          "market": "Which country do you sell in?",
           "websiteUrl": "Website",
           "spendCapUsd": "Monthly cap",
           "defaultResult": "Result",
@@ -3337,11 +3886,32 @@
           "audience": "Who it's for",
           "pains": "Pains",
           "proof": "Proof",
-          "notes": "Voice and what to avoid"
+          "notes": "Voice and what to avoid",
+          "item": "Text",
+          "position": "{index} of {of}",
+          "offerName": "Offer",
+          "logo": "Logo",
+          "files": "Brand files",
+          "demoVideos": "Demo videos",
+          "readFrom": "Read from",
+          "fieldSource": "From your page",
+          "imagesRead": "Images read",
+          "hex": "Color",
+          "label": "Name",
+          "mimeType": "Format",
+          "sizeBytes": "Size",
+          "durationSec": "Length",
+          "colors": "Logo colors",
+          "createdAt": "Added",
+          "url": "Address",
+          "roles": "Read as",
+          "chars": "Text read",
+          "readAt": "Read on",
+          "offers": "Used by"
         },
         "creatives": "Creatives",
         "winners": "Winners",
-        "fromSetup": "From setup · step {step} of 6",
+        "fromSetup": "From setup · step {step}",
         "editSetup": "Edit in setup",
         "angle": "Angle",
         "scripts": "Scripts",
@@ -3374,7 +3944,10 @@
         "connections": "Connections",
         "more": "and {count} more",
         "knowsT": "What the Brain knows",
-        "knowsBody": "The same 5 sections as setup. Fill what's missing and every new script gets sharper."
+        "knowsBody": "The same 5 sections as setup. Fill what's missing and every new script gets sharper.",
+        "openFile": "Open file",
+        "openBrand": "Open the brand kit",
+        "openPage": "Open page"
       }
     }
   },
@@ -3718,6 +4291,8 @@
   "captions": {
     "blockedTitle": "{n, plural, one {# format left out: the video has burned-in captions} other {# formats left out: the video has burned-in captions}}",
     "blockedBody": "These layouts have no safe space around the original captions and face. The compatible variations are already in your plan.",
+    "headlinePending": "This video's headline can't be rewritten yet",
+    "headlinePendingBody": "The other formats in your plan aren't affected.",
     "needsClean": "This format needs the video without captions",
     "frameNamed": "Frame · {name}",
     "afterSend": "Saved. The next batches from this video use the version without captions, so these formats can be offered.",
@@ -3751,14 +4326,311 @@
     "launched": "This batch was already launched; make a new batch with the version without captions.",
     "newBatch": "New batch",
     "anotherBatch": "Make another batch with this champion",
-    "force": "Generate anyway",
-    "unforce": "Undo",
-    "forcedTag": "Covers the captions",
-    "blockedOr": "Or generate it anyway: the new layout will cover the original captions.",
     "show": "Show",
     "hide": "Hide"
   },
   "metaTemplates": {
+    "editor": {
+      "crumbAria": "Breadcrumb",
+      "crumbSend": "Publish to Meta",
+      "crumbSettings": "Settings",
+      "crumbTemplates": "Templates",
+      "titleNew": "New campaign template",
+      "titleEdit": "Edit campaign template",
+      "titleView": "Campaign template",
+      "namePlaceholder": "Name this template",
+      "nameAria": "Template name",
+      "firstName": "Tests · CBO 4–8 · US",
+      "newName": "New template",
+      "campaignNameDefault": "HookMill tests",
+      "copyOf": "Copy of {name}",
+      "defaultFor": "Default for {account}",
+      "import": "Import from a campaign",
+      "close": "Close",
+      "structure": "Campaign structure",
+      "structureEyebrow": "Structure",
+      "levelsAria": "Levels",
+      "node": {
+        "campaign": "Campaign",
+        "adset": "Ad set",
+        "ad": "Ad"
+      },
+      "newCampaign": "New campaign",
+      "adsetTitle": "{min}–{max} ads each",
+      "adsetTitleMany": "{sets} ad sets · {min}–{max} ads each",
+      "adTitle": "One per approved video",
+      "errorsAria": "{n, plural, one {# error} other {# errors}}",
+      "planEyebrow": "With {n, plural, one {# approved ad} other {# approved ads}}",
+      "planCampaign": "1 campaign",
+      "planReused": "reused",
+      "planNew": "new",
+      "planAdset": "Ad set {i}",
+      "planAds": "{n, plural, one {# ad} other {# ads}}",
+      "planAdsBelow": "{n, plural, one {# ad} other {# ads}} · below {min}",
+      "paused": "Everything goes up paused.",
+      "planAria": "Batch plan",
+      "planInline": "With {n, plural, one {# approved ad} other {# approved ads}}:",
+      "planChip": "Ad set {i} · {n}",
+      "planChipShort": "Ad set {i} · {n} (below {min})",
+      "importLead": "Already have a campaign that works?",
+      "importSettings": "Import its settings",
+      "introTitle": "Set up how your ads go up on Meta.",
+      "introBody": "Same steps as Ads Manager. HookMill saves it as a template for {account} and uses it on every publish. Only the budget is missing.",
+      "introImport": "Import from an existing campaign",
+      "copiedTitle": "Copied from “{name}”. Check it before saving.",
+      "notCopied": "Not copied: {list}.",
+      "adjusted": "Adjusted: {list}.",
+      "expiredTitle": "Meta connection expired.",
+      "expiredBody": "You can look at the template, but saving needs a live connection (pixels and the Page come from it). Your changes stay here while you reconnect.",
+      "reconnect": "Reconnect Meta",
+      "offTitle": "Meta isn't set up on this server",
+      "offBody": "Campaign templates need the Meta connection.",
+      "loadFailed": "Couldn't open the template",
+      "notFoundTitle": "Template not found",
+      "notFoundBody": "It may have been archived, or it belongs to another ad account.",
+      "adApplies": "applies to every approved video in the batch",
+      "back": "Back",
+      "next": "Next",
+      "save": "Save template",
+      "saving": "Saving…",
+      "archive": "Archive",
+      "archived": "Archived “{name}”",
+      "archiveBusy": "A publication with this template is still running. Try again when it finishes.",
+      "footErrors": "{n, plural, one {# field needs attention} other {# fields need attention}}",
+      "footDefault": "Becomes the default for {account}",
+      "footSaves": "Saves to {account}",
+      "footReadOnly": "View only",
+      "saved": "Template “{name}” saved",
+      "savedSelected": "Template “{name}” saved and selected for this publish",
+      "discardTitle": "Discard changes to this template?",
+      "discardBody": "What you changed here isn't saved yet.",
+      "discard": "Discard",
+      "keep": "Keep editing",
+      "soon": "Soon",
+      "optional": "optional",
+      "vars": "Variables:",
+      "loading": "Loading…",
+      "retry": "Retry",
+      "noMatch": "No match.",
+      "remove": "Remove {name}",
+      "sec": {
+        "campaignName": "Campaign name",
+        "special": "Special Ad Categories",
+        "details": "Campaign details",
+        "budget": "Budget",
+        "ab": "A/B test",
+        "adsetName": "Ad set name",
+        "conversion": "Conversion",
+        "performance": "Performance goal",
+        "budgetSchedule": "Budget & schedule",
+        "schedule": "Schedule",
+        "audience": "Audience",
+        "placements": "Placements",
+        "perAdset": "Ads per ad set",
+        "adName": "Ad name",
+        "identity": "Identity",
+        "setup": "Ad setup",
+        "creative": "Ad creative",
+        "destination": "Destination",
+        "tracking": "Tracking"
+      },
+      "campaignName": "Campaign name",
+      "publishInto": "Publish into",
+      "reuse": "One campaign for every publish",
+      "reuseBody": "HookMill creates it the first time and adds new ad sets to it. Good for testing.",
+      "newEach": "A new campaign for each batch",
+      "newEachBody": "Every publish creates its own campaign.",
+      "lockedNew": "A lifetime budget with Advantage+ campaign budget needs a new campaign each publish: a reused campaign would share a budget that's already spent.",
+      "specialLead": "Ads about credit, employment, housing, social issues or financial services have to say so. Meta limits their targeting.",
+      "specialSummary": "Declare categories if applicable",
+      "buyingType": "Buying type",
+      "auction": "Auction",
+      "reservationSoon": "Reservation soon",
+      "objective": "Campaign objective",
+      "objDesc": {
+        "OUTCOME_AWARENESS": "Show ads to people most likely to remember them.",
+        "OUTCOME_TRAFFIC": "Send people to your site.",
+        "OUTCOME_ENGAGEMENT": "Get more video views or interactions.",
+        "OUTCOME_LEADS": "Collect leads for your business.",
+        "OUTCOME_APP_PROMOTION": "Find people to install your app.",
+        "OUTCOME_SALES": "Find people likely to purchase."
+      },
+      "cbo": "Advantage+ campaign budget",
+      "cboOn": "On (CBO): Meta spreads one budget across the ad sets.",
+      "cboOff": "Off (ABO): each ad set gets its own budget. You set it in the ad set.",
+      "budgetType": "Budget",
+      "daily": "Daily budget",
+      "lifetime": "Lifetime budget",
+      "dailyBudget": "Daily budget",
+      "dailyPerAdset": "Daily budget per ad set",
+      "lifetimeBudget": "Lifetime budget",
+      "lifetimePerAdset": "Lifetime budget per ad set",
+      "minHint": "Meta’s minimum for this account: {min} a day.",
+      "minUnknown": "In the account's currency. Meta checks its minimum when you save.",
+      "lifetimeHint": "Spent over the schedule, so it needs an end (Ad set › Schedule).",
+      "lifetimeMinHint": "At least {min} for {days, plural, one {# day} other {# days}} ({daily} a day).",
+      "useMin": "Use {min}",
+      "bidCampaign": "Campaign bid strategy",
+      "bid": "Bid strategy",
+      "bidLabel": {
+        "LOWEST_COST": "Highest volume",
+        "COST_CAP": "Cost per result goal",
+        "BID_CAP": "Bid cap"
+      },
+      "bidHint": {
+        "LOWEST_COST": "Get the most results for your budget.",
+        "COST_CAP": "Keep the average cost per result around a goal.",
+        "BID_CAP": "Set the most you’ll bid in each auction."
+      },
+      "cpa": "Your goal in the Brain: <b>{range} per result.</b> Use it to pick the budget and the cost goal.",
+      "abSoon": "Test this campaign against another",
+      "abNote": "Meta’s split test",
+      "adsetName": "Ad set name",
+      "conversionLocation": "Conversion location",
+      "website": "Website",
+      "appSoon": "App, messaging soon",
+      "performanceGoal": "Performance goal",
+      "goalByPixel": "set by the pixel",
+      "goalConv": "Maximize number of conversions",
+      "goalClicks": "Maximize number of link clicks",
+      "goalHint": "What Meta optimizes this ad set for.",
+      "goal": {
+        "REACH": "Maximize reach of ads",
+        "IMPRESSIONS": "Maximize number of impressions",
+        "AD_RECALL_LIFT": "Maximize ad recall lift",
+        "THRUPLAY": "Maximize ThruPlay views",
+        "TWO_SECOND_CONTINUOUS_VIDEO_VIEWS": "Maximize 2-second continuous video plays",
+        "POST_ENGAGEMENT": "Maximize engagement with a post"
+      },
+      "pixel": "Pixel",
+      "noPixel": "No pixel (optimize for link clicks)",
+      "event": "Conversion event",
+      "linkClicks": "Link clicks",
+      "switchTraffic": "Switch objective to Traffic",
+      "loadingPixels": "Loading pixels…",
+      "tzNote": "Times in {tz} (ad account).",
+      "start": "Start",
+      "startPublish": "When published",
+      "startAt": "On a date",
+      "end": "End",
+      "endNone": "No end date",
+      "endAfter": "After N days",
+      "endAt": "On a date",
+      "days": "days after the start",
+      "afterHint": "Ends {n, plural, one {# day} other {# days}} after it starts, every time the template is used.",
+      "locations": "Locations",
+      "locationsHint": "Country codes, comma separated. Up to 10.",
+      "age": "Age",
+      "ageHint": "18 to 65. 65 means 65+.",
+      "ageMin": "Minimum age",
+      "ageMax": "Maximum age",
+      "to": "to",
+      "gender": "Gender",
+      "advantage": "Advantage+ audience",
+      "advantageBody": "Let Meta go beyond these settings when it finds better results.",
+      "audiences": "Custom audiences",
+      "include": "Include",
+      "exclude": "Exclude",
+      "addInclude": "Add audience to include",
+      "addExclude": "Add audience to exclude",
+      "audiencesSuggestion": "With Advantage+ audience on, Meta treats included audiences as a suggestion. Exclusions stay strict.",
+      "notUsable": "Not usable",
+      "notUsableWarn": "Meta may not deliver to: {list}.",
+      "size": "{lo}–{hi} people",
+      "audiencesTruncated": "Showing the 500 most recent.",
+      "audiencesEmpty": "No custom audiences in this ad account.",
+      "searchAudiences": "Search audiences",
+      "detailedSoon": "Detailed targeting",
+      "languages": "Languages",
+      "languagesHint": "Empty = all languages.",
+      "addLanguage": "Add language",
+      "searchLanguages": "Search languages",
+      "advPlacements": "Advantage+ placements",
+      "advPlacementsBody": "Recommended. Meta shows the ads where they’re likely to perform best.",
+      "manual": "Manual placements",
+      "manualBody": "Pick where the ads can show.",
+      "perAdsetLead": "A batch fills one ad set up to the maximum, then opens the next. Tordan’s default: CBO with 4 to 8 ads per ad set.",
+      "atLeast": "At least",
+      "atMost": "At most",
+      "adName": "Ad name",
+      "facebookPage": "Facebook Page",
+      "fromConnection": "from your Meta connection",
+      "instagram": "Instagram account",
+      "usePage": "Use Facebook Page ({page})",
+      "loadingIg": "Loading Instagram accounts…",
+      "igHint": "Don't see it? Add the Instagram account to this ad account in Business Settings.",
+      "format": "Format",
+      "singleVideo": "Single video",
+      "onePerVideo": "one ad per approved video",
+      "carouselSoon": "Carousel and Flexible formats",
+      "primaryText": "Primary text",
+      "primaryPlaceholder": "Leave empty and HookMill writes it from each ad’s script.",
+      "primaryHint": "Same text on every ad of the batch. Empty = written per ad.",
+      "headline": "Headline",
+      "headlinePh": "From the ad",
+      "description": "Description",
+      "descriptionPh": "From the offer",
+      "cta": "Call to action",
+      "websiteUrl": "Website URL",
+      "urlParams": "URL parameters",
+      "urlParamsHint": "Added to the website URL, without the “?”.",
+      "websiteEvents": "Website events",
+      "fromAdset": "from the ad set",
+      "noPixelShort": "No pixel",
+      "preview": "Preview · Facebook feed",
+      "previewIg": "Preview · feed",
+      "previewAria": "Ad preview",
+      "sponsored": "Sponsored",
+      "autoText": "HookMill writes this from each ad’s script.",
+      "headlineFallback": "Headline from the ad",
+      "previewNote": "Each ad uses its own approved video.",
+      "previewNoteCode": "Shows {code}. Each ad uses its own video.",
+      "sum": {
+        "perDay": "{amount}/day",
+        "total": "{amount} total",
+        "budgetMissing": "budget missing",
+        "days": "{n, plural, one {# day} other {# days}}",
+        "audiences": "audiences {list}",
+        "noLink": "no link"
+      },
+      "emptyTitle": "No campaign template yet",
+      "emptyBody": "The first time you publish, you set the structure HookMill uses on Meta: campaign, ad set and ad, like in Ads Manager. It takes about a minute and you do it once.",
+      "editBtn": "Edit",
+      "newBtn": "New template",
+      "sendFieldTitle": "A setting of this template doesn't work for today’s publish",
+      "sendFieldBody": "Usually a date that already passed. Fix it in the template and publish again.",
+      "err": {
+        "name": "Give the template a name (up to 60 characters).",
+        "pattern": "1 to 120 characters.",
+        "budget": "Enter a daily budget.",
+        "budgetBelow": "Below Meta’s minimum for this account: {min} a day.",
+        "lifetime": "Enter a lifetime budget.",
+        "lifetimeBelow": "Below Meta’s minimum for {days} days: {min}.",
+        "lifetimeCbo": "A lifetime budget with Advantage+ campaign budget needs a new campaign each publish.",
+        "cap": "Enter the amount.",
+        "pixel": "This objective needs a pixel to optimize for conversions.",
+        "pixelNotFor": "Awareness and Engagement don't use a pixel.",
+        "date": "Pick a date and time.",
+        "inPast": "That time has already passed.",
+        "minDuration": "End at least 24 hours after the start.",
+        "days": "Between 1 and 365 days.",
+        "endForLifetime": "A lifetime budget needs an end.",
+        "countries": "Use 2-letter country codes, up to 10 (e.g. US, CA).",
+        "ages": "Ages go from 18 to 65, and the first can’t be above the second.",
+        "tooMany": "Up to {max}.",
+        "bothLists": "An audience can't be included and excluded at the same time.",
+        "perAdset": "Between 1 and 50, and the minimum can’t be above the maximum.",
+        "placements": "Pick at least one platform.",
+        "link": "Enter the full website URL, starting with https://",
+        "utm": "Up to 1,024 characters.",
+        "length": "Up to {max} characters.",
+        "invalid": "Check this field.",
+        "notAvailable": "Not in this ad account anymore. Pick another.",
+        "duplicate": "Listed twice. Remove the repeated one.",
+        "audiencesBad": "One of these audiences isn't valid. Remove it and pick it again.",
+        "localesBad": "One of these languages isn't valid. Remove it and pick it again."
+      }
+    },
     "title": "Publish templates",
     "crumbSettings": "Settings",
     "lede": "Set once how HookMill creates campaigns, ad sets and ads in your account. Every \"Send to Meta\" uses the default template unless you pick another one.",
@@ -3795,7 +4667,9 @@
       "clicks": "Link clicks",
       "advantage": "Advantage+ audience",
       "autoPlacements": "auto placements",
-      "manualPlacements": "{n} manual placements"
+      "manualPlacements": "{n} manual placements",
+      "until": "until {date}",
+      "from": "from {date}"
     },
     "window": {
       "titleNew": "New publish template",
@@ -3901,6 +4775,7 @@
         "name": "Name it (up to 60 characters).",
         "budget": "Type a daily budget: it's required.",
         "budgetBelow": "Daily budget must be at least {min}.",
+        "lifetimeBelow": "Lifetime budget is below {min} for {days, plural, one {# day} other {# days}}.",
         "cap": "Type the cap amount.",
         "pattern": "1 to 120 characters.",
         "pixel": "This objective needs a pixel. Choose one, or switch to Traffic.",
@@ -3922,8 +4797,8 @@
       "search": "Search campaigns",
       "use": "Use",
       "open": "Open {name}",
-      "campaignSub": "{mode} · {adsets} ad sets · {ads} ads",
-      "adsetSub": "{ads} ads",
+      "campaignSub": "{mode} · {adsets, plural, one {# ad set} other {# ad sets}} · {ads, plural, one {# ad} other {# ads}}",
+      "adsetSub": "{ads, plural, one {# ad} other {# ads}}",
       "noMatch": "No campaign matches.",
       "empty": "No campaigns in the last sync.",
       "noAdsets": "No ad sets in this campaign.",
@@ -3976,9 +4851,28 @@
         "creating_creative": "Creating creative",
         "creating_ad": "Creating ad"
       }
+    },
+    "review": {
+      "reviewSend": "Review and send",
+      "sendDirect": "Send without reviewing",
+      "crumb": "Review and send",
+      "send": "{n, plural, one {Send 1 ad} other {Send # ads}}",
+      "sending": "Sending…",
+      "saveToo": "Also save to the template",
+      "saveTooHint": "Unchecked, your changes apply only to this send and “{name}” stays as it is.",
+      "foot": "Changes here apply only to this send",
+      "footSave": "Saves to “{name}” and sends",
+      "lead": "Every setting of “{name}” is here. Change anything for this send, then send.",
+      "onlyThisTitle": "Sending with changes that apply only to this send isn’t available yet",
+      "onlyThisBody": "For now, check “Also save to the template” to send with these changes, or undo them to send with the template as it is.",
+      "undo": "Undo changes",
+      "sentOne": "Sent to Meta. It’s created paused.",
+      "savedSent": "“{name}” saved and sent to Meta.",
+      "noCreatives": "No ads to send. Go back and pick them again."
     }
   },
   "sample": {
+    "badgeTemplates": "Free sample · {n, plural, one {# variation} other {# variations}}, no cost",
     "badge": "Free sample · up to {n} variations, no cost",
     "eyebrowReady": "Free sample · {ready} of {total} ready",
     "title": "{n, plural, one {Your variation is ready. Watch its hook.} other {Your # variations are ready. Watch the hook of each one.}}",
@@ -4029,11 +4923,13 @@
       "subUsed": "Iterate on every winner you upload, with the free variations and, on a plan, the ones with AI.",
       "li1": "Full videos in 9:16, plus 4:5 and 1:1 on request",
       "li2": "Download as a zip or send straight to your Meta ad set",
+      "li3Templates": "New variations using your credits",
       "li3": "New free variations every time you upload a winner",
       "cta": "Unlock: talk to us",
       "aiTitle": "With AI",
       "aiTag": "paid plan",
       "aiBody": "New avatar on your script, new formats from your ad. Shown here, available once you're on a plan.",
+      "noteTemplates": "The sample uses 1 use per Editing template. One template can produce more than one video.",
       "note": "Free sample: 1 per account, up to {n} variations, never AI."
     },
     "contact": {
@@ -4066,6 +4962,1580 @@
       },
       "apply": "Save plan",
       "done": "{id} is now on {access}."
+    }
+  },
+  "brandKit": {
+    "title": "Brand kit",
+    "aside": "Statics and end cards use these",
+    "loadFailed": "We couldn't load the brand kit",
+    "removeFailed": "We couldn't remove it",
+    "emptyClient": "No brand kit yet. The team adds the logo, brand files and demo videos here.",
+    "choose": "Choose files",
+    "cancel": "Cancel",
+    "dismiss": "Dismiss",
+    "uploading": "Uploading…",
+    "checking": "Checking the file…",
+    "saving": "Saving…",
+    "progress": "{pct}% · {done} of {total} MB",
+    "count": "{n} of {max}",
+    "label": "Label",
+    "logo": {
+      "title": "Logo",
+      "alt": "Brand logo",
+      "drop": "Drop your logo",
+      "hint": "PNG, JPG, WEBP or SVG · up to 5 MB",
+      "none": "No logo yet",
+      "replace": "Replace",
+      "colors": "Colors from the logo",
+      "noColors": "We couldn't read colors from this logo. The brand color from step 1 is used."
+    },
+    "files": {
+      "title": "Brand files",
+      "empty": "Drop product photos, screenshots or the brand guide",
+      "dropMore": "Drop more files here",
+      "hint": "{types} · up to 25 MB each · up to 30 files",
+      "untitled": "Untitled file",
+      "open": "Open {name}",
+      "none": "No brand files yet."
+    },
+    "videos": {
+      "title": "Product demo videos",
+      "empty": "Drop a screen recording or a product demo",
+      "dropMore": "Drop another video here",
+      "hint": "MP4 or MOV · 1 s to 10 min · up to {mb} MB · up to 5 videos",
+      "untitled": "Untitled video",
+      "offer": "Offer",
+      "allOffers": "Whole brand (every offer)",
+      "none": "No demo videos yet."
+    },
+    "remove": {
+      "action": "Remove",
+      "file": "Remove file",
+      "video": "Remove video",
+      "confirm": "Remove",
+      "body": "It leaves the brand kit. Creatives already made with it don't change.",
+      "title": {
+        "LOGO": "Remove the logo?",
+        "FILE": "Remove this file?",
+        "DEMO_VIDEO": "Remove this video?"
+      }
+    },
+    "errors": {
+      "type": "This file type isn't accepted here. Use {types}.",
+      "size": "The file is larger than {mb} MB. Export a lighter version.",
+      "short": "The video is shorter than 1 second.",
+      "long": "The video is longer than 10 minutes. Cut it shorter.",
+      "tooSmall": "The video is too small. It needs at least 240 px on each side.",
+      "unreadable": "We couldn't read this file. Export it again and send it.",
+      "unreadableVideo": "We couldn't read this video. Export it again as MP4 or MOV.",
+      "fullFiles": "The kit holds up to {max} files. Remove one to add another.",
+      "fullVideos": "The kit holds up to {max} demo videos. Remove one to add another.",
+      "forbidden": "Your role can only see the brand kit."
+    }
+  },
+  "brand": {
+    "eyebrow": "Brain · {name}",
+    "title": "Brand",
+    "mapTitle": "Map",
+    "lede": "Everything HookMill knows about {name}. Scripts, hooks and statics read from here.",
+    "mapLede": "The same knowledge as a map: every hook, script, creative and Meta ad, read-only.",
+    "tabs": {
+      "label": "Brain views",
+      "brand": "Brand",
+      "map": "Map"
+    },
+    "edit": "Edit",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Saved",
+    "savedNow": "Saved just now",
+    "saveFailed": "Couldn't save. Try again.",
+    "missing": "Missing",
+    "viewOnly": "View only",
+    "loadFailed": "Couldn't load the brand",
+    "sections": {
+      "business": "Business",
+      "offer": "Offer",
+      "audience": "Audience",
+      "kit": "Brand kit",
+      "meta": "Meta"
+    },
+    "f": {
+      "website": "Website",
+      "websiteHint": "Saving doesn't re-read the site.",
+      "name": "Name",
+      "code": "Code",
+      "codeSub": "Prefix on file names",
+      "codeTaken": "Code {code} is already used by another client.",
+      "codeInvalid": "2 to 4 letters or numbers.",
+      "industry": "Industry",
+      "market": "Which country do you sell in?",
+      "language": "Language",
+      "languageSub": "Of this client's workspace",
+      "color": "Brand color",
+      "result": "What counts as a result",
+      "resultHint": "Changes the KPI names on Home.",
+      "resultOther": "Describe the result",
+      "more": "More…",
+      "target": "Target cost per {result}",
+      "targetHint": "Home marks the account inside or over this range.",
+      "min": "Minimum",
+      "max": "Maximum",
+      "currency": "Currency",
+      "minMax": "The minimum has to be at most the maximum.",
+      "cap": "Monthly spend cap",
+      "capValue": "{amount} / month",
+      "capHint": "USD per month",
+      "what": "What it is",
+      "promise": "Promise",
+      "offerAndPrice": "Offer and price",
+      "cta": "Call to action",
+      "landing": "Landing page",
+      "proof": "Proof",
+      "proofPh": "Reviews, numbers, press. One per line.",
+      "audience": "Who it's for",
+      "pains": "Pains",
+      "notes": "Instructions",
+      "notesSub": "What scripts must or must not do",
+      "invalidUrl": "Use a full address, like https://site.com",
+      "required": "Can't be empty.",
+      "number": "Use a number."
+    },
+    "offers": {
+      "count": "{n, plural, one {# offer} other {# offers}}",
+      "add": "Add offer",
+      "label": "Offer",
+      "none": "No offer yet",
+      "noneBody": "Add the offer you advertise. Audience follows the offer you pick here.",
+      "forOffer": "for {name}"
+    },
+    "meta": {
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "attention": "Needs attention",
+      "off": "Meta isn't set up on this server.",
+      "manage": "Manage in Settings",
+      "connect": "Connect in Settings",
+      "account": "Ad account",
+      "page": "Page",
+      "templates": "Publish templates",
+      "templatesN": "{n, plural, =0 {No template yet} one {# template} other {# templates}}",
+      "defaultTpl": "default “{name}”",
+      "open": "Open",
+      "choose": "Ad account not chosen yet"
+    },
+    "rail": {
+      "full": "Brain {pct}% full",
+      "known": "{done} of {total} things known.",
+      "allIn": "Everything is in.",
+      "sections": "Sections",
+      "status": "Brain status",
+      "eddyT": "Fill the gaps with Eddy",
+      "eddyB": "He asks only what's missing.",
+      "soon": "Soon",
+      "forOffer": "{item} for {offer}",
+      "kitEmpty": "Brand kit: no logo yet",
+      "see": "See"
+    },
+    "lang": {
+      "EN": "English",
+      "PT_BR": "Português (Brasil)"
+    }
+  },
+  "eddyOnboarding": {
+    "saveExit": "Save and exit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "add": "Add",
+    "readOnly": "Only agency admins can change the setup. You can read along.",
+    "exitFailed": "Couldn't save before leaving. Try again.",
+    "top": {
+      "title": "Setting up {name}",
+      "titleNew": "Setting up your business",
+      "sub": "with Eddy · about 5 minutes"
+    },
+    "composer": {
+      "label": "Your answer",
+      "send": "Send",
+      "site": "Answer Eddy, or paste a link",
+      "describe": "What you sell, to whom and where",
+      "off": "Use the card above to answer",
+      "note": "Eddy only sets up the Brain here. Everything you confirm is editable later in Brain › Brand.",
+      "tooShort": "Tell Eddy a bit more: what you sell, to whom and where."
+    },
+    "site": {
+      "hi": "Hi, I'm Eddy. I'll set up your Brain with you, so every script starts from what you know. About 5 minutes.",
+      "hiNamed": "Hi, I'm Eddy. I'll set up {name}'s Brain with you, so every script starts from what you know. About 5 minutes.",
+      "ask": "<b>What's the website?</b> I'll read it and you only fix what I got wrong.",
+      "label": "Website address",
+      "read": "Read the site",
+      "noSite": "No site? Describe the business instead",
+      "startFailed": "Couldn't start the reading"
+    },
+    "reading": {
+      "say": "Reading {what}. You can stay or leave; I'll keep what I find.",
+      "status": "Reading {what}…",
+      "saving": "Saving what I found…",
+      "done": "Read {what}.",
+      "yourText": "your description",
+      "failedSay": "I couldn't read {what}.",
+      "failed": "The reading didn't work",
+      "retry": "Read again",
+      "manual": "Fill it in by hand"
+    },
+    "business": {
+      "say": "Here's the business as I read it. Fix anything that's off, right in the card.",
+      "title": "The business",
+      "from": "from {src}",
+      "name": "Name",
+      "industry": "Industry",
+      "market": "Which country do you sell in?",
+      "marketPh": "Country, e.g. United States",
+      "result": "What counts as a result",
+      "more": "More…",
+      "save": "Save",
+      "missing": "Not found yet",
+      "hint": "Edit any line first if needed.",
+      "needs": "Add the name and pick what counts as a result.",
+      "confirm": "Looks right",
+      "confirmed": "Confirmed"
+    },
+    "offer": {
+      "meLooksRight": "Looks right",
+      "say": "And the offer. I found one main product; you can add more later.",
+      "sayEmpty": "I didn't find the offer. Fill in what you sell; the first line you save creates it.",
+      "newTitle": "Your offer",
+      "from": "from {src}",
+      "name": "Offer name",
+      "f": {
+        "what": "What it is",
+        "promise": "Promise",
+        "offerAndPrice": "Offer and price",
+        "cta": "Call to action",
+        "audience": "Who it's for",
+        "pains": "Pains",
+        "proof": "Proof",
+        "notes": "Script instructions"
+      },
+      "missing": "Not found yet",
+      "noProof": "I didn't find reviews or numbers on the site.",
+      "optional": "Optional",
+      "needsOffer": "Save at least one line to create the offer.",
+      "proofLater": "Proof can wait. Scripts are sharper with it.",
+      "confirm": "Looks right",
+      "confirmed": "Confirmed",
+      "confirmedNoProof": "Confirmed · proof left for later"
+    },
+    "meta": {
+      "meOffer": "Looks right",
+      "say": "Now Meta. With it I can read your ads, find the one that already works and start from it. Read-only; nothing changes in your campaigns without you.",
+      "off": "Meta isn't available on this server, so we'll skip it.",
+      "continue": "Continue",
+      "skip": "Skip for now",
+      "loginDone": "Facebook login finished",
+      "connected": "{account} connected",
+      "skipped": "Skipped. Connect it any time in Settings › Connections.",
+      "notReady": "Not finished. Pick the ad account in Settings › Connections."
+    },
+    "goals": {
+      "winnerSay": "Read {n, plural, one {# ad} other {# ads}} from the last 30 days. Your best one:",
+      "noWinner": "Read {n, plural, one {# ad} other {# ads}} from the last 30 days. No clear winner yet; I'll flag it when one shows up.",
+      "perResult": "{v} per result",
+      "median": "account median {v}",
+      "days": "{n, plural, one {# day} other {# days}} running",
+      "winner": "Winner",
+      "ask": "<b>What does a good result cost you?</b>",
+      "suggest": "From your numbers I'd say {min} to {max}.",
+      "askCap": "And a monthly spend cap, so I never plan past it.",
+      "legend": "Target cost per result and monthly cap",
+      "target": "Target ({currency})",
+      "min": "Minimum",
+      "max": "Maximum",
+      "to": "to",
+      "cap": "Cap / month (USD)",
+      "capLabel": "Monthly spend cap in USD",
+      "hint": "Both optional. Change them any time in Settings.",
+      "fixCpa": "Fill both, minimum up to the maximum.",
+      "fixCap": "The cap is a number, 0 or more.",
+      "save": "Save the goal",
+      "skip": "Skip for now",
+      "skipped": "Skipped for now",
+      "doneCpa": "Target {min}–{max}",
+      "doneCap": "cap {cap}"
+    },
+    "kit": {
+      "say": "Last thing: the brand kit. Add the logo, a brand guide and a demo video of the product if you have them; statics and end cards use these.",
+      "title": "Brand kit",
+      "aside": "Optional",
+      "done": "Done",
+      "skip": "Skip for now",
+      "background": "Uploads keep going in the background.",
+      "logo": "Logo",
+      "files": "{count, plural, one {# file} other {# files}}",
+      "videos": "{count, plural, one {# video} other {# videos}}",
+      "nothing": "Nothing yet. Add it in Brain › Brand any time."
+    },
+    "done": {
+      "meDone": "Done",
+      "meSkip": "Skip for now",
+      "finishing": "Putting the Brain together…",
+      "ready": "<b>{name}'s Brain is ready.</b>",
+      "known": "I know {n} of {total} things.",
+      "missing": "Missing: {items}. Add them in Brain › Brand any time.",
+      "allIn": "Nothing missing.",
+      "startWinner": "{name} is your best ad; we'll start from it.",
+      "incomplete": "One thing is still missing",
+      "failed": "Couldn't finish the setup",
+      "retry": "Try again",
+      "start": "Start"
+    },
+    "panel": {
+      "eyebrow": "{name}'s Brain",
+      "aria": "Brain being built",
+      "strip": "Brain",
+      "close": "Close",
+      "known": "{n} of {total} things known",
+      "nothing": "Nothing yet. Start with the site.",
+      "waiting": "read, waiting for you",
+      "reading": "reading…",
+      "foot": "The % counts the 13 things scripts read. Meta and the brand kit power results and statics; they don't count.",
+      "business": "Business",
+      "industry": "Industry",
+      "market": "Which country do you sell in?",
+      "result": "Result",
+      "offer": "Offer",
+      "offerName": "Offer",
+      "what": "What it is",
+      "promise": "Promise",
+      "price": "Offer & price",
+      "cta": "Call to action",
+      "audience": "Audience",
+      "aud": "Who it's for",
+      "pains": "Pains",
+      "notes": "Instructions",
+      "proof": "Proof",
+      "goals": "Goals",
+      "cap": "Spend cap",
+      "capValue": "${v} / month",
+      "cpa": "Target CPA",
+      "meta": "Meta",
+      "account": "Ad account",
+      "kit": "Brand kit",
+      "logo": "Logo",
+      "logoSet": "Uploaded",
+      "logoFromSite": "From the site",
+      "colors": "Colors",
+      "files": "Files",
+      "demo": "Demo video",
+      "filesCount": "{count, plural, one {# file} other {# files}}",
+      "videosCount": "{count, plural, one {# video} other {# videos}}",
+      "eyebrowNew": "Your Brain"
+    }
+  },
+  "adTemplates": {
+    "exampleAria": "Example video of {name}",
+    "example": "EXAMPLE",
+    "soon": "Soon",
+    "credits": "{n, plural, one {# credit} other {# credits}}",
+    "freeSample": "Free sample",
+    "unlimited": "Unlimited",
+    "freeLeft": "{n} free left",
+    "getCredits": "Get credits",
+    "eyebrow": "Make ads",
+    "title": "Templates",
+    "lede": "Pick a format and we apply it to one of your ads. Edit templates rework the video you already have. AI templates make new people and new scenes.",
+    "search": "Search templates",
+    "tierAria": "Tier",
+    "tabAll": "All",
+    "tabEdit": "Edit",
+    "tabAi": "With AI",
+    "catAria": "Category",
+    "everything": "Everything",
+    "cat": {
+      "frames": "Frames",
+      "headline": "Headline & hooks",
+      "cuts": "Cuts",
+      "chat": "Chat DM & motion",
+      "static": "Static",
+      "avatar": "Avatar swap",
+      "persona": "Persona",
+      "remix": "Format remix",
+      "pack": "Pack"
+    },
+    "loadError": "We couldn't load the templates.",
+    "tryAgain": "Try again",
+    "emptyTitle": "No templates yet",
+    "emptyBody": "The catalog opens as soon as the first example videos are in.",
+    "noMatch": "No template matches \"{q}\"",
+    "noMatchHint": "Try \"chat\", \"headline\" or \"news\".",
+    "clearSearch": "Clear search",
+    "editSub": "reworks the video you have · 1 credit each",
+    "aiSub": "choose a format, select your winner and generate the video",
+    "freeUses": "Free uses",
+    "teamAccount": "Team account",
+    "balance": "Balance",
+    "pinned": "Showing which templates fit the ad you picked. Use template skips the ad step.",
+    "pinnedUnread": "We haven't read this ad yet, so the fit shows after the first use (about 1 min, free).",
+    "pinnedClear": "Pick the ad later",
+    "offerLabel": "Which offer is this ad for?",
+    "offerHelp": "We write the texts from that offer's Brain. Pick it and press the button again.",
+    "beta": "Beta",
+    "usedN": "{out} · used {n}×",
+    "paidPlan": "Paid plan",
+    "readOnly": "Clients can't make variations.",
+    "useTemplate": "Use template",
+    "sample": {
+      "banner": "Free sample · {left} of {total} left",
+      "bannerBody": "Try any Edit template on your own ad. You watch the first 3 seconds; unlock to get the full video."
+    },
+    "pack": {
+      "pill": "Pack · up to {n} videos",
+      "li1": "Uncheck any template you don't want",
+      "li2": "AI templates show up as suggestions, never on by default",
+      "li3": "1 credit per template, never more than {cap} for the pack",
+      "li3Sample": "Free sample: 1 use per template",
+      "use": "Use the pack",
+      "capLine": "up to {cap} credits",
+      "eyebrow": "Let HookMill pick · plan ready",
+      "title": "{n, plural, one {# template fits} other {# templates fit}} \"{ad}\"",
+      "lede": "Ordered by how well each one fits your ad. Uncheck anything you don't want; the total updates.",
+      "capped": "pack price, capped at {cap}"
+    },
+    "detail": {
+      "aiTemplate": "With AI template",
+      "editTemplate": "Edit template",
+      "youGet": "You get",
+      "getOnly": "{out}, 9:16 only",
+      "getAll": "{out}, 9:16; 4:5 and 1:1 at no extra cost",
+      "cost": "Cost",
+      "costAi": "covers script, faces, generation and retries. Preparing is free; you pay when you approve.",
+      "costEdit": "if it fails, the credit comes back",
+      "time": "Time",
+      "timeAi": "About 15 min. You can leave.",
+      "timeEdit": "About 2 min after your ad is read",
+      "language": "Language",
+      "languageValue": "Same as your ad",
+      "needs": "Your ad needs",
+      "anyAd": "Works with any ad that has video.",
+      "exampleNote": "Example video. Yours uses your ad, your Brain and your language.",
+      "use": "Use this template"
+    },
+    "fit": {
+      "ok": "Fits",
+      "unknown": "Not read yet · ~1 min",
+      "doesntFit": "Doesn't fit this ad",
+      "reason": {
+        "burned_captions": "Has burned-in captions",
+        "no_face": "Needs a face",
+        "no_speech": "Needs speech",
+        "short_video": "Video too short",
+        "no_proof": "Needs proof in the Brain",
+        "no_price": "Needs a price in the Brain",
+        "no_data": "Needs 3 points in the Brain",
+        "no_page": "Needs the product page",
+        "has_end_card": "Already has an end card",
+        "no_written_hook": "Needs a written hook",
+        "no_audience": "Needs an audience in the Brain",
+        "no_promise": "Needs a promise or proof",
+        "not_read": "Not read yet · ~1 min",
+        "coming_soon": "Coming soon",
+        "not_planned": "Not planned for this ad",
+        "headline_pending": "Headline can't be rewritten yet"
+      }
+    },
+    "needs": {
+      "face": "A face in the video",
+      "speech": "Speech in the video",
+      "min_25s": "Video 25 s or longer",
+      "min_15s": "Speech, 15 s or longer",
+      "clean_face": "Face clear of burned-in captions",
+      "proof": "A proof in the Brain",
+      "price": "Offer or price in the Brain",
+      "brain_points": "3 or more points in the Brain",
+      "audience": "Audience in the Brain",
+      "promise_or_proof": "A promise or proof"
+    },
+    "ad": {
+      "title": "Which ad do we use?",
+      "lede": "Pick a winner from Meta, upload a video, or reuse something from your Library. Ads we already read start right away.",
+      "backToTemplates": "Back to Templates",
+      "sourceAria": "Source",
+      "tabMeta": "Meta winners",
+      "tabUpload": "Upload",
+      "tabLibrary": "Library",
+      "active": "Active",
+      "paused": "Paused",
+      "spent": "{v} spent",
+      "lowData": "not enough data",
+      "cpa": "CPA {v}",
+      "retry": "Try again",
+      "noMetaTitle": "No video ads in this account yet",
+      "noMetaBody": "Upload a video instead, or come back after the next sync.",
+      "winner": "Winner",
+      "libEmptyTitle": "Nothing in your Library yet",
+      "libEmptyBody": "Pieces you approve land here and can feed a new template.",
+      "seeMeta": "See Meta winners",
+      "uploaded": "Uploaded just now",
+      "drop": "Drop a video here",
+      "limits": "MP4 or MOV, up to {min} min, {mb} MB. Vertical works best.",
+      "choose": "Choose file",
+      "cleanHint": "Have a version without burned-in captions? Upload that one. More templates fit it.",
+      "adsAria": "Ads",
+      "alreadyRead": "Already read",
+      "readFirst": "we read it first, ~1 min, no charge",
+      "hintPick": "Pick the ad this template runs on",
+      "back": "Back",
+      "continue": "Continue",
+      "generateAi": "Generate AI video"
+    },
+    "run": {
+      "noteTeam": "Team account · no credits used.",
+      "noteSample": "Free sample · {held, plural, one {# use reserved} other {# uses reserved}}. Uses for templates that fail are returned.",
+      "noteSampleSettled": "Free sample · {charged} used, {refunded} back.",
+      "noteRefunded": "{charged} charged · {refunded} back to you (a piece failed).",
+      "noteCharged": "{charged} charged. 4:5 and 1:1 don't cost extra.",
+      "noteHeld": "{held} reserved. Charged when the video is ready; back to you if it fails."
+    },
+    "reading": {
+      "eyebrow": "Reading your ad",
+      "eyebrowEta": "Reading your ad · about {s} s left",
+      "lede": "We read each ad once. After that, every template on it starts right away.",
+      "step": {
+        "downloaded": "Downloading the video",
+        "transcribing": "Transcribing the speech",
+        "blocks": "Finding hook, body and call to action",
+        "brain": "Checking face, captions and your Brain",
+        "fits": "Checking that {name} fits and writing the texts"
+      },
+      "canLeave": "You can leave this page. We keep the template picked and show the plan when you come back.",
+      "yourTemplate": "Your template",
+      "free": "Reading the ad is free. Nothing is charged until you press Generate.",
+      "hint": "Reading takes about 1 min",
+      "browse": "Browse templates"
+    },
+    "plan": {
+      "planChanged": "The plan changed. Check it and press Generate again.",
+      "planEmptied": "The plan changed and nothing fits anymore. Nothing was charged.",
+      "generate": "Generate",
+      "generateSample": "Generate free sample",
+      "generateN": "Generate · {cost}",
+      "summary": "Summary",
+      "template": "Template",
+      "ad": "Ad",
+      "youGet": "You get",
+      "videosN": "{n, plural, one {# video} other {# videos}}",
+      "cost": "Cost",
+      "free": "Free",
+      "teamCost": "No charge",
+      "freeSample": "Free sample",
+      "sampleAfter": "{left} of {total} left after this",
+      "sampleNote": "You'll watch the first 3 seconds. Unlock to download the full video.",
+      "teamNote": "Team account: no credits are used. The real cost still counts in Settings › Spend.",
+      "balance": "Balance",
+      "notEnough": "not enough",
+      "refundAi": "Covers script, faces, generation and retries. If a piece fails for good, its share comes back.",
+      "refundEdit": "If it fails, the credit comes back. 4:5 and 1:1 versions don't cost extra.",
+      "needMoreSample": "{n, plural, one {# more free use needed} other {# more free uses needed}}",
+      "reduceSample": "Select fewer templates to fit your free uses. Your plan and ad reading stay saved.",
+      "needMore": "{n, plural, one {You need # more credit} other {You need # more credits}}",
+      "saved": "Your plan and the read of your ad stay saved.",
+      "changedTitle": "The cost changed: now {to}",
+      "changedBody": "It was {from} when the plan loaded. Check the summary and press Generate again.",
+      "shortTitle": "Not enough credits: this needs {need}",
+      "shortBody": "Your balance is {balance}. Your plan stays saved while you get more.",
+      "hardTitle": "This template doesn't fit this ad: {reason}",
+      "hardBody": "{name} can't run on this ad. Pick another ad or another template; nothing was charged.",
+      "pendingTitle": "This video's headline can't be rewritten yet",
+      "pendingBody": "{name} isn't available for this ad for now. Nothing was charged. Pick another template or another ad.",
+      "otherAd": "Pick another ad",
+      "otherTemplate": "Pick another template",
+      "softTitle": "Your ad has captions burned in where this template goes.",
+      "softBody": "{name} needs that space, and we never put anything over captions. Upload the version without captions and it fits, or pick another template.",
+      "softPartialTitle": "Your ad has captions burned in, so part of this plan stays out.",
+      "softPartialBody": "We never put anything over captions, so those pieces are left out at no charge. Upload the version without captions to include them, or pick another template.",
+      "replan": "Plan again with the clean version",
+      "uploadClean": "Upload the version without captions",
+      "eyebrow": "Plan · nothing charged yet",
+      "title": "{name} on \"{ad}\"",
+      "whatComesOut": "What comes out · written from your ad",
+      "noPieces": "Nothing fits yet. Use the options above, or pick another template.",
+      "editsFree": "Edits here are free. Every word comes from your ad or your Brain; we never invent numbers or testimonials.",
+      "hintSample": "1 free use",
+      "hintTeam": "Team account · no credits used",
+      "hintBalance": "balance {n}",
+      "back": "Back",
+      "videoN": "Video {n}",
+      "label": {
+        "headline": "Headline",
+        "title": "Title",
+        "subtitle": "Subtitle",
+        "question": "Question",
+        "answer": "Answer",
+        "caption": "Caption",
+        "handle": "Handle",
+        "cta": "Call to action",
+        "primaryText": "Primary text",
+        "pov": "POV line",
+        "body": "Text",
+        "name": "Name",
+        "kicker": "Kicker",
+        "topic": "Topic",
+        "headline_lead": "Headline",
+        "headline_highlight": "Headline highlight",
+        "dek": "Supporting text"
+      },
+      "rule": {
+        "maxChars": "Too long for this template.",
+        "required": "This text can't be empty.",
+        "invented": "Use only what is in your ad or your Brain."
+      },
+      "from": "from: {source}",
+      "saving": "Saving…",
+      "savedText": "Saved"
+    },
+    "admin": {
+      "eyebrow": "Admin · visible to HookMill staff only",
+      "title": "Template catalog",
+      "lede": "Upload the example video for each template. A template without an example stays hidden from customers.",
+      "teamOnly": "Only the HookMill team sees this page",
+      "teamOnlyBody": "It needs a team account that owns the active workspace.",
+      "retry": "Try again",
+      "col": {
+        "example": "Example",
+        "template": "Template",
+        "type": "Type inside",
+        "tier": "Tier",
+        "credits": "Credits",
+        "uses": "Uses",
+        "status": "Status"
+      },
+      "foot": "Example video: MP4 9:16, up to 60 s and 60 MB, plays muted in the card and with sound in the detail. Uses = times generated across all workspaces.",
+      "saved": "{name} saved",
+      "noExample": "No example yet",
+      "tierStatic": "Static",
+      "tierEdit": "Edit",
+      "creditsFor": "Credits for {name}",
+      "statusFor": "Status of {name}",
+      "status": {
+        "LIVE": "Live",
+        "DRAFT": "Draft",
+        "HIDDEN": "Hidden"
+      },
+      "needsExample": "Needs example",
+      "unavailable": "Not running yet",
+      "beta": "Beta",
+      "uploaded": "Example of {name} is live",
+      "onlyMp4": "Only MP4 files.",
+      "tooBig": "Up to 60 MB.",
+      "uploading": "Uploading {p}%",
+      "replace": "Replace video",
+      "upload": "Upload video"
+    },
+    "grant": {
+      "title": "Credit an account",
+      "teamOnly": "Team only",
+      "body": "No checkout yet: when someone pays you, add their credits here. A negative number takes credits back (never below zero).",
+      "who": "E-mail or account id",
+      "whoPlaceholder": "name@company.com",
+      "credits": "Credits",
+      "note": "Note",
+      "notePlaceholder": "Paid by Pix on Nov 1",
+      "submit": "Add credits",
+      "done": "{n} credits added. Balance now {balance}.",
+      "last": "{who}: {n} credits · balance {balance}",
+      "hint": "Pressing twice never credits twice."
+    },
+    "meter": {
+      "credits": "Credits",
+      "team": "Team · unlimited",
+      "freeUses": "Free uses left",
+      "get": "Get credits"
+    },
+    "selection": {
+      "select": "Select {name}",
+      "add": "Add to selection",
+      "remove": "Remove from selection",
+      "selectedN": "{n} selected",
+      "usesOf": "{n} of {left} free uses",
+      "balanceIs": "Your balance is {n}",
+      "clear": "Clear",
+      "continue": "Continue",
+      "barAria": "Your selection",
+      "maxVideos": "Up to {n} videos per batch",
+      "maxTemplates": "Up to {n} templates per batch",
+      "maxFrames": "Up to {n} frames per batch",
+      "usesLeft": "You have {n, plural, one {# use} other {# uses}}",
+      "name": "Your selection",
+      "templatesN": "{n, plural, one {# template} other {# templates}}",
+      "edit": "Edit selection",
+      "someDontFit": "{n} of {total} don't fit",
+      "doesntFitOne": "{name} doesn't fit this ad: {reason}",
+      "doesntFitMany": "{names} don't fit this ad",
+      "removeOne": "Remove {name} and continue",
+      "removeMany": "Remove {n} and continue",
+      "hintPick": "Pick the ad these templates run on",
+      "stepFits": "Checking which templates fit and writing the texts",
+      "planEyebrow": "Your selection · plan ready",
+      "planTitle": "{n, plural, one {# template} other {# templates}} on \"{ad}\"",
+      "planLede": "One line per template you picked. Uncheck anything you don't want; the total updates.",
+      "leftOut": "Left out · no charge",
+      "invalid": {
+        "not_found": "Some templates you picked aren't available anymore. Check your selection.",
+        "pack": "The pack can't go in a selection. Use it on its own.",
+        "ai_tier": "AI templates can't go in a selection yet.",
+        "too_many_videos": "Up to {n} videos per batch. Uncheck a template.",
+        "too_many_frames": "Up to {n} frames per batch. Uncheck a frame."
+      }
+    },
+    "aiProduction": {
+      "templates": "Templates",
+      "description": "Your ad is being transformed into this format.",
+      "reading": "Reading your winning ad",
+      "writing": "Adapting the message",
+      "presenters": "Creating the presenters",
+      "video": "Generating the video",
+      "render": "Finishing the edit and captions",
+      "background": "You can leave this page. The video will appear here and in your library when it is ready.",
+      "ready": "Your video is ready.",
+      "failed": "We could not finish this video.",
+      "review": "Watch your video and review the message before publishing.",
+      "download": "Download MP4",
+      "library": "Open library",
+      "another": "Generate another video",
+      "failedHelp": "No video was delivered. Reserved credits are returned when a generation fails.",
+      "retry": "Try generating again"
+    }
+  },
+  "credits": {
+    "eyebrow": "Credits",
+    "title": "Get credits",
+    "lede": "Edit templates cost 1 credit. AI templates cost more because they generate new people and scenes, and their price covers the whole job, retries included. Credits don't expire.",
+    "loadError": "We couldn't load your balance.",
+    "retry": "Try again",
+    "balance": "Balance",
+    "held": "Reserved in running videos",
+    "plan": "Plan",
+    "access": {
+      "SAMPLE": "Free sample",
+      "PAID": "Paid",
+      "INTERNAL": "HookMill team"
+    },
+    "noCheckout": "Checkout isn't open in the app yet.",
+    "noCheckoutBody": "Talk to us and we add the credits to your account by hand, usually the same day.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFallback": "Select the address to copy it",
+    "openMail": "Open e-mail",
+    "mailSubject": "HookMill credits",
+    "mailBody": "Hi! I'd like to buy credits. My account id: {id}",
+    "idLine": "Send your account id with the message: {id}",
+    "packs": {
+      "starter": {
+        "name": "Starter",
+        "body": "about 50 edit videos"
+      },
+      "studio": {
+        "name": "Studio",
+        "body": "about 150 edit videos, or 18 New face jobs"
+      },
+      "agency": {
+        "name": "Agency",
+        "body": "for several client workspaces"
+      }
+    },
+    "packCredits": "{n} credits",
+    "packCustom": "Custom",
+    "priceTbd": "Price to be set",
+    "what": {
+      "reserve": "{name} · reserved",
+      "charge": "{name} · charged {n}",
+      "refund": "{name} · refunded",
+      "sampleGrant": "Free sample uses",
+      "grant": "Credits added",
+      "manualNote": "Added by HookMill · {note}",
+      "manual": "Added by HookMill (manual)"
+    },
+    "history": "History · this account",
+    "historyEmpty": "No credit movements yet.",
+    "col": {
+      "date": "Date",
+      "what": "What",
+      "credits": "Credits",
+      "balance": "Balance"
+    },
+    "samplePool": "sample",
+    "more": "Load more",
+    "uses": "Template uses",
+    "runTeam": "team",
+    "runSelection": "{name} · {n, plural, one {# template} other {# templates}}",
+    "runSettled": "−{charged} · +{refunded}",
+    "runHeld": "{held} reserved",
+    "settings": {
+      "title": "Credits",
+      "open": "Get credits & history",
+      "balance": "Balance",
+      "held": "Reserved",
+      "catalog": "Template catalog",
+      "catalogLink": "Admin · Templates"
+    }
+  },
+  "metaOffer": {
+    "selectorLabel": "Offer",
+    "selectorHelp": "We split your Meta ads by this offer.",
+    "allOffers": "All offers",
+    "sectionUnknown": "Not sure",
+    "sectionOther": "Other products",
+    "notSure": "Not sure",
+    "otherHint": "These ads link to another product. If one is from {offer}, mark it.",
+    "showAllOther": "Show all {n}",
+    "emptyThis": "No ads matched {offer} yet.",
+    "emptyOther": "No ads from other products.",
+    "tabsAria": "Ads by offer",
+    "noOffer": "No offer",
+    "menu": {
+      "trigger": "Offer of {name}",
+      "title": "Which offer is it from?",
+      "notThis": "Not from {offer}",
+      "this": "From {offer}",
+      "another": "From another offer…",
+      "campaignThis": "All ads in this campaign are from {offer}",
+      "campaignNotThis": "This campaign isn't from {offer}",
+      "undo": "Undo my correction"
+    },
+    "toast": {
+      "movedOther": "{n, plural, one {# ad moved} other {# ads moved}} to Other products.",
+      "movedThis": "{n, plural, one {# ad moved} other {# ads moved}} to {offer}.",
+      "saved": "Saved. We'll remember it on the next syncs.",
+      "undone": "Back to automatic."
+    },
+    "confirm": {
+      "title": "This ad looks like it's from {other}",
+      "anotherProduct": "another product",
+      "body": "Use it for {offer} anyway? We'll remember that this ad is from {offer}.",
+      "use": "Use anyway",
+      "pick": "Pick another"
+    },
+    "warn": {
+      "noLinkTitle": "We can't see where these ads link to (posts, lead forms or messages).",
+      "noLinkBody": "Mark the ones from {offer}.",
+      "pending": "Still reading {n, plural, one {# ad link} other {# ad links}}, the next sync finishes it.",
+      "noUrlTitle": "Add the link of {offer} so we can find its ads",
+      "noUrlCta": "Edit offer"
+    },
+    "match": {
+      "manual": "You marked this ad",
+      "manual_campaign": "You marked its campaign",
+      "hookmill": "Published by HookMill",
+      "champion": "Already used as a winner",
+      "link": "Same link as the offer",
+      "name": "Its name matches the offer",
+      "sibling": "Same ad set as ads of this offer",
+      "domain": "Same site as the offer",
+      "none": "No match"
+    },
+    "none": {
+      "foreign_link": "Links to a site that isn't one of your offers",
+      "no_link": "We can't see where it links to",
+      "link_pending": "Link not read yet",
+      "ambiguous": "Matches more than one offer",
+      "offer_has_no_url": "The offer has no link yet",
+      "excluded": "You marked it as not from this offer"
+    },
+    "mix": "{this} {offer} · {unknown} not sure · {other} other"
+  },
+  "tip": {
+    "eyebrow": "Tip",
+    "gotIt": "Got it",
+    "adSource": {
+      "title": "Pick the ad to remix",
+      "body": "A winner from your Meta account, a video you upload or one from your Library. The best start is an ad that already sells.",
+      "titleNoMeta": "No Meta yet? Upload a video",
+      "bodyNoMeta": "Any ad that already ran works, yours or a reference. You can connect Meta later in Settings."
+    },
+    "plan": {
+      "title": "Check the plan, then Generate",
+      "body": "Every text is editable and changing it is free. Credits are only held when you hit Generate. It takes a few minutes; you can leave and come back."
+    },
+    "result": {
+      "titleSample": "Your free batch is ready",
+      "bodySample": "The first 3 seconds are sharp, the rest is blurred. Pick a plan and these same pieces unlock right away, with no new render.",
+      "actionSample": "See plans",
+      "title": "Your batch is ready",
+      "body": "Watch each piece, then download it or tick the ones you want and hit Send to Meta.",
+      "bodyNoMeta": "Watch each piece and download it. Connect Meta to send ads straight from here.",
+      "actionNoMeta": "Connect Meta"
+    },
+    "send": {
+      "title": "Review before it goes live",
+      "body": "Review and send opens the full campaign template. What you change applies to this send only; the template stays as it is. Send without reviewing uses it as saved."
+    },
+    "library": {
+      "title": "Your ads and approved pieces",
+      "body": "Up top, the ads you uploaded or we read from Meta: pick one to make more with a template. Below, every piece you approved."
+    }
+  },
+  "skeleton": {
+    "library": "Loading your library",
+    "next": "Loading next steps",
+    "recent": "Loading recent work",
+    "templates": "Loading templates",
+    "ads": "Loading your ads",
+    "creatives": "Loading creatives",
+    "brain": "Loading the Brain",
+    "iterate": "Loading your ads",
+    "credits": "Loading credits",
+    "settings": "Loading settings",
+    "connections": "Loading connections",
+    "brandKit": "Loading the brand kit",
+    "brand": "Loading the brand",
+    "history": "Loading history"
+  },
+  "radar": {
+    "eyebrow": "Make ads",
+    "title": "Ad Radar",
+    "lede": "What your competitors are running on Facebook and Instagram right now. The longer an ad runs, the more likely it pays for itself.",
+    "updated": "Updated {ago} · next check {when}",
+    "discovery": {
+      "title": "Finding your competitors",
+      "leave": "you can leave this page",
+      "body": "We read your Brain, look up who advertises your kind of product in Meta's Ad Library {country} and keep the strongest ones. About 2 minutes, and it uses no credits.",
+      "again": "Looking again for competitors {country}. The ones you follow stay; new ones go to the reserve.",
+      "stage": {
+        "propose": "Reading your Brain",
+        "confirm": "Checking brands in the Ad Library",
+        "scan": "Searching ads in your niche",
+        "judge": "Checking who sells to your audience",
+        "import": "Bringing their ads"
+      },
+      "done": "done",
+      "now": "now",
+      "next": "next",
+      "queued": "Starting…",
+      "emptyTitle": "We didn't find active advertisers in your niche {country}",
+      "emptyBody": "Meta's Ad Library has no brand running ads for the same product and audience right now. We look again when your Brain changes, or you can search again.",
+      "failedTitle": "The search for competitors didn't finish",
+      "failedBody": "Meta's Ad Library didn't answer. Nothing was charged. Try again in a few minutes.",
+      "openBrain": "Open the Brain"
+    },
+    "picked": {
+      "title": "We picked {n, plural, one {# competitor} other {# competitors}} for you",
+      "body": "Direct competitors come first; an adjacent niche only fills a spot when there aren't enough. Remove any that isn't yours and the next one in reserve takes its place.",
+      "gotIt": "Got it",
+      "why": "Why this one"
+    },
+    "adjacent": "Adjacent niche",
+    "bar": {
+      "aria": "Competitors",
+      "all": "All competitors",
+      "active": "{n} active",
+      "atLeast": "≥ {n} active",
+      "syncing": "Syncing…",
+      "failed": "didn't answer",
+      "more": "More",
+      "removed": "Removed ({n})",
+      "searchAgain": "Search again",
+      "searchAgainAt": "Search again · {date}",
+      "estimate": "≈ US$ {usd} per search (team only)",
+      "spots": "{n} of {max} spots"
+    },
+    "comp": {
+      "country": "Active {country}",
+      "winners": "{n, plural, one {# likely winner} other {# likely winners}}",
+      "lastSync": "Last checked {ago}",
+      "importing": "Bringing their ads. The count shows at least what we've seen so far.",
+      "refresh": "Refresh now",
+      "refreshAt": "Refresh again {when}",
+      "remove": "Remove",
+      "openLib": "Open in Meta Ad Library",
+      "capPaused": "Weekly checks paused: this month's research budget is used up."
+    },
+    "dismiss": {
+      "title": "Remove {name}?",
+      "body": "It leaves the feed and doesn't come back in a new search.",
+      "reserveYes": "The next one in reserve takes its spot.",
+      "reserveNo": "There's nobody in reserve, so the spot stays open until the next search.",
+      "savedStay": "Ads you saved from it stay in Saved.",
+      "reasonLabel": "Why?",
+      "reason": {
+        "not_competitor": "Not a competitor",
+        "not_relevant": "Not relevant to me",
+        "own_brand": "It's my own brand",
+        "other": "Other"
+      },
+      "confirm": "Remove",
+      "cancel": "Cancel",
+      "done": "{name} removed",
+      "replaced": "{name} removed · {next} took its spot",
+      "undo": "Undo"
+    },
+    "removed": {
+      "title": "Removed competitors",
+      "body": "They don't come back in new searches. Undo brings one back if there's a free spot.",
+      "empty": "Nothing removed.",
+      "undo": "Undo",
+      "line": "Removed {date} · {reason}",
+      "restored": "{name} is back",
+      "limit": "All {max} spots are taken. Remove someone first to bring {name} back."
+    },
+    "tabs": {
+      "aria": "Ads",
+      "all": "All ads",
+      "saved": "Saved ({n})"
+    },
+    "filters": {
+      "status": "Status",
+      "format": "Format",
+      "running": "Running for",
+      "language": "Language",
+      "sort": "Sort",
+      "active": "Active",
+      "all": "All",
+      "inactive": "Inactive",
+      "allFormats": "All formats",
+      "video": "Video",
+      "image": "Image",
+      "anyTime": "Running · any time",
+      "any": "Any",
+      "d7": "7+ days",
+      "d30": "30+ days",
+      "d90": "90+ days",
+      "d7s": "7+ d",
+      "d30s": "30+ d",
+      "d90s": "90+ d",
+      "anyLanguage": "Any language",
+      "en": "English",
+      "pt": "Portuguese",
+      "es": "Spanish",
+      "longest": "Running longest",
+      "newest": "Newest first",
+      "versions": "Most versions",
+      "button": "Filters",
+      "buttonN": "Filters · {n}",
+      "sheetTitle": "Filters",
+      "show": "Show ads",
+      "clear": "Clear"
+    },
+    "summary": "{total, plural, one {# ad} other {# ads}} · {winners, plural, one {# likely winner} other {# likely winners}}",
+    "loadingAds": "Loading ads…",
+    "rule": "“Likely winner” = active {days}+ days or {versions}+ versions",
+    "loadMore": "Load more",
+    "card": {
+      "use": "Use as champion",
+      "useShort": "Use",
+      "save": "Save",
+      "saved": "Saved",
+      "days": "{n} d",
+      "ended": "ended",
+      "versions": "{n} versions",
+      "noVideo": "This ad has no video to use",
+      "open": "Open ad from {name}",
+      "unavailable": "Video unavailable",
+      "winner": "Likely winner",
+      "inactive": "Inactive",
+      "readOnly": "Only the agency can use ads"
+    },
+    "format": {
+      "VIDEO": "Video",
+      "IMAGE": "Image",
+      "CAROUSEL": "Carousel",
+      "DCO": "Dynamic",
+      "DPA": "Catalog",
+      "OTHER": "Other"
+    },
+    "platform": {
+      "FACEBOOK": "Facebook",
+      "INSTAGRAM": "Instagram",
+      "MESSENGER": "Messenger",
+      "AUDIENCE_NETWORK": "Audience Network",
+      "THREADS": "Threads",
+      "WHATSAPP": "WhatsApp"
+    },
+    "platformShort": {
+      "FACEBOOK": "FB",
+      "INSTAGRAM": "IG",
+      "MESSENGER": "MS",
+      "AUDIENCE_NETWORK": "AN",
+      "THREADS": "TH",
+      "WHATSAPP": "WA"
+    },
+    "why": {
+      "title": "Why “likely winner”",
+      "both": "Running {days} days with {versions} versions live. Meta doesn't show competitors' spend; brands rarely keep a losing ad on for a month.",
+      "days": "Running {days} days. Meta doesn't show competitors' spend; brands rarely keep a losing ad on for a month.",
+      "versions": "{versions} versions of this ad are live. Brands make more versions of what's working."
+    },
+    "detail": {
+      "close": "Close",
+      "active": "Active",
+      "started": "Started",
+      "running": "Running",
+      "ran": "Ran",
+      "runningDays": "{n, plural, one {# day} other {# days}}",
+      "platforms": "Platforms",
+      "country": "Country",
+      "language": "Language",
+      "button": "Button",
+      "goesTo": "Goes to",
+      "versionsLine": "{n} versions running · same ad, different text",
+      "cards": "Cards in this ad",
+      "adText": "Ad text",
+      "copy": "Copy",
+      "copied": "Text copied",
+      "openLib": "Open in Meta Ad Library ↗",
+      "libId": "Library ID {id} · last checked {ago}",
+      "loadVideo": "Load video",
+      "loadingVideo": "Getting the video from Meta, about 30 seconds. You can close this.",
+      "expired": "Meta's link to this video expired. Load it again to watch or use it.",
+      "image": "Image",
+      "usedIn": "Used in {n, plural, one {# batch} other {# batches}}",
+      "notFound": "This ad isn't in your radar anymore.",
+      "player": "Ad video"
+    },
+    "empty": {
+      "nomatchTitle": "No ads match these filters",
+      "nomatchBody": "Try “Any time” or “All formats”. Competitors with few ads rarely have something running 90+ days.",
+      "clear": "Clear filters",
+      "savedTitle": "Nothing saved yet",
+      "savedBody": "Tap the bookmark on any ad to keep it here. Saved ads also show up in Templates, in the step where you pick the ad.",
+      "noAdsTitle": "{name} has no active ads {country}",
+      "noAdsBody": "We check every week, and they'll show up here when they start again.",
+      "showPast": "Show past ads",
+      "importing": "Bringing {name}'s ads… they show up here in a moment."
+    },
+    "error": {
+      "ads": "We couldn't load the ads",
+      "compFail": "Meta's Ad Library didn't answer for {name}.",
+      "compFailBody": "Last good check was {ago}. We'll try again soon; the other competitors are up to date.",
+      "retry": "Retry now"
+    },
+    "cap": {
+      "title": "This month's research budget is used up",
+      "body": "New searches and refreshes are paused until next month. The ads you already have stay here."
+    },
+    "quota": {
+      "title": "Meta's Ad Library is at its limit",
+      "body": "New searches and refreshes come back on {date}. Everything already here keeps working."
+    },
+    "off": {
+      "title": "Ad Radar is coming soon",
+      "body": "Soon you'll see your competitors' ads here, sorted by how long they've been running."
+    },
+    "readOnly": "You can look at the ads. The agency picks which ones to use.",
+    "toast": {
+      "saved": "Saved · also in Templates › Saved ads",
+      "unsaved": "Removed from Saved",
+      "refreshing": "Checking {name} again…",
+      "searching": "Looking for competitors…",
+      "rateLimited": "You can do this again {when}.",
+      "cap": "This month's research budget is used up.",
+      "busy": "A search is already running."
+    },
+    "champion": {
+      "note": "From a competitor ad we keep the structure: the hook, the pacing, the format. Your offer, product, voice and claims come from your Brain. Their logo, product shots and claims don't come along.",
+      "pinned": "Champion · {name} · “{headline}”",
+      "reading": "We read this ad on first use · about 1 min, free. You can pick templates now.",
+      "read": "Read. Every card below says if it fits this ad.",
+      "change": "Change ad"
+    },
+    "r1": {
+      "title": "This video belongs to a competitor",
+      "body": "Edit templates put the competitor's own footage in your ad. If they report it, Meta can take your ad down and flag your ad account. Safer: keep only the structure with an AI template, or film your own version.",
+      "ack": "I understand, use this video",
+      "cancel": "Go back"
+    },
+    "adStep": {
+      "tab": "Saved ads",
+      "emptyTitle": "No saved ads yet",
+      "emptyBody": "Save competitor ads in Ad Radar and they show up here.",
+      "open": "Open Ad Radar",
+      "line": "{days, plural, one {# day running} other {# days running}}",
+      "ended": "Stopped"
+    }
+  },
+  "editorU": {
+    "canvas": {
+      "aria": "Canvas"
+    },
+    "play": "Play",
+    "pause": "Pause",
+    "mute": "Mute",
+    "soundOn": "Turn sound on",
+    "timeAria": "Time",
+    "off": "Off",
+    "on": "On",
+    "tplName": {
+      "headline": "Headline"
+    },
+    "top": {
+      "batch": "Batch",
+      "library": "Library",
+      "undo": "Undo",
+      "redo": "Redo",
+      "resetAll": "Reset all",
+      "download": "Download",
+      "downloadPending": "Export your edits first",
+      "export": "Export",
+      "exportTip": "Re-render this piece with your edits. No new generation, no credits.",
+      "exportBlocked": "Fix the red checks to export",
+      "exportConfirm": "Confirm the number to export",
+      "exportNothing": "Nothing to export yet",
+      "exportReadOnly": "This piece is read-only"
+    },
+    "save": {
+      "saving": "Saving…",
+      "error": "Couldn't save · retrying",
+      "invalid": "Not saved",
+      "unsaved": "Unsaved changes",
+      "saved": "Saved · rev {rev}",
+      "notExported": "Saved · rev {rev} · not exported",
+      "exported": "Exported · rev {rev}"
+    },
+    "banner": {
+      "clientTitle": "You can view this piece.",
+      "clientBody": "Only the team can edit and export it.",
+      "readOnlyTitle": "This piece is published.",
+      "readOnlyBody": "It opens read-only so the version in your ads stays the same.",
+      "openLibrary": "Open in Library",
+      "conflictTitle": "{name} saved this piece first.",
+      "conflictBody": "Your last change was not saved. Load their version to keep editing; there is no merge.",
+      "loadTheirs": "Load {name}'s version",
+      "copyMine": "Copy my text first",
+      "exportingTitle": "Exporting {name}",
+      "exportingBody": "re-rendering with your edits. No new generation. You can leave; it keeps going.",
+      "blockedTitle": "Export blocked.",
+      "blockedBody": "A red check or an unconfirmed number appeared on the server. Fix it and export again.",
+      "exportErrorTitle": "The export didn't start.",
+      "doneTitle": "Exported.",
+      "doneBody": "The piece now carries the “Edited” badge and its code ends in -ED. 4:5 and 1:1 re-render when you ask for them (free).",
+      "download916": "Download 9:16",
+      "backBatch": "Back to batch",
+      "invalidTitle": "This change can't be saved.",
+      "invalidBody": "It breaks a rule of this template. Undo it or change it again."
+    },
+    "stage": {
+      "saving": "Edits saved",
+      "rendering": "Rendering {format}",
+      "caption_check": "Caption check",
+      "text_check": "Text check"
+    },
+    "fail": {
+      "caption": "The caption check failed after the render.",
+      "text": "The text check failed after the render.",
+      "render": "The render failed.",
+      "at": "At {at}.",
+      "kept": "The piece was not replaced; the previous version stays.",
+      "jump": "Jump to {at}",
+      "retry": "Retry check"
+    },
+    "cover": {
+      "title": "Opening the editor",
+      "body": "Loading a light copy of your video so dragging stays smooth. The export uses the full-quality file.",
+      "piece": "Piece and layers loaded",
+      "proxy": "Preparing the 540p preview copy · about {s} s",
+      "fonts": "Fonts"
+    },
+    "guides": {
+      "aria": "Guides",
+      "off": "Guides off",
+      "on": "Face · caption · zone",
+      "show": "Show guides",
+      "appUi": "app UI",
+      "face": "face",
+      "band": "burned caption (protected)"
+    },
+    "pill": {
+      "face": "Face clear",
+      "caption": "Burned caption clear",
+      "text": "Text fits",
+      "numbers": "Numbers match transcript and Brain",
+      "contrast": "Contrast",
+      "noPicture": "No picture of you: face and caption rules don't apply"
+    },
+    "issue": {
+      "caption_covered": "{layer} covers the burned caption",
+      "face_covered": "{layer} covers the face",
+      "caption_cut": "The burned caption is cut off",
+      "face_cut": "The face is cut off by the video frame",
+      "text_overflow": "{layer}: the text doesn't fit the box",
+      "too_long": "{layer}: {chars} / {max} characters",
+      "invented_number": "“{n}” isn't in the transcript or the Brain",
+      "low_contrast": "{layer}: low contrast between text and background",
+      "item_out_of_range": "{layer}: outside the trim, hidden",
+      "no_client_image": "No picture of you"
+    },
+    "fix": {
+      "caption_covered": "Move it off the red area, or turn on guides to see it.",
+      "face_covered": "Keep at least 90% of the face clear.",
+      "caption_cut": "Zoom out or use Auto reframe.",
+      "face_cut": "Zoom out or use Auto reframe.",
+      "text_overflow": "Make the box bigger or the text shorter.",
+      "too_long": "Shorten the text.",
+      "low_contrast": "Pick a text or background color with more contrast."
+    },
+    "number": {
+      "memo": "“{n}” isn't in what was said or in the Brain. Numbers have to come from the video or the Brain. Export waits until you confirm.",
+      "keep": "It's true, keep it",
+      "undo": "Undo this edit"
+    },
+    "layers": {
+      "title": "Layers",
+      "hint": "Click a layer or the canvas. Arrow keys move the selected layer (Shift = 10 px). Double-click your video to reframe it.",
+      "locked": "locked",
+      "hidden": "hidden"
+    },
+    "timeline": {
+      "title": "Timeline",
+      "hint": "Click a lane to jump there. Timed lines come in a later step.",
+      "hintTrim": "Click a lane to jump there. Drag the ends of your video's bar to trim it. The hatched part is cut.",
+      "trimStart": "Drag to trim the start",
+      "trimEnd": "Drag to trim the end",
+      "cutAway": "Trimmed: not in the video",
+      "yourVideo": "your video"
+    },
+    "panel": {
+      "aria": "Panel",
+      "template": "Template",
+      "layer": "Layer",
+      "none": "none"
+    },
+    "group": {
+      "appearance": "Appearance",
+      "position": "Position",
+      "format": "Format",
+      "content": "Content",
+      "guides": "Guides",
+      "broll": "B-roll"
+    },
+    "control": {
+      "brandColor": "Brand color",
+      "brand": "Brand color",
+      "look": "Look",
+      "place": "List position",
+      "theme": "Chat theme",
+      "bubble": "Your bubble",
+      "captions": "Captions on top",
+      "strip": "Strip",
+      "ratio": "Split",
+      "swap": "Your video below",
+      "columns": "Columns"
+    },
+    "tpl": {
+      "positionHint": "Fine-tune any layer by dragging it, or in the Layer tab.",
+      "formatHint": "Switching format re-fits the layout. Text, colors and fonts stay. 4:5 and 1:1 are free.",
+      "fromWorkspace": "from workspace",
+      "templateDefault": "template default",
+      "schema": "How this panel was built: the controls this template declares",
+      "later": "This control comes in a later step."
+    },
+    "content": {
+      "lines": "{n, plural, one {# line} other {# lines}}",
+      "sub": "Every line is editable. Each line keeps where it came from.",
+      "subTimed": "Every line is editable. The time is where it shows in the video; click it to jump there. Each line keeps where it came from.",
+      "at": "At",
+      "line": "Line",
+      "from": "From",
+      "whole": "whole",
+      "hidden": "hidden",
+      "item": "Item {n}",
+      "none": "This template has no text to edit."
+    },
+    "prov": {
+      "transcript": "Transcript",
+      "brain": "Brain",
+      "brainField": "Brain › {field}",
+      "both": "Transcript + Brain",
+      "bothField": "Transcript + Brain › {field}",
+      "template": "Template label",
+      "generic": "Generic",
+      "youEdited": "You edited",
+      "was": "was “{text}”"
+    },
+    "brainField": {
+      "what": "What it is",
+      "audience": "Audience",
+      "pains": "Pains",
+      "promise": "Promise",
+      "proof": "Proof",
+      "offerAndPrice": "Offer and price",
+      "cta": "Call to action",
+      "notes": "Notes",
+      "page": "Page",
+      "name": "Name"
+    },
+    "exportReason": {
+      "nothing_to_export": "Nothing changed since the last export.",
+      "export_running": "An export of this piece is already running.",
+      "render_running": "This piece is rendering. Try again when it finishes.",
+      "read_only": "This piece is read-only.",
+      "not_saved": "Your last edit isn't saved yet. Wait for “Saved” and export again."
+    },
+    "reframe": {
+      "cta": "Reframe",
+      "tag": "Reframing",
+      "hint": "Drag to move · scroll or corner to zoom · Esc to finish",
+      "done": "Done",
+      "onCanvas": "Reframe on canvas",
+      "subOff": "double-click the video",
+      "subOn": "reframing on canvas",
+      "subPhone": "use the sliders",
+      "fitLabel": "Fill the box",
+      "fill": "Fill (crop)",
+      "fit": "Fit",
+      "zoom": "Zoom",
+      "panX": "Left/right",
+      "panY": "Up/down",
+      "auto": "Auto reframe",
+      "autoOn": "Auto reframe is on: face and burned caption stay in view.",
+      "autoOff": "Set by you. Auto reframe brings back the face and the burned caption."
+    },
+    "trim": {
+      "title": "Trim",
+      "sub": "start and end of your video",
+      "start": "start",
+      "end": "end",
+      "startHere": "Start here",
+      "endHere": "End here",
+      "whole": "Use whole video",
+      "kept": "Keeps {from} to {to}",
+      "output": "Output {s} s. Lines outside the trim are hidden, not deleted."
+    },
+    "lyr": {
+      "noneTitle": "No layer selected",
+      "noneBody": "Click anything on the canvas or pick it from the list. Every layer of this template can be selected: text, boxes and your video.",
+      "burnedBody": "It is part of the pixels of your video, so it can't be moved or edited here. The editor protects it instead: nothing may cover it.",
+      "burnedHow": "To change these words, upload the version of your video without captions and turn on our captions.",
+      "hide": "Hide",
+      "show": "Show",
+      "reset": "Reset",
+      "text": "Text",
+      "accentHint": "*asterisks* highlight words",
+      "lines": "Lines",
+      "linesBody": "The items are in Template › Content, each with where it came from.",
+      "openContent": "Open Content",
+      "style": "Style",
+      "font": "Font",
+      "size": "Size",
+      "sizeUnit": "px at 1080 wide",
+      "color": "Text color",
+      "accentColor": "Accent color",
+      "align": "Align",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "caps": "Capitals",
+      "asTyped": "As typed",
+      "allCaps": "ALL CAPS",
+      "fill": "Background color",
+      "framing": "Framing",
+      "brollNext": "Swapping the second video comes in a later step.",
+      "position": "Position and size",
+      "positionPhone": "on phones, use the fields",
+      "positionDesk": "or drag on the canvas",
+      "pos": {
+        "top": "Top",
+        "mid": "Middle",
+        "bot": "Bottom",
+        "cx": "Center horizontally"
+      },
+      "uniformHint": "This template scales the box's content evenly: width and height change together.",
+      "fixed": "This layer stays where the template placed it.",
+      "videoFixed": "This layer fills the canvas in this template.",
+      "videoFixedReframe": "This layer fills the canvas in this template. You can still reframe it.",
+      "when": "When it shows",
+      "jumpStart": "Jump to its start"
+    },
+    "hist": {
+      "reframe": "Reframe your video",
+      "autoReframe": "Auto reframe",
+      "trim": "Trim your video",
+      "move": "Move {layer}",
+      "resize": "Resize {layer}",
+      "opt": "Change {name}",
+      "text": "Edit {layer}",
+      "confirm": "Confirm number",
+      "style": "{name} of {layer}",
+      "field": "{name} of {layer}",
+      "hide": "Hide {layer}",
+      "show": "Show {layer}",
+      "reset": "Reset {layer}",
+      "resetAll": "Reset all"
+    },
+    "toast": {
+      "undone": "Undone: {what}",
+      "redone": "Redone: {what}",
+      "copied": "{n, plural, one {# text} other {# texts}} copied",
+      "copyFailed": "Couldn't copy to the clipboard"
+    },
+    "field": {
+      "question": "Question",
+      "pageName": "Page name",
+      "headline": "Headline",
+      "headline_lead": "Headline · lead",
+      "headline_highlight": "Headline · highlight",
+      "dek": "Subheadline",
+      "cta": "Call to action",
+      "topic": "Topic",
+      "pov": "POV",
+      "subtitle": "Subtitle",
+      "title": "Title",
+      "slideTitle": "Slide title",
+      "slideSteps": "Slide steps",
+      "names": "Names",
+      "items": "Items",
+      "copy": "Post text",
+      "promise": "Promise",
+      "price_from": "Price · from",
+      "price_to": "Price · to",
+      "support": "Support line",
+      "primaryText": "Primary text"
+    },
+    "layer": {
+      "video": "Your video",
+      "video2": "Second video",
+      "brand": "Brand name",
+      "burned": "Burned caption",
+      "headline": "Headline",
+      "headlineBox": "Headline band",
+      "box": "Box · {name}"
+    },
+    "boxName": {
+      "card": "card",
+      "panel": "panel",
+      "band": "band",
+      "plate": "plate"
+    },
+    "gate": {
+      "back": "Back",
+      "retry": "Try again",
+      "notEditableTitle": "This piece doesn't open in the editor yet",
+      "retiredTitle": "This piece can't be edited",
+      "notReadyTitle": "This piece isn't ready to edit",
+      "lockedTitle": "Unlock to edit",
+      "errorTitle": "Couldn't open the editor",
+      "reason": {
+        "auto_type_not_editable": "Frames and headline pieces open in the editor now. This kind of piece comes in a later step.",
+        "piece_not_ready": "Its 9:16 is still rendering. Try again when it's ready.",
+        "source_unavailable": "The original video of this piece is not available.",
+        "sample_locked": "The editor opens once the account is unlocked.",
+        "remix_editor_not_enabled": "This variation opens in the editor in a later step.",
+        "headline_plate_retired": "This older piece no longer opens in the editor. You can still download it."
+      }
+    },
+    "card": {
+      "download": "Download",
+      "edit": "Edit",
+      "pending": "Edits not exported",
+      "exporting": "Exporting edits…",
+      "exportFailed": "Export failed",
+      "reason": {
+        "auto_type_not_editable": "This kind of piece doesn't open in the editor yet",
+        "piece_not_ready": "Available when the 9:16 is ready",
+        "sample_locked": "Unlock the account to edit",
+        "remix_editor_not_enabled": "Comes in a later step",
+        "headline_plate_retired": "This older piece no longer opens in the editor"
+      }
     }
   }
 }

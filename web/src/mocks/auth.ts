@@ -52,7 +52,7 @@ export const mockAuth = {
   },
   async acceptInvite(token: string, name: string, password: string) {
     if (!token.startsWith("inv_")) throw new Failure("INVITE_INVALID", 410, "Invite expired or already used.")
-    if (!name.trim() || password.length < 10) throw new Failure("VALIDATION_ERROR", 400, "Name and a 10+ character password are required.")
+    if (!name.trim() || password.length < 6) throw new Failure("VALIDATION_ERROR", 400, "Name and a 6+ character password are required.")
     const s = session()
     return { ...s, user: { ...s.user, id: `u_${token}`, name: name.trim(), email: `${name.trim().toLowerCase().replace(/\s+/g, ".")}@example.com` }, workspace: { ...s.workspace, role: "MEMBER" as const } }
   },
@@ -66,7 +66,7 @@ export const mockAuth = {
     const name = (b.name ?? "").trim()
     if (!name || name.length > 120) fields.push({ field: "name", rule: name ? "maxLength" : "minLength" })
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) fields.push({ field: "email", rule: "isEmail" })
-    if ((b.password ?? "").length < 10 || b.password.length > 200) fields.push({ field: "password", rule: (b.password ?? "").length < 10 ? "minLength" : "maxLength" })
+    if ((b.password ?? "").length < 6 || b.password.length > 200) fields.push({ field: "password", rule: (b.password ?? "").length < 6 ? "minLength" : "maxLength" })
     const agency = b.agencyName?.trim()
     if (b.agencyName !== undefined && (!agency || agency.length > 80)) fields.push({ field: "agencyName", rule: agency ? "maxLength" : "minLength" })
     if (fields.length) throw new Failure("VALIDATION_ERROR", 400, "Invalid request.", { fields })

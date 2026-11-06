@@ -1,0 +1,518 @@
+[
+  {
+    "import": "mock_cmp_life",
+    "status": 200,
+    "data": {
+      "template": {
+        "name": "Mock — Launch (lifetime)",
+        "campaign": {
+          "destination": "NEW_CAMPAIGN",
+          "objective": "OUTCOME_TRAFFIC",
+          "budgetMode": "CBO",
+          "dailyBudgetMinor": 0,
+          "budgetType": "LIFETIME",
+          "lifetimeBudgetMinor": 30000,
+          "bidStrategy": "LOWEST_COST",
+          "bidAmountMinor": null,
+          "specialAdCategories": [],
+          "namePattern": "HookMill — {offer}"
+        },
+        "adset": {
+          "pixelId": null,
+          "pixelEvent": null,
+          "countries": [
+            "US",
+            "CA"
+          ],
+          "ageMin": 25,
+          "ageMax": 54,
+          "genders": "ALL",
+          "advantageAudience": true,
+          "placements": "AUTO",
+          "adsPerAdset": {
+            "min": 4,
+            "max": 8
+          },
+          "namePattern": "{offer} — {date} — {n}",
+          "schedule": {
+            "start": null,
+            "end": {
+              "kind": "AFTER_DAYS",
+              "days": 30
+            }
+          }
+        },
+        "ad": {
+          "primaryText": null,
+          "headline": null,
+          "description": null,
+          "callToAction": "LEARN_MORE",
+          "link": "https://example.com/sheets",
+          "urlTags": "utm_source=facebook&utm_medium=paid",
+          "namePattern": "{code}"
+        },
+        "importedFrom": {
+          "level": "campaign",
+          "id": "mock_cmp_life",
+          "name": "Mock — Launch (lifetime)"
+        }
+      },
+      "unsupported": [],
+      "adjusted": [
+        {
+          "field": "adset.schedule",
+          "value": "Ran 2026-10-25 – 2026-11-24 → runs 30 days from publish"
+        }
+      ]
+    },
+    "body": {
+      "success": true,
+      "data": {
+        "template": {
+          "name": "Mock — Launch (lifetime)",
+          "campaign": {
+            "destination": "NEW_CAMPAIGN",
+            "objective": "OUTCOME_TRAFFIC",
+            "budgetMode": "CBO",
+            "dailyBudgetMinor": 0,
+            "budgetType": "LIFETIME",
+            "lifetimeBudgetMinor": 30000,
+            "bidStrategy": "LOWEST_COST",
+            "bidAmountMinor": null,
+            "specialAdCategories": [],
+            "namePattern": "HookMill — {offer}"
+          },
+          "adset": {
+            "pixelId": null,
+            "pixelEvent": null,
+            "countries": [
+              "US",
+              "CA"
+            ],
+            "ageMin": 25,
+            "ageMax": 54,
+            "genders": "ALL",
+            "advantageAudience": true,
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "min": 4,
+              "max": 8
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "schedule": {
+              "start": null,
+              "end": {
+                "kind": "AFTER_DAYS",
+                "days": 30
+              }
+            }
+          },
+          "ad": {
+            "primaryText": null,
+            "headline": null,
+            "description": null,
+            "callToAction": "LEARN_MORE",
+            "link": "https://example.com/sheets",
+            "urlTags": "utm_source=facebook&utm_medium=paid",
+            "namePattern": "{code}"
+          },
+          "importedFrom": {
+            "level": "campaign",
+            "id": "mock_cmp_life",
+            "name": "Mock — Launch (lifetime)"
+          }
+        },
+        "unsupported": [],
+        "adjusted": [
+          {
+            "field": "adset.schedule",
+            "value": "Ran 2026-10-25 – 2026-11-24 → runs 30 days from publish"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "import": "mock_cmp_awareness",
+    "status": 200,
+    "data": {
+      "template": {
+        "name": "Mock — Brand awareness",
+        "campaign": {
+          "destination": "REUSE_CAMPAIGN",
+          "objective": "OUTCOME_AWARENESS",
+          "budgetMode": "CBO",
+          "dailyBudgetMinor": 3000,
+          "bidStrategy": "LOWEST_COST",
+          "bidAmountMinor": null,
+          "specialAdCategories": [],
+          "namePattern": "HookMill — {offer}"
+        },
+        "adset": {
+          "pixelId": null,
+          "pixelEvent": null,
+          "countries": [
+            "US",
+            "CA"
+          ],
+          "ageMin": 25,
+          "ageMax": 54,
+          "genders": "ALL",
+          "advantageAudience": true,
+          "placements": "AUTO",
+          "adsPerAdset": {
+            "min": 4,
+            "max": 8
+          },
+          "namePattern": "{offer} — {date} — {n}",
+          "optimizationGoal": "REACH"
+        },
+        "ad": {
+          "primaryText": null,
+          "headline": null,
+          "description": null,
+          "callToAction": "LEARN_MORE",
+          "link": "https://example.com/sheets",
+          "urlTags": "utm_source=facebook&utm_medium=paid",
+          "namePattern": "{code}",
+          "instagramAccount": {
+            "id": "ig_mock_1",
+            "username": "hookmill.demo"
+          }
+        },
+        "importedFrom": {
+          "level": "campaign",
+          "id": "mock_cmp_awareness",
+          "name": "Mock — Brand awareness"
+        }
+      },
+      "unsupported": []
+    },
+    "body": {
+      "success": true,
+      "data": {
+        "template": {
+          "name": "Mock — Brand awareness",
+          "campaign": {
+            "destination": "REUSE_CAMPAIGN",
+            "objective": "OUTCOME_AWARENESS",
+            "budgetMode": "CBO",
+            "dailyBudgetMinor": 3000,
+            "bidStrategy": "LOWEST_COST",
+            "bidAmountMinor": null,
+            "specialAdCategories": [],
+            "namePattern": "HookMill — {offer}"
+          },
+          "adset": {
+            "pixelId": null,
+            "pixelEvent": null,
+            "countries": [
+              "US",
+              "CA"
+            ],
+            "ageMin": 25,
+            "ageMax": 54,
+            "genders": "ALL",
+            "advantageAudience": true,
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "min": 4,
+              "max": 8
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "optimizationGoal": "REACH"
+          },
+          "ad": {
+            "primaryText": null,
+            "headline": null,
+            "description": null,
+            "callToAction": "LEARN_MORE",
+            "link": "https://example.com/sheets",
+            "urlTags": "utm_source=facebook&utm_medium=paid",
+            "namePattern": "{code}",
+            "instagramAccount": {
+              "id": "ig_mock_1",
+              "username": "hookmill.demo"
+            }
+          },
+          "importedFrom": {
+            "level": "campaign",
+            "id": "mock_cmp_awareness",
+            "name": "Mock — Brand awareness"
+          }
+        },
+        "unsupported": []
+      }
+    }
+  },
+  {
+    "import": "mock_cmp_cbo",
+    "status": 200,
+    "data": {
+      "template": {
+        "name": "Mock — Prospecting (CBO)",
+        "campaign": {
+          "destination": "REUSE_CAMPAIGN",
+          "objective": "OUTCOME_SALES",
+          "budgetMode": "CBO",
+          "dailyBudgetMinor": 5000,
+          "bidStrategy": "LOWEST_COST",
+          "bidAmountMinor": null,
+          "specialAdCategories": [],
+          "namePattern": "HookMill — {offer}"
+        },
+        "adset": {
+          "pixelId": "pix_mock",
+          "pixelEvent": "PURCHASE",
+          "countries": [
+            "US",
+            "CA"
+          ],
+          "ageMin": 25,
+          "ageMax": 54,
+          "genders": "FEMALE",
+          "advantageAudience": false,
+          "placements": {
+            "platforms": [
+              "facebook",
+              "instagram"
+            ],
+            "positions": [
+              "facebook_feed",
+              "instagram_stream",
+              "instagram_story"
+            ]
+          },
+          "adsPerAdset": {
+            "min": 4,
+            "max": 8
+          },
+          "namePattern": "{offer} — {date} — {n}",
+          "schedule": {
+            "start": null,
+            "end": {
+              "kind": "AFTER_DAYS",
+              "days": 7
+            }
+          },
+          "locales": [
+            {
+              "key": 6,
+              "name": "English (US)"
+            }
+          ],
+          "customAudiences": [
+            {
+              "id": "ca_mock_lal_1",
+              "name": "Lookalike (US, 1%) - Website buyers 180d"
+            }
+          ],
+          "excludedCustomAudiences": [
+            {
+              "id": "ca_mock_buyers",
+              "name": "Website buyers 180d"
+            }
+          ]
+        },
+        "ad": {
+          "primaryText": null,
+          "headline": null,
+          "description": null,
+          "callToAction": "SHOP_NOW",
+          "link": "https://example.com/sheets",
+          "urlTags": "utm_source=facebook&utm_medium=paid",
+          "namePattern": "{code}"
+        },
+        "importedFrom": {
+          "level": "campaign",
+          "id": "mock_cmp_cbo",
+          "name": "Mock — Prospecting (CBO)"
+        }
+      },
+      "unsupported": [
+        {
+          "field": "adset.targeting.geo_locations.cities",
+          "value": "Los Angeles"
+        },
+        {
+          "field": "adset.targeting.flexible_spec",
+          "value": "{\"interests\":[{\"id\":\"6003107902433\",\"name\":\"Sleep\"}]}"
+        }
+      ],
+      "adjusted": [
+        {
+          "field": "adset.schedule",
+          "value": "Ran 2026-11-01 – 2026-11-08 → runs 7 days from publish"
+        }
+      ]
+    },
+    "body": {
+      "success": true,
+      "data": {
+        "template": {
+          "name": "Mock — Prospecting (CBO)",
+          "campaign": {
+            "destination": "REUSE_CAMPAIGN",
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "dailyBudgetMinor": 5000,
+            "bidStrategy": "LOWEST_COST",
+            "bidAmountMinor": null,
+            "specialAdCategories": [],
+            "namePattern": "HookMill — {offer}"
+          },
+          "adset": {
+            "pixelId": "pix_mock",
+            "pixelEvent": "PURCHASE",
+            "countries": [
+              "US",
+              "CA"
+            ],
+            "ageMin": 25,
+            "ageMax": 54,
+            "genders": "FEMALE",
+            "advantageAudience": false,
+            "placements": {
+              "platforms": [
+                "facebook",
+                "instagram"
+              ],
+              "positions": [
+                "facebook_feed",
+                "instagram_stream",
+                "instagram_story"
+              ]
+            },
+            "adsPerAdset": {
+              "min": 4,
+              "max": 8
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "schedule": {
+              "start": null,
+              "end": {
+                "kind": "AFTER_DAYS",
+                "days": 7
+              }
+            },
+            "locales": [
+              {
+                "key": 6,
+                "name": "English (US)"
+              }
+            ],
+            "customAudiences": [
+              {
+                "id": "ca_mock_lal_1",
+                "name": "Lookalike (US, 1%) - Website buyers 180d"
+              }
+            ],
+            "excludedCustomAudiences": [
+              {
+                "id": "ca_mock_buyers",
+                "name": "Website buyers 180d"
+              }
+            ]
+          },
+          "ad": {
+            "primaryText": null,
+            "headline": null,
+            "description": null,
+            "callToAction": "SHOP_NOW",
+            "link": "https://example.com/sheets",
+            "urlTags": "utm_source=facebook&utm_medium=paid",
+            "namePattern": "{code}"
+          },
+          "importedFrom": {
+            "level": "campaign",
+            "id": "mock_cmp_cbo",
+            "name": "Mock — Prospecting (CBO)"
+          }
+        },
+        "unsupported": [
+          {
+            "field": "adset.targeting.geo_locations.cities",
+            "value": "Los Angeles"
+          },
+          {
+            "field": "adset.targeting.flexible_spec",
+            "value": "{\"interests\":[{\"id\":\"6003107902433\",\"name\":\"Sleep\"}]}"
+          }
+        ],
+        "adjusted": [
+          {
+            "field": "adset.schedule",
+            "value": "Ran 2026-11-01 – 2026-11-08 → runs 7 days from publish"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "batchSaveTemplate": 4000
+  },
+  {
+    "retry": {
+      "status": "FAILED",
+      "error_code": "META_POLICY",
+      "template_snapshot": {
+        "ad": {
+          "link": "https://example.com/",
+          "urlTags": null,
+          "headline": "Sleep well",
+          "description": null,
+          "namePattern": "{code}",
+          "primaryText": "[mock:meta-policy]",
+          "callToAction": "SHOP_NOW"
+        },
+        "adset": {
+          "ageMax": 65,
+          "ageMin": 18,
+          "genders": "ALL",
+          "pixelId": "pix_mock",
+          "countries": [
+            "US"
+          ],
+          "pixelEvent": "PURCHASE",
+          "placements": "AUTO",
+          "adsPerAdset": {
+            "max": 8,
+            "min": 4
+          },
+          "namePattern": "{offer} — {date} — {n}",
+          "advantageAudience": true
+        },
+        "campaign": {
+          "objective": "OUTCOME_SALES",
+          "budgetMode": "CBO",
+          "bidStrategy": "LOWEST_COST",
+          "destination": "NEW_CAMPAIGN",
+          "namePattern": "Hunt — {offer}",
+          "bidAmountMinor": null,
+          "dailyBudgetMinor": 2000,
+          "specialAdCategories": []
+        },
+        "overridden": [
+          "campaign",
+          "ad"
+        ]
+      }
+    }
+  },
+  {
+    "sync": {
+      "status": 429,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "RATE_LIMITED",
+          "message": "Too many requests. Try again shortly.",
+          "statusCode": 429,
+          "details": {
+            "retryAfterSec": 183
+          }
+        }
+      }
+    }
+  }
+]

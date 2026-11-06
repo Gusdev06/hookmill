@@ -1,0 +1,9 @@
+
+/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/web/messages/en.json
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/web/messages/pt-BR.json
+  0:0  warning  File ignored because no matching configuration was supplied
+
+✖ 2 problems (0 errors, 2 warnings)
+

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Bar, Card, Head, IterActionBar, IterFlow, IterWrap, Tag } from "./parts"
 import { SampleEyebrow } from "./sample"
+import { headlineBlockedOf } from "./captions"
 
 const BASE: IterateAnswers = { goal: "auto", ai: "free_only", aiCapUsd: null, aiCapCredits: null, wants: [] }
 const GOALS: IterateGoal[] = ["auto", "stretch", "new_audience", "both"]
@@ -41,16 +42,21 @@ function GoalsForm({ batch, config, onDone }: { batch: IterateBatch; config: Ite
   const initial = batch.answers ?? saved ?? BASE
   const clean = (a: IterateAnswers): IterateAnswers => aiEnabled ? a : { ...a, ai: "free_only", aiCapUsd: null, wants: a.wants.filter((w) => w !== "face" && w !== "format" && !(batch.sample && w === "static")) }
   const [answers, setAnswers] = useState<IterateAnswers>(() => clean(initial))
+  // troca-texto-queimado-v1 §15.4: "New headlines" only when this ad can have one. Unknown until the plan says (`insight`), and the quiz
+  // runs during the analysis, so it stays out until then. Hidden, it also leaves the answers; the saved preference keeps it for the next ad.
+  const headlineOffered = !!batch.insight && !headlineBlockedOf(batch)
+  const toSend = (a: IterateAnswers): IterateAnswers => headlineOffered ? clean(a) : { ...clean(a), wants: clean(a).wants.filter((w) => w !== "headline") }
+  const chosen = toSend(answers).wants
   const [step, setStep] = useState(0)
   const questions: ("goal" | "ai" | "wants")[] = aiEnabled ? ["goal", "ai", "wants"] : ["goal", "wants"]
   const question = questions[step]
   const ready = batch.status === "PLAN_READY"
   const save = useMutation({
-    mutationFn: (a: IterateAnswers) => api.iterate.answers(batch.id, { answers: clean(a), save: true }),
+    mutationFn: (a: IterateAnswers) => api.iterate.answers(batch.id, { answers: toSend(a), save: headlineOffered || !clean(a).wants.includes("headline") }),
     onMutate: () => qc.cancelQueries({ queryKey: ik.batch(batch.id) }),
     onSuccess: (b) => { qc.setQueryData(ik.batch(b.id), b); qc.invalidateQueries({ queryKey: ik.config }); onDone() },
   })
-  const wants = (config.quiz?.wants ?? ["headline", "frames", "static", "chat_motion"]).filter((w) => (answers.ai !== "free_only" || (w !== "face" && w !== "format")) && !(batch.sample && w === "static"))
+  const wants = (config.quiz?.wants ?? ["headline", "frames", "static", "chat_motion"]).filter((w) => (answers.ai !== "free_only" || (w !== "face" && w !== "format")) && !(batch.sample && w === "static") && (headlineOffered || w !== "headline"))
   const setWant = (want: IterateWant) => setAnswers((a) => ({ ...a, wants: a.wants.includes(want) ? a.wants.filter((w) => w !== want) : [...a.wants, want] }))
   const title = t(`question.${question}`)
   const badCap = answers.ai === "yes" && answers.aiCapUsd !== null && (answers.aiCapUsd < 1 || answers.aiCapUsd > 1000 || !Number.isFinite(answers.aiCapUsd))
@@ -84,7 +90,7 @@ function GoalsForm({ batch, config, onDone }: { batch: IterateBatch; config: Ite
           {answers.ai === "yes" ? <div className="flex flex-col gap-1.5 text-sm"><label htmlFor="goals-cap" className="font-semibold">{t("cap")}</label><Input id="goals-cap" type="number" inputMode="decimal" min={1} max={1000} step="0.01" value={answers.aiCapUsd ?? ""} aria-invalid={badCap || undefined} aria-describedby={badCap ? "goals-cap-err" : undefined} onChange={(e) => setAnswers((a) => ({ ...a, aiCapUsd: e.target.value === "" ? null : Number(e.target.value) }))} />{badCap ? <span id="goals-cap-err" role="alert" className="text-xs text-status-failed">{t("capRange")}</span> : null}</div> : null}
         </> : null}
         {question === "wants" ? <>
-          <label className={choiceCardClass(!answers.wants.length, "flex cursor-pointer items-start gap-3")}><Checkbox checked={!answers.wants.length} onCheckedChange={() => setAnswers((a) => ({ ...a, wants: [] }))} className="mt-0.5" /><span><b className="block text-sm">{t("chooseForMe")}</b><small className="text-fg-3">{t("chooseHelp")}</small></span></label>
+          <label className={choiceCardClass(!chosen.length, "flex cursor-pointer items-start gap-3")}><Checkbox checked={!chosen.length} onCheckedChange={() => setAnswers((a) => ({ ...a, wants: [] }))} className="mt-0.5" /><span><b className="block text-sm">{t("chooseForMe")}</b><small className="text-fg-3">{t("chooseHelp")}</small></span></label>
           {wants.map((want) => <label key={want} className={choiceCardClass(answers.wants.includes(want), "flex cursor-pointer items-center gap-3")}><Checkbox checked={answers.wants.includes(want)} onCheckedChange={() => setWant(want)} /><span className="text-sm font-semibold">{t(`want.${want}`)}</span></label>)}
         </> : null}
       </fieldset>

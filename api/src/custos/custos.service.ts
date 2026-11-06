@@ -54,7 +54,8 @@ export class CustosService {
     const { from, to } = monthRange(at);
     // 29/10 (QA): total − amostra, e não `NOT: SAMPLE_COSTS`. O filtro JSON (`settings.sample`) dá NULL em lote sem a chave,
     // e NOT(NULL) descartava do gasto toda entrada ligada a lote/criativo normal: o teto mensal via US$ 0 (pecas.int).
-    const month = { workspaceId, createdAt: { gte: from, lt: to } };
+    // ads-research-v1 §9: o custo do Ad Radar (cost_entries com researchSyncId/discoveryId) tem teto próprio e NÃO conta aqui
+    const month = { workspaceId, createdAt: { gte: from, lt: to }, researchSyncId: null, discoveryId: null };
     const [recorded, sample, open] = await Promise.all([
       this.prisma.costEntry.aggregate({ where: month, _sum: { amountUsd: true } }),
       this.prisma.costEntry.aggregate({ where: { ...month, OR: SAMPLE_COSTS }, _sum: { amountUsd: true } }),

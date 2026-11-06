@@ -16,6 +16,8 @@ export const META_LIVE_ENVS = ['META_APP_ID', 'META_APP_SECRET', 'META_CONFIG_ID
 export interface MetaEnv {
   META_MODE?: string; META_APP_ID?: string; META_APP_SECRET?: string; META_CONFIG_ID?: string; META_TOKEN_KEY?: string; META_GRAPH_VERSION?: string;
   PUBLIC_API_URL?: string; JWT_ACCESS_SECRET?: string;
+  /** 04/11: base só do retorno do OAuth (dev local atrás de https://localhost:3443, que a Meta aceita); vazio = PUBLIC_API_URL */
+  META_CALLBACK_BASE_URL?: string;
 }
 
 export function buildMetaService(env: MetaEnv & NodeJS.ProcessEnv, opts: { publicApiUrl: string; rule?: MetaWinnerRule; stepMs?: number } ): MetaService {
@@ -30,7 +32,7 @@ export function buildMetaService(env: MetaEnv & NodeJS.ProcessEnv, opts: { publi
   if (missing.length) return offMetaService('not_configured', missing, graphVersion);
   return new LiveMetaService({
     appId: env.META_APP_ID!.trim(), appSecret: env.META_APP_SECRET!.trim(), configId: env.META_CONFIG_ID!.trim(),
-    redirectUri: `${opts.publicApiUrl.replace(/\/$/, '')}/api/v1/meta/callback`,
+    redirectUri: `${((env.META_CALLBACK_BASE_URL ?? '').trim() || opts.publicApiUrl).replace(/\/$/, '')}/api/v1/meta/callback`,
     jwtSecret, graphVersion, rule,
   });
 }

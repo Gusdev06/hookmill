@@ -5,7 +5,16 @@ import type { MetaCampaignsTotals, MetaStatusCounts } from './campanhas';
 
 // ───────────────────────── enums ─────────────────────────
 export type MetaConnectionStatus = 'ACTIVE' | 'TOKEN_INVALID' | 'DISCONNECTED';
-export type MetaObjective = 'OUTCOME_SALES' | 'OUTCOME_LEADS' | 'OUTCOME_APP_PROMOTION' | 'OUTCOME_TRAFFIC';
+/** meta-templates-v2 A0 (03/11): +AWARENESS/ENGAGEMENT (só no template; o DTO do Custom continua aceitando os 4 primeiros). */
+export type MetaObjective = 'OUTCOME_SALES' | 'OUTCOME_LEADS' | 'OUTCOME_APP_PROMOTION' | 'OUTCOME_TRAFFIC' | MetaObjectiveV2Extra;
+/** meta-templates-v2 §2.1: os 2 objetivos que saíram do "Soon" (já dentro do `MetaObjective` desde o A0). */
+export type MetaObjectiveV2Extra = 'OUTCOME_AWARENESS' | 'OUTCOME_ENGAGEMENT';
+/** meta-templates-v2 §2.2: ausente = DAILY (tudo o que existia antes do v2). */
+export type MetaBudgetType = 'DAILY' | 'LIFETIME';
+/** meta-templates-v2 §2.1: `optimization_goal` da Graph aceito por objetivo (ODAX, v25). */
+export type MetaAwarenessGoal = 'REACH' | 'IMPRESSIONS' | 'AD_RECALL_LIFT' | 'THRUPLAY' | 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS';
+export type MetaEngagementGoal = 'THRUPLAY' | 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS' | 'POST_ENGAGEMENT';
+export type MetaTemplateOptimizationGoal = MetaAwarenessGoal | MetaEngagementGoal;
 /** §5: WINNER = elegível com CPA ≤ mediana; OK = elegível acima; LOW_DATA = gasto/resultados abaixo do mínimo */
 export type MetaAdVerdict = 'WINNER' | 'OK' | 'LOW_DATA';
 /** §5.2: últimos 7 d contra os 7 d anteriores (null no MetaAdRow = dado insuficiente) */
@@ -72,7 +81,11 @@ export interface MetaConnection {
   user: { id: string; name: string };
   scopes: string[];
   tokenExpiresAt: string | null;
-  adAccount: { id: string; name: string; currency: string; timezoneName: string; accountStatus: number } | null;
+  adAccount: {
+    id: string; name: string; currency: string; timezoneName: string; accountStatus: number;
+    /** meta-templates-v2 §5.4: mínimo diário da conta (centavos), do último health; null = desconhecido. Opcional até o B2 */
+    minDailyBudgetMinor?: number | null;
+  } | null;
   page: { id: string; name: string } | null;
   pixel: { id: string; name: string } | null;
   health: MetaHealth | null;
@@ -144,6 +157,10 @@ export interface MetaAdRow {
   canToggle?: boolean;
   /** anúncio de vídeo (videoId != null): "Iterate this ad" */
   canIterate?: boolean;
+  /** lacunas-home-eddy-v1 §4 (31/10): createdAt do lote mais recente feito deste anúncio (campeão não arquivado com este metaAdId); null = nunca. Opcional só no tipo; a API manda sempre */
+  lastIteratedAt?: string | null;
+  /** meta-oferta-v1 §4.5 (04/11): de qual oferta é o anúncio. Opcional até o B3; a API manda sempre. `fit` só com `?offerId` */
+  offer?: MetaAdOfferInfo;
 }
 /** §5.3, derivado */
 export interface MetaSyncState {
@@ -185,6 +202,11 @@ export interface MetaAdsQuery {
   /** janela usada pra ordenar (padrão 30d) */
   period?: MetaPeriod;
   dir?: 'asc' | 'desc';
+  // meta-oferta-v1 §4.1 (04/11)
+  /** oferta ativa do web; agrupa this → unknown → other. De outro workspace = 404 NOT_FOUND { resource: 'offer' } */
+  offerId?: string;
+  /** só com offerId (senão 400 VALIDATION_ERROR rule 'requires_offer'); padrão 'all' */
+  offerScope?: MetaOfferScope;
 }
 export interface MetaAdsMeta extends PageMeta {
   summary: MetaSummary;
@@ -193,9 +215,71 @@ export interface MetaAdsMeta extends PageMeta {
   /** campanhas-v1 §11 (23/10): totais do conjunto FILTRADO inteiro (todos os filtros, inclusive status e format), na janela
    *  de `period` (padrão 30d). Linha Total do "Ads only": não somar a página no cliente */
   totals: MetaCampaignsTotals;
+  /** meta-oferta-v1 §4.2-4.4: só com `?offerId`. Opcional até o B3 */
+  offer?: MetaOfferListMeta;
 }
 export interface MetaSyncResponse { job: Job }
 export interface MetaPublicationsQuery { status?: MetaPublicationStatus; limit?: number; cursor?: string }
+
+// ───────────────────────── meta-oferta-v1 (04/11, PROPOSTA; docs/contratos/meta-oferta-v1.md) ─────────────────────────
+/** §2.1: de onde saiu o link do criativo; null no snapshot = ainda não lido */
+export type MetaDestinationSource = 'video_cta' | 'story_link' | 'template' | 'asset_feed' | 'lead_form' | 'messaging' | 'existing_post' | 'none';
+/** §3.6: relativo à oferta pedida */
+export type MetaOfferFit = 'this' | 'unknown' | 'other';
+export type MetaOfferScope = 'all' | MetaOfferFit;
+/** §3.5: regra que atribuiu a oferta (a primeira que deu oferta única) */
+export type MetaOfferMatch = 'manual' | 'manual_campaign' | 'hookmill' | 'champion' | 'link' | 'name' | 'sibling' | 'domain' | 'none';
+/** §3.6: por que ficou sem oferta (só com `offerId` null) */
+export type MetaOfferNoneReason = 'foreign_link' | 'no_link' | 'link_pending' | 'ambiguous' | 'offer_has_no_url' | 'excluded';
+export type MetaOfferDecision = 'BELONGS' | 'NOT_BELONGS';
+/** §5: correção manual vale por anúncio ou por campanha (ADSET = 400) */
+export type MetaOfferLinkLevel = 'AD' | 'CAMPAIGN';
+
+export interface MetaAdOfferInfo {
+  /** null sem `?offerId` */
+  fit: MetaOfferFit | null;
+  /** oferta atribuída (qualquer uma do workspace, arquivada inclusive); null = nenhuma */
+  offerId: string | null; offerName: string | null;
+  match: MetaOfferMatch;
+  /** high = manual, manual_campaign, hookmill, champion, link; low = name, sibling, domain; null com match 'none' */
+  confidence: 'high' | 'low' | null;
+  noneReason: MetaOfferNoneReason | null;
+  /** destinationUrls[0] do snapshot (já sem encurtador); null = sem link legível */
+  destinationUrl: string | null;
+  /** host sem www., pra mostrar ("spygram.app") */
+  destinationHost: string | null;
+  /** destinationSource null: link na fila do próximo sync */
+  linkPending: boolean;
+  /** correção que valeu pra oferta pedida (pro "Desfazer"); null = automático ou sem `?offerId` */
+  manual: { level: MetaOfferLinkLevel; decision: MetaOfferDecision } | null;
+  /** OWNER/ADMIN/MEMBER (CLIENT não corrige) */
+  canEdit: boolean;
+}
+export interface MetaOfferCounts { this: number; unknown: number; other: number }
+/** `meta.offer` de GET /meta/ads e GET /meta/campaigns com `?offerId` */
+export interface MetaOfferListMeta {
+  offerId: string;
+  /** com os outros filtros, antes do offerScope (anúncios em /meta/ads, campanhas em /meta/campaigns) */
+  counts: MetaOfferCounts;
+  /** §4.3: 'offer' = WINNER recalculado só entre os `this` (≥ 3 elegíveis) */
+  verdictScope: 'offer' | 'account';
+  medianCpa: number | null;
+  /** §4.4: cobertura de link dos anúncios filtrados */
+  links: { read: number; pending: number; unreadable: number };
+  /** a oferta tem ≥ 1 referência de URL (§3.3); false = aviso "adicione o link" */
+  offerHasUrl: boolean;
+}
+/** PUT /meta/offer-links */
+export interface MetaOfferLinkBody { level: MetaOfferLinkLevel; objectId: string; offerId: string; belongs: boolean }
+/** DELETE /meta/offer-links?level=&objectId=&offerId= */
+export interface MetaOfferLinkQuery { level: MetaOfferLinkLevel; objectId: string; offerId: string }
+export interface MetaOfferLinkResult {
+  level: MetaOfferLinkLevel; objectId: string; offerId: string;
+  /** null depois do DELETE (volta ao automático) */
+  decision: MetaOfferDecision | null;
+  /** anúncios do snapshot atual cujo `fit` pra essa oferta mudou */
+  affectedAds: number;
+}
 
 // ───────────────────────── §3.3 publicação ─────────────────────────
 export interface MetaPublishDefaults {
@@ -248,6 +332,23 @@ export type MetaPublishSettings = Required<Omit<MetaPublishBody, 'headline' | 'd
   objectiveReason: MetaPublishDefaults['objectiveReason'];
   /** resultado-v1: evento do pixel na otimização (SALES/LEADS com pixel). Ausente (publicação antiga) = PURCHASE em SALES, LEAD em LEADS. */
   pixelEvent?: MetaPixelEvent | null;
+  // meta-templates-v2 §6 (02/11): resolvidos do template NO ENVIO (iguais pra todo o lote; retry usa os mesmos). Ausentes = v1.
+  /** ausente = DAILY */
+  budgetType?: MetaBudgetType;
+  /** LIFETIME: total em centavos (CBO = da campanha; ABO = de cada ad set). Com LIFETIME, `dailyBudgetMinor` = 0 */
+  lifetimeBudgetMinor?: number | null;
+  /** ISO 8601 UTC; null = começa ao publicar */
+  startTime?: string | null;
+  /** ISO 8601 UTC; null = sem fim (só DAILY) */
+  endTime?: string | null;
+  /** só AWARENESS/ENGAGEMENT; null = o padrão do objetivo */
+  optimizationGoal?: MetaTemplateOptimizationGoal | null;
+  /** chaves de idioma da Meta (targeting.locales); vazio = todos */
+  locales?: number[];
+  customAudienceIds?: string[];
+  excludedCustomAudienceIds?: string[];
+  /** object_story_spec.instagram_user_id; null = a Página como identidade no Instagram (v1) */
+  instagramUserId?: string | null;
 };
 export interface MetaPublication {
   id: string; status: MetaPublicationStatus;
@@ -281,7 +382,12 @@ export interface MetaSelectionMissingDetails { missing: ('adAccount' | 'page')[]
 export interface MetaPermissionDetails { adAccountId?: string; reason: 'no_advertise_task' | 'account_disabled' | 'missing_scope'; scope?: string }
 export interface MetaPixelRequiredDetails { objective: MetaObjective }
 export interface MetaAccountUnusableDetails { accountStatus: number; label: string }
-export interface MetaBudgetTooLowDetails { minimumMinor: number; currency: string }
+export interface MetaBudgetTooLowDetails {
+  minimumMinor: number; currency: string;
+  /** meta-templates-v2 §5.2: LIFETIME = `minimumMinor` é o TOTAL (mínimo diário × `days`). Ausente = DAILY */
+  budgetType?: MetaBudgetType;
+  days?: number;
+}
 export interface MetaUnavailableDetails { reason: 'rate_limited' | 'down'; retryAfterSec: number }
 export type MetaInvalidStateReason = 'not_approved' | 'publish_in_progress' | 'sync_in_progress';
 

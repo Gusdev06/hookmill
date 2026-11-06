@@ -13,10 +13,13 @@ import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { AxisTag, Bar, Code, Cols, Dot, FORMAT_LABEL, FormatChip, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, Tag, TypeThumb, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
 import { PieceTextAlert, TextCheckChip, useStaticStage } from "./text-check"
-import { CaptionBlocked, CaptionNote, CleanVersionStatus, NewBatchButton } from "./captions"
+import { CaptionBlocked, CaptionNote, CleanVersionStatus, HeadlinePending, NewBatchButton } from "./captions"
 import { useCanMakeFormats, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
 import { SampleEyebrow, useSampleLocked } from "./sample"
+import { EdIcon } from "@/components/editor/ed-icon"
+import { EditedBadge } from "@/components/editor/entry"
+import { PieceEditState, universalEditorHref } from "@/components/editor/universal/entry"
 
 /**
  * Generate (spec §4.2): status per piece, grouped Stretch / New audience. A failed piece never stops the others.
@@ -56,7 +59,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
         main={
           <>
             <Head
-              eyebrow={locked ? <SampleEyebrow /> : settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
+              eyebrow={locked ? <SampleEyebrow pieces={batch.template ? total : undefined} /> : settled ? t("eyebrowDone", { name: batch.source.name }) : t("eyebrowStarted", { name: batch.source.name, ago: started })}
               title={allReady ? t("titleDone", { total }) : settled ? t("titleSettled", { ready: s.ready, total }) : t("titleRunning", { total, ready: s.ready })}
             />
             <CaptionsBadge batch={batch} />
@@ -86,6 +89,7 @@ export function GenerateScreen({ batch }: { batch: IterateBatch }) {
             <Group axis="DIVERSITY" pieces={batch.pieces.filter((p) => p.axis === "DIVERSITY")} batchId={batch.id} onPreview={setPreviewId} locked={locked} />
             {/* review 29/10 L4: after the launch the left-out formats are optional, so a quiet line below the groups, not amber up top */}
             <CaptionBlocked batch={batch} collapsed />
+            <HeadlinePending batch={batch} />
           </>
         }
         side={
@@ -157,6 +161,7 @@ function Group({ axis, pieces, batchId, onPreview, locked }: { axis: "ITERATION"
 function PieceRow({ p, batchId, onPreview, locked }: { p: IteratePiece; batchId: string; onPreview: (id: string) => void; locked: boolean }) {
   const t = useTranslations("iterate.generate")
   const ts = useTranslations("sample")
+  const te = useTranslations("editorU.card")
   const { retry, leaveOut, makeFormat } = usePieceActions(batchId)
   const canAct = useCanMakeFormats()
   const canMake = canAct && !!p.formats
@@ -208,6 +213,8 @@ function PieceRow({ p, batchId, onPreview, locked }: { p: IteratePiece; batchId:
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <Code>{p.code}</Code>
           {chip}
+          {p.editor?.edited ? <EditedBadge /> : null}
+          <PieceEditState editor={p.editor} />
           <TextCheckChip p={p} />
         </div>
         <PieceKind p={p} className="text-xs text-fg-3" />
@@ -249,9 +256,18 @@ function PieceRow({ p, batchId, onPreview, locked }: { p: IteratePiece; batchId:
         ) : locked && p.status === "ready" ? (
           <span className="text-xs text-fg-3">{ts("watchOnDownload")}</span>
         ) : p.status === "ready" || (p.previewReady && p.status !== "failed") || (running && isImagePiece(p)) ? (
-          <Button size="sm" onClick={() => onPreview(p.id)}>
-            {t("preview")}
-          </Button>
+          <>
+            <Button size="sm" onClick={() => onPreview(p.id)}>
+              {t("preview")}
+            </Button>
+            {/* editor-universal-v1 §2: the AUTO piece (frame / headline) opens in the universal editor once its 9:16 is ready */}
+            {p.editor?.available && p.creativeId ? (
+              <Link href={universalEditorHref(p.creativeId, "batch", batchId)} className={buttonVariants({ size: "sm" })}>
+                <EdIcon name="pencil" className="size-3.5" />
+                {te("edit")}
+              </Link>
+            ) : null}
+          </>
         ) : failed && canAct ? (
           <>
             {noRetry ? null : (

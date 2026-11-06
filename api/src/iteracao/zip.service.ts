@@ -17,7 +17,7 @@ import { AppException } from '../common/errors/app-exception';
 import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AmostraService } from '../amostra/amostra.service';
-import { ALL_FORMATS, autoFileName, latestByFormat, paramsOf, pieceStatus, suggestedPrimaryTextOf } from '../edicao/pecas';
+import { ALL_FORMATS, adNameWithEd, autoFileName, editedFromRenders, latestByFormat, paramsOf, pieceStatus, primaryFormatOf, servedRenders, suggestedPrimaryTextOf } from '../edicao/pecas';
 import { ZIP_TTL_MS, creditoDoBroll, folderFor, notaDoTemplate, readmeFor, zipFileName, zipFolders, zipKeyOf, type ZipLocale } from './zip';
 
 interface ZipEntry {
@@ -62,11 +62,14 @@ export class ZipService {
     for (const i of items) {
       const c = i.creative;
       if (!c?.adName) continue;
-      if (pieceStatus({ launched, leftOutAt: i.leftOutAt, creativeState: c.state, renders: c.renders }) !== 'ready') continue;
-      const latest = latestByFormat(c.renders);
+      // editor-universal-v1 §9.6: export do editor em curso/reprovado não conta (vai a peça anterior); D-E1-4: editada = -ED
+      const served = servedRenders(c.renders);
+      if (pieceStatus({ launched, leftOutAt: i.leftOutAt, creativeState: c.state, renders: served }) !== 'ready') continue;
+      const latest = latestByFormat(served);
+      const adName = adNameWithEd(c.adName, i.code, editedFromRenders(c.renders, primaryFormatOf(i.autoType, paramsOf(i.payload))));
       const files = ALL_FORMATS.flatMap((f) => {
         const r = latest.get(f);
-        return r?.status === 'READY' && r.file ? [{ name: autoFileName(c.adName!, f, r.file.mimeType), format: f, file: r.file }] : [];
+        return r?.status === 'READY' && r.file ? [{ name: autoFileName(adName, f, r.file.mimeType), format: f, file: r.file }] : [];
       });
       if (files.length) {
         out.push({

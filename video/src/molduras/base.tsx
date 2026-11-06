@@ -185,9 +185,17 @@ export const Principal: React.FC<{ p: MolduraProps; caixa: Rect; raio?: number; 
   const ci = interna(caixa, estilo);
   const cb = p.video.contentBox ?? null;
   const cheio = pinturaNaCaixa(ci, dim, r, cb).cheio;
+  // enquadramento manual do editor: o que a pessoa enquadrou é o que sai (sem push-in); caber = o próprio vídeo desfocado atrás
+  const manual = r.mode === 'manual';
+  const desfoque = r.mode === 'manual' && r.fit === 'contain_blur';
   return (
     <Caixa caixa={caixa} raio={raio} estilo={estilo} fundo={fundoDe(p, cheio)}>
-      <Zoom dim={dim} reframe={r} w={ci.w} h={ci.h} zoom={zoom} cb={cb}>
+      {desfoque ? trechos.map((t, i) => (
+        <Sequence key={`d${i}`} from={t.at} durationInFrames={t.frames} layout="none" name={`Fundo ${i + 1}`}>
+          <OffthreadVideo src={src} muted trimBefore={t.from || undefined} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(40px)', transform: 'scale(1.15)' }} />
+        </Sequence>
+      )) : null}
+      <Zoom dim={dim} reframe={r} w={ci.w} h={ci.h} zoom={manual ? 1 : zoom} cb={cb}>
         {trechos.map((t, i) => (
           <Sequence key={i} from={t.at} durationInFrames={t.frames} layout="none" name={`Trecho ${i + 1}`}>
             <Pintura

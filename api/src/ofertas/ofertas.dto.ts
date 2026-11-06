@@ -75,8 +75,8 @@ export class CreateOfferDto implements CreateOfferBody {
 }
 
 export class UpdateOfferDto implements UpdateOfferBody {
-  @IsOptional() @IsString() @MinLength(1) @MaxLength(120) name?: string;
-  @IsOptional() @IsString() @Matches(BCP47) @MaxLength(35) language?: string;
+  @ValidateIf((_, v) => v !== undefined) @IsString() @MinLength(1) @MaxLength(120) name?: string;
+  @ValidateIf((_, v) => v !== undefined) @IsString() @Matches(BCP47) @MaxLength(35) language?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUrl(URL_OPTS) @MaxLength(2000) sourceUrl?: string | null;
   @Brief() kind?: string | null;
   @Brief() what?: string | null;

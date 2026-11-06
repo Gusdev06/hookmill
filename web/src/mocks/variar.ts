@@ -34,7 +34,9 @@ export const ADLIB_KEY = "mock:adlib"
 /** §13.15 (Gusta, 08/10): "engine voice" is released on Seedance; on Kling it stays off (the voice changes between stretches). */
 const engineVoiceOn = (engine: SwapEngine) => engine === "SEEDANCE"
 export function adLibrary(): ChampionConfig["adLibrary"] {
-  const off = typeof window !== "undefined" && sessionStorage.getItem(ADLIB_KEY) === "off"
+  const v = typeof window !== "undefined" ? sessionStorage.getItem(ADLIB_KEY) : null
+  if (v === "hidden") return { available: false, reason: "not_configured", retryAfter: null }
+  const off = v === "off"
   return off ? { available: false, reason: "quota", retryAfter: "2026-10-19" } : { available: true, reason: null, retryAfter: null }
 }
 export function config(): ChampionConfig {
@@ -45,6 +47,8 @@ export function config(): ChampionConfig {
 export interface MUpload {
   id: string; filename: string; mimeType: string; sizeBytes: number; status: "PENDING" | "READY" | "FAILED" | "EXPIRED"
   expiresAt: number; sent: boolean; durationSec: number | null; width: number | null; height: number | null; warnings: UploadWarning[]
+  /** kit-marca-v1: BRAND_* uploads (absent = CHAMPION_VIDEO) */
+  purpose?: string
 }
 interface MStepJob {
   id: string; type: "CHAMPION_RESOLVE" | "CHAMPION_ANALYZE"; keys: string[]; t0: number; stepMs: number; startStep: number
@@ -123,7 +127,7 @@ export function save() {
 }
 
 // ───────────── uploads ─────────────
-export function newUpload(b: { filename: string; mimeType: string; sizeBytes: number }): MUpload {
+export function newUpload(b: { filename: string; mimeType: string; sizeBytes: number; purpose?: string }): MUpload {
   const u: MUpload = { id: mockId("up"), ...b, status: "PENDING", expiresAt: Date.now() + 30 * 60_000, sent: false, durationSec: null, width: null, height: null, warnings: [] }
   f2.uploads.push(u)
   save()

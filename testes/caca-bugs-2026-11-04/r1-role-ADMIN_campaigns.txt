@@ -1,0 +1,91 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 2 minutes ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Settings
+Q
+QA Admin Alfa
+Agency admin
+EN
+PT
+QA ALFA · META
+Campaigns
+Mock Store (USD)
+act_mock_1
+USD
+Synced with Meta 2 minutes ago
+History
+Sync now
+Campaigns
+Ads only
+Last 30 days
+Last 7 days
+All
+Active
+Paused
+Issues
+1
+All
+HM
+HookMill
+Search campaigns, ad sets, ads
+Status	Name	Budget	Spend
+	Link clicks	Cost / click	CTR	Hook rate	Verdict	
+Actions
+
+Total · 3 campaigns · Last 30 days		$1,755	77	$22.79	2.09%			
+
+	
+Mock — Prospecting (CBO)
+CAMPAIGN
+·
+2 ad sets
+·
+4 ads
+	
+CBO
+$50.00
+/day
+	$1,320	56	$23.57	2.16%	30.0%	
+3 winners
+1 tiring
+	
+
+
+	
+Mock — Testing (ABO)
+CAMPAIGN
+·
+3 ad sets
+·
+4 ads
+	Set per ad set	$370	14	$26.43	1.92%	32.1%	—	
+
+
+	
+Mock — Launch (lifetime)
+CAMPAIGN
+·
+1 ad set
+·
+2 ads
+	
+CBO
+$300.00
+lifetime
+	$65	7	$9.29	1.77%	16.1%	—	

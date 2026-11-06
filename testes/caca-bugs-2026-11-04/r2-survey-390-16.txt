@@ -1,0 +1,11 @@
+HM
+Sair
+CONFIGURAÇÃO EM ANDAMENTO
+QA Dono Alfa está configurando QA Alfa
+
+Você entra assim que a configuração terminar. Só admins da agência podem mudá-la.
+
+Q
+QA Alfa
+Passo 1 de 5 · Negócio
+100%

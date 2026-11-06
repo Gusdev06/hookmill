@@ -41,7 +41,7 @@ describe('MetaSyncService.tickSync com backoff', () => {
       metaConnection: { findMany: jest.fn().mockResolvedValue(conns), update: jest.fn() },
       job: { findFirst: jest.fn().mockResolvedValue(null) },
     };
-    const svc = new MetaSyncService(prisma as never, { metaSyncEveryHours: 6, metaMode: 'mock' } as never, {} as never, {} as never, {} as never);
+    const svc = new MetaSyncService(prisma as never, { metaSyncEveryHours: 6, metaMode: 'mock' } as never, {} as never, {} as never, {} as never, {} as never);
     const kick = jest.spyOn(svc, 'kick').mockResolvedValue({} as never);
     return { svc, kick };
   }

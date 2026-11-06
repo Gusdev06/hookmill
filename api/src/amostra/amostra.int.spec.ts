@@ -8,6 +8,9 @@ process.env.RENDER_IMPL = 'fake';
 process.env.BOOT_RECOVERY = 'off';
 process.env.UPLOAD_MODE = 'proxy';
 process.env.ITERATE_TEMPLATES = 'off'; // a amostra liga os templates grátis sozinha
+// QA 01/11: este spec cobre a amostra ANTIGA (lote de 4 peças pelo POST /iterate). Com TEMPLATES=on (api/.env local) a
+// conta SAMPLE recebe 402 sample_templates no quiz (templates-creditos-v1 §5); a amostra nova é coberta no templates-creditos.int.
+process.env.TEMPLATES = 'off';
 const PORT = 3197;
 process.env.PUBLIC_API_URL = `http://127.0.0.1:${PORT}`;
 

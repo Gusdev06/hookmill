@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect } from "react"
+import { createContext, useContext, useEffect } from "react"
 import { useFormatter, useTranslations } from "next-intl"
 import type { AutoInsight, AutoVariationType, IteratePiece, FileRef, FormatCode, FrameTemplateId, IterateBatch, PieceFormat, PieceFormatState, VariationAxis } from "@/lib/api/types"
-import { FlowBar } from "@/components/flow-bar"
+import { FlowBar, type FlowStep } from "@/components/flow-bar"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useSession } from "@/components/providers/session-provider"
 import { iterateHref } from "@/lib/routes"
@@ -102,9 +102,23 @@ export function Card({ children, className, ...rest }: React.ComponentProps<"sec
   )
 }
 
+/**
+ * templates-creditos-v1: a batch born from a template reuses the Generate/Download screens of Iterate; under this context
+ * their FlowBar becomes Template → Ad → Plan → Generate → Download and `note` (the credit line) shows right under it.
+ */
+export const TemplateFlowContext = createContext<{ hrefs: Partial<Record<FlowStep, string>>; note?: React.ReactNode } | null>(null)
+
 /** FlowBar of the 3 steps, current step from the batch phase (or the screen being viewed). */
 export function IterFlow({ current, running, batchId, done }: { current: "analyze" | "generate" | "download"; running?: boolean; batchId?: string; done?: "generate" | "download" }) {
   const { session } = useSession()
+  const tpl = useContext(TemplateFlowContext)
+  if (tpl)
+    return (
+      <>
+        <FlowBar flow="templates" current={current === "analyze" ? "plan" : current} running={running} client={session.workspace.name} hrefs={tpl.hrefs} exitHref="/templates" />
+        {tpl.note}
+      </>
+    )
   const hrefs = batchId
     ? { analyze: iterateHref(batchId, "analyze"), generate: iterateHref(batchId, "generate"), ...(done === "download" ? { download: iterateHref(batchId, "download") } : {}) }
     : {}
@@ -123,7 +137,7 @@ export function IterActionBar({ hint, children }: { hint: React.ReactNode; child
     }
   }, [])
   return (
-    <div className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-2.5 border-t border-line bg-card px-4 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] shadow-[0_-6px_24px_rgba(21,23,26,0.06)] tablet:sticky tablet:mt-1 tablet:rounded-lg tablet:border tablet:py-2.5 tablet:pr-2.5 tablet:pl-[18px]">
+    <div data-action-bar className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-2.5 border-t border-line bg-card px-4 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] shadow-[0_-6px_24px_rgba(21,23,26,0.06)] tablet:sticky tablet:mt-1 tablet:rounded-lg tablet:border tablet:py-2.5 tablet:pr-2.5 tablet:pl-[18px]">
       <span className="min-w-0 flex-[1_1_100%] text-[13px] text-fg-2 tablet:flex-[1_1_220px]">{hint}</span>
       {children ? (
         <div className="grid w-full auto-cols-auto grid-flow-col grid-cols-[auto_1fr] gap-2 has-[>:only-child]:grid-cols-1 tablet:flex tablet:w-auto tablet:flex-wrap [&>*]:w-full tablet:[&>*]:w-auto">

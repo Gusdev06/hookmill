@@ -63,7 +63,7 @@ describe('AuthService', () => {
       const payload = await jwt.verifyAsync(s.accessToken);
       expect(payload).toMatchObject({ sub: 'u1', wid: 'w1', role: 'OWNER' });
       expect(s.expiresIn).toBe(900);
-      expect(s.workspace).toEqual({ id: 'w1', name: 'WS', role: 'OWNER', status: 'SETUP', onboarding: { step: 1, percent: 0, completedAt: null }, tourCompletedAt: null });
+      expect(s.workspace).toEqual({ id: 'w1', name: 'WS', role: 'OWNER', status: 'SETUP', onboarding: { step: 1, percent: 0, completedAt: null, confirmed: [] }, tourCompletedAt: null });
       expect(s.user.accountMode).toBeNull();
       const saved = prisma.refreshToken.create.mock.calls[0][0].data;
       expect(saved.tokenHash).toBe(sha256(s.refreshToken));
@@ -190,7 +190,7 @@ describe('AuthService', () => {
         name: 'Mattress Company', shortCode: 'MC', onboardingStep: 1, onboardingCompletedAt: null, pausedAt: null, monthlySpendCapUsd: 10,
       });
       expect(prisma.membership.create.mock.calls[0][0].data).toEqual({ workspaceId: 'w9', userId: 'u9', role: 'OWNER' });
-      expect(s.workspace).toMatchObject({ id: 'w9', name: 'Mattress Company', role: 'OWNER', status: 'SETUP', onboarding: { step: 1, percent: 0, completedAt: null }, tourCompletedAt: null });
+      expect(s.workspace).toMatchObject({ id: 'w9', name: 'Mattress Company', role: 'OWNER', status: 'SETUP', onboarding: { step: 1, percent: 0, completedAt: null, confirmed: [] }, tourCompletedAt: null });
       expect(prisma.user.create.mock.calls[0][0].data.accountMode).toBeNull(); // conta nova nasce sem resposta (D2)
       expect(await jwt.verifyAsync(s.accessToken)).toMatchObject({ sub: 'u9', wid: 'w9', role: 'OWNER' });
     });

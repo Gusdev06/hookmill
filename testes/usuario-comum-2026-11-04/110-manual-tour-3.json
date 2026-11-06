@@ -1,0 +1,206 @@
+{
+  "step": 110,
+  "url": "http://localhost:3311/eddy",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nV\nVendo colchões online no Brasil, para adultos que acordam co\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n4\nComprar créditos\nConfigurações\nJ\nJoão Teste\nDono\nEN\nPT\nEddy\nEM BREVE\nO Eddy lê os resultados e diz o que fazer a seguir.\n\nNotas em linguagem simples sobre o que está cansando, o que falta e o que funciona, com propostas que você aprova. Precisa da conexão com a Meta, que ainda não existe.\n\nConceitos novos\nAbrir a Biblioteca\nPRÉVIA DO QUE VEM\nDADOS DE EXEMPLO · NÃO SÃO DE VENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\nCANSANDO\nSeu melhor anúncio foi de $19,40 pra $26,80 por compra conforme as pessoas o viram 3,4 vezes.\nFUNCIONA\nGanchos que abrem no problema custam 22% menos por compra do que os que abrem no produto.\nLACUNA\nNenhum anúncio fala com quem já tentou uma máscara barata e desistiu.\nTOUR · 3 DE 4\nO Eddy vai ler as suas campanhas\n\nEm breve você pergunta ao Eddy o que está cansando, o que escalar e o que iterar, pelos mesmos números da Home. Ainda não está no ar; aparece na barra lateral quando estiver.\n\nVoltar\nAvançar",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "V\nVendo colchões online no Brasil, para adultos que acordam co\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "J\nJoão Teste\nDono",
+      "label": "Conta",
+      "id": "radix-_r_h_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Abrir a Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Voltar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Avançar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

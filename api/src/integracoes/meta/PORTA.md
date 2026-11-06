@@ -25,7 +25,7 @@ const auth: MetaAuth = { accessToken: decifrar(conn.tokenCiphertext, process.env
 | `readAdAccount(auth, 'act_…')` | `PUT /meta/selection`, defaults | `MetaAdAccountInfo` (status+label, currency, timezone, business, canManage, hasFunding, minimumDailyBudgetMinor) | `META_PERMISSION` (conta fora do alcance) |
 | `health(auth, { adAccountId, pageId, pixelId, businessId, tokenExpiresAt, scopes, counts })` | `POST /meta/health` | `{ health: MetaHealth (8 checks), account, token }` | `META_TOKEN_INVALID`, `META_UNAVAILABLE` |
 | `syncAds(auth, { adAccountId, currency, businessType, hasPixel }, onProgress)` | job `META_SYNC` | `{ ads: MetaAdSnapshotDraft[], medianCpa, rule, listed, syncedAt }` (só vídeo; verdict/trend prontos) | idem |
-| `videoSource(auth, videoId)` | job `META_IMPORT` | `{ sourceUrl, permalinkUrl, lengthSec }` → `storage.ingestVideoWithThumbnail` | `META_VIDEO_UNAVAILABLE` (action `upload_video`) |
+| `videoSource(auth, videoId, ctx)` (`ctx.metaAdId` libera o upload original do criativo e a mídia do Instagram) | job `META_IMPORT` | `{ sourceUrl, permalinkUrl, lengthSec }` → `storage.ingestVideoWithThumbnail` | `META_VIDEO_UNAVAILABLE` (action `upload_video`) |
 | `rule()` | `MetaSummary.rule`, recálculo | `MetaWinnerRule` | — |
 | `uploadVideo(auth, input)` | `META_PUBLISH` 1 | `{ videoId }` | `META_VIDEO_REJECTED`, `META_PERMISSION`, `META_ERROR` |
 | `waitVideoReady(auth, input, ids, { timeoutMs?, onPoll? })` | 2 | void | `META_VIDEO_REJECTED`, `META_ERROR` (action `retry` no teto 10 min) |
@@ -98,3 +98,55 @@ Métodos novos **obrigatórios** na porta (o `?` saiu): `readObject`, `setDailyB
 | qualquer chamada em `mock_ad_img_1` / `mock_ad_img_2` | `META_UNAVAILABLE { reason: rate_limited }` / `META_TOKEN_INVALID` |
 | id fora da estrutura do escopo em `readObject`/`setDailyBudget` | `META_OBJECT_GONE` (id de publicação que o escopo não conhece, ex. de antes de reiniciar a API, segue aceito no `setStatus`) |
 `> 2×` e 21ª escrita/min são regras do backend (não há gatilho na integração).
+
+## meta-templates-v2 (I1/I2/I3, 03/11) — `docs/contratos/meta-templates-v2.md`
+**Nada validado na Graph de verdade** (P3 adiada pelo Gusta em 03/11): corpos, listas e campos de leitura só com fetch falso e mock. Riscos 1, 2 e 8 do §12 seguem abertos.
+
+### Porta (I1, `contrato.ts`)
+| método | rota | devolve | lança |
+|---|---|---|---|
+| `listInstagramAccounts(auth, { adAccountId, pageId })` | `GET /meta/instagram-accounts` | `MetaInstagramAccountsResponse` (PAGE primeiro, depois username; sem repetir id). `pageId` null = `no_page`; Meta negou a Página = `unavailable` | `META_TOKEN_INVALID` (só do token do usuário), `META_PERMISSION` (conta), `META_UNAVAILABLE`/`META_RATE_LIMITED` |
+| `listCustomAudiences(auth, { adAccountId })` | `GET /meta/custom-audiences` | `MetaCustomAudiencesResponse` (≤ 500, `updatedAt` desc, `truncated`) | idem |
+| `listLocales(auth)` | `GET /meta/locales` | `MetaLocalesResponse` (`name` asc, `locale=en_US`) | idem |
+- `MetaPublishStructure` ganhou (opcionais; ausente = corpo v1 idêntico, conferido por snapshot): `budgetType`, `lifetimeBudgetMinor`, `startTime`, `endTime` (ISO UTC), `optimizationGoal`, `locales`, `customAudienceIds`, `excludedCustomAudienceIds`, `instagramUserId`. A integração lê da `structure` e, se a chave não vier lá, do `settings` (os mesmos nomes do `MetaPublishSettings`). A `structure` ganha quando os dois vêm.
+- `MetaTemplateSourceRead` ganhou `campaign.buyingType`, `adset.destinationType`, `ad.creative.instagramUserId` e **`ad.creative.format`** (`VIDEO | LINK | ASSET_FEED | CAROUSEL | null`, a mais do contrato: é o que deixa o B1 pôr `asset_feed_spec`/`child_attachments` no `unsupported` do §7 sem reler o criativo cru).
+- `instagram_actor_id` não é lido nem escrito (saiu da referência; não é o mesmo id).
+
+### Live (I2)
+- `publicacao.ts`: `campaignBody`/`adSetBody(i, campaignId, now)`/`creativeBody` montam o §6. `optimizationForV2` (Awareness = `promoted_object { page_id }`, Engagement = `destination_type` ON_VIDEO/ON_POST; meta fora da tabela = `META_ERROR`). LIFETIME sem total ou sem fim = `META_ERROR` antes de chamar a Graph. `start_time` só se futuro (`now` do serviço); horários no formato `2026-11-10T14:00:00+0000`.
+- `META_BUDGET_TOO_LOW` com LIFETIME: `details = { minimumMinor: mínimo diário × dias, currency, budgetType: 'LIFETIME', days }`, dias = teto((fim − max(início, agora)) / 24 h). DAILY igual v1.
+- `templates.ts`: `TEMPLATE_FIELDS` + `buying_type`, `destination_type`, `creative{…instagram_user_id…}`. Se a v25 recusar algum (não sondado), o import cai em `META_ERROR (#100)`.
+- `listas.ts` (novo): Instagram = `act/instagram_accounts` (token do usuário) + `{page}?fields=access_token` → `{page}/instagram_accounts` com o token DA PÁGINA. Negado (`META_PERMISSION`/`META_ERROR`, ou 190 com o token da Página) = `unavailable`; 190 do token do usuário sobe. Públicos: `act/customaudiences` (campos do §2.6), `usable` = delivery < 300 e operation ≠ 471, tamanho −1 = null, `time_updated` (s) → ISO; cache 5 min por conta + hash do token (`LiveMetaService.listas`). Idiomas: `search?type=adlocale&q=&limit=1000&locale=en_US`, sem chave repetida, cache 24 h por versão da Graph; lista vazia não vai pro cache.
+
+### Mock (I3, `META_MODE=mock`) — fixtures exportados (`MOCK_IG_ACCOUNTS`, `MOCK_CUSTOM_AUDIENCES(_RAW)`, `MOCK_LOCALES`, `MOCK_GONE_IDS`) pro MSW copiar
+| onde | gatilho | efeito |
+|---|---|---|
+| `listInstagramAccounts` | `act_mock_1` (+ `page_mock`) | `ig_mock_page` @mock.page (PAGE) + `ig_mock_1` @hookmill.demo (AD_ACCOUNT), `ok`; sem Página = só `ig_mock_1`, `no_page` |
+| `listInstagramAccounts` | `act_mock_2` | `[]`, `unavailable` |
+| `listCustomAudiences` | — | `ca_mock_buyers` (WEBSITE 12–15 mil), `ca_mock_lal_1` (LOOKALIKE 1,2–1,4 M), `ca_mock_small` (usable false, "Audience too small"), `ca_mock_flagged` (usable false, operation 471); `truncated:false` |
+| `listLocales` | — | 8 fixos: 6 English (US) e 24 English (UK) confirmados; 1001, 9, 5, 16, 31, 23 ilustrativos |
+| envio | `ig_mock_gone` / `ca_mock_gone` no template | não aparecem nas listas (o backend responde 400 `notAvailable`) |
+| `createAdSet` | `[mock:meta-destination]` no `primaryText` | `META_ERROR` "destination_type not available for this account" |
+| `createAdSet` | LIFETIME com total < 500 × dias | `META_BUDGET_TOO_LOW { minimumMinor: total, currency, budgetType, days }` |
+| `readTemplateSource` | `mock_cmp_cbo` / `mock_adset_cbo_1` | públicos `ca_mock_lal_1` (incluir) e `ca_mock_buyers` (excluir), `locales [6]`, início −3 d e fim +4 d (→ 7 dias), `destinationType WEBSITE`; + `flexible_spec` (1 interesse) e `geo_locations.cities` (1 cidade) pro `unsupported` |
+| `readTemplateSource` | `mock_cmp_life` | campanha CBO total 30000; `mock_adset_life_1` com início −10 d e fim +20 d |
+| `readTemplateSource` | `mock_cmp_awareness` (novo) | OUTCOME_AWARENESS, CBO 3000/dia, `mock_adset_awareness_1` REACH, `mock_ad_awareness` com `instagramUserId: ig_mock_1` |
+- **A Awareness é SÓ pra importar** (`MOCK_IMPORT_ONLY`): `readTemplateSource` acha `mock_cmp_awareness`/`mock_adset_awareness_1`/`mock_ad_awareness` em qualquer nível, mas eles ficam fora do sync e da leitura ao vivo (as contagens 3 campanhas / 6 conjuntos / 10 anúncios dos specs do backend e do QA não mudam). Consequência: o import-picker da tela (que lista o snapshot) não mostra a Awareness; o Q1 importa pela API (`POST /meta/templates/import { level: 'campaign', id: 'mock_cmp_awareness' }`). `mock_adset_life_1` passa a ter `startTime`/`endTime` e `optimizationGoal LINK_CLICKS` no sync.
+- `createCampaign`/`createAdSet` gravam no escopo diário × total, meta e agendamento: o sync, a leitura ao vivo e o `setDailyBudget` (total = `META_BUDGET_NOT_EDITABLE`) refletem.
+
+## meta-oferta-v1 (B1/B2, 05/11) — `docs/contratos/meta-oferta-v1.md` §2
+### Porta (`contrato.ts`)
+- `MetaAdSnapshotDraft += destinationUrls: string[]; destinationSource: MetaDestinationSource | null; urlTags: string | null` (null = não lido, relido no próximo sync).
+- `MetaSyncInput += knownCreativeLinks?: Record<metaCreativeId, MetaKnownCreativeLink>`: cache montado pelo `sync.service` a partir dos snapshots atuais da mesma conexão/conta com `destinationSource != null`.
+
+### Live (`leitura.ts`)
+- `fillStoryVideoIds` saiu. No lugar, `readCreativeLinks`: **um** `GET /{creative_id}?fields=LINK_FIELDS` por criativo traz o link e o `video_id` juntos, **depois** dos insights (conta dentro de `reading_insights`), em ordem de gasto 30 d decrescente, `LINK_LOOKUP_MAX = 250`, `LINK_LOOKUP_PARALLEL = 5`, `retries: 0`. Falha num criativo = sem entrada (`destinationSource null`), não derruba o sync.
+- Entra no lookup: criativo fora do cache **e** criativo no cache que ainda precisa do `video_id` (sem `video_id` na listagem e `object_type` VIDEO/ausente). Motivo: o cache do contrato não guarda o `video_id`; sem relê-lo, o anúncio deixaria de ser vídeo. O custo é o mesmo de antes (o `fillStoryVideoIds` relia esses a cada sync). Pro arquiteto: pôr `videoId` no cache zera essas chamadas.
+- `linksOfCreative`: ordem `video_cta → story_link → template → asset_feed` (até 5 do asset_feed); sem link: `lead_form` (`lead_gen_form_id`), `messaging` (wa.me, api.whatsapp.com, m.me, messenger.com, ig.me ou CTA MESSAGE_PAGE/WHATSAPP_MESSAGE), `existing_post` (sem `object_story_spec` nem `asset_feed_spec`), `none`. URL > 2048 é ignorada; `url_tags` ≤ 1024.
+- Encurtadores (`SHORTENERS`, lista fechada do §2.3): `resolveShortener` faz `HEAD` com `redirect: 'manual'`, lê só o `Location`, para no 1º host fora da lista, ≤ 3 saltos, 3 s por salto, ≤ 50 por sync, só dos links novos. Falhou = guarda o link encurtado. `syncAds(..., opts.fetchImpl)` pra teste.
+
+### Sonda S1 (PENDENTE: precisa de sync real na conta do Gusta, autorizado só leitura; nada rodou contra a Meta)
+Conferir: (a) o `fields` com sub-seleção não reacende o code 1 no lookup individual; (b) `asset_feed_spec{link_urls{website_url}}` vem com o token do usuário; (c) `call_to_action.value.link` do vídeo = o link do Gerenciador. Se (a) falhar: pedir só `object_story_spec{link_data{link},video_data{video_id,call_to_action}}` e o `asset_feed_spec` numa 2ª chamada. Anotar o resultado aqui.
+
+### Mock (`MOCK_AD_LINKS`)
+Os casos do §3.7 com X = "Spy Gram" (`spygram.app/quiz` + Kiwify `Ab12`) e Y = "Zap Spy" (`zapspy.com.br`): `mock_ad_1` casa (UTM), `_2` prefixo, `_3` Kiwify Ab12, `_4` site estrangeiro, `_5` post existente, `_6` formulário, `_7` Kiwify de outro, `img_1` site de Y (`/promo`), `img_2` conversa, `novideo` só o domínio (`lp.spygram.app`). Publicados pelo HookMill = `none` (casam pela regra 3).

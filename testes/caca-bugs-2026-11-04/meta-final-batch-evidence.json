@@ -1,0 +1,126 @@
+[
+  {
+    "batch": [
+      {
+        "creative_id": "huntcreat2",
+        "status": "PAUSED",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "Hunt original",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 4000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "Hunt original",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "REUSE_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 4000,
+            "specialAdCategories": []
+          },
+          "overridden": []
+        }
+      },
+      {
+        "creative_id": "huntcreat3",
+        "status": "PAUSED",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "Hunt original",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 4000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "Hunt original",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "REUSE_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 4000,
+            "specialAdCategories": []
+          },
+          "overridden": []
+        }
+      }
+    ]
+  }
+]

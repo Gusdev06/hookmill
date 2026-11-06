@@ -7,6 +7,7 @@ const METHODS: (keyof MetaService)[] = [
   'buildAuthUrl', 'verifyState', 'exchangeCode', 'inspectToken', 'revoke', 'listOptions', 'readAdAccount', 'health', 'syncAds', 'videoSource',
   'uploadVideo', 'waitVideoReady', 'createCampaign', 'createAdSet', 'createAdCreative', 'createAd', 'setStatus', 'adsManagerUrl',
   'readObject', 'setDailyBudget', 'objectUrl', 'readTemplateSource',
+  'listInstagramAccounts', 'listCustomAudiences', 'listLocales',
 ];
 
 export function offMetaService(reason: 'off' | 'not_configured', missing: string[] = [], graphVersion = DEFAULT_GRAPH_VERSION): MetaService {

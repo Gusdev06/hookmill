@@ -5,14 +5,16 @@
 // Desde a leitura v2 (22/10) quem lê as páginas é o subpaginas.ts; aqui ficam só as regras de domínio/subdomínio.
 import { getDomain, getHostname } from 'tldts';
 
-/** Plataformas onde o domínio é de todo mundo: subdomínio de lá é da plataforma, não da oferta. */
-const PLATFORM_DOMAINS = new Set([
+/** Plataformas onde o domínio é de todo mundo: subdomínio de lá é da plataforma, não da oferta.
+ *  Exportado pro casamento anúncio → oferta (meta-oferta-v1 §3.1, api/src/meta/oferta-match.ts). */
+export const PLATFORM_DOMAINS = new Set([
   'hotmart.com', 'kiwify.com.br', 'kiwify.app', 'eduzz.com', 'monetizze.com.br', 'cakto.com.br', 'kirvano.com', 'perfectpay.com.br',
   'braip.com', 'ticto.com.br', 'greenn.com.br', 'yampi.com.br', 'clickbank.net', 'digistore24.com', 'gumroad.com', 'stripe.com',
   'lemonsqueezy.com', 'paddle.com', 'shopify.com', 'wordpress.com', 'wixsite.com', 'wix.com', 'squarespace.com', 'carrd.co',
   'systeme.io', 'clickfunnels.com', 'myclickfunnels.com', 'kajabi.com', 'teachable.com', 'thinkific.com', 'webflow.io', 'framer.website',
   'notion.site', 'linktr.ee', 'beacons.ai', 'google.com', 'sites.google.com', 'instagram.com', 'facebook.com', 'youtube.com', 'tiktok.com',
   'whatsapp.com', 'wa.me', 'apple.com', 'typeform.com', 'calendly.com', 'github.io', 'vercel.app', 'netlify.app', 'pages.dev',
+  'mycartpanda.com', // meta-oferta-v1 §3.2 (CartPanda, subdomínio por loja)
 ]);
 
 /** Infra, e-mail, ambientes internos e suporte/docs/vagas: não dizem nada da oferta. */

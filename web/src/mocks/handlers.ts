@@ -15,13 +15,17 @@ import {
 import { listScenario } from "./scenario"
 import { variarHandlers } from "./handlers-variar"
 import { iterateHandlers } from "./handlers-iterate"
+import { templateHandlers } from "./handlers-templates"
+import { researchHandlers } from "./research"
 import { mockAccess, mockSampleUsed, setMockAccess } from "./amostra"
 import { autoWaiting, touchAllIter } from "./iterate"
 import { editorAvailable, editorEntry, editorHandlers, reposition } from "./handlers-editor"
+import { editorUniversalHandlers } from "./handlers-editor-universal"
 import { metaHandlers } from "./handlers-meta"
 import { metaTemplateHandlers } from "./handlers-meta-templates"
 import { campaignHandlers } from "./campaigns"
 import { brainHandlers } from "./handlers-brain"
+import { brandKitHandlers } from "./handlers-brand-kit"
 import { metaFlag, newWs, onboardingPercent, onboardingSteps, type WsState } from "./v2"
 import { NEW_CLIENT_NAME } from "./auth"
 import { FACE_DESCRIPTION } from "./content"
@@ -140,6 +144,11 @@ function touchSetup(st: WsState | null) {
 }
 
 export const handlers = [
+  // Esta fatia é validada contra a API mock real; no preview MSW permanece explicitamente desligada.
+  http.get(u("/ai-variations/config"), () => ok({ enabled: false, available: false, reason: "disabled", mode: "mock", formats: [], variationsPerPlan: 3, producesMedia: false })),
+  http.get(u("/ai-variations"), () => ok([])),
+  http.get(u("/ai-variations/:id"), () => notFound()),
+  http.post(u("/ai-variations"), () => fail("PROVIDER_UNAVAILABLE", 503, "Semantic planner is disabled in this preview.")),
   http.all(u("/*"), ({ request }) => {
     const path = new URL(request.url).pathname
     if (path.includes("/auth/invites/")) return undefined
@@ -672,6 +681,12 @@ export const handlers = [
     const offers = [...new Map(base.map((i) => [i.offer.id, i.offer])).values()]
     return ok(items, { nextCursor: null, offers })
   }),
+  http.get(u("/creatives/:id/download"), ({ params }) => {
+    const item = db.library.find((x) => x.id === params.id)
+    if (!item) return notFound()
+    return ok({ url: item.video.url, fileName: `${item.adName ?? item.name}.mp4`, frozen: !!item.adName, sizeBytes: null, durationSec: item.durationSec, expiresAt: new Date(Date.now() + 3_600_000).toISOString() })
+  }),
+
   http.put(u("/library/:id/winner"), async ({ params, request }) => {
     const item = db.library.find((x) => x.id === params.id)
     if (!item) return notFound()
@@ -786,12 +801,18 @@ export const handlers = [
 
   // ───── feature 2 (api.md §18-20)
   ...variarHandlers,
+  // ───── kit-marca-v1
+  ...brandKitHandlers,
+  // editor universal v1 (F-U1): AUTO pieces first; anything else falls through to the scratch editor mock
+  ...editorUniversalHandlers,
   ...editorHandlers,
   // ───── variação automática (variacao-auto-v1 §5)
+  ...templateHandlers, // before Iterate: template batches answer here, the rest falls through
   ...iterateHandlers,
   // ───── meta-v1 + tour (onboarding-v2 §3.4)
   ...campaignHandlers,
   ...metaTemplateHandlers,
   ...metaHandlers,
   ...brainHandlers, // brain-3d-v1
+  ...researchHandlers, // ads-research-v1 (Ad Radar)
 ]

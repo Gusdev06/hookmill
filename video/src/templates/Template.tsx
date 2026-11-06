@@ -4,13 +4,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AbsoluteFill, continueRender, delayRender, type CalculateMetadataFunction } from 'remotion';
 import { carregarFontes, carregarFontesCJK } from '../fontes';
-import { TEMPLATE_FPS, TEMPLATE_H, TEMPLATE_W, type TemplateProps } from '../lib/templatesFormato';
+import { FORMATOS } from '../lib/formatos';
+import { TEMPLATE_FPS, type TemplateProps } from '../lib/templatesFormato';
 import { ChatDM } from './ChatDM';
+import { ListOverlay } from './ListOverlay';
 import { PersonMotion } from './PersonMotion';
 
 /** Todo texto que aparece (pra baixar os pedaços CJK certos). */
 export const textoDoTemplate = (p: TemplateProps): string => {
   const base = [p.brand.name, p.brand.handle, p.brand.initials];
+  if (p.templateId === 'versus' || p.templateId === 'value-stack') {
+    const l = p.props;
+    return [...base, l.heads?.bad ?? '', l.heads?.good ?? '', l.title ?? '', ...l.lines.map((x) => x.text)].join('');
+  }
   if (p.templateId === 'chat-dm') {
     const c = p.props;
     return [...base, c.hook.text, c.chrome.typing, c.chrome.inputPlaceholder, c.chrome.profileStatus, ...c.messages.flatMap((m) => [m.text, ...m.wrong, ...m.right]),
@@ -38,12 +44,16 @@ export const Template: React.FC<TemplateProps> = (p) => {
   const c = { brand: p.brand, language: p.language, sfx: p.sfx };
   return (
     <AbsoluteFill style={{ background: '#000' }}>
-      {pronto ? (p.templateId === 'chat-dm' ? <ChatDM p={p.props} c={c} /> : <PersonMotion p={p.props} c={c} />) : null}
+      {!pronto ? null
+        : p.templateId === 'chat-dm' ? <ChatDM p={p.props} c={c} />
+        : p.templateId === 'person-motion' ? <PersonMotion p={p.props} c={c} />
+        : <ListOverlay {...p.props} language={p.language} />}
     </AbsoluteFill>
   );
 };
 
-/** Duração calculada pelo builder (`durationInFrames`), 1080x1920, 30 fps (só 9:16 na v1). */
+/** Duração calculada pelo builder (`durationInFrames`), 30 fps. chat-dm/person-motion: só 9:16; versus/value-stack: o
+ *  `format` (1080×1920 / 1080×1350 / 1080×1080, templates-lista-v1 §3.1). */
 export const calcularTemplate: CalculateMetadataFunction<TemplateProps> = async ({ props }) => ({
-  durationInFrames: props.durationInFrames, fps: TEMPLATE_FPS, width: TEMPLATE_W, height: TEMPLATE_H,
+  durationInFrames: props.durationInFrames, fps: TEMPLATE_FPS, width: FORMATOS[props.format].width, height: FORMATOS[props.format].height,
 });

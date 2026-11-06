@@ -1,0 +1,287 @@
+ M .gitignore
+ M api/.env.example
+ M api/package.json
+ M api/prisma/schema.prisma
+ M api/src/amostra/acesso.spec.ts
+ M api/src/amostra/acesso.ts
+ M api/src/amostra/amostra.int.spec.ts
+ M api/src/amostra/amostra.service.ts
+ M api/src/app.int.spec.ts
+ M api/src/app.module.ts
+ M api/src/arquivos/storage.service.ts
+ M api/src/auth/auth.service.spec.ts
+ M api/src/auth/auth.service.ts
+ M api/src/auth/dto/auth.dto.ts
+ M api/src/auth/signup.int.spec.ts
+ M api/src/b2-fluxo.int.spec.ts
+ M api/src/brain/brain.cache.ts
+ M api/src/brain/brain.int.spec.ts
+ M api/src/brain/brain.module.ts
+ M api/src/brain/brain.montagem.spec.ts
+ M api/src/brain/brain.montagem.ts
+ M api/src/brain/brain.service.ts
+ M api/src/campeoes/analise.service.ts
+ M api/src/campeoes/campeoes.int.spec.ts
+ M api/src/campeoes/campeoes.module.ts
+ M api/src/campeoes/legenda-caixa.spec.ts
+ M api/src/common/errors/error-codes.ts
+ M api/src/common/util/format.ts
+ M api/src/edicao/edicao.service.ts
+ M api/src/edicao/pecas.service.ts
+ M api/src/integracoes/auto-plano.spec.ts
+ M api/src/integracoes/claude/auto-plano.ts
+ M api/src/integracoes/claude/claude.service.ts
+ M api/src/integracoes/claude/cor-marca.ts
+ M api/src/integracoes/claude/leitura.ts
+ M api/src/integracoes/claude/pagina.ts
+ M api/src/integracoes/claude/render-pagina.ts
+ M api/src/integracoes/contrato.ts
+ M api/src/integracoes/integracoes.module.ts
+ M api/src/integracoes/meta/PORTA.md
+ M api/src/integracoes/meta/live.service.ts
+ M api/src/integracoes/meta/live.spec.ts
+ M api/src/integracoes/meta/mock.service.ts
+ M api/src/integracoes/meta/mock.spec.ts
+ M api/src/integracoes/meta/modo.ts
+ M api/src/integracoes/meta/off.service.ts
+ M api/src/integracoes/meta/publicacao.ts
+ M api/src/integracoes/meta/templates.ts
+ M api/src/integracoes/mock/fake-auto-plan.ts
+ M api/src/integracoes/mock/fake-claude.service.ts
+ M api/src/iteracao/contexto.ts
+ M api/src/iteracao/iteracao.controller.ts
+ M api/src/iteracao/iteracao.dto.ts
+ M api/src/iteracao/iteracao.int.spec.ts
+ M api/src/iteracao/iteracao.module.ts
+ M api/src/iteracao/iteracao.service.ts
+ M api/src/iteracao/iteracao.views.ts
+ M api/src/iteracao/plano-auto.service.ts
+ M api/src/iteracao/regras.ts
+ M api/src/jest.setup-env.ts
+ M api/src/medicao/camadas.ts
+ M api/src/medicao/celulas.ts
+ M api/src/medicao/contrato.ts
+ M api/src/medicao/ffmpeg.ts
+ M api/src/medicao/layout.ts
+ M api/src/medicao/media-analysis.service.ts
+ M api/src/medicao/painel.ts
+ M api/src/medicao/rostos.ts
+ M api/src/meta-templates.int.spec.ts
+ M api/src/meta.int.spec.ts
+ M api/src/meta/campanhas.service.ts
+ M api/src/meta/conexao.service.ts
+ M api/src/meta/meta.controller.ts
+ M api/src/meta/meta.dto.ts
+ M api/src/meta/meta.module.ts
+ M api/src/meta/publicacao.service.ts
+ M api/src/meta/regras.spec.ts
+ M api/src/meta/sync.service.ts
+ M api/src/meta/templates.service.ts
+ M api/src/meta/templates.ts
+ M api/src/ofertas/ofertas.dto.ts
+ M api/src/ofertas/ofertas.extract.spec.ts
+ M api/src/ofertas/ofertas.module.ts
+ M api/src/ofertas/ofertas.service.ts
+ M api/src/onboarding-v2.int.spec.ts
+ M api/src/render/auto-edit.ts
+ M api/src/render/frame.ts
+ M api/src/render/template.ts
+ M api/src/uploads/uploads.dto.ts
+ M api/src/uploads/uploads.service.ts
+ M api/src/workspaces/dto/workspaces.dto.ts
+ M api/src/workspaces/onboarding.spec.ts
+ M api/src/workspaces/onboarding.ts
+ M api/src/workspaces/workspaces.module.ts
+ M api/src/workspaces/workspaces.service.ts
+ M contratos/src/agencia.ts
+ M contratos/src/amostra.ts
+ M contratos/src/brain.ts
+ M contratos/src/campanhas.ts
+ M contratos/src/index.ts
+ M contratos/src/iteracao.ts
+ M contratos/src/meta-templates.ts
+ M contratos/src/meta.ts
+ M contratos/src/onboarding-v2.ts
+ M docs/contratos/amostra-gratis-v1.md
+ M docs/contratos/api.md
+ M docs/contratos/brain-3d-v1.md
+ M docs/contratos/modelo-de-dados.md
+ M docs/contratos/onboarding-v2.md
+ M docs/deploy.md
+ M docs/infra/README.md
+ M docs/integracoes.md
+ M package-lock.json
+ M package.json
+ M testes/harness/db.ts
+ M testes/harness/env.ts
+ M testes/playwright.config.ts
+ M video/src/AutoEdit.tsx
+ M video/src/lib/autoEdit.ts
+ M video/src/lib/index.ts
+ M video/src/lib/molduras.ts
+ M video/src/lib/templatesFormato.ts
+ M video/src/molduras/duas-fontes.tsx
+ M video/src/molduras/um-video.tsx
+ M video/src/templates/ChatDM.tsx
+ M video/src/templates/PersonMotion.tsx
+ M video/src/templates/comum.tsx
+ M web/.env.example
+ M web/messages/en.json
+ M web/messages/pt-BR.json
+ M web/package.json
+ M web/src/app/(app)/brain/page.tsx
+ M web/src/app/(app)/library/page.tsx
+ M web/src/app/(app)/onboarding/[step]/page.tsx
+ M web/src/app/(app)/onboarding/saved/page.tsx
+ M web/src/app/(app)/page.tsx
+ M web/src/app/(app)/settings/page.tsx
+ M web/src/app/(app)/shell.tsx
+ M web/src/app/globals.css
+ M web/src/app/invite/[token]/invite-form.tsx
+ M web/src/app/signup/signup-form.tsx
+ M web/src/components/brain/brain-drawer.tsx
+ M web/src/components/brain/brain-globe.tsx
+ M web/src/components/brain/brain-knows.tsx
+ M web/src/components/brain/brain-list.tsx
+ M web/src/components/brain/brain-screen.tsx
+ M web/src/components/brief-form.tsx
+ M web/src/components/campaigns/cards.tsx
+ M web/src/components/campaigns/cells.tsx
+ M web/src/components/flow-bar.tsx
+ M web/src/components/iterate/batch-screen.tsx
+ M web/src/components/iterate/new-screen.tsx
+ M web/src/components/iterate/parts.tsx
+ M web/src/components/landing/landing.css
+ M web/src/components/landing/landing.tsx
+ M web/src/components/meta/publish/publish-screen.tsx
+ M web/src/components/meta/templates/batch-send.tsx
+ M web/src/components/meta/templates/send-template.tsx
+ D web/src/components/meta/templates/template-dialog.tsx
+ M web/src/components/meta/templates/templates-screen.tsx
+ M web/src/components/offer-extract.tsx
+ M web/src/components/onboarding/business-step.tsx
+ M web/src/components/onboarding/goals-brain-steps.tsx
+ M web/src/components/onboarding/offer-steps.tsx
+ M web/src/components/onboarding/setup-in-progress.tsx
+ M web/src/components/onboarding/shared.tsx
+ M web/src/components/shell/sidebar.tsx
+ M web/src/components/tour/tour-provider.tsx
+ M web/src/hooks/use-meta-templates.ts
+ M web/src/lib/api/client.ts
+ M web/src/lib/brain-graph.ts
+ M web/src/lib/routes.ts
+ M web/src/mocks/auth.ts
+ M web/src/mocks/handlers-brain.ts
+ M web/src/mocks/handlers-iterate.ts
+ M web/src/mocks/handlers-meta-templates.ts
+ M web/src/mocks/handlers-meta.ts
+ M web/src/mocks/handlers-variar.ts
+ M web/src/mocks/handlers.ts
+ M web/src/mocks/scenario.ts
+ M web/src/mocks/variar.ts
+ M web/src/proxy.ts
+?? api/prisma/migrations/20261031000100_kit_marca/
+?? api/prisma/migrations/20261031000200_templates_creditos/
+?? api/prisma/migrations/20261031000300_onboarding_confirmed/
+?? api/prisma/migrations/20261101000100_templates_cold_open_endcard/
+?? api/prisma/migrations/20261104000100_templates_selection/
+?? api/prisma/migrations/20261104000200_meta_publication_template_snapshot/
+?? api/src/brain/brain.lotes.spec.ts
+?? api/src/brand-kit/
+?? api/src/campeoes/leitura-lambda.int.spec.ts
+?? api/src/common/util/format.spec.ts
+?? api/src/creditos/
+?? api/src/integracoes/claude/logo-marca.spec.ts
+?? api/src/integracoes/claude/logo-marca.ts
+?? api/src/integracoes/meta/listas.ts
+?? api/src/integracoes/meta/templates-v2.spec.ts
+?? api/src/integracoes/sondas/sonda-plano-a6.ts
+?? api/src/iteracao/lista.service.ts
+?? api/src/iteracao/lote-etapa.spec.ts
+?? api/src/iteracao/lote-etapa.ts
+?? api/src/iteracao/templates-lote.spec.ts
+?? api/src/iteracao/templates-lote.ts
+?? api/src/lacunas-home-eddy.int.spec.ts
+?? api/src/medicao/leitura/
+?? api/src/meta-override.int.spec.ts
+?? api/src/meta/listas.service.ts
+?? api/src/meta/templates.spec.ts
+?? api/src/render/logo.spec.ts
+?? api/src/render/logo.ts
+?? api/src/templates/
+?? contratos/src/brand-kit.ts
+?? contratos/src/research.ts
+?? contratos/src/templates.ts
+?? design/ads-research-2026-11-04.md
+?? design/brand-2026-10-31.md
+?? design/hero-motion-2026-11-04.md
+?? design/home-v2-2026-10-31.md
+?? design/landing-v2-2026-10-31.md
+?? design/mockup-ads-research.html
+?? design/mockup-brand.html
+?? design/mockup-home-v2.html
+?? design/mockup-landing-v2.html
+?? design/mockup-onboarding-eddy.html
+?? design/mockup-template-campanha.html
+?? design/mockup-templates.html
+?? design/mockup-tour-v2.html
+?? design/onboarding-eddy-2026-10-31.md
+?? design/template-campanha-2026-11-02.md
+?? design/templates-biblioteca-2026-10-31.md
+?? design/tour-v2-2026-11-04.md
+?? docs/backlog.md
+?? docs/contratos/ads-research-v1.md
+?? docs/contratos/brain-preenchido-v1.md
+?? docs/contratos/kit-marca-v1.md
+?? docs/contratos/lacunas-home-eddy-v1.md
+?? docs/contratos/leitura-lambda-v1.md
+?? docs/contratos/meta-oferta-v1.md
+?? docs/contratos/meta-templates-v2.md
+?? docs/contratos/templates-creditos-v1.md
+?? docs/contratos/templates-multi-v1.md
+?? reports/remover-legenda-ia-2026-10-28.md
+?? scripts/https-proxy.mjs
+?? scripts/leitura-lambda.mjs
+?? testes/caca-bugs-2026-11-04.md
+?? testes/caca-bugs-2026-11-04/
+?? testes/harness/api-qa-espiao.cjs
+?? testes/playwright.qa0111.config.ts
+?? testes/playwright.qa0311.config.ts
+?? testes/qa-31-10-templates-home-shell-2026-11-01.md
+?? testes/qa-template-campanha-v2-2026-11-03.md
+?? testes/specs/qa-0111-api/
+?? testes/specs/qa-0111/
+?? testes/specs/qa-0311-api/
+?? testes/specs/qa-0311/
+?? video/public/fixtures/logo-kit/
+?? video/public/prototipos/
+?? video/scripts/logo-kit.mjs
+?? video/scripts/prototipo-formatos.mjs
+?? video/src/componentes/LogoMarca.tsx
+?? video/src/lib/logo.ts
+?? video/src/prototipos/formatos/
+?? web/public/landing/
+?? web/src/app/(app)/creatives/page.tsx
+?? web/src/app/(app)/credits/
+?? web/src/app/(app)/templates/
+?? web/src/app/(editor)/
+?? web/src/components/brand/
+?? web/src/components/home/
+?? web/src/components/landing/ask-quiz.tsx
+?? web/src/components/landing/collage.tsx
+?? web/src/components/landing/config.ts
+?? web/src/components/landing/flow.tsx
+?? web/src/components/landing/landing-motion.tsx
+?? web/src/components/landing/words.tsx
+?? web/src/components/meta/templates/editor-levels.tsx
+?? web/src/components/meta/templates/editor-model.ts
+?? web/src/components/meta/templates/editor-parts.tsx
+?? web/src/components/meta/templates/template-editor.tsx
+?? web/src/components/onboarding/eddy/
+?? web/src/components/templates/
+?? web/src/hooks/use-templates.ts
+?? web/src/lib/api/meta-template-lists.ts
+?? web/src/lib/flags.ts
+?? web/src/lib/scroll.ts
+?? web/src/mocks/handlers-brand-kit.ts
+?? web/src/mocks/handlers-templates.ts

@@ -1,0 +1,15 @@
+HM
+Sair
+SALVO
+A configuração de QA Alfa ficou salva no passo 1
+
+Retome quando quiser. No próximo login você cai direto aqui.
+
+Q
+QA Alfa
+Seu espaço · 100% configurado
+Configuração
+Próximo: Negócio
+Continuar configuração
+
+A configuração leva uns 10 minutos no total. O app abre quando ela termina.

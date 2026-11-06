@@ -1,0 +1,116 @@
+{
+ "02-mesmas": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.58,
+  "fora_caixa_no_trecho_pior": 0.72,
+  "fora_do_trecho_media": 0.54,
+  "fora_do_trecho_pior": 0.73
+ },
+ "02-novo": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.58,
+  "fora_caixa_no_trecho_pior": 0.72,
+  "fora_do_trecho_media": 0.54,
+  "fora_do_trecho_pior": 0.73
+ },
+ "02-longa": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.6,
+  "fora_caixa_no_trecho_pior": 0.74,
+  "fora_do_trecho_media": 0.54,
+  "fora_do_trecho_pior": 0.73
+ },
+ "06-mesmas": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.52,
+  "fora_caixa_no_trecho_pior": 0.65,
+  "fora_do_trecho_media": 0.06,
+  "fora_do_trecho_pior": 0.09
+ },
+ "06-novo": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.52,
+  "fora_caixa_no_trecho_pior": 0.65,
+  "fora_do_trecho_media": 0.06,
+  "fora_do_trecho_pior": 0.09
+ },
+ "06-curta": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.52,
+  "fora_caixa_no_trecho_pior": 0.65,
+  "fora_do_trecho_media": 0.06,
+  "fora_do_trecho_pior": 0.09
+ },
+ "05-mesmas": {
+  "dif_quadros": 3,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.77,
+  "fora_caixa_no_trecho_pior": 1.02,
+  "fora_do_trecho_media": 0.83,
+  "fora_do_trecho_pior": 1.12
+ },
+ "05-novo": {
+  "dif_quadros": 3,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.77,
+  "fora_caixa_no_trecho_pior": 1.02,
+  "fora_do_trecho_media": 0.83,
+  "fora_do_trecho_pior": 1.12
+ },
+ "05-longa": {
+  "dif_quadros": 3,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.77,
+  "fora_caixa_no_trecho_pior": 1.02,
+  "fora_do_trecho_media": 0.83,
+  "fora_do_trecho_pior": 1.12
+ },
+ "02-novo-porquadro": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.83,
+  "fora_caixa_no_trecho_pior": 1.01,
+  "fora_do_trecho_media": 0.77,
+  "fora_do_trecho_pior": 0.95
+ },
+ "05-mesmas-montserrat-500": {
+  "dif_quadros": 3,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.77,
+  "fora_caixa_no_trecho_pior": 1.02,
+  "fora_do_trecho_media": 0.83,
+  "fora_do_trecho_pior": 1.12
+ },
+ "05-mesmas-dm-sans-400": {
+  "dif_quadros": 3,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.77,
+  "fora_caixa_no_trecho_pior": 1.02,
+  "fora_do_trecho_media": 0.83,
+  "fora_do_trecho_pior": 1.12
+ },
+ "02-mesmas-montserrat-500": {
+  "dif_quadros": 1,
+  "audio_igual": true,
+  "fora_caixa_no_trecho_media": 0.58,
+  "fora_caixa_no_trecho_pior": 0.72,
+  "fora_do_trecho_media": 0.54,
+  "fora_do_trecho_pior": 0.73
+ },
+ "02_parada_x_porquadro": {
+  "media": 3.84,
+  "pior_quadro": 8.25,
+  "p99": 16.3,
+  "movimento_entre_quadros": {
+   "original": 0.08,
+   "porquadro": 0.09,
+   "parada": 0.01
+  }
+ }
+}

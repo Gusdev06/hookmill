@@ -38,6 +38,11 @@ import { ZipModule } from './iteracao/zip.module';
 import { MetaModule } from './meta/meta.module';
 import { BrainModule } from './brain/brain.module';
 import { AmostraModule } from './amostra/amostra.module';
+import { BrandKitModule } from './brand-kit/brand-kit.module';
+import { CreditosModule } from './creditos/creditos.module';
+import { TemplatesModule } from './templates/templates.module';
+import { VariacaoIaModule } from './variacao-ia/variacao-ia.module';
+import { ResearchModule } from './research/research.module';
 
 @Module({
   imports: [
@@ -56,6 +61,7 @@ import { AmostraModule } from './amostra/amostra.module';
     WorkspacesModule,
     ArquivosModule,
     AmostraModule, // amostra-gratis-v1 (global)
+    CreditosModule, // templates-creditos-v1 (global): saldo, livro-razão, reserva/estorno
     JobsModule,
     EventosModule,
     SaudeModule,
@@ -84,6 +90,10 @@ import { AmostraModule } from './amostra/amostra.module';
     MetaModule,
     IteracaoModule, // B1: o lote (POST /iterate, análise sozinha, plano, start)
     BrainModule, // brain-3d-v1 (22/10): GET /brain/graph e /brain/node/:id, só leitura
+    BrandKitModule, // kit-marca-v1 (31/10): GET /brand-kit e /brand-kit/assets
+    TemplatesModule, // templates-creditos-v1 (31/10): galeria, usar template, admin do catálogo
+    VariacaoIaModule, // planejamento semântico: hipóteses + roteiros, sem geração de mídia
+    ResearchModule, // ads-research-v1 (04/11): Ad Radar (/research/*), descoberta de concorrentes, coletas da Ad Library
   ],
   providers: [
     // Ordem importa: auth primeiro (preenche req.auth), throttle depois (conta por workspace).

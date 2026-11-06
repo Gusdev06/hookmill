@@ -1,0 +1,41 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 2 minutes ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Settings
+Q
+QA Admin Alfa
+Agency admin
+EN
+PT
+Settings
+›
+Meta
+›
+Publish templates
+Publish templates
+Mock Store (USD) (act_mock_1)
+Import from a campaign
+New template
+
+Set once how HookMill creates campaigns, ad sets and ads in your account. Every "Send to Meta" uses the default template unless you pick another one.
+
+Hunt Sales
+Default
+Edit
+Campaign "Hunt — {offer}" · Sales · CBO $40.00/day · Purchase · US 18–65 · Advantage+ audience · auto placements · 4–8 ads

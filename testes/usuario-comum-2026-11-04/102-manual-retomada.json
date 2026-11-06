@@ -1,0 +1,10 @@
+{
+  "step": 102,
+  "url": "http://localhost:3311/onboarding/business",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM",
+  "controls": []
+}

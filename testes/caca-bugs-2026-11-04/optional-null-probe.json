@@ -1,0 +1,57 @@
+[
+  {
+    "path": "/offers/cmw1lzn97000f226yzski1cc8",
+    "field": "name",
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/offers/cmw1lzn97000f226yzski1cc8",
+    "field": "language",
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "nameEn",
+    "status": 200
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "namePt",
+    "status": 200
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "status",
+    "status": 200
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "order",
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "beta",
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  }
+]

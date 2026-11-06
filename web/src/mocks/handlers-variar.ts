@@ -10,6 +10,7 @@ import type {
 } from "@/lib/api/types"
 import { db, save as saveDb, toRow, VOICES } from "./db"
 import { listScenario } from "./scenario"
+import { brandUploadComplete, brandUploadCreate, isBrandPurpose } from "./handlers-brand-kit"
 import { cleanMismatch,
   adLibrary, advanceBatch, advanceChampion, batchView, castingView, championDetail, championRow, config, COUNT_RANGE, estimateOf, f2, itemView, keepBlob, keepEditOf,
   FACE_UNIT_USD, launch, LIMITS, missingFor, newBatch, newChampion, newFaceRound, newUpload, probe, regenerateItem, save, startAnalysis, swapSettingsError, uploadFile, uploadTarget,
@@ -75,6 +76,7 @@ export const variarHandlers = [
   // ───── §18 uploads
   http.post(u("/uploads"), async ({ request }) => {
     const b = await body<CreateUploadBody>(request)
+    if (isBrandPurpose(b.purpose)) return brandUploadCreate(request, b) // kit-marca-v1
     if (b.purpose !== "CHAMPION_VIDEO" || !b.filename || !Number.isFinite(b.sizeBytes)) return validation("purpose", "isEnum")
     if (!LIMITS.mimeTypes.includes(b.mimeType)) return fail("MEDIA_INVALID", 422, "Only MP4 or MOV.", { reason: "mime" })
     if (b.sizeBytes > LIMITS.maxBytes) return fail("MEDIA_TOO_LARGE", 422, "The file is larger than 200 MB.", { maxBytes: LIMITS.maxBytes })
@@ -97,6 +99,7 @@ export const variarHandlers = [
     if (!up) return notFound()
     if (Date.now() > up.expiresAt || up.filename.includes("mock-expired")) { up.status = "EXPIRED"; save(); return fail("UPLOAD_EXPIRED", 410, "The upload link expired. Start the upload again.") }
     if (!up.sent) return fail("UPLOAD_INCOMPLETE", 409, "The file hasn't arrived.", { expectedBytes: up.sizeBytes, actualBytes: null })
+    if (up.purpose && isBrandPurpose(up.purpose)) return brandUploadComplete(up) // kit-marca-v1
     const name = up.filename
     const probed = await probe(up.id)
     await delay(400)

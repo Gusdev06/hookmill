@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-04",
+  "operations": [
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/raw/2026-11-04-pesquisa-variacoes-ia.md",
+      "action": "create",
+      "beforeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSha256": "7d82f077eef1bd2447e30a7b80971ef7255b62e501865e711a771ebb7cc3b5bc"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/wiki/fontes/fonte-pesquisa-variacoes-ia-2026-11-04.md",
+      "action": "create",
+      "beforeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSha256": "0b89ad82efaa6b25123fe7e0fddc94e1242089000221924a31f83b5e16adea7d"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/wiki/conceitos/variacao-semantica-de-criativos.md",
+      "action": "create",
+      "beforeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSha256": "e7a5655c276ba42eadcd3aa6755001256cbb513927192deef0452adfda60ae37"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/wiki/tecnicas/transpor-talking-head-para-podcast.md",
+      "action": "create",
+      "beforeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSha256": "7953fd9269660aee4b432bbeafe3cfac40323f70dad83664e41746c18fde27bf"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/decisions/2026-11-04-variacao-ia-escopo-de-pesquisa.md",
+      "action": "create",
+      "beforeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSha256": "9047561bd3344c99b08af0ec34ce4b1c46175e34297d9db91a44caca593378c2"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/wiki/tecnicas/eixos-de-variacao-de-criativo.md",
+      "action": "append",
+      "beforeSha256": "d306283c15825de7e856d52ec1d1126bc05067fc9eb2c19c78514ecd18778d31",
+      "afterSha256": "fd24a7d77d32d334d9ce3e4f53aa035ad56ec085eb0c9464d645eb8f181380b4"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/wiki/tecnicas/variar-uma-alavanca-por-vez.md",
+      "action": "append",
+      "beforeSha256": "c3d1d5a6359fea564195ae969e4274b210b71d3fed2530261417757654686312",
+      "afterSha256": "b18ed1ed9c0028500b222ac582fae9b782990834fd1a7c800ad00bf31c602453"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/wiki/conceitos/gasto-do-gerenciador-como-proxy-de-performance.md",
+      "action": "append",
+      "beforeSha256": "e2f3143fe5fbdbc5e0e1bb709b2a64248a51467d1e12d4df08544111b235f1cb",
+      "afterSha256": "54cf62ce1b3df742335a9def1b21b353a5961c7ea07984035b9d12fa2cd113a2"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/index.md",
+      "action": "append",
+      "beforeSha256": "5aa97ad42556bbcc84fa69697356870b1711019c9d0802666b9d6db4f49aeb27",
+      "afterSha256": "716881f01aec1f3550a384ae778091f12eb2f613b0ce587265c72598f1712adb"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/wiki/trafego-criativos/log.md",
+      "action": "append",
+      "beforeSha256": "45c4d9560f261d09ee5e280ee7a3a5452fa5ff492371a6012184300b1f26f931",
+      "afterSha256": "7b40a6c844cb4a478cc57899ddca3cd75a1b450393f169737bc737151ca8e424"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/STATUS.md",
+      "action": "append",
+      "beforeSha256": "eff000ea500e7a05925395fd4af008c3e8c2b51a947c6e235d8b0c22222771a3",
+      "afterSha256": "6dc6edd931d0e1e98124fc20a64e3bde4862b3deea8ae80205a6501b58d7fd0d"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/decisions/log.md",
+      "action": "append",
+      "beforeSha256": "f530279e4e4dd4e3336503e2c6ca6d901c979ffccab65b075fd62fbd520351b6",
+      "afterSha256": "1bc41200f3363618827e041326a3a960a6ee3a6a12c42a5e025a4b7a4748c42f"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/archives/marketing-workspace/brain/daily/2026-11-04.md",
+      "action": "append",
+      "beforeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSha256": "1cd0b98487f14bbe4313cc0071df1bbd6bd0b457444290d5dc711c463a29102b"
+    },
+    {
+      "path": "/Users/gustagoat/Documents/AIS-OS/archives/marketing-workspace/brain/MOC.md",
+      "action": "append",
+      "beforeSha256": "8f192bf40238f9eb9c371c90e0e17dc6f20d97f898a5e7f594142efa966eca71",
+      "afterSha256": "dc10fefc8dfe68f7e0f3c25e906904a890822b78c6099bcbf69ae5820086d259"
+    }
+  ]
+}

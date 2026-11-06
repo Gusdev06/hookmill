@@ -153,6 +153,8 @@ export class PrismaCostStore implements CostStore {
         amountUsd: new Prisma.Decimal(e.amountUsd),
         providerTaskId: e.providerTaskId ?? null,
         jobId: e.jobId ?? null,
+        researchSyncId: e.researchSyncId ?? null,
+        discoveryId: e.discoveryId ?? null,
       },
     });
   }

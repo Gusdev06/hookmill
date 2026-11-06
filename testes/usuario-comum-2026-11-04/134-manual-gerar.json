@@ -1,0 +1,205 @@
+{
+  "step": 134,
+  "url": "http://localhost:3311/templates/run/cmw1o7oht004l22hsa5r1hqbl",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nV\nVendo colchões online no Brasil, para adultos que acordam co\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n2\nComprar créditos\nConfigurações\nJ\nJoão Teste\nDono\nEN\nPT\nVENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\nTemplates\nPlanejar\n3 feitos\nPRODUZIR\n4\nGeração\n(rodando)\n3\nEntregar\nBaixar\nSair\n\nSua seleção\nAmostra grátis · 2 usos reservados. Usos de templates que falharem são devolvidos.\n\nAMOSTRA GRÁTIS · 2 VARIAÇÕES, SEM CUSTO\nRenderizando 2 peças · 0 prontas\nLegenda adicionada\nO campeão não tem legenda queimada, então toda peça de vídeo ganha legenda palavra a palavra.\nPúblico novo\n· 2\nPrimeiro frame e layout diferentes. A Meta lê como anúncios novos.\nMOLDURA-NOTICIA\nRenderizando · 0%\nMoldura · Notícia\nDentro da moldura news\n9:16 · criando a imagem\nMOLDURA-MEME\nNa fila\nMoldura · Meme\nDentro da moldura meme\nRENDERIZANDO\n0/2\npeças\nAgora\nMOLDURA-NOTICIA\nFalta\ncerca de 20 s\nArquivos\n0 de 2\nCusto pra você\nNenhum\nCréditos de vídeo\nNenhum usado\n\nPode fechar esta página. O lote continua renderizando e aparece em Início › Esperando por você.\n\nVoltar ao Início\nAmostra grátis: renderizando. Pode sair desta página; continua sozinho.\nContinuar pro download",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "V\nVendo colchões online no Brasil, para adultos que acordam co\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "J\nJoão Teste\nDono",
+      "label": "Conta",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Planejar\n3 feitos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Sair",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Voltar ao Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Continuar pro download",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

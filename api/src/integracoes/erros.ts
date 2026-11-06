@@ -36,7 +36,10 @@ export type IntegracaoErrorCode =
   // backend cai pro champion_segment ou pra imagem gerada; banco fora/cota (details { reason }); fonte desligada (D15)
   | 'BROLL_NO_MATCH'
   | 'BROLL_UNAVAILABLE'
-  | 'BROLL_SOURCE_NOT_SUPPORTED';
+  | 'BROLL_SOURCE_NOT_SUPPORTED'
+  // ads-research-v1 (Ad Radar): a Apify recusou o run por limite de runs simultâneos (402 concurrent-runs-limit-exceeded),
+  // mesmo depois das tentativas internas. Não é cobrado; o backend reenfileira (ResearchSync.attempts).
+  | 'RETRYABLE';
 
 export class IntegracaoError extends Error {
   constructor(

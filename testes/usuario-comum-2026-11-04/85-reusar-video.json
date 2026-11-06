@@ -1,0 +1,240 @@
+{
+  "step": 85,
+  "url": "http://localhost:3311/library",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nS\nSonoLeve\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n0\nComprar créditos\nConfigurações\nM\nMarina Costa\nDono\nEN\nPT\nBiblioteca\n\nCriativos aprovados. Marque os que venceram nos anúncios: os próximos roteiros da mesma oferta aprendem com eles.\n\nTodos\nOriginais\nVariações\nTodas as ofertas\nSó vencedores\nSeus anúncios\n\nVídeos que você subiu e anúncios lidos da Meta. Escolha um pra fazer variações com um template.\n\nfala-split-20s\nEnviado · 0:20 · A SonoLeve vende colchões online para adultos no Brasil que\nUsar num template\nApagar",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "S\nSonoLeve\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "M\nMarina Costa\nDono",
+      "label": "Conta",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Todos",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Originais",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Variações",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Todas as ofertas",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "switch",
+      "text": "",
+      "label": null,
+      "id": "winonly",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Usar num template",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates?championId=cmw1nr9sn000722hskggd6wq0"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Apagar",
+      "label": "Apagar fala-split-20s",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { resolverSrc } from '../componentes/midia';
 import { Entra, FONTE, Principal, RostoImg, Segunda, SOMBRA, Texto, useEntrada, type PropsTpl } from './base';
 import { Balao, Brilho, Camera, Check, Coracao, Desligar, Enviar, Estouro, Joinha, Mais, Mao, MicMudo, Microfone, Salvar, Sorriso, Tela } from './icones';
 import { MarcaLua } from './um-video';
+import { Camada } from './camada';
 import type { FrameLayout, MolduraProps, Rect } from '../lib/molduras';
 
 const M = 60;
@@ -50,29 +51,33 @@ export const Choquei: React.FC<PropsTpl<'gossip_page'>> = ({ p, L, ui }) => {
   const ic = L.slots.icons;
   return (
     <AbsoluteFill style={{ backgroundColor: '#0B0B0D' }}>
-      <div style={{ position: 'absolute', left: M, width: L.canvas.w - 2 * M, top: n.top, display: 'flex', flexDirection: 'column', gap: n.gap }}>
-        <Entra atraso={0} dist={30}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-            <div style={{ width: n.avatar, height: n.avatar, borderRadius: 999, padding: 5, background: 'linear-gradient(135deg, #FACC15, #EF4444)' }}>
-              <div style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: '#111', border: '4px solid #0B0B0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.initSize, color: '#FACC15' }}>{ini}</div>
+      <Camada id="box:header">
+        <div style={{ position: 'absolute', left: M, width: L.canvas.w - 2 * M, top: n.top, display: 'flex', flexDirection: 'column', gap: n.gap }}>
+          <Entra atraso={0} dist={30}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+              <div style={{ width: n.avatar, height: n.avatar, borderRadius: 999, padding: 5, background: 'linear-gradient(135deg, #FACC15, #EF4444)' }}>
+                <div style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: '#111', border: '4px solid #0B0B0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.initSize, color: '#FACC15' }}>{ini}</div>
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: n.nameSize, color: '#fff' }}>{t.pageName}</span>
+                <span style={{ fontFamily: FONTE.inter, fontWeight: 600, fontSize: n.subSize, color: cinza }}>{ui.now}</span>
+              </div>
+              <Mais tam={n.dots} cor="#fff" />
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: n.nameSize, color: '#fff' }}>{t.pageName}</span>
-              <span style={{ fontFamily: FONTE.inter, fontWeight: 600, fontSize: n.subSize, color: cinza }}>{ui.now}</span>
-            </div>
-            <Mais tam={n.dots} cor="#fff" />
-          </div>
-        </Entra>
-        <Entra atraso={4}>
-          <Texto fit={L.text.headline} fonte="inter-600" largura={L.canvas.w - 2 * M} cor="#E4E4E7" destaque={{ fontWeight: 800, color: '#fff', backgroundColor: 'rgba(250,204,21,0.22)', boxShadow: 'inset 0 -0.18em 0 rgba(250,204,21,0.9)' }} />
-        </Entra>
-      </div>
+          </Entra>
+          <Entra atraso={4}>
+            <Texto fit={L.text.headline} fonte="inter-600" largura={L.canvas.w - 2 * M} cor="#E4E4E7" destaque={{ fontWeight: 800, color: '#fff', backgroundColor: 'rgba(250,204,21,0.22)', boxShadow: 'inset 0 -0.18em 0 rgba(250,204,21,0.9)' }} />
+          </Entra>
+        </div>
+      </Camada>
       <LadoALado p={p} L={L} raio={n.radius} />
       <Rosto p={p} caixa={L.faceBox!} borda="#0B0B0D" anel="linear-gradient(135deg, #FACC15, #EF4444)" />
-      <div style={{ position: 'absolute', left: ic.x, width: ic.w, top: ic.y, display: 'flex', alignItems: 'center', gap: 40 }}>
-        <Coracao tam={n.icon} cor="#fff" /><Balao tam={n.icon} cor="#fff" /><Enviar tam={n.icon - 2} cor="#fff" />
-        <div style={{ flex: 1 }} /><Salvar tam={n.icon - 2} cor="#fff" />
-      </div>
+      <Camada id="box:icons">
+        <div style={{ position: 'absolute', left: ic.x, width: ic.w, top: ic.y, display: 'flex', alignItems: 'center', gap: 40 }}>
+          <Coracao tam={n.icon} cor="#fff" /><Balao tam={n.icon} cor="#fff" /><Enviar tam={n.icon - 2} cor="#fff" />
+          <div style={{ flex: 1 }} /><Salvar tam={n.icon - 2} cor="#fff" />
+        </div>
+      </Camada>
     </AbsoluteFill>
   );
 };
@@ -88,13 +93,15 @@ export const TelaDividida: React.FC<PropsTpl<'split_stack'>> = ({ p, L }) => {
       <Entra de="baixo" atraso={3} dist={60} style={{ position: 'absolute', inset: 0 }}>
         <Segunda p={p} caixa={L.secondBox!} />
       </Entra>
-      <div style={{ position: 'absolute', left: 0, width: W, top: H / 2 - 150, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Entra de="escala" atraso={8} rot={-2}>
-          <div style={{ backgroundColor: '#E5231B', padding: `${L.n.bandPadY}px 50px`, boxShadow: '0 10px 0 rgba(0,0,0,0.35), 0 24px 60px rgba(0,0,0,0.45)', width: 1000 }}>
-            <Texto fit={L.text.headline} fonte="montserrat-900" largura={900} caixaAlta cor="#fff" alinhar="center" style={{ letterSpacing: '-0.01em' }} destaque={{ color: '#FFE14D' }} />
-          </div>
-        </Entra>
-      </div>
+      <Camada id="box:band">
+        <div style={{ position: 'absolute', left: 0, width: W, top: H / 2 - 150, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Entra de="escala" atraso={8} rot={-2}>
+            <div style={{ backgroundColor: '#E5231B', padding: `${L.n.bandPadY}px 50px`, boxShadow: '0 10px 0 rgba(0,0,0,0.35), 0 24px 60px rgba(0,0,0,0.45)', width: 1000 }}>
+              <Texto fit={L.text.headline} fonte="montserrat-900" largura={900} caixaAlta cor="#fff" alinhar="center" style={{ letterSpacing: '-0.01em' }} destaque={{ color: '#FFE14D' }} />
+            </div>
+          </Entra>
+        </div>
+      </Camada>
     </AbsoluteFill>
   );
 };
@@ -120,24 +127,26 @@ export const TelaDividida2: React.FC<PropsTpl<'split_torn'>> = ({ p, L }) => {
       <Entra de="baixo" atraso={3} dist={60} style={{ position: 'absolute', inset: 0 }}>
         <Segunda p={p} caixa={L.secondBox!} />
       </Entra>
-      <div style={{ position: 'absolute', left: (W - larg) / 2, top: H / 2 - alt / 2, width: larg, height: alt }}>
-        <Entra de="escala" atraso={8} rot={1.6}>
-          <div style={{ position: 'relative', width: larg, height: alt, filter: 'drop-shadow(0 14px 22px rgba(0,0,0,0.5))' }}>
-            <svg width={larg} height={alt} style={{ position: 'absolute', inset: 0 }}>
-              <defs>
-                <linearGradient id="papel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FBF8F1" /><stop offset="1" stopColor="#EDE6D6" /></linearGradient>
-              </defs>
-              <polygon points={rasgo(larg, alt, 7)} fill="url(#papel)" />
-            </svg>
-            <div style={{ position: 'absolute', left: 150, top: -14, width: 130, height: 46, backgroundColor: 'rgba(255,240,170,0.75)', transform: 'rotate(-8deg)' }} />
-            <div style={{ position: 'absolute', right: 150, bottom: -12, width: 130, height: 46, backgroundColor: 'rgba(255,240,170,0.75)', transform: 'rotate(6deg)' }} />
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Texto fit={L.text.headline} fonte="archivo-black-400" largura={900} cor="#141414" alinhar="center"
-                destaque={{ backgroundColor: '#FFE14D', padding: '0 10px', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }} />
+      <Camada id="box:strip">
+        <div style={{ position: 'absolute', left: (W - larg) / 2, top: H / 2 - alt / 2, width: larg, height: alt }}>
+          <Entra de="escala" atraso={8} rot={1.6}>
+            <div style={{ position: 'relative', width: larg, height: alt, filter: 'drop-shadow(0 14px 22px rgba(0,0,0,0.5))' }}>
+              <svg width={larg} height={alt} style={{ position: 'absolute', inset: 0 }}>
+                <defs>
+                  <linearGradient id="papel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FBF8F1" /><stop offset="1" stopColor="#EDE6D6" /></linearGradient>
+                </defs>
+                <polygon points={rasgo(larg, alt, 7)} fill="url(#papel)" />
+              </svg>
+              <div style={{ position: 'absolute', left: 150, top: -14, width: 130, height: 46, backgroundColor: 'rgba(255,240,170,0.75)', transform: 'rotate(-8deg)' }} />
+              <div style={{ position: 'absolute', right: 150, bottom: -12, width: 130, height: 46, backgroundColor: 'rgba(255,240,170,0.75)', transform: 'rotate(6deg)' }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Texto fit={L.text.headline} fonte="archivo-black-400" largura={900} cor="#141414" alinhar="center"
+                  destaque={{ backgroundColor: '#FFE14D', padding: '0 10px', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }} />
+              </div>
             </div>
-          </div>
-        </Entra>
-      </div>
+          </Entra>
+        </div>
+      </Camada>
     </AbsoluteFill>
   );
 };
@@ -231,42 +240,44 @@ export const Meet: React.FC<PropsTpl<'call'>> = ({ p, L, cor, ui }) => {
   const lado = L.format === 'SQUARE_1_1';
   return (
     <AbsoluteFill style={{ backgroundColor: CORES_CALL.fundo }}>
-      <BarraTopo titulo={t.title} L={L} />
-      <Entra de="escala" atraso={3} style={{ position: 'absolute', left: sl.x, top: sl.y, width: sl.w, height: sl.h }}>
-        <div style={{ width: '100%', height: '100%', borderRadius: n.radius, overflow: 'hidden', backgroundColor: '#F6F4EF', boxShadow: SOMBRA.cartao, position: 'relative', padding: `${n.padY}px ${n.padX}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: n.inner }}>
-          <MarcaLua nome={p.frame.brand.name} cor={cor} h={n.brandH} tam={n.brandSize} />
-          <Texto fit={L.text.title} fonte="montserrat-900" largura={sl.w - 2 * n.padX} cor="#14162B" style={{ letterSpacing: '-0.02em' }} destaque={{ color: cor }} />
-          {(() => {
-            const comImg = !!L.slots.slideImage;
-            const passos = (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: n.stepGap, ...(comImg ? { width: n.stepsW, justifyContent: 'center' } : { marginTop: 10 }), ...(lado && !comImg ? { flex: 1, justifyContent: 'space-evenly' } : {}) }}>
-                {t.slideSteps.map((_s, i) => {
-                  const e = Math.min(1, Math.max(0, (f - (24 + i * 18)) / 10));
-                  return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: n.stepGapX, opacity: 0.35 + 0.65 * e }}>
-                      <div style={{ width: n.stepBox, height: n.stepBox, flexShrink: 0, borderRadius: n.stepBox * 0.27, backgroundColor: e >= 1 ? cor : '#DAD6CC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {e >= 1 ? <Check tam={n.stepBox * 0.6} cor="#fff" espessura={3.4} /> : null}
+      <Camada id="box:bar"><BarraTopo titulo={t.title} L={L} /></Camada>
+      <Camada id="box:slide">
+        <Entra de="escala" atraso={3} style={{ position: 'absolute', left: sl.x, top: sl.y, width: sl.w, height: sl.h }}>
+          <div style={{ width: '100%', height: '100%', borderRadius: n.radius, overflow: 'hidden', backgroundColor: '#F6F4EF', boxShadow: SOMBRA.cartao, position: 'relative', padding: `${n.padY}px ${n.padX}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: n.inner }}>
+            <MarcaLua nome={p.frame.brand.name} cor={cor} h={n.brandH} tam={n.brandSize} logo={p.frame.brand.logo} />
+            <Texto fit={L.text.title} fonte="montserrat-900" largura={sl.w - 2 * n.padX} cor="#14162B" style={{ letterSpacing: '-0.02em' }} destaque={{ color: cor }} />
+            {(() => {
+              const comImg = !!L.slots.slideImage;
+              const passos = (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: n.stepGap, ...(comImg ? { width: n.stepsW, justifyContent: 'center' } : { marginTop: 10 }), ...(lado && !comImg ? { flex: 1, justifyContent: 'space-evenly' } : {}) }}>
+                  {t.slideSteps.map((_s, i) => {
+                    const e = Math.min(1, Math.max(0, (f - (24 + i * 18)) / 10));
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: n.stepGapX, opacity: 0.35 + 0.65 * e }}>
+                        <div style={{ width: n.stepBox, height: n.stepBox, flexShrink: 0, borderRadius: n.stepBox * 0.27, backgroundColor: e >= 1 ? cor : '#DAD6CC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {e >= 1 ? <Check tam={n.stepBox * 0.6} cor="#fff" espessura={3.4} /> : null}
+                        </div>
+                        <Texto fit={L.text[`step${i}`]} fonte="inter-800" largura={n.stepsW - n.stepBox - n.stepGapX} cor="#24263A" />
                       </div>
-                      <Texto fit={L.text[`step${i}`]} fonte="inter-800" largura={n.stepsW - n.stepBox - n.stepGapX} cor="#24263A" />
-                    </div>
-                  );
-                })}
-              </div>
-            );
-            if (!comImg) return passos;
-            if (lado) return <>{passos}<SlideImagem p={p} style={{ flex: 1, minHeight: 0, marginTop: n.imgGap - n.inner }} /></>;
-            return (
-              <div style={{ display: 'flex', gap: n.imgGap, marginTop: 10, height: n.blocoH }}>
-                {passos}
-                <SlideImagem p={p} style={{ width: n.imgW, height: n.blocoH }} />
-              </div>
-            );
-          })()}
-          <div style={{ marginTop: lado ? 'auto' : 10, height: n.progress, flexShrink: 0, borderRadius: 99, backgroundColor: '#E2DED3', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${interpolate(f, [20, 220], [8, 100], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}%`, backgroundColor: cor }} />
+                    );
+                  })}
+                </div>
+              );
+              if (!comImg) return passos;
+              if (lado) return <>{passos}<SlideImagem p={p} style={{ flex: 1, minHeight: 0, marginTop: n.imgGap - n.inner }} /></>;
+              return (
+                <div style={{ display: 'flex', gap: n.imgGap, marginTop: 10, height: n.blocoH }}>
+                  {passos}
+                  <SlideImagem p={p} style={{ width: n.imgW, height: n.blocoH }} />
+                </div>
+              );
+            })()}
+            <div style={{ marginTop: lado ? 'auto' : 10, height: n.progress, flexShrink: 0, borderRadius: 99, backgroundColor: '#E2DED3', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${interpolate(f, [20, 220], [8, 100], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}%`, backgroundColor: cor }} />
+            </div>
           </div>
-        </div>
-      </Entra>
+        </Entra>
+      </Camada>
       <Entra de="escala" atraso={6} style={{ position: 'absolute', left: v.x, top: v.y, width: v.w, height: v.h }}>
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: n.radius, boxShadow: anelFala(f, true) }}>
           <Principal p={p} caixa={{ x: 0, y: 0, w: v.w, h: v.h }} raio={n.radius} />
@@ -274,7 +285,7 @@ export const Meet: React.FC<PropsTpl<'call'>> = ({ p, L, cor, ui }) => {
         </div>
       </Entra>
       <Reacoes base={v.y + v.h - 120} x0={v.x + v.w - 308} subida={Math.min(380, v.h - 160)} />
-      <Controles L={L} />
+      <Camada id="box:controls"><Controles L={L} /></Camada>
     </AbsoluteFill>
   );
 };
@@ -286,7 +297,7 @@ export const MeetDialogo: React.FC<PropsTpl<'call_dialog'>> = ({ p, L }) => {
   const menor = L.format !== 'VERTICAL_9_16';
   return (
     <AbsoluteFill style={{ backgroundColor: CORES_CALL.fundo }}>
-      <BarraTopo titulo={t.title} L={L} />
+      <Camada id="box:bar"><BarraTopo titulo={t.title} L={L} /></Camada>
       <Entra de="escala" atraso={3} style={{ position: 'absolute', left: a.x, top: a.y, width: a.w, height: a.h }}>
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: L.n.radius, boxShadow: anelFala(f, true) }}>
           <Principal p={p} caixa={{ x: 0, y: 0, w: a.w, h: a.h }} raio={L.n.radius} />
@@ -299,7 +310,7 @@ export const MeetDialogo: React.FC<PropsTpl<'call_dialog'>> = ({ p, L }) => {
           <Etiqueta nome={t.names[1]} mudo menor={menor} />
         </div>
       </Entra>
-      <Controles L={L} />
+      <Camada id="box:controls"><Controles L={L} /></Camada>
     </AbsoluteFill>
   );
 };
@@ -310,17 +321,19 @@ export const Fofoca1: React.FC<PropsTpl<'gossip_white'>> = ({ p, L, ui }) => {
   const hd = L.slots.header;
   return (
     <AbsoluteFill style={{ backgroundColor: '#FFFFFF' }}>
-      <div style={{ position: 'absolute', left: hd.x, width: hd.w, top: hd.y, height: hd.h, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: n.gap }}>
-        <Entra atraso={0} dist={20}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: n.dot, height: n.dot, borderRadius: 99, backgroundColor: '#E5231B' }} />
-            <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.labelSize, color: '#E5231B', letterSpacing: '0.16em' }}>{ui.exclusive}</span>
-          </div>
-        </Entra>
-        <Entra atraso={4}>
-          <Texto fit={L.text.headline} fonte="montserrat-900" largura={hd.w} cor="#0E0E10" style={{ letterSpacing: '-0.025em' }} destaque={{ color: '#E5231B' }} />
-        </Entra>
-      </div>
+      <Camada id="box:header">
+        <div style={{ position: 'absolute', left: hd.x, width: hd.w, top: hd.y, height: hd.h, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: n.gap }}>
+          <Entra atraso={0} dist={20}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: n.dot, height: n.dot, borderRadius: 99, backgroundColor: '#E5231B' }} />
+              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.labelSize, color: '#E5231B', letterSpacing: '0.16em' }}>{ui.exclusive}</span>
+            </div>
+          </Entra>
+          <Entra atraso={4}>
+            <Texto fit={L.text.headline} fonte="montserrat-900" largura={hd.w} cor="#0E0E10" style={{ letterSpacing: '-0.025em' }} destaque={{ color: '#E5231B' }} />
+          </Entra>
+        </div>
+      </Camada>
       <LadoALado p={p} L={L} raio={n.radius} />
       <Rosto p={p} caixa={L.faceBox!} borda="#fff" />
     </AbsoluteFill>
@@ -338,19 +351,23 @@ export const Fofoca2: React.FC<PropsTpl<'gossip_pink'>> = ({ p, L, ui }) => {
     <AbsoluteFill style={{ backgroundColor: '#FF3EA5' }}>
       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(120,0,70,0.45) 22%, transparent 24%)', backgroundSize: '26px 26px', opacity: 0.7 }} />
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(70% 55% at 50% 52%, rgba(255,62,165,0) 0%, rgba(255,62,165,0.35) 60%, rgba(160,0,90,0.35) 100%)' }} />
-      <div style={{ position: 'absolute', left: card.x, width: card.w, top: card.y }}>
-        <Entra de="escala" atraso={2} rot={-1.5}>
-          <div style={{ backgroundColor: '#fff', padding: `${n.padY}px 40px`, boxShadow: '10px 10px 0 #111' }}>
-            <Texto fit={L.text.headline} fonte="montserrat-900" largura={card.w - 80} cor="#111" alinhar="center" style={{ letterSpacing: '-0.02em' }} destaque={{ color: '#E0007A' }} />
-          </div>
-        </Entra>
-      </div>
+      <Camada id="box:card">
+        <div style={{ position: 'absolute', left: card.x, width: card.w, top: card.y }}>
+          <Entra de="escala" atraso={2} rot={-1.5}>
+            <div style={{ backgroundColor: '#fff', padding: `${n.padY}px 40px`, boxShadow: '10px 10px 0 #111' }}>
+              <Texto fit={L.text.headline} fonte="montserrat-900" largura={card.w - 80} cor="#111" alinhar="center" style={{ letterSpacing: '-0.02em' }} destaque={{ color: '#E0007A' }} />
+            </div>
+          </Entra>
+        </div>
+      </Camada>
       <LadoALado p={p} L={L} raio={6} borda="#fff" />
-      <div style={{ position: 'absolute', left: seal.x, top: seal.y, transform: `scale(${Math.max(0, selo)}) rotate(${-12 + balanco}deg)` }}>
-        <Estouro tam={seal.w} cor="#FFE600" borda="#111">
-          <span style={{ fontFamily: FONTE.anton, fontSize: n.sealSize, color: '#111', letterSpacing: '0.01em', transform: 'rotate(-4deg)' }}>{ui.gossip}</span>
-        </Estouro>
-      </div>
+      <Camada id="box:seal">
+        <div style={{ position: 'absolute', left: seal.x, top: seal.y, transform: `scale(${Math.max(0, selo)}) rotate(${-12 + balanco}deg)` }}>
+          <Estouro tam={seal.w} cor="#FFE600" borda="#111">
+            <span style={{ fontFamily: FONTE.anton, fontSize: n.sealSize, color: '#111', letterSpacing: '0.01em', transform: 'rotate(-4deg)' }}>{ui.gossip}</span>
+          </Estouro>
+        </div>
+      </Camada>
     </AbsoluteFill>
   );
 };

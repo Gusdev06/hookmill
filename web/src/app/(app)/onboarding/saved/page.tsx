@@ -37,7 +37,7 @@ export default function SavedPage() {
   if (!ws.data) return <OnboardingLoading />
   const w = ws.data
   const steps = stepsOf(w)
-  const pos = Math.max(0, steps.findIndex((s) => s.step === w.onboarding.step))
+  const pos = Math.max(0, steps.findIndex((s) => s.step >= w.onboarding.step)) // >=: a hidden step (goals) resumes at the next visible one
   const pct = percentOf(w)
   const nextName = steps[pos] ? to(`rail.${steps[pos].key}.title`) : ""
   const others = (clients.data?.data ?? []).filter((c) => c.id !== session.workspace.id)
@@ -72,7 +72,7 @@ export default function SavedPage() {
           <i className="block h-full rounded-full bg-brand-edge transition-[width]" style={{ width: `${pct}%` }} />
         </div>
         <span className="text-[13px] text-fg-3">{t("next", { step: nextName })}</span>
-        <Link href={onboardingHref(w.onboarding.step)} className={buttonVariants({ variant: "brand", size: "lg" })}>
+        <Link href={onboardingHref(steps[pos]?.step ?? w.onboarding.step)} className={buttonVariants({ variant: "brand", size: "lg" })}>
           {t("continue")}
           <Icon name="arrowr" />
         </Link>

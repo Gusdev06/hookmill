@@ -40,7 +40,7 @@ export function SignupForm() {
     setFieldErr({})
     setEmailTaken(false)
     // the API is the judge; this only saves a round trip on the obvious one
-    if (values.password.length < 10) {
+    if (values.password.length < 6) {
       setFieldErr({ password: t("signup.errors.passwordShort") })
       document.getElementById("password")?.focus()
       return
@@ -126,8 +126,8 @@ export function SignupForm() {
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="password">{t("signup.password")}</Label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" required maxLength={200} value={values.password} onChange={set("password")} aria-invalid={!!fieldErr.password || undefined} aria-describedby={describe("password", true)} />
-        {fieldErr.password ? <FieldError id="password-err">{fieldErr.password}</FieldError> : <span id="password-hint" className="text-xs text-fg-3">{t("signup.passwordHint")}</span>}
+        <Input id="password" name="password" type="password" autoComplete="new-password" required maxLength={200} value={values.password} onChange={set("password")} aria-invalid={!!fieldErr.password || undefined} aria-describedby={describe("password")} />
+        {fieldErr.password ? <FieldError id="password-err">{fieldErr.password}</FieldError> : null}
       </div>
       <Button type="submit" variant="default" size="lg" disabled={pending} className="w-full">
         {pending ? t("signup.submitting") : t("signup.submit")}

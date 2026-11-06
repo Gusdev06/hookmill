@@ -11,6 +11,7 @@ import { normalizeEmail } from '../common/util/format';
 import { clientStatusOf, shortCodeFromName } from '../workspaces/cliente';
 import { OnboardingService, onboardingSummaryOf } from '../workspaces/onboarding';
 import { AcceptInviteDto, SignupDto, UpdateMeDto } from './dto/auth.dto';
+import { testMode } from '../amostra/acesso';
 
 /** AuthUser do contrato (accountMode sempre presente; null = ainda não respondeu). */
 export interface PublicUser extends AuthUser { id: string; name: string; email: string; uiLocale: UiLocale; accountMode: AccountMode | null }
@@ -264,7 +265,7 @@ export class AuthService {
 
 export function publicUser(u: User): PublicUser {
   // amostra-gratis-v1 §1/§2: plano da conta e se a amostra já foi gasta
-  return { id: u.id, name: u.name, email: u.email, uiLocale: u.uiLocale, accountMode: u.accountMode ?? null, access: u.access, sampleUsed: !!u.sampleUsedAt };
+  return { id: u.id, name: u.name, email: u.email, uiLocale: u.uiLocale, accountMode: u.accountMode ?? null, access: testMode() ? 'INTERNAL' : u.access, sampleUsed: !!u.sampleUsedAt };
 }
 
 /** Item de `workspaces[]`/`workspace` da sessão (sem tourCompletedAt; quem chama põe no ativo). */

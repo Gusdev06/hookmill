@@ -1,0 +1,304 @@
+{
+  "step": 136,
+  "url": "http://localhost:3311/templates/run/cmw1o7oht004l22hsa5r1hqbl",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nV\nVendo colchões online no Brasil, para adultos que acordam co\nMeta not connected\nWORKSPACE\nHome\nCampaigns\nEddy\nSOON\nBrain\nMAKE ADS\nTemplates\nNew concepts\nReview\nLibrary\nFree uses left\n2\nGet credits\nSettings\nJ\nJoão Teste\nOwner\nEN\nPT\nVENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\nTemplates\nPlan\n3 done\nMake\nGenerate · done\nSHIP\n5\nDownload\nExit\n\nSua seleção\nFree sample · 2 used, 0 back.\n\nFREE SAMPLE · 2 OF 2 READY\nYour 2 variations are ready. Watch the hook of each one.\n\nWe read your ad “fala-split-20s” and made 2 versions from it at no cost. The first 3 seconds play in full. Unlock to get the full videos, download them and send them to Meta.\n\nHOOK · 0–3 s\nUnlock to watch the rest\nFrame · News\nMOLDURA-NOTICIA\n\nDentro da moldura news\n\nDownload\nSend to Meta\nLocked in the free sample. Unlock to download, edit or send it to Meta.\nHOOK · 0–3 s\nUnlock to watch the rest\nFrame · Meme\nMOLDURA-MEME\n\nDentro da moldura meme\n\nDownload\nSend to Meta\nLocked in the free sample. Unlock to download, edit or send it to Meta.\nUnlock your 2 variations\n\nThey're already rendered. Unlocking is instant, nothing is generated again.\n\nFull videos in 9:16, plus 4:5 and 1:1 on request\nDownload as a zip or send straight to your Meta ad set\nNew variations using your credits\nUnlock: talk to us\nWith AI\npaid plan\nNew avatar on your script, new formats from your ad. Shown here, available once you're on a plan.\nThe sample uses 1 use per Editing template. One template can produce more than one video.\nFree sample: download, Send to Meta, the editor, 4:5 / 1:1 and Retry open once you unlock.\nUnlock: talk to us",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Home",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "V\nVendo colchões online no Brasil, para adultos que acordam co\nMeta not connected",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Home",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campaigns",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nSOON",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Brain",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "New concepts",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Review",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Library",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Get credits",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Settings",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "J\nJoão Teste\nOwner",
+      "label": "Account",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Plan\n3 done",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Make\nGenerate · done",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates/run/cmw1o7oht004l22hsa5r1hqbl?view=generate"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Exit",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Play",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Mute",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Download",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Send to Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Play",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Mute",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Download",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Send to Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Unlock: talk to us",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Unlock: talk to us",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

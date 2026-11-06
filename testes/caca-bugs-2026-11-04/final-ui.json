@@ -1,0 +1,1834 @@
+[
+  {
+    "name": "admin-example-upload",
+    "ok": false,
+    "error": "expect(received).toBeTruthy()\n\nReceived: undefined\n\nCall Log:\n- Timeout 45000ms exceeded while waiting on the predicate"
+  },
+  {
+    "iteratePlan": {
+      "id": "cmw1mz5w90063226qypjh9vrr",
+      "status": "ANALYZING",
+      "phase": "analyze",
+      "offer": {
+        "id": "qa_offer_4960daabed0a481d",
+        "name": "QA Offer A",
+        "language": "en"
+      },
+      "codeLanguage": "EN",
+      "source": {
+        "championId": "cmw1mz5w80061226qlqw7i6pm",
+        "name": "fala-split-20s",
+        "fromLibrary": false,
+        "fromMeta": false,
+        "durationSec": 20,
+        "width": 720,
+        "height": 1280,
+        "ratioLabel": "9:16",
+        "cuts": null,
+        "thumbnail": null,
+        "video": {
+          "id": "cmw1mz5vs005z226qizpfl5i6",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_video/6dbc6c9c-a667-440e-9bbe-d56a9bcaec10.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044823Z&X-Amz-Expires=21600&X-Amz-Signature=eec8a11e07aaa31cc3002269479d3f904b222c520a61af868cc6858f61ca58cc&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "video/mp4",
+          "width": 720,
+          "height": 1280,
+          "durationSec": 20
+        }
+      },
+      "analysis": {
+        "stage": "reading",
+        "step": 1,
+        "progress": 4,
+        "etaSec": 7,
+        "checklist": [
+          {
+            "key": "decode",
+            "status": "running"
+          },
+          {
+            "key": "transcribe",
+            "status": "pending"
+          },
+          {
+            "key": "cuts",
+            "status": "pending"
+          },
+          {
+            "key": "edit_map",
+            "status": "pending"
+          },
+          {
+            "key": "blocks",
+            "status": "pending"
+          },
+          {
+            "key": "audience",
+            "status": "pending"
+          },
+          {
+            "key": "offer",
+            "status": "pending"
+          },
+          {
+            "key": "proof",
+            "status": "pending"
+          },
+          {
+            "key": "page",
+            "status": "pending"
+          },
+          {
+            "key": "planning",
+            "status": "pending"
+          }
+        ]
+      },
+      "insight": null,
+      "error": null,
+      "sample": false,
+      "template": null,
+      "quizEnabled": true,
+      "answers": {
+        "ai": "free_only",
+        "goal": "auto",
+        "wants": [],
+        "aiCapUsd": null,
+        "aiCapCredits": null
+      },
+      "selectionInfo": {
+        "goal": "both",
+        "goalReasonKey": "auto_default",
+        "stretchMax": 4
+      },
+      "notSelected": [],
+      "leftOut": [],
+      "pieces": [],
+      "summary": {
+        "pieces": 0,
+        "stretch": 0,
+        "newAudience": 0,
+        "files": 0,
+        "ready": 0,
+        "failed": 0,
+        "leftOut": 0,
+        "renderEtaSec": null,
+        "videoCreditsUsd": 0
+      },
+      "cost": {
+        "analysisEstimateUsd": 0.857,
+        "analysisUsd": 0,
+        "generateEstimateUsd": null,
+        "imagesUsd": 0,
+        "renderUsd": 0,
+        "totalUsd": 0
+      },
+      "zip": {
+        "status": "none",
+        "fileName": null,
+        "url": null,
+        "sizeBytes": null,
+        "pieces": 0,
+        "files": 0,
+        "folders": {
+          "stretch": "1-stretch-its-life",
+          "newAudience": "2-new-audience"
+        }
+      },
+      "downloadedAt": null,
+      "createdBy": {
+        "id": "qa_user_dono_a",
+        "name": "QA Dono Alfa",
+        "initials": "QA"
+      },
+      "createdAt": "2026-11-04T04:48:23.193Z",
+      "launchedAt": null
+    }
+  },
+  {
+    "iterateDone": {
+      "id": "cmw1mz5w90063226qypjh9vrr",
+      "status": "LAUNCHED",
+      "phase": "download",
+      "offer": {
+        "id": "qa_offer_4960daabed0a481d",
+        "name": "QA Offer A",
+        "language": "en"
+      },
+      "codeLanguage": "EN",
+      "source": {
+        "championId": "cmw1mz5w80061226qlqw7i6pm",
+        "name": "fala-split-20s",
+        "fromLibrary": false,
+        "fromMeta": false,
+        "durationSec": 20,
+        "width": 720,
+        "height": 1280,
+        "ratioLabel": "9:16",
+        "cuts": 1,
+        "thumbnail": {
+          "id": "cmw1mz8m2006f226q71fwuc10",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_frame/caae6ff3-6d26-4ea7-b76f-460bc56a4ce2.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=95cb3b518a6c0b774ec35ffb35e175351b277135d9038923d0069a0782fbe1bc&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "image/jpeg"
+        },
+        "video": {
+          "id": "cmw1mz5vs005z226qizpfl5i6",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_video/6dbc6c9c-a667-440e-9bbe-d56a9bcaec10.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=ae7b844ea0c278466a0a2149fa9fef3c612b4fc5930bffeb6d3471d25ced0596&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "video/mp4",
+          "width": 720,
+          "height": 1280,
+          "durationSec": 20
+        }
+      },
+      "analysis": {
+        "stage": null,
+        "step": 3,
+        "progress": 100,
+        "etaSec": null,
+        "checklist": [
+          {
+            "key": "decode",
+            "status": "done"
+          },
+          {
+            "key": "transcribe",
+            "status": "done"
+          },
+          {
+            "key": "cuts",
+            "status": "done"
+          },
+          {
+            "key": "edit_map",
+            "status": "done"
+          },
+          {
+            "key": "blocks",
+            "status": "done"
+          },
+          {
+            "key": "audience",
+            "status": "done"
+          },
+          {
+            "key": "offer",
+            "status": "done"
+          },
+          {
+            "key": "proof",
+            "status": "done"
+          },
+          {
+            "key": "page",
+            "status": "done"
+          },
+          {
+            "key": "planning",
+            "status": "done"
+          }
+        ]
+      },
+      "insight": {
+        "why": [
+          {
+            "key": "hook",
+            "ref": "Paying every month for apps they forgot about",
+            "text": "A abertura nomeia a dor nos primeiros segundos.",
+            "refSource": "brain",
+            "brainField": "pains"
+          },
+          {
+            "key": "proof",
+            "ref": "I tried three budgeting apps and gave up on all of them.",
+            "text": "A prova aparece antes do pedido.",
+            "refSource": "brain",
+            "brainField": "proof"
+          },
+          {
+            "key": "cta",
+            "ref": "7-day free trial, then 9.99 a month. 30-day money-back",
+            "text": "Uma ação clara no final.",
+            "refSource": "brain",
+            "brainField": "offerAndPrice"
+          }
+        ],
+        "kept": [
+          "Gancho falado",
+          "Momento da prova",
+          "CTA final"
+        ],
+        "flags": {
+          "brainEmpty": false,
+          "shortVideo": true,
+          "smallBatch": false,
+          "pageCaptured": true,
+          "metaConnected": false
+        },
+        "swaps": [
+          {
+            "to": "FRAME",
+            "from": "CUT",
+            "reason": "short_video"
+          },
+          {
+            "to": "FRAME",
+            "from": "PERSON_MOTION",
+            "reason": "no_face"
+          }
+        ],
+        "blocks": [
+          {
+            "fn": "hook",
+            "kept": true,
+            "index": 0,
+            "label": "Gancho",
+            "endSec": 3.858,
+            "startSec": 0
+          },
+          {
+            "fn": "mechanism",
+            "kept": false,
+            "index": 1,
+            "label": "Corpo",
+            "endSec": 9.148,
+            "startSec": 3.858
+          },
+          {
+            "fn": "proof",
+            "kept": true,
+            "index": 2,
+            "label": "Prova",
+            "endSec": 14.598,
+            "startSec": 9.148
+          },
+          {
+            "fn": "cta",
+            "kept": true,
+            "index": 3,
+            "label": "CTA",
+            "endSec": 20,
+            "startSec": 14.598
+          }
+        ],
+        "captionsAuto": true,
+        "headlineBlocked": null
+      },
+      "error": null,
+      "sample": false,
+      "template": null,
+      "quizEnabled": true,
+      "answers": {
+        "ai": "free_only",
+        "goal": "auto",
+        "wants": [],
+        "aiCapUsd": null,
+        "aiCapCredits": null
+      },
+      "selectionInfo": {
+        "goal": "both",
+        "goalReasonKey": "auto_default",
+        "stretchMax": 4
+      },
+      "notSelected": [],
+      "leftOut": [],
+      "pieces": [
+        {
+          "id": "cmw1mzbhj007e226qbpukynft",
+          "index": 0,
+          "type": "HEADLINE",
+          "code": "HEADLINE-1",
+          "axis": "ITERATION",
+          "change": "Headline nova: \"Paying every month for apps they forgot\"",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc88007v226q93hs50cz",
+          "poster": {
+            "id": "cmw1mzdhh0091226qjpnx6r0l",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/8c63fe86-19bd-4726-9dd7-e33d9c983687.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=cc95c6b75c6c38b7f53c970277252b7defa2c26246d72ed440200b184706d7e3&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 180,
+            "height": 320
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_HEADLINE-1_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/39aa7552-1523-4538-aa61-61c08ac349f2.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=13b95210e3c08454a733261e22a22615dbb8c2da99d8d849fd81a584cd398d90&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_HEADLINE-1_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 29607,
+              "durationSec": 20
+            }
+          ],
+          "folder": "1-stretch",
+          "frame": null,
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "headline": {
+            "mode": "replace",
+            "original": "I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.",
+            "text": "Paying every month for apps they forgot about",
+            "highlight": "forgot about"
+          },
+          "locked": false,
+          "preview": null,
+          "wantKey": "headline",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007f226qxd3vwd5l",
+          "index": 1,
+          "type": "HEADLINE",
+          "code": "HEADLINE-2",
+          "axis": "ITERATION",
+          "change": "Headline nova: \"Find money you forgot you were spending\"",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc89007x226qnpmw1lz8",
+          "poster": {
+            "id": "cmw1mzepy0095226qayzahoo6",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/4faccfd8-04e0-4012-8a28-1064f1a44566.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=78769e6cd778d3401532b357dbcedeaabb8ee6060c1f13fa50f40b05248c0c29&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 180,
+            "height": 320
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_HEADLINE-2_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/3b0fb045-e3d4-469d-a684-0789aca6bb06.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=bf37d962b929ac922b006405407aba11edcef56b87a451e20771d16fc264c449&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_HEADLINE-2_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 29607,
+              "durationSec": 20
+            }
+          ],
+          "folder": "1-stretch",
+          "frame": null,
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "headline": {
+            "mode": "replace",
+            "original": "I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.",
+            "text": "Find money you forgot you were spending",
+            "highlight": "were spending"
+          },
+          "locked": false,
+          "preview": null,
+          "wantKey": "headline",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007g226q7revptaw",
+          "index": 2,
+          "type": "HEADLINE",
+          "code": "HEADLINE-3",
+          "axis": "ITERATION",
+          "change": "Headline nova: \"I tried three budgeting apps and gave up\"",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8a007z226qolpf9o69",
+          "poster": {
+            "id": "cmw1mzfyr009l226q2dh72nwz",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/5bef1ac6-5744-4e98-b67d-37181bd81c0e.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=e6d683f9188060aeb15193df46b8922cf9c1a27fbbe03edbd87d68d8da8c5f76&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 180,
+            "height": 320
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_HEADLINE-3_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/de9174b0-b18f-4dd0-8177-bc30a909f27a.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=823187e0882d2fe0b6c568014ba3c58277533b575cb8829644b1224b1b5fbe0c&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_HEADLINE-3_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 29607,
+              "durationSec": 20
+            }
+          ],
+          "folder": "1-stretch",
+          "frame": null,
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "headline": {
+            "mode": "replace",
+            "original": "I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.",
+            "text": "I tried three budgeting apps and gave up on all of them",
+            "highlight": "of them"
+          },
+          "locked": false,
+          "preview": null,
+          "wantKey": "headline",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007h226qwyhkvkww",
+          "index": 3,
+          "type": "CHAT_DM",
+          "code": "CHAT-DM",
+          "axis": "DIVERSITY",
+          "change": "A história vira uma conversa no Direct",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": false
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8c0081226qyo5eolyp",
+          "poster": {
+            "id": "cmw1mzh85009p226qgfnkerh1",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/e2310685-7eeb-4d5a-a13b-26953d12f796.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=cf7b0548025f7034e490d5357c229e409fce7bc563fcbc850ccb0f6398616a89&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_CHAT-DM_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/54788048-4f5d-4ef1-b990-236a2b65a616.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=b17df084c564841026c392ff2da04e250844454f81197bd2b965a198b1a949cc&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_CHAT-DM_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 31885,
+              "durationSec": 21.233
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": null,
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": true,
+          "template": {
+            "id": "chat-dm",
+            "spans": null
+          },
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "chat_motion",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007i226q9if3sbxl",
+          "index": 4,
+          "type": "REVIEW",
+          "code": "LAYOUT-REVIEW",
+          "axis": "DIVERSITY",
+          "change": "Card de review em cima do vídeo",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8d0083226qxt6fb7jk",
+          "poster": {
+            "id": "cmw1mzj4y00a3226qjlmid0dh",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/6e02d3a9-927c-46cd-8b92-1885ab82ef95.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=be7c42300c363ab1e907c013179a5f484e0f6759db82603ac67f05cfbd310fb5&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_LAYOUT-REVIEW_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/3e3637f6-a7bf-43a8-bd18-529c016fe8ec.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=a43133536be7760df4d3a5dcffe3f49282b5547b1ec3e86b7c13a0bb1df0b16d&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_LAYOUT-REVIEW_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 30223,
+              "durationSec": 20
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": null,
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": null,
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007j226qc2dduqq0",
+          "index": 5,
+          "type": "STATIC",
+          "code": "STATIC-F1",
+          "axis": "DIVERSITY",
+          "change": "Anúncio montado: alívio, pessoa na beira da cama",
+          "status": "ready",
+          "previewReady": true,
+          "media": "image",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "textCheck": {
+                "status": "ok",
+                "items": [
+                  {
+                    "key": "brand",
+                    "seen": "QA Offer A",
+                    "match": true,
+                    "critical": true,
+                    "expected": "QA Offer A"
+                  },
+                  {
+                    "key": "brandLine",
+                    "seen": "A BUDGETING APP THAT FINDS",
+                    "match": true,
+                    "critical": false,
+                    "expected": "A BUDGETING APP THAT FINDS"
+                  },
+                  {
+                    "key": "tagline",
+                    "seen": "PAYING EVERY MONTH FOR APPS THEY",
+                    "match": true,
+                    "critical": false,
+                    "expected": "PAYING EVERY MONTH FOR APPS THEY"
+                  },
+                  {
+                    "key": "headline",
+                    "seen": "Find money you forgot you were spending",
+                    "match": true,
+                    "critical": true,
+                    "expected": "Find money you forgot you were spending"
+                  },
+                  {
+                    "key": "handwritten",
+                    "seen": "Your turn now.",
+                    "match": true,
+                    "critical": false,
+                    "expected": "Your turn now."
+                  },
+                  {
+                    "key": "benefits.0.title",
+                    "seen": "A budgeting app that",
+                    "match": true,
+                    "critical": false,
+                    "expected": "A budgeting app that"
+                  },
+                  {
+                    "key": "benefits.0.line",
+                    "seen": "finds forgotten subscriptions.",
+                    "match": true,
+                    "critical": false,
+                    "expected": "finds forgotten subscriptions."
+                  },
+                  {
+                    "key": "benefits.1.title",
+                    "seen": "Find money you forgot",
+                    "match": true,
+                    "critical": false,
+                    "expected": "Find money you forgot"
+                  },
+                  {
+                    "key": "benefits.1.line",
+                    "seen": "you were spending.",
+                    "match": true,
+                    "critical": false,
+                    "expected": "you were spending."
+                  },
+                  {
+                    "key": "benefits.2.title",
+                    "seen": "Paying every month for",
+                    "match": true,
+                    "critical": false,
+                    "expected": "Paying every month for"
+                  },
+                  {
+                    "key": "benefits.2.line",
+                    "seen": "apps they forgot about",
+                    "match": true,
+                    "critical": false,
+                    "expected": "apps they forgot about"
+                  },
+                  {
+                    "key": "trust.0",
+                    "seen": "I TRIED THREE BUDGETING",
+                    "match": true,
+                    "critical": false,
+                    "expected": "I TRIED THREE BUDGETING"
+                  },
+                  {
+                    "key": "trust.1",
+                    "seen": "7-DAY FREE TRIAL, THEN",
+                    "match": true,
+                    "critical": true,
+                    "expected": "7-DAY FREE TRIAL, THEN"
+                  },
+                  {
+                    "key": "trust.2",
+                    "seen": "A BUDGETING APP THAT",
+                    "match": true,
+                    "critical": false,
+                    "expected": "A BUDGETING APP THAT"
+                  },
+                  {
+                    "key": "cta.main",
+                    "seen": "START YOUR FREE",
+                    "match": true,
+                    "critical": true,
+                    "expected": "START YOUR FREE"
+                  },
+                  {
+                    "key": "cta.sub",
+                    "seen": "7-DAY FREE TRIAL, THEN",
+                    "match": true,
+                    "critical": true,
+                    "expected": "7-DAY FREE TRIAL, THEN"
+                  }
+                ],
+                "extraText": []
+              }
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0.4,
+              "textCheck": null
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0.4,
+              "textCheck": null
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8f0085226qvjf62wzx",
+          "poster": {
+            "id": "cmw1mzfku0099226qozplt6uj",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_image/ca0c6014-bc75-4e3b-b954-cd028fb479be.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=adf4b1a6cdf1c14f326904b880ab8934acbc94933c6e253003749f1d2441bcb3&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 720,
+            "height": 1280
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_STATIC-F1_9x16.png",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_image/ca0c6014-bc75-4e3b-b954-cd028fb479be.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=dd38034588cc2b1b6769e6e974621436378985fd94a708c9413cd56aa2d22c94&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_STATIC-F1_9x16.png%22&x-id=GetObject",
+              "mimeType": "image/png",
+              "sizeBytes": 137756,
+              "durationSec": null
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": null,
+          "textCheck": {
+            "status": "ok",
+            "items": [
+              {
+                "key": "brand",
+                "seen": "QA Offer A",
+                "match": true,
+                "critical": true,
+                "expected": "QA Offer A"
+              },
+              {
+                "key": "brandLine",
+                "seen": "A BUDGETING APP THAT FINDS",
+                "match": true,
+                "critical": false,
+                "expected": "A BUDGETING APP THAT FINDS"
+              },
+              {
+                "key": "tagline",
+                "seen": "PAYING EVERY MONTH FOR APPS THEY",
+                "match": true,
+                "critical": false,
+                "expected": "PAYING EVERY MONTH FOR APPS THEY"
+              },
+              {
+                "key": "headline",
+                "seen": "Find money you forgot you were spending",
+                "match": true,
+                "critical": true,
+                "expected": "Find money you forgot you were spending"
+              },
+              {
+                "key": "handwritten",
+                "seen": "Your turn now.",
+                "match": true,
+                "critical": false,
+                "expected": "Your turn now."
+              },
+              {
+                "key": "benefits.0.title",
+                "seen": "A budgeting app that",
+                "match": true,
+                "critical": false,
+                "expected": "A budgeting app that"
+              },
+              {
+                "key": "benefits.0.line",
+                "seen": "finds forgotten subscriptions.",
+                "match": true,
+                "critical": false,
+                "expected": "finds forgotten subscriptions."
+              },
+              {
+                "key": "benefits.1.title",
+                "seen": "Find money you forgot",
+                "match": true,
+                "critical": false,
+                "expected": "Find money you forgot"
+              },
+              {
+                "key": "benefits.1.line",
+                "seen": "you were spending.",
+                "match": true,
+                "critical": false,
+                "expected": "you were spending."
+              },
+              {
+                "key": "benefits.2.title",
+                "seen": "Paying every month for",
+                "match": true,
+                "critical": false,
+                "expected": "Paying every month for"
+              },
+              {
+                "key": "benefits.2.line",
+                "seen": "apps they forgot about",
+                "match": true,
+                "critical": false,
+                "expected": "apps they forgot about"
+              },
+              {
+                "key": "trust.0",
+                "seen": "I TRIED THREE BUDGETING",
+                "match": true,
+                "critical": false,
+                "expected": "I TRIED THREE BUDGETING"
+              },
+              {
+                "key": "trust.1",
+                "seen": "7-DAY FREE TRIAL, THEN",
+                "match": true,
+                "critical": true,
+                "expected": "7-DAY FREE TRIAL, THEN"
+              },
+              {
+                "key": "trust.2",
+                "seen": "A BUDGETING APP THAT",
+                "match": true,
+                "critical": false,
+                "expected": "A BUDGETING APP THAT"
+              },
+              {
+                "key": "cta.main",
+                "seen": "START YOUR FREE",
+                "match": true,
+                "critical": true,
+                "expected": "START YOUR FREE"
+              },
+              {
+                "key": "cta.sub",
+                "seen": "7-DAY FREE TRIAL, THEN",
+                "match": true,
+                "critical": true,
+                "expected": "7-DAY FREE TRIAL, THEN"
+              }
+            ],
+            "extraText": []
+          },
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "static",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": 0.4
+        },
+        {
+          "id": "cmw1mzbhj007k226q2rto5ojm",
+          "index": 6,
+          "type": "STATIC",
+          "code": "STATIC-F2",
+          "axis": "DIVERSITY",
+          "change": "Anúncio montado: orgulho, pessoa na mesa da cozinha",
+          "status": "ready",
+          "previewReady": true,
+          "media": "image",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "textCheck": {
+                "status": "ok",
+                "items": [
+                  {
+                    "key": "brand",
+                    "seen": "QA Offer A",
+                    "match": true,
+                    "critical": true,
+                    "expected": "QA Offer A"
+                  },
+                  {
+                    "key": "brandLine",
+                    "seen": "A BUDGETING APP THAT FINDS",
+                    "match": true,
+                    "critical": false,
+                    "expected": "A BUDGETING APP THAT FINDS"
+                  },
+                  {
+                    "key": "headline",
+                    "seen": "Paying every month for apps they forgot about",
+                    "match": true,
+                    "critical": true,
+                    "expected": "Paying every month for apps they forgot about"
+                  },
+                  {
+                    "key": "benefits.0.title",
+                    "seen": "A budgeting app that",
+                    "match": true,
+                    "critical": false,
+                    "expected": "A budgeting app that"
+                  },
+                  {
+                    "key": "benefits.0.line",
+                    "seen": "finds forgotten subscriptions.",
+                    "match": true,
+                    "critical": false,
+                    "expected": "finds forgotten subscriptions."
+                  },
+                  {
+                    "key": "benefits.1.title",
+                    "seen": "Find money you forgot",
+                    "match": true,
+                    "critical": false,
+                    "expected": "Find money you forgot"
+                  },
+                  {
+                    "key": "benefits.1.line",
+                    "seen": "you were spending.",
+                    "match": true,
+                    "critical": false,
+                    "expected": "you were spending."
+                  },
+                  {
+                    "key": "benefits.2.title",
+                    "seen": "Paying every month for",
+                    "match": true,
+                    "critical": false,
+                    "expected": "Paying every month for"
+                  },
+                  {
+                    "key": "benefits.2.line",
+                    "seen": "apps they forgot about",
+                    "match": true,
+                    "critical": false,
+                    "expected": "apps they forgot about"
+                  },
+                  {
+                    "key": "benefits.3.title",
+                    "seen": "I tried three budgeting",
+                    "match": true,
+                    "critical": false,
+                    "expected": "I tried three budgeting"
+                  },
+                  {
+                    "key": "benefits.3.line",
+                    "seen": "apps and gave up on all of them.",
+                    "match": true,
+                    "critical": false,
+                    "expected": "apps and gave up on all of them."
+                  },
+                  {
+                    "key": "trust.0",
+                    "seen": "I TRIED THREE BUDGETING",
+                    "match": true,
+                    "critical": false,
+                    "expected": "I TRIED THREE BUDGETING"
+                  },
+                  {
+                    "key": "trust.1",
+                    "seen": "7-DAY FREE TRIAL, THEN",
+                    "match": true,
+                    "critical": true,
+                    "expected": "7-DAY FREE TRIAL, THEN"
+                  },
+                  {
+                    "key": "trust.2",
+                    "seen": "A BUDGETING APP THAT",
+                    "match": true,
+                    "critical": false,
+                    "expected": "A BUDGETING APP THAT"
+                  },
+                  {
+                    "key": "cta.main",
+                    "seen": "START YOUR FREE",
+                    "match": true,
+                    "critical": true,
+                    "expected": "START YOUR FREE"
+                  },
+                  {
+                    "key": "cta.sub",
+                    "seen": "7-DAY FREE TRIAL, THEN",
+                    "match": true,
+                    "critical": true,
+                    "expected": "7-DAY FREE TRIAL, THEN"
+                  }
+                ],
+                "extraText": []
+              }
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0.4,
+              "textCheck": null
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0.4,
+              "textCheck": null
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8g0087226q6z1x2rm5",
+          "poster": {
+            "id": "cmw1mzfry009f226qaudwrurg",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_image/21cad1e9-9f06-4afe-989c-4015a7fdf86c.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=178abcbc077cd157d18b3e6cc0d8609d823ec956163f390dd2870408e5d6d661&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 720,
+            "height": 1280
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_STATIC-F2_9x16.png",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_image/21cad1e9-9f06-4afe-989c-4015a7fdf86c.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=2cdf233a312f59e687fb45cfc351999c0c4feeb9f506d61c9684d2803a62180c&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_STATIC-F2_9x16.png%22&x-id=GetObject",
+              "mimeType": "image/png",
+              "sizeBytes": 31902,
+              "durationSec": null
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": null,
+          "textCheck": {
+            "status": "ok",
+            "items": [
+              {
+                "key": "brand",
+                "seen": "QA Offer A",
+                "match": true,
+                "critical": true,
+                "expected": "QA Offer A"
+              },
+              {
+                "key": "brandLine",
+                "seen": "A BUDGETING APP THAT FINDS",
+                "match": true,
+                "critical": false,
+                "expected": "A BUDGETING APP THAT FINDS"
+              },
+              {
+                "key": "headline",
+                "seen": "Paying every month for apps they forgot about",
+                "match": true,
+                "critical": true,
+                "expected": "Paying every month for apps they forgot about"
+              },
+              {
+                "key": "benefits.0.title",
+                "seen": "A budgeting app that",
+                "match": true,
+                "critical": false,
+                "expected": "A budgeting app that"
+              },
+              {
+                "key": "benefits.0.line",
+                "seen": "finds forgotten subscriptions.",
+                "match": true,
+                "critical": false,
+                "expected": "finds forgotten subscriptions."
+              },
+              {
+                "key": "benefits.1.title",
+                "seen": "Find money you forgot",
+                "match": true,
+                "critical": false,
+                "expected": "Find money you forgot"
+              },
+              {
+                "key": "benefits.1.line",
+                "seen": "you were spending.",
+                "match": true,
+                "critical": false,
+                "expected": "you were spending."
+              },
+              {
+                "key": "benefits.2.title",
+                "seen": "Paying every month for",
+                "match": true,
+                "critical": false,
+                "expected": "Paying every month for"
+              },
+              {
+                "key": "benefits.2.line",
+                "seen": "apps they forgot about",
+                "match": true,
+                "critical": false,
+                "expected": "apps they forgot about"
+              },
+              {
+                "key": "benefits.3.title",
+                "seen": "I tried three budgeting",
+                "match": true,
+                "critical": false,
+                "expected": "I tried three budgeting"
+              },
+              {
+                "key": "benefits.3.line",
+                "seen": "apps and gave up on all of them.",
+                "match": true,
+                "critical": false,
+                "expected": "apps and gave up on all of them."
+              },
+              {
+                "key": "trust.0",
+                "seen": "I TRIED THREE BUDGETING",
+                "match": true,
+                "critical": false,
+                "expected": "I TRIED THREE BUDGETING"
+              },
+              {
+                "key": "trust.1",
+                "seen": "7-DAY FREE TRIAL, THEN",
+                "match": true,
+                "critical": true,
+                "expected": "7-DAY FREE TRIAL, THEN"
+              },
+              {
+                "key": "trust.2",
+                "seen": "A BUDGETING APP THAT",
+                "match": true,
+                "critical": false,
+                "expected": "A BUDGETING APP THAT"
+              },
+              {
+                "key": "cta.main",
+                "seen": "START YOUR FREE",
+                "match": true,
+                "critical": true,
+                "expected": "START YOUR FREE"
+              },
+              {
+                "key": "cta.sub",
+                "seen": "7-DAY FREE TRIAL, THEN",
+                "match": true,
+                "critical": true,
+                "expected": "7-DAY FREE TRIAL, THEN"
+              }
+            ],
+            "extraText": []
+          },
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "static",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": 0.4
+        },
+        {
+          "id": "cmw1mzbhj007l226qsrfxcpci",
+          "index": 7,
+          "type": "FRAME",
+          "code": "FRAME-NEWS",
+          "axis": "DIVERSITY",
+          "change": "Dentro da moldura news",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8h0089226qu4oqh07x",
+          "poster": {
+            "id": "cmw1mzke200ab226qtz33lnw6",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/c8870722-0973-4f45-83f2-31365267fb47.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=1e032eae4ee5717fcfb8c4e364ca4b0954e34829a1db8086bff1bfd11e4a31a0&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_FRAME-NEWS_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/1b7b716f-fd58-4bf1-80a4-248875894365.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=1fdc343e39a6c045404979e1fac57aecf508c6c7b30f7ff92ff0d3dd31dc64a3&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_FRAME-NEWS_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 30218,
+              "durationSec": 20
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "news",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007m226qegzgdmyh",
+          "index": 8,
+          "type": "FRAME",
+          "code": "FRAME-QUESTION-BOX",
+          "axis": "DIVERSITY",
+          "change": "Dentro da moldura question_box",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8h008b226qqlsr7cuk",
+          "poster": {
+            "id": "cmw1mzlmv00af226qu5nx4ph6",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/63ddb86b-d53c-4668-a7ce-9196a77350b7.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=86be7517217e1fe1cd8eaba35311a7eaef1dd5f26fdcdf091028280381cfb5d7&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_FRAME-QUESTION-BOX_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/2835638e-9ff6-4021-9529-9a55a5126762.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=df6fef37807c5a43333d62ea43566b1bd141e73a49292bf85ebd60863a378a2d&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_FRAME-QUESTION-BOX_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 30218,
+              "durationSec": 20
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "question_box",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007n226qydkve1iv",
+          "index": 9,
+          "type": "FRAME",
+          "code": "FRAME-POV-TESTIMONIAL",
+          "axis": "DIVERSITY",
+          "change": "Dentro da moldura pov_testimonial",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8i008d226qah0huiuz",
+          "poster": {
+            "id": "cmw1mzmvk00aj226qubeg3ic0",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/f64bfce3-7b21-49f6-89f3-9afab866714a.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=be8d7477fe9df816141384816c3df062aeebf545499dd8289a9e5c5a0331bc88&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_FRAME-POV-TESTIMONIAL_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/c937cf6f-104e-4aa9-828d-c3efeca53d06.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=113f29765743765d6ea5b0e83da972dd46c5bba5e3d1e6e9af96b6eb88a18bf4&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_FRAME-POV-TESTIMONIAL_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 30218,
+              "durationSec": 20
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "pov_testimonial",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007o226qm2yizvfv",
+          "index": 10,
+          "type": "FRAME",
+          "code": "FRAME-MEME",
+          "axis": "DIVERSITY",
+          "change": "Dentro da moldura meme",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8j008f226qds24awgo",
+          "poster": {
+            "id": "cmw1mzo3t00an226qzlouqv94",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/8aa5345e-135d-4df9-be8a-c44b4790c3eb.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=bcf16595967b04720137446af0b137c5c616e88e3c226b1d9e608276308dc4c8&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_FRAME-MEME_2_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/2bdf74af-14fb-4b46-b14b-ca691de989c0.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=659559ee81c54b42b7f36e007ac580fa7616b3ea1bf0706addcac42eeb4dec4f&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_FRAME-MEME_2_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 30218,
+              "durationSec": 20
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "meme",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1mzbhj007p226qyzroe66m",
+          "index": 11,
+          "type": "FRAME",
+          "code": "FRAME-READ-CAPTION",
+          "axis": "DIVERSITY",
+          "change": "Dentro da moldura read_caption",
+          "status": "ready",
+          "previewReady": true,
+          "media": "video",
+          "render": null,
+          "formatsReady": 1,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "ready",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": null,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": "cmw1mzc8j008h226q9t7f3jfr",
+          "poster": {
+            "id": "cmw1mzpca00ar226qi6vzs9gk",
+            "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/7cbbda24-f457-432e-a487-1eb21d57b3ea.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=625c9864debce469e9a8a2bfa2a02139a7577de146b325d0af34802f1f27ff96&X-Amz-SignedHeaders=host&x-id=GetObject",
+            "mimeType": "image/png",
+            "width": 270,
+            "height": 480
+          },
+          "files": [
+            {
+              "format": "9x16",
+              "name": "QA_1104_FRAME-READ-CAPTION_9x16.mp4",
+              "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/render_video/6fb6e5d6-9e18-478c-979a-a8963c9c6f55.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044848Z&X-Amz-Expires=21600&X-Amz-Signature=5e8b7a9dd1f8a68efa7a13e86c574a67f5d48cc0c51535abec713a3a546a9b5c&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22QA_1104_FRAME-READ-CAPTION_9x16.mp4%22&x-id=GetObject",
+              "mimeType": "video/mp4",
+              "sizeBytes": 30218,
+              "durationSec": 20
+            }
+          ],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "read_caption",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": "A budgeting app that finds forgotten subscriptions. Find money you forgot you were spending. Paying every month for apps they forgot about I tried three budgeting apps and gave up on all of them.",
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        }
+      ],
+      "summary": {
+        "pieces": 12,
+        "stretch": 3,
+        "newAudience": 9,
+        "files": 12,
+        "ready": 12,
+        "failed": 0,
+        "leftOut": 0,
+        "renderEtaSec": 0,
+        "videoCreditsUsd": 0
+      },
+      "cost": {
+        "analysisEstimateUsd": 0.857,
+        "analysisUsd": 0,
+        "generateEstimateUsd": null,
+        "imagesUsd": 0,
+        "renderUsd": 0,
+        "totalUsd": 0
+      },
+      "zip": {
+        "status": "none",
+        "fileName": "QA_1104_FALA-SPLIT-20S_variations.zip",
+        "url": null,
+        "sizeBytes": null,
+        "pieces": 12,
+        "files": 12,
+        "folders": {
+          "stretch": "1-stretch-its-life",
+          "newAudience": "2-new-audience"
+        }
+      },
+      "downloadedAt": null,
+      "createdBy": {
+        "id": "qa_user_dono_a",
+        "name": "QA Dono Alfa",
+        "initials": "QA"
+      },
+      "createdAt": "2026-11-04T04:48:23.193Z",
+      "launchedAt": "2026-11-04T04:48:31.397Z"
+    }
+  },
+  {
+    "name": "iterate-full",
+    "ok": true
+  }
+]

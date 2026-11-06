@@ -35,6 +35,8 @@ function withoutMetaAds(g: BrainGraph): BrainGraph {
 }
 import { effectiveRole } from "@/lib/dev-role"
 import { cn } from "@/lib/utils"
+import { Reveal } from "@/components/ui/reveal"
+import { SAMPLE_BRAIN_GRAPH } from "@/lib/skeleton-samples"
 
 /*
  * Brain 3D v1 (brain-3d-v1.md §3-4, spec design/brain-3d-2026-10-22.md, mockup approved 22/10).
@@ -59,9 +61,11 @@ function useMedia(q: string) {
 }
 const noop = () => () => {}
 
-export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }) {
+/** `embedded`: inside the Brain › Map tab (31/10), the page draws the header and the tabs. */
+export function BrainScreen({ Globe, embedded }: { Globe: ComponentType<BrainGlobeProps>; embedded?: boolean }) {
   const t = useTranslations("brain")
   const tg = useTranslations("brain.g")
+  const tl = useTranslations("skeleton")
   const errorMessage = useErrorMessage()
   const { session } = useSession()
   const tour = useTour()
@@ -88,6 +92,7 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
     ],
   })
   const ix = useMemo(() => (graph.data ? indexGraph(graph.data) : null), [graph.data])
+  const sampleIx = useMemo(() => indexGraph(SAMPLE_BRAIN_GRAPH), [])
   const brain = ws.data && offers.data ? brainCompleteness(ws.data, offers.data.data) : null
   const clientName = ws.data?.name ?? session.workspace.name
 
@@ -106,7 +111,8 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
   const [growMs, setGrowMs] = useState(GROW_MS)
   const [listQ, setListQ] = useState("")
 
-  // tour stop 1: 3D view (full screen on the phone), panels closed, Grow ~7 s (adjusted during render, not in an effect)
+  // tour stop 1: 3D view on desktop, panels closed, Grow ~7 s (adjusted during render, not in an effect). tour-v2 §3.1: the
+  // phone stays on the List and the stop anchors on its summary (`#t-brain-summary`), it no longer opens the 3D full screen
   const tourBrain = tour.active && tour.stop === "brain"
   const [tourSeen, setTourSeen] = useState(false)
   if (tourBrain !== tourSeen) {
@@ -117,10 +123,10 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
       setKnows(false)
       setGallery(false)
       setCinema(false)
-      if (narrow) setM3d(true)
+      setM3d(false)
       setGrowMs(TOUR_GROW_MS)
       setGrowToken((x) => x + 1)
-    } else if (narrow) setM3d(false)
+    }
   }
 
   const visibleIds = useMemo(() => new Set(ix ? ix.nodes.filter((n) => isVisible(n, { cats, winners }, ix)).map((n) => n.id) : []), [ix, cats, winners])
@@ -299,8 +305,8 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
   ) : null
 
   return (
-    <div className="mx-auto flex max-w-[1240px] flex-col gap-4 px-[var(--gut)] pt-5 pb-16 tablet:pt-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className={cn("flex flex-col gap-4", !embedded && "mx-auto max-w-[1240px] px-[var(--gut)] pt-5 pb-16 tablet:pt-6")}>
+      {embedded ? null : <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <span className="eyebrow">{clientName}</span>
           <h1 className="flex flex-wrap items-center gap-2">
@@ -325,7 +331,7 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
             </Link>
           </div>
         ) : null}
-      </div>
+      </div>}
 
       {locked ? <MetaLockCard state={metaGate.state} compact /> : null}
 
@@ -344,8 +350,9 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
             </Alert>
           ) : null}
           {narrow && gl && graph.data ? <Open3DCard onOpen={() => setM3d(true)} /> : null}
-          {listErr ??
-            (ix ? (
+          {/* skullet (04/11): the list (search + category cards) is measured from a small sample graph while it loads */}
+          <Reveal data={ix} sample={sampleIx} id="brain.list" label={tl("brain")} error={listErr ?? undefined}>
+            {(ix) => (
               <BrainList
                 ix={ix}
                 ghost={ghost}
@@ -353,7 +360,7 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
                 query={listQ}
                 onQuery={setListQ}
                 leading={
-                  <button type="button" onClick={() => setKnows(true)} className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#2E3238] bg-[#0E1012] py-2 pr-3 pl-2 text-left text-[#F2F3EE]">
+                  <button id="t-brain-summary" type="button" onClick={() => setKnows(true)} className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#2E3238] bg-[#0E1012] py-2 pr-3 pl-2 text-left text-[#F2F3EE]">
                     {brain ? <MiniRing percent={brain.percent} /> : <span className="size-10 rounded-full border-[5px] border-[#2E3238]" />}
                     <span className="flex flex-col">
                       <b>{brain ? tg("known", { pct: brain.percent }) : "…"}</b>
@@ -374,13 +381,8 @@ export function BrainScreen({ Globe }: { Globe: ComponentType<BrainGlobeProps> }
                   ) : null
                 }
               />
-            ) : (
-              <div className="flex flex-col gap-3" aria-busy="true">
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className="sk h-[52px] rounded-[var(--r-card)]" />
-                ))}
-              </div>
-            ))}
+            )}
+          </Reveal>
         </div>
       )}
 

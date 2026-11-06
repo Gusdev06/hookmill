@@ -10,7 +10,8 @@ import { mk } from "@/hooks/use-meta"
 import { cn } from "@/lib/utils"
 import { AdThumbSmall, BudgetCell, Delta, HmChip, IterateButton, LearnChip, RowMenu, StatusSwitch, StatusText, VerdictChips, resultsText, useFormat } from "./cells"
 import { filtering, isVideoAd, nodeId, selfOk, windowOf, type Node, type SortKey } from "./model"
-import { Highlight, sortNodes, type TableCtx } from "./tree-table"
+import { Highlight, sortNodes, useOfferBits, type TableCtx } from "./tree-table"
+import { scrollAppTop } from "@/lib/scroll"
 
 /*
  * Phone (≤760 px, spec §2.1 / §6): drill-down in cards. Root = campaign cards; a campaign opens its ad sets (the campaign
@@ -29,6 +30,7 @@ function Card({ n, ctx, head, path, onDrill }: { n: Node; ctx: TableCtx; head?: 
   const kids = n.level === "campaign" ? n.row.counts.adsets : n.level === "adset" ? n.row.counts.ads : 0
   const reason = ctx.lockedReason ?? (n.row.effectiveStatus === "DISAPPROVED" ? t("state.rejected") : n.row.canToggle === false ? t("viewOnly") : null)
   const win = n.level === "ad" && n.row.verdict === "WINNER"
+  const offerBits = useOfferBits(n, ctx)
   return (
     <article data-flash={ctx.flash === nodeId(n) || undefined} className={cn("flex min-w-0 flex-col gap-2.5 rounded-[14px] border border-line bg-card p-3.5 data-[flash]:animate-[row-flash_1.6s_ease-out]", win && "border-brand-edge bg-brand-soft")}>
       <div className="flex items-start gap-2.5">
@@ -47,6 +49,7 @@ function Card({ n, ctx, head, path, onDrill }: { n: Node; ctx: TableCtx; head?: 
         <HmChip n={n} />
         <LearnChip n={n} />
         <VerdictChips n={n} />
+        {offerBits.chip ? <span className="inline-flex min-w-0 items-center text-xs text-fg-3">{offerBits.chip}</span> : null}
       </div>
       <div className="grid grid-cols-4 gap-2 border-t border-line-soft pt-2">
         {(
@@ -67,14 +70,14 @@ function Card({ n, ctx, head, path, onDrill }: { n: Node; ctx: TableCtx; head?: 
       {n.level === "ad" ? (
         <div className="flex flex-wrap items-center gap-2">
           {ctx.isClient ? <span className="flex-1" /> : <IterateButton n={n} full className="flex-1" />}
-          <RowMenu n={n} canIterate={!ctx.isClient} onHistory={() => ctx.onHistory(n)} outline />
+          <RowMenu n={n} canIterate={!ctx.isClient} onHistory={() => ctx.onHistory(n)} outline extra={offerBits.items} />
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <span className="min-w-0 flex-1">
             <BudgetCell n={n} canEdit={ctx.canWrite && !ctx.lockedReason} onEdit={() => ctx.onBudget(n)} currency={ctx.currency} card />
           </span>
-          <RowMenu n={n} canIterate={!ctx.isClient} onHistory={() => ctx.onHistory(n)} />
+          <RowMenu n={n} canIterate={!ctx.isClient} onHistory={() => ctx.onHistory(n)} extra={offerBits.items} />
         </div>
       )}
       {onDrill && !head && kids ? (
@@ -135,13 +138,13 @@ function Crumb({ items, onRoot, onCampaign }: { items: { id: string; name: strin
 function DrillLevel({ campaign, drill, setDrill, ctx, sort, dir, empty }: { campaign: MetaCampaignRow; drill: Drill; setDrill: (d: Drill) => void; ctx: TableCtx; sort: SortKey; dir: "asc" | "desc"; empty: React.ReactNode }) {
   const t = useTranslations("campaigns")
   const detail = useQuery({
-    queryKey: mk.campaign(campaign.id, ctx.period),
-    queryFn: ({ signal }) => api.meta.campaign(campaign.id, { period: ctx.period }, { signal }),
+    queryKey: mk.campaign(campaign.id, ctx.period, ctx.offer?.id),
+    queryFn: ({ signal }) => api.meta.campaign(campaign.id, { period: ctx.period, offerId: ctx.offer?.id }, { signal }),
     staleTime: 30_000,
   })
   const root = () => {
     setDrill({ c: null, a: null })
-    window.scrollTo(0, 0)
+    scrollAppTop()
   }
   const d = detail.data
   const camp = d?.campaign ?? campaign
@@ -171,7 +174,7 @@ function DrillLevel({ campaign, drill, setDrill, ctx, sort, dir, empty }: { camp
       const hit = sets.filter((x, i) => selfOk(x, ctx.filters) || d.adsets[i].ads.some((ad) => selfOk({ level: "ad", row: ad, campaign: camp, adset: x.row }, ctx.filters)))
       if (hit.length) sets = hit
     }
-    list = sortNodes(sets, sort, dir, ctx.period).map((n) => <Card key={n.row.id} n={n} ctx={ctx} onDrill={() => { setDrill({ c: camp.id, a: n.row.id }); window.scrollTo(0, 0) }} />)
+    list = sortNodes(sets, sort, dir, ctx.period).map((n) => <Card key={n.row.id} n={n} ctx={ctx} onDrill={() => { setDrill({ c: camp.id, a: n.row.id }); scrollAppTop() }} />)
   }
   return (
     <>
@@ -203,7 +206,7 @@ export function PhoneList({
   else if (drilled) body = <DrillLevel campaign={drilled} drill={drill} setDrill={setDrill} ctx={ctx} sort={sort} dir={dir} empty={empty} />
   else
     body = campaigns.length
-      ? campaigns.map((c) => <Card key={c.id} n={{ level: "campaign", row: c }} ctx={ctx} onDrill={() => { setDrill({ c: c.id, a: null }); window.scrollTo(0, 0) }} />)
+      ? campaigns.map((c) => <Card key={c.id} n={{ level: "campaign", row: c }} ctx={ctx} onDrill={() => { setDrill({ c: c.id, a: null }); scrollAppTop() }} />)
       : empty
   return (
     <>

@@ -57,6 +57,12 @@ export function legendaNoEstiloDaOriginal(ctx: AutoEditContext, highlight: strin
   };
 }
 
+/** kit-marca-v1 §5: a marca da moldura sem o `logoFileId` (id do banco não vai pro render) e com o logo já assinado
+ *  (`ctx.brandLogo`, resolvido pela API a partir dele). Sem logo = a composição desenha as iniciais. */
+export const marcaDaMoldura = (b: FrameSpec['brand'], ctx: Pick<AutoEditContext, 'brandLogo'>): MolduraProps['frame']['brand'] => ({
+  name: b.name, handle: b.handle, initials: b.initials, color: b.color, ...(ctx.brandLogo && { logo: ctx.brandLogo }),
+});
+
 /** Caixa do rosto pra foto redonda quando o faceTrack não tem rosto: terço de cima, ao centro. */
 const ROSTO_PADRAO = { x: 0.3, y: 0.08, w: 0.4, h: 0.4 };
 
@@ -90,6 +96,9 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
   if (s?.kind === 'champion_segment') second = { kind: 'champion_segment', startSec: s.startSec, endSec: s.endSec, reframe: reframeNaCaixa(L.secondBox ?? L.videoBox, src, ctx.editMap, 1080, contentBox, U) };
   else if (s?.kind === 'page_capture') second = { kind: 'page_capture', fileUrl: s.fileUrl, scroll: s.scroll };
   else if (s?.kind === 'product_photo') second = { kind: 'product_photo', fileUrl: s.fileUrl };
+  // 02/11: a imagem gerada (reserva do Pexels, segunda-fonte.ts) não tinha mapeamento → `second` ia vazio e a composição
+  // caía no vídeo de demonstração (fixtures/real-kling-2.mp4, 403 na Lambda). Vai como imagem parada na caixa.
+  else if (s?.kind === 'generated_image') second = { kind: 'product_photo', fileUrl: s.fileUrl };
   else if (s?.kind === 'broll_track') {
     // trilha de b-roll: clipes na linha do tempo da peça (a composição fecha buracos e segura o último quadro)
     second = { kind: 'broll_track', clips: s.clips.map((c) => ({ fromSec: c.fromSec, toSec: c.toSec, fileUrl: c.fileUrl, srcStartSec: c.srcStartSec, srcEndSec: c.srcEndSec, ...(c.segmentText && { segmentText: c.segmentText }), ...(c.provenance !== undefined && { provenance: c.provenance }) })) };
@@ -108,11 +117,13 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
 
   const input: FrameRenderInput = {
     kind: 'frame', renderId: ctx.renderId, templateId: 'frame', format, language: lang,
-    frame: { id, texts, brand: spec.brand } as MolduraProps['frame'],
+    frame: { id, texts, brand: marcaDaMoldura(spec.brand, ctx) } as MolduraProps['frame'],
     video: {
       source: src, timeline: [{ startSec: 0, endSec: src.durationSec }], joinFadeMs: 40, reframe: reframeNaCaixa(L.videoBox, src, ctx.editMap, 1080, contentBox, U),
       ...(contentBox && { contentBox }), ...(burnedTextBands.length && { burnedTextBands }), ...(protectedBands.length && { protectedBands }),
       ...(protectedBands.length && rosto && { faceSafeBand: { x: rosto.cx - rosto.w / 2, y: rosto.cy - rosto.h / 2, w: rosto.w, h: rosto.h } }),
+      // editor universal F-U2: auto reframe numa caixa nova (a composição ignora)
+      ...(rosto && { faceHint: { x: rosto.cx - rosto.w / 2, y: rosto.cy - rosto.h / 2, w: rosto.w, h: rosto.h } }),
     },
     ...(second && { second }),
     ...(face && { face }),

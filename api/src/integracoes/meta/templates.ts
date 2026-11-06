@@ -5,10 +5,12 @@ import { isGone } from './campanhas';
 import { GraphClient, type Raw } from './cliente';
 import { MetaError, isMetaError } from './erros';
 
+// meta-templates-v2 §7 (03/11): + campanha `buying_type`, conjunto `destination_type`, criativo `instagram_user_id`.
+// Campos ainda NÃO conferidos numa leitura real na v25 (P3 adiada): se a Graph recusar algum, o import cai em META_ERROR (#100).
 export const TEMPLATE_FIELDS = {
-  campaign: 'id,name,objective,bid_strategy,daily_budget,lifetime_budget,special_ad_categories,start_time,stop_time,effective_status',
-  adset: 'id,name,campaign_id,bid_strategy,bid_amount,daily_budget,lifetime_budget,optimization_goal,promoted_object,targeting,start_time,end_time,effective_status',
-  ad: 'id,name,adset_id,campaign_id,effective_status,creative{id,url_tags,object_story_spec,asset_feed_spec}',
+  campaign: 'id,name,objective,buying_type,bid_strategy,daily_budget,lifetime_budget,special_ad_categories,start_time,stop_time,effective_status',
+  adset: 'id,name,campaign_id,bid_strategy,bid_amount,daily_budget,lifetime_budget,optimization_goal,destination_type,promoted_object,targeting,start_time,end_time,effective_status',
+  ad: 'id,name,adset_id,campaign_id,effective_status,creative{id,url_tags,instagram_user_id,object_story_spec,asset_feed_spec}',
 } as const;
 
 const minor = (v: unknown): number | null => {
@@ -24,6 +26,7 @@ export function campaignOf(o: Raw): MetaTemplateSourceRead['campaign'] {
     dailyBudgetMinor: minor(o.daily_budget), lifetimeBudgetMinor: minor(o.lifetime_budget),
     specialAdCategories: Array.isArray(o.special_ad_categories) ? o.special_ad_categories.map(String).filter((x: string) => x !== 'NONE') : [],
     startTime: str(o.start_time), stopTime: str(o.stop_time),
+    buyingType: str(o.buying_type),
   };
 }
 export function adsetOf(o: Raw): NonNullable<MetaTemplateSourceRead['adset']> {
@@ -34,7 +37,18 @@ export function adsetOf(o: Raw): NonNullable<MetaTemplateSourceRead['adset']> {
     promotedObject: po ? { pixelId: str(po.pixel_id), customEventType: str(po.custom_event_type), applicationId: str(po.application_id) } : null,
     targeting: o.targeting && typeof o.targeting === 'object' ? (o.targeting as Record<string, unknown>) : null,
     startTime: str(o.start_time), endTime: str(o.end_time),
+    destinationType: str(o.destination_type),
   };
+}
+/** Formato do criativo pro `unsupported` do §7: flexível/dinâmico (`asset_feed_spec`) e carrossel (`child_attachments`) não copiam. */
+export function creativeFormatOf(cr: Raw): 'VIDEO' | 'LINK' | 'ASSET_FEED' | 'CAROUSEL' | null {
+  const oss = (cr.object_story_spec ?? {}) as Raw;
+  if (cr.asset_feed_spec && typeof cr.asset_feed_spec === 'object') return 'ASSET_FEED';
+  const link = oss.link_data as Raw | undefined;
+  if (Array.isArray(link?.child_attachments) && link!.child_attachments.length) return 'CAROUSEL';
+  if (oss.video_data) return 'VIDEO';
+  if (link) return 'LINK';
+  return null;
 }
 export function adOf(o: Raw): NonNullable<MetaTemplateSourceRead['ad']> {
   const cr = o.creative as Raw | undefined;
@@ -46,6 +60,9 @@ export function adOf(o: Raw): NonNullable<MetaTemplateSourceRead['ad']> {
     creative: cr ? {
       message: str(d?.message), title: str(d?.title ?? d?.name), description: str(d?.link_description ?? d?.description),
       callToAction: str(cta?.type), link: str(cta?.value?.link ?? d?.link), urlTags: str(cr.url_tags),
+      // v2 §2.5/§7: o do criativo ou o de dentro da object_story_spec (instagram_actor_id é legado e não é o mesmo id: não lê)
+      instagramUserId: str(cr.instagram_user_id ?? oss.instagram_user_id),
+      format: creativeFormatOf(cr),
     } : null,
   };
 }

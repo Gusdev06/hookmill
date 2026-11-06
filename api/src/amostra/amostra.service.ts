@@ -91,6 +91,11 @@ export class AmostraService {
     return admitIterate({ access, sampleUsed, accountMode: (user.accountMode as AccountMode | null) ?? null });
   }
 
+  /** templates-creditos-v1 §5: a mesma checagem do §6 pros usos da amostra (conta + workspace, sem o token). */
+  async inheritedSampleAt(userId: string, workspaceId: string): Promise<Date | null> {
+    return this.sampleOfSameAdAccount({ userId, workspaceId } as AuthContext);
+  }
+
   /** §6: data da amostra feita por OUTRA conta com a mesma `adAccountId` do Meta deste workspace; null = nenhuma. */
   private async sampleOfSameAdAccount(auth: AuthContext): Promise<Date | null> {
     const conn = await this.prisma.metaConnection.findUnique({ where: { workspaceId: auth.workspaceId }, select: { adAccountId: true } });

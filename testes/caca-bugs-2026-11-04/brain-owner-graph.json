@@ -1,0 +1,1238 @@
+{
+  "generatedAt": "2026-11-04T04:29:13.448Z",
+  "nodes": [
+    {
+      "id": "workspace:qa_ws_alfa",
+      "kind": "workspace",
+      "category": "center",
+      "refId": "qa_ws_alfa",
+      "label": "QA Alfa",
+      "summary": null,
+      "weight": 1,
+      "winner": false,
+      "meta": {
+        "kind": "workspace"
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "business:qa_ws_alfa",
+      "kind": "business",
+      "category": "business",
+      "refId": "qa_ws_alfa",
+      "label": "US",
+      "summary": "US · https://example.com/",
+      "weight": 0.5,
+      "winner": false,
+      "meta": {
+        "kind": "business",
+        "setupStep": 1
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "source:0caaf24ab1a0",
+      "kind": "source",
+      "category": "business",
+      "refId": "0caaf24ab1a0",
+      "label": "example.com",
+      "summary": "https://example.com/",
+      "weight": 0.45,
+      "winner": false,
+      "meta": {
+        "kind": "source",
+        "url": "https://example.com/",
+        "host": "example.com",
+        "isWebsite": true,
+        "roles": [],
+        "offers": 0,
+        "readAt": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "offer",
+      "category": "offers",
+      "refId": "cmw1lzn97000f226yzski1cc8",
+      "label": "Hunt sleep 🧪",
+      "summary": "Comfort through the night",
+      "weight": 1,
+      "winner": false,
+      "meta": {
+        "kind": "offer",
+        "setupStep": 3,
+        "creatives": 8,
+        "winners": 0
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "audience:cmw1lzn97000f226yzski1cc8",
+      "kind": "audience",
+      "category": "audience",
+      "refId": "cmw1lzn97000f226yzski1cc8",
+      "label": "Adults who want better sleep",
+      "summary": "Adults who want better sleep · Poor sleep; back pain; heat at night",
+      "weight": 0.5,
+      "winner": false,
+      "meta": {
+        "kind": "audience",
+        "setupStep": 4
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "proof:cmw1lzn97000f226yzski1cc8",
+      "kind": "proof",
+      "category": "business",
+      "refId": "cmw1lzn97000f226yzski1cc8",
+      "label": "Verified customer reviews.",
+      "summary": "Verified customer reviews. Tested for durability.",
+      "weight": 0.5,
+      "winner": false,
+      "meta": {
+        "kind": "proof",
+        "setupStep": 3
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "offer_field:cmw1lzn97000f226yzski1cc8:what",
+      "kind": "offer_field",
+      "category": "offers",
+      "refId": "cmw1lzn97000f226yzski1cc8:what",
+      "label": "A mattress for better sleep",
+      "summary": "A mattress for better sleep",
+      "weight": 0.35,
+      "winner": false,
+      "meta": {
+        "kind": "offer_field",
+        "setupStep": 3,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "field": "what",
+        "from": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "offer_field:cmw1lzn97000f226yzski1cc8:promise",
+      "kind": "offer_field",
+      "category": "offers",
+      "refId": "cmw1lzn97000f226yzski1cc8:promise",
+      "label": "Comfort through the night",
+      "summary": "Comfort through the night",
+      "weight": 0.35,
+      "winner": false,
+      "meta": {
+        "kind": "offer_field",
+        "setupStep": 3,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "field": "promise",
+        "from": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "offer_field:cmw1lzn97000f226yzski1cc8:offerAndPrice",
+      "kind": "offer_field",
+      "category": "offers",
+      "refId": "cmw1lzn97000f226yzski1cc8:offerAndPrice",
+      "label": "$500, 30-day trial",
+      "summary": "$500, 30-day trial",
+      "weight": 0.35,
+      "winner": false,
+      "meta": {
+        "kind": "offer_field",
+        "setupStep": 3,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "field": "offerAndPrice",
+        "from": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "offer_field:cmw1lzn97000f226yzski1cc8:cta",
+      "kind": "offer_field",
+      "category": "offers",
+      "refId": "cmw1lzn97000f226yzski1cc8:cta",
+      "label": "Shop now",
+      "summary": "Shop now",
+      "weight": 0.35,
+      "winner": false,
+      "meta": {
+        "kind": "offer_field",
+        "setupStep": 3,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "field": "cta",
+        "from": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "pain:cmw1lzn97000f226yzski1cc8:efb3f89ad6e1",
+      "kind": "pain",
+      "category": "audience",
+      "refId": "cmw1lzn97000f226yzski1cc8:efb3f89ad6e1",
+      "label": "Poor sleep",
+      "summary": "Poor sleep",
+      "weight": 0.3,
+      "winner": false,
+      "meta": {
+        "kind": "pain",
+        "setupStep": 4,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "index": 0,
+        "of": 3
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "pain:cmw1lzn97000f226yzski1cc8:e402e11c102e",
+      "kind": "pain",
+      "category": "audience",
+      "refId": "cmw1lzn97000f226yzski1cc8:e402e11c102e",
+      "label": "back pain",
+      "summary": "back pain",
+      "weight": 0.3,
+      "winner": false,
+      "meta": {
+        "kind": "pain",
+        "setupStep": 4,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "index": 1,
+        "of": 3
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "pain:cmw1lzn97000f226yzski1cc8:e310d9fb49de",
+      "kind": "pain",
+      "category": "audience",
+      "refId": "cmw1lzn97000f226yzski1cc8:e310d9fb49de",
+      "label": "heat at night",
+      "summary": "heat at night",
+      "weight": 0.3,
+      "winner": false,
+      "meta": {
+        "kind": "pain",
+        "setupStep": 4,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "index": 2,
+        "of": 3
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "proof_item:cmw1lzn97000f226yzski1cc8:6b247a8a0ac7",
+      "kind": "proof_item",
+      "category": "business",
+      "refId": "cmw1lzn97000f226yzski1cc8:6b247a8a0ac7",
+      "label": "Verified customer reviews.",
+      "summary": "Verified customer reviews.",
+      "weight": 0.3,
+      "winner": false,
+      "meta": {
+        "kind": "proof_item",
+        "setupStep": 3,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "index": 0,
+        "of": 2
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "proof_item:cmw1lzn97000f226yzski1cc8:d8a939945db0",
+      "kind": "proof_item",
+      "category": "business",
+      "refId": "cmw1lzn97000f226yzski1cc8:d8a939945db0",
+      "label": "Tested for durability.",
+      "summary": "Tested for durability.",
+      "weight": 0.3,
+      "winner": false,
+      "meta": {
+        "kind": "proof_item",
+        "setupStep": 3,
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "index": 1,
+        "of": 2
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "batch:cmw1m3jj3002e226yzak1ku4z",
+      "kind": "batch",
+      "category": "creatives",
+      "refId": "cmw1m3jj3002e226yzak1ku4z",
+      "label": "Hook A — the pain",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "batch",
+        "mode": "AUTO",
+        "stage": "pieces_ready",
+        "championId": "cmw1m3jiy002c226ysqouzp6p",
+        "championName": "Hook A — the pain",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "sourceMetaAdId": "mock_ad_1",
+        "sourceCreativeId": null,
+        "pieces": 2,
+        "ready": 2,
+        "thumbnailUrl": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_frame/065e198f-422c-4a63-b820-d0dbc78a7edc.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042913Z&X-Amz-Expires=21600&X-Amz-Signature=978814aaf0d7f0872db65e0a4fa7a0671c9247e863d04713f36306c83435d4fc&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "createdAt": "2026-11-04T04:23:47.871Z",
+        "updatedAt": "2026-11-04T04:27:16.574Z"
+      },
+      "needsYou": true,
+      "statusLabel": {
+        "key": "status.batch_pieces_ready",
+        "params": {
+          "n": 2
+        }
+      }
+    },
+    {
+      "id": "meta_ad:mock_ad_1",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_1",
+      "label": "Hook A — the pain",
+      "summary": "Mock — Prospecting (CBO)",
+      "weight": 1,
+      "winner": true,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "WINNER",
+        "trend": "WORKING",
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 420,
+        "cpa": 20,
+        "ctr": 2.5,
+        "hookRate": 40,
+        "currency": "USD",
+        "daysRunning": 40,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/89e926645ef8bc91.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": "cmw1m3jiy002c226ysqouzp6p"
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "hook:bee24b387883",
+      "kind": "hook",
+      "category": "hooks",
+      "refId": "bee24b387883",
+      "label": "Nobody tells you this about the problem you have.",
+      "summary": "Nobody tells you this about the problem you have.",
+      "weight": 1,
+      "winner": false,
+      "meta": {
+        "kind": "hook",
+        "angle": null,
+        "scripts": 0,
+        "ads": 1,
+        "bestCpa": 20,
+        "currency": "USD"
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_2",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_2",
+      "label": "Hook B — the proof",
+      "summary": "Mock — Prospecting (CBO)",
+      "weight": 0.905,
+      "winner": true,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "WINNER",
+        "trend": "STEADY",
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 380,
+        "cpa": 23.75,
+        "ctr": 2.3,
+        "hookRate": 37.96,
+        "currency": "USD",
+        "daysRunning": 33,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/0654752487f21e2c.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_img_1",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_img_1",
+      "label": "Image — static offer [mock:meta-rate]",
+      "summary": "Mock — Prospecting (CBO)",
+      "weight": 0.7,
+      "winner": true,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "WINNER",
+        "trend": "STEADY",
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 210,
+        "cpa": 23.33,
+        "ctr": 1.89,
+        "hookRate": null,
+        "currency": "USD",
+        "daysRunning": 30,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/38cb492e9ba25522.png",
+        "isVideo": false,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_640a88ae",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_640a88ae",
+      "label": "HEADLINE-02",
+      "summary": "Hunt — Hunt sleep 🧪",
+      "weight": 0,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": null,
+        "effectiveStatus": "PAUSED",
+        "spend30d": 0,
+        "cpa": null,
+        "ctr": 0,
+        "hookRate": null,
+        "currency": "USD",
+        "daysRunning": 0,
+        "thumbnailUrl": null,
+        "isVideo": true,
+        "fromHookMill": true,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_d65f654d",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_d65f654d",
+      "label": "HEADLINE-01",
+      "summary": "Hunt — Hunt sleep 🧪",
+      "weight": 0,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": null,
+        "effectiveStatus": "PAUSED",
+        "spend30d": 0,
+        "cpa": null,
+        "ctr": 0,
+        "hookRate": null,
+        "currency": "USD",
+        "daysRunning": 0,
+        "thumbnailUrl": null,
+        "isVideo": true,
+        "fromHookMill": true,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_f80cf0d9",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_f80cf0d9",
+      "label": "HEADLINE-03",
+      "summary": "Hunt — Hunt sleep 🧪",
+      "weight": 0,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": null,
+        "effectiveStatus": "PAUSED",
+        "spend30d": 0,
+        "cpa": null,
+        "ctr": 0,
+        "hookRate": null,
+        "currency": "USD",
+        "daysRunning": 0,
+        "thumbnailUrl": null,
+        "isVideo": true,
+        "fromHookMill": true,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "creative:huntcreat6",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "huntcreat6",
+      "label": "Hunt ad 6",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hunt ad 6",
+        "adName": "HUNT_1104_6",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "SCRATCH",
+        "variationCode": "HEADLINE-06",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": null,
+        "published": false,
+        "sourceMetaAdId": null,
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:huntcreat4",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "huntcreat4",
+      "label": "Hunt ad 4",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hunt ad 4",
+        "adName": "HUNT_1104_4",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "SCRATCH",
+        "variationCode": "HEADLINE-04",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": null,
+        "published": false,
+        "sourceMetaAdId": null,
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:huntcreat5",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "huntcreat5",
+      "label": "Hunt ad 5",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hunt ad 5",
+        "adName": "HUNT_1104_5",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "SCRATCH",
+        "variationCode": "HEADLINE-05",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": null,
+        "published": false,
+        "sourceMetaAdId": null,
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:huntcreat3",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "huntcreat3",
+      "label": "Hunt ad 3",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hunt ad 3",
+        "adName": "HUNT_1104_3",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "SCRATCH",
+        "variationCode": "HEADLINE-03",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": null,
+        "published": true,
+        "sourceMetaAdId": null,
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:huntcreat2",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "huntcreat2",
+      "label": "Hunt ad 2",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hunt ad 2",
+        "adName": "HUNT_1104_2",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "SCRATCH",
+        "variationCode": "HEADLINE-02",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": null,
+        "published": true,
+        "sourceMetaAdId": null,
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:huntcreat1",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "huntcreat1",
+      "label": "Hunt ad 1",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hunt ad 1",
+        "adName": "HUNT_1104_1",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "SCRATCH",
+        "variationCode": "HEADLINE-01",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": null,
+        "published": true,
+        "sourceMetaAdId": null,
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:cmw1m80kh000z22p5f0k9lcxo",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "cmw1m80kh000z22p5f0k9lcxo",
+      "label": "Hook A — the pain · FRAME-MEME",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hook A — the pain · FRAME-MEME",
+        "adName": "QA_1104_FRAME-MEME",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "VARIATION",
+        "variationCode": "FRAME-MEME",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/72b905c6-16f5-48f3-a7f9-2a414b434e99.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042913Z&X-Amz-Expires=21600&X-Amz-Signature=bde56eb6648e55960347811b457753de98707ba13aef6ea383d4d94819cd9102&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "published": false,
+        "sourceMetaAdId": "mock_ad_1",
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "creative:cmw1m80kg000x22p5ka0uyhmp",
+      "kind": "creative",
+      "category": "creatives",
+      "refId": "cmw1m80kg000x22p5ka0uyhmp",
+      "label": "Hook A — the pain · FRAME-NEWS",
+      "summary": "Hunt sleep 🧪",
+      "weight": 0.6,
+      "winner": false,
+      "meta": {
+        "kind": "creative",
+        "name": "Hook A — the pain · FRAME-NEWS",
+        "adName": "QA_1104_FRAME-NEWS",
+        "state": "APPROVED",
+        "status": "approved",
+        "isWinner": false,
+        "origin": "VARIATION",
+        "variationCode": "FRAME-NEWS",
+        "offerId": "cmw1lzn97000f226yzski1cc8",
+        "engine": null,
+        "durationSec": 20,
+        "thumbnailUrl": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/thumbnail/b5c28430-ae4e-41c1-9eff-739692166caa.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042913Z&X-Amz-Expires=21600&X-Amz-Signature=aa394c02670cfc95b0aa7dab3f9d30f3e11667cef6d09172ad6f2c40fcd1f557&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "published": false,
+        "sourceMetaAdId": "mock_ad_1",
+        "sourceCreativeId": null
+      },
+      "needsYou": false,
+      "statusLabel": {
+        "key": "status.approved",
+        "params": {}
+      }
+    },
+    {
+      "id": "meta_ad:mock_ad_3",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_3",
+      "label": "Hook C — the demo",
+      "summary": "Mock — Prospecting (CBO)",
+      "weight": 0.738,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "OK",
+        "trend": "TIRING",
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 310,
+        "cpa": 31,
+        "ctr": 1.8,
+        "hookRate": 32,
+        "currency": "USD",
+        "daysRunning": 28,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/dfabff97ed2463dd.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_4",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_4",
+      "label": "Hook D — the testimonial",
+      "summary": "Mock — Testing (ABO)",
+      "weight": 0.619,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "OK",
+        "trend": "STEADY",
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 260,
+        "cpa": 37.14,
+        "ctr": 1.85,
+        "hookRate": 30,
+        "currency": "USD",
+        "daysRunning": 25,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/907be20140936808.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_7",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_7",
+      "label": "Hook G — disapproved",
+      "summary": "Mock — Testing (ABO)",
+      "weight": 0.114,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": "STEADY",
+        "effectiveStatus": "DISAPPROVED",
+        "spend30d": 48,
+        "cpa": 8,
+        "ctr": 2,
+        "hookRate": 36.67,
+        "currency": "USD",
+        "daysRunning": 20,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/41941e991c735ef9.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_5",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_5",
+      "label": "Hook E — new this week",
+      "summary": "Mock — Testing (ABO)",
+      "weight": 0.095,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": null,
+        "effectiveStatus": "ADSET_PAUSED",
+        "spend30d": 40,
+        "cpa": 40,
+        "ctr": 2.14,
+        "hookRate": 37.14,
+        "currency": "USD",
+        "daysRunning": 3,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/2e1de7ccc61bde51.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_img_2",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_img_2",
+      "label": "Image — carousel [mock:meta-token]",
+      "summary": "Mock — Launch (lifetime)",
+      "weight": 0.083,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": null,
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 35,
+        "cpa": 35,
+        "ctr": 1.71,
+        "hookRate": null,
+        "currency": "USD",
+        "daysRunning": 12,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/6b02aa499d1b0b19.png",
+        "isVideo": false,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_novideo",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_novideo",
+      "label": "Hook H — video not downloadable",
+      "summary": "Mock — Launch (lifetime)",
+      "weight": 0.071,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": "STEADY",
+        "effectiveStatus": "ACTIVE",
+        "spend30d": 30,
+        "cpa": 5,
+        "ctr": 1.83,
+        "hookRate": 35,
+        "currency": "USD",
+        "daysRunning": 18,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/d861556edf1fb4ae.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    },
+    {
+      "id": "meta_ad:mock_ad_6",
+      "kind": "meta_ad",
+      "category": "meta_ads",
+      "refId": "mock_ad_6",
+      "label": "Hook F — new this week",
+      "summary": "Mock — Testing (ABO)",
+      "weight": 0.052,
+      "winner": false,
+      "meta": {
+        "kind": "meta_ad",
+        "verdict": "LOW_DATA",
+        "trend": null,
+        "effectiveStatus": "PAUSED",
+        "spend30d": 22,
+        "cpa": null,
+        "ctr": 2,
+        "hookRate": 34.29,
+        "currency": "USD",
+        "daysRunning": 2,
+        "thumbnailUrl": "http://localhost:3201/api/v1/mock-media/face/201c68c7b18a7e13.png",
+        "isVideo": true,
+        "fromHookMill": false,
+        "championId": null
+      },
+      "needsYou": false,
+      "statusLabel": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "business:qa_ws_alfa",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "part_of"
+    },
+    {
+      "from": "offer:cmw1lzn97000f226yzski1cc8",
+      "to": "audience:cmw1lzn97000f226yzski1cc8",
+      "kind": "targets"
+    },
+    {
+      "from": "offer:cmw1lzn97000f226yzski1cc8",
+      "to": "proof:cmw1lzn97000f226yzski1cc8",
+      "kind": "uses_proof"
+    },
+    {
+      "from": "offer:cmw1lzn97000f226yzski1cc8",
+      "to": "offer_field:cmw1lzn97000f226yzski1cc8:what",
+      "kind": "has_field"
+    },
+    {
+      "from": "offer:cmw1lzn97000f226yzski1cc8",
+      "to": "offer_field:cmw1lzn97000f226yzski1cc8:promise",
+      "kind": "has_field"
+    },
+    {
+      "from": "offer:cmw1lzn97000f226yzski1cc8",
+      "to": "offer_field:cmw1lzn97000f226yzski1cc8:offerAndPrice",
+      "kind": "has_field"
+    },
+    {
+      "from": "offer:cmw1lzn97000f226yzski1cc8",
+      "to": "offer_field:cmw1lzn97000f226yzski1cc8:cta",
+      "kind": "has_field"
+    },
+    {
+      "from": "audience:cmw1lzn97000f226yzski1cc8",
+      "to": "pain:cmw1lzn97000f226yzski1cc8:efb3f89ad6e1",
+      "kind": "has_pain"
+    },
+    {
+      "from": "audience:cmw1lzn97000f226yzski1cc8",
+      "to": "pain:cmw1lzn97000f226yzski1cc8:e402e11c102e",
+      "kind": "has_pain"
+    },
+    {
+      "from": "audience:cmw1lzn97000f226yzski1cc8",
+      "to": "pain:cmw1lzn97000f226yzski1cc8:e310d9fb49de",
+      "kind": "has_pain"
+    },
+    {
+      "from": "proof:cmw1lzn97000f226yzski1cc8",
+      "to": "proof_item:cmw1lzn97000f226yzski1cc8:6b247a8a0ac7",
+      "kind": "has_proof"
+    },
+    {
+      "from": "proof:cmw1lzn97000f226yzski1cc8",
+      "to": "proof_item:cmw1lzn97000f226yzski1cc8:d8a939945db0",
+      "kind": "has_proof"
+    },
+    {
+      "from": "business:qa_ws_alfa",
+      "to": "source:0caaf24ab1a0",
+      "kind": "read_from"
+    },
+    {
+      "from": "creative:cmw1m80kh000z22p5f0k9lcxo",
+      "to": "meta_ad:mock_ad_1",
+      "kind": "iterated_from"
+    },
+    {
+      "from": "creative:cmw1m80kg000x22p5ka0uyhmp",
+      "to": "meta_ad:mock_ad_1",
+      "kind": "iterated_from"
+    },
+    {
+      "from": "batch:cmw1m3jj3002e226yzak1ku4z",
+      "to": "meta_ad:mock_ad_1",
+      "kind": "iterated_from"
+    },
+    {
+      "from": "batch:cmw1m3jj3002e226yzak1ku4z",
+      "to": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "for_offer"
+    },
+    {
+      "from": "creative:cmw1m80kh000z22p5f0k9lcxo",
+      "to": "batch:cmw1m3jj3002e226yzak1ku4z",
+      "kind": "in_batch"
+    },
+    {
+      "from": "creative:cmw1m80kg000x22p5ka0uyhmp",
+      "to": "batch:cmw1m3jj3002e226yzak1ku4z",
+      "kind": "in_batch"
+    },
+    {
+      "from": "creative:huntcreat3",
+      "to": "meta_ad:mock_ad_f80cf0d9",
+      "kind": "published_as",
+      "publication": {
+        "publicationId": "cmw1m9s32001j22p5r4e4ujfh",
+        "status": "PAUSED",
+        "publishedAt": "2026-11-04T04:28:41.955Z",
+        "activatedAt": null,
+        "byName": "QA Dono Alfa"
+      }
+    },
+    {
+      "from": "creative:huntcreat2",
+      "to": "meta_ad:mock_ad_640a88ae",
+      "kind": "published_as",
+      "publication": {
+        "publicationId": "cmw1m9s2x001f22p5z3lxt4ly",
+        "status": "PAUSED",
+        "publishedAt": "2026-11-04T04:28:41.955Z",
+        "activatedAt": null,
+        "byName": "QA Dono Alfa"
+      }
+    },
+    {
+      "from": "creative:huntcreat1",
+      "to": "meta_ad:mock_ad_d65f654d",
+      "kind": "published_as",
+      "publication": {
+        "publicationId": "cmw1m4gee000f22qty89ruhei",
+        "status": "PAUSED",
+        "publishedAt": "2026-11-04T04:24:33.530Z",
+        "activatedAt": null,
+        "byName": "QA Dono Alfa"
+      }
+    },
+    {
+      "from": "meta_ad:mock_ad_1",
+      "to": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "for_offer"
+    },
+    {
+      "from": "meta_ad:mock_ad_1",
+      "to": "hook:bee24b387883",
+      "kind": "uses_hook"
+    },
+    {
+      "from": "meta_ad:mock_ad_640a88ae",
+      "to": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "for_offer"
+    },
+    {
+      "from": "meta_ad:mock_ad_d65f654d",
+      "to": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "for_offer"
+    },
+    {
+      "from": "meta_ad:mock_ad_f80cf0d9",
+      "to": "offer:cmw1lzn97000f226yzski1cc8",
+      "kind": "for_offer"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_2",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_3",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_4",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_5",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_6",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_7",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_img_1",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_img_2",
+      "kind": "part_of"
+    },
+    {
+      "from": "workspace:qa_ws_alfa",
+      "to": "meta_ad:mock_ad_novideo",
+      "kind": "part_of"
+    }
+  ],
+  "counts": {
+    "workspace": {
+      "total": 1,
+      "shown": 1
+    },
+    "business": {
+      "total": 1,
+      "shown": 1
+    },
+    "offer": {
+      "total": 1,
+      "shown": 1
+    },
+    "audience": {
+      "total": 1,
+      "shown": 1
+    },
+    "proof": {
+      "total": 1,
+      "shown": 1
+    },
+    "instructions": {
+      "total": 0,
+      "shown": 0
+    },
+    "goal": {
+      "total": 0,
+      "shown": 0
+    },
+    "hook": {
+      "total": 1,
+      "shown": 1
+    },
+    "script": {
+      "total": 0,
+      "shown": 0
+    },
+    "creative": {
+      "total": 8,
+      "shown": 8
+    },
+    "meta_ad": {
+      "total": 13,
+      "shown": 13
+    },
+    "batch": {
+      "total": 1,
+      "shown": 1
+    },
+    "brand_asset": {
+      "total": 0,
+      "shown": 0
+    },
+    "brand_color": {
+      "total": 0,
+      "shown": 0
+    },
+    "offer_field": {
+      "total": 4,
+      "shown": 4
+    },
+    "pain": {
+      "total": 3,
+      "shown": 3
+    },
+    "proof_item": {
+      "total": 2,
+      "shown": 2
+    },
+    "source": {
+      "total": 1,
+      "shown": 1
+    }
+  },
+  "truncated": false,
+  "meta": {
+    "enabled": true,
+    "connected": true,
+    "lastSyncAt": "2026-11-04T04:17:53.832Z"
+  }
+}

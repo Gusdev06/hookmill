@@ -1,4 +1,7 @@
 // Chamadas de ffmpeg/ffprobe do sistema. Sem shell (argv direto), com timeout, stdout em Buffer.
+// Dentro de uma etapa da leitura (`comPrazo`, F3 do QA 01/11): no máximo LEITURA_FFMPEG_MAX processos ao mesmo tempo
+// (fila, somando todas as leituras do processo) e prazo da etapa: ao estourar, os processos dela morrem e nenhum novo sobe.
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { spawn } from 'node:child_process';
 
 export interface Bins { ffmpeg: string; ffprobe: string }
@@ -12,10 +15,94 @@ export class MediaToolError extends Error {
 
 export interface RunResult { stdout: Buffer; stderr: string; code: number | null }
 
+// ───────── prazo + teto de processos da leitura ─────────
+
+/** Prazo de uma etapa da leitura estourou: os ffmpeg dela foram mortos. */
+export class PrazoEsgotado extends Error {
+  constructor(public etapa: string, public ms: number) { super(`${etapa}: prazo de ${Math.round(ms / 1000)} s esgotado`); this.name = 'PrazoEsgotado'; }
+}
+
+interface Etapa { nome: string; fim: number; sinal: AbortSignal }
+const etapaAtual = new AsyncLocalStorage<Etapa>();
+
+/** Teto de processos ffmpeg/ffprobe simultâneos das leituras (todas as do processo somadas). */
+export function maxProcessosLeitura(): number {
+  const n = Number(process.env.LEITURA_FFMPEG_MAX);
+  return Number.isInteger(n) && n > 0 ? n : 2;
+}
+let ocupadas = 0;
+const fila: (() => void)[] = [];
+/** Vaga na fila de processos (só dentro de uma etapa). Devolve quem libera. Etapa abortada = rejeita. */
+async function vaga(e: Etapa): Promise<() => void> {
+  if (e.sinal.aborted) throw e.sinal.reason;
+  if (ocupadas < maxProcessosLeitura()) ocupadas++;
+  else {
+    // espera alguém soltar: a vaga passa direto de quem solta pra quem espera (`ocupadas` não muda)
+    await new Promise<void>((ok, falha) => {
+      const entrar = () => { e.sinal.removeEventListener('abort', sair); ok(); };
+      const sair = () => { const i = fila.indexOf(entrar); if (i >= 0) fila.splice(i, 1); falha(e.sinal.reason); };
+      fila.push(entrar);
+      e.sinal.addEventListener('abort', sair, { once: true });
+    });
+  }
+  let solta = false;
+  return () => {
+    if (solta) return;
+    solta = true;
+    const prox = fila.shift();
+    if (prox) prox(); else ocupadas--;
+  };
+}
+
+/**
+ * Roda `fn` como etapa da leitura: todo ffmpeg/ffprobe lançado dentro dela entra na fila de processos e morre quando o
+ * prazo estoura. Estourou = rejeita com PrazoEsgotado (depois de esperar até 5 s o `fn` desmontar).
+ */
+export async function comPrazo<T>(nome: string, ms: number, fn: () => Promise<T>): Promise<T> {
+  const ac = new AbortController();
+  const e: Etapa = { nome, fim: Date.now() + ms, sinal: ac.signal };
+  const p = etapaAtual.run(e, fn);
+  let timer: NodeJS.Timeout | undefined;
+  const estouro = new Promise<never>((_, falha) => {
+    timer = setTimeout(() => { const err = new PrazoEsgotado(nome, ms); ac.abort(err); falha(err); }, ms);
+  });
+  try {
+    return await Promise.race([p, estouro]);
+  } catch (err) {
+    if (err instanceof PrazoEsgotado) await Promise.race([p.catch(() => undefined), new Promise((r) => setTimeout(r, 5_000))]);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+type Matar = (f: () => void) => void;
+
+/** Sobe o processo (na fila e no prazo da etapa, se houver uma): `sobe` recebe o timeout efetivo e registra quem mata. */
+async function lancar<T>(timeoutMs: number, sobe: (timeoutMs: number, aoMatar: Matar) => Promise<T>): Promise<T> {
+  const e = etapaAtual.getStore();
+  if (!e) return sobe(timeoutMs, () => undefined);
+  const liberar = await vaga(e);
+  let matar: (() => void) | null = null;
+  const aoAbortar = () => matar?.();
+  e.sinal.addEventListener('abort', aoAbortar, { once: true });
+  try {
+    return await sobe(Math.min(timeoutMs, Math.max(1, e.fim - Date.now())), (f) => { matar = f; if (e.sinal.aborted) f(); });
+  } finally {
+    e.sinal.removeEventListener('abort', aoAbortar);
+    liberar();
+  }
+}
+
 /** Roda e junta stdout/stderr. Saída != 0 rejeita, salvo `allowFail`. */
 export function run(bin: string, args: string[], opts: { timeoutMs?: number; allowFail?: boolean } = {}): Promise<RunResult> {
+  return lancar(opts.timeoutMs ?? 10 * 60_000, (timeoutMs, aoMatar) => runCru(bin, args, { ...opts, timeoutMs }, aoMatar));
+}
+
+function runCru(bin: string, args: string[], opts: { timeoutMs?: number; allowFail?: boolean }, aoMatar: Matar): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    aoMatar(() => p.kill('SIGKILL'));
     const out: Buffer[] = [];
     let err = '';
     p.stdout.on('data', (b: Buffer) => out.push(b));
@@ -41,8 +128,14 @@ export function run(bin: string, args: string[], opts: { timeoutMs?: number; all
  */
 export function streamFrames(bin: string, args: string[], frameBytes: number, onFrame: (buf: Buffer, index: number) => void,
   timeoutMs = 10 * 60_000): Promise<number> {
+  return lancar(timeoutMs, (t, aoMatar) => streamFramesCru(bin, args, frameBytes, onFrame, t, aoMatar));
+}
+
+function streamFramesCru(bin: string, args: string[], frameBytes: number, onFrame: (buf: Buffer, index: number) => void,
+  timeoutMs: number, aoMatar: Matar): Promise<number> {
   return new Promise((resolve, reject) => {
     const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    aoMatar(() => p.kill('SIGKILL'));
     let pend: Buffer[] = [];
     let pendLen = 0;
     let n = 0;
@@ -81,8 +174,14 @@ export function streamFrames(bin: string, args: string[], frameBytes: number, on
  */
 export function streamFramesAsync(bin: string, args: string[], frameBytes: number,
   onFrame: (buf: Buffer, index: number) => Promise<void>, timeoutMs = 20 * 60_000): Promise<number> {
+  return lancar(timeoutMs, (t, aoMatar) => streamFramesAsyncCru(bin, args, frameBytes, onFrame, t, aoMatar));
+}
+
+function streamFramesAsyncCru(bin: string, args: string[], frameBytes: number,
+  onFrame: (buf: Buffer, index: number) => Promise<void>, timeoutMs: number, aoMatar: Matar): Promise<number> {
   return new Promise((resolve, reject) => {
     const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    aoMatar(() => p.kill('SIGKILL'));
     let pend: Buffer[] = [];
     let pendLen = 0;
     let n = 0;

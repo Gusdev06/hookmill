@@ -16,7 +16,7 @@ const draft = (over: Record<string, unknown> = {}) => ({
 
 function service(stage = jest.fn(), finish = jest.fn()) {
   const prisma = { offer: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) } };
-  const svc = new OfertasService(prisma as never, { stage, finish } as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+  const svc = new OfertasService(prisma as never, { stage, finish } as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
   return { svc, stage, finish, prisma };
 }
 
@@ -27,18 +27,18 @@ describe('extractOutput: sugestões do negócio (resultado-v1, A2/A3)', () => {
       draft({ name: 'Heirloom Jar', business: { industry: 'Faith gifts', market: 'United States', resultType: 'PURCHASE' }, brandColor: { hex: '#E4572E', source: 'cta' } }),
       { url: 'https://x.com/' }, new Set(['HJ']),
     );
-    expect(out.business).toEqual({ industry: 'Faith gifts', market: 'United States', brandColor: '#E4572E', brandColorSource: 'cta', resultType: 'PURCHASE', shortCode: 'HEI' });
+    expect(out.business).toEqual({ industry: 'Faith gifts', market: 'United States', brandColor: '#E4572E', brandColorSource: 'cta', resultType: 'PURCHASE', shortCode: 'HEI', logoUrl: null, logoSource: null, secondaryColor: null, secondaryColorSource: null });
   });
   it('porta antiga (sem business/brandColor): tudo null menos o prefixo, que sai do nome', () => {
     const { svc } = service();
-    expect(svc.extractOutput(draft(), { url: 'https://x.com/' }).business).toEqual({ industry: null, market: null, brandColor: null, brandColorSource: null, resultType: null, shortCode: 'OR' });
+    expect(svc.extractOutput(draft(), { url: 'https://x.com/' }).business).toEqual({ industry: null, market: null, brandColor: null, brandColorSource: null, resultType: null, shortCode: 'OR', logoUrl: null, logoSource: null, secondaryColor: null, secondaryColorSource: null });
   });
   it('takenShortCodes: shortCodes dos outros workspaces dos membros deste', async () => {
     const prisma = {
       membership: { findMany: jest.fn().mockResolvedValue([{ userId: 'u1' }, { userId: 'u2' }]) },
       workspace: { findMany: jest.fn().mockResolvedValue([{ shortCode: 'HJ' }, { shortCode: 'MC' }]) },
     };
-    const svc = new OfertasService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+    const svc = new OfertasService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
     expect([...(await svc.takenShortCodes('w1'))]).toEqual(['HJ', 'MC']);
     expect(prisma.workspace.findMany).toHaveBeenCalledWith({ where: { id: { not: 'w1' }, memberships: { some: { userId: { in: ['u1', 'u2'] } } } }, select: { shortCode: true } });
   });
@@ -156,5 +156,14 @@ describe('readMeta persistido (D5)', () => {
     expect(isReadMeta({ ...meta, imagesRead: [{ index: 1, src: 's', read: 'a'.repeat(70_000) }] })).toBe(false);
     expect(readMetaOf(null)).toBeNull();
     expect(readMetaOf({ relatedUrls: [] } as never)).toBeNull();
+  });
+  // lacunas-home-eddy-v1 §2 (31/10)
+  it('logo e 2ª cor da leitura; texto colado = null; sem 1ª cor = sem 2ª', () => {
+    const { svc } = service();
+    const extras = { logo: { url: 'https://x.com/logo.png', source: 'header' as const }, secondaryColor: { hex: '#1D3557', source: 'css' as const } };
+    const withColor = svc.extractOutput({ ...draft(), ...extras, brandColor: { hex: '#E4572E', source: 'cta' } } as never, { url: 'https://x.com/' });
+    expect(withColor.business).toMatchObject({ logoUrl: 'https://x.com/logo.png', logoSource: 'header', secondaryColor: '#1D3557', secondaryColorSource: 'css' });
+    expect(svc.extractOutput({ ...draft(), ...extras } as never, { url: 'https://x.com/' }).business).toMatchObject({ logoUrl: 'https://x.com/logo.png', secondaryColor: null });
+    expect(svc.extractOutput({ ...draft(), ...extras, brandColor: { hex: '#E4572E', source: 'cta' } } as never, { pageText: 'texto colado' }).business).toMatchObject({ logoUrl: null, secondaryColor: null });
   });
 });

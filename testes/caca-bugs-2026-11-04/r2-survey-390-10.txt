@@ -1,0 +1,183 @@
+HM
+Q
+QA Alfa
+Ilimitado
+QA ALFA · META
+Campanhas
+Mock Store (USD)
+act_mock_1
+USD
+Sincronizado com a Meta há 8 segundos
+Histórico
+Sincronizar
+Filtros
+1
+Ordenar: Gasto
+Buscar campanha, conjunto, anúncio
+Gasto
+US$ 1.755
+Cliques no link
+77
+Custo / clique
+US$ 22,79
+CTR
+2,09%
+ANÚNCIO
+Hook A — the pain
+Mock — Prospecting (CBO) › Mock — Broad US
+Ligado
+Vencedor
+Funcionando
+Gasto
+US$ 420
+Cliques
+21
+CPA
+US$ 20,00
+Hook rate
+40,0%
+Iterar este anúncio
+ANÚNCIO
+Hook B — the proof
+Mock — Prospecting (CBO) › Mock — Broad US
+Ligado
+Vencedor
+Estável
+Gasto
+US$ 380
+Cliques
+16
+CPA
+US$ 23,75
+Hook rate
+38,0%
+Iterar este anúncio
+ANÚNCIO
+Hook C — the demo
+Mock — Prospecting (CBO) › Mock — Lookalike 1%
+Ligado
+OK
+Cansando
+Gasto
+US$ 310
+Cliques
+10
+CPA
+US$ 31,00
+Hook rate
+32,0%
+Iterar este anúncio
+ANÚNCIO
+Hook D — the testimonial
+Mock — Testing (ABO) › Mock — Interests
+Ligado
+OK
+Gasto
+US$ 260
+Cliques
+7
+CPA
+US$ 37,14
+Hook rate
+30,0%
+Iterar este anúncio
+ANÚNCIO
+Image — static offer [mock:meta-rate]
+Mock — Prospecting (CBO) › Mock — Broad US
+Ligado
+Vencedor
+Estável
+Gasto
+US$ 210
+Cliques
+9
+CPA
+US$ 23,33
+CTR
+1,89%
+Iterar funciona em anúncio de vídeo
+ANÚNCIO
+Hook G — disapproved
+Mock — Testing (ABO) › Mock — Interests
+Reprovado pela Meta
+Poucos dados
+Gasto
+US$ 48
+Cliques
+6
+CPA
+US$ 8,00
+Hook rate
+36,7%
+Iterar este anúncio
+ANÚNCIO
+Hook E — new this week
+Mock — Testing (ABO) › Mock — Paused test
+Sem entrega · conjunto desligado
+Poucos dados
+Gasto
+US$ 40
+Cliques
+1
+CPA
+US$ 40,00
+Hook rate
+37,1%
+Iterar este anúncio
+ANÚNCIO
+Image — carousel [mock:meta-token]
+Mock — Launch (lifetime) › Mock — Launch audience
+Ligado
+Poucos dados
+Gasto
+US$ 35
+Cliques
+1
+CPA
+US$ 35,00
+CTR
+1,71%
+Iterar funciona em anúncio de vídeo
+ANÚNCIO
+Hook H — video not downloadable
+Mock — Launch (lifetime) › Mock — Launch audience
+Ligado
+Poucos dados
+Gasto
+US$ 30
+Cliques
+6
+CPA
+US$ 5,00
+Hook rate
+35,0%
+Iterar este anúncio
+ANÚNCIO
+Hook F — new this week
+Mock — Testing (ABO) › Mock — Retargeting [mock:stale]
+Desligado
+Poucos dados
+Gasto
+US$ 22
+Cliques
+—
+CPA
+—
+Hook rate
+34,3%
+Iterar este anúncio
+ANÚNCIO
+HEADLINE-04
+Hunt — Hunt sleep 🧪 › Hunt sleep 🧪 — 2026-11-04 — 1
+Desligado
+HOOKMILL
+Poucos dados
+Gasto
+US$ 0
+Cliques
+—
+CPA
+—
+Hook rate
+—
+Iterar este anúncio

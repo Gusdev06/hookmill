@@ -5,6 +5,9 @@
 // 25/10 (estatico-montado-e-molduras-v1.md, APROVADO 25/10): tipo `FRAME` (molduras) e `textCheck` do STATIC. Mesmo esquema:
 // campos novos opcionais (TRANSIÇÃO) até as entregas da seção C do contrato.
 import type { FileRef, LibraryItem, UserRef } from './index';
+import type { ListTemplateId, PieceList } from './lista';
+import type { PieceEditorView } from './editor';
+import type { HeadlineCopyKind, HeadlineFitLook, HeadlineFitStep } from './troca-texto';
 
 export type IterateGoal = 'stretch' | 'new_audience' | 'both' | 'auto';
 export type IterateAiAnswer = 'free_only' | 'yes' | 'auto';
@@ -27,7 +30,11 @@ export type AutoVariationType = 'CUT' | 'COLD_OPEN' | 'HOOK_TEXT' | 'ENDCARD' | 
   | 'HEADLINE'
   /** 28/10 (iterate-v2-quiz-templates-ia F1.1): templates grátis, DIVERSITY, só 9:16. CHAT_DM = conversa estilo Direct desenhada
    *  a partir do anúncio (nenhuma pessoa); PERSON_MOTION = palco de motion + rosto e voz do próprio campeão numa caixa. */
-  | 'CHAT_DM' | 'PERSON_MOTION';
+  | 'CHAT_DM' | 'PERSON_MOTION'
+  /** 04/11 (templates-lista-v1 §1, T-B1): lista sincronizada à fala por cima do campeão (templates `versus`/`value-stack`, motor
+   *  `ListOverlay`). DIVERSITY, máx. 2 (1 por template), só no lote de template (como COLD_OPEN/ENDCARD). */
+  | 'LIST_OVERLAY'
+  | 'AI_VIDEO';
 /** @deprecated fusão B1 (25/10): igual a `AutoVariationType`. Use `AutoVariationType`; o alias sai quando ninguém mais importar. */
 export type AutoVariationTypeWithFrame = AutoVariationType;
 /** Fixo por tipo (§6.1): ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". */
@@ -170,13 +177,15 @@ export interface AutoInsight {
   /** 25/10 (headline-e-legenda-v1 §2.1): o campeão não tem legenda queimada → toda peça de vídeo do lote ganha legenda
    *  palavra a palavra. Ausente = false (lotes antigos). */
   captionsAuto?: boolean;
-  /** legenda-protegida-v1 §2.3 (26/10): templates/tipos que o plano não ofereceu porque tampariam a legenda queimada.
-   *  O web mostra "Este formato precisa do vídeo sem legenda" + "Enviar versão sem legenda". Ausente = nenhum. */
+  /** legenda-protegida-v1 §2.3 (26/10; troca-texto-queimado-v1 §15.3: vale também em lote de template): templates/tipos
+   *  que o plano não ofereceu porque tampariam a legenda queimada. Não há como forçar. O web mostra "Este formato precisa
+   *  do vídeo sem legenda" + "Enviar versão sem legenda". Ausente = nenhum. */
+  /** F1a e §16.5: HEADLINE fora do plano. Ausente = oferecido. `reason` inclui os de `HeadlineBlockedNew`. */
+  headlineBlocked?: { reason: string; mode: string } | null;
   captionBlocked?: {
     type: AutoVariationType; template: FrameTemplateId | null; reason: 'burned_captions';
-    /** 29/10 (legenda-protegida-v1 §8): true = a pessoa escolheu "Gerar mesmo assim" e a peça está no plano (incluída),
-     *  marcada `captionOverride`. Ausente/false = fora do plano (padrão). */
-    forced?: boolean;
+    /** 04/11 (templates-lista-v1 §5, TRANSIÇÃO): só LIST_OVERLAY, qual dos 2 templates (`template` fica null) */
+    listTemplate?: ListTemplateId;
   }[];
   /** 26/10: resultado do `cleanUploadId` do `POST /iterate` (conferido antes do plano). `applied` = o plano já usou a versão
    *  sem legenda; `mismatch` = não é o mesmo vídeo (`reason` igual ao 422 CLEAN_VERSION_MISMATCH). Ausente = não mandou. */
@@ -195,7 +204,16 @@ export interface CaptionCheck {
   attempt: number;
 }
 /** 25/10 (headline-e-legenda-v1 §1): "original → nova" na peça HEADLINE. `original` = texto da headline do campeão (null no `add`). */
-export interface PieceHeadline { mode: 'replace' | 'add'; original: string | null; text: string; highlight: string | null }
+export interface PieceHeadline {
+  mode: 'replace' | 'add'; original: string | null; text: string; highlight: string | null;
+  /** troca-texto-queimado-v1 §16.5, todos opcionais: ausentes em peças de antes do F1b. 'add' = faixa nova */
+  copy?: HeadlineCopyKind | 'add' | null;
+  /** 'close' = marca "Closest font". 'far' nunca chega aqui: a peça não é oferecida */
+  fontTier?: 'same' | 'close' | null;
+  fitStep?: HeadlineFitStep | null;
+  /** entrada de `ajustarHeadlineCopia`, para o web mostrar o degrau ao digitar. Só em PLAN_READY */
+  fit?: HeadlineFitLook | null;
+}
 
 // ───────────────────────── peça ─────────────────────────
 /** rev. 23/10: estado de um formato da peça (o render vigente daquele formato; sem render = `none`). */
@@ -234,9 +252,6 @@ export interface IteratePiece {
   headline?: PieceHeadline | null;
   /** legenda-protegida-v1 §2.2 (26/10): 'replaced' = a legenda queimada foi recortada e refeita no estilo do original */
   captionNote?: 'replaced' | null;
-  /** 29/10 (legenda-protegida-v1 §8): peça posta de volta com "Gerar mesmo assim": o layout normal pode cobrir a legenda
-   *  queimada e a checagem `CAPTION_COVERED` não roda nela. O web mostra o selo "Cobre a legenda". */
-  captionOverride?: boolean;
   /** "a única coisa que muda" (idioma da interface) */
   change: string;
   status: PieceStatus;
@@ -270,6 +285,10 @@ export interface IteratePiece {
   isNewTemplate?: boolean;
   /** 28/10 (iterate-v2 F1.7, TRANSIÇÃO): o template e, no person-motion, os trechos do campeão usados; null nos outros */
   template?: PieceTemplate | null;
+  /** 04/11 (templates-lista-v1 §5, TRANSIÇÃO): só LIST_OVERLAY (linhas, tempos, fontes, look, placement, prévia); null nos outros */
+  list?: PieceList | null;
+  /** 04/11 (editor-universal-v1 §6.4, TRANSIÇÃO): Edit no card (disponível, motivo, selo Edited, export pendente). Ausente = sem editor */
+  editor?: PieceEditorView | null;
 }
 /** 28/10 (iterate-v2 F1.7): o que a peça de template mostra. */
 export type TemplatePieceId = 'chat-dm' | 'person-motion';
@@ -301,6 +320,8 @@ export interface IterateZip {
   folders: { stretch: string; newAudience: string };
 }
 export interface IterateBatch {
+  /** templates-creditos-v1 §7: lote nascido de template (null = lote do quiz/auto) */
+  template?: import('./templates').IterateTemplateRun | null;
   /** amostra-gratis-v1 §2: lote da amostra grátis (só tipos grátis, ≤ 4 peças, lança sozinho) */
   sample?: boolean;
   /** True for batches created with the goals flow; older batches keep their existing plan. */
@@ -354,17 +375,18 @@ export interface IterateBatch {
  *  `insight.cleanVersion` diz por quê. */
 /** 26/10 "Novo lote": `championId` = campeão JÁ analisado (READY) do workspace; reaproveita a análise (nasce PLANNING).
  *  Exatamente um de uploadId/creativeId/metaAdId/championId. */
-export interface CreateIterateBody { uploadId?: string; creativeId?: string; metaAdId?: string; championId?: string; offerId?: string; cleanUploadId?: string }
+/** ads-research-v1 §6.1 (04/11, PROPOSTA): `researchAdId` = anúncio do Research (LibraryAd.id); acha ou cria o campeão do workspace
+ *  pra esse anúncio (Champion.researchAdId). Exatamente um de uploadId/creativeId/metaAdId/championId/researchAdId. */
+export interface CreateIterateBody { uploadId?: string; creativeId?: string; metaAdId?: string; championId?: string; researchAdId?: string; offerId?: string; cleanUploadId?: string }
 /** O nº mostrado no botão; diferente do plano = 409 PLAN_CHANGED. rev. 23/10: `expectedCostUsd` = `cost.generateEstimateUsd`
  *  mostrado no botão (TRANSIÇÃO: vira obrigatório); estimativa > expected × 1,10 = 409 ESTIMATE_CHANGED; teto = 409 SPEND_CAP_EXCEEDED. */
-export interface StartIterateBody { expectedPieces: number; expectedCostUsd?: number }
+export interface StartIterateBody { expectedPieces: number; expectedCostUsd?: number;
+  /** templates-creditos-v1 §7: `template.quote` mostrado no botão; obrigatório em lote de template (diferente = 409 CREDITS_CHANGED) */
+  expectedCredits?: number }
 /** useProductPhoto: SPLIT-LP com a foto do produto da oferta (D4); sem foto = 422 NO_PRODUCT_PHOTO.
  *  25/10 (§A10): também vale pra STATIC `ready` com `textCheck.status = 'mismatch'` (corpo {}; cobra staticImageUsd; teto). */
 export interface RetryPieceBody { useProductPhoto?: boolean }
 export interface UpdatePieceBody { inZip: boolean }
-/** 29/10 (legenda-protegida-v1 §8): `POST /iterate/:id/caption-blocked/force` ("Gerar mesmo assim") e `DELETE` (desfazer),
- *  mesmo corpo. Só PLAN_READY. `template` = o da moldura (FRAME) ou null (tipo inteiro), igual ao item de `captionBlocked`. */
-export interface ForceCaptionBlockedBody { type: AutoVariationType; template: FrameTemplateId | null }
 /** 25/10 (§B3.1): `POST /iterate/pieces/:pieceId/broll` troca o clipe da 2ª fonte (só FRAME de 2 fontes com stock_broll).
  *  Corpo vazio = próximo candidato da busca; `candidateId` = o escolhido em `GET /iterate/pieces/:pieceId/broll/candidates`;
  *  `url` = clipe colado. Re-render grátis (202). URL de fonte fora da v1 = 422 BROLL_SOURCE_NOT_SUPPORTED. */
@@ -403,8 +425,9 @@ export type IterateAsyncErrorCode =
   | 'CAPTION_COVERED' | 'CAPTION_PROTECTED'
   /** 25/10 (headline-e-legenda-v1 §1.3-§1.4): a headline não coube na caixa e nas linhas (80-100 % do tamanho), a faixa/placa
    *  cobriria o rosto, não há lugar fora do rosto e do texto queimado (`add`, só no render), ou estilo/caixa não medidos.
+   *  troca-texto-queimado-v1 §15.3: `HEADLINE_PENDING` = peça `replace` antiga (retry ou na fila): sem placa e sem caixa até o F1b.
    *  Todos com `retryHint: 'leave_out'` (refazer não adianta). */
-  | 'HEADLINE_TOO_LONG' | 'HEADLINE_OVER_FACE' | 'HEADLINE_NO_ROOM' | 'HEADLINE_LOW_CONFIDENCE'
+  | 'HEADLINE_TOO_LONG' | 'HEADLINE_OVER_FACE' | 'HEADLINE_NO_ROOM' | 'HEADLINE_LOW_CONFIDENCE' | 'HEADLINE_PENDING'
   /** 28/10 (iterate-v2 F1.7): texto do template não coube no mínimo de 36 px (`leave_out`) / a checagem por visão não achou o
    *  texto esperado inteiro (`retry`; o 2º vira `leave_out`) */
   | 'TEMPLATE_TEXT_OVERFLOW' | 'TEMPLATE_TEXT_MISMATCH';
@@ -412,3 +435,33 @@ export type IterateAsyncErrorCode =
 // ───────────────────────── D4: foto do produto na oferta ─────────────────────────
 /** Upload purpose 'PRODUCT_IMAGE' (image/jpeg|png|webp, ≤ 10 MB). PUT /offers/:id/product-image { uploadId }; DELETE remove. */
 export interface SetProductImageBody { uploadId: string }
+
+// ───────────────────────── lacunas-home-eddy-v1 §3.2/§5 (31/10): lista de lotes e etapa derivada ─────────────────────────
+/**
+ * Etapa do lote, derivada (uma função no backend, a mesma do nó `batch` do Brain): ANALYZING → analyzing; PLANNING →
+ * planning; PLAN_READY → plan_ready; PLAN_FAILED/ANALYSIS_FAILED → failed; LAUNCHED com peça em render → generating;
+ * LAUNCHED AUTO, nada em render, ≥ 1 criativo e zip não baixado → pieces_ready; resto → done.
+ * needsYou = plan_ready | failed | pieces_ready (= o "Waiting for you").
+ */
+export type IterateBatchStage = 'analyzing' | 'planning' | 'plan_ready' | 'failed' | 'generating' | 'pieces_ready' | 'done';
+/** GET /iterate (lista, updatedAt desc). `statusKey`/`statusParams` como no CreativeRow: `status.batch_<stage>` (pieces_ready com `{ n }`). */
+export interface IterateBatchRow {
+  id: string;
+  mode: BatchMode;
+  stage: IterateBatchStage;
+  needsYou: boolean;
+  statusKey: string;
+  statusParams: Record<string, string | number>;
+  champion: { id: string; name: string };
+  offer: { id: string; name: string };
+  /** de onde o campeão veio: anúncio da Meta (Pick from Meta) ou criativo da Biblioteca; os dois null = upload */
+  source: { metaAdId: string | null; creativeId: string | null };
+  /** criativos do lote não arquivados / em APPROVED */
+  pieces: number;
+  ready: number;
+  thumbnail: FileRef | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface ListIterateQuery { limit?: number; cursor?: string; mode?: BatchMode }
+export interface IterateListResponse { data: IterateBatchRow[]; meta: { nextCursor: string | null } }

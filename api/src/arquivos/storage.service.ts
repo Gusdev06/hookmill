@@ -56,6 +56,7 @@ const EXT: Record<string, string> = {
   'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
   'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
   'application/zip': 'zip', // variacao-auto-v1 §8 (ZIP_ARCHIVE)
+  'image/svg+xml': 'svg', 'application/pdf': 'pdf', // kit-marca-v1 (logo SVG, PDF de apresentação)
 };
 const DEFAULT_MIME: Record<MediaKind, string> = { video: 'video/mp4', audio: 'audio/mpeg', image: 'image/png' };
 export const INGEST_ATTEMPTS = 3;
@@ -179,13 +180,26 @@ export class StorageService {
     return { file: r.file, thumbnail: r.thumbnail! };
   }
 
-  private async ingest(url: string, opts: IngestOptions, withThumb: boolean): Promise<{ file: FileRow; thumbnail?: FileRow }> {
+  /**
+   * ads-research-v1 §6.1: igual ao ingestVideoWithThumbnail, mas lendo um objeto que já está no NOSSO storage (chave fora de
+   * `files`, ex.: research/<adArchiveId>/video.mp4) pelo SDK S3. Não usa fetch na URL assinada: o MinIO local responde com
+   * `Connection: close` e o undici do Node 24 estoura uma asserção interna (Parser.finish) no download com backpressure.
+   */
+  async ingestVideoWithThumbnailFromKey(key: string, opts: Omit<IngestOptions, 'validate'>): Promise<{ file: FileRow; thumbnail: FileRow }> {
+    const r = await this.ingest(`s3://${this.bucket}/${key}`, { ...opts, validate: 'video', mimeType: opts.mimeType ?? 'video/mp4' }, true, async (path) => {
+      await this.downloadTo({ storageKey: key }, path);
+      return null;
+    });
+    return { file: r.file, thumbnail: r.thumbnail! };
+  }
+
+  private async ingest(url: string, opts: IngestOptions, withThumb: boolean, fetcher: (path: string) => Promise<string | null> = (p) => download(url, p)): Promise<{ file: FileRow; thumbnail?: FileRow }> {
     let lastError = '';
     for (let attempt = 1; attempt <= INGEST_ATTEMPTS; attempt++) {
       const dir = await mkdtemp(join(tmpdir(), 'maquina-ingest-'));
       const path = join(dir, 'download');
       try {
-        const contentType = await download(url, path);
+        const contentType = await fetcher(path);
         const info = await validateMedia(path, opts.validate);
         const mimeType = opts.mimeType ?? pickMime(contentType, opts.validate);
         let thumbPath: string | null = null;
@@ -223,12 +237,14 @@ export class StorageService {
     return `ws/${workspaceId}/${kind.toLowerCase()}/${randomUUID()}.${EXT[mimeType] ?? 'bin'}`;
   }
 
-  /** URL pré-assinada de PUT, presa ao Content-Length e Content-Type declarados (UPLOAD_MODE=direct). */
-  async presignPut(key: string, opts: { contentType: string; contentLength: number; expiresInSec: number }): Promise<string> {
+  /** URL pré-assinada de PUT, presa ao Content-Type e, quando declarado, ao Content-Length (UPLOAD_MODE=direct).
+   *  Sem contentLength (leitura-lambda-v1: a Lambda sobe frames de tamanho desconhecido): presa só ao Content-Type. */
+  async presignPut(key: string, opts: { contentType: string; contentLength?: number; expiresInSec: number }): Promise<string> {
+    const comTamanho = opts.contentLength !== undefined;
     return getSignedUrl(
       this.s3,
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: opts.contentType, ContentLength: opts.contentLength }),
-      { expiresIn: opts.expiresInSec, signableHeaders: new Set(['content-type', 'content-length']) },
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: opts.contentType, ...(comTamanho ? { ContentLength: opts.contentLength } : {}) }),
+      { expiresIn: opts.expiresInSec, signableHeaders: new Set(comTamanho ? ['content-type', 'content-length'] : ['content-type']) },
     );
   }
 

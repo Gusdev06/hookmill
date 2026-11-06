@@ -15,7 +15,7 @@ import { AppModule } from '../app.module';
 import { hashPassword } from '../common/util/crypto';
 import { AppConfig } from '../config/app-config';
 import { configureApp } from '../main';
-import { hookId } from './brain.montagem';
+import { hookId, itemHash, normalizaUrl } from './brain.montagem';
 
 const isLocal = /@(localhost|127\.0\.0\.1)(:\d+)?\//.test(process.env.DATABASE_URL ?? '');
 jest.setTimeout(120_000);
@@ -50,6 +50,11 @@ describe(isLocal ? 'Brain 3D v1 (integração local)' : 'Brain 3D v1 [pulado: DA
     return { status: r.status, data: json?.data as T, error: json?.error };
   };
   const graph = (token: string, qs = '') => call<BrainGraph>(`/brain/graph${qs}`, token);
+  const send = async <T = unknown>(method: string, path: string, body: unknown, token: string) => {
+    const r = await fetch(`${base}${path}`, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    const json = await r.json().catch(() => null);
+    return { status: r.status, data: json?.data as T, error: json?.error };
+  };
   const node = (token: string, id: string) => call<BrainNodeDetail>(`/brain/node/${encodeURIComponent(id)}`, token);
 
   beforeAll(async () => {
@@ -243,5 +248,120 @@ describe(isLocal ? 'Brain 3D v1 (integração local)' : 'Brain 3D v1 [pulado: DA
     } finally {
       delete (config as unknown as Record<string, unknown>).metaMode;
     }
+  });
+
+  // ───────── brain-preenchido-v1 (04/11): kit, fontes, campos, dores e provas ─────────
+  const kitIds = {} as Record<'logo' | 'pdf' | 'demo', string>;
+  it('brain-preenchido: PATCH /workspace derruba o cache; kit, site + páginas, campos, dores e provas viram nós', async () => {
+    const owner = users.owner.id;
+    const mkFile = (kind: 'BRAND_LOGO' | 'BRAND_FILE' | 'BRAND_VIDEO', ext: string, mimeType: string, durationSec?: number) =>
+      prisma.file.create({ data: { workspaceId: w1, kind, storageKey: `ws/${w1}/${kind.toLowerCase()}/${RUN}-${Math.random().toString(36).slice(2)}.${ext}`, mimeType, sizeBytes: 2048, durationSec } });
+    kitIds.logo = (await prisma.brandAsset.create({ data: { workspaceId: w1, kind: 'LOGO', fileId: (await mkFile('BRAND_LOGO', 'png', 'image/png')).id, colors: ['#112233', '#445566'], createdById: owner } })).id;
+    kitIds.pdf = (await prisma.brandAsset.create({ data: { workspaceId: w1, kind: 'FILE', label: 'Deck', fileId: (await mkFile('BRAND_FILE', 'pdf', 'application/pdf')).id, createdById: owner } })).id;
+    kitIds.demo = (await prisma.brandAsset.create({ data: { workspaceId: w1, kind: 'DEMO_VIDEO', offerId, fileId: (await mkFile('BRAND_VIDEO', 'mp4', 'video/mp4', 3.5)).id, createdById: owner } })).id;
+    await prisma.offer.update({
+      where: { id: offerId },
+      data: {
+        pains: 'Hot nights\nSweaty sheets', proof: '4.8 stars. 10k sold.', fieldSources: { what: 'page', promise: 'user' },
+        readMeta: {
+          readMode: 'crawled', costUsd: 0, readAt: '2026-11-01T10:00:00.000Z',
+          pages: [{ url: 'https://sheets.example/', role: 'main', via: 'http', chars: 900 }, { url: 'https://sheets.example/quiz/1', role: 'quiz_step', via: 'rendered', chars: 120 }],
+          imagesRead: [{ index: 0, src: 'https://sheets.example/a.jpg', alt: null, kind: 'img', widthPx: 10, heightPx: 10 }],
+          fieldOrigins: { what: [{ role: 'main', url: 'https://sheets.example/' }] },
+        },
+      },
+    });
+    await graph(users.owner.token); // cache quente com o grafo velho
+    // a escrita pela API derruba o cache do workspace (sem esperar 60 s nem usar ?fresh)
+    expect((await send('PATCH', '/workspace', { websiteUrl: 'https://www.sheets.example' }, users.owner.token)).status).toBe(200);
+    const g = (await graph(users.owner.token)).data;
+    const byId = new Map(g.nodes.map((n) => [n.id, n]));
+    const site = `source:${normalizaUrl('https://sheets.example')!.hash}`;
+    const quiz = `source:${normalizaUrl('https://sheets.example/quiz/1')!.hash}`;
+    expect(byId.get(`brand_asset:${kitIds.logo}`)).toMatchObject({ label: 'Logo', meta: { assetKind: 'LOGO', thumbnailUrl: expect.stringMatching(/^https?:\/\//) } });
+    expect(byId.get(`brand_asset:${kitIds.pdf}`)!.meta).toMatchObject({ thumbnailUrl: null, customLabel: 'Deck' });
+    expect(byId.get(`brand_asset:${kitIds.demo}`)!.meta).toMatchObject({ durationSec: 3.5, offerId });
+    expect(byId.has('brand_color:112233') && byId.has('brand_color:445566')).toBe(true);
+    expect(byId.get(site)!.meta).toMatchObject({ isWebsite: true, roles: ['main'], offers: 1 });
+    expect(byId.has(quiz)).toBe(true);
+    expect(byId.has(`offer_field:${offerId}:what`) && byId.has(`offer_field:${offerId}:promise`)).toBe(true);
+    expect(g.nodes.filter((n) => n.kind === 'pain')).toHaveLength(2);
+    expect(g.nodes.filter((n) => n.kind === 'proof_item')).toHaveLength(2);
+    expect(g.edges).toEqual(expect.arrayContaining([
+      { from: `brand_asset:${kitIds.demo}`, to: `offer:${offerId}`, kind: 'for_offer' },
+      { from: `business:${w1}`, to: `brand_asset:${kitIds.pdf}`, kind: 'has_brand' },
+      { from: `offer:${offerId}`, to: quiz, kind: 'read_from' },
+    ]));
+    const ids = new Set(g.nodes.map((n) => n.id));
+    for (const e of g.edges) expect(ids.has(e.from) && ids.has(e.to)).toBe(true);
+  });
+
+  it('brain-preenchido: drawer de LOGO / PDF / DEMO_VIDEO, cor, fonte, dor, campo e oferta', async () => {
+    const field = (d: BrainNodeDetail, k: string) => d.fields.find((f) => f.key === k)?.value;
+    const logo = (await node(users.client.token, `brand_asset:${kitIds.logo}`)).data;
+    expect(logo.media).toEqual({ videoUrl: null, posterUrl: expect.stringMatching(/^https?:\/\//) });
+    expect(field(logo, 'brand.colors')).toBe('#112233, #445566');
+    expect(field(logo, 'brand.downloadUrl')).toEqual(expect.stringMatching(/^https?:\/\//));
+    expect(logo.open).toEqual({ route: 'brand', id: kitIds.logo });
+    expect(logo.neighbors.filter((x) => x.edge === 'has_color')).toHaveLength(2);
+    const pdf = (await node(users.owner.token, `brand_asset:${kitIds.pdf}`)).data;
+    expect(pdf.media).toBeNull();
+    expect(field(pdf, 'brand.mimeType')).toBe('application/pdf');
+    expect(field(pdf, 'brand.downloadUrl')).toContain('brand_file');
+    const demo = (await node(users.owner.token, `brand_asset:${kitIds.demo}`)).data;
+    expect(demo.media).toEqual({ videoUrl: expect.stringContaining('brand_video'), posterUrl: null });
+    expect(field(demo, 'brand.durationSec')).toBe(3.5);
+    expect(field(demo, 'brand.offerName')).toBe('Sheets');
+    const cor = (await node(users.owner.token, 'brand_color:112233')).data;
+    expect(cor.fields).toEqual([{ key: 'brand.hex', value: '#112233' }, { key: 'brand.logo', value: 'Logo' }]);
+    expect(cor.open).toEqual({ route: 'brand' });
+
+    const site = (await node(users.owner.token, `source:${normalizaUrl('https://sheets.example')!.hash}`)).data;
+    expect(site.fields).toEqual(expect.arrayContaining([
+      { key: 'source.url', value: 'https://www.sheets.example' }, { key: 'source.roles', value: 'main' }, { key: 'source.via', value: 'http' },
+      { key: 'source.chars', value: 900 }, { key: 'source.readAt', value: '2026-11-01T10:00:00.000Z' }, { key: 'source.offers', value: 'Sheets' }, { key: 'source.isWebsite', value: 1 },
+    ]));
+    expect(site.open).toEqual({ route: 'setup', step: 1 });
+    const quiz = (await node(users.owner.token, `source:${normalizaUrl('https://sheets.example/quiz/1')!.hash}`)).data;
+    expect(quiz.open).toEqual({ route: 'offer', id: offerId });
+    expect(field(quiz, 'source.isWebsite')).toBe(0);
+
+    const dor = (await node(users.owner.token, `pain:${offerId}:${itemHash('Sweaty sheets')}`)).data;
+    expect(dor.fields).toEqual([
+      { key: 'pain.item', value: 'Sweaty sheets' }, { key: 'pain.position', value: 2 }, { key: 'pain.of', value: 2 }, { key: 'pain.offerName', value: 'Sheets' },
+    ]);
+    expect(dor.open).toEqual({ route: 'setup', step: 4 });
+    expect(dor.neighbors).toEqual([expect.objectContaining({ id: `audience:${offerId}`, edge: 'has_pain' })]);
+    const prova = (await node(users.owner.token, `proof_item:${offerId}:${itemHash('10k sold.')}`)).data;
+    expect(prova.fields).toEqual(expect.arrayContaining([{ key: 'proof.item', value: '10k sold.' }, { key: 'proof.position', value: 2 }]));
+    expect(prova.open).toEqual({ route: 'setup', step: 3 });
+    const campo = (await node(users.owner.token, `offer_field:${offerId}:what`)).data;
+    expect(campo.fields.map((x) => x.key)).toEqual(['offer.what', 'offer.readFrom', 'offer.fieldSource', 'offer.offerName']);
+    expect(field(campo, 'offer.what')).toBe('Bamboo sheets');
+    expect(JSON.parse(String(field(campo, 'offer.readFrom')))).toEqual([{ role: 'main', url: 'https://sheets.example/' }]); // jsonb reordena as chaves
+    expect(field(campo, 'offer.fieldSource')).toBe('page');
+    expect(field(campo, 'offer.offerName')).toBe('Sheets');
+    expect(campo.open).toEqual({ route: 'setup', step: 3 });
+    const oferta = (await node(users.owner.token, `offer:${offerId}`)).data;
+    expect(field(oferta, 'offer.imagesRead')).toBe(1);
+    // de outro workspace: 404
+    expect((await node(users.other.token, `brand_asset:${kitIds.logo}`)).status).toBe(404);
+  });
+
+  it('brain-preenchido: subir asset / mudar oferta / apagar asset aparece no grafo na hora (BrainCache.invalidate)', async () => {
+    await graph(users.owner.token); // cache quente
+    const f = await prisma.file.create({ data: { workspaceId: w1, kind: 'BRAND_FILE', storageKey: `ws/${w1}/brand_file/${RUN}-novo.png`, mimeType: 'image/png', sizeBytes: 10 } });
+    const up = await prisma.upload.create({
+      data: { workspaceId: w1, purpose: 'BRAND_FILE', status: 'READY', filename: 'novo.png', mimeType: 'image/png', sizeBytes: 10, storageKey: f.storageKey, fileId: f.id, expiresAt: new Date(Date.now() + 60_000), createdById: users.owner.id },
+    });
+    const a = await send<{ id: string }>('POST', '/brand-kit/assets', { kind: 'FILE', uploadId: up.id, label: 'Novo print' }, users.owner.token);
+    expect(a.status).toBe(201);
+    expect((await graph(users.owner.token)).data.nodes.find((n) => n.id === `brand_asset:${a.data.id}`)).toMatchObject({ label: 'Novo print' });
+    expect((await send('PATCH', `/brand-kit/assets/${a.data.id}`, { label: 'Renomeado' }, users.owner.token)).status).toBe(200);
+    expect((await graph(users.owner.token)).data.nodes.find((n) => n.id === `brand_asset:${a.data.id}`)!.label).toBe('Renomeado');
+    expect((await send('PATCH', `/offers/${offerId}`, { pains: 'Hot nights\nSweaty sheets\nNoisy fan' }, users.owner.token)).status).toBe(200);
+    expect((await graph(users.owner.token)).data.counts.pain.total).toBe(3);
+    expect((await send('DELETE', `/brand-kit/assets/${a.data.id}`, {}, users.owner.token)).status).toBe(200);
+    expect((await graph(users.owner.token)).data.nodes.some((n) => n.id === `brand_asset:${a.data.id}`)).toBe(false);
   });
 });

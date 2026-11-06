@@ -29,6 +29,11 @@ import type {
   VariationItemDraft,
   VariationKind,
   WinnerExample,
+  JudgeCompetitorsInput,
+  JudgeCompetitorsResult,
+  ProposeCompetitorsInput,
+  ProposeCompetitorsResult,
+  ResearchLlmUsage,
 } from '../contrato';
 import { STATIC_TEXT_CHECK_MODEL, WORDS_PER_SECOND } from '../catalogo/precos';
 import { genderOf } from '../catalogo/genero';
@@ -67,15 +72,17 @@ import {
   spokenHookOf,
 } from './edicao';
 import { IntegracaoError, isIntegracaoError } from '../erros';
-import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanUserMessage, parseAutoPlan, STATIC_REF_IMAGES, staticAllowed } from './auto-plano';
+import { AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanSchemaFor, autoPlanUserMessage, parseAutoPlan, STATIC_REF_IMAGES, staticAllowed } from './auto-plano';
 import { allowedFramesOf } from './auto-plano-moldura';
 import { CHAT_DM_SCHEMA, PERSON_MOTION_SCHEMA, templateDetailMessage } from './auto-plano-template';
+import { LIST_SCHEMAS, listDetailMessage, listTemplatesOf } from './auto-plano-lista';
 import { CAPTION_CHECK, CAPTION_CHECK_SCHEMA, CAPTION_CHECK_SYSTEM, captionCheckImages, captionCheckMessage, captionFramesFromInput, parseCaptionCheck, type CheckCaptionInputAny, type CheckCaptionVerdict } from './checagem-legenda';
 import { FRAMES_DETAIL_SCHEMA, STATIC_DETAIL_SCHEMA, detailTargets, framesByIndex, framesDetailMessage, mergeDetails, staticDetailMessage } from './auto-plano-detalhe';
 import { languageName } from './auto-plano';
 import { TEXT_CHECK_SCHEMA, TEXT_CHECK_SYSTEM, ffmpegRunner, parseTextCheck, prepareCheckImages, textCheckEffort, textCheckUserMessage, type RunFfmpeg } from './checagem-texto';
 import type { CostStore } from '../portas';
-import { recordLlmCost } from './custo';
+import { costOf, recordLlmCost } from './custo';
+import { JUDGE_SCHEMA, JUDGE_SYSTEM, PROPOSE_SCHEMA, PROPOSE_SYSTEM, RESEARCH_MAX_JUDGE_PAGES, RESEARCH_MAX_TOKENS, RESEARCH_MODELS, brainContext, judgeUserMessage, parseJudgement, parseProposal, proposeUserMessage } from './concorrentes';
 import {
   DIVERSE_CASTING_SCHEMA,
   DIVERSE_SHARED_SCHEMA,
@@ -119,6 +126,9 @@ export interface ClaudeLiveOptions {
   textCheckModel?: string;
   /** §A6: recorta/reduz a imagem antes da visão (padrão: ffmpeg do PATH / FFMPEG_PATH); null = manda a original se couber */
   runFfmpeg?: RunFfmpeg | null;
+  /** ads-research-v1 (C.3): modelos do D1 (ADS_RESEARCH_PROPOSE_MODEL) e do D4 (ADS_RESEARCH_JUDGE_MODEL) */
+  researchProposeModel?: string;
+  researchJudgeModel?: string;
 }
 
 /** Limites dos frames que vão pro Claude (§6.1: até 16, lado maior 768 px, já reduzidos pelo backend). */
@@ -200,6 +210,8 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       relatedUrls: pages.filter((p) => p.role !== 'main').map((p) => p.url),
       // resultado-v1 (A2): texto colado não tem DOM, então sem cor
       business, brandColor: reading.brandColor ?? null,
+      // lacunas-home-eddy-v1 §2: do HTML/DOM, sem chamada paga
+      logo: reading.logo ?? null, secondaryColor: reading.secondaryColor ?? null,
     };
   }
 
@@ -454,6 +466,7 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       allowedFrames: allowedFramesOf(i),
       headline: i.headline,
       words: i.transcript,
+      listTemplates: listTemplatesOf(i),
     };
     // §14.3: com STATIC em `allowed`, até 4 frames-chave vão como REFERÊNCIA visual (baixados uma vez; o reparo reusa)
     const refs = staticAllowed(i) && i.keyframes.length ? await this.loadFrames(i.keyframes.slice(0, 8), STATIC_REF_IMAGES) : { images: [], failed: 0 };
@@ -464,12 +477,12 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     // 1ª etapa: o plano (STATIC = conceito + emoção, FRAME = template). Esquema pequeno: o único com tudo estourou a
     // gramática da saída estruturada em live (25/10, auto-plano-detalhe.ts).
     const { root, targets, whys } = await this.withRetry('auto plan', async () => {
-      const res = await this.transport.run({ system: AUTO_PLAN_SYSTEM, context, ...(images.length ? { images } : {}), user, schema: AUTO_PLAN_SCHEMA, maxTokens: 32000 });
+      const res = await this.transport.run({ system: AUTO_PLAN_SYSTEM, context, ...(images.length ? { images } : {}), user, schema: autoPlanSchemaFor(i), maxTokens: 32000 });
       const spent = await this.charge(res, charge);
       total += spent;
       this.assertFinished(res);
       const r = parseJsonObject(res.text);
-      const tg = detailTargets(r, ctx.allowedFrames);
+      const tg = detailTargets(r, ctx.allowedFrames, ctx.listTemplates);
       let first: ReturnType<typeof parseAutoPlan> | null = null;
       try {
         first = parseAutoPlan(res.text, ctx); // forma do plano (why, itens); STATIC/FRAME ainda sem texto
@@ -484,6 +497,8 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     const statics = targets.filter((x) => x.kind === 'STATIC');
     const frames = targets.filter((x) => x.kind === 'FRAME');
     const templates = targets.filter((x) => x.kind === 'CHAT_DM' || x.kind === 'PERSON_MOTION');
+    const lists = targets.filter((x) => x.kind === 'LIST_OVERLAY' && x.listTemplate);
+    const hasPrice = (i.offer.offerAndPrice ?? '').trim().length > 0;
     const detailCall = async (what: string, call: () => Promise<Record<string, unknown>>) => {
       try {
         return await this.withRetry(what, call);
@@ -499,13 +514,16 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       this.assertFinished(res);
       return parseJsonObject(res.text);
     };
-    const [staticDetails, framesDetail, templateDetails] = await Promise.all([
+    const [staticDetails, framesDetail, templateDetails, listDetails] = await Promise.all([
       Promise.all(statics.map((tg) => detailCall(`auto plan STATIC ${tg.index}`, () =>
         runDetail(staticDetailMessage(tg, { screenLanguage, whys, others: statics.filter((x) => x.index !== tg.index), violations: i.violations, refImages: images.length }), STATIC_DETAIL_SCHEMA, true)))),
       frames.length ? detailCall('auto plan FRAMES', () => runDetail(framesDetailMessage(frames, { screenLanguage, whys, violations: i.violations }), FRAMES_DETAIL_SCHEMA, false, 'low')) : Promise.resolve(null),
       // iterate-v2 F1.2: 1 chamada por template (CHAT_DM / PERSON_MOTION), mesmo sistema + contexto (cache)
       Promise.all(templates.map((tg) => detailCall(`auto plan ${tg.kind}`, () =>
         runDetail(templateDetailMessage(tg.kind as 'CHAT_DM' | 'PERSON_MOTION', tg, { screenLanguage, whys, violations: i.violations }), tg.kind === 'CHAT_DM' ? CHAT_DM_SCHEMA : PERSON_MOTION_SCHEMA, false)))),
+      // templates-lista-v1 §2: 1 chamada por template de lista (Versus / Value stack), mesmo sistema + contexto (cache)
+      Promise.all(lists.map((tg) => detailCall(`auto plan LIST_OVERLAY ${tg.listTemplate}`, () =>
+        runDetail(listDetailMessage(tg.listTemplate!, tg, { screenLanguage, whys, violations: i.violations, hasPrice, maxPairs: i.list?.[tg.listTemplate!]?.maxPairs === 4 ? 4 : 3 }), LIST_SCHEMAS[tg.listTemplate!], false)))),
     ]);
     const details = framesByIndex(framesDetail, frames);
     statics.forEach((tg, k) => {
@@ -513,6 +531,9 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     });
     templates.forEach((tg, k) => {
       if (templateDetails[k]) details.set(tg.index, templateDetails[k]!);
+    });
+    lists.forEach((tg, k) => {
+      if (listDetails[k]) details.set(tg.index, listDetails[k]!);
     });
     const draft = parseAutoPlan(mergeDetails(root, targets, details), ctx);
     // TRANSIÇÃO (§C.0): itens FRAME só existem quando o backend põe FRAME em `allowed` (alias WithFrame); na fusão do B1
@@ -583,6 +604,44 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     return { ...out, costUsd: round6(total) };
   }
 
+  // ---------- ads-research-v1 (Ad Radar), C.3 / C.8 ----------
+  /**
+   * D1: país + até 6 marcas que anunciam no país + 6 termos tipados. Sonnet, effort medium, json_schema estrito, sem web.
+   * NÃO grava cost_entry (C.8): devolve o uso (inclusive de uma nova tentativa) pro backend gravar com o discoveryId.
+   */
+  async proposeCompetitors(i: ProposeCompetitorsInput): Promise<ProposeCompetitorsResult> {
+    const model = this.opts.researchProposeModel || RESEARCH_MODELS.propose;
+    const usage: ClaudeResult['usage'] = [];
+    const out = await this.withRetry('propose competitors', async () => {
+      const res = await this.transport.run({
+        system: PROPOSE_SYSTEM, context: brainContext(i.brain), user: proposeUserMessage(i), schema: PROPOSE_SCHEMA,
+        maxTokens: RESEARCH_MAX_TOKENS.propose, model, effort: 'medium',
+      });
+      usage.push(...res.usage);
+      this.assertFinished(res);
+      return parseProposal(res.text, i);
+    });
+    return { ...out, ...researchUsage(model, usage) };
+  }
+
+  /** D4: direto × vizinho × none + nota + motivo (PT-BR) por Página, até 25. Haiku (sem effort). Não grava custo (C.8). */
+  async judgeCompetitors(i: JudgeCompetitorsInput): Promise<JudgeCompetitorsResult> {
+    const model = this.opts.researchJudgeModel || RESEARCH_MODELS.judge;
+    if (!i.pages.length) return { items: [], ...researchUsage(model, []) };
+    const pages = i.pages.slice(0, RESEARCH_MAX_JUDGE_PAGES);
+    const usage: ClaudeResult['usage'] = [];
+    const items = await this.withRetry('judge competitors', async () => {
+      const res = await this.transport.run({
+        system: JUDGE_SYSTEM, context: brainContext(i.brain), user: judgeUserMessage({ ...i, pages }), schema: JUDGE_SCHEMA,
+        maxTokens: RESEARCH_MAX_TOKENS.judge, model, effort: model.includes('haiku-4-5') ? null : 'low',
+      });
+      usage.push(...res.usage);
+      this.assertFinished(res);
+      return parseJudgement(res.text, { ...i, pages });
+    });
+    return { items, ...researchUsage(model, usage) };
+  }
+
   /** 1 nova tentativa quando a resposta veio mas não serve (JSON fora da regra, corte); recusa não repete. */
   private async withRetry<T>(what: string, fn: () => Promise<T>): Promise<T> {
     try {
@@ -629,6 +688,13 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
     if (res.stopReason === 'refusal') throw new IntegracaoError('SAFETY_BLOCK', 'claude declined (refusal)');
     if (res.stopReason === 'max_tokens') throw new IntegracaoError('PROVIDER_ERROR', MAX_TOKENS_MSG);
   }
+}
+
+/** Uso somado das tentativas de uma chamada do Ad Radar (o backend grava ktoken_in / ktoken_out). */
+function researchUsage(model: string, usage: ClaudeResult['usage']): ResearchLlmUsage {
+  const c = costOf(usage);
+  const used = usage.length ? [...new Set(usage.map((u) => u.model))].join('>') : model;
+  return { model: used, inputKtok: c.inputKtok, outputKtok: c.outputKtok, inputUsd: c.inputUsd, outputUsd: c.outputUsd, costUsd: c.totalUsd };
 }
 
 function round6(n: number) {

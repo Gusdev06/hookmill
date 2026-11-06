@@ -3,6 +3,8 @@ Data: 2026-10-29 · Dono: maquina-arquiteto · Status: **PROPOSTA. Nenhum códig
 Origem: decisão do Gusta de 29/10 (`decisions/log.md` do AIS-OS), em cima do Loom do Tordan de 29/10 (`feedback/tordan-loom-2026-10-29.md` §1) e do reverse engineer do Superscale (`reports/superscale-reverse-engineer-2026-10-29.md`).
 Vale por cima de `iterate-v2-quiz-templates-ia.md` e `variacao-auto-v1.md` só no que muda aqui.
 
+> **31/10 — substituído em parte por `templates-creditos-v1.md` §5 (decisão do Gusta: "amostra = 4 usos de template de Edição").** Com `TEMPLATES=on`: a conta SAMPLE ganha 4 usos (pool `SAMPLE` do livro-razão) de template de Edição; Estático e IA = 402 `sample_tier`; `POST /iterate` (quiz) = 402 `sample_templates`; não lança sozinha (a pessoa clica Gerar e gasta 1 uso; falhou = volta). Continuam valendo daqui: P1 (conta), §3 prévia borrada, §4 travas 402 `locked`, §5 liberação manual (`PATCH /admin/users/:id/access`), §6 antiabuso (vira GRANT 0) e o teto de US$ 1 por lote. Com `TEMPLATES=off` o fluxo abaixo segue igual.
+
 ## 0. Em 5 linhas
 1. Conta nova (modo "próprio", não agência) sobe o criativo → o Iterate roda normal, mas **só com tipos grátis** (edição e template, nunca IA nem STATIC) e **no máximo 4 peças**.
 2. As peças renderizam de verdade (custo nosso ≈ análise + ~US$ 0,02–0,03 por peça), mas a pessoa só recebe uma **prévia borrada**: os 3 primeiros segundos nítidos (o gancho) e o resto borrado, em 480p, com selo "HookMill".

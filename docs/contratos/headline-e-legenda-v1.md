@@ -1,5 +1,6 @@
 # Headline nova e legenda sempre (variação AUTO) — adendo v1
 Data: 2026-10-25 · Dono: maquina-arquiteto · Status: **APROVADO pelo Gusta em 25/10 ("pode"), H1–H9 com a recomendação do arquiteto**
+> **05/11:** placa sobre texto solto, §1.3 no `replace` e `HEADLINE_NO_ROOM` no `replace` foram substituídos por `troca-texto-queimado-v1.md` §15. Modo `add` segue.
 Origem: decisões do Gusta de 25/10, depois do teste ao vivo das molduras. Vale **por cima** de `variacao-auto-v1.md` §6.1 (revisão 25/10) e §7, e de `estatico-montado-e-molduras-v1.md` §B2 só no que este arquivo muda.
 O que já existe e é reaproveitado (lido no código em 25/10):
 - `editMap.layers` do `describeEdit` (`feature-2-variar-campeao.md` §13.2), que traz `kind` (`headline` | `caption` | `text`), caixa, intervalo, texto literal, fundo (`solid` / `pill` / `none`) e estilo (`fontId` do catálogo, peso, caixa alta, cor, destaque, contorno, sombra, alinhamento, tamanho). Refino por pixel: `layerPresence` e `solidBackground` em `api/src/medicao/camadas.ts`, que também medem degradê.

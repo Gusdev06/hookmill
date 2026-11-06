@@ -3,17 +3,23 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
-import type { IterateBatch, IterateConfig, IterateRunningRef, OfferRequiredDetails } from "@/lib/api/types"
+import type { IterateBatch, IterateConfig, IterateRunningRef, MetaAdRow, MetaOfferFit, OfferRequiredDetails } from "@/lib/api/types"
+import { useActiveOffer } from "@/lib/active-offer"
 import { iterateHref } from "@/lib/routes"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { AdRow } from "@/components/meta/ad-row"
+import { Reveal } from "@/components/ui/reveal"
+import { SAMPLE_META_ADS } from "@/lib/skeleton-samples"
+import { OfferFitMenu, useOtherOfferGuard, type OfferRef } from "@/components/meta/offer-fit-menu"
+import { NotSureChip, OfferNotices, OfferSections } from "@/components/meta/offer-sections"
+import { useSession } from "@/components/providers/session-provider"
 import { metaReady, mk, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
 import { CleanVersionField } from "./captions"
 import { MetaLockCard, metaGateOf } from "@/components/meta/meta-gate"
@@ -132,7 +138,16 @@ function Ready({ config }: { config: IterateConfig }) {
   const metaConn = useMetaConnection()
   const metaOn = metaReady(metaConn.data) && metaGateOf(metaConn.data) === "ready"
   const [offers, setOffers] = useState(config.offers)
-  const [offerId, setOfferId] = useState<string | null>(config.defaultOfferId ?? (config.offers.length === 1 ? config.offers[0].id : null))
+  // meta-oferta-v1 §8: the offer of this screen is the workspace's active offer (picked → stored → only one → defaultOfferId)
+  const { session } = useSession()
+  const active = useActiveOffer(session.workspace.id, offers, config.defaultOfferId)
+  // 422 OFFER_REQUIRED: the person has to pick, even if one resolved by itself
+  const [forcePick, setForcePick] = useState(false)
+  const offerId = forcePick ? null : active.offerId
+  const setOfferId = (id: string) => {
+    setForcePick(false)
+    active.setOfferId(id)
+  }
   const [offerAsked, setOfferAsked] = useState(false)
   const needsOffer = offers.length > 1 || offerAsked
 
@@ -157,7 +172,7 @@ function Ready({ config }: { config: IterateConfig }) {
         const d = e.details as unknown as OfferRequiredDetails | undefined
         if (d?.offers?.length) setOffers(d.offers.map((o) => ({ ...o, language: offers.find((x) => x.id === o.id)?.language ?? "" })))
         setOfferAsked(true)
-        setOfferId(null)
+        setForcePick(true)
       }
     },
   })
@@ -204,6 +219,8 @@ function Ready({ config }: { config: IterateConfig }) {
         openBatchOf={(metaAdId) => stillWorking.find((r) => r.metaAdId === metaAdId)?.id ?? null}
         onPick={(metaAdId) => create.mutate({ metaAdId, offerId: needsOffer ? offerId ?? undefined : undefined })}
         needsOffer={needsOffer && !offerId}
+        offer={offerId ? (offers.find((o) => o.id === offerId) ?? null) : null}
+        offers={offers}
       />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-start gap-4">
         <div id="t-upload" className="flex min-w-0 flex-col gap-3">
@@ -384,7 +401,14 @@ function Source({ state, config, inputRef: input, onFile, onCancel, creating }: 
  * trend, the winner first and marked. "Iterate it" = POST /iterate { metaAdId } (D13, the only path of Pick from Meta).
  * `?metaAdId=` (from Home) pre-selects the row. Without a ready connection: the neutral alert with "Connect Meta".
  */
-function MetaPick({ busy, running, onPick, needsOffer, readOnly, openBatchOf }: { busy: boolean; running: string | null; onPick: (metaAdId: string) => void; needsOffer: boolean; readOnly?: boolean; openBatchOf?: (metaAdId: string) => string | null }) {
+function MetaPick({
+  busy, running, onPick, needsOffer, readOnly, openBatchOf, offer = null, offers = [],
+}: {
+  busy: boolean; running: string | null; onPick: (metaAdId: string) => void; needsOffer: boolean; readOnly?: boolean; openBatchOf?: (metaAdId: string) => string | null
+  /** meta-oferta-v1 §8: the active offer (the list is asked with it and grouped); null = as before */
+  offer?: OfferRef | null
+  offers?: OfferRef[]
+}) {
   const t = useTranslations("iterate.meta")
   const errorMessage = useErrorMessage()
   const rel = useRelativeTime()
@@ -394,12 +418,18 @@ function MetaPick({ busy, running, onPick, needsOffer, readOnly, openBatchOf }: 
   const ready = metaReady(conn.data) && gate === "ready"
   const preselected = useSearchParams().get("metaAdId")
   const [all, setAll] = useState(false)
-  const ads = useQuery({
-    queryKey: mk.ads({ limit: all ? 20 : 3 }),
-    queryFn: ({ signal }) => api.meta.ads({ limit: all ? 20 : 3 }, { signal }),
+  // 04/11 (Gusta): "see all" lists EVERY video ad of the account (paused / disapproved too), 30 per page with "Load more"
+  const adsQ = { limit: all ? 30 : 3, status: all ? ("all" as const) : undefined, offerId: offer?.id }
+  const adsPages = useInfiniteQuery({
+    queryKey: mk.ads(adsQ),
+    queryFn: ({ pageParam, signal }) => api.meta.ads({ ...adsQ, cursor: pageParam ?? undefined }, { signal }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => (all ? (last.meta?.nextCursor ?? null) : null),
     enabled: ready,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
+  const ads = { ...adsPages, data: adsPages.data ? { data: adsPages.data.pages.flatMap((p) => p.data), meta: adsPages.data.pages[0].meta } : undefined }
   // ?metaAdId= (Campaigns, Home, Brain): the chosen ad may sit outside the top rows, so fetch it and pin it first
   const picked = useQuery({
     queryKey: mk.ads({ q: preselected ?? "", limit: 1, format: "all" }),
@@ -407,13 +437,18 @@ function MetaPick({ busy, running, onPick, needsOffer, readOnly, openBatchOf }: 
     enabled: ready && !!preselected,
     staleTime: 30_000,
   })
-  const pinned = picked.data?.data.find((a) => a.metaAdId === preselected) ?? null
+  // the pinned ad is read without offerId (§8); when it is also in the offer-aware list, that copy (with `offer.fit`) wins
+  const pinned0 = picked.data?.data.find((a) => a.metaAdId === preselected) ?? null
+  const pinned = pinned0 ? (ads.data?.data.find((a) => a.metaAdId === pinned0.metaAdId) ?? pinned0) : null
   const rows = ads.data ? (pinned ? [pinned, ...ads.data.data.filter((a) => a.metaAdId !== pinned.metaAdId)] : ads.data.data) : []
+  const guard = useOtherOfferGuard(offer)
   // QA layout 29/10 #7: a placeholder of the card's size while the connection loads (it used to pop in and push the page down)
   if (conn.isPending)
     return (
-      <Card className="gap-3" aria-busy="true">
-        <span className="sk h-5 w-48" />
+      <Card className="gap-3">
+        <Reveal loading id="iterate.ads.title">
+          <h2>{t("title", { name: "Ad account name" })}</h2>
+        </Reveal>
         <AdRowsSkeleton />
       </Card>
     )
@@ -445,38 +480,78 @@ function MetaPick({ busy, running, onPick, needsOffer, readOnly, openBatchOf }: 
         <p className="m-0 text-[13px] text-fg-3">{t("firstSync")}</p>
       ) : rows.length ? (
         <>
-          <div className="flex flex-col gap-2">
-            {rows.map((ad, i) => (
-              <AdRow
-                key={ad.metaAdId}
-                ad={ad}
-                currency={summary?.currency}
-                stats="account"
-                selected={preselected === ad.metaAdId}
-                winner={i === 0 && ad.verdict === "WINNER"}
-                action={
-                  openBatchOf?.(ad.metaAdId) ? (
-                    // 29/10: this ad already has a batch working; open it instead of paying the analysis again
-                    <Link href={iterateHref(openBatchOf(ad.metaAdId))} className={buttonVariants({ size: "sm", variant: "outline" })}>
-                      <span className="spin-ring size-3.5" aria-hidden="true" />
-                      {t("openRunning")}
-                    </Link>
-                  ) : (
-                  <Button size="sm" variant={i === 0 && ad.verdict === "WINNER" ? "default" : "outline"} disabled={busy || needsOffer || readOnly} title={readOnly ? t("readOnly") : undefined} aria-busy={running === ad.metaAdId} onClick={() => onPick(ad.metaAdId)}>
-                    {running === ad.metaAdId ? <span className="spin-ring size-3.5" aria-hidden="true" /> : null}
-                    {ad.championId ? t("iterateAgain") : t("iterateIt")}
-                  </Button>
+          {offer ? <OfferNotices offer={offer} meta={ads.data?.meta.offer} /> : null}
+          <OfferSections
+            offer={offer}
+            rows={rows}
+            meta={ads.data?.meta.offer}
+            onOpenOther={() => setAll(true)}
+            moreOther={
+              adsPages.hasNextPage ? (
+                <Button variant="outline" size="sm" className="self-start" disabled={adsPages.isFetchingNextPage} aria-busy={adsPages.isFetchingNextPage} onClick={() => adsPages.fetchNextPage()}>
+                  {adsPages.isFetchingNextPage ? <span className="spin-ring size-3.5" aria-hidden="true" /> : null}
+                  {t("loadMore")}
+                </Button>
+              ) : adsPages.isFetching ? (
+                <span className="sk h-[72px] rounded-md" />
+              ) : null
+            }
+            renderGroup={(list: MetaAdRow[], g: MetaOfferFit | "flat") => (
+              <div className="flex flex-col gap-2">
+                {list.map((ad) => {
+                  const win = ad === rows[0] && ad.verdict === "WINNER" && g !== "other"
+                  return (
+                    <AdRow
+                      key={ad.metaAdId}
+                      ad={ad}
+                      currency={summary?.currency}
+                      stats="account"
+                      selected={preselected === ad.metaAdId}
+                      winner={win}
+                      action={
+                        <>
+                          {g === "unknown" ? <NotSureChip /> : null}
+                          {openBatchOf?.(ad.metaAdId) ? (
+                            // 29/10: this ad already has a batch working; open it instead of paying the analysis again
+                            <Link href={iterateHref(openBatchOf(ad.metaAdId))} className={buttonVariants({ size: "sm", variant: "outline" })}>
+                              <span className="spin-ring size-3.5" aria-hidden="true" />
+                              {t("openRunning")}
+                            </Link>
+                          ) : (
+                            <Button size="sm" variant={win ? "default" : "outline"} disabled={busy || needsOffer || readOnly} title={readOnly ? t("readOnly") : undefined} aria-busy={running === ad.metaAdId} onClick={() => guard.check(ad, () => onPick(ad.metaAdId))}>
+                              {running === ad.metaAdId ? <span className="spin-ring size-3.5" aria-hidden="true" /> : null}
+                              {ad.championId ? t("iterateAgain") : t("iterateIt")}
+                            </Button>
+                          )}
+                          {readOnly ? null : <OfferFitMenu ad={ad} active={offer} offers={offers} />}
+                        </>
+                      }
+                    />
                   )
-                }
-              />
-            ))}
-          </div>
+                })}
+              </div>
+            )}
+          />
+          {guard.dialog}
           {needsOffer ? <span className="text-xs text-status-waiting">{t("pickOffer")}</span> : null}
-          {summary && summary.activeAds > 3 && !all ? (
+          {summary && summary.adsCount > rows.length && !all ? (
             <Button variant="ghost" size="sm" className="self-start" onClick={() => setAll(true)}>
-              {t("seeAll", { n: summary.activeAds })}
+              {t("seeAllAds", { n: summary.adsCount })}
               <NavIcon name="right" size={16} />
             </Button>
+          ) : null}
+          {all ? (
+            <div className="flex flex-wrap gap-2">
+              {adsPages.hasNextPage ? (
+                <Button variant="outline" size="sm" disabled={adsPages.isFetchingNextPage} aria-busy={adsPages.isFetchingNextPage} onClick={() => adsPages.fetchNextPage()}>
+                  {adsPages.isFetchingNextPage ? <span className="spin-ring size-3.5" aria-hidden="true" /> : null}
+                  {t("loadMore")}
+                </Button>
+              ) : null}
+              <Button variant="ghost" size="sm" onClick={() => setAll(false)}>
+                {t("showLess")}
+              </Button>
+            </div>
           ) : null}
           {summary?.rule ? <span className="text-xs text-fg-3">{t("rule", { spend: summary.rule.minSpendUsd, results: summary.rule.minResults })}</span> : null}
         </>
@@ -510,13 +585,24 @@ function StillWorking({ items }: { items: IterateRunningRef[] }) {
   )
 }
 
-/** QA layout 29/10 #7: the 3 ad rows at their real height (stacked below 1100 px, one line above), so the card doesn't grow. */
+/**
+ * QA layout 29/10 #7: the 3 ad rows at their real height (stacked below 1100 px, one line above), so the card doesn't grow.
+ * skullet (04/11): the rows are the real AdRow measured from sample ads; the padding keeps the room of the lines under the list.
+ */
 function AdRowsSkeleton() {
+  const t = useTranslations("iterate.meta")
+  const tl = useTranslations("skeleton")
   return (
-    <div className="grid gap-2 pb-[88px] min-[1100px]:pb-[70px]">
-      {[0, 1, 2].map((i) => (
-        <span key={i} className="sk h-[169px] rounded-md min-[1100px]:h-[72px]" />
-      ))}
+    <div className="pb-[88px] min-[1100px]:pb-[70px]">
+      <Reveal data={null} sample={SAMPLE_META_ADS} id="iterate.ads" label={tl("iterate")}>
+        {(ads) => (
+          <div className="flex flex-col gap-2">
+            {ads.map((ad) => (
+              <AdRow key={ad.metaAdId} ad={ad} currency="USD" stats="account" action={<Button size="sm" variant="outline">{t("iterateIt")}</Button>} />
+            ))}
+          </div>
+        )}
+      </Reveal>
     </div>
   )
 }

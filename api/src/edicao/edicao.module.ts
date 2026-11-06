@@ -9,7 +9,9 @@ import { EdicaoService } from './edicao.service';
 import { RenderWebhookController } from './render-webhook.controller';
 import { FakeRenderService } from './fake-render.service';
 import { EditorController } from './editor.controller';
-import { EditorSaves } from './editor-saves';
+import { EditorAutoService } from './editor-auto.service';
+import { EditorExportService } from './editor-export.service';
+import { ProxyService } from './proxy.service';
 import { EditorService } from './editor.service';
 import { AUTO_EDIT_BUILDER } from './auto-edit-input';
 import { FRAME_BUILDER, comConteudoDoCampeao } from './frame-input';
@@ -140,11 +142,14 @@ export function renderImpl(env: NodeJS.ProcessEnv = process.env): 'fake' | 'remo
     },
     SegundaFonteService,
     ChecagemLegendaService,
-    EditorSaves,
+    // editor-universal-v1 F-U1: proxy 540p, fim do export (checagens) e editor da peça AUTO (FRAME/HEADLINE)
+    ProxyService,
+    EditorExportService,
+    EditorAutoService,
     EditorService,
     PecasAutoService,
     ImagemEstaticaService, // rev. 23/10 §14.3: STATIC no GPT Image 2 (render IMAGE_GEN)
   ],
-  exports: [EdicaoService, SegundaFonteService, PecasAutoService, ImagemEstaticaService],
+  exports: [EdicaoService, SegundaFonteService, PecasAutoService, ImagemEstaticaService, ProxyService],
 })
 export class EdicaoModule {}

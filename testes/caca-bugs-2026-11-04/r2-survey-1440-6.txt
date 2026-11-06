@@ -1,0 +1,83 @@
+Settings
+›
+Templates
+›
+New campaign template
+Import from a campaign
+Default for Mock Disabled (BRL)
+STRUCTURE
+CAMPAIGN
+Sleepwell — HookMill tests
+Sales · CBO budget missing
+AD SET
+2 ad sets · 4–8 ads each
+Purchase · US · 18–65
+AD
+One per approved video
+Shop now · no link
+WITH 10 APPROVED ADS
+1 campaign
+reused
+Ad set 1
+8 ads
+Ad set 2
+2 ads · below 4
+Everything goes up paused.
+Already have a campaign that works?
+Import its settings
+Set up how your ads go up on Meta.
+Same steps as Ads Manager. HookMill saves it as a template for Mock Disabled (BRL) and uses it on every publish. Only the budget is missing.
+Meta connection expired.
+You can look at the template, but saving needs a live connection (pixels and the Page come from it). Your changes stay here while you reconnect.
+Reconnect Meta
+Campaign
+Campaign name
+Campaign name
+Variables: {offer}{code}{date}{n}
+→ Sleepwell — HookMill tests
+Publish into
+HOOKMILL
+One campaign for every publish
+HookMill creates it the first time and adds new ad sets to it. Good for testing.
+A new campaign for each batch
+Every publish creates its own campaign.
+Special Ad Categories
+
+Ads about credit, employment, housing, social issues or financial services have to say so. Meta limits their targeting.
+
+Declare categories if applicable
+Campaign details
+Buying type
+Auction
+RESERVATION SOON
+Campaign objective
+Awareness
+Show ads to people most likely to remember them.
+Traffic
+Send people to your site.
+Engagement
+Get more video views or interactions.
+Leads
+Collect leads for your business.
+App promotion
+Find people to install your app.
+Sales
+Find people likely to purchase.
+Budget
+Advantage+ campaign budget
+On (CBO): Meta spreads one budget across the ad sets.
+Budget
+Daily budget
+Daily budget
+BRL
+Meta’s minimum for this account: R$5.00 a day.
+Campaign bid strategy
+Highest volume
+Get the most results for your budget.
+A/B test
+Test this campaign against another · Meta’s split test
+SOON
+Back
+Becomes the default for Mock Disabled (BRL)
+Next: Ad set
+Save template

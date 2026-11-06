@@ -1,6 +1,6 @@
 // Leitura da Marketing API (meta-v1.md §3.1 options/health e §3.2 sync): contas com user_tasks, páginas, pixels com
 // last_fired_time, verification_status, anúncios de vídeo (até 500) e as 3 janelas de insights → MetaMetrics.
-import type { MetaAdAccountOption, MetaMetrics, MetaOptions } from '@maquina/contratos';
+import type { MetaAdAccountOption, MetaDestinationSource, MetaMetrics, MetaOptions } from '@maquina/contratos';
 import type { BusinessType, ResultType, MetaAdAccountInfo, MetaAdSnapshotDraft, MetaAdsetSnapshotDraft, MetaCampaignSnapshotDraft, MetaSyncInput, MetaSyncStage } from '../contrato';
 import { Logger } from '@nestjs/common';
 import { GraphClient, type Raw } from './cliente';
@@ -9,16 +9,30 @@ import { MetaError, accountStatusLabel, isMetaError } from './erros';
 const log = new Logger('MetaLeitura');
 
 // Listagem LEVE (bug live 22/10: com `object_story_spec` a Graph devolvia code 1 "reduce the amount of data" em conta grande).
-// O `video_id` de criativo que só tem `object_story_spec.video_data` sai de um lookup em lote (fillStoryVideoIds), só pros que faltam.
+// O `video_id` de criativo que só tem `object_story_spec.video_data` e o link de destino (meta-oferta-v1 §2) saem do lookup
+// por criativo (readCreativeLinks), depois dos insights, por gasto.
 export const AD_FIELDS = 'id,name,status,effective_status,created_time,campaign{id,name},adset{id,name},creative{id,video_id,thumbnail_url,object_type}';
 /** campanhas-v1 §1 (22/10): estrutura + orçamento por nível. Orçamentos vêm em string, em centavos da moeda da conta. */
 export const CAMPAIGN_FIELDS = 'id,name,objective,status,effective_status,buying_type,bid_strategy,daily_budget,lifetime_budget,budget_remaining,special_ad_categories,start_time,stop_time,created_time';
 export const ADSET_FIELDS = 'id,name,campaign_id,status,effective_status,optimization_goal,billing_event,bid_strategy,daily_budget,lifetime_budget,budget_remaining,learning_stage_info,start_time,end_time,created_time';
 /** Fora da leitura (campanhas-v1 §1): apagados/arquivados não aparecem na tela. */
 export const HIDDEN_STATUSES = new Set(['ARCHIVED', 'DELETED']);
-/** Lookup do video_id pelo object_story_spec (só criativos de vídeo sem video_id na listagem): teto e paralelismo. */
-export const STORY_LOOKUP_MAX = 100;
-export const STORY_LOOKUP_PARALLEL = 5;
+/** meta-oferta-v1 §2.2: lookup por criativo (link + video_id numa chamada só): teto por sync e paralelismo. */
+export const LINK_LOOKUP_MAX = 250;
+export const LINK_LOOKUP_PARALLEL = 5;
+/** §2.1: campos do lookup por criativo (sonda S1 pendente: ver PORTA.md). */
+export const LINK_FIELDS = 'object_story_spec{link_data{link},video_data{video_id,call_to_action{type,value{link,lead_gen_form_id,app_link}}},template_data{link}},asset_feed_spec{link_urls{website_url}},url_tags,object_type';
+/** §2.3: encurtadores seguidos no sync (lista fechada: nunca chama host fora dela). */
+export const SHORTENERS = new Set(['bit.ly', 'bitly.com', 'tinyurl.com', 't.co', 'cutt.ly', 'ow.ly', 'rebrand.ly', 'is.gd', 'shorturl.at', 'rb.gy', 't.ly', 'tiny.cc', 'buff.ly', 'lnkd.in', 'encurtador.com.br']);
+export const SHORTENER_MAX = 50;
+export const SHORTENER_HOPS = 3;
+export const SHORTENER_TIMEOUT_MS = 3_000;
+/** §2.1: destino de conversa, não de site (fica `messaging`, sem URL). */
+const MESSAGING_HOSTS = new Set(['wa.me', 'api.whatsapp.com', 'm.me', 'messenger.com', 'ig.me']);
+const MESSAGING_CTAS = new Set(['MESSAGE_PAGE', 'WHATSAPP_MESSAGE']);
+const MAX_URLS = 5;
+const MAX_URL_LEN = 2048;
+const MAX_TAGS_LEN = 1024;
 export const ACCOUNT_FIELDS = 'id,name,currency,timezone_name,account_status,business,user_tasks,funding_source_details,minimum_budgets';
 /** Campo da Graph que alimenta `plays2s`/`hookRate`: "2-Second Continuous Video Plays" (≥ 2 s contínuos com ≥ 50 % do vídeo
  *  na tela). `video_3_sec_watched_actions` NÃO existe na Marketing API (v25.0 devolve #100 "is not valid for fields param";
@@ -183,33 +197,124 @@ export function mapInsight(row: Raw | null, result: { primary: string; fallback:
 
 export const isVideoAd = (ad: Raw): boolean => !!(ad.creative && (ad.creative.video_id || ad.creative.object_story_spec?.video_data));
 
+/** Link do criativo (§2.1) + o `video_id` da `object_story_spec.video_data` (que antes vinha do fillStoryVideoIds). */
+export interface CreativeLinks { destinationUrls: string[]; destinationSource: MetaDestinationSource; urlTags: string | null; videoId: string | null }
+
+const bareHost = (u: string): string | null => {
+  try {
+    return new URL(u).hostname.toLowerCase().replace(/\.$/, '').replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+};
+const httpUrl = (v: unknown): string | null => {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  if (!/^https?:\/\//i.test(t) || t.length > MAX_URL_LEN) return null;
+  return bareHost(t) ? t : null;
+};
+const isMessaging = (u: string) => MESSAGING_HOSTS.has(bareHost(u) ?? '');
+
+/** §2.1: lê o criativo na ordem video_cta → story_link → template → asset_feed; o 1º link http(s) define a origem. */
+export function linksOfCreative(c: Raw | null | undefined): CreativeLinks {
+  const oss = c?.object_story_spec as Raw | undefined;
+  const afs = c?.asset_feed_spec as Raw | undefined;
+  const cta = oss?.video_data?.call_to_action as Raw | undefined;
+  const urlTags = typeof c?.url_tags === 'string' && c.url_tags.trim() ? String(c.url_tags).trim().slice(0, MAX_TAGS_LEN) : null;
+  const videoId = oss?.video_data?.video_id ? String(oss.video_data.video_id) : null;
+  const feed: unknown[] = Array.isArray(afs?.link_urls) ? (afs!.link_urls as Raw[]).map((l) => l?.website_url) : [];
+  const order: [MetaDestinationSource, unknown[]][] = [
+    ['video_cta', [cta?.value?.link]], ['story_link', [oss?.link_data?.link]], ['template', [oss?.template_data?.link]], ['asset_feed', feed],
+  ];
+  for (const [source, raw] of order) {
+    const urls = raw.map(httpUrl).filter((u): u is string => !!u);
+    if (!urls.length) continue;
+    if (isMessaging(urls[0])) return { destinationUrls: [], destinationSource: 'messaging', urlTags, videoId };
+    const sites = [...new Set(urls.filter((u) => !isMessaging(u)))].slice(0, MAX_URLS);
+    return { destinationUrls: sites, destinationSource: source, urlTags, videoId };
+  }
+  if (cta?.value?.lead_gen_form_id) return { destinationUrls: [], destinationSource: 'lead_form', urlTags, videoId };
+  if (MESSAGING_CTAS.has(String(cta?.type ?? '').toUpperCase())) return { destinationUrls: [], destinationSource: 'messaging', urlTags, videoId };
+  if (!oss && !afs) return { destinationUrls: [], destinationSource: 'existing_post', urlTags, videoId };
+  return { destinationUrls: [], destinationSource: 'none', urlTags, videoId };
+}
+
+export const isShortener = (u: string) => SHORTENERS.has(bareHost(u) ?? '');
+
 /**
- * Criativos sem `video_id` na listagem leve e com cara de vídeo (`object_type` VIDEO ou ausente): pergunta
- * `object_story_spec{video_data{video_id}}` um a um (o `?ids=` em lote foi recusado pela Graph: "deprecated in v26.0+",
- * sonda 22/10), até STORY_LOOKUP_MAX por sync, STORY_LOOKUP_PARALLEL por vez. Falha de um não derruba o sync.
+ * §2.3: segue o encurtador com HEAD + redirect manual, lendo só o `Location`; para no 1º host fora da lista, até 3 saltos,
+ * 3 s cada. Nunca baixa corpo nem chama host fora da lista (sem SSRF). Falhou = devolve o próprio link encurtado.
  */
-export async function fillStoryVideoIds(g: GraphClient, token: string, ads: Raw[]): Promise<void> {
-  const want = (a: Raw) => a.creative?.id && !a.creative.video_id && !a.creative.object_story_spec && (!a.creative.object_type || String(a.creative.object_type).toUpperCase() === 'VIDEO');
-  const missing = [...new Set(ads.filter(want).map((a) => String(a.creative.id)))].slice(0, STORY_LOOKUP_MAX);
-  const found = new Map<string, string>();
+export async function resolveShortener(url: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+  let cur = url;
+  for (let hop = 0; hop < SHORTENER_HOPS && isShortener(cur); hop++) {
+    try {
+      const res = await fetchImpl(cur, { method: 'HEAD', redirect: 'manual', signal: AbortSignal.timeout(SHORTENER_TIMEOUT_MS) });
+      const loc = res.headers.get('location');
+      if (!loc) return url;
+      const next = httpUrl(new URL(loc, cur).toString());
+      if (!next) return url;
+      cur = next;
+    } catch {
+      return url;
+    }
+  }
+  return isShortener(cur) ? url : cur;
+}
+
+/**
+ * §2.2: um lookup por criativo traz o link e o `video_id` juntos (substitui o fillStoryVideoIds). Roda depois dos insights,
+ * em ordem de gasto 30 d decrescente, até LINK_LOOKUP_MAX por sync, LINK_LOOKUP_PARALLEL por vez, sem retry.
+ * Entra quem não está no cache (`known`) e, mesmo no cache, quem ainda precisa do `video_id` (vídeo sem `video_id` na
+ * listagem leve): o cache do contrato não guarda o `video_id`, e sem isso o anúncio deixaria de ser vídeo.
+ * Falha de um criativo = sem entrada (destinationSource null no snapshot, relido no próximo sync). Não derruba o sync.
+ */
+export async function readCreativeLinks(
+  g: GraphClient, token: string, ads: Raw[], spendOf: (adId: string) => number,
+  known: MetaSyncInput['knownCreativeLinks'] = {}, opts: { fetchImpl?: typeof fetch } = {},
+): Promise<Map<string, CreativeLinks>> {
+  const needsVideo = (a: Raw) => !a.creative.video_id && (!a.creative.object_type || String(a.creative.object_type).toUpperCase() === 'VIDEO');
+  const spendBy = new Map<string, number>();
+  const want = new Set<string>();
+  for (const a of ads) {
+    if (!a.creative?.id) continue;
+    const id = String(a.creative.id);
+    spendBy.set(id, Math.max(spendBy.get(id) ?? 0, spendOf(String(a.id))));
+    if (!known?.[id] || needsVideo(a)) want.add(id);
+  }
+  const queue = [...want].sort((x, y) => (spendBy.get(y) ?? 0) - (spendBy.get(x) ?? 0)).slice(0, LINK_LOOKUP_MAX);
+  const found = new Map<string, CreativeLinks>();
   let k = 0;
   const worker = async () => {
-    while (k < missing.length) {
-      const id = missing[k++];
+    while (k < queue.length) {
+      const id = queue[k++];
       try {
-        const c = await g.get<Raw>(id, { fields: 'object_story_spec{video_data{video_id}}' }, token, { stage: 'listing_ads', retries: 0 });
-        const v = c?.object_story_spec?.video_data?.video_id;
-        if (v) found.set(id, String(v));
+        const c = await g.get<Raw>(id, { fields: LINK_FIELDS }, token, { stage: 'reading_insights', retries: 0 });
+        found.set(id, linksOfCreative(c));
       } catch (e) {
-        log.warn(`video_id pelo object_story_spec falhou no criativo ${id}: ${(e as Error).message}`);
+        log.warn(`link do criativo ${id} falhou: ${(e as Error).message}`);
       }
     }
   };
-  await Promise.all(Array.from({ length: STORY_LOOKUP_PARALLEL }, worker));
+  await Promise.all(Array.from({ length: LINK_LOOKUP_PARALLEL }, worker));
+  // cache: o que já estava lido continua valendo (criativo é imutável); o lookup novo só completa o video_id
+  for (const [id, v] of found) {
+    const cached = known?.[id];
+    if (cached) found.set(id, { ...cached, videoId: v.videoId });
+  }
+  // §2.3: encurtadores (só dos links novos), teto SHORTENER_MAX por sync
+  let budget = SHORTENER_MAX;
+  for (const [id, v] of found) {
+    if (known?.[id] || !v.destinationUrls.some(isShortener)) continue;
+    const out: string[] = [];
+    for (const u of v.destinationUrls) out.push(isShortener(u) && budget-- > 0 ? await resolveShortener(u, opts.fetchImpl) : u);
+    found.set(id, { ...v, destinationUrls: [...new Set(out)] });
+  }
   for (const a of ads) {
     const v = a.creative?.id ? found.get(String(a.creative.id)) : undefined;
-    if (v) a.creative.object_story_spec = { video_data: { video_id: v } };
+    if (v?.videoId && !a.creative.video_id) a.creative.object_story_spec = { ...(a.creative.object_story_spec ?? {}), video_data: { video_id: v.videoId } };
   }
+  return found;
 }
 export const videoIdOf = (ad: Raw): string | null => (ad.creative?.video_id ? String(ad.creative.video_id) : ad.creative?.object_story_spec?.video_data?.video_id ? String(ad.creative.object_story_spec.video_data.video_id) : null);
 
@@ -300,7 +405,7 @@ export interface SyncAdsRaw {
  * Sync (meta-v1 §3.2 + campanhas-v1 §1): campanhas → conjuntos → anúncios (TODOS os formatos, D2) → insights nas
  * 3 janelas × 3 níveis (9 leituras) → snapshots. Teto MAX_ADS por nível; passou, `truncated`. Arquivados/apagados fora.
  */
-export async function syncAds(g: GraphClient, token: string, i: MetaSyncInput, onProgress?: (p: { stage: MetaSyncStage; done: number; total: number }) => void): Promise<SyncAdsRaw> {
+export async function syncAds(g: GraphClient, token: string, i: MetaSyncInput, onProgress?: (p: { stage: MetaSyncStage; done: number; total: number }) => void, opts: { fetchImpl?: typeof fetch } = {}): Promise<SyncAdsRaw> {
   const max = i.maxAds ?? MAX_ADS;
   const now = i.now ?? new Date();
   let truncated = false;
@@ -314,7 +419,6 @@ export async function syncAds(g: GraphClient, token: string, i: MetaSyncInput, o
   const rawCampaigns = await list('campaigns', CAMPAIGN_FIELDS, 'listing_campaigns');
   const rawAdsets = await list('adsets', ADSET_FIELDS, 'listing_adsets');
   const all = await list('ads', AD_FIELDS, 'listing_ads');
-  await fillStoryVideoIds(g, token, all);
   const total = all.length;
   onProgress?.({ stage: 'reading_insights', done: 0, total });
 
@@ -334,6 +438,15 @@ export async function syncAds(g: GraphClient, token: string, i: MetaSyncInput, o
       onProgress?.({ stage: 'reading_insights', done: Math.min(total, Math.floor((total * n) / reads)), total });
     }
   }
+
+  // meta-oferta-v1 §2.2: link + video_id por criativo, depois dos insights (conta em reading_insights), por gasto 30 d
+  const known = i.knownCreativeLinks ?? {};
+  const links = await readCreativeLinks(g, token, all, (id) => num(read.ad[0].get(id)?.spend), known, opts);
+  const linkOf = (ad: Raw): Pick<MetaAdSnapshotDraft, 'destinationUrls' | 'destinationSource' | 'urlTags'> => {
+    const id = ad.creative?.id ? String(ad.creative.id) : null;
+    const v = (id && links.get(id)) || (id && known[id]) || null;
+    return v ? { destinationUrls: v.destinationUrls, destinationSource: v.destinationSource, urlTags: v.urlTags } : { destinationUrls: [], destinationSource: null, urlTags: null };
+  };
 
   const strip = (m: MetaMetrics & { resultTypeUsed: string | null }, resultType: string): MetaMetrics => {
     const { resultTypeUsed: _u, ...rest } = m;
@@ -363,6 +476,7 @@ export async function syncAds(g: GraphClient, token: string, i: MetaSyncInput, o
       resultType: m.resultType,
       metrics: m.metrics, metrics7d: m.metrics7d, metricsPrev7d: m.metricsPrev7d,
       adCreatedTime: isoOf(ad.created_time),
+      ...linkOf(ad),
     };
   });
   const campaigns = rawCampaigns.map((c) => {
@@ -388,10 +502,12 @@ function toSource(v: Raw): VideoSource | null {
 
 /**
  * URL temporária do vídeo de um anúncio. O GET direto com o token do usuário costuma dar (#10) pra vídeo de anúncio
- * (o dono é a página ou a biblioteca da conta), então cai pra: 1) token da página conectada (e das outras do usuário);
- * 2) biblioteca de vídeos da conta (`act_/advideos`). Cada tentativa que falha vira uma linha no failDetail.
+ * (o dono é a página ou a biblioteca da conta), então cai pra: 1) o upload original no criativo do anúncio
+ * (`object_story_spec.video_data.video_id`: `creative.video_id` pode ser a cópia publicada numa página que o token não
+ * gerencia); 2) token da página conectada (e das outras do usuário); 3) biblioteca de vídeos da conta (`act_/advideos`);
+ * 4) a mídia do anúncio no Instagram. Cada tentativa que falha vira uma linha no failDetail.
  */
-export async function videoSource(g: GraphClient, token: string, videoId: string, ctx: { adAccountId?: string | null; pageId?: string | null } = {}): Promise<VideoSource> {
+export async function videoSource(g: GraphClient, token: string, videoId: string, ctx: { adAccountId?: string | null; pageId?: string | null; metaAdId?: string | null } = {}): Promise<VideoSource> {
   const tried: string[] = [];
   const attempt = async (label: string, fn: () => Promise<VideoSource | null>): Promise<VideoSource | null> => {
     try {
@@ -406,6 +522,18 @@ export async function videoSource(g: GraphClient, token: string, videoId: string
   };
   const direct = await attempt('user', async () => toSource(await g.get<Raw>(videoId, { fields: VIDEO_FIELDS }, token, { stage: 'fetching_video' })));
   if (direct) return direct;
+  const alt = { videoId: null as string | null, igMediaId: null as string | null };
+  if (ctx.metaAdId) {
+    const metaAdId = ctx.metaAdId;
+    const original = await attempt('creative', async () => {
+      const r = await g.get<Raw>(metaAdId, { fields: 'creative{object_story_spec{video_data{video_id}},effective_instagram_media_id}' }, token, { stage: 'fetching_video' });
+      const id = r.creative?.object_story_spec?.video_data?.video_id;
+      alt.videoId = id && String(id) !== videoId ? String(id) : null;
+      alt.igMediaId = r.creative?.effective_instagram_media_id ? String(r.creative.effective_instagram_media_id) : null;
+      return alt.videoId ? toSource(await g.get<Raw>(alt.videoId, { fields: VIDEO_FIELDS }, token, { stage: 'fetching_video' })) : null;
+    });
+    if (original) return original;
+  }
   const pages = await attempt('pages', async () => {
     const r = await g.get<Raw>('me/accounts', { fields: 'id,access_token', limit: 100 }, token, { stage: 'fetching_video' });
     const list = (Array.isArray(r.data) ? (r.data as Raw[]) : []).filter((p) => p.access_token);
@@ -427,7 +555,7 @@ export async function videoSource(g: GraphClient, token: string, videoId: string
       let after: string | null = null;
       for (let i = 0; i < 5; i++) {
         const r: Raw = await g.get<Raw>(`${act}/advideos`, { fields: VIDEO_FIELDS, limit: 100, ...(after && { after }) }, token, { stage: 'fetching_video' });
-        const hit = (Array.isArray(r.data) ? (r.data as Raw[]) : []).find((v) => String(v.id) === videoId);
+        const hit = (Array.isArray(r.data) ? (r.data as Raw[]) : []).find((v) => String(v.id) === videoId || String(v.id) === alt.videoId);
         if (hit) return toSource(hit);
         after = (r.paging as Raw | undefined)?.cursors ? String(((r.paging as Raw).cursors as Raw).after ?? '') || null : null;
         if (!after || !(r.paging as Raw).next) break;
@@ -435,6 +563,14 @@ export async function videoSource(g: GraphClient, token: string, videoId: string
       return null;
     });
     if (lib) return lib;
+  }
+  if (alt.igMediaId) {
+    const igMediaId = alt.igMediaId;
+    const ig = await attempt('instagram', async () => {
+      const r = await g.get<Raw>(igMediaId, { fields: 'media_type,media_url,permalink' }, token, { stage: 'fetching_video' });
+      return r.media_type === 'VIDEO' && r.media_url ? { sourceUrl: String(r.media_url), permalinkUrl: r.permalink ? String(r.permalink) : null, lengthSec: null } : null;
+    });
+    if (ig) return ig;
   }
   throw new MetaError('META_VIDEO_UNAVAILABLE', null, { failDetail: tried.join(' | ').slice(0, 900) });
 }

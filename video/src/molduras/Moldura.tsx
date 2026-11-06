@@ -1,6 +1,8 @@
 // Composição `Moldura` (contrato estatico-montado-e-molduras-v1 §B2): o vídeo do campeão (com o áudio dele) dentro de
 // uma das 18 molduras, em 9:16, 4:5 ou 1:1. Props = FrameRenderInput sem renderId/kind/templateId (molduraSchema).
 // Mesma composição serve pro renderMedia local e pro Lambda (nada de disco: mídia por URL ou staticFile).
+// Editor universal F-U1: `p.edicao` (resolverPropsMoldura) mexe/esconde caixas pela <Camada>; MarcasDeCamada põe o
+// `data-layer` estável de cada camada (sem pixel). Sem `edicao`, o render é o de hoje.
 import React, { useMemo } from 'react';
 import { AbsoluteFill, type CalculateMetadataFunction } from 'remotion';
 import { FORMATOS, FPS } from '../lib/formatos';
@@ -10,6 +12,7 @@ import { LegendaAuto } from '../componentes/LegendaAuto';
 import { useFontesMolduras, type PropsTpl } from './base';
 import { Caixinha, Cinema, LeiaALegenda, Live, Meme, Noticia, OfertaDireta, PovDepoimento, Ranking, Story, Tweet } from './um-video';
 import { Choquei, Fofoca1, Fofoca2, Meet, MeetDialogo, TelaDividida, TelaDividida2 } from './duas-fontes';
+import { EdicaoMoldura, MarcasDeCamada } from './camada';
 
 export const calcularMoldura: CalculateMetadataFunction<MolduraProps> = async ({ props }) => ({
   durationInFrames: duracaoMoldura(props, FPS), fps: FPS, ...FORMATOS[props.format],
@@ -27,8 +30,11 @@ const Conteudo: React.FC<{ p: MolduraProps }> = ({ p }) => {
   const caixaLegenda = useMemo(() => (p.captions?.words.length ? caixaLegendaMoldura(p, L) : null), [p, L]);
   return (
     <>
-      <T p={p as PropsTpl<typeof p.frame.id>['p']} L={L} cor={corDaMarca(p.frame.brand.color)} ui={frameUi(p.language)} />
+      <EdicaoMoldura edicao={p.edicao}>
+        <T p={p as PropsTpl<typeof p.frame.id>['p']} L={L} cor={corDaMarca(p.frame.brand.color)} ui={frameUi(p.language)} />
+      </EdicaoMoldura>
       {p.captions && caixaLegenda ? <LegendaAuto captions={p.captions} timeline={p.video.timeline} caixa={caixaLegenda} ateSec={duracaoMoldura(p) / 30} /> : null}
+      <MarcasDeCamada p={p} L={L} />
     </>
   );
 };

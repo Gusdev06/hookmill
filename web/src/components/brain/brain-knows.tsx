@@ -7,7 +7,7 @@ import type { BrainCompleteness, BrainSection, Offer, Workspace } from "@/lib/ap
 import { buttonVariants } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
 import { BRAIN_SECTIONS, brainCompleteness } from "@/lib/brain"
-import { BRAIN_ITEM_STEP, onboardingHref } from "@/components/onboarding/shared"
+import { brainItemHref } from "@/components/onboarding/shared"
 import { cn } from "@/lib/utils"
 
 /*
@@ -91,7 +91,7 @@ function SectionList({ brain, animate, fillLinks }: { brain: BrainCompleteness; 
               </small>
             </span>
             {fillLinks && st !== null && st !== "ok" ? (
-              <Link href={onboardingHref(BRAIN_ITEM_STEP[missing[0] ?? "offer"])} className={buttonVariants({ size: "sm", variant: "ghost" })}>
+              <Link href={brainItemHref(missing[0] ?? "offer")} className={buttonVariants({ size: "sm", variant: "ghost" })}>
                 {t("fill")}
               </Link>
             ) : null}

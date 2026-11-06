@@ -9,10 +9,12 @@ import { z } from 'zod';
 import { captionsAutoSchema } from './captionsSchema';
 import { METRIC_CHARS } from './metricas-fontes';
 import { cjkDe, ehCJK, fitText, temCJK, textoVisivel, type FittedText, type FrameFontKey } from './molduras';
+import { brandLogoSchema } from './logo';
+import { listOverlayPropsSchema, validarListOverlay } from './listaOverlay';
 
 export const TEMPLATE_COMPOSITION_ID = 'Template';
 export const TEMPLATE_RENDER_TEMPLATE_ID = 'template';
-export const TEMPLATE_IDS = ['chat-dm', 'person-motion'] as const;
+export const TEMPLATE_IDS = ['chat-dm', 'person-motion', 'versus', 'value-stack'] as const;
 export type FormatTemplateId = (typeof TEMPLATE_IDS)[number];
 /** Catálogo fixo de ícones desenhados em código (a IA escolhe daqui; nunca inventa ícone). */
 export const TEMPLATE_ICON_IDS = ['check', 'x', 'arrow', 'brain', 'globe', 'chat', 'clock', 'star', 'gift', 'lock', 'heart', 'bolt'] as const;
@@ -87,7 +89,8 @@ export const personMotionPropsSchema = z.object({
 });
 export type PersonMotionProps = z.infer<typeof personMotionPropsSchema>;
 
-const brandSchema = z.object({ name: z.string().min(1), handle: z.string(), initials: z.string().min(1).max(3), color: z.string().min(4) });
+/** kit-marca-v1 §5: `logo` = logo do kit (URL assinada pela API); ausente/null = monograma das iniciais. */
+const brandSchema = z.object({ name: z.string().min(1), handle: z.string(), initials: z.string().min(1).max(3), color: z.string().min(4), logo: brandLogoSchema.nullable().optional() });
 const comumSchema = {
   format: z.literal('VERTICAL_9_16'),
   fps: z.literal(30),
@@ -104,7 +107,12 @@ const comumSchema = {
 export const templateSchema = z.discriminatedUnion('templateId', [
   z.object({ ...comumSchema, templateId: z.literal('chat-dm'), props: chatDmPropsSchema }),
   z.object({ ...comumSchema, templateId: z.literal('person-motion'), props: personMotionPropsSchema }),
+  // templates-lista-v1 §3.1: os dois de lista aceitam os 3 formatos (1080×1920 / 1080×1350 / 1080×1080)
+  z.object({ ...comumSchema, format: z.enum(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1']), templateId: z.literal('versus'), props: listOverlayPropsSchema }),
+  z.object({ ...comumSchema, format: z.enum(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1']), templateId: z.literal('value-stack'), props: listOverlayPropsSchema }),
 ]);
+export type ListTemplateProps = Extract<TemplateProps, { templateId: 'versus' | 'value-stack' }>;
+export const ehTemplateLista = (p: TemplateProps): p is ListTemplateProps => p.templateId === 'versus' || p.templateId === 'value-stack';
 export type TemplateProps = z.infer<typeof templateSchema>;
 
 /** RenderInput do contrato (`kind 'template'`) → props validadas da composição (lança se não servir). */
@@ -116,6 +124,10 @@ export const propsDeTemplateInput = (input: Record<string, unknown>): TemplatePr
     const d = p.props.source.durationSec;
     for (const t of p.props.timeline) if (t.endSec <= t.startSec || t.endSec > d + 0.05) throw new Error(`trecho ${t.startSec}-${t.endSec} fora do campeão (${d} s)`);
     if (p.props.faceBox.windows.length !== p.props.timeline.length) throw new Error('faceBox.windows: uma janela por trecho');
+  }
+  if (p.templateId === 'versus' || p.templateId === 'value-stack') {
+    const v = validarListOverlay(p.templateId, p.props);
+    if (v.length) throw new Error(`lista inválida: ${v.join(', ')}`);
   }
   return p;
 };
@@ -245,14 +257,21 @@ export const chatLayout = (c: ChatIn, language: string): TemplateFit[] => [
 ];
 
 /** Geometria da cena final do chat (linhas da promessa, prova, CTA, nota): a composição e o build usam a mesma conta. */
-export const fechoChatGeo = (hLinhas: number[], nProof: number, hNota: number | null) => {
-  const topoLinhas = TEMPLATE_SAFE.top + 70;
+/** kit-marca-v1 §5: logo da marca no topo da cena final (chat e person-motion). Lado e topo (px da saída 1080). */
+export const LOGO_FECHO = { lado: 128, topo: TEMPLATE_SAFE.top + 28 } as const;
+/** `comLogo`: o logo entra no topo e empurra o resto `LOGO_FECHO.lado + 22` px; quem chama confere `cabe` e, se não
+ *  couber com logo, usa a cena sem logo (a composição e o build fazem a mesma conta: `logoNoFechoChat`). */
+export const fechoChatGeo = (hLinhas: number[], nProof: number, hNota: number | null, comLogo = false) => {
+  const topoLinhas = TEMPLATE_SAFE.top + 70 + (comLogo ? LOGO_FECHO.lado + 22 : 0);
   const topoProva = topoLinhas + hLinhas.reduce((s, h) => s + h + 10, 0) + 40;
   const topoCta = topoProva + nProof * (PROOF_ROW.h + 22) + 30;
   const topoNota = topoCta + 170;
   const fim = hNota !== null ? topoNota + hNota : topoCta + 140;
   return { topoLinhas, topoProva, topoCta, topoNota, fim, cabe: fim <= TEMPLATE_H - TEMPLATE_SAFE.bottom };
 };
+/** Logo no fecho do chat: só com logo no kit E se a cena ainda couber com ele. */
+export const logoNoFechoChat = (temLogo: boolean, hLinhas: number[], nProof: number, hNota: number | null) =>
+  temLogo && fechoChatGeo(hLinhas, nProof, hNota, true).cabe;
 
 /** Manchete fixa do topo (2 linhas, como o protótipo). */
 export const hookFits = (text: string, language: string): TemplateFit[] => [

@@ -1,0 +1,345 @@
+{
+  "step": 150,
+  "url": "http://localhost:3311/templates/run/cmw1ocypr006n22hshbwxd3cs",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nV\nVendo colchões online no Brasil, para adultos que acordam co\nMeta not connected\nWORKSPACE\nHome\nCampaigns\nEddy\nSOON\nBrain\nMAKE ADS\nTemplates\nNew concepts\nReview\nLibrary\nFree uses left\n2\nGet credits\nSettings\nJ\nJoão Teste\nOwner\nEN\nPT\nVENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\nTemplates\nPLAN\nTemplate\nAd\n3\nPlan\n2\nMake\nGenerate\n3\nShip\nDownload\nExit\nLET HOOKMILL PICK · PLAN READY\n10 templates fit \"fala-split-20s\"\n\nOrdered by how well each one fits your ad. Uncheck anything you don't want; the total updates.\n\nHeadline nova\n3 videos\nFree\n→ 0:00\nAbertura fria\n1 video\nFree\nChat DM\n1 video\nFree\n★★★★★\nAvaliação\n1 video\nFree\nNotícia urgente\n1 video\nFree\nCaixa de pergunta\n1 video\nFree\nDepoimento POV\n1 video\nFree\nMeme POV\n1 video\nFree\nLeia a legenda\n1 video\nFree\nCinema\n1 video\nFree\nSUMMARY\nTemplate\nDeixa o HookMill escolher\nAd\nfala-split-20s\nYou get\n12 videos\nCost\nFree\nFree sample\n0 of 4 left after this\n\nYou'll watch the first 3 seconds. Unlock to download the full video.\n\n8 more free uses needed\nSelect fewer templates to fit your free uses. Your plan and ad reading stay saved.\nGet credits\nFree sample · 12 videos\nBack\nGenerate\nGet credits",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Home",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "V\nVendo colchões online no Brasil, para adultos que acordam co\nMeta not connected",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Home",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campaigns",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nSOON",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Brain",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "New concepts",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Review",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Library",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Get credits",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Settings",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "J\nJoão Teste\nOwner",
+      "label": "Account",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Template",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Ad",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates/let-hookmill-pick"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Exit",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-HEADLINE",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-COLD_OPEN",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-CHAT_DM",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-REVIEW",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:news",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:question_box",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:pov_testimonial",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:meme",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:read_caption",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:cinema",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Get credits",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Back",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates/let-hookmill-pick"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Generate",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Get credits",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    }
+  ]
+}

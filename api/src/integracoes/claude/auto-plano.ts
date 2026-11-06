@@ -13,7 +13,7 @@
 // Esquema SEM union (anyOf/null): limite de 16 unions por pedido. Parâmetros num objeto plano, lido por tipo.
 import type {
   AutoItemDraft, AutoParamsDraft, AutoParamsDraftWithFrame, AutoPlanDraft, AutoPlanInput, AutoVariationType, AutoVariationTypeWithFrame, BlockFn,
-  BrainField, FrameTemplateId, HeadlinePlacement, OfferBriefDraft, StaticStyle, StaticVisualDraft, TeardownSections, WhyDraft,
+  BrainField, EndcardVariant, FrameTemplateId, HeadlinePlacement, OfferBriefDraft, StaticStyle, StaticVisualDraft, TeardownSections, WhyDraft,
 } from '../contrato';
 import { STATIC_V2_RULES, staticCopyOf, staticVisualV2Of } from './auto-plano-estatico';
 import { FRAME_RULES, allowedFramesOf, frameAllowed, frameParamsOf, framesRequestLine, type AutoPlanInputWithFrame } from './auto-plano-moldura';
@@ -23,14 +23,34 @@ import { sourceOf } from './auto-plano-estatico';
 import { wordsBlock } from './prompts-campeao';
 import { parseJsonObject } from './validacao-campeao';
 import { TEMPLATE_RULES, templateParamsOf } from './auto-plano-template';
+import { listParamsOf, listPlanRequest, listTemplatesOf } from './auto-plano-lista';
+import type { ListTemplateId } from '../contrato';
 
 export const AUTO_TYPES: AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'SPLIT_LP', 'STORY', 'REVIEW', 'NATIVE_SEARCH', 'STATIC'];
 /** 25/10 (§B2, TRANSIÇÃO): com FRAME. Vira o AUTO_TYPES na fusão do B1. */
-export const AUTO_TYPES_WITH_FRAME: AutoVariationType[] = [...AUTO_TYPES, 'FRAME', 'HEADLINE', 'CHAT_DM', 'PERSON_MOTION'];
+export const AUTO_TYPES_WITH_FRAME: AutoVariationType[] = [...AUTO_TYPES, 'FRAME', 'HEADLINE', 'CHAT_DM', 'PERSON_MOTION', 'LIST_OVERLAY'];
 export type { AutoPlanInputWithFrame } from './auto-plano-moldura';
 /** Catálogo dos lotes NOVOS (decisão do Gusta 25/10): saem COLD_OPEN, HOOK_TEXT, ENDCARD, STORY e SPLIT_LP do esquema e
  *  do prompt; o parse dos tipos antigos continua (AUTO_TYPES_WITH_FRAME) pra plano já salvo e pro reparo. */
 export const PLAN_TYPES: AutoVariationType[] = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME', 'CHAT_DM', 'PERSON_MOTION'];
+/** templates-creditos-v1 A6 (01/11): COLD_OPEN e ENDCARD voltam SÓ quando o backend os põe em `allowed` (lote de template).
+ *  Aí o esquema e o pedido ganham os campos e as regras deles; sem eles, esquema e pedido ficam idênticos aos de 25/10. */
+export const TEMPLATE_ONLY_PLAN_TYPES: AutoVariationType[] = ['COLD_OPEN', 'ENDCARD', 'LIST_OVERLAY'];
+/** Entrada de `allowed` como chega no pedido (LIST_OVERLAY traz `templateId`, templates-lista-v1 §1). */
+type AllowedIn = { type: AutoVariationType; max: number; templateId?: ListTemplateId };
+/** O que os blocos do lote de template leem do input. */
+type TemplateOnlyIn = Pick<AutoPlanInput, 'endcardVariants' | 'picked'> & { allowed: readonly AllowedIn[]; uiLocale?: AutoPlanInput['uiLocale'] };
+const ENDCARD_VARIANTS: EndcardVariant[] = ['offer', 'guarantee', 'price', 'cta'];
+
+/** Os tipos só-de-template com max > 0 neste pedido. */
+export function templateOnlyAllowed(allowed: readonly { type: AutoVariationType; max: number }[]): AutoVariationType[] {
+  return TEMPLATE_ONLY_PLAN_TYPES.filter((t) => allowed.some((a) => a.type === t && a.max > 0));
+}
+
+/** Tipos oferecidos ao modelo neste pedido: o catálogo de 25/10 + COLD_OPEN/ENDCARD quando vierem em `allowed`. */
+export function planTypesFor(allowed: readonly { type: AutoVariationType; max: number }[]): AutoVariationType[] {
+  return [...PLAN_TYPES, ...templateOnlyAllowed(allowed)];
+}
 /** TRANSIÇÃO (§C.0): item/plano com FRAME. Na fusão do B1 viram o AutoItemDraft/AutoPlanDraft do contrato. */
 // headline-e-legenda-v1 (25/10, TRANSIÇÃO): o item também pode ser HEADLINE (AutoVariationType / AutoParamsDraft)
 export type AutoItemDraftWithFrame = Omit<AutoItemDraft, 'type' | 'params'> & { type: AutoVariationType; params: AutoParamsDraft | AutoParamsDraftWithFrame };
@@ -70,7 +90,7 @@ const WHY = obj({
   ref: str('Brain: a short literal excerpt of that field (max 60 characters). Video: empty string.'),
 });
 
-const PARAMS = obj({
+const PARAMS_BASE = {
   targetSec: en([0, 15, 20], 'CUT only: 15 or 20. 0 for other types.'),
   blockIndexes: arr({ type: 'integer' }, 'CUT only: whole blocks kept, in order (always the hook block 0 and every kept block). Empty for other types.'),
   quote: str('REVIEW only: a testimonial copied LITERALLY from the Brain proof field (character for character). Empty otherwise.'),
@@ -85,19 +105,57 @@ const PARAMS = obj({
   text: str('HEADLINE only: the new headline, in the headline language, within the character limit of <headline>. Empty otherwise.'),
   highlight: str('HEADLINE only: the exact words of `text` shown in the accent color, only when <headline> says the original has a highlight. Empty otherwise.'),
   textSource: str('HEADLINE only: the Brain field the headline rests on (pains, promise, proof, what, offerAndPrice, cta) or "transcript". "none" otherwise.'),
-}, 'Parameters of this piece. Fill only the fields of its type; the rest get the empty value (empty string, 0, empty list, "none").');
+};
+const PARAMS_DESC = 'Parameters of this piece. Fill only the fields of its type; the rest get the empty value (empty string, 0, empty list, "none").';
 
-export const AUTO_PLAN_SCHEMA = obj({
-  blocks: arr(obj({ index: int('Block index from <structure>.'), fn: en(BLOCK_FNS, 'Function of the block.') }), 'One entry per block of <structure>, same indexes.'),
-  why: obj({ hook: WHY, proof: WHY, cta: WHY }, 'Why the champion sells: one line for its hook, one for its proof, one for its CTA.'),
-  kept: arr(obj({ label: str('Short pill, interface language, max 40 characters: something that stays identical in every piece.'), blockIndex: int('Block it refers to, or -1 when it is not one block (voice, pace, framing).') }), '2 to 4 things kept intact in every piece.'),
-  items: arr(obj({
-    type: en(PLAN_TYPES, 'Piece type; only types listed in <allowed>.'),
-    change: str('The ONE thing that changes in this piece, interface language, max 90 characters.'),
-    rationale: str('Which why line it attacks and how, interface language, max 160 characters. A hypothesis.'),
-    whyKey: en(['hook', 'proof', 'cta'], 'The why line this piece attacks.'),
-    params: PARAMS,
-  }), 'The candidate pieces, strongest first in priority order.'),
+/** A6: campos do COLD_OPEN (teaser) e do ENDCARD (variante + textos), só no esquema do lote de template que os tem. */
+const COLD_OPEN_PARAMS = {
+  teaserStartSec: num('COLD_OPEN only: start of the teaser lifted from later in the video (at or after 5 s, in a silence between words). 0 for other types.'),
+  teaserEndSec: num('COLD_OPEN only: end of the teaser, 1.5 to 3.5 s after its start, in a silence. 0 for other types.'),
+};
+const endcardParams = (variants: EndcardVariant[]) => ({
+  variant: en([...variants, 'none'], 'ENDCARD only: what the end card shows, one of the variants the request allows. "none" for other types.'),
+  headline: str('ENDCARD only: end card headline in the screen language, max 40 characters. Empty otherwise.'),
+  subline: str('ENDCARD only: optional second line in the screen language, max 60 characters. Empty when not needed or other types.'),
+  ctaText: str('ENDCARD only: button text in the screen language, max 24 characters. Empty otherwise.'),
+});
+
+function planSchema(types: AutoVariationType[], params: Record<string, object>) {
+  return obj({
+    blocks: arr(obj({ index: int('Block index from <structure>.'), fn: en(BLOCK_FNS, 'Function of the block.') }), 'One entry per block of <structure>, same indexes.'),
+    why: obj({ hook: WHY, proof: WHY, cta: WHY }, 'Why the champion sells: one line for its hook, one for its proof, one for its CTA.'),
+    kept: arr(obj({ label: str('Short pill, interface language, max 40 characters: something that stays identical in every piece.'), blockIndex: int('Block it refers to, or -1 when it is not one block (voice, pace, framing).') }), '2 to 4 things kept intact in every piece.'),
+    items: arr(obj({
+      type: en(types, 'Piece type; only types listed in <allowed>.'),
+      change: str('The ONE thing that changes in this piece, interface language, max 90 characters.'),
+      rationale: str('Which why line it attacks and how, interface language, max 160 characters. A hypothesis.'),
+      whyKey: en(['hook', 'proof', 'cta'], 'The why line this piece attacks.'),
+      params: obj(params, PARAMS_DESC),
+    }), 'The candidate pieces, strongest first in priority order.'),
+  });
+}
+
+export const AUTO_PLAN_SCHEMA = planSchema(PLAN_TYPES, PARAMS_BASE);
+
+/**
+ * Esquema do pedido: o de 25/10 (mesmo objeto, cache e teto de gramática medidos) quando não há COLD_OPEN/ENDCARD em
+ * `allowed`; senão + os tipos e os campos de cada um (teaser = 2; end card = 4, variante só com as que o Brain sustenta).
+ */
+export function autoPlanSchemaFor(i: TemplateOnlyIn) {
+  const extra = templateOnlyAllowed(i.allowed);
+  if (!extra.length) return AUTO_PLAN_SCHEMA;
+  const variants = i.endcardVariants?.length ? ENDCARD_VARIANTS.filter((v) => i.endcardVariants!.includes(v)) : ENDCARD_VARIANTS;
+  return planSchema([...PLAN_TYPES, ...extra], {
+    ...PARAMS_BASE,
+    ...(extra.includes('COLD_OPEN') && COLD_OPEN_PARAMS),
+    ...(extra.includes('ENDCARD') && endcardParams(variants)),
+    ...(extra.includes('LIST_OVERLAY') && listParams(listTemplatesOf(i))),
+  });
+}
+
+/** templates-lista-v1 §2: no plano a peça de lista só escolhe o template (o modo vem dele); as linhas vêm na 2ª etapa. */
+const listParams = (ids: ListTemplateId[]) => ({
+  listTemplate: en([...ids, 'none'], 'LIST_OVERLAY only: the list template of this piece, one of those allowed in <edit_templates>. "none" for other types.'),
 });
 
 export const AUTO_PLAN_SYSTEM = `You plan a batch of edit-only variations of a winning short video ad (the "champion") for a performance team. Every video piece reuses the champion's own footage and audio; nothing is filmed or generated (the one exception is STATIC, a new image ad). Each piece changes exactly ONE thing so the test reads clean.
@@ -206,13 +264,58 @@ export function headlineRequest(i: Pick<AutoPlanInputWithFrame, 'allowed' | 'hea
   return out.join('\n');
 }
 
+/**
+ * templates-creditos-v1 A6: regras do COLD_OPEN e do ENDCARD no PEDIDO (não no sistema, que fica igual em todo lote pro
+ * cache). null sem nenhum dos dois em `allowed`. As mesmas regras que o backend confere (regras.ts: cold_open_window,
+ * endcard_variant_unavailable, text_too_long, invented_number).
+ */
+export function templateOnlyRequest(i: TemplateOnlyIn): string | null {
+  const extra = templateOnlyAllowed(i.allowed);
+  if (!extra.length) return null;
+  const out: string[] = [
+    '<edit_templates>',
+    `The user picked this edit template for this ad, so ${extra.join(' and ')} ${extra.length > 1 ? 'are' : 'is'} allowed in this request although the piece type list above does not name ${extra.length > 1 ? 'them' : 'it'}. Write the requested pieces of ${extra.length > 1 ? 'these types' : 'this type'}; do not return an empty plan.`,
+  ];
+  if (extra.includes('COLD_OPEN')) {
+    out.push('COLD_OPEN [ITERATION]: a 1.5-3.5 s teaser lifted from later in the video is placed before the untouched original, which then plays whole from 0:00. Pick the stretch that makes a viewer need to see how it gets there: a result, a reaction, a proof line or a surprising statement, stronger than the opening frame. Rules: teaserStartSec at or after 5 s; teaserEndSec 1.5 to 3.5 s after it and inside the video; both boundaries in a silence of <transcript>, never inside a word; the teaser must make sense on its own (a whole phrase, not the end of one). Nothing is cut and no text is added. change says which moment opens the video; whyKey is usually "proof" or "hook".');
+  }
+  if (extra.includes('ENDCARD')) {
+    const v = i.endcardVariants?.length ? ENDCARD_VARIANTS.filter((x) => i.endcardVariants!.includes(x)) : ENDCARD_VARIANTS;
+    out.push(`ENDCARD [ITERATION]: a 2 s end card appended after the untouched original (brand logo and colors are drawn by the render; never write the brand name). Allowed variants here: ${v.join(', ')}. offer = what the buyer gets, from the offerAndPrice field; guarantee = the guarantee written in the Brain; price = the price exactly as written in offerAndPrice; cta = the call to action from the Brain cta field or the spoken CTA. headline at most 40 characters, subline at most 60 (optional, empty when not needed), ctaText at most 24 (a button: a short verb phrase). Screen language, as people write on an ad; no emojis, no hashtags, no quotation marks. Nothing invented: every number, price, time span or percentage must already appear in the Brain or the transcript, written the same way. whyKey is "cta".`);
+  }
+  if (extra.includes('LIST_OVERLAY')) out.push(listPlanRequest(listTemplatesOf(i), i.uiLocale));
+  out.push('Fill the params of these types as described; for every other type their fields get the empty value (0, empty string, "none").');
+  out.push('</edit_templates>');
+  return out.join('\n');
+}
+
+/**
+ * templates-multi-v1 §4.5 (04/11): bloco `<picked_templates>` no PEDIDO (o sistema fica igual pro cache). null sem `picked`.
+ * A pessoa escolheu estes templates: pelo menos 1 peça de cada; FRAME = 1 peça por moldura listada.
+ */
+export function pickedRequest(i: Pick<AutoPlanInput, 'picked'>): string | null {
+  const keys = [...new Set((i.picked ?? []).filter((k) => !!k))];
+  if (!keys.length) return null;
+  const line = (k: string) => (k.startsWith('FRAME:') ? `- FRAME with template "${k.slice('FRAME:'.length)}": exactly 1 piece` : `- ${k}: at least 1 piece`);
+  return [
+    '<picked_templates>',
+    'The user picked these templates for this ad and pays for each one. Write at least 1 piece of each of them, inside the allowed limits; FRAME means 1 piece per frame template listed here. Do not drop a picked template to make room for another type.',
+    ...keys.map(line),
+    '</picked_templates>',
+  ].join('\n');
+}
+
 export function autoPlanUserMessage(i: AutoPlanInputWithFrame, refImages = 0): string {
   // catálogo novo (25/10): tipo antigo que ainda venha no `allowed` não é oferecido ao modelo
-  const allowed = i.allowed.filter((a) => a.max > 0 && PLAN_TYPES.includes(a.type));
+  const types = planTypesFor(i.allowed);
+  const allowed = i.allowed.filter((a) => a.max > 0 && types.includes(a.type) && a.type !== 'LIST_OVERLAY');
+  // templates-lista-v1 §1: LIST_OVERLAY chega 1 entrada por template; no pedido vira 1 linha (1 peça por template)
+  const lists = types.includes('LIST_OVERLAY') ? listTemplatesOf(i) : [];
+  const allowedLines = [...allowed.map((a) => `${a.type}: up to ${a.max}`), ...(lists.length ? [`LIST_OVERLAY: up to ${lists.length} (1 per template: ${lists.join(', ')})`] : [])];
   const lines = [
     `Interface language (why, kept, change, rationale): ${LOCALE_NAME[i.uiLocale]}.`,
     `Screen language (texts that appear in the video): ${languageName(i.screenLanguage)}.`,
-    `<allowed>\n${allowed.map((a) => `${a.type}: up to ${a.max}`).join('\n') || '(none)'}\n</allowed>`,
+    `<allowed>\n${allowedLines.join('\n') || '(none)'}\n</allowed>`,
     `Plan between ${i.rules.min} and ${i.rules.max} pieces, at least ${i.rules.minDiversityPct}% of them DIVERSITY (rounded up). If the allowed types cannot honestly reach ${i.rules.min}, return fewer good pieces rather than filler.`,
   ];
   if (i.rules.max > 12) lines.push('This is a candidate pool, not the final batch. Plan up to 16 independently useful options, strongest first. The user goal and categories will select up to 12 afterwards without another model call. Include distinct allowed types instead of repeating one format to fill the pool.');
@@ -227,6 +330,10 @@ export function autoPlanUserMessage(i: AutoPlanInputWithFrame, refImages = 0): s
   if (frameAllowed(i)) lines.push(framesRequestLine(allowedFramesOf(i)));
   const hl = headlineRequest(i);
   if (hl) lines.push(hl);
+  const tplOnly = templateOnlyRequest(i);
+  if (tplOnly) lines.push(tplOnly);
+  const picked = pickedRequest(i);
+  if (picked) lines.push(picked);
   lines.push('Write the plan.');
   return lines.join('\n\n');
 }
@@ -260,6 +367,8 @@ export interface AutoPlanParseCtx {
   headline?: AutoPlanInput['headline'];
   /** iterate-v2 F1.2: transcrição (o PERSON_MOTION manda segundos; o parse converte pra índice de palavra) */
   words?: AutoPlanInput['transcript'];
+  /** templates-lista-v1: templates de lista liberados (`listTemplatesOf`). Ausente = os 2; 1 peça por template. */
+  listTemplates?: ListTemplateId[];
 }
 
 /** HEADLINE (só forma): texto aparado e sem aspas; destaque só se a original tem e se é trecho literal do texto. O
@@ -312,6 +421,7 @@ export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraf
   }
 
   const items: AutoItemDraftWithFrame[] = [];
+  const listsSeen = new Set<ListTemplateId>();
   for (const it of a(root.items).map(o)) {
     const type = s(it.type) as AutoVariationType;
     if (!AUTO_TYPES_WITH_FRAME.includes(type)) continue;
@@ -336,6 +446,15 @@ export function parseAutoPlan(text: string, ctx: AutoPlanParseCtx): AutoPlanDraf
       if (params) items.push({ type, change, rationale, whyKey, params });
       continue;
     }
+    if (type === 'LIST_OVERLAY') {
+      // templates-lista-v1 §2: linhas da 2ª etapa encaixadas em params.list; template fora/repetido ou sem linhas = a peça sai
+      const params = listParamsOf(o(it.params), ctx.words ?? [], ctx.listTemplates);
+      if (params && !listsSeen.has(params.templateId)) {
+        listsSeen.add(params.templateId);
+        items.push({ type, change, rationale, whyKey, params });
+      }
+      continue;
+    }
     items.push({ type, change, rationale, whyKey, params: paramsOf(type, o(it.params), inVideo, ctx.blockCount) });
   }
   if (!items.length) throw new IntegracaoError('PROVIDER_ERROR', 'auto plan: no usable item');
@@ -356,9 +475,10 @@ export function visualOf(v: Record<string, unknown>): StaticVisualDraft {
   };
 }
 
-function paramsOf(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE' | 'CHAT_DM' | 'PERSON_MOTION'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
+function paramsOf(type: Exclude<AutoVariationType, 'FRAME' | 'HEADLINE' | 'CHAT_DM' | 'PERSON_MOTION' | 'LIST_OVERLAY'>, p: Record<string, unknown>, inVideo: (x: number) => number, blockCount: number): AutoParamsDraft {
   const orNull = (v: string) => (v ? v : null);
   switch (type) {
+    case 'AI_VIDEO': throw new Error('AI_VIDEO uses the semantic production planner');
     case 'CUT': {
       const idx = [...new Set(a(p.blockIndexes).map(n).filter((x) => Number.isInteger(x) && x >= 0 && x < blockCount))].sort((x, y) => x - y);
       return { type, targetSec: n(p.targetSec) === 20 ? 20 : 15, blockIndexes: idx };

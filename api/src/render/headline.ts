@@ -2,14 +2,10 @@
  * headline-e-legenda-v1 §1.3: buildHeadlineInput(spec, ctx) → RemixKeepRenderInput. Função PURA do maquina-video (como o
  * buildFrameInput): a headline nova por cima do campeão no render `remix-keep` (mesmo corte, mesmo áudio, mesmo quadro;
  * a API compõe sobre o campeão decodificado com máscara na caixa nova).
- * - `replace`, faixa sólida/pílula (inclusive degradê medido): a faixa é repintada inteira com a cor medida e o texto novo
- *   vai na caixa da original, no estilo dela.
- * - `replace`, texto sobre o vídeo: placa sólida (cor mediana do fundo medida = `spec.plateColor`; contraste < 3 com o
- *   texto → preto ou branco, H1) OPACA (F11, 28/10) cobrindo a caixa antiga + margem, cantos 0,15 em.
+ * - `replace`: `HEADLINE_PENDING` (troca-texto-queimado-v1 §15.3, F1a). A placa saiu e a caixa volta com a medida nova, no F1b.
  * - `add` (campeão sem headline): faixa na cor da marca no topo da área segura, Montserrat 800 caixa alta centralizada;
  *   cobrindo o rosto em > 10 % dos frames desce pra logo abaixo dele; ainda colidindo = `HEADLINE_NO_ROOM`.
- * Texto: mesma caixa e mesmo nº de linhas da original (até +1), tamanho entre 80 % e 100 % do original; não coube =
- * `HEADLINE_TOO_LONG`. Mesma fonte, cor, destaque (*trecho* = `highlight`), peso, contorno, sombra e alinhamento.
+ * Texto até 3 linhas, tamanho entre 80 % e 100 %; não coube = `HEADLINE_TOO_LONG`. Destaque: *trecho* = `highlight`.
  * Legenda automática (`captionsAuto`, §2.2): camada karaokê embaixo, nunca na faixa nova.
  */
 import type { EditLayer, EditMap, Rect } from '@maquina/contratos';
@@ -23,7 +19,7 @@ import { CaptionProtectedError, type OpcoesDeBuild } from './frame';
 export type { HeadlineSpec };
 
 export class HeadlineError extends Error {
-  constructor(public readonly code: 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE', msg: string) { super(`${code}: ${msg}`); }
+  constructor(public readonly code: 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE' | 'HEADLINE_PENDING', msg: string) { super(`${code}: ${msg}`); }
 }
 
 type TextLayer = RemixKeepRenderInput['textLayers'][number];
@@ -71,34 +67,6 @@ const hexRgb = (h: string): [number, number, number] | null => {
 const lum = (c: [number, number, number]) => { const l = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }; return 0.2126 * l(c[0]) + 0.7152 * l(c[1]) + 0.0722 * l(c[2]); };
 export const razaoContraste = (a: string, b: string) => { const x = hexRgb(a), y = hexRgb(b); if (!x || !y) return 21; const p = lum(x), q = lum(y); return (Math.max(p, q) + 0.05) / (Math.min(p, q) + 0.05); };
 
-/**
- * F11 (28/10): a mesma cor com alpha 1. No `replace` a placa/faixa apaga a headline original; com alpha < 1 (era
- * `rgba(0,0,0,0.85)`) 15 % do texto antigo atravessava em cinza. Vale pra `rgba()`/`hsla()`, `#rrggbbaa`/`#rgba`, `transparent`
- * e cada parada de um degradê.
- */
-export function corOpaca(cor: string): string {
-  return cor
-    .replace(/\b(rgb|hsl)a?\(\s*([^,()\s]+)[\s,]+([^,()\s]+)[\s,]+([^,()\s/]+)(?:\s*[,/]\s*[^)]+)?\)/gi, (_m, f: string, a: string, b: string, c: string) => `${f.toLowerCase()}(${a}, ${b}, ${c})`)
-    .replace(/#([0-9a-f]{6})[0-9a-f]{2}\b/gi, '#$1')
-    .replace(/#([0-9a-f]{3})[0-9a-f]\b/gi, '#$1')
-    .replace(/\btransparent\b/gi, '#000000');
-}
-
-/** Alpha de uma cor simples (1 = opaca); degradê = menor alpha das paradas. Pra teste e diagnóstico. */
-export function alphaDaCor(cor: string): number {
-  const as: number[] = [];
-  for (const m of cor.matchAll(/\b(?:rgb|hsl)a?\(([^)]*)\)/gi)) {
-    const partes = m[1].split(/[\s,/]+/).filter(Boolean);
-    if (partes.length >= 4) as.push(partes[3].endsWith('%') ? parseFloat(partes[3]) / 100 : parseFloat(partes[3]));
-  }
-  for (const m of cor.matchAll(/#([0-9a-f]{8}|[0-9a-f]{4})\b/gi)) {
-    const h = m[1];
-    as.push(h.length === 8 ? parseInt(h.slice(6), 16) / 255 : parseInt(h[3] + h[3], 16) / 255);
-  }
-  if (/\btransparent\b/i.test(cor)) as.push(0);
-  return as.length ? Math.min(...as) : 1;
-}
-
 /** Texto com o destaque marcado (*trecho*) a partir do `highlight` (1ª ocorrência; ausente no texto = sem destaque). */
 export const marcarDestaque = (text: string, highlight: string | null) => {
   if (!highlight) return text;
@@ -137,7 +105,7 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
   const src = ctx.source;
   const W = src.width, H = src.height, fps = src.fps;
   const m = ctx.editMap;
-  const ex = m ? W / m.width : 1, ey = m ? H / m.height : 1, ef = m ? fps / m.fps : 1;
+  const ex = m ? W / m.width : 1, ey = m ? H / m.height : 1;
   // F7 (27/10): nº de quadros = o do STREAM de vídeo (editMap.frameCount = pacotes contados pelo ffprobe na análise).
   // `durationSec` é a do contêiner: com o áudio mais longo que o vídeo dava 2547 contra 2544 reais, e o finalize recusava.
   const frameCount = quadrosDoCampeao(src, m);
@@ -146,40 +114,8 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
   let caixaNova: Rect;
 
   if (spec.mode === 'replace') {
-    const orig = m ? headlineDoCampeao(m) : null;
-    if (!orig || !MEDIDA[orig.style.fontId]) throw new HeadlineError('HEADLINE_LOW_CONFIDENCE', 'campeão sem camada de headline com fonte do catálogo');
-    const st0 = orig.style;
-    const box = escala(orig.box, ex, ey);
-    const size0 = st0.fontSizePx * ey;
-    const linhas0 = Math.max(1, Math.round(box.h / (size0 * st0.lineHeight)));
-    const st: Estilo = { ...st0, fontSizePx: size0, strokeWidthPx: st0.strokeWidthPx * ey };
-    const aj = ajustarHeadline(texto, st, box.w, linhas0 + 1, spec.language);
-    if (!aj) throw new HeadlineError('HEADLINE_TOO_LONG', `não cabe em ${linhas0 + 1} linhas de ${box.w}px entre 80 e 100 % de ${size0.toFixed(1)}px`);
-    // caixa do texto: a da original; com +1 linha, cresce igual pra cima e pra baixo
-    const altura = Math.max(box.h, Math.ceil(aj.linhas.length * aj.size * st.lineHeight));
-    const caixaTexto = { x: box.x, y: Math.max(0, Math.round(box.y - (altura - box.h) / 2)), w: box.w, h: altura };
-    let fundo: TextLayer['background'];
-    if (orig.background.kind !== 'none' && orig.background.color) {
-      const fb = escala(orig.background.box ?? orig.box, ex, ey);
-      fundo = { kind: orig.background.kind, color: corOpaca(orig.background.color), box: fb };
-      caixaNova = fb.h >= caixaTexto.h ? fb : caixaTexto;
-    } else {
-      // placa sobre o vídeo (H1): cor mediana do fundo; contraste baixo com o texto → preto / branco. F11 (28/10): sempre
-      // OPACA (alpha 1) e cobrindo a caixa da original + margem: com 85 % a headline antiga vazava em cinza por trás da nova.
-      const mg = Math.round(0.02 * H);
-      const x0 = Math.max(0, Math.min(caixaTexto.x, box.x) - mg), y0 = Math.max(0, Math.min(caixaTexto.y, box.y) - mg);
-      const x1 = Math.min(W, Math.max(caixaTexto.x + caixaTexto.w, box.x + box.w) + mg), y1 = Math.min(H, Math.max(caixaTexto.y + caixaTexto.h, box.y + box.h) + mg);
-      const placa = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-      const claro = razaoContraste(st.color, '#000000') > razaoContraste(st.color, '#ffffff');
-      const cor = corOpaca(spec.plateColor && razaoContraste(spec.plateColor, st.color) >= 3 ? spec.plateColor : claro ? '#000000' : '#ffffff');
-      fundo = { kind: 'solid', color: cor, box: placa, radius: Math.round(0.15 * aj.size) };
-      caixaNova = placa;
-      if (fracaoSobreRosto(m, placa, ex, ey, frameCount) > 0.1) throw new HeadlineError('HEADLINE_OVER_FACE', 'a placa cobre o rosto em mais de 10 % dos frames');
-    }
-    camadas.push({
-      id: 'headline-nova', startFrame: Math.round(orig.startFrame * ef), endFrame: Math.min(frameCount, Math.max(1, Math.round(orig.endFrame * ef))),
-      box: caixaTexto, background: fundo, style: { ...st, fontSizePx: aj.size }, content: { kind: 'static', text: texto },
-    });
+    // troca-texto-queimado-v1 §15.3 (F1a): nada cobre o texto original. Sem placa e sem caixa com a medida antiga até o F1b.
+    throw new HeadlineError('HEADLINE_PENDING', 'a headline deste vídeo ainda não pode ser refeita');
   } else {
     // add: faixa na cor da marca no topo da área segura (H3)
     const fmt = Math.abs(W / H - 9 / 16) < 0.02 ? 'VERTICAL_9_16' : Math.abs(W / H - 4 / 5) < 0.02 ? 'PORTRAIT_4_5' : 'SQUARE_1_1';
@@ -220,7 +156,7 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
     });
   }
 
-  // legenda-protegida-v1 §2.1: a headline nova (faixa, placa ou faixa adicionada) não pode cruzar a legenda queimada
+  // legenda-protegida-v1 §2.1: a faixa adicionada não pode cruzar a legenda queimada
   const protegidas = faixasProtegidasDe(m as never, src);
   // remix-keep mantém o quadro inteiro do campeão: não dá pra recortar a legenda; 'replace' forçado = CAPTION_PROTECTED
   if (opts.captionMode === 'replace' && protegidas.length) throw new CaptionProtectedError('no_room', [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }]);
@@ -247,10 +183,13 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
     }
   }
 
+  const rostoHint = m ? rostoPrincipal(src, m as never) : null;
   return {
     kind: 'remix-keep', renderId: ctx.renderId, templateId: 'remix-keep',
     canvas: { width: W, height: H, fps, frameCount },
     baseVideoUrl: src.videoUrl, audioPassthroughUrl: src.videoUrl, overlays: [], textLayers: camadas, language: spec.language,
     ...(protegidas.length && { outputProtectedBands: faixasProtegidasNaSaidaRemix(protegidas, { width: W, height: H, fps, frameCount }) }),
+    // editor universal F-U2: auto reframe numa caixa nova (a composição ignora)
+    ...(rostoHint && { faceHint: { x: rostoHint.cx - rostoHint.w / 2, y: rostoHint.cy - rostoHint.h / 2, w: rostoHint.w, h: rostoHint.h } }),
   };
 }

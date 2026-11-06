@@ -2,6 +2,65 @@
 Data: 2026-10-05 · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0, 05/10)**
 Derivado da spec [`design/wizard-v1-2026-10-05.md`](../../design/wizard-v1-2026-10-05.md) (§8) e do [modelo de dados](modelo-de-dados.md). Eventos em tempo real: [`eventos.md`](eventos.md).
 
+## Mudanças 06/11 (F1b da troca de texto queimado; **contrato F0b, ainda sem código; `PLATE_IMPL=off` mantém o F1a**)
+Nenhuma rota nova. Nenhum evento novo: status por polling de `GET /iterate/:id`, como hoje.
+| rota | mudança | erros |
+|---|---|---|
+| `GET /iterate/:id` | `analysis.checklist` ganha `{ key: 'preparing_plate', status }`, em `stage: 'planning'`. `insight.headlineBlocked.reason` ganha `headline_near_caption`, `headline_font_far`, `headline_plate_rejected`, `headline_no_fit`. `IteratePiece.headline` ganha, opcionais, `copy: 'box' \| 'loose' \| 'add' \| null`, `fontTier: 'same' \| 'close' \| null`, `fitStep`, `fit` (`HeadlineFitLook`, só em `PLAN_READY`) | — |
+| `PATCH /iterate/:id/items/:itemId/texts` | HEADLINE `replace` valida por `ajustarHeadlineCopia(fit, texto)`. Não chama IA. Web roda a mesma função ao digitar | 422 `TEXT_INVALID`, `violations[].rule`: `headline_too_long`, `headline_too_short`, `headline_over_chin`; `detail` com a medida |
+| `GET/POST /ad-templates…` | Fit `hard` também com os 4 motivos acima. Lote de template sem headline que caiba: `headline_no_fit` e plano vazio | 422 `TEMPLATE_DOESNT_FIT`, `details.reason` |
+| `GET /creatives/:id/editor` | Peça `box` ou `loose`: `editor: { available: false, reason: 'headline_plate_retired' }` até o F3 | 422 `EDIT_NOT_SUPPORTED` no PUT |
+| Peça, falha | `PLATE_FAILED` e `CAPTION_RESIDUE` (§15.8) ficam para render que falhar depois do plano. Reprovação de portão ou placa não vira peça falha: a peça nem é oferecida | — |
+
+**Quem chama:** web (Plan, Run, galeria de templates). **Tipos:** `contratos/src/troca-texto.ts`, `iteracao.ts`, `templates.ts`. **Detalhe:** [`troca-texto-queimado-v1.md`](troca-texto-queimado-v1.md) §16.3 e §16.5. Campos opcionais: peça de antes do F1b não os traz.
+
+## Mudanças 06/11 (F1a da troca de texto queimado; **implementado, sem deploy**)
+| rota | mudança | erros |
+|---|---|---|
+| `POST`/`DELETE /iterate/:id/caption-blocked/force` | Respondem 410 por uma versão, com qualquer corpo; depois saem | **410 `CAPTION_FORCE_RETIRED`** |
+| `GET /iterate/:id` | Saem `IteratePiece.captionOverride`, `insight.captionBlocked[].forced`, `insight.captionNote`. Lote de template passa a trazer `insight.captionBlocked` e fit `soft` com plano vazio. HEADLINE `replace`: `insight.headlineBlocked = { reason: 'headline_pending', mode: 'replace' }`. Item marcado ou HEADLINE `replace` feito antes não aparece nem conta em `PLAN_READY` | — |
+| `GET/POST /ad-templates…` | Headline `replace`: fit `hard`, `headline_pending` | 422 `TEMPLATE_DOESNT_FIT` |
+| Peça, falha | `errorCode: 'HEADLINE_PENDING'`, `retryHint: 'leave_out'`. `CAPTION_COVERED` vale para toda peça | — |
+| `GET/PUT /creatives/:id/editor` | HEADLINE `replace` antigo: `editor.available: false`, `headline_plate_retired` | 422 `EDIT_NOT_SUPPORTED` |
+
+Detalhe em [`troca-texto-queimado-v1.md`](troca-texto-queimado-v1.md) §15.3, §15.3.1, §15.4 e §15.8. Resumo para o web em [`f1a-handoff.md`](f1a-handoff.md).
+
+## Mudanças 04/11 (Cérebro preenchido; detalhe em [`brain-preenchido-v1.md`](brain-preenchido-v1.md)) · **itens aprovados pelo Gusta 04/11, regras aguardam visto**
+| rota | entrada | saída | erros | quem chama |
+|---|---|---|---|---|
+| `GET /brain/graph`, `GET /brain/node/:id` (mudam) | — | kinds novos `brand_asset`, `brand_color`, `offer_field`, `pain`, `proof_item`, `source` (sem categoria nova) + `counts` deles; arestas `has_brand`, `has_color`, `has_field`, `has_pain`, `has_proof`, `read_from` (e `for_offer` brand_asset → offer); `open.route: 'brand'`; drawer `offer.imagesRead`. Cache do servidor derrubado nas escritas de kit, ofertas e workspace | — (sem erro novo) | Brain, Home |
+
+## Mudanças 31/10 noite (lacunas da Home v2 e do Eddy; detalhe em [`lacunas-home-eddy-v1.md`](lacunas-home-eddy-v1.md)) · **aditivo, aguarda visto do Gusta**
+| rota | entrada | saída | erros | quem chama |
+|---|---|---|---|---|
+| `PATCH /workspace` (muda) | + `confirm: 'business' \| 'offer' \| 'meta' \| 'goals' \| 'kit'` (idempotente; vale com onboarding concluído) | `Workspace` com `onboarding.confirmed` | 400 valor fora da lista; 403 MEMBER/CLIENT (como hoje) | conversa do Eddy |
+| `GET /workspace`, `GET /auth/me`, sessão (mudam) | — | `onboarding.confirmed: OnboardingConfirmItem[]` (no `Workspace` e no `WorkspaceRef`) | — | Eddy, shell |
+| `POST /offers/extract` → job `OFFER_EXTRACT` (muda) | — | `output.business` + `logoUrl`, `logoSource`, `secondaryColor`, `secondaryColorSource` (null quando não acha; texto colado = null) | — | Eddy, wizard |
+| `GET /brain/graph`, `GET /brain/node/:id` (mudam) | — | todo nó + `needsYou`, `statusLabel { key, params } \| null`; kind novo **`batch`** (categoria `creatives`, `meta.kind: 'batch'`), arestas `in_batch` e `iterated_from` batch → origem; `open.route: 'batch'`; `counts.batch` | — | Home, Brain |
+| `GET /meta/ads`, linhas de anúncio do Campaigns (mudam) | — | `MetaAdRow.lastIteratedAt: string \| null` | — | Home (regra dos 14 dias) |
+| **`GET /iterate`** (nova) | `?limit=1..50` (10) `&cursor=` `&mode=AUTO\|MANUAL` | `{ success, data: IterateBatchRow[], meta: { nextCursor } }`, `updatedAt desc` | 400 `VALIDATION_ERROR` | Home (Recent), todos os papéis |
+- Sem erro novo. Migração `20261031000300_onboarding_confirmed` (1 coluna). i18n novo só em `status.*` (§6 do contrato).
+
+## Mudanças 04/11 (vários templates num lote só; [`templates-multi-v1.md`](templates-multi-v1.md)) · **PROPOSTA, aguardando ok do Gusta**
+- Nova: `POST /ad-templates/use { slugs (2-12), fonte }` → 202 `IterateBatch` (preço = soma das linhas, sem teto). `/:slug/use` não muda.
+- Mudam: `POST /ad-templates/fits` aceita `slugs` (resposta com `bySlug`) · `GET /ad-templates` + `selection` (limites) · `IterateBatch.template.selection` · `TemplateRunRef.selection`.
+- Erro novo: `TEMPLATE_SELECTION_INVALID` (422). `TEMPLATE_DOESNT_FIT` + `slug?`/`items?`, `TEMPLATE_UNAVAILABLE` + `slug?`, `PAYMENT_REQUIRED` + `slugs?`.
+
+## Mudanças 04/11 (templates de lista Versus/Value stack; [`templates-lista-v1.md`](templates-lista-v1.md) §5) · backend T-B2, arquiteto revisa
+- Nova: `PATCH /iterate/:id/items/:itemId/list` · body `UpdateListOptionsBody { look?, columns?, acceptFill? }` (≥ 1 campo) · `200 IterateBatch` · 409 `INVALID_STATE` (não `PLAN_READY`), 422 `EDIT_NOT_SUPPORTED` (`reason: 'type'` item não é LIST_OVERLAY; `'columns_versus_only'`), 400 `VALIDATION_ERROR` (`at_least_one`, valor fora da lista) · grátis.
+- Mudam: `PATCH …/texts` aceita LIST_OVERLAY (`list.heads.bad|good`, `list.title`, `list.lines.<id>`; 422 `TEXT_INVALID` com as regras do §2.3) · `IteratePiece.list` · `insight.captionBlocked[].listTemplate` e `ForceCaptionBlockedBody.listTemplate` · peça com `list.fill = 'pending'` vem em `pieces` mas fica fora de `summary.pieces`/quote até `acceptFill`.
+
+## Mudanças 01/11 (Cold open e Offer end card de volta; [`templates-creditos-v1.md`](templates-creditos-v1.md) A6)
+- Sem rota nova nem shape novo. `cold-open` (`COLD_OPEN`) e `offer-end-card` (`ENDCARD`) passam a `LIVE`, 1 crédito, `available: true` (migração de dados `20261101000100_templates_cold_open_endcard`); aparecem pro cliente quando tiverem vídeo de exemplo. Só no lote de template (e no pack): o Iterate normal (quiz) não os planeja.
+- `fit.reason` desses dois: `short_video` (cold open: vídeo < 10 s ou < 2 blocos), `has_end_card` (o original já fecha com cartão), `no_offer` (nada no Brain nem CTA falado pra um end card), `burned_captions` (soft). `use` sem caber = 422 `TEMPLATE_DOESNT_FIT` com o mesmo `reason`. `offer-end-card.needs` passa a `[]` (era `['price']`).
+- Peças: `type` `COLD_OPEN` / `ENDCARD` (códigos `COLD-OPEN`, `ENDCARD-OFFER|GUARANTEE|PRICE|CTA` / `ENDCARD-OFERTA|GARANTIA|PRECO|CTA`), sem texto editável na v1 (A7).
+
+## Mudanças 31/10 (biblioteca de templates com créditos; detalhe em [`templates-creditos-v1.md`](templates-creditos-v1.md)) · **aprovado pelo Gusta 31/10**
+- Novas: `GET /ad-templates` · `GET /ad-templates/:slug` · `POST /ad-templates/fits` · `POST /ad-templates/:slug/use` · `GET /ad-templates/runs` · `GET /credits` · `GET /credits/ledger` · admin `GET/PATCH /admin/ad-templates[/:slug]`, `POST /admin/ad-templates/:slug/example[/complete]`, `POST /admin/credits/grant`.
+- Mudam: `POST /iterate/:id/start` + `expectedCredits` (lote de template; 409 `CREDITS_CHANGED`, 402 `INSUFFICIENT_CREDITS`) · `PATCH /iterate/:id/items/:itemId/texts` (novo, textos do Plan) · `GET /iterate/:id` + `template` · Retry pode dar 402 · `POST /iterate` de conta SAMPLE com `TEMPLATES=on` = 402 `sample_templates`.
+- Prefixo `/ad-templates` porque `GET /templates` já é o registro Remotion do wizard (§11).
+- Erros novos: `INSUFFICIENT_CREDITS` (402), `CREDITS_CHANGED` (409), `TEMPLATE_UNAVAILABLE`, `TEMPLATE_DOESNT_FIT`, `TEMPLATE_UNPRICED`, `TEXT_INVALID` (422). Tempo real: polling, como hoje.
+
 ## Mudanças 26/10 (legenda queimada protegida; detalhe em [`legenda-protegida-v1.md`](legenda-protegida-v1.md)) · **aprovado pelo Gusta 26/10**
 - **Rotas novas:** `POST /champions/:id/clean-version { uploadId }` → `200 ChampionDetail` (com `cleanVideo`). Confere que é o mesmo vídeo sem a legenda: duração ±0,1 s, mesma resolução e fps, PSNR fora da faixa protegida ≥ 30 dB em 6 quadros. Erros: 404 (campeão/upload), 409 `UPLOAD_INCOMPLETE`, 409 `INVALID_STATE` (campeão `ANALYZING`/`RESOLVING`), **422 `CLEAN_VERSION_MISMATCH`** `{ reason: 'duration' | 'resolution' | 'fps' | 'content' }`. `DELETE /champions/:id/clean-version` → `200 ChampionDetail` (volta pra original). `POST /champions` aceita `cleanUploadId?` (mesma conferência depois da análise; falhou = campeão fica sem a versão e o `ChampionDetail` traz `failReason` só da versão, sem falhar o campeão).
 - **Respostas (opcionais, TRANSIÇÃO):** `ChampionDetail.cleanVideo`; `teardown.editMap.protectedBands` (`ProtectedBand[]`); `AutoInsight.captionBlocked[]` (template/tipo não oferecido por `burned_captions`, o web mostra "Este formato precisa do vídeo sem legenda"); `IteratePiece.captionNote: 'replaced' | null`.
@@ -387,6 +446,7 @@ Progresso: eventos `render.updated` no SSE (%, frame, totalFrames, stage). Falha
 | `GET /workspace/services` | — | `[{ provider: 'ANTHROPIC'\|'WAVESPEED'\|'HIGGSFIELD'\|'APIFY'\|'STORAGE'\|'META', connected: boolean, keyMasked: 'sk-…a91f' \| null }]` (lido do `.env` da API; só leitura na v1). `HIGGSFIELD` = rosto Soul V2 (`HF_API_KEY_ID`/`SECRET`, mascara o id); `APIFY` = link da Ad Library (`APIFY_TOKEN`); `META` (21/10) = app configurado (`META_APP_ID`/`SECRET`/`TOKEN_KEY` em live, ou mock; `off` = `connected: false`), mascara o app id. A conexão do workspace em si é `GET /meta/connection` | — | todos |
 | `GET /workspace/tour` (21/10) | — | `TourState` (`completedAt` do membership do usuário; `stops` sem `iterate` quando não há WINNER na Meta) | — | todos (`@ClientAllowed`) |
 | `POST /workspace/tour/complete` (21/10) | `{}` | `{ tourCompletedAt }` (idempotente) | — | todos (`@ClientAllowed`) |
+| `GET /workspace/tour?v=2`, `POST`/`DELETE /workspace/tour/tips`, `POST /events` (04/11) | ver `tour-v2.md` | paradas v2, vencedor, dicas vistas; eventos do tour em lote (204) | — | todos (`@ClientAllowed`) |
 | `GET /workspace/spend` | `?month=2026-10` | `{ month, spentUsd, capUsd, byProvider: [{ provider: 'ANTHROPIC'\|'WAVESPEED'\|'HIGGSFIELD'\|'APIFY', amountUsd }], byKind: [{ kind: 'LLM'\|'IMAGE'\|'VIDEO'\|'TTS'\|'LIPSYNC'\|'TRANSCRIBE'\|'SCRAPE', amountUsd }] }` (inclui custo de campeões e lotes) | 400 | todos |
 
 ## 15. Arquivos, saúde e webhooks

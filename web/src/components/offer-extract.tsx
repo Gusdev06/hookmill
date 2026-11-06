@@ -104,6 +104,26 @@ export function ExtractChecklist({ job, url }: { job: Job | null; url: string })
 }
 
 /**
+ * The short form of the reading (client onboarding, Gusta 31/10): one status line plus the bar with the time left.
+ * No stage list and no "simple pages take…" note.
+ */
+export function ExtractStatus({ job, label }: { job: Job | null; label: React.ReactNode }) {
+  const t = useTranslations("wizard.offer")
+  const pct = job ? Math.max(0, Math.min(100, Math.round(job.progress ?? 0))) : 0
+  const eta = job?.etaSec ?? null
+  return (
+    <div role="status" aria-live="polite" className="grid gap-2">
+      <span className="flex items-center gap-2.5 font-semibold">
+        <span className="spin-ring size-3.5 flex-none" aria-hidden="true" />
+        {label}
+      </span>
+      <Progress value={pct} aria-label={t("progressLabel")} />
+      <span className="font-mono text-xs text-fg-3 tabular-nums">{eta !== null && eta > 0 ? t("progressEta", { pct, sec: eta }) : t("progressPct", { pct })}</span>
+    </div>
+  )
+}
+
+/**
  * "Read from: main page, checkout, pricing · 3 images" (v2 §0.3), from `pages`/`imagesRead`/`readMode`.
  * Before v2 the API only sends `relatedUrls`: then "Also read: <hosts>". Nothing when there is nothing to say.
  */

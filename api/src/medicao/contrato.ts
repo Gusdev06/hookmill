@@ -51,6 +51,9 @@ export interface MediaAnalysisService {
   faceTrack(videoPath: string, layout?: LayoutMeasure): Promise<FaceTrackResult>;
   /** Intervalo [start, end) em frames em que o recorte `box` bate com o do frame de `refAtSec` (penhasco, sem limiar). */
   layerPresence(videoPath: string, box: Rect, refAtSec: number): Promise<{ startFrame: number; endFrame: number }>;
+  /** `layerPresence` de várias caixas com uma decodificação só (não uma por caixa). Erro de uma caixa volta na posição dela.
+   *  Opcional: sem ele a leitura chama `layerPresence` caixa a caixa. */
+  layersPresence?(videoPath: string, items: { box: Rect; refAtSec: number }[]): Promise<({ startFrame: number; endFrame: number } | Error)[]>;
   /** Fundo chapado (ou degradê vertical) da camada: caixa medida + cor reconstruída das medianas das linhas. */
   solidBackground(videoPath: string, atSec: number, approxBox: Rect): Promise<SolidBackground | null>;
   /** Recorte do clipe (px do clipe) pra uma região: mesma proporção rosto/região do original, cover, sem barra. Puro. */

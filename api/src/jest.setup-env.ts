@@ -9,7 +9,12 @@ import { BUCKET_DE_TESTE, ehLocal, exigirBancoDeTeste, nomeDoBanco, urlDoBancoDe
 process.env.NODE_ENV = 'test';
 process.env.INTEGRACOES_MODE = 'mock';
 process.env.AD_LIBRARY_MODE = 'mock';
-for (const k of ['ANTHROPIC_API_KEY', 'WAVESPEED_API_KEY', 'HF_API_KEY_ID', 'HF_API_KEY_SECRET', 'APIFY_TOKEN', 'WAVESPEED_WEBHOOK_SECRET']) {
+// ads-research-v1: Ad Radar sempre em mock nos testes; a descoberta automática (ganchos de onboarding/Brain) fica desligada
+// por padrão pra não rodar em segundo plano nos specs dos outros módulos (o research.int.spec liga de volta).
+process.env.ADS_RESEARCH_MODE = 'mock';
+process.env.ADS_RESEARCH_DISCOVERY = 'off';
+process.env.ADS_RESEARCH_CRON = 'off';
+for (const k of ['ANTHROPIC_API_KEY', 'WAVESPEED_API_KEY', 'HF_API_KEY_ID', 'HF_API_KEY_SECRET', 'APIFY_TOKEN', 'ADS_RESEARCH_APIFY_TOKEN', 'WAVESPEED_WEBHOOK_SECRET']) {
   process.env[k] = '';
 }
 
@@ -53,6 +58,9 @@ process.env.DIRECT_URL = urlDeTeste;
 // Opt-in explícito pra herdar do api/.env: API_TEST_PERMITIR_LIVE=1 (nunca na suíte normal nem no QA).
 if (process.env.API_TEST_PERMITIR_LIVE !== '1') {
   process.env.RENDER_IMPL = 'fake';
+  process.env.TEST_MODE = 'off'; // 02/11: o modo teste liberaria tudo e os specs da amostra/créditos mentiriam
+  process.env.ANALYZE_IMPL = 'local'; // leitura-lambda-v1: spec que testa a Lambda injeta um invocador falso
+  process.env.ANALYZE_LAMBDA_FUNCTION = '';
   process.env.META_MODE = 'mock';
   for (const k of [
     'RENDER_LAMBDA_KINDS', 'REMOTION_AWS_ACCESS_KEY_ID', 'REMOTION_AWS_SECRET_ACCESS_KEY', 'REMOTION_LAMBDA_FUNCTION', 'REMOTION_SERVE_URL',

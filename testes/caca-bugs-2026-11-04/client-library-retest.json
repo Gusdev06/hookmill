@@ -1,0 +1,26 @@
+[
+  {
+    "role": "CLIENT",
+    "delete": 0,
+    "vary": 0,
+    "send": 0
+  },
+  {
+    "role": "OWNER",
+    "delete": 16,
+    "vary": 13,
+    "send": 13
+  },
+  {
+    "role": "ADMIN",
+    "delete": 16,
+    "vary": 13,
+    "send": 13
+  },
+  {
+    "role": "MEMBER",
+    "delete": 16,
+    "vary": 13,
+    "send": 13
+  }
+]

@@ -16,8 +16,12 @@ export function captureScenarioFromUrl() {
   // meta-v1 mock states: ?metamock=stale|failed|expired|off|none (never connected)|perm (permission missing) (sessionStorage mock:meta); ?metamock=on clears it
   const mm = new URLSearchParams(window.location.search).get("metamock")
   if (mm === "on") sessionStorage.removeItem("mock:meta")
-  // campanhas-v1: + unusable (account disabled) · trunc (500+ per level) · nocamp (no campaigns in the account)
-  else if (mm && ["stale", "failed", "expired", "off", "unusable", "trunc", "nocamp", "none", "perm", "connected"].includes(mm)) sessionStorage.setItem("mock:meta", mm)
+  // campanhas-v1: + unusable (account disabled) · trunc (500+ per level) · nocamp (no campaigns in the account) · meta-oferta-v1: posts (no readable link)
+  else if (mm && ["stale", "failed", "expired", "off", "unusable", "trunc", "nocamp", "none", "perm", "connected", "posts"].includes(mm)) sessionStorage.setItem("mock:meta", mm)
+  // template-campanha F4 (QA 03/11): ?mocktpl=list422 → GET /meta/templates answers 422 META_TOKEN_INVALID while expired; =off clears
+  const mtp = new URLSearchParams(window.location.search).get("mocktpl")
+  if (mtp === "off") sessionStorage.removeItem("mock:tpl")
+  else if (mtp === "list422") sessionStorage.setItem("mock:tpl", mtp)
   // campanhas-v1 QA: ?mockrole=member|client shows the Campaigns screen (and the write handlers) as that role; =off clears
   const mp = new URLSearchParams(window.location.search).get("mockpage")
   if (mp === "off") sessionStorage.removeItem("mock:page")
@@ -33,12 +37,16 @@ export function captureScenarioFromUrl() {
   const mf = new URLSearchParams(window.location.search).get("mockframes")
   if (mf === "off") sessionStorage.removeItem("mock:frames")
   else if (mf === "all") sessionStorage.setItem("mock:frames", "all")
-  // legenda-protegida-v1 (web-mock): ?mockcaptions=burned|covered (champion with burned-in captions; covered = the 1st FRAME's 1st render fails CAPTION_COVERED); =off clears
+  // legenda-protegida-v1 (web-mock): ?mockcaptions=burned|covered|legacy (champion with burned-in captions; covered = the 1st FRAME's 1st render fails CAPTION_COVERED; legacy = pieces made before F1a, with the retired fields); =off clears
   const mc = new URLSearchParams(window.location.search).get("mockcaptions")
   if (mc === "off") sessionStorage.removeItem("mock:captions")
-  else if (mc === "burned" || mc === "covered") sessionStorage.setItem("mock:captions", mc)
+  else if (mc === "burned" || mc === "covered" || mc === "legacy") sessionStorage.setItem("mock:captions", mc)
+  const ms = new URLSearchParams(window.location.search).get("mockslow")
+  if (ms === "off") sessionStorage.removeItem("mock:slow")
+  else if (ms && Number(ms) > 0) sessionStorage.setItem("mock:slow", ms)
   const a = new URLSearchParams(window.location.search).get("adlib")
-  if (a === "off") sessionStorage.setItem("mock:adlib", "off")
+  // ?adlib=hidden: AD_LIBRARY_MODE=off in production (R11, not_configured): the champion step hides the link field
+  if (a === "off" || a === "hidden") sessionStorage.setItem("mock:adlib", a)
   else if (a === "on") sessionStorage.removeItem("mock:adlib")
 }
 

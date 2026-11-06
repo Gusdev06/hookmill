@@ -218,6 +218,8 @@ export function WinnerStep({ champion }: { champion: ChampionDetail | null }) {
   const ready = upload.state.phase === "ready" ? (upload.state.result as CompleteUploadResponse) : null
   const adlib = config.data?.adLibrary
   const linkOff = adlib ? !adlib.available : false
+  // R11 (ads-research-v1 §6.4): link reader switched off on purpose (AD_LIBRARY_MODE=off) = hide the field; Ad Radar replaces it
+  const linkHidden = !champion && adlib?.available === false && adlib.reason === "not_configured"
   const busy = champion?.status === "RESOLVING"
   const linkFailed = champion?.status === "FAILED" && champion.action === "upload_video"
   const format = useFormatter()
@@ -412,7 +414,7 @@ export function WinnerStep({ champion }: { champion: ChampionDetail | null }) {
                 ) : null}
                 <VideoDropzone config={config.data} state={upload.state} onFile={upload.start} onCancel={upload.cancel} emphasize={linkFailed} />
                 {!champion ? <CleanVersionField limits={config.data} onUploaded={setCleanUploadId} idPrefix="win" /> : null}
-                {!linkFailed ? (
+                {linkHidden ? null : !linkFailed ? (
                   <>
                     <div className="flex items-center gap-3 font-mono text-xs text-fg-3 uppercase" aria-hidden="true">
                       <i className="h-px flex-1 bg-line" />

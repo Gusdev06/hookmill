@@ -1,13 +1,13 @@
 // Editor no vídeo v1, F2a (docs/contratos/editor-v1.md §5): GET/PUT /creatives/:id/editor do criativo do zero.
-// remix-keep fica 422 EDIT_NOT_SUPPORTED até o F3.
+// remix-keep fica 422 EDIT_NOT_SUPPORTED até o F3. editor-universal-v1 F-U1: peça AUTO (FRAME/HEADLINE) vai pro
+// EditorAutoService (EditorStateV3); o criativo do zero segue no v1 até o F-U2.
 import { Injectable } from '@nestjs/common';
-import type { EditDoc, EditNotSupportedDetails, EditSettings, EditorLayerInfo, EditorState, PutEditorResponse, ScratchSource, UserRef } from '@maquina/contratos';
+import type { EditDoc, EditNotSupportedDetails, EditSettings, EditorLayerInfo, EditorState, EditorStateV3, PutEditorResponse, PutEditorResponseV3, ScratchSource } from '@maquina/contratos';
 import { FONT_CATALOG, framesDasCenas, layoutPadrao, normalizarDoc, resolverProps, validarDoc, type FontId, type TemplateId } from '@maquina/video';
 import type { Creative, Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
-import { initials } from '../common/util/format';
 import { KeyedMutex } from '../common/util/mutex';
 import { AppConfig } from '../config/app-config';
 import { CreativeStateMachine, assertNotAutoPiece, assertState, invalidState } from '../criativos/state-machine';
@@ -16,7 +16,8 @@ import { EventosService } from '../eventos/eventos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { REMIX_KEEP_TEMPLATE } from './edicao.service';
 import { EDITABLE, aplicarMudancaDeSettings, definidos, cenaPronta, docJson, editDocOf, montarScratchSource } from './editor-doc';
-import { EditorSaves, anunciarEdicao } from './editor-saves';
+import { anunciarEdicao, lastSave } from './editor-saves';
+import { EditorAutoService } from './editor-auto.service';
 import type { PutEditorDto } from './editor.dto';
 
 const FPS = 30;
@@ -32,7 +33,7 @@ export class EditorService {
     private readonly eventos: EventosService,
     private readonly locks: KeyedMutex,
     private readonly config: AppConfig,
-    private readonly saves: EditorSaves,
+    private readonly auto: EditorAutoService,
   ) {}
 
   private async creative(auth: AuthContext, id: string): Promise<Creative> {
@@ -72,8 +73,9 @@ export class EditorService {
     }));
   }
 
-  async get(auth: AuthContext, creativeId: string): Promise<EditorState> {
+  async get(auth: AuthContext, creativeId: string): Promise<EditorState | EditorStateV3> {
     const c = await this.creative(auth, creativeId);
+    if (c.variationKind === 'AUTO_EDIT') return this.auto.get(auth, c.id);
     const settings = this.check(c);
     const fonte = await this.fonte(c);
     const doc = normalizarDoc(editDocOf(c.editDoc), fonte, settings);
@@ -103,12 +105,16 @@ export class EditorService {
    * Salva doc + ajustes (autosave do editor). Ordem: estado → revisão (409 EDIT_CONFLICT) → §3.2 → validarDoc (400 com
    * as regras do contrato) → normalizarDoc → grava com revisão + 1. RENDER_READY vira EDIT_PENDING (EDIT_CHANGED).
    */
-  async put(auth: AuthContext, creativeId: string, dto: PutEditorDto): Promise<PutEditorResponse> {
+  async put(auth: AuthContext, creativeId: string, dto: PutEditorDto): Promise<PutEditorResponse | PutEditorResponseV3> {
+    const first = await this.creative(auth, creativeId);
+    if (first.variationKind === 'AUTO_EDIT') return this.auto.put(auth, first.id, dto);
     return this.locks.run(creativeId, async () => {
       const c = await this.creative(auth, creativeId);
       const current = this.check(c);
+      // o doc v3 só vale pra peça AUTO no F-U1 (o criativo do zero passa pro v3 no F-U2)
+      if (dto.doc && dto.doc.version !== 1) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'doc.version', rule: 'not_editable' }] });
       if (dto.baseRevision !== c.editRevision) {
-        const last = this.saves.get(c.id) ?? (await this.fallbackSave(c));
+        const last = await lastSave(this.prisma, c);
         throw new AppException('EDIT_CONFLICT', { revision: c.editRevision, savedBy: last.savedBy, savedAt: last.savedAt });
       }
       const settings: EditSettings = { ...current, ...(definidos(dto.settings) as Partial<EditSettings>) };
@@ -125,6 +131,7 @@ export class EditorService {
         editDoc: docJson(doc),
         editRevision: revision,
         editDirty: true,
+        editSavedById: auth.userId, editSavedAt: now, // editor-universal-v1 §10
       };
       if (c.state === 'RENDER_READY') {
         await this.sm.transition({ creativeId: c.id, event: 'EDIT_CHANGED', from: 'RENDER_READY', to: 'EDIT_PENDING', where: { editRevision: c.editRevision }, data });
@@ -132,18 +139,13 @@ export class EditorService {
         const r = await this.prisma.creative.updateMany({ where: { id: c.id, editRevision: c.editRevision, archivedAt: null }, data });
         if (r.count !== 1) {
           const fresh = await this.prisma.creative.findUniqueOrThrow({ where: { id: c.id } });
-          const last = this.saves.get(c.id) ?? (await this.fallbackSave(fresh));
+          const last = await lastSave(this.prisma, fresh);
           throw new AppException('EDIT_CONFLICT', { revision: fresh.editRevision, savedBy: last.savedBy, savedAt: last.savedAt });
         }
         this.sm.announce(c.id);
       }
-      await anunciarEdicao({ prisma: this.prisma, eventos: this.eventos, saves: this.saves }, c.id, auth.userId, revision, now);
+      await anunciarEdicao({ prisma: this.prisma, eventos: this.eventos }, c.id, auth.userId, revision, now);
       return { revision, doc, settings, dirty: true as const };
     });
-  }
-
-  private async fallbackSave(c: Creative): Promise<{ savedBy: UserRef; savedAt: string }> {
-    const u = await this.prisma.user.findUnique({ where: { id: c.createdById }, select: { id: true, name: true } });
-    return { savedBy: { id: c.createdById, name: u?.name ?? '', initials: initials(u?.name ?? '') }, savedAt: c.updatedAt.toISOString() };
   }
 }

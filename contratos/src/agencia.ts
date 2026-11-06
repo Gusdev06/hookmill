@@ -35,6 +35,13 @@ export interface BusinessSuggestion {
   resultType: ResultType | null;
   /** 2-6 [A-Z0-9] a partir do nome, sem repetir o shortCode de outro cliente dos membros deste workspace */
   shortCode: string | null;
+  // lacunas-home-eddy-v1 §2 (31/10): do HTML/DOM que a leitura já abre, sem chamada paga. Opcionais só no tipo (mocks); a API manda sempre.
+  /** URL absoluta http(s) do logo: <img> de logo no cabeçalho → apple-touch-icon → icon → og:image. Não é baixada nem testada; null = não achou / texto colado */
+  logoUrl?: string | null;
+  logoSource?: 'header' | 'icon' | 'og_image' | null;
+  /** 2ª cor de destaque `#RRGGBB`, diferente da `brandColor` (distância RGB ≥ 60); null sem 1ª cor ou sem candidata */
+  secondaryColor?: string | null;
+  secondaryColorSource?: 'cta' | 'theme_color' | 'css' | null;
 }
 /** Derivado: pausedAt → PAUSED; senão onboardingCompletedAt → LIVE; senão SETUP. */
 export type ClientStatus = 'SETUP' | 'LIVE' | 'PAUSED';
@@ -49,6 +56,8 @@ export interface Onboarding {
   /** §3.2: quem mexeu por último no setup (tela "Setup in progress"); null = ninguém ainda */
   updatedBy: UserRef | null;
   updatedAt: string | null;
+  /** lacunas-home-eddy-v1 §1 (31/10): cartões que a pessoa confirmou na conversa do Eddy, na ordem; `[]` = nenhum. Opcional só no tipo (mocks antigos); a API manda sempre. */
+  confirmed?: import('./onboarding-v2').OnboardingConfirmItem[];
 }
 
 // ───────────────────────── "waiting on you" (mesma regra na Home e no Clients) ─────────────────────────

@@ -1,0 +1,478 @@
+[
+  {
+    "id": "huntcreat11",
+    "trigger": "policy",
+    "status": 202
+  },
+  {
+    "trigger": "policy",
+    "publication": [
+      {
+        "status": "FAILED",
+        "error_code": "META_POLICY",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "[mock:meta-policy]",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 2000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "[mock:meta-policy]",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "NEW_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 2000,
+            "specialAdCategories": []
+          },
+          "overridden": [
+            "campaign",
+            "ad"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "huntcreat12",
+    "trigger": "payment",
+    "status": 202
+  },
+  {
+    "trigger": "payment",
+    "publication": [
+      {
+        "status": "FAILED",
+        "error_code": "META_PAYMENT_REQUIRED",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "[mock:meta-payment]",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 2000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "[mock:meta-payment]",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "NEW_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 2000,
+            "specialAdCategories": []
+          },
+          "overridden": [
+            "campaign",
+            "ad"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "huntcreat13",
+    "trigger": "rate",
+    "status": 202
+  },
+  {
+    "trigger": "rate",
+    "publication": [
+      {
+        "status": "FAILED",
+        "error_code": "META_RATE_LIMITED",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "[mock:meta-rate]",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 2000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "[mock:meta-rate]",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "NEW_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 2000,
+            "specialAdCategories": []
+          },
+          "overridden": [
+            "campaign",
+            "ad"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "huntcreat14",
+    "trigger": "error",
+    "status": 202
+  },
+  {
+    "trigger": "error",
+    "publication": [
+      {
+        "status": "FAILED",
+        "error_code": "META_ERROR",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "[mock:meta-error]",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 2000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "[mock:meta-error]",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "NEW_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 2000,
+            "specialAdCategories": []
+          },
+          "overridden": [
+            "campaign",
+            "ad"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "huntcreat15",
+    "trigger": "token",
+    "status": 202
+  },
+  {
+    "trigger": "token",
+    "publication": [
+      {
+        "status": "FAILED",
+        "error_code": "META_TOKEN_INVALID",
+        "settings": {
+          "link": "https://example.com/",
+          "ageMax": 65,
+          "ageMin": 18,
+          "headline": "Sleep well",
+          "countries": [
+            "US"
+          ],
+          "objective": "OUTCOME_SALES",
+          "pixelEvent": "PURCHASE",
+          "description": null,
+          "primaryText": "[mock:meta-token]",
+          "callToAction": "SHOP_NOW",
+          "objectiveReason": "business_type",
+          "dailyBudgetMinor": 2000,
+          "specialAdCategories": []
+        },
+        "template_snapshot": {
+          "ad": {
+            "link": "https://example.com/",
+            "urlTags": null,
+            "headline": "Sleep well",
+            "description": null,
+            "namePattern": "{code}",
+            "primaryText": "[mock:meta-token]",
+            "callToAction": "SHOP_NOW"
+          },
+          "adset": {
+            "ageMax": 65,
+            "ageMin": 18,
+            "genders": "ALL",
+            "pixelId": "pix_mock",
+            "countries": [
+              "US"
+            ],
+            "pixelEvent": "PURCHASE",
+            "placements": "AUTO",
+            "adsPerAdset": {
+              "max": 8,
+              "min": 4
+            },
+            "namePattern": "{offer} — {date} — {n}",
+            "advantageAudience": true
+          },
+          "campaign": {
+            "objective": "OUTCOME_SALES",
+            "budgetMode": "CBO",
+            "bidStrategy": "LOWEST_COST",
+            "destination": "NEW_CAMPAIGN",
+            "namePattern": "Hunt — {offer}",
+            "bidAmountMinor": null,
+            "dailyBudgetMinor": 2000,
+            "specialAdCategories": []
+          },
+          "overridden": [
+            "campaign",
+            "ad"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "expiredReadStatus": 200
+  },
+  {
+    "import": "mock_cmp_life",
+    "status": 400,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "campaignId",
+              "rule": "notAllowed"
+            },
+            {
+              "field": "level",
+              "rule": "isIn"
+            },
+            {
+              "field": "id",
+              "rule": "maxLength"
+            },
+            {
+              "field": "id",
+              "rule": "minLength"
+            },
+            {
+              "field": "id",
+              "rule": "isString"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "import": "mock_cmp_awareness",
+    "status": 400,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "campaignId",
+              "rule": "notAllowed"
+            },
+            {
+              "field": "level",
+              "rule": "isIn"
+            },
+            {
+              "field": "id",
+              "rule": "maxLength"
+            },
+            {
+              "field": "id",
+              "rule": "minLength"
+            },
+            {
+              "field": "id",
+              "rule": "isString"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "import": "mock_cmp_cbo",
+    "status": 400,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "campaignId",
+              "rule": "notAllowed"
+            },
+            {
+              "field": "level",
+              "rule": "isIn"
+            },
+            {
+              "field": "id",
+              "rule": "maxLength"
+            },
+            {
+              "field": "id",
+              "rule": "minLength"
+            },
+            {
+              "field": "id",
+              "rule": "isString"
+            }
+          ]
+        }
+      }
+    }
+  }
+]

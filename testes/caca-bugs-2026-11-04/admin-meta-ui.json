@@ -1,0 +1,21 @@
+[
+  {
+    "grant": [
+      {
+        "kind": "MANUAL",
+        "delta": 5,
+        "idempotency_key": "manual:grant-mw1mpsga-rdq187xi"
+      }
+    ]
+  },
+  {
+    "allAds": true
+  },
+  {
+    "account": "act_mock_2",
+    "status": 200
+  },
+  {
+    "metaError": "expect(received).toBe(expected) // Object.is equality\n\nExpected: 422\nReceived: 200"
+  }
+]

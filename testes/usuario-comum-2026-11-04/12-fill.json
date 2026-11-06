@@ -1,0 +1,77 @@
+{
+  "step": 12,
+  "url": "http://localhost:3311/onboarding/business",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nConfigurando seu negócio\ncom o Eddy · uns 5 minutos\nSair\nEd\nEddy\n\nOi, eu sou o Eddy. Vou montar o seu Cérebro com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.\n\nQual é o site? Eu leio e você só corrige o que eu errar.\n\nLer o site\nSem site? Descreva o negócio\n↑\n\nAqui o Eddy só monta o Cérebro. Tudo o que você confirmar dá pra editar depois em Cérebro › Marca.\n\nSEU CÉREBRO\n8%\n1 de 13 coisas conhecidas\nNegócio\n0 / 3\nRamo\n—\nOnde você vende\n—\nResultado\n—\nOferta\n0 / 5\nOferta\n—\nO que é\n—\nPromessa\n—\nOferta e preço\n—\nChamada pra ação\n—\nPúblico\n0 / 3\nPra quem é\n—\nDores\n—\nInstruções\n—\nProvas\n0 / 1\nProvas\n—\nMetas\n0 / 2\nTeto de gasto\nlido, esperando você\nCPA alvo\n—\nMeta\n0 / 1\nConta de anúncios\n—\nKit da marca\n0 / 4\nLogo\n—\nCores\n—\nArquivos\n—\nVídeo demo\n—\nO % conta as 13 coisas que os roteiros leem. Meta e kit da marca alimentam resultados e estáticos; não contam.",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Sair",
+      "label": "Sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Endereço do site",
+      "id": "",
+      "type": null,
+      "placeholder": "example.com",
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Ler o site",
+      "label": null,
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Sem site? Descreva o negócio",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Sua resposta",
+      "id": "",
+      "type": null,
+      "placeholder": "O que você vende, pra quem e onde",
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "↑",
+      "label": "Enviar",
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

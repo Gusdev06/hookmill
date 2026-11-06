@@ -3,11 +3,16 @@ import { AbsoluteFill, OffthreadVideo, Sequence, continueRender, delayRender, us
 import { measureText } from '@remotion/layout-utils';
 import { resolverSrc } from './componentes/midia';
 import { carregarFonteCatalogo, carregarFontes, carregarFontesCJK } from './fontes';
-import { temCJK } from './lib/molduras';
+import { pinturaNaCaixa, temCJK } from './lib/molduras';
+import { ID_EDITOR_DA_CAMADA_REMIX } from './lib/editor/headline';
 import { FONT_CATALOG, paginasKaraoke, tokensDoKaraoke, tokensDoTexto, type RemixKeepProps, type RemixOverlay, type RemixTextLayer, type RemixTextStyle, type TokenTexto } from './lib/remix';
 
 // Template remix-keep (§13.6): base = campeão; overlays = clipe novo nas regiões do rosto; camadas de texto redesenhadas.
 // Ordem de pintura: base → overlays → textLayers (fundo da camada, depois o texto). Tudo em px da grade do campeão.
+// Editor universal F-U1: `data-layer` = id da camada no editor ('headline-nova' → 'headline', fundo → 'headline:box').
+// F-U2: `edicao.video` (resolverPropsHeadline) apara e/ou põe o vídeo numa caixa com outro enquadramento. Sem ela, o render de hoje.
+
+const idEditor = (id: string) => ID_EDITOR_DA_CAMADA_REMIX[id] ?? id;
 
 /** Clipe novo dentro da região: só o `crop` do clipe aparece, escalado pra região (mesmo aspecto, sem barra).
  *  Não precisa saber o tamanho do clipe: a imagem fica no tamanho natural (objectFit none) deslocada pelo crop. */
@@ -94,7 +99,7 @@ const Bloco: React.FC<{ layer: RemixTextLayer; ajuste: Ajuste; cor: (linha: numb
   const st = layer.style;
   const justify = st.align === 'left' ? 'flex-start' : st.align === 'right' ? 'flex-end' : 'center';
   return (
-    <div data-layer={layer.id} style={{ position: 'absolute', left: layer.box.x, top: layer.box.y, width: layer.box.w, height: layer.box.h, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: justify }}>
+    <div data-layer={idEditor(layer.id)} style={{ position: 'absolute', left: layer.box.x, top: layer.box.y, width: layer.box.w, height: layer.box.h, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: justify }}>
       {ajuste.linhas.map((l, li) => (
         <div key={li} style={estiloTexto(st, ajuste.fontSize)}>
           {l.map((p, i) => (
@@ -121,7 +126,7 @@ const Fundo: React.FC<{ layer: RemixTextLayer }> = ({ layer }) => {
   const b = layer.background;
   if (b.kind === 'none' || !b.color) return null;
   const r = b.box ?? layer.box;
-  return <div style={{ position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, background: b.color, borderRadius: b.kind === 'pill' ? r.h / 2 : (b.radius ?? 0) }} />;
+  return <div data-layer={`${idEditor(layer.id)}:box`} style={{ position: 'absolute', left: r.x, top: r.y, width: r.w, height: r.h, background: b.color, borderRadius: b.kind === 'pill' ? r.h / 2 : (b.radius ?? 0) }} />;
 };
 
 const TextoEstatico: React.FC<{ layer: RemixTextLayer & { content: { kind: 'static' } } }> = ({ layer }) => {
@@ -170,12 +175,33 @@ const useCJK = (language: string | undefined, layers: RemixTextLayer[]) => {
   return pronto;
 };
 
+/** Vídeo base numa caixa, com o enquadramento do editor (`contain_blur`: o próprio vídeo desfocado atrás). */
+const BaseNaCaixa: React.FC<{ url: string; canvas: RemixKeepProps['canvas']; pintura: NonNullable<NonNullable<RemixKeepProps['edicao']>['video']['pintura']>; inFrame: number }> = ({ url, canvas, pintura, inFrame }) => {
+  const { box, reframe, contentBox } = pintura;
+  const dim = { width: canvas.width, height: canvas.height };
+  const pt = pinturaNaCaixa(box, dim, reframe, contentBox);
+  const trimBefore = inFrame || undefined;
+  return (
+    <div data-layer="video" style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, overflow: 'hidden' }}>
+      {reframe.mode === 'manual' && reframe.fit === 'contain_blur' ? (
+        <OffthreadVideo src={resolverSrc(url)} muted trimBefore={trimBefore} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(40px)', transform: 'scale(1.15)' }} />
+      ) : null}
+      <div style={{ position: 'absolute', left: pt.area.left, top: pt.area.top, width: pt.area.w, height: pt.area.h, overflow: 'hidden' }}>
+        <OffthreadVideo src={resolverSrc(url)} muted trimBefore={trimBefore} style={{ position: 'absolute', left: pt.video.left, top: pt.video.top, width: pt.video.w, height: pt.video.h, objectFit: 'fill', display: 'block' }} />
+      </div>
+    </div>
+  );
+};
+
 export const RemixKeep: React.FC<RemixKeepProps> = (props) => <RemixKeepCorpo {...props} />;
-const RemixKeepCorpo: React.FC<RemixKeepProps> = ({ baseVideoUrl, overlays, textLayers, language }) => {
+const RemixKeepCorpo: React.FC<RemixKeepProps> = ({ canvas, baseVideoUrl, overlays, textLayers, language, edicao }) => {
   const cjkPronto = useCJK(language, textLayers);
+  const ev = edicao?.video;
   return (
   <AbsoluteFill style={{ backgroundColor: '#000' }}>
-    <OffthreadVideo src={resolverSrc(baseVideoUrl)} muted style={{ width: '100%', height: '100%', display: 'block' }} />
+    {ev?.pintura
+      ? <BaseNaCaixa url={baseVideoUrl} canvas={canvas} pintura={ev.pintura} inFrame={ev.inFrame} />
+      : <OffthreadVideo src={resolverSrc(baseVideoUrl)} muted trimBefore={ev?.inFrame || undefined} style={{ width: '100%', height: '100%', display: 'block' }} />}
     {overlays.map((o, i) => (
       <Sequence key={`o${i}`} name={`Rosto ${i + 1}`} from={o.startFrame} durationInFrames={o.endFrame - o.startFrame} layout="none">
         <Overlay o={o} />

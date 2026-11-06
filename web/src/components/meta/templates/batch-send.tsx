@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
@@ -18,52 +19,90 @@ import { useSession } from "@/components/providers/session-provider"
 import { useMetaGate } from "@/components/meta/meta-gate"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { pk } from "@/hooks/use-meta-publish"
-import { planAdsets, useMetaTemplates, useTemplateSummary } from "@/hooks/use-meta-templates"
+import { planAdsets, useBudgetTooLowText, useMetaTemplates, useTemplateSummary } from "@/hooks/use-meta-templates"
 import { effectiveRole } from "@/lib/dev-role"
 import { cn } from "@/lib/utils"
-import { TEMPLATES_HREF } from "./send-template"
+import { useEditorHref } from "./send-template"
+import { TourTip } from "@/components/tour/tip"
 
 export interface BatchItem { creativeId: string; code: string }
+
+/** "Review and send" (template editor) hands its batch response back here: `?batch=1&sent=1` reopens the dialog on the progress. */
+const SENT_KEY = "hm:batch-sent"
+export function stashBatchSent(r: MetaPublishBatchResponse) {
+  try {
+    sessionStorage.setItem(SENT_KEY, JSON.stringify(r))
+  } catch {
+    /* private mode: the dialog just doesn't reopen; each ad still shows its state on its Send page */
+  }
+}
+function readBatchSent(): MetaPublishBatchResponse | null {
+  try {
+    const raw = sessionStorage.getItem(SENT_KEY)
+    return raw ? (JSON.parse(raw) as MetaPublishBatchResponse) : null
+  } catch {
+    return null
+  }
+}
 
 /**
  * "Send to Meta" for a set of approved pieces (meta-templates-v1 §2 P3): confirm with the template and the ad-set plan,
  * POST /meta/publish-batch, then the progress of every publication with the same 2 s polling as the Send screen
  * (GET /creatives/:id/meta while PUBLISHING). Hidden for CLIENT and without a usable Meta connection.
  */
-export function BatchSendButton({ items, className }: { items: BatchItem[]; className?: string }) {
+export function BatchSendButton({ items, className, id }: { items: BatchItem[]; className?: string; id?: string }) {
   const t = useTranslations("metaTemplates.batch")
   const { session } = useSession()
   const [role] = useState(() => effectiveRole(session.workspace.role))
   const gate = useMetaGate()
-  const [open, setOpen] = useState(false)
+  // back from the template editor (spec §8): `?batch=1&template=<id>` reopens this dialog with the new template
+  const sp = useSearchParams()
+  const back = sp.get("batch") === "1" ? sp.get("template") : null
+  const [sentBack] = useState(() => (sp.get("batch") === "1" && sp.get("sent") === "1" && typeof window !== "undefined" ? readBatchSent() : null))
+  // read once (the initializer may run twice in dev), then forget it so a reload doesn't reopen it
+  useEffect(() => {
+    if (!sentBack) return
+    try {
+      sessionStorage.removeItem(SENT_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [sentBack])
+  const [open, setOpen] = useState(!!back || !!sentBack)
   if (role === "CLIENT" || !gate.ready) return null
   return (
     <>
-      <Button className={cn("max-tablet:px-2.5", className)} disabled={!items.length} onClick={() => setOpen(true)} title={!items.length ? t("nothing") : undefined}>
+      <Button id={id} className={cn("max-tablet:px-2.5", className)} disabled={!items.length} onClick={() => setOpen(true)} title={!items.length ? t("nothing") : undefined}>
         <span aria-hidden="true" className="hidden size-[18px] place-items-center rounded-[4px] bg-meta tablet:inline-grid text-xs font-extrabold text-white">f</span>
         {t("button", { n: items.length })}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="grid max-h-[calc(100dvh-2rem)] w-[min(560px,calc(100%-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[560px]">
-          {open ? <Batch items={items} currency={gate.conn.data?.adAccount?.currency ?? null} onClose={() => setOpen(false)} /> : null}
+          {open ? <Batch items={items} initial={back} sentBack={sentBack} currency={gate.conn.data?.adAccount?.currency ?? null} onClose={() => setOpen(false)} /> : null}
         </DialogContent>
       </Dialog>
     </>
   )
 }
 
-function Batch({ items, currency, onClose }: { items: BatchItem[]; currency: string | null; onClose: () => void }) {
+function Batch({ items, initial, sentBack, currency, onClose }: { items: BatchItem[]; initial: string | null; sentBack: MetaPublishBatchResponse | null; currency: string | null; onClose: () => void }) {
   const t = useTranslations("metaTemplates.batch")
   const tw = useTranslations("metaTemplates.window")
+  const te = useTranslations("metaTemplates.editor")
   const tc = useTranslations("common")
+  const tt = useTranslations("tip.send")
   const errorMessage = useErrorMessage()
   const qc = useQueryClient()
   const templates = useMetaTemplates()
   const summary = useTemplateSummary(currency)
-  const [choice, setChoice] = useState<string | null>(null)
+  const budgetLow = useBudgetTooLowText(currency)
+  const [choice, setChoice] = useState<string | null>(initial)
+  const editorHref = useEditorHref()
+  const toEditor = (id: string, extra: Record<string, string> = {}) => editorHref(id, { n: String(items.length), ...extra }, { batch: "1" })
   const list = templates.data ?? []
   const tpl = list.find((x) => x.id === choice) ?? list.find((x) => x.isDefault) ?? list[0] ?? null
-  const [sent, setSent] = useState<MetaPublishBatchResponse | null>(null)
+  const [sent, setSent] = useState<MetaPublishBatchResponse | null>(sentBack)
+  const tr = useTranslations("metaTemplates.review")
 
   const send = useMutation({
     mutationFn: () => api.meta.publishBatch({ creativeIds: items.map((i) => i.creativeId), templateId: tpl!.id }),
@@ -141,12 +180,12 @@ function Batch({ items, currency, onClose }: { items: BatchItem[]; currency: str
       <Alert variant="destructive">
         <Icon name="alert" />
         <AlertBody>
-          <AlertTitle>{errorMessage(err)}</AlertTitle>
+          <AlertTitle>{err.code === "META_BUDGET_TOO_LOW" ? budgetLow(err.details) : errorMessage(err)}</AlertTitle>
           <AlertDescription>{t("fixTemplate")}</AlertDescription>
         </AlertBody>
         {tpl ? (
           <AlertActions>
-            <Link href={`${TEMPLATES_HREF}?edit=${encodeURIComponent(tpl.id)}`} className={buttonVariants({ size: "sm", variant: "default" })}>{t("editTemplate")}</Link>
+            <Link href={toEditor(tpl.id)} className={buttonVariants({ size: "sm", variant: "default" })}>{t("editTemplate")}</Link>
           </AlertActions>
         ) : null}
       </Alert>
@@ -191,7 +230,7 @@ function Batch({ items, currency, onClose }: { items: BatchItem[]; currency: str
       <div className="grid gap-2 py-2">
         <b>{t("noTemplateTitle")}</b>
         <span className="text-[13px] text-fg-2">{t("noTemplateBody")}</span>
-        <Link href={TEMPLATES_HREF} className={buttonVariants({ size: "sm", className: "justify-self-start" })}>{t("createTemplate")}</Link>
+        <Link href={toEditor("new", { import: "1" })} className="justify-self-start text-[13px] font-bold underline underline-offset-[3px]">{te("introImport")}</Link>
       </div>
     )
   } else {
@@ -207,6 +246,15 @@ function Batch({ items, currency, onClose }: { items: BatchItem[]; currency: str
             </SelectContent>
           </Select>
           <span className="text-xs text-fg-2">{summary.line(tpl)}</span>
+          {/* 04/11 (Gusta): create / edit / import a template right from the send dialog, like the single Send screen */}
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Link href={toEditor(tpl.id)} className={buttonVariants({ size: "sm", variant: "outline" })}>{te("editBtn")}</Link>
+            <Link href={toEditor("new")} className={buttonVariants({ size: "sm", variant: "outline" })}>
+              <Icon name="plus" />
+              {te("newBtn")}
+            </Link>
+            <Link href={toEditor("new", { import: "1" })} className={buttonVariants({ size: "sm", variant: "ghost" })}>{te("import")}</Link>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-fg-2" aria-label={tw("planAria")}>
           <span>{t("plan", { n: items.length })}</span>
@@ -227,12 +275,38 @@ function Batch({ items, currency, onClose }: { items: BatchItem[]; currency: str
         <DialogDescription className="text-[13px] text-fg-2">{t("lead")}</DialogDescription>
       </div>
       <div className="grid min-h-0 content-start gap-4 overflow-y-auto px-4 py-3.5 tablet:px-5">{body}</div>
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3 tablet:px-5">
-        <Button variant="ghost" onClick={onClose} disabled={send.isPending}>{tc("cancel")}</Button>
-        <Button variant="brand" disabled={!tpl || send.isPending || items.length > 50} onClick={() => send.mutate()} aria-busy={send.isPending}>
-          {send.isPending ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : <Icon name="upload" />}
-          {t("confirm", { n: items.length })}
-        </Button>
+      <div id="t-send-review" className="grid gap-3 border-t border-line px-4 py-3 tablet:px-5">
+        {/* tour-v2 §4: inside the modal the tip sits in the flow (a portal outside the dialog would be inert) */}
+        <TourTip tip="send" when={!!tpl} variant="default" target="#t-send-review" title={tt("title")} body={tt("body")} inline />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={send.isPending}>{tc("cancel")}</Button>
+          {!tpl && templates.isSuccess ? (
+            // F1: no template yet → the button opens the editor; saving comes back here with it selected
+            <Link href={toEditor("new")} className={buttonVariants({ variant: "brand" })}>
+              <Icon name="upload" />
+              {t("confirm", { n: items.length })}
+            </Link>
+          ) : (
+            <>
+              {/* 04/11 (Gusta): the main way is "Review and send" (the full editor, changes only for this send); direct send stays */}
+              <Button variant="outline" disabled={!tpl || send.isPending || items.length > 50} onClick={() => send.mutate()} aria-busy={send.isPending}>
+                {send.isPending ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : null}
+                {tr("sendDirect")}
+              </Button>
+              {tpl && !send.isPending && items.length <= 50 ? (
+                <Link href={toEditor(tpl.id, { review: "1", creatives: items.map((i) => i.creativeId).join(",") })} className={buttonVariants({ variant: "brand" })}>
+                  <Icon name="upload" />
+                  {tr("reviewSend")}
+                </Link>
+              ) : (
+                <Button variant="brand" disabled>
+                  <Icon name="upload" />
+                  {tr("reviewSend")}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </>
   )

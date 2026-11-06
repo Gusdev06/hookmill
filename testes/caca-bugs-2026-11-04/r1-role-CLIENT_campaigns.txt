@@ -1,0 +1,69 @@
+HM
+Q
+QA Alfa
+QA ALFA · META
+Campanhas
+Só leitura
+Mock Store (USD)
+act_mock_1
+USD
+Sincronizado com a Meta há 2 minutos
+Histórico
+Filtros
+Ordenar: Gasto
+Buscar campanha, conjunto, anúncio
+Gasto
+US$ 1.755
+Cliques no link
+77
+Custo / clique
+US$ 22,79
+CTR
+2,09%
+CAMPANHA
+Mock — Prospecting (CBO)
+Ligado
+3 vencedores
+1 cansando
+Gasto
+US$ 1.320
+Cliques
+56
+CPA
+US$ 23,57
+CTR
+2,16%
+CBO
+US$ 50,00
+/dia
+Ver 2 conjuntos
+CAMPANHA
+Mock — Testing (ABO)
+Ligado
+—
+Gasto
+US$ 370
+Cliques
+14
+CPA
+US$ 26,43
+CTR
+1,92%
+Orçamento por conjunto (ABO)
+Ver 3 conjuntos
+CAMPANHA
+Mock — Launch (lifetime)
+Ligado
+—
+Gasto
+US$ 65
+Cliques
+7
+CPA
+US$ 9,29
+CTR
+1,77%
+CBO
+US$ 300,00
+vitalício
+Ver 1 conjunto

@@ -1,0 +1,918 @@
+{
+  "status": 200,
+  "data": {
+    "id": "cmw1m3jj3002e226yzak1ku4z",
+    "status": "PLAN_READY",
+    "phase": "analyze",
+    "offer": {
+      "id": "cmw1lzn97000f226yzski1cc8",
+      "name": "Hunt sleep 🧪",
+      "language": "en"
+    },
+    "codeLanguage": "EN",
+    "source": {
+      "championId": "cmw1m3jiy002c226ysqouzp6p",
+      "name": "Hook A — the pain",
+      "fromLibrary": false,
+      "fromMeta": true,
+      "durationSec": 20,
+      "width": 360,
+      "height": 640,
+      "ratioLabel": "9:16",
+      "cuts": 0,
+      "thumbnail": {
+        "id": "cmw1m3nxr0032226yavqp48lf",
+        "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_frame/065e198f-422c-4a63-b820-d0dbc78a7edc.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042716Z&X-Amz-Expires=21600&X-Amz-Signature=4b1fe0b5f2199a7f5365d4b75137e8fbb9e5d501db84f414ee2234f7900f3624&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "mimeType": "image/jpeg"
+      },
+      "video": {
+        "id": "cmw1m3jx6002k226ybrail0v6",
+        "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_video/6297ecc3-e4fe-4b81-bb46-24a9b5d724b1.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042716Z&X-Amz-Expires=21600&X-Amz-Signature=9b9a8057e32662fd2676d02a1d70716253039517b014fe3fde87282fe10371b7&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "mimeType": "video/mp4",
+        "width": 360,
+        "height": 640,
+        "durationSec": 20
+      }
+    },
+    "analysis": {
+      "stage": null,
+      "step": 3,
+      "progress": 100,
+      "etaSec": null,
+      "checklist": [
+        {
+          "key": "decode",
+          "status": "done"
+        },
+        {
+          "key": "transcribe",
+          "status": "done"
+        },
+        {
+          "key": "cuts",
+          "status": "done"
+        },
+        {
+          "key": "edit_map",
+          "status": "done"
+        },
+        {
+          "key": "blocks",
+          "status": "done"
+        },
+        {
+          "key": "audience",
+          "status": "done"
+        },
+        {
+          "key": "offer",
+          "status": "done"
+        },
+        {
+          "key": "proof",
+          "status": "done"
+        },
+        {
+          "key": "page",
+          "status": "done"
+        },
+        {
+          "key": "planning",
+          "status": "done"
+        }
+      ]
+    },
+    "insight": {
+      "why": [
+        {
+          "key": "hook",
+          "ref": "Poor sleep; back pain; heat at night",
+          "text": "The opening names the pain in the first seconds.",
+          "refSource": "brain",
+          "brainField": "pains"
+        },
+        {
+          "key": "proof",
+          "ref": "Verified customer reviews. Tested for durability.",
+          "text": "Proof shows up before the ask.",
+          "refSource": "brain",
+          "brainField": "proof"
+        },
+        {
+          "key": "cta",
+          "ref": "$500, 30-day trial",
+          "text": "One clear action at the end.",
+          "refSource": "brain",
+          "brainField": "offerAndPrice"
+        }
+      ],
+      "kept": [
+        "Spoken hook",
+        "Proof moment",
+        "Closing CTA"
+      ],
+      "flags": {
+        "brainEmpty": false,
+        "shortVideo": true,
+        "smallBatch": true,
+        "pageCaptured": true,
+        "metaConnected": false
+      },
+      "swaps": [],
+      "blocks": [
+        {
+          "fn": "hook",
+          "kept": true,
+          "index": 0,
+          "label": "Hook",
+          "endSec": 3.858,
+          "startSec": 0
+        },
+        {
+          "fn": "mechanism",
+          "kept": false,
+          "index": 1,
+          "label": "Body",
+          "endSec": 9.148,
+          "startSec": 3.858
+        },
+        {
+          "fn": "proof",
+          "kept": true,
+          "index": 2,
+          "label": "Proof",
+          "endSec": 14.598,
+          "startSec": 9.148
+        },
+        {
+          "fn": "cta",
+          "kept": true,
+          "index": 3,
+          "label": "CTA",
+          "endSec": 20,
+          "startSec": 14.598
+        }
+      ],
+      "captionsAuto": true,
+      "headlineBlocked": null
+    },
+    "error": null,
+    "sample": false,
+    "template": {
+      "runId": "cmw1m3jj9002g226yw63o5k62",
+      "slug": "selection",
+      "name": "Sua seleção",
+      "pack": false,
+      "tier": "EDIT",
+      "status": "DRAFT",
+      "cap": null,
+      "lines": [
+        {
+          "key": "FRAME:news",
+          "slug": "breaking-news",
+          "name": "Notícia urgente",
+          "tier": "EDIT",
+          "credits": 1,
+          "pieces": 1,
+          "state": "planned",
+          "delivered": null
+        },
+        {
+          "key": "FRAME:meme",
+          "slug": "meme-pov",
+          "name": "Meme POV",
+          "tier": "EDIT",
+          "credits": 1,
+          "pieces": 1,
+          "state": "planned",
+          "delivered": null
+        }
+      ],
+      "quote": 2,
+      "balance": null,
+      "after": null,
+      "enough": true,
+      "pool": null,
+      "held": 0,
+      "charged": 0,
+      "refunded": 0,
+      "selection": {
+        "slugs": [
+          "breaking-news",
+          "meme-pov"
+        ],
+        "skipped": []
+      },
+      "fit": {
+        "level": "ok",
+        "reason": null
+      },
+      "texts": [
+        {
+          "pieceId": "cmw1m7znm000u22p5hv80iu93",
+          "items": [
+            {
+              "path": "topic",
+              "label": "topic",
+              "value": "News",
+              "maxChars": 18,
+              "source": "generic"
+            },
+            {
+              "path": "headline.lead",
+              "label": "headline.lead",
+              "value": "Comfort",
+              "maxChars": 40,
+              "source": "promise"
+            },
+            {
+              "path": "headline.highlight",
+              "label": "headline.highlight",
+              "value": "through the night",
+              "maxChars": 30,
+              "source": "promise"
+            },
+            {
+              "path": "dek",
+              "label": "dek",
+              "value": "A mattress for better sleep",
+              "maxChars": 80,
+              "source": "what"
+            },
+            {
+              "path": "cta",
+              "label": "cta",
+              "value": "Shop now",
+              "maxChars": 28,
+              "source": "cta"
+            }
+          ]
+        },
+        {
+          "pieceId": "cmw1m7znm000v22p5ltom65hu",
+          "items": [
+            {
+              "path": "pov",
+              "label": "pov",
+              "value": "Poor sleep; back pain; heat at night",
+              "maxChars": 70,
+              "source": "pains"
+            },
+            {
+              "path": "cta",
+              "label": "cta",
+              "value": "Shop now",
+              "maxChars": 28,
+              "source": "cta"
+            }
+          ]
+        }
+      ]
+    },
+    "quizEnabled": false,
+    "answers": null,
+    "selectionInfo": {
+      "goal": "both",
+      "goalReasonKey": "auto_default",
+      "stretchMax": 4
+    },
+    "notSelected": [],
+    "leftOut": [],
+    "pieces": [
+      {
+        "id": "cmw1m7znm000u22p5hv80iu93",
+        "index": 0,
+        "type": "FRAME",
+        "code": "FRAME-NEWS",
+        "axis": "DIVERSITY",
+        "change": "Inside the news frame",
+        "status": "planned",
+        "previewReady": false,
+        "media": "video",
+        "render": null,
+        "formatsReady": 0,
+        "formats": [
+          {
+            "format": "9x16",
+            "state": "none",
+            "progress": null,
+            "errorCode": null,
+            "failReason": null,
+            "requestUsd": 0,
+            "supported": true
+          },
+          {
+            "format": "4x5",
+            "state": "none",
+            "progress": null,
+            "errorCode": null,
+            "failReason": null,
+            "requestUsd": 0,
+            "supported": true
+          },
+          {
+            "format": "1x1",
+            "state": "none",
+            "progress": null,
+            "errorCode": null,
+            "failReason": null,
+            "requestUsd": 0,
+            "supported": true
+          }
+        ],
+        "errorCode": null,
+        "failReason": null,
+        "retryHint": null,
+        "retryUsd": null,
+        "inZip": true,
+        "creativeId": null,
+        "poster": null,
+        "files": [],
+        "folder": "2-new-audience",
+        "frame": {
+          "template": "news",
+          "second": null,
+          "canSwapBroll": false
+        },
+        "textCheck": null,
+        "suggestedPrimaryText": null,
+        "isNewTemplate": false,
+        "template": null,
+        "captionNote": null,
+        "captionOverride": false,
+        "locked": false,
+        "preview": null,
+        "wantKey": "frames",
+        "selection": "auto",
+        "askedByUser": false,
+        "priceUsd": null
+      },
+      {
+        "id": "cmw1m7znm000v22p5ltom65hu",
+        "index": 1,
+        "type": "FRAME",
+        "code": "FRAME-MEME",
+        "axis": "DIVERSITY",
+        "change": "Inside the meme frame",
+        "status": "planned",
+        "previewReady": false,
+        "media": "video",
+        "render": null,
+        "formatsReady": 0,
+        "formats": [
+          {
+            "format": "9x16",
+            "state": "none",
+            "progress": null,
+            "errorCode": null,
+            "failReason": null,
+            "requestUsd": 0,
+            "supported": true
+          },
+          {
+            "format": "4x5",
+            "state": "none",
+            "progress": null,
+            "errorCode": null,
+            "failReason": null,
+            "requestUsd": 0,
+            "supported": true
+          },
+          {
+            "format": "1x1",
+            "state": "none",
+            "progress": null,
+            "errorCode": null,
+            "failReason": null,
+            "requestUsd": 0,
+            "supported": true
+          }
+        ],
+        "errorCode": null,
+        "failReason": null,
+        "retryHint": null,
+        "retryUsd": null,
+        "inZip": true,
+        "creativeId": null,
+        "poster": null,
+        "files": [],
+        "folder": "2-new-audience",
+        "frame": {
+          "template": "meme",
+          "second": null,
+          "canSwapBroll": false
+        },
+        "textCheck": null,
+        "suggestedPrimaryText": null,
+        "isNewTemplate": false,
+        "template": null,
+        "captionNote": null,
+        "captionOverride": false,
+        "locked": false,
+        "preview": null,
+        "wantKey": "frames",
+        "selection": "auto",
+        "askedByUser": false,
+        "priceUsd": null
+      }
+    ],
+    "summary": {
+      "pieces": 2,
+      "stretch": 0,
+      "newAudience": 2,
+      "files": 2,
+      "ready": 0,
+      "failed": 0,
+      "leftOut": 0,
+      "renderEtaSec": null,
+      "videoCreditsUsd": 0
+    },
+    "cost": {
+      "analysisEstimateUsd": 0.8801,
+      "analysisUsd": 0,
+      "generateEstimateUsd": 0,
+      "imagesUsd": 0,
+      "renderUsd": 0,
+      "totalUsd": 0
+    },
+    "zip": {
+      "status": "none",
+      "fileName": null,
+      "url": null,
+      "sizeBytes": null,
+      "pieces": 0,
+      "files": 0,
+      "folders": {
+        "stretch": "1-stretch-its-life",
+        "newAudience": "2-new-audience"
+      }
+    },
+    "downloadedAt": null,
+    "createdBy": {
+      "id": "qa_user_dono_a",
+      "name": "QA Dono Alfa",
+      "initials": "QA"
+    },
+    "createdAt": "2026-11-04T04:23:47.871Z",
+    "launchedAt": null
+  },
+  "body": {
+    "success": true,
+    "data": {
+      "id": "cmw1m3jj3002e226yzak1ku4z",
+      "status": "PLAN_READY",
+      "phase": "analyze",
+      "offer": {
+        "id": "cmw1lzn97000f226yzski1cc8",
+        "name": "Hunt sleep 🧪",
+        "language": "en"
+      },
+      "codeLanguage": "EN",
+      "source": {
+        "championId": "cmw1m3jiy002c226ysqouzp6p",
+        "name": "Hook A — the pain",
+        "fromLibrary": false,
+        "fromMeta": true,
+        "durationSec": 20,
+        "width": 360,
+        "height": 640,
+        "ratioLabel": "9:16",
+        "cuts": 0,
+        "thumbnail": {
+          "id": "cmw1m3nxr0032226yavqp48lf",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_frame/065e198f-422c-4a63-b820-d0dbc78a7edc.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042716Z&X-Amz-Expires=21600&X-Amz-Signature=4b1fe0b5f2199a7f5365d4b75137e8fbb9e5d501db84f414ee2234f7900f3624&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "image/jpeg"
+        },
+        "video": {
+          "id": "cmw1m3jx6002k226ybrail0v6",
+          "url": "http://localhost:9000/maquina-anuncios-test/ws/qa_ws_alfa/champion_video/6297ecc3-e4fe-4b81-bb46-24a9b5d724b1.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T042716Z&X-Amz-Expires=21600&X-Amz-Signature=9b9a8057e32662fd2676d02a1d70716253039517b014fe3fde87282fe10371b7&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "video/mp4",
+          "width": 360,
+          "height": 640,
+          "durationSec": 20
+        }
+      },
+      "analysis": {
+        "stage": null,
+        "step": 3,
+        "progress": 100,
+        "etaSec": null,
+        "checklist": [
+          {
+            "key": "decode",
+            "status": "done"
+          },
+          {
+            "key": "transcribe",
+            "status": "done"
+          },
+          {
+            "key": "cuts",
+            "status": "done"
+          },
+          {
+            "key": "edit_map",
+            "status": "done"
+          },
+          {
+            "key": "blocks",
+            "status": "done"
+          },
+          {
+            "key": "audience",
+            "status": "done"
+          },
+          {
+            "key": "offer",
+            "status": "done"
+          },
+          {
+            "key": "proof",
+            "status": "done"
+          },
+          {
+            "key": "page",
+            "status": "done"
+          },
+          {
+            "key": "planning",
+            "status": "done"
+          }
+        ]
+      },
+      "insight": {
+        "why": [
+          {
+            "key": "hook",
+            "ref": "Poor sleep; back pain; heat at night",
+            "text": "The opening names the pain in the first seconds.",
+            "refSource": "brain",
+            "brainField": "pains"
+          },
+          {
+            "key": "proof",
+            "ref": "Verified customer reviews. Tested for durability.",
+            "text": "Proof shows up before the ask.",
+            "refSource": "brain",
+            "brainField": "proof"
+          },
+          {
+            "key": "cta",
+            "ref": "$500, 30-day trial",
+            "text": "One clear action at the end.",
+            "refSource": "brain",
+            "brainField": "offerAndPrice"
+          }
+        ],
+        "kept": [
+          "Spoken hook",
+          "Proof moment",
+          "Closing CTA"
+        ],
+        "flags": {
+          "brainEmpty": false,
+          "shortVideo": true,
+          "smallBatch": true,
+          "pageCaptured": true,
+          "metaConnected": false
+        },
+        "swaps": [],
+        "blocks": [
+          {
+            "fn": "hook",
+            "kept": true,
+            "index": 0,
+            "label": "Hook",
+            "endSec": 3.858,
+            "startSec": 0
+          },
+          {
+            "fn": "mechanism",
+            "kept": false,
+            "index": 1,
+            "label": "Body",
+            "endSec": 9.148,
+            "startSec": 3.858
+          },
+          {
+            "fn": "proof",
+            "kept": true,
+            "index": 2,
+            "label": "Proof",
+            "endSec": 14.598,
+            "startSec": 9.148
+          },
+          {
+            "fn": "cta",
+            "kept": true,
+            "index": 3,
+            "label": "CTA",
+            "endSec": 20,
+            "startSec": 14.598
+          }
+        ],
+        "captionsAuto": true,
+        "headlineBlocked": null
+      },
+      "error": null,
+      "sample": false,
+      "template": {
+        "runId": "cmw1m3jj9002g226yw63o5k62",
+        "slug": "selection",
+        "name": "Sua seleção",
+        "pack": false,
+        "tier": "EDIT",
+        "status": "DRAFT",
+        "cap": null,
+        "lines": [
+          {
+            "key": "FRAME:news",
+            "slug": "breaking-news",
+            "name": "Notícia urgente",
+            "tier": "EDIT",
+            "credits": 1,
+            "pieces": 1,
+            "state": "planned",
+            "delivered": null
+          },
+          {
+            "key": "FRAME:meme",
+            "slug": "meme-pov",
+            "name": "Meme POV",
+            "tier": "EDIT",
+            "credits": 1,
+            "pieces": 1,
+            "state": "planned",
+            "delivered": null
+          }
+        ],
+        "quote": 2,
+        "balance": null,
+        "after": null,
+        "enough": true,
+        "pool": null,
+        "held": 0,
+        "charged": 0,
+        "refunded": 0,
+        "selection": {
+          "slugs": [
+            "breaking-news",
+            "meme-pov"
+          ],
+          "skipped": []
+        },
+        "fit": {
+          "level": "ok",
+          "reason": null
+        },
+        "texts": [
+          {
+            "pieceId": "cmw1m7znm000u22p5hv80iu93",
+            "items": [
+              {
+                "path": "topic",
+                "label": "topic",
+                "value": "News",
+                "maxChars": 18,
+                "source": "generic"
+              },
+              {
+                "path": "headline.lead",
+                "label": "headline.lead",
+                "value": "Comfort",
+                "maxChars": 40,
+                "source": "promise"
+              },
+              {
+                "path": "headline.highlight",
+                "label": "headline.highlight",
+                "value": "through the night",
+                "maxChars": 30,
+                "source": "promise"
+              },
+              {
+                "path": "dek",
+                "label": "dek",
+                "value": "A mattress for better sleep",
+                "maxChars": 80,
+                "source": "what"
+              },
+              {
+                "path": "cta",
+                "label": "cta",
+                "value": "Shop now",
+                "maxChars": 28,
+                "source": "cta"
+              }
+            ]
+          },
+          {
+            "pieceId": "cmw1m7znm000v22p5ltom65hu",
+            "items": [
+              {
+                "path": "pov",
+                "label": "pov",
+                "value": "Poor sleep; back pain; heat at night",
+                "maxChars": 70,
+                "source": "pains"
+              },
+              {
+                "path": "cta",
+                "label": "cta",
+                "value": "Shop now",
+                "maxChars": 28,
+                "source": "cta"
+              }
+            ]
+          }
+        ]
+      },
+      "quizEnabled": false,
+      "answers": null,
+      "selectionInfo": {
+        "goal": "both",
+        "goalReasonKey": "auto_default",
+        "stretchMax": 4
+      },
+      "notSelected": [],
+      "leftOut": [],
+      "pieces": [
+        {
+          "id": "cmw1m7znm000u22p5hv80iu93",
+          "index": 0,
+          "type": "FRAME",
+          "code": "FRAME-NEWS",
+          "axis": "DIVERSITY",
+          "change": "Inside the news frame",
+          "status": "planned",
+          "previewReady": false,
+          "media": "video",
+          "render": null,
+          "formatsReady": 0,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": null,
+          "poster": null,
+          "files": [],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "news",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        },
+        {
+          "id": "cmw1m7znm000v22p5ltom65hu",
+          "index": 1,
+          "type": "FRAME",
+          "code": "FRAME-MEME",
+          "axis": "DIVERSITY",
+          "change": "Inside the meme frame",
+          "status": "planned",
+          "previewReady": false,
+          "media": "video",
+          "render": null,
+          "formatsReady": 0,
+          "formats": [
+            {
+              "format": "9x16",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "4x5",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            },
+            {
+              "format": "1x1",
+              "state": "none",
+              "progress": null,
+              "errorCode": null,
+              "failReason": null,
+              "requestUsd": 0,
+              "supported": true
+            }
+          ],
+          "errorCode": null,
+          "failReason": null,
+          "retryHint": null,
+          "retryUsd": null,
+          "inZip": true,
+          "creativeId": null,
+          "poster": null,
+          "files": [],
+          "folder": "2-new-audience",
+          "frame": {
+            "template": "meme",
+            "second": null,
+            "canSwapBroll": false
+          },
+          "textCheck": null,
+          "suggestedPrimaryText": null,
+          "isNewTemplate": false,
+          "template": null,
+          "captionNote": null,
+          "captionOverride": false,
+          "locked": false,
+          "preview": null,
+          "wantKey": "frames",
+          "selection": "auto",
+          "askedByUser": false,
+          "priceUsd": null
+        }
+      ],
+      "summary": {
+        "pieces": 2,
+        "stretch": 0,
+        "newAudience": 2,
+        "files": 2,
+        "ready": 0,
+        "failed": 0,
+        "leftOut": 0,
+        "renderEtaSec": null,
+        "videoCreditsUsd": 0
+      },
+      "cost": {
+        "analysisEstimateUsd": 0.8801,
+        "analysisUsd": 0,
+        "generateEstimateUsd": 0,
+        "imagesUsd": 0,
+        "renderUsd": 0,
+        "totalUsd": 0
+      },
+      "zip": {
+        "status": "none",
+        "fileName": null,
+        "url": null,
+        "sizeBytes": null,
+        "pieces": 0,
+        "files": 0,
+        "folders": {
+          "stretch": "1-stretch-its-life",
+          "newAudience": "2-new-audience"
+        }
+      },
+      "downloadedAt": null,
+      "createdBy": {
+        "id": "qa_user_dono_a",
+        "name": "QA Dono Alfa",
+        "initials": "QA"
+      },
+      "createdAt": "2026-11-04T04:23:47.871Z",
+      "launchedAt": null
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "network": [
+    {
+      "url": "http://localhost:3201/api/v1/admin/ad-templates/breaking-news/example",
+      "status": 200,
+      "body": "{\"success\":true,\"data\":{\"uploadUrl\":\"http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044921Z&X-Amz-Expires=900&X-Amz-Signature=fc3710d2621de7077a28aad79093e2ca5d65bfb229e0a6f25030572874988fa7&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject\",\"key\":\"templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4\",\"expiresAt\":\"2026-11-04T05:04:21.129Z\"}}"
+    },
+    {
+      "url": "http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044921Z&X-Amz-Expires=900&X-Amz-Signature=fc3710d2621de7077a28aad79093e2ca5d65bfb229e0a6f25030572874988fa7&X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost&x-id=PutObject",
+      "status": 200,
+      "body": null
+    },
+    {
+      "url": "http://localhost:3201/api/v1/admin/ad-templates/breaking-news/example/complete",
+      "status": 200,
+      "body": "{\"success\":true,\"data\":{\"id\":\"tpl_breaking_news\",\"slug\":\"breaking-news\",\"internalKey\":\"FRAME:news\",\"autoType\":\"FRAME\",\"frameId\":\"news\",\"status\":\"LIVE\",\"order\":0,\"nameEn\":\"Breaking news\",\"namePt\":\"Notícia urgente\",\"descEn\":\"Your ad plays inside a news broadcast. The headline is written from your promise and proof.\",\"descPt\":\"Seu anúncio dentro de um telejornal. A manchete sai da sua promessa e da sua prova.\",\"outEn\":\"1 video\",\"outPt\":\"1 vídeo\",\"tier\":\"EDIT\",\"tab\":\"edit\",\"category\":\"frames\",\"credits\":1,\"outputs\":1,\"pack\":false,\"beta\":false,\"needs\":[],\"example\":{\"id\":\"templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4\",\"url\":\"http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044921Z&X-Amz-Expires=21600&X-Amz-Signature=47c90a85b78c07d0243b292fa9729ee6e5b8d566e8f3446cdd49a28499f08a54&X-Amz-SignedHeaders=host&x-id=GetObject\",\"mimeType\":\"video/mp4\"},\"poster\":{\"id\":\"templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8-poster.jpg\",\"url\":\"http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8-poster.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044921Z&X-Amz-Expires=21600&X-Amz-Signature=c7f30180a46cfef8ee9d1fdf8c50f40a25a1d6d210c4f5d089a3ed9e4b6aebf1&X-Amz-SignedHeaders=host&x-id=GetObject\",\"mimeType\":\"image/jpeg\"},\"uses\":0,\"available\":true,\"sampleOk\":true,\"exampleDurationSec\":6,\"needsExample\":false}}"
+    }
+  ],
+  "errors": [],
+  "template": {
+    "status": 200,
+    "data": {
+      "slug": "breaking-news",
+      "name": "Breaking news",
+      "description": "Your ad plays inside a news broadcast. The headline is written from your promise and proof.",
+      "out": "1 video",
+      "tier": "EDIT",
+      "tab": "edit",
+      "category": "frames",
+      "credits": 1,
+      "outputs": 1,
+      "pack": false,
+      "beta": false,
+      "needs": [],
+      "example": {
+        "id": "templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4",
+        "url": "http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044923Z&X-Amz-Expires=21600&X-Amz-Signature=75f801d118f715bb65708f59278a29066e0a548dac6b2d205cab67c2cd9a18f4&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "id": "templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8-poster.jpg",
+        "url": "http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8-poster.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044923Z&X-Amz-Expires=21600&X-Amz-Signature=5b4ddb434efe96eeea8bcd94f938f1322e0d302eeaf5bfc1fb4fd767b296ff69&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "mimeType": "image/jpeg"
+      },
+      "uses": 0,
+      "available": true,
+      "sampleOk": true,
+      "fit": null
+    },
+    "body": {
+      "success": true,
+      "data": {
+        "slug": "breaking-news",
+        "name": "Breaking news",
+        "description": "Your ad plays inside a news broadcast. The headline is written from your promise and proof.",
+        "out": "1 video",
+        "tier": "EDIT",
+        "tab": "edit",
+        "category": "frames",
+        "credits": 1,
+        "outputs": 1,
+        "pack": false,
+        "beta": false,
+        "needs": [],
+        "example": {
+          "id": "templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4",
+          "url": "http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044923Z&X-Amz-Expires=21600&X-Amz-Signature=75f801d118f715bb65708f59278a29066e0a548dac6b2d205cab67c2cd9a18f4&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "video/mp4"
+        },
+        "poster": {
+          "id": "templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8-poster.jpg",
+          "url": "http://localhost:9000/maquina-anuncios-test/templates/breaking-news/example-beed1730-9958-421a-ae35-abaedab1f5a8-poster.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T044923Z&X-Amz-Expires=21600&X-Amz-Signature=5b4ddb434efe96eeea8bcd94f938f1322e0d302eeaf5bfc1fb4fd767b296ff69&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "mimeType": "image/jpeg"
+        },
+        "uses": 0,
+        "available": true,
+        "sampleOk": true,
+        "fit": null
+      }
+    }
+  }
+}

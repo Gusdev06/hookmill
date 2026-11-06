@@ -1,0 +1,262 @@
+{
+  "facts": [
+    {
+      "id": "offer.what",
+      "text": "Aplicativo com cardápio semanal e lista de compras.",
+      "field": "what",
+      "origin": "unknown",
+      "verification": "provided_not_independently_verified"
+    },
+    {
+      "id": "offer.audience",
+      "text": "Pessoas que organizam as refeições da semana.",
+      "field": "audience",
+      "origin": "unknown",
+      "verification": "provided_not_independently_verified"
+    },
+    {
+      "id": "offer.promise",
+      "text": "Planeje as refeições e organize suas compras em um lugar.",
+      "field": "promise",
+      "origin": "unknown",
+      "verification": "provided_not_independently_verified"
+    },
+    {
+      "id": "offer.pains",
+      "text": "Decidir o cardápio e organizar os ingredientes.",
+      "field": "pains",
+      "origin": "unknown",
+      "verification": "provided_not_independently_verified"
+    },
+    {
+      "id": "offer.cta",
+      "text": "Conheça a demonstração do aplicativo.",
+      "field": "cta",
+      "origin": "unknown",
+      "verification": "provided_not_independently_verified"
+    }
+  ],
+  "source": {
+    "rights": "OWN",
+    "offerId": "cmw1su4x5000522x14ttvmc8y",
+    "offerName": "Meal Planner",
+    "updatedAt": "2026-11-04T07:32:26.350Z",
+    "championId": "cmw1su4xa000722x18ui2nzkv",
+    "championName": "Organize a semana — talking head"
+  },
+  "costUsd": 0,
+  "version": "semantic-v1",
+  "language": "pt-BR",
+  "diagnosis": {
+    "gaps": [
+      "Revisar as afirmações e fornecer demonstração real."
+    ],
+    "summary": "Simulação de desenvolvimento baseada nos campos da oferta; não é uma análise feita pelo modelo.",
+    "sourceAngle": "Entender como a oferta funciona",
+    "sourceAudience": "Pessoas que organizam as refeições da semana."
+  },
+  "variations": [
+    {
+      "id": "V1",
+      "angle": "Entender como a oferta funciona",
+      "beats": [
+        {
+          "role": "hook",
+          "text": "Como isso funciona na prática?",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "narrator",
+          "factRefs": []
+        },
+        {
+          "role": "mechanism",
+          "text": "Aplicativo com cardápio semanal e lista de compras.",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "narrator",
+          "factRefs": [
+            "offer.what"
+          ]
+        },
+        {
+          "role": "cta",
+          "text": "Conheça a demonstração do aplicativo.",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "narrator",
+          "factRefs": [
+            "offer.cta"
+          ]
+        }
+      ],
+      "title": "Mostrar o processo",
+      "status": "hypothesis",
+      "changes": [
+        {
+          "axis": "presentation_format",
+          "after": "Demo",
+          "before": "Criativo de origem"
+        },
+        {
+          "axis": "narrative",
+          "after": "Mostrar o processo",
+          "before": "Estrutura original"
+        }
+      ],
+      "audience": "Pessoas que organizam as refeições da semana.",
+      "factRefs": [
+        "offer.what",
+        "offer.cta"
+      ],
+      "formatId": "F02",
+      "preserved": [
+        "Produto, condições e CTA declarados"
+      ],
+      "hypothesis": "Hipótese ilustrativa: a estrutura pode tornar a explicação mais compreensível; precisa ser testada.",
+      "audienceFit": "not_assessed",
+      "requirements": [
+        {
+          "kind": "asset",
+          "description": "Demonstração real do produto."
+        }
+      ],
+      "reviewRequired": true,
+      "testInterpretation": "concept_exploration_not_causal"
+    },
+    {
+      "id": "V2",
+      "angle": "Entender como a oferta funciona",
+      "beats": [
+        {
+          "role": "hook",
+          "text": "Como isso funciona na prática?",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "narrator",
+          "factRefs": []
+        },
+        {
+          "role": "mechanism",
+          "text": "Aplicativo com cardápio semanal e lista de compras.",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "narrator",
+          "factRefs": [
+            "offer.what"
+          ]
+        },
+        {
+          "role": "cta",
+          "text": "Conheça a demonstração do aplicativo.",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "narrator",
+          "factRefs": [
+            "offer.cta"
+          ]
+        }
+      ],
+      "title": "Resolver a dúvida inicial",
+      "status": "hypothesis",
+      "changes": [
+        {
+          "axis": "presentation_format",
+          "after": "FAQ",
+          "before": "Criativo de origem"
+        },
+        {
+          "axis": "narrative",
+          "after": "Resolver a dúvida inicial",
+          "before": "Estrutura original"
+        }
+      ],
+      "audience": "Pessoas que organizam as refeições da semana.",
+      "factRefs": [
+        "offer.what",
+        "offer.cta"
+      ],
+      "formatId": "F04",
+      "preserved": [
+        "Produto, condições e CTA declarados"
+      ],
+      "hypothesis": "Hipótese ilustrativa: a estrutura pode tornar a explicação mais compreensível; precisa ser testada.",
+      "audienceFit": "not_assessed",
+      "requirements": [
+        {
+          "kind": "asset",
+          "description": "Demonstração real do produto."
+        }
+      ],
+      "reviewRequired": true,
+      "testInterpretation": "concept_exploration_not_causal"
+    },
+    {
+      "id": "V3",
+      "angle": "Entender como a oferta funciona",
+      "beats": [
+        {
+          "role": "hook",
+          "text": "Como isso funciona na prática?",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "host",
+          "factRefs": []
+        },
+        {
+          "role": "mechanism",
+          "text": "Aplicativo com cardápio semanal e lista de compras.",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "presenter",
+          "factRefs": [
+            "offer.what"
+          ]
+        },
+        {
+          "role": "objection",
+          "text": "E qual é o próximo passo?",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "host",
+          "factRefs": []
+        },
+        {
+          "role": "cta",
+          "text": "Conheça a demonstração do aplicativo.",
+          "visual": "Usar material real do produto, a fornecer.",
+          "speaker": "presenter",
+          "factRefs": [
+            "offer.cta"
+          ]
+        }
+      ],
+      "title": "Explicar antes de escolher",
+      "status": "hypothesis",
+      "changes": [
+        {
+          "axis": "presentation_format",
+          "after": "Podcast conversation",
+          "before": "Criativo de origem"
+        },
+        {
+          "axis": "narrative",
+          "after": "Explicar antes de escolher",
+          "before": "Estrutura original"
+        }
+      ],
+      "audience": "Pessoas que organizam as refeições da semana.",
+      "factRefs": [
+        "offer.what",
+        "offer.cta"
+      ],
+      "formatId": "F10",
+      "preserved": [
+        "Produto, condições e CTA declarados"
+      ],
+      "hypothesis": "Hipótese ilustrativa: a estrutura pode tornar a explicação mais compreensível; precisa ser testada.",
+      "audienceFit": "not_assessed",
+      "requirements": [
+        {
+          "kind": "asset",
+          "description": "Demonstração real do produto."
+        }
+      ],
+      "reviewRequired": true,
+      "testInterpretation": "concept_exploration_not_causal"
+    }
+  ],
+  "generationMode": "mock",
+  "mediaGenerated": false,
+  "knowledgeVersion": "2026-11-04"
+}

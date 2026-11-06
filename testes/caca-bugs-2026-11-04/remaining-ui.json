@@ -1,0 +1,96 @@
+[
+  {
+    "name": "single-upload",
+    "ok": false,
+    "error": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Upload video', exact: true })\u001b[22m\n"
+  },
+  {
+    "hardFitResult": {
+      "runId": "cmw1mjxn8002022a17p20za0v",
+      "slug": "meme-pov",
+      "name": "Meme POV",
+      "pack": false,
+      "tier": "EDIT",
+      "status": "DRAFT",
+      "cap": null,
+      "lines": [
+        {
+          "key": "FRAME:meme",
+          "slug": "meme-pov",
+          "name": "Meme POV",
+          "tier": "EDIT",
+          "credits": 1,
+          "pieces": 1,
+          "state": "planned",
+          "delivered": null
+        }
+      ],
+      "quote": 1,
+      "balance": null,
+      "after": null,
+      "enough": true,
+      "pool": null,
+      "held": 0,
+      "charged": 0,
+      "refunded": 0,
+      "selection": null,
+      "fit": {
+        "level": "ok",
+        "reason": null
+      },
+      "texts": [
+        {
+          "pieceId": "cmw1mk00i002722a1uaqy9qrv",
+          "items": [
+            {
+              "path": "pov",
+              "label": "pov",
+              "value": "Poor sleep; back pain; heat at night",
+              "maxChars": 70,
+              "source": "pains"
+            },
+            {
+              "path": "cta",
+              "label": "cta",
+              "value": "Shop now",
+              "maxChars": 28,
+              "source": "cta"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "library-hard-fit-remove",
+    "ok": true
+  },
+  {
+    "name": "iterate-new-upload",
+    "ok": true
+  },
+  {
+    "name": "meta-create-edit-template",
+    "ok": false,
+    "error": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'New template', exact: true }).first()\u001b[22m\n"
+  },
+  {
+    "name": "meta-import-template",
+    "ok": false,
+    "error": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Import from a campaign', exact: true }).first()\u001b[22m\n"
+  },
+  {
+    "name": "meta-error-retry",
+    "ok": false,
+    "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Try again', exact: true }) to be visible\u001b[22m\n"
+  },
+  {
+    "name": "meta-send-without-review",
+    "ok": true
+  },
+  {
+    "name": "campaigns-all-ads",
+    "ok": false,
+    "error": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Ads only', exact: true })\u001b[22m\n"
+  }
+]

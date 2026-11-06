@@ -1,0 +1,21 @@
+HM
+EN
+PT
+Log out
+WELCOME, BUG
+How will you use HookMill?
+
+This sets up your workspace. You can change it later in Settings.
+
+Agency
+I run ads for clients.
+One workspace per client, with its own Brain, ads and Meta account
+A Clients page to switch between them and see what is waiting on you
+Invite clients to approve ads without spending
+Just me
+I run my own ads.
+One workspace: your business
+No client switcher, no client list; the sidebar stays short
+Switch to Agency later and keep everything
+Pick one to continue.
+Continue

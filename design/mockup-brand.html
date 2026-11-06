@@ -1,0 +1,376 @@
+<title>HookMill Brand</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: Brain › Brand tab. Left = sections as cards with label/value rows edited in place (8 cols); right = sticky Brain meter + index (4 cols).
+   Under 760 px of frame width: one column, meter first, index becomes a sticky chip row. Single light theme with the ink sidebar, on purpose. */
+:root {
+  --bg:#eeeeea; --card:#fdfdfb; --card-2:#f3f4f0; --field:#ffffff;
+  --line:#dcddd7; --line-soft:#e4e5e0; --line-strong:#cfd1cb; --control:#b9bcb5;
+  --fg:#15171a; --fg-2:#3b4047; --fg-3:#5a6068;
+  --brand:#c8f03c; --brand-ink:#3e5200; --brand-soft:#f0f8d2; --brand-edge:#a9cc2a;
+  --ink:#16181b; --ink-2:#202328; --ink-3:#2a2e33; --ink-line:#2e3238; --ink-fg:#f2f3ee; --ink-fg-2:#c5cad0; --ink-fg-3:#9aa1a9;
+  --ok:#0b6b43; --ok-bg:#e2f3e8; --ok-dot:#1c9a5e; --warn:#7a5000; --warn-bg:#fbf0d3; --warn-dot:#d39b12;
+  --bad:#a8360c; --bad-bg:#fbe7dd; --info:#2b4bc8; --info-bg:#e6ebfc; --meta:#1877f2; --white:#ffffff;
+  --mc:#2f3a5c;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme: light;
+}
+* { box-sizing:border-box }
+body { background:var(--bg); color:var(--fg); font:14px/1.45 var(--sans); margin:0 }
+button, input, textarea, select { font:inherit; color:inherit }
+:focus-visible { outline:2px solid var(--info); outline-offset:2px }
+.proto { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding-block:10px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); background:var(--ink); color:var(--ink-fg) }
+.proto .grp { display:flex; gap:8px; align-items:center }
+.proto b { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-3) }
+.seg { display:inline-flex; border:1px solid var(--ink-line); border-radius:10px; overflow:hidden }
+.seg button { font-size:12px; font-weight:600; padding:7px 11px; border:0; background:transparent; color:var(--ink-fg-2); cursor:pointer; min-height:36px }
+.seg button[aria-pressed="true"] { background:var(--ink-fg); color:var(--ink) }
+.proto .ex { font-family:var(--mono); font-size:11px; color:var(--ink); background:var(--warn-dot); border-radius:6px; padding:3px 7px; margin-left:auto }
+.stage { padding-block:20px 48px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); display:flex; justify-content:center }
+.frame { width:100%; max-width:1440px; height:min(860px, calc(100vh - 120px)); min-height:560px; background:var(--bg); border:1px solid var(--line); border-radius:18px; overflow:hidden; display:flex; container-type:inline-size; container-name:frame }
+.frame.phone { max-width:390px; height:min(780px, calc(100vh - 120px)); flex-direction:column }
+.side { width:232px; flex:none; background:var(--ink); color:var(--ink-fg-2); padding:14px 10px; display:flex; flex-direction:column; gap:14px }
+.ws { display:flex; gap:10px; align-items:center; padding:8px; border:1px solid var(--ink-line); border-radius:12px; background:var(--ink-2) }
+.av { width:30px; height:30px; border-radius:8px; display:grid; place-items:center; font-weight:800; font-size:12px; flex:none; background:var(--brand); color:var(--fg) }
+.ws b { color:var(--ink-fg); font-size:13px; display:block } .ws small { font-size:11px; color:var(--ink-fg-3) }
+.navg { display:flex; flex-direction:column; gap:2px }
+.navg .h { font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-3); padding:6px 10px 4px }
+.navg a { display:flex; align-items:center; gap:10px; min-height:36px; padding:0 10px; border-radius:10px; color:var(--ink-fg-2); text-decoration:none; font-weight:600; font-size:13px }
+.navg a.on { background:var(--ink-3); color:var(--white) }
+.navg a .soon { margin-left:auto; font-size:10px; font-family:var(--mono); color:var(--ink-fg-3); border:1px solid var(--ink-line); border-radius:6px; padding:1px 5px }
+.navg a .pct { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-fg-3) }
+.ico { width:16px; height:16px; flex:none; border:1.5px solid currentColor; border-radius:4px; opacity:.8 } .ico.c { border-radius:50% }
+.topbar { display:none; align-items:center; gap:10px; height:56px; padding:0 16px; background:var(--ink); color:var(--ink-fg) }
+.topbar .sp { flex:1 }
+.burger { width:40px; height:40px; border-radius:10px; border:1px solid var(--ink-line); background:transparent; color:var(--ink-fg) }
+/* 31/10 (Gusta): the middle scrolls on its own; the sidebar stays put and the rail sticks inside the scroll */
+.main { flex:1; min-width:0; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:28px 32px 56px }
+.side { overflow-y:auto }
+.wrap { max-width:1160px; margin:0 auto; display:flex; flex-direction:column; gap:18px }
+
+.eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-3) }
+h1 { margin:0; font-size:30px; line-height:1.1; font-weight:800; font-stretch:125%; letter-spacing:-.015em }
+h2 { margin:0; font-size:16px; font-weight:700 }
+.head { display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:flex-end }
+.head .l { display:flex; flex-direction:column; gap:6px }
+.tabs { display:flex; gap:4px; border-bottom:1px solid var(--line) }
+.tabs button { border:0; background:transparent; padding:10px 12px; min-height:44px; font-weight:700; font-size:13.5px; color:var(--fg-3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px }
+.tabs button[aria-selected="true"] { color:var(--fg); border-bottom-color:var(--fg) }
+.btn { font-weight:700; font-size:14px; min-height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line-strong); background:var(--card); color:var(--fg); display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; white-space:nowrap; text-decoration:none }
+.btn.sm { min-height:34px; padding:0 12px; font-size:13px }
+.btn.ink { background:var(--fg); border-color:var(--fg); color:var(--white) }
+.btn.ghost { border-color:transparent; background:transparent; color:var(--fg-2) }
+.btn.danger { color:var(--bad) }
+.btn:hover { border-color:var(--fg) } .btn.ghost:hover { border-color:transparent; color:var(--fg) }
+.arrow::after { content:"→" }
+.tag { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 8px; border-radius:99px; font-size:11.5px; font-weight:700; white-space:nowrap }
+.tag i { width:7px; height:7px; border-radius:50%; background:currentColor }
+.tag.ok { background:var(--ok-bg); color:var(--ok) } .tag.warn { background:var(--warn-bg); color:var(--warn) } .tag.neutral { background:var(--card-2); color:var(--fg-2); border:1px solid var(--line-soft) }
+.muted { color:var(--fg-3) } .xs { font-size:12px } .small { font-size:13px }
+.mono { font-family:var(--mono); font-variant-numeric:tabular-nums }
+
+.layout { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; align-items:start }
+.col { grid-column:span 8; display:flex; flex-direction:column; gap:16px; min-width:0 }
+.rail { grid-column:span 4; position:sticky; top:0; align-self:start; max-height:calc(100% - 0px); display:flex; flex-direction:column; gap:12px; min-width:0 }
+.rail > .card { max-height:calc(min(860px, 100vh - 120px) - 120px); overflow-y:auto }
+
+.card { background:var(--card); border:1px solid var(--line); border-radius:16px; min-width:0; scroll-margin-top:72px }
+.card > .hd { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line-soft) }
+.card > .hd .t { display:flex; gap:8px; align-items:center }
+.saved { font-size:12px; color:var(--fg-3) }
+
+/* label / value rows, edited in place */
+.fr { display:grid; grid-template-columns:180px minmax(0,1fr) auto; gap:6px 16px; align-items:start; padding:12px 18px; border-top:1px solid var(--line-soft) }
+.fr:first-child { border-top:0 }
+.fr .k { font-size:13px; font-weight:600; color:var(--fg-3); padding-top:2px }
+.fr .k small { display:block; font-weight:400; font-size:12px }
+.fr .v { min-width:0; white-space:pre-line; overflow-wrap:anywhere }
+.fr .v.empty { color:var(--warn); font-weight:600 }
+.fr .ed { opacity:.75 }
+.fr:hover .ed, .fr .ed:focus-visible { opacity:1 }
+.fr .form { display:none; grid-column:2 / span 2; flex-direction:column; gap:8px }
+.fr.editing .v, .fr.editing .ed { display:none }
+.fr.editing .form { display:flex }
+.inp { width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--line-strong); border-radius:10px; background:var(--field) }
+textarea.inp { min-height:84px; resize:vertical }
+.form .acts { display:flex; gap:8px; align-items:center }
+.form .hint { font-size:12px; color:var(--fg-3); margin-left:auto }
+.swatch { display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:-3px; margin-right:6px; border:1px solid var(--line-strong) }
+.chips { display:flex; flex-wrap:wrap; gap:6px }
+.chip { font-size:12.5px; font-weight:600; min-height:32px; padding:0 12px; border-radius:99px; border:1px solid var(--line-strong); background:var(--card); cursor:pointer }
+.chip[aria-checked="true"] { border:1.5px solid var(--fg); box-shadow:0 0 0 1px var(--fg) }
+.band { position:relative; height:16px; margin-top:6px; max-width:280px }
+.band .r { position:absolute; left:0; right:0; top:7px; height:2px; background:var(--line) }
+.band .z { position:absolute; top:2px; height:12px; background:var(--ok-bg); border:1px solid var(--ok-dot); border-radius:3px }
+
+/* offers switcher */
+.osw { display:flex; gap:6px; flex-wrap:wrap; padding:12px 18px; border-bottom:1px solid var(--line-soft); background:var(--card-2) }
+.osw button { border:1px solid var(--line-strong); background:var(--card); border-radius:10px; min-height:36px; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer }
+.osw button[aria-pressed="true"] { border-color:var(--fg); box-shadow:0 0 0 1px var(--fg) }
+.osw .add { border-style:dashed; color:var(--fg-3) }
+
+/* kit */
+.kit { padding:16px 18px; display:grid; grid-template-columns:200px minmax(0,1fr); gap:16px }
+.logo-tile { border:1px solid var(--line); border-radius:12px; background:var(--card-2); aspect-ratio:1/1; max-width:100%; display:grid; place-items:center; position:relative }
+.logo-mark { font-weight:800; font-stretch:125%; font-size:22px; letter-spacing:-.02em; color:var(--mc) }
+.logo-mark span { display:inline-block; width:14px; height:14px; border-radius:50%; background:var(--mc); box-shadow:inset -5px -2px 0 var(--card-2); margin-right:6px }
+.tile-acts { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap }
+.files { display:flex; flex-direction:column; gap:8px; min-width:0 }
+.file { display:flex; gap:10px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:8px 10px; min-width:0; background:var(--card) }
+.file .ft { width:34px; height:34px; border-radius:8px; background:var(--card-2); border:1px solid var(--line); display:grid; place-items:center; font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--fg-3); flex:none }
+.file .vt { width:34px; aspect-ratio:9/16; height:auto; border-radius:6px; background:linear-gradient(165deg,#4c5a6e,#15171a); flex:none }
+.file .nm { min-width:0; flex:1 } .file .nm b { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis } .file .nm small { color:var(--fg-3); font-size:12px }
+.file.up .bar { height:3px; border-radius:2px; background:var(--line); overflow:hidden; margin-top:4px } .file.up .bar i { display:block; height:100%; width:62%; background:var(--info) }
+.drop { border:1.5px dashed var(--control); border-radius:12px; padding:14px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; background:var(--card) }
+.ktitle { font-size:12px; font-weight:700; color:var(--fg-3); text-transform:uppercase; letter-spacing:.06em; font-family:var(--mono) }
+
+/* meta */
+.fsq { width:28px; height:28px; border-radius:7px; background:var(--meta); color:var(--white); display:grid; place-items:center; font-weight:800; flex:none }
+
+/* rail */
+.meter { padding:16px 18px; display:flex; flex-direction:column; gap:12px }
+.ring { display:flex; gap:14px; align-items:center }
+.ring .r { width:64px; height:64px; border-radius:50%; background:conic-gradient(var(--brand-edge) calc(var(--p)*1%), var(--line-soft) 0); display:grid; place-items:center; flex:none }
+.ring .r span { width:50px; height:50px; border-radius:50%; background:var(--card); display:grid; place-items:center; font-family:var(--mono); font-weight:600; font-size:15px }
+.miss { display:flex; flex-direction:column; border-top:1px solid var(--line-soft) }
+.miss a { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:10px 18px; border-bottom:1px solid var(--line-soft); text-decoration:none; color:inherit; font-size:13px; min-height:44px }
+.miss a b { font-size:12px; color:var(--fg) } .miss a b::after { content:" →" }
+.miss a:hover { background:var(--card-2) }
+.idx { display:flex; flex-direction:column; padding:8px }
+.idx a { display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:36px; padding:0 10px; border-radius:10px; text-decoration:none; color:var(--fg-2); font-weight:600; font-size:13px }
+.idx a:hover { background:var(--card-2); color:var(--fg) }
+.st { width:8px; height:8px; border-radius:50%; flex:none }
+.st.ok { background:var(--ok-dot) } .st.part { background:var(--warn-dot) } .st.none { border:1.5px solid var(--control) }
+.eddy { padding:14px 18px; display:flex; gap:12px; align-items:center; border-top:1px solid var(--line-soft) }
+.eddy .e { width:30px; height:30px; border-radius:9px; background:var(--ink); color:var(--brand); display:grid; place-items:center; font-family:var(--mono); font-weight:600; font-size:12px; flex:none }
+
+.map { padding:40px 18px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; background:var(--ink); border-radius:16px; color:var(--ink-fg-2); min-height:360px; justify-content:center }
+.map b { color:var(--ink-fg); font-size:16px }
+.toast { position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--fg); color:var(--white); padding:10px 14px; border-radius:12px; font-size:13px; font-weight:600 }
+.hidden { display:none !important }
+
+@container frame (max-width: 760px) {
+  .side { display:none } .topbar { display:flex }
+  .main { padding:18px 16px 40px } h1 { font-size:24px }
+  .rail > .card { max-height:none; overflow:visible }
+  .col, .rail { grid-column:span 12 }
+  .rail { position:static; order:-1 }
+  .rail .idx { display:none }
+  .jump { display:flex !important }
+  .fr { grid-template-columns:minmax(0,1fr) auto; padding:12px 16px }
+  .fr .k { grid-column:1 / span 2 } .fr .v { grid-column:1 } .fr .ed { grid-column:2; grid-row:2 }
+  .fr .form { grid-column:1 / span 2 }
+  .kit { grid-template-columns:minmax(0,1fr) }
+  .logo-tile { max-width:160px }
+  .head .r { width:100% } .head .r .btn { width:100% }
+  .meta-row { flex-direction:column; align-items:stretch !important }
+}
+.jump { display:none; gap:6px; overflow-x:auto; position:sticky; top:0; z-index:2; background:var(--bg); padding-block:8px; margin-block:-8px }
+.jump a { flex:none; border:1px solid var(--line-strong); border-radius:99px; min-height:36px; padding:0 12px; display:inline-flex; gap:6px; align-items:center; font-size:12.5px; font-weight:600; text-decoration:none; color:var(--fg); background:var(--card) }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important } }
+</style>
+
+<div class="proto" role="toolbar" aria-label="Prototype controls">
+  <div class="grp"><b>Width</b>
+    <div class="seg" role="group" aria-label="Width">
+      <button type="button" id="w-desk" aria-pressed="true">Desktop 1440</button>
+      <button type="button" id="w-phone" aria-pressed="false">Phone 390</button>
+    </div>
+  </div>
+  <span class="xs" style="color:var(--ink-fg-3)">Click any "Edit" to change a field in place.</span>
+  <span class="ex">Example data</span>
+</div>
+
+<div class="stage">
+  <div class="frame" id="frame">
+    <aside class="side" aria-label="Main">
+      <div class="ws"><span class="av">MC</span><span><b>Mooncloth</b><small>Owner</small></span></div>
+      <nav class="navg"><span class="h">Workspace</span>
+        <a href="#"><i class="ico"></i>Home</a>
+        <a href="#"><i class="ico"></i>Campaigns</a>
+        <a href="#"><i class="ico c"></i>Eddy<span class="soon">Soon</span></a>
+        <a href="#" class="on"><i class="ico c"></i>Brain<span class="pct">92%</span></a>
+      </nav>
+      <nav class="navg"><span class="h">Make ads</span>
+        <a href="#"><i class="ico"></i>Iterate a winner</a>
+        <a href="#"><i class="ico"></i>New concepts</a>
+        <a href="#"><i class="ico"></i>Review</a>
+        <a href="#"><i class="ico"></i>Library</a>
+      </nav>
+    </aside>
+    <div class="topbar"><span class="av">MC</span><b>Mooncloth</b><span class="sp"></span><button class="burger" type="button" aria-label="Open menu">≡</button></div>
+
+    <main class="main">
+      <div class="wrap">
+        <header class="head">
+          <div class="l"><span class="eyebrow">Brain · Mooncloth</span><h1>Brand</h1><span class="small muted">Everything HookMill knows about Mooncloth. Scripts, hooks and statics read from here.</span></div>
+          <div class="r"><a class="btn" href="#">Read the site again</a></div>
+        </header>
+        <div class="tabs" role="tablist" aria-label="Brain views">
+          <button type="button" role="tab" id="t-brand" aria-selected="true">Brand</button>
+          <button type="button" role="tab" id="t-map" aria-selected="false">Map</button>
+        </div>
+
+        <nav class="jump" aria-label="Sections">
+          <a href="#s-biz"><i class="st ok"></i>Business</a><a href="#s-offer"><i class="st part"></i>Offer</a><a href="#s-aud"><i class="st ok"></i>Audience</a><a href="#s-kit"><i class="st part"></i>Brand kit</a><a href="#s-meta"><i class="st ok"></i>Meta</a>
+        </nav>
+
+        <div class="layout" id="v-brand">
+          <div class="col">
+            <!-- BUSINESS: PATCH /workspace -->
+            <section class="card" id="s-biz" aria-labelledby="h-biz">
+              <div class="hd"><span class="t"><h2 id="h-biz">Business</h2></span><span class="saved">Saved Oct 30</span></div>
+              <div class="rows">
+                <div class="fr"><span class="k">Website</span><span class="v mono">mooncloth.com</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="f-site" value="mooncloth.com"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button><span class="hint">Saving doesn't re-read the site. Use "Read the site again".</span></div></div></div>
+                <div class="fr"><span class="k">Name</span><span class="v">Mooncloth</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="f-name" value="Mooncloth"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Code<small>Prefix on file names</small></span><span class="v mono">MCL</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="f-code" value="MCL" maxlength="4"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Industry</span><span class="v">Sleep products</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="f-ind" value="Sleep products"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Market</span><span class="v">United States</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="f-mkt" value="United States"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Language<small>Of this client's workspace</small></span><span class="v">English</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><select class="inp" id="f-lang"><option>English</option><option>Português (Brasil)</option></select><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Brand color</span><span class="v mono"><i class="swatch" style="background:var(--mc)"></i>#2F3A5C</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp mono" id="f-color" value="#2F3A5C"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">What counts as a result</span><span class="v">Purchase</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><div class="chips" role="radiogroup" aria-label="Result"><button type="button" class="chip" role="radio" aria-checked="true">Purchase</button><button type="button" class="chip" role="radio" aria-checked="false">Lead</button><button type="button" class="chip" role="radio" aria-checked="false">Message</button><button type="button" class="chip" role="radio" aria-checked="false">Appointment</button><button type="button" class="chip" role="radio" aria-checked="false">Sign-up</button><button type="button" class="chip" role="radio" aria-checked="false">More…</button></div><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button><span class="hint">Changes the KPI names on Home.</span></div></div></div>
+                <div class="fr"><span class="k">Target cost per purchase</span><span class="v"><span class="mono">$10 – $14</span><span class="band" style="display:block"><span class="r"></span><span class="z" style="left:33.3%;width:13.4%"></span></span><span class="xs muted">Home marks each ad inside or over this range.</span></span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><div style="display:flex;gap:8px;flex-wrap:wrap"><select class="inp" id="f-cur" style="width:90px"><option>USD</option><option>BRL</option><option>EUR</option></select><input class="inp mono" id="f-min" value="10" style="width:90px" aria-label="Minimum"><input class="inp mono" id="f-max" value="14" style="width:90px" aria-label="Maximum"></div><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Monthly spend cap</span><span class="v mono">$9,000 / month</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp mono" id="f-cap" value="9000" inputmode="numeric"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button><span class="hint">USD per month</span></div></div></div>
+              </div>
+            </section>
+
+            <!-- OFFER: PATCH /offers/:id -->
+            <section class="card" id="s-offer" aria-labelledby="h-offer">
+              <div class="hd"><span class="t"><h2 id="h-offer">Offer</h2><span class="tag neutral">2 offers</span></span><span class="saved">Saved 2 h ago</span></div>
+              <div class="osw" role="group" aria-label="Offer"><button type="button" aria-pressed="true">Weighted blanket</button><button type="button" aria-pressed="false">Sleep mask</button><button type="button" class="add">+ Add offer</button></div>
+              <div class="rows">
+                <div class="fr"><span class="k">What it is</span><span class="v">A 7 kg weighted blanket with a cooling cotton cover.</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><textarea class="inp" id="o-what">A 7 kg weighted blanket with a cooling cotton cover.</textarea><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Promise</span><span class="v">Fall asleep in under 20 minutes within 7 nights, or your money back.</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><textarea class="inp" id="o-prom">Fall asleep in under 20 minutes within 7 nights, or your money back.</textarea><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Offer and price</span><span class="v">$129, free shipping, 30-night trial</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="o-price" value="$129, free shipping, 30-night trial"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Call to action</span><span class="v">Try it for 30 nights</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp" id="o-cta" value="Try it for 30 nights"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Landing page</span><span class="v mono">mooncloth.com/blanket</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><input class="inp mono" id="o-lp" value="mooncloth.com/blanket"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Proof</span><span class="v empty">Missing · the Brain's last gap</span><button class="btn sm ghost ed" type="button">Add</button>
+                  <div class="form"><textarea class="inp" id="o-proof" placeholder="Reviews, numbers, press. One per line."></textarea><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+              </div>
+            </section>
+
+            <!-- AUDIENCE: same offer, PATCH /offers/:id -->
+            <section class="card" id="s-aud" aria-labelledby="h-aud">
+              <div class="hd"><span class="t"><h2 id="h-aud">Audience</h2><span class="xs muted">for Weighted blanket</span></span><span class="saved">Saved 2 h ago</span></div>
+              <div class="rows">
+                <div class="fr"><span class="k">Who it's for</span><span class="v">Adults 30–55 who wake up at 3am and feel wrecked by 10am.</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><textarea class="inp" id="a-who">Adults 30–55 who wake up at 3am and feel wrecked by 10am.</textarea><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Pains</span><span class="v">Racing thoughts at night
+Tried melatonin, groggy next day
+Partner's sleep affected too</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><textarea class="inp" id="a-pain">Racing thoughts at night
+Tried melatonin, groggy next day
+Partner's sleep affected too</textarea><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+                <div class="fr"><span class="k">Instructions<small>What scripts must or must not do</small></span><span class="v">Never promise to cure insomnia. No before/after medical claims.</span><button class="btn sm ghost ed" type="button">Edit</button>
+                  <div class="form"><textarea class="inp" id="a-notes">Never promise to cure insomnia. No before/after medical claims.</textarea><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>
+              </div>
+            </section>
+
+            <!-- BRAND KIT: kit-marca-v1 (contract pending) -->
+            <section class="card" id="s-kit" aria-labelledby="h-kit">
+              <div class="hd"><span class="t"><h2 id="h-kit">Brand kit</h2></span><span class="saved">Statics and end cards use these</span></div>
+              <div class="kit">
+                <div>
+                  <span class="ktitle">Logo</span>
+                  <div class="logo-tile" style="margin-top:8px"><span class="logo-mark"><span></span>mooncloth</span></div>
+                  <div class="tile-acts"><button class="btn sm" type="button">Replace</button><button class="btn sm ghost danger" type="button">Remove</button></div>
+                </div>
+                <div class="files">
+                  <span class="ktitle">Brand files</span>
+                  <div class="file"><span class="ft">PDF</span><span class="nm"><b>Mooncloth brand guide 2026.pdf</b><small>4.2 MB · added Oct 30</small></span><button class="btn sm ghost danger" type="button">Remove</button></div>
+                  <div class="file"><span class="ft">ZIP</span><span class="nm"><b>product-photos.zip</b><small>38 MB · added Oct 30</small></span><button class="btn sm ghost danger" type="button">Remove</button></div>
+                  <span class="ktitle" style="margin-top:8px">Product demo videos</span>
+                  <div class="file"><span class="vt"></span><span class="nm"><b>blanket-unboxing.mp4</b><small>0:42 · 1080×1920</small></span><button class="btn sm ghost danger" type="button">Remove</button></div>
+                  <div class="file up"><span class="vt"></span><span class="nm"><b>cooling-cover-closeup.mov</b><small>Uploading · 62% · 48 of 77 MB</small><span class="bar" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100"><i></i></span></span><button class="btn sm ghost" type="button">Cancel</button></div>
+                  <div class="drop"><span class="small muted">Drop files here. Logo PNG/SVG, PDFs, images, videos up to 500 MB.</span><button class="btn sm" type="button">Choose files</button></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- META + TEMPLATES: read-only here, managed in Settings › Connections -->
+            <section class="card" id="s-meta" aria-labelledby="h-meta">
+              <div class="hd"><span class="t"><h2 id="h-meta">Meta</h2><span class="tag ok"><i></i>Connected</span></span><a class="btn sm ghost arrow" href="#">Manage in Settings</a></div>
+              <div class="rows">
+                <div class="fr"><span class="k">Ad account</span><span class="v"><span style="display:flex;gap:10px;align-items:center"><span class="fsq">f</span><span><b>Mooncloth US</b><br><span class="mono xs muted">act_••4821 · USD</span></span></span></span><span></span></div>
+                <div class="fr"><span class="k">Page</span><span class="v">Mooncloth Sleep</span><span></span></div>
+                <div class="fr"><span class="k">Publish templates</span><span class="v">3 templates · default “Prospecting CBO 4–8 ads”</span><a class="btn sm ghost arrow" href="#">Open</a></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- right rail -->
+          <aside class="rail" aria-label="Brain status">
+            <section class="card">
+              <div class="meter">
+                <div class="ring"><span class="r" style="--p:92"><span>92%</span></span><span><b>Brain 92% full</b><br><span class="small muted">12 of 13 things known. One missing.</span></span></div>
+              </div>
+              <div class="miss">
+                <a href="#s-offer"><span>Proof for Weighted blanket</span><b>Add</b></a>
+                <a href="#s-kit"><span class="muted">Brand kit: 1 video uploading</span><b>See</b></a>
+              </div>
+              <nav class="idx" aria-label="Sections">
+                <a href="#s-biz"><span>Business</span><i class="st ok"></i></a>
+                <a href="#s-offer"><span>Offer</span><i class="st part"></i></a>
+                <a href="#s-aud"><span>Audience</span><i class="st ok"></i></a>
+                <a href="#s-kit"><span>Brand kit</span><i class="st part"></i></a>
+                <a href="#s-meta"><span>Meta</span><i class="st ok"></i></a>
+              </nav>
+              <div class="eddy"><span class="e">Ed</span><span style="flex:1;min-width:0"><b class="small">Fill the gaps with Eddy</b><br><span class="xs muted">He asks only what's missing.</span></span><a class="btn sm" href="#">Start</a></div>
+            </section>
+          </aside>
+        </div>
+
+        <div id="v-map" class="hidden">
+          <div class="map"><b>Map</b><span>The 3D Brain graph you have today lives here as the second tab. Same data, read-only.</span><span class="xs" style="color:var(--ink-fg-3)">(placeholder in this mockup)</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast hidden" id="toast" role="status" aria-live="polite">Saved</div>
+
+<script>
+(function () {
+  var frame = document.getElementById("frame");
+  function press(ids, on) { ids.forEach(function (id) { document.getElementById(id).setAttribute("aria-pressed", String(id === on)); }); }
+  document.getElementById("w-desk").onclick = function () { press(["w-desk","w-phone"], "w-desk"); frame.classList.remove("phone"); };
+  document.getElementById("w-phone").onclick = function () { press(["w-desk","w-phone"], "w-phone"); frame.classList.add("phone"); };
+  var tb = document.getElementById("t-brand"), tm = document.getElementById("t-map");
+  function tab(map) { tb.setAttribute("aria-selected", String(!map)); tm.setAttribute("aria-selected", String(map)); document.getElementById("v-brand").classList.toggle("hidden", map); document.getElementById("v-map").classList.toggle("hidden", !map); }
+  tb.onclick = function () { tab(false); }; tm.onclick = function () { tab(true); };
+  var toast = document.getElementById("toast"), tt;
+  function say(t) { toast.textContent = t; toast.classList.remove("hidden"); clearTimeout(tt); tt = setTimeout(function () { toast.classList.add("hidden"); }, 1600); }
+  document.querySelectorAll(".fr").forEach(function (row) {
+    var ed = row.querySelector(".ed"), sv = row.querySelector(".sv"), cx = row.querySelector(".cx");
+    if (!ed || !sv) return;
+    ed.onclick = function () { row.classList.add("editing"); var f = row.querySelector(".form .inp"); if (f) f.focus(); };
+    cx.onclick = function () { row.classList.remove("editing"); ed.focus(); };
+    sv.onclick = function () {
+      var f = row.querySelector(".form .inp"), v = row.querySelector(".v");
+      if (f && f.tagName !== "SELECT" && f.id !== "f-cur" && f.value.trim()) { v.textContent = f.value; v.classList.remove("empty"); ed.textContent = "Edit"; }
+      row.classList.remove("editing"); say("Saved"); ed.focus();
+      var card = row.closest(".card"); var s = card && card.querySelector(".saved"); if (s && s.textContent.indexOf("Saved") === 0) s.textContent = "Saved just now";
+    };
+    row.addEventListener("keydown", function (e) { if (e.key === "Escape" && row.classList.contains("editing")) cx.onclick(); if (e.key === "Enter" && e.target.tagName === "INPUT") sv.onclick(); });
+  });
+  document.querySelectorAll('.chips[role="radiogroup"]').forEach(function (g) { g.addEventListener("click", function (e) { var b = e.target.closest(".chip"); if (!b) return; g.querySelectorAll(".chip").forEach(function (x) { x.setAttribute("aria-checked", String(x === b)); }); }); });
+  document.querySelectorAll(".osw").forEach(function (g) { g.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b || b.classList.contains("add")) return; g.querySelectorAll("button:not(.add)").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); }); });
+  document.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
+})();
+</script>

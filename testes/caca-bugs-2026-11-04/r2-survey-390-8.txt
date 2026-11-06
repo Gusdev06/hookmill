@@ -1,0 +1,63 @@
+Publicar na Meta
+›
+Revisar e enviar
+1
+Campanha
+2
+Conjunto
+3
+Anúncio
+
+Todas as configurações do “Hunt Sales” estão aqui. Mude o que quiser pra este envio e envie.
+
+Campanha
+Nome da campanha
+Nome da campanha
+Variáveis: {offer}{code}{date}{n}
+→ Hunt — Hunt sleep 🧪
+Publicar em
+HOOKMILL
+Uma campanha pra toda publicação
+O HookMill cria na primeira vez e adiciona conjuntos novos nela. Bom pra testes.
+Uma campanha nova a cada lote
+Cada publicação cria a própria campanha.
+Categorias especiais de anúncio
+
+Anúncios de crédito, emprego, moradia, temas sociais ou serviços financeiros precisam declarar isso. A Meta limita a segmentação deles.
+
+Declarar categorias, se for o caso
+Detalhes da campanha
+Tipo de compra
+Leilão
+RESERVA EM BREVE
+Objetivo da campanha
+Reconhecimento
+Mostrar os anúncios a quem tem mais chance de lembrar deles.
+Tráfego
+Levar pessoas ao seu site.
+Engajamento
+Mais visualizações do vídeo ou interações.
+Leads
+Captar leads pro seu negócio.
+Promoção de app
+Achar pessoas pra instalar seu app.
+Vendas
+Achar pessoas com chance de comprar.
+Orçamento
+Orçamento de campanha Advantage+
+Ligado (CBO): a Meta distribui um orçamento entre os conjuntos.
+Orçamento
+Orçamento diário
+Orçamento diário
+USD
+Mínimo da Meta nesta conta: US$ 5,00 por dia.
+Estratégia de lance da campanha
+Maior volume
+O máximo de resultados pro seu orçamento.
+Teste A/B
+Testar esta campanha contra outra · teste dividido da Meta
+EM BREVE
+Voltar
+Avançar
+Salvar também no template
+Enviar 1 anúncio

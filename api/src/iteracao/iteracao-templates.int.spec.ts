@@ -123,6 +123,10 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     await call('POST', `/uploads/${c.data.uploadId}/complete`, {});
     const cr = await call('POST', '/iterate', { uploadId: c.data.uploadId });
     expect(cr.status).toBe(202);
+    // tour-v2 §6: 1º lote criado grava firstBatchAt; os outros marcos seguem null
+    const ws0 = await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } });
+    expect(ws0.firstBatchAt?.toISOString()).toBe(cr.data.createdAt);
+    expect([ws0.firstGenerateAt, ws0.firstReadyAt, ws0.firstSendAt]).toEqual([null, null, null]);
     if (!firstBatchId) {
       firstBatchId = cr.data.id;
       expect(cr.data.quizEnabled).toBe(true);
@@ -163,6 +167,7 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     const blocked = await call('POST', `/iterate/${firstBatchId}/start`, { expectedPieces: 1, expectedCostUsd: 0 });
     expect(blocked.status).toBe(409);
     expect(blocked.error.details.reason).toBe('nothing_selected');
+    expect((await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } })).firstGenerateAt).toBeNull(); // Gerar barrado não conta
     expect(await prisma.costEntry.count({ where: { variationBatchId: firstBatchId } })).toBe(before);
     const cfg = await call('GET', '/iterate/config');
     expect(cfg.data.savedPreferences).toMatchObject({ wants: ['headline'], fromBatchId: firstBatchId });
@@ -181,8 +186,10 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     const fc = Number(em.frameCount) || 750;
     const faceTrack = [{ startFrame: 0, endFrame: fc, role: 'main', region: { x: 0, y: 0, w: Number(em.width) || 720, h: Number(em.height) || 1280 }, faceInRegion: [{ atFrame: 0, box: { x: 0.35, y: 0.2, w: 0.3, h: 0.22 } }] }];
     await prisma.teardown.update({ where: { championId }, data: { editMap: { ...em, faceTrack, layers: [], protectedBands: [] } as unknown as Prisma.InputJsonValue } });
+    const firstBatchAt = (await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } })).firstBatchAt;
     const cr = await call('POST', '/iterate', { championId });
     expect(cr.status).toBe(202);
+    expect((await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } })).firstBatchAt).toEqual(firstBatchAt); // só a 1ª vez
     const b = await settled(cr.data.id);
     expect(b.data.status).toBe('PLAN_READY');
     const pm = b.data.pieces.find((p: { type: string }) => p.type === 'PERSON_MOTION');
@@ -191,6 +198,8 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
     expect(b.data.pieces.some((p: { type: string }) => p.type === 'CHAT_DM')).toBe(true);
     const st = await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: b.data.pieces.length, expectedCostUsd: b.data.cost.generateEstimateUsd ?? 0 });
     expect(st.status).toBe(202);
+    const launched = await prisma.variationBatch.findUniqueOrThrow({ where: { id: cr.data.id } });
+    expect((await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } })).firstGenerateAt).toEqual(launched.launchedAt);
     const done = await until(() => call('GET', `/iterate/${cr.data.id}`), (r) => r.data.pieces.filter((p: { type: string; status: string }) => ['CHAT_DM', 'PERSON_MOTION'].includes(p.type)).every((p: { status: string }) => p.status === 'ready' || p.status === 'failed'));
     for (const t of ['CHAT_DM', 'PERSON_MOTION']) {
       const p = done.data.pieces.find((x: { type: string }) => x.type === t);
@@ -202,5 +211,8 @@ describe(isLocal ? 'Iterate v2 F1 templates (integração local)' : 'Iterate v2 
       expect((r.input as { kind: string; templateId: string }).kind).toBe('template');
       expect((r.input as { templateId: string }).templateId).toBe(t === 'CHAT_DM' ? 'chat-dm' : 'person-motion');
     }
+    // tour-v2 §6: firstReadyAt = approvedAt da 1ª peça pronta do workspace
+    const firstApproved = await prisma.creative.findFirstOrThrow({ where: { workspaceId: wsId, approvedAt: { not: null }, variationItemId: { not: null } }, orderBy: { approvedAt: 'asc' } });
+    expect((await prisma.workspace.findUniqueOrThrow({ where: { id: wsId } })).firstReadyAt).toEqual(firstApproved.approvedAt);
   });
 });

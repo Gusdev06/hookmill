@@ -1,0 +1,76 @@
+{
+  "step": 75,
+  "url": "http://localhost:3311/login",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nEN\nPT\nEntrar\n\nEntre na sua conta do HookMill.\n\nE-mail\nSenha\nEntrar\n\nNovo no HookMill? Criar conta",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "email",
+      "type": "email",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "password",
+      "type": "password",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Entrar",
+      "label": null,
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Criar conta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/signup"
+    }
+  ]
+}

@@ -7,7 +7,7 @@
 // apaga o bloco opcional) e FRAME (molduras, §B2/§B5: allowedFrames, textos por template, preço literal, máx. 2 distintas).
 // TRANSIÇÃO (§C.0): FRAME ainda fora do AutoVariationType; aqui tudo é escrito contra `AutoVariationType`.
 import type {
-  AutoInsight, AutoVariationType, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts,
+  AutoInsight, AutoVariationType, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts, ListTemplateId,
   SwapReason, TranscriptWord, VariationAxis, WhyLine,
 } from '@maquina/contratos';
 import type {
@@ -20,6 +20,7 @@ import type { CaptionGuard } from './legenda-protegida';
 import { DEFAULT_ACCENT } from './paleta';
 import type { MediaRulesPort, Span } from './portas';
 import { templateCode, templateRules, templateSpecOf, templateViolations, type TemplateCtx } from './templates-plano';
+import { LIST_MIN_SPEECH_SEC, listPlacementOf, listSpecOf, listViolations, type ListGeom, type ListSpec } from './lista-plano';
 
 // ───────── catálogo (§6.1) ─────────
 
@@ -27,19 +28,23 @@ export const AUTO_TYPES: readonly AutoVariationType[] = ['CUT', 'COLD_OPEN', 'HO
 
 /** Eixo fixo por tipo: ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo". FRAME (§B2) = DIVERSITY. */
 export const AXIS_OF: Record<AutoVariationType, VariationAxis> = {
+  AI_VIDEO: 'DIVERSITY',
   CUT: 'ITERATION', COLD_OPEN: 'ITERATION', HOOK_TEXT: 'ITERATION', ENDCARD: 'ITERATION',
   SPLIT_LP: 'DIVERSITY', STORY: 'DIVERSITY', REVIEW: 'DIVERSITY', NATIVE_SEARCH: 'DIVERSITY', STATIC: 'DIVERSITY', FRAME: 'DIVERSITY',
   HEADLINE: 'ITERATION', // headline-e-legenda-v1 §1.1
   CHAT_DM: 'DIVERSITY', PERSON_MOTION: 'DIVERSITY', // iterate-v2 F1.1
+  LIST_OVERLAY: 'DIVERSITY', // templates-lista-v1 §1 (pasta 2-new-audience, igual a FRAME)
 };
 
 /** Máximo por lote com a repetição da D2 (HOOK-TEXT ≤ 3, STATIC ≤ 2, NATIVE-SEARCH ≤ 2; CUT = um de 15 s e um de 20 s).
  *  25/10 (Gusta, D10 revista): FRAME ≤ 8, todas de templates diferentes. Os tipos que saíram do catálogo mantêm o número
  *  (só leitura de lote antigo). */
 export const TYPE_MAX: Record<AutoVariationType, number> = {
+  AI_VIDEO: 1,
   CUT: 2, COLD_OPEN: 1, HOOK_TEXT: 3, ENDCARD: 1, SPLIT_LP: 1, STORY: 1, REVIEW: 1, NATIVE_SEARCH: 2, STATIC: 2, FRAME: 8,
   HEADLINE: 3, // `replace` = 3; `add` = 2 (no allowedFor, H6)
   CHAT_DM: 1, PERSON_MOTION: 1, // iterate-v2 F1.1
+  LIST_OVERLAY: 2, // templates-lista-v1 §1: 1 por templateId (chave de duplicata `LIST_OVERLAY:<templateId>`)
 };
 
 /**
@@ -48,7 +53,32 @@ export const TYPE_MAX: Record<AutoVariationType, number> = {
  * retry, formatos, zip), porque o render, a vista e o zip não olham o catálogo.
  */
 export const AUTO_TYPES_NOVOS: readonly AutoVariationType[] = ['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME'];
-export const AUTO_TYPES_FORA: readonly AutoVariationType[] = ['COLD_OPEN', 'HOOK_TEXT', 'ENDCARD', 'STORY', 'SPLIT_LP'];
+export const AUTO_TYPES_FORA: readonly AutoVariationType[] = ['HOOK_TEXT', 'STORY', 'SPLIT_LP'];
+/**
+ * templates-creditos-v1 A6 (Gusta 31/10, 1 crédito, Edição): COLD_OPEN e ENDCARD voltam SÓ no lote de template (cards
+ * `cold-open` / `offer-end-card` e o pack). O Iterate normal (quiz/auto) segue sem eles (decisão de 25/10): só entram no
+ * `allowedFor` quando `ctx.templateOnlyTypes` os traz, e quem preenche é o lote de template (plano-auto) e o fit da galeria.
+ */
+export const TEMPLATE_ONLY_TYPES: readonly AutoVariationType[] = ['COLD_OPEN', 'ENDCARD', 'LIST_OVERLAY'];
+export type TemplateOnlyType = 'COLD_OPEN' | 'ENDCARD' | 'LIST_OVERLAY';
+export const isTemplateOnlyType = (t: string | null | undefined): t is TemplateOnlyType =>
+  t === 'COLD_OPEN' || t === 'ENDCARD' || t === 'LIST_OVERLAY';
+/** Os tipos só-de-template que as chaves do lote liberam ("COLD_OPEN", "ENDCARD", "LIST_OVERLAY:<id>"; pack = as chaves do
+ *  pack). LIST_OVERLAY entra com qualquer chave `LIST_OVERLAY:<id>` (quais templates = `listTemplatesOf`). */
+export const templateOnlyTypesOf = (keys: readonly string[]): AutoVariationType[] =>
+  TEMPLATE_ONLY_TYPES.filter((t) => (t === 'LIST_OVERLAY' ? listTemplatesOf(keys).length > 0 : keys.includes(t)));
+
+/** templates-lista-v1 §1/§4: os 2 templates do motor ListOverlay (= slug do catálogo e `templateId` do render). */
+export const LIST_TEMPLATE_IDS: readonly ListTemplateId[] = ['versus', 'value-stack'];
+const LIST_KEY_PREFIX = 'LIST_OVERLAY:';
+export const isListTemplateId = (v: unknown): v is ListTemplateId => typeof v === 'string' && (LIST_TEMPLATE_IDS as readonly string[]).includes(v);
+/** Chave do catálogo/RunLine e de duplicata: `LIST_OVERLAY:versus` | `LIST_OVERLAY:value-stack`. */
+export const listKeyOf = (id: ListTemplateId | string): string => `${LIST_KEY_PREFIX}${id}`;
+/** Os templates de lista que as chaves do lote liberam, na ordem do catálogo (vira `PlanCtx.listTemplates` na T-B2). */
+export function listTemplatesOf(keys: readonly string[]): ListTemplateId[] {
+  const ids = new Set(keys.filter((k) => k.startsWith(LIST_KEY_PREFIX)).map((k) => k.slice(LIST_KEY_PREFIX.length)));
+  return LIST_TEMPLATE_IDS.filter((id) => ids.has(id));
+}
 
 /** Lote (§6.2 + D2): 8 a 12; sem tipos que fechem 8, sai menor até o piso 4 (com aviso smallBatch). */
 export const BATCH_MAX = 12;
@@ -80,10 +110,12 @@ const QUOTE_RE = /["“”]/;
 
 /** Troca do §6.2.4: tipo que depende do Brain/da mídia sem o dado → um que não depende (STORY, STATIC, HOOK-TEXT). */
 const SWAP_TO: Record<AutoVariationType, AutoVariationType> = {
+  AI_VIDEO: 'AI_VIDEO',
   // 25/10: o que não entra vira moldura (o tipo que sobra pra qualquer campeão)
   CUT: 'FRAME', COLD_OPEN: 'FRAME', HOOK_TEXT: 'FRAME', ENDCARD: 'FRAME',
   SPLIT_LP: 'FRAME', STORY: 'FRAME', REVIEW: 'FRAME', NATIVE_SEARCH: 'STATIC', STATIC: 'FRAME', FRAME: 'STATIC', HEADLINE: 'FRAME',
   CHAT_DM: 'FRAME', PERSON_MOTION: 'FRAME',
+  LIST_OVERLAY: 'FRAME', // templates-lista-v1 §1: sem troca de fato (no lote de template o tipo que não cabe sai)
 };
 
 /** Código no idioma da oferta: `offer.language` começando com `pt` = PT; qualquer outro = EN. */
@@ -125,6 +157,7 @@ export const FRAME_CODE: Record<CodeLanguage, Record<FrameTemplateId, string>> =
 export function codeFor(type: AutoVariationType, variant: string | number | null, n: number, lang: CodeLanguage): string {
   const pt = lang === 'PT';
   switch (type) {
+    case 'AI_VIDEO': return `AI-${variant ?? n}`;
     case 'HEADLINE':
       return `HEADLINE-${n}`; // headline-e-legenda-v1 §1.2: igual em EN e PT
     case 'FRAME':
@@ -150,8 +183,16 @@ export function codeFor(type: AutoVariationType, variant: string | number | null
     case 'CHAT_DM':
     case 'PERSON_MOTION':
       return templateCode(type, lang); // iterate-v2 F1.1 (máx. 1 por lote)
+    case 'LIST_OVERLAY':
+      return LIST_CODE[lang][isListTemplateId(variant) ? variant : 'versus']; // templates-lista-v1 §1 (variant = templateId)
   }
 }
+
+/** templates-lista-v1 §1: `MC_1104_VERSUS_9x16.mp4`; 1 por template, sem sufixo de repetição. */
+export const LIST_CODE: Record<CodeLanguage, Record<ListTemplateId, string>> = {
+  EN: { versus: 'VERSUS', 'value-stack': 'VALUE-STACK' },
+  PT: { versus: 'VERSUS', 'value-stack': 'PILHA-VALOR' },
+};
 
 // ───────── contexto ─────────
 
@@ -193,13 +234,26 @@ export interface PlanCtx {
   caption?: CaptionGuard | null;
   /** iterate-v2 F1.1: rosto e legenda queimada pros templates grátis; ausente ou `enabled: false` = sem templates */
   templates?: TemplateCtx | null;
+  /** templates-creditos-v1 §2: lote de template = contagem própria (1..Σmax), no lugar do piso 4/teto 12 do lote auto */
+  planRules?: { min: number; max: number } | null;
+  /** templates-creditos-v1 A6: COLD_OPEN/ENDCARD liberados pelas chaves do lote de template; ausente = fora (Iterate normal) */
+  templateOnlyTypes?: readonly AutoVariationType[] | null;
+  /** templates-lista-v1 §1: templates de lista liberados pelas chaves `LIST_OVERLAY:<id>` do lote de template (`listTemplatesOf`,
+   *  inclusive pack e seleção). Vazio/ausente = o tipo não aparece (Iterate normal). */
+  listTemplates?: readonly ListTemplateId[] | null;
+  /** templates-lista-v1 §1 regra 4: rosto e legenda queimada do campeão (px do arquivo) pro `posicionarLista`. A legenda só
+   *  conta com a guarda ligada (`caption`). Ausente = 1080×1920 sem rosto nem legenda. */
+  listGeom?: ListGeom | null;
 }
 
 /** `burned_captions` (legenda-protegida-v1 §2.3): o tipo/template tamparia ou cortaria a legenda queimada do campeão. */
 export type BlockedReason = SwapReason | 'has_end_card' | HeadlineBlocked | 'burned_captions'
   /** iterate-v2 F1.1: PERSON_MOTION sem rosto em ≥ 40 % do vídeo */
-  | 'no_face';
-export interface AllowedType { type: AutoVariationType; max: number; blockedReason: BlockedReason | null }
+  | 'no_face'
+  /** templates-lista-v1 §1: sem momentos de lista na fala nem pontos no Brain (hard) / sem lugar pro painel sem legenda (hard) */
+  | 'no_list' | 'no_room';
+/** `templateId` (templates-lista-v1 §1): só LIST_OVERLAY, 1 entrada por template liberado (max 0|1). */
+export interface AllowedType { type: AutoVariationType; max: number; blockedReason: BlockedReason | null; templateId?: ListTemplateId }
 
 const has = (s: string | null | undefined) => !!s && s.trim().length > 0;
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
@@ -255,7 +309,76 @@ export function allowedFor(ctx: PlanCtx): AllowedType[] {
     { ...rule('FRAME', frames > 0, allowedFrames(ctx).some((f) => f.blockedReason === 'burned_captions') ? 'burned_captions' : 'no_page'), max: Math.min(TYPE_MAX.FRAME, frames) },
     // iterate-v2 F1.1: templates grátis (só com ITERATE_TEMPLATES=on)
     ...templateRules(ctx),
+    // templates-creditos-v1 A6: só no lote de template que tem a chave (as regras de antes de 25/10)
+    ...templateOnlyRules(ctx, rule),
   ];
+}
+
+/** COLD_OPEN: vídeo ≥ 10 s e ≥ 2 blocos (teaser de 1,5-3,5 s depois de 0:05). ENDCARD: fora se o campeão já tem end card;
+ *  senão precisa de uma variante que o Brain (ou o CTA falado) sustente. */
+function templateOnlyRules(ctx: PlanCtx, rule: (type: AutoVariationType, ok: boolean, reason: BlockedReason) => AllowedType): AllowedType[] {
+  const on = new Set(ctx.templateOnlyTypes ?? []);
+  const out: AllowedType[] = [];
+  if (on.has('COLD_OPEN')) out.push(rule('COLD_OPEN', ctx.durationSec >= COLD_OPEN_MIN_SEC && ctx.blocks.length >= 2, 'short_video'));
+  if (on.has('ENDCARD')) out.push(ctx.hasEndCard ? { type: 'ENDCARD', max: 0, blockedReason: 'has_end_card' } : rule('ENDCARD', endcardVariants(ctx).length > 0, 'no_offer'));
+  for (const id of ctx.listTemplates ?? []) out.push(listRule(ctx, id));
+  return out;
+}
+
+// ───────── LIST_OVERLAY: o que pode entrar (templates-lista-v1 §1) ─────────
+
+const LIST_FNS = new Set(['problem', 'mechanism', 'proof']);
+/** Momentos de lista na fala (estimativa sem custo): blocos problem/mechanism/proof + 1 se há CTA falado. */
+export function listMoments(ctx: PlanCtx): number {
+  return ctx.blocks.filter((b) => LIST_FNS.has(b.fn.trim().toLowerCase())).length + (has(ctx.spokenCta) ? 1 : 0);
+}
+/** Frases com ≥ 2 palavras (split em \n . ! ? ;). */
+export function sentencesIn(...xs: (string | null | undefined)[]): number {
+  return xs.filter(has).join('\n').split(/[\n.!?;]+/).filter((x) => words(x) >= 2).length;
+}
+/** Pontos do Brain pra completar a lista: Versus = min(dores, promessa + o quê + prova); Value stack = promessa + o quê + prova. */
+export function brainPoints(ctx: PlanCtx, id: ListTemplateId): number {
+  const b = ctx.brain;
+  const good = sentencesIn(b.promise, b.what, b.proof);
+  return id === 'versus' ? Math.min(sentencesIn(b.pains), good) : good;
+}
+/** Duração da fala (1ª palavra → última); sem transcrição, a duração do vídeo. */
+export function speechSecOf(ctx: PlanCtx): number {
+  const w = ctx.words;
+  return w.length ? w[w.length - 1].endSec - w[0].startSec : ctx.durationSec;
+}
+
+/** §1: 1 AllowedType por template, na ordem: no_speech → short_video (< 12 s de fala) → no_list → sem lugar (burned_captions/no_room). */
+export function listRule(ctx: PlanCtx, templateId: ListTemplateId): AllowedType {
+  const blocked = (blockedReason: BlockedReason): AllowedType => ({ type: 'LIST_OVERLAY', templateId, max: 0, blockedReason });
+  if (!ctx.hasSpeech) return blocked('no_speech');
+  if (speechSecOf(ctx) < LIST_MIN_SPEECH_SEC) return blocked('short_video');
+  if (listMoments(ctx) < 2 && brainPoints(ctx, templateId) < 3) return blocked('no_list');
+  const pl = listPlacementOf(ctx, templateId);
+  // `burned_captions` só quando a CAUSA é a legenda (sem ela caberia); senão o rosto ocupa o quadro = `no_room`
+  if (pl.mode === 'none') return blocked(pl.reason === 'burned_captions' && listPlacementOf({ ...ctx, caption: null }, templateId).mode === 'none' ? 'no_room' : pl.reason);
+  return { type: 'LIST_OVERLAY', templateId, max: 1, blockedReason: null };
+}
+
+/** `ctx.list[id]` do contrato: o que a ia precisa (Versus: 4º par só com `maxPairs` 4). */
+export function listCtxOf(ctx: PlanCtx): Partial<Record<ListTemplateId, { maxPairs: 3 | 4 }>> {
+  const out: Partial<Record<ListTemplateId, { maxPairs: 3 | 4 }>> = {};
+  for (const id of ctx.listTemplates ?? []) {
+    const pl = listPlacementOf(ctx, id);
+    out[id] = { maxPairs: pl.mode === 'body' ? pl.maxPairs : 3 };
+  }
+  return out;
+}
+
+/** O `allowed` por tipo (validação): LIST_OVERLAY soma as entradas dos templates (o template de cada peça é conferido nela). */
+export function allowedByType(allowed: readonly AllowedType[]): Map<AutoVariationType, AllowedType> {
+  const m = new Map<AutoVariationType, AllowedType>();
+  for (const a of allowed) {
+    const prev = m.get(a.type);
+    if (a.type !== 'LIST_OVERLAY' || !prev) m.set(a.type, { ...a });
+    else m.set(a.type, { type: a.type, max: prev.max + a.max, blockedReason: prev.max + a.max > 0 ? null : prev.blockedReason });
+  }
+  return m;
 }
 
 // ───────── molduras: o que pode entrar (§B2, §B5) ─────────
@@ -430,7 +553,7 @@ export function mustKeepBlocks(draft: Pick<AutoPlanDraft, 'blocks' | 'kept'>, ct
   return [...new Set([...(hook !== undefined ? [hook] : []), ...kept])].sort((a, b) => a - b);
 }
 
-function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: PlanCtx, allowed: Map<AutoVariationType, AllowedType>): Violation[] {
+function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: PlanCtx, allowed: Map<AutoVariationType, AllowedType>, allowedList: readonly AllowedType[] = []): Violation[] {
   const out: Violation[] = [];
   const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
   const a = allowed.get(it.type);
@@ -539,6 +662,17 @@ function itemViolations(it: PlanItem, i: number, draft: AutoPlanDraft, ctx: Plan
     case 'PERSON_MOTION':
       out.push(...templateViolations(p, i, ctx, draft));
       break;
+    case 'LIST_OVERLAY': {
+      // templates-lista-v1 §1/§2.3: o template da peça tem que estar liberado; depois forma, fonte e "nada inventado"
+      const own = allowedList.find((x) => x.templateId === p.templateId);
+      if (!own || own.max === 0) {
+        v('type_not_allowed', `the ${String(p.templateId)} list template is not allowed here (${own?.blockedReason ?? 'not picked'})`);
+        break;
+      }
+      const pl = listPlacementOf(ctx, p.templateId);
+      out.push(...listViolations(p, i, ctx, pl.mode === 'body' ? pl.maxPairs : 3));
+      break;
+    }
     default:
       break;
   }
@@ -943,7 +1077,7 @@ export function frameContentViolations(p: AutoFrameDraft, i: number, ctx: PlanCt
  * destaque só se a original tem e é trecho do texto; "nada inventado" (número/afirmação só do Brain ou da fala); diferente
  * da original (comparação normalizada). As do lote diferentes entre si = `duplicateKey`.
  */
-function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE' }>, i: number, ctx: PlanCtx): Violation[] {
+export function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE' }>, i: number, ctx: PlanCtx): Violation[] {
   const out: Violation[] = [];
   const v = (rule: string, detail: string) => out.push({ item: i, rule, detail });
   const h = ctx.headline;
@@ -970,6 +1104,7 @@ function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE' }>, i
 /** Repetição do mesmo tipo tem que mudar o conteúdo (D2): mesmo alvo de CUT, mesmo texto, mesma busca, mesmo frame. */
 function duplicateKey(p: AutoParamsDraft): string | null {
   switch (p.type) {
+    case 'LIST_OVERLAY': return listKeyOf(String(p.templateId ?? '')); // templates-lista-v1 §1: 1 por template
     case 'CUT': return `CUT:${p.targetSec}`;
     case 'HOOK_TEXT': return `HOOK_TEXT:${normalizeText(p.text ?? '')}`;
     case 'NATIVE_SEARCH': return `NATIVE_SEARCH:${normalizeText(p.query ?? '')}`;
@@ -1011,13 +1146,14 @@ function captionViolation(it: PlanItem, i: number, ctx: PlanCtx): Violation | nu
 
 /** §6.1 + §6.2 sobre o rascunho. Violação com `item` = a peça sai no reparo; `item: null` = do plano. */
 export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedType[]): Violation[] {
-  const byType = new Map(allowed.map((a) => [a.type, a]));
+  const byType = allowedByType(allowed);
+  const lists = allowed.filter((a) => a.type === 'LIST_OVERLAY');
   const items = itemsOf(draft);
   const out: Violation[] = [];
   const count = new Map<AutoVariationType, number>();
   const seen = new Set<string>();
   items.forEach((it, i) => {
-    const own = itemViolations(it, i, draft, ctx, byType);
+    const own = itemViolations(it, i, draft, ctx, byType, lists);
     out.push(...own);
     if (!own.length) {
       const cv = captionViolation(it, i, ctx);
@@ -1034,7 +1170,7 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
       seen.add(key);
     }
   });
-  const rules = rulesFor(allowed, ctx.candidatePlan);
+  const rules = ctx.planRules ?? rulesFor(allowed, ctx.candidatePlan);
   const n = items.length;
   if (n < rules.min) out.push({ item: null, rule: 'count_low', detail: `${n} pieces, minimum ${rules.min}` });
   if (n > rules.max) out.push({ item: null, rule: 'count_high', detail: `${n} pieces, maximum ${rules.max}` });
@@ -1045,6 +1181,20 @@ export function validatePlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: Allowe
   const kept = draft.kept?.length ?? 0;
   if (kept < 2 || kept > 4) out.push({ item: null, rule: 'kept_count', detail: `kept needs 2-4 entries, got ${kept}` });
   return out;
+}
+
+/**
+ * templates-multi-v1 §4.5 (04/11): `picked_missing` = template marcado pela pessoa (chave do catálogo: "FRAME:news",
+ * "HEADLINE"…) sem nenhuma peça no rascunho. Só entra na 1 chamada de reparo (a ia escreve a peça que faltou); depois do
+ * reparo NÃO reprova o plano: o marcado vira `skipped: not_planned` e não cobra. Por isso fica fora do `validatePlan`.
+ */
+export function pickedMissing(draft: Pick<AutoPlanDraft, 'items'>, picked: readonly string[]): Violation[] {
+  const have = new Set(itemsOf(draft).map((it) => (it.type === 'FRAME' ? `FRAME:${(it.params as { template?: string }).template ?? ''}`
+    : it.type === 'LIST_OVERLAY' ? listKeyOf(String((it.params as { templateId?: string }).templateId ?? '')) : String(it.type))));
+  return picked.filter((k) => !have.has(k)).map((k) => ({
+    item: null, rule: 'picked_missing',
+    detail: k.startsWith('FRAME:') ? `no FRAME piece with template ${k.slice('FRAME:'.length)}: the user picked it, write 1 piece of it` : `no ${k} piece: the user picked it, write at least 1 piece of it`,
+  }));
 }
 
 // ───────── reparo determinístico (§6.3.2) ─────────
@@ -1091,7 +1241,7 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
         change: ctx.lang === 'PT' ? 'Corte do original preservando a legenda' : 'Shorter original with its captions preserved',
         rationale: ctx.lang === 'PT' ? 'Preserva os blocos principais sem cobrir a legenda.' : 'Keeps the core blocks without covering the captions.',
       };
-      if (!itemViolations(candidate, items.length, draft, ctx, new Map(allowed.map((a) => [a.type, a]))).length && !captionViolation(candidate, items.length, ctx)) items.push(candidate);
+      if (!itemViolations(candidate, items.length, draft, ctx, allowedByType(allowed)).length && !captionViolation(candidate, items.length, ctx)) items.push(candidate);
     }
   }
   // headline-e-legenda-v1 §3.2: o reparo tira CUT (do fim) antes de HEADLINE; HEADLINE só se não sobrar outro ITERATION
@@ -1116,7 +1266,7 @@ export function repairPlan(draft: AutoPlanDraft, ctx: PlanCtx, allowed: AllowedT
     ? own.slice(0, 4)
     : [...own, ...fallback.kept.filter((f) => !own.some((k) => normalizeText(k.label) === normalizeText(f.label)))].slice(0, 4);
   const repaired: AutoPlanDraft = { ...draft, why, kept, items: items as unknown as AutoItemDraft[] };
-  const ok = items.length >= BATCH_FLOOR && (ctx.candidatePlan || divOf() >= minDiversity(items.length));
+  const ok = items.length >= (ctx.planRules?.min ?? BATCH_FLOOR) && (ctx.candidatePlan || divOf() >= minDiversity(items.length));
   return { draft: repaired, removed, ok, violations };
 }
 
@@ -1153,7 +1303,9 @@ export type FinalParams =
   /** 25/10 §B2: = FrameSpec (lido pelo buildFrameInput do video) + as fontes de cada texto (rastreio) */
   | ({ type: 'FRAME'; sources: Record<string, CopySource> } & FrameSpec)
   /** iterate-v2 F1.3: = TemplateSpec (lido pelo buildTemplateInput do video) */
-  | TemplateSpec;
+  | TemplateSpec
+  /** templates-lista-v1 §2.4: = ListSpec (draft validado + look, colunas, fill, tempos, placement) */
+  | ListSpec;
 
 export interface FinalItem {
   index: number; type: AutoVariationType; code: string; axis: VariationAxis;
@@ -1310,6 +1462,11 @@ export function finalizePlan(draft: AutoPlanDraft, ctx: PlanCtx, media: Pick<Med
       case 'CHAT_DM':
       case 'PERSON_MOTION':
         params = templateSpecOf(p, ctx, media, ctx.frame?.brand ?? fallbackBrand(ctx));
+        break;
+      case 'LIST_OVERLAY':
+        // templates-lista-v1 §2.4: âncora → segundo, citação, ids, look, colunas, placement nos 3 formatos, fill
+        variant = p.templateId;
+        params = listSpecOf(p, ctx, ctx.frame?.brand ?? fallbackBrand(ctx));
         break;
     }
     return {

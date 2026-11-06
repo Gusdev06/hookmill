@@ -1,0 +1,71 @@
+HM
+Q
+QA Alfa
+Unlimited
+QA ALFA · META
+Campaigns
+Mock Store (USD)
+act_mock_1
+USD
+Synced with Meta 2 minutes ago
+History
+Sync now
+Only owners and admins can change Meta. You can sync and iterate.
+Filters
+Sort: Spend
+Search campaigns, ad sets, ads
+Spend
+$1,755
+Link clicks
+77
+Cost / click
+$22.79
+CTR
+2.09%
+CAMPAIGN
+Mock — Prospecting (CBO)
+On
+3 winners
+1 tiring
+Spend
+$1,320
+Clicks
+56
+CPA
+$23.57
+CTR
+2.16%
+CBO
+$50.00
+/day
+View 2 ad sets
+CAMPAIGN
+Mock — Testing (ABO)
+On
+—
+Spend
+$370
+Clicks
+14
+CPA
+$26.43
+CTR
+1.92%
+Budget per ad set (ABO)
+View 3 ad sets
+CAMPAIGN
+Mock — Launch (lifetime)
+On
+—
+Spend
+$65
+Clicks
+7
+CPA
+$9.29
+CTR
+1.77%
+CBO
+$300.00
+lifetime
+View 1 ad set

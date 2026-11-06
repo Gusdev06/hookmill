@@ -1,0 +1,314 @@
+{
+  "step": 129,
+  "url": "http://localhost:3311/templates/run/cmw1o7oht004l22hsa5r1hqbl",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nV\nVendo colchões online no Brasil, para adultos que acordam co\nMeta not connected\nWORKSPACE\nHome\nCampaigns\nEddy\nSOON\nBrain\nMAKE ADS\nTemplates\nNew concepts\nReview\nLibrary\nFree uses left\n4\nGet credits\nSettings\nJ\nJoão Teste\nOwner\nEN\nPT\nVENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\nTemplates\nPLAN\nTemplate\nAd\n3\nPlan\n2\nMake\nGenerate\n3\nShip\nDownload\nExit\nYOUR SELECTION · PLAN READY\n2 templates on \"fala-split-20s\"\n\nOne line per template you picked. Uncheck anything you don't want; the total updates.\n\nBreaking news\n1 video\nFree\nTopic\nfrom: kind\n15/18\nHeadline\nfrom: promise\n17/40\nHeadline highlight\nfrom: promise\n18/30\nSupporting text\nfrom: what\n79/80\nCall to action\nfrom: cta\n26/28\nMeme POV\n1 video\nFree\nPOV line\nfrom: pains\n39/70\nCall to action\nfrom: cta\n26/28\n\nEdits here are free. Every word comes from your ad or your Brain; we never invent numbers or testimonials.\n\nSUMMARY\nTemplate\nYour selection\nAd\nfala-split-20s\nYou get\n2 videos\nCost\nFree\nFree sample\n2 of 4 left after this\n\nYou'll watch the first 3 seconds. Unlock to download the full video.\n\nFree sample · 2 videos\nBack\nGenerate free sample",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Home",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "V\nVendo colchões online no Brasil, para adultos que acordam co\nMeta not connected",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Home",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campaigns",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nSOON",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Brain",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "New concepts",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Review",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Library",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Get credits",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Settings",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "J\nJoão Teste\nOwner",
+      "label": "Account",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Template",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates?t=breaking-news,meme-pov"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Ad",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates/selection?t=breaking-news,meme-pov"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Exit",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:news",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005u22hstru6n0zw-topic",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005u22hstru6n0zw-headline.lead",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005u22hstru6n0zw-headline.highlight",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "TEXTAREA",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005u22hstru6n0zw-dek",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005u22hstru6n0zw-cta",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "checkbox",
+      "text": "",
+      "label": null,
+      "id": "line-FRAME:meme",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005v22hs8up13on6-pov",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "txt-cmw1o7txs005v22hs8up13on6-cta",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Back",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates/selection?t=breaking-news,meme-pov"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Generate free sample",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

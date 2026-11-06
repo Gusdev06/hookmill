@@ -3,6 +3,7 @@ import {
   AbsoluteFill, Easing, Freeze, Img, OffthreadVideo, Sequence, continueRender, delayRender, interpolate, spring, useCurrentFrame, useVideoConfig,
 } from 'remotion';
 import { resolverSrc } from './componentes/midia';
+import { LogoMarca } from './componentes/LogoMarca';
 import { Seta } from './componentes/Seta';
 import { carregarFontes, carregarFontesCJK, INTER, MONTSERRAT } from './fontes';
 import { LegendaAuto } from './componentes/LegendaAuto';
@@ -163,6 +164,7 @@ const CartaoFinal: React.FC<{ p: AutoEditProps & { params: { type: 'ENDCARD' } }
       </div>
       <AbsoluteFill style={{ backgroundColor: background, opacity: interpolate(frame, [0, 8], [0.35, 0.8], clamp) }} />
       <div style={{ position: 'absolute', left: width * 0.08, width: width * 0.84, top: p.safeArea.top, height: areaH, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 36 * tam }}>
+        {p.brandLogo ? <div style={sobe(0)}><LogoMarca logo={p.brandLogo} tam={Math.round(132 * tam)} forma="quadrado" raio={32 * tam} reserva={null} style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} /></div> : null}
         <div style={sobe(2)}><TextoNaCaixa texto={headline} box={{ w: width * 0.84, h: 330 * tam }} estilo={{ fontSizePx: 104 * tam, color: texto }} css={{ letterSpacing: '-0.02em' }} /></div>
         {subline ? <div style={sobe(6)}><TextoNaCaixa texto={subline} box={{ w: width * 0.8, h: 150 * tam }} estilo={{ fontSizePx: 50 * tam, color: texto, lineHeight: 1.2 }} familia={INTER} css={{ fontWeight: 600, opacity: 0.9 }} /></div> : null}
         <div style={{ ...sobe(10), display: 'flex', alignItems: 'center', gap: 18 * tam, backgroundColor: destaque, color: contraste(destaque), borderRadius: 999, padding: `${30 * tam}px ${56 * tam}px`, fontFamily: INTER, fontWeight: 800, fontSize: 52 * tam, scale: String(interpolate(spring({ frame: frame - 10, fps, config: { damping: 12 } }), [0, 1], [0.8, 1])) }}>
@@ -215,7 +217,11 @@ const Story: React.FC<{ p: AutoEditProps & { params: { type: 'STORY' } } }> = ({
       </div>
       <div style={{ position: 'absolute', left: 30 * u, top: topo + 30 * u, display: 'flex', alignItems: 'center', gap: 20 * u, fontFamily: INTER, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
         <div style={{ width: 84 * u, height: 84 * u, borderRadius: 999, padding: 5 * u, background: 'linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)' }}>
-          <div style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: avatarCor, border: `${4 * u}px solid #fff`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 38 * u, color: contraste(avatarCor), textShadow: 'none' }}>{inicial}</div>
+          {(() => {
+            const ini = <div style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: avatarCor, border: `${4 * u}px solid #fff`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 38 * u, color: contraste(avatarCor), textShadow: 'none' }}>{inicial}</div>;
+            // kit-marca-v1 §5: logo do kit no avatar; sem logo (ou se a imagem falhar), a inicial
+            return p.brandLogo ? <LogoMarca logo={p.brandLogo} tam={74 * u} borda={`${4 * u}px solid #fff`} reserva={ini} /> : ini;
+          })()}
         </div>
         <span style={{ fontWeight: 800, fontSize: 38 * u }}>{handle}</span>
         <span style={{ fontWeight: 600, fontSize: 34 * u, opacity: 0.75 }}>{timeAgo}</span>

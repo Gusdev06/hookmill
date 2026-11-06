@@ -21,9 +21,27 @@ import { useErrorMessage } from "@/hooks/use-error-message"
 import { isMetaOff, metaReady, useMetaConnection, useRelativeTime } from "@/hooks/use-meta"
 import { AccountModeCard } from "@/components/settings/account-mode-card"
 import { UnlockAccountCard } from "@/components/settings/unlock-account-card"
+import { GrantCreditsCard } from "@/components/templates/admin"
+import { useBalanceText } from "@/components/templates/parts"
+import { useCredits } from "@/hooks/use-templates"
+import { TEMPLATES } from "@/lib/flags"
+import { CREDITS_HREF, TEMPLATES_ADMIN_HREF } from "@/lib/routes"
 import { BrandColorField } from "@/components/brand-color-field"
 import { percentOf } from "@/components/onboarding/shared"
 import { startReplay } from "@/components/tour/tour-state"
+import { useResetTips } from "@/components/tour/tip"
+import { useSession } from "@/components/providers/session-provider"
+import { SkeletonBox } from "skullet/react"
+import { Reveal } from "@/components/ui/reveal"
+import type { MembersResponse, ServiceStatus, Spend } from "@/lib/api/types"
+
+// skullet samples (04/11): the shape of each panel before its data arrives
+const SAMPLE_MEMBERS: MembersResponse = {
+  members: [0, 1].map((i) => ({ userId: `sample-${i}`, name: "Member name", email: "member@example.com", role: "MEMBER", initials: "MN" })),
+  invites: [],
+}
+const SAMPLE_SERVICES: ServiceStatus[] = (["ANTHROPIC", "WAVESPEED", "HIGGSFIELD", "APIFY", "STORAGE", "META"] as const).map((provider) => ({ provider, connected: true, keyMasked: "key…1234" }))
+const SAMPLE_SPEND: Spend = { month: "2026-11", spentUsd: 120, capUsd: 500, byProvider: [], byKind: [] }
 
 /** mockup .set-row */
 function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
@@ -48,6 +66,9 @@ export default function SettingsPage() {
   const t = useTranslations()
   const errorMessage = useErrorMessage()
   const format = useFormatter()
+  const { session } = useSession()
+  const role = session.workspace.role
+  const resetTips = useResetTips()
   const [ws, members, services, spend] = useQueries({
     queries: [
       { queryKey: ["workspace"], queryFn: api.workspace.get },
@@ -110,27 +131,32 @@ export default function SettingsPage() {
               {t("settings.editSetup")}
             </Link>
           </PanelHead>
-          {ws.data ? (
+          <Reveal loading={!ws.data} id="settings.setup" label={t("skeleton.settings")}>
             <div>
               <Row label={t("settings.setupProgress")}>
-                <span className="font-mono num">{t("onboarding.setupPct", { pct: percentOf(ws.data) })}</span>
+                <span className="font-mono num">{t("onboarding.setupPct", { pct: ws.data ? percentOf(ws.data) : 100 })}</span>
               </Row>
               <Row label={t("settings.tour")}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    startReplay()
-                    router.push("/brain")
-                  }}
-                >
-                  {t("tour.replay")}
-                </Button>
+                <span className="flex flex-wrap gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => startReplay()}>
+                    {t("tour.replay")}
+                  </Button>
+                  {role === "CLIENT" ? null : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        resetTips()
+                        toast(t("tour.tipsResetDone"))
+                      }}
+                    >
+                      {t("tour.tipsReset")}
+                    </Button>
+                  )}
+                </span>
               </Row>
             </div>
-          ) : (
-            <PanelSkeleton rows={2} />
-          )}
+          </Reveal>
         </Panel>
 
         {metaOff ? null : (
@@ -141,9 +167,7 @@ export default function SettingsPage() {
                 {t("settings.manage")}
               </Link>
             </PanelHead>
-            {conn.isPending ? (
-              <PanelSkeleton rows={1} />
-            ) : (
+            <Reveal loading={conn.isPending} id="settings.meta" label={t("skeleton.connections")}>
               <Row label={t("settings.service.META")}>
                 <StatusChip status={metaIsReady ? "approved" : metaStatus === "TOKEN_INVALID" ? "failed" : "draft"}>
                   {metaIsReady
@@ -153,7 +177,7 @@ export default function SettingsPage() {
                       : t("settings.notConnected")}
                 </StatusChip>
               </Row>
-            )}
+            </Reveal>
           </Panel>
         )}
 
@@ -162,34 +186,39 @@ export default function SettingsPage() {
         {/* amostra-gratis-v1 §5: renders only for an INTERNAL OWNER */}
         <UnlockAccountCard />
 
+        {/* templates-creditos-v1: balance + history link, and the manual credit for the team */}
+        {TEMPLATES ? <CreditsPanel /> : null}
+        {TEMPLATES ? <GrantCreditsCard /> : null}
+
         <Panel>
           <PanelHead>
             <h2>{t("settings.members")}</h2>
             {ws.data ? <InviteDialog workspace={ws.data.name} /> : null}
           </PanelHead>
-          {members.data ? (
+          <Reveal data={members.data} sample={SAMPLE_MEMBERS} id="settings.members" label={t("skeleton.settings")}>
+            {(data) => (
             <div>
-              {members.data.members.map((m) => (
+              {data.members.map((m) => (
                 <Row key={m.userId} label={<Who initials={m.initials} name={m.name} />}>
                   {t(`settings.roles.${m.role}`)}
                 </Row>
               ))}
-              {members.data.invites.map((i) => (
+              {data.invites.map((i) => (
                 <Row key={i.id} label={<span className="text-fg-2">{i.email}</span>}>
                   {t("settings.pendingInvite", { date: format.dateTime(new Date(i.expiresAt), { month: "short", day: "numeric" }) })}
                 </Row>
               ))}
             </div>
-          ) : (
-            <PanelSkeleton rows={2} />
-          )}
+            )}
+          </Reveal>
         </Panel>
 
         <Panel>
           <h2>{t("settings.services")}</h2>
-          {services.data ? (
+          <Reveal data={services.data} sample={SAMPLE_SERVICES} id="settings.services" label={t("skeleton.settings")}>
+            {(data) => (
             <div>
-              {services.data.map((s) => (
+              {data.map((s) => (
                 <Row key={s.provider} label={t(`settings.service.${s.provider}`)}>
                   <StatusChip status={s.connected ? "approved" : "draft"}>
                     {s.connected ? t("settings.connected") : t("settings.notConnected")}
@@ -198,36 +227,36 @@ export default function SettingsPage() {
                 </Row>
               ))}
             </div>
-          ) : (
-            <PanelSkeleton rows={2} />
-          )}
+            )}
+          </Reveal>
         </Panel>
 
         <Panel>
           <h2>{t("settings.spend")}</h2>
-          {spend.data ? (
+          <Reveal data={spend.data} sample={SAMPLE_SPEND} id="settings.spend" label={t("skeleton.settings")}>
+            {(data) => (
             <div>
               <Row label={t("settings.thisMonth")}>
-                <span className="font-mono num">{usd(spend.data.spentUsd)}</span>
+                <span className="font-mono num">{usd(data.spentUsd)}</span>
               </Row>
               <Row label={t("settings.monthlyCap")}>
-                <span className="font-mono num">{spend.data.capUsd === null ? t("settings.noCap") : usd(spend.data.capUsd)}</span>
+                <SpendCap capUsd={data.capUsd} />
               </Row>
             </div>
-          ) : (
-            <PanelSkeleton rows={2} />
-          )}
+            )}
+          </Reveal>
         </Panel>
       </div>
     </Page>
   )
 }
 
+/** The name / brand color forms autosave from the workspace, so they aren't rendered from a sample: skullet boxes at their height. */
 function PanelSkeleton({ rows }: { rows: number }) {
   return (
     <div className="grid gap-3" aria-hidden="true">
       {Array.from({ length: rows }, (_, i) => (
-        <span key={i} className="sk h-[34px]" />
+        <SkeletonBox key={i} height={34} width="100%" />
       ))}
     </div>
   )
@@ -267,6 +296,55 @@ function BrandColor({ ws }: { ws: Workspace }) {
   )
 }
 
+/** 31/10 (Gusta): the "Goals" step is hidden in the wizard, so the monthly cap is edited here (PATCH /workspace). Empty = no cap. */
+function SpendCap({ capUsd }: { capUsd: number | null }) {
+  const t = useTranslations("settings")
+  const errorMessage = useErrorMessage()
+  const qc = useQueryClient()
+  const [value, setValue] = useState(capUsd === null ? "" : String(capUsd))
+  const parsed = value.trim() === "" ? null : Number(value.replace(",", "."))
+  const valid = parsed === null || (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1_000_000)
+  const save = useMutation({
+    mutationFn: (v: number | null) => api.workspace.update({ monthlySpendCapUsd: v }),
+    onSuccess: (w) => {
+      qc.setQueryData(["workspace"], w)
+      qc.invalidateQueries({ queryKey: ["workspace", "spend"] })
+      toast(
+        <>
+          <Icon name="check" />
+          {t("capSaved")}
+        </>
+      )
+    },
+    onError: (e) => {
+      setValue(capUsd === null ? "" : String(capUsd))
+      toast(errorMessage(e))
+    },
+  })
+  const commit = () => {
+    if (!valid || parsed === capUsd) return
+    save.mutate(parsed === null ? null : Math.round(parsed * 100) / 100)
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="text-fg-3">$</span>
+      <Input
+        id="ws-spend-cap"
+        inputMode="decimal"
+        className="w-28 font-mono num"
+        value={value}
+        placeholder={t("noCap")}
+        aria-label={t("monthlyCap")}
+        aria-invalid={!valid}
+        disabled={save.isPending}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === "Enter" && commit()}
+      />
+    </span>
+  )
+}
+
 function WorkspaceName({ ws }: { ws: Workspace }) {
   const t = useTranslations("settings")
   const errorMessage = useErrorMessage()
@@ -300,5 +378,39 @@ function WorkspaceName({ ws }: { ws: Workspace }) {
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       />
     </div>
+  )
+}
+
+/** Settings › Credits (templates-creditos-v1): the balance of the paying account and the way to the history / Get credits. */
+function CreditsPanel() {
+  const t = useTranslations("credits.settings")
+  const tl = useTranslations("skeleton")
+  const q = useCredits()
+  const text = useBalanceText()
+  if (q.isError) return null
+  return (
+    <Panel>
+      <PanelHead>
+        <h2>{t("title")}</h2>
+        <Link href={CREDITS_HREF} className={buttonVariants({ size: "sm" })}>
+          {t("open")}
+        </Link>
+      </PanelHead>
+      <div>
+        <Row label={t("balance")}>
+          <Reveal loading={!q.data} id="settings.credits" label={tl("credits")}>
+            <span className="font-mono num">{q.data ? text(q.data) : "42 credits"}</span>
+          </Reveal>
+        </Row>
+        {q.data?.held ? <Row label={t("held")}><span className="font-mono num">{q.data.held}</span></Row> : null}
+        {q.data?.unlimited ? (
+          <Row label={t("catalog")}>
+            <Link href={TEMPLATES_ADMIN_HREF} className="underline underline-offset-2">
+              {t("catalogLink")}
+            </Link>
+          </Row>
+        ) : null}
+      </div>
+    </Panel>
   )
 }

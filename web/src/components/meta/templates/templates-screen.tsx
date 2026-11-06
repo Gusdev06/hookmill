@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import type { MetaPublishTemplate } from "@/lib/api/types"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
 import { EmptyState, Page } from "@/components/page"
 import { useSession } from "@/components/providers/session-provider"
@@ -16,13 +16,13 @@ import { useErrorMessage } from "@/hooks/use-error-message"
 import { useMetaTemplates, useTemplateSummary } from "@/hooks/use-meta-templates"
 import { effectiveRole } from "@/lib/dev-role"
 import { cn } from "@/lib/utils"
-import { ImportPicker } from "./import-picker"
-import { TemplateDialog, type TemplateSource } from "./template-dialog"
+import { TEMPLATES_LIST } from "./template-editor"
 
 /**
  * Settings › Meta › Publish templates (/settings/connections/templates; meta-templates-v1, mockup approved 29/10):
  * list with the default first, Default / Imported pills and one summary line; New template and Import from a campaign.
- * Without a usable Meta connection: the lock card. CLIENT only reads.
+ * Without a usable Meta connection: the lock card. CLIENT only reads. Opening a template goes to the full-page editor
+ * (/settings/connections/templates/:id; spec template-campanha §3 F3); "New" and "Import" open it as `new`.
  */
 export function TemplatesScreen() {
   const t = useTranslations("metaTemplates")
@@ -35,25 +35,21 @@ export function TemplatesScreen() {
   const list = useMetaTemplates(gate.ready)
   const conn = gate.conn.data ?? null
   const summary = useTemplateSummary(conn?.adAccount?.currency)
-  const [source, setSource] = useState<TemplateSource | null>(null)
-  const [importing, setImporting] = useState(false)
-  // ?edit=<id> (from Send → "Edit template"): opens that template once the list arrives
+  const router = useRouter()
+  // ?edit=<id> (old links from Send → "Edit template"): the editor is a page now
   const editId = useSearchParams().get("edit")
-  const [opened, setOpened] = useState<string | null>(null)
-  if (editId && opened !== editId && list.data) {
-    const tpl = list.data.find((x) => x.id === editId)
-    setOpened(editId)
-    if (tpl) setSource({ kind: "edit", template: tpl })
-  }
+  useEffect(() => {
+    if (editId) router.replace(`${TEMPLATES_LIST}/${encodeURIComponent(editId)}`)
+  }, [editId, router])
 
   const account = conn?.adAccount ? `${conn.adAccount.name} (${conn.adAccount.id.replace(/^(act_)?.*(\d{4})$/, "act_••••$2")})` : null
   const actions = readOnly || !gate.ready ? null : (
     <div className="flex flex-wrap gap-2.5">
-      <Button onClick={() => setImporting(true)}>{t("importCta")}</Button>
-      <Button variant="brand" onClick={() => setSource({ kind: "new" })}>
+      <Link href={`${TEMPLATES_LIST}/new?import=1`} className={buttonVariants()}>{t("importCta")}</Link>
+      <Link href={`${TEMPLATES_LIST}/new`} className={buttonVariants({ variant: "brand" })}>
         <Icon name="plus" />
         {t("newCta")}
-      </Button>
+      </Link>
     </div>
   )
 
@@ -102,7 +98,7 @@ export function TemplatesScreen() {
     body = (
       <ul className="m-0 grid list-none gap-2.5 p-0">
         {list.data.map((tpl) => (
-          <Row key={tpl.id} tpl={tpl} line={summary.line(tpl)} readOnly={readOnly} onOpen={() => setSource({ kind: "edit", template: tpl })} />
+          <Row key={tpl.id} tpl={tpl} line={summary.line(tpl)} readOnly={readOnly} />
         ))}
       </ul>
     )
@@ -140,25 +136,11 @@ export function TemplatesScreen() {
       <p className="m-0 max-w-[64ch] text-fg-2">{t("lede")}</p>
       <div className="grid max-w-[1120px] grid-cols-[minmax(0,1fr)] gap-2.5">{body}</div>
 
-      <TemplateDialog source={source} onClose={() => setSource(null)} connection={conn} readOnly={readOnly} onImport={() => setImporting(true)} />
-      <ImportPicker
-        open={importing}
-        onClose={() => setImporting(false)}
-        onPicked={(p) => {
-          setImporting(false)
-          setSource({
-            kind: "import",
-            body: p.result.template,
-            importedFrom: { level: p.level, id: p.id, name: p.result.template.importedFrom?.name && p.result.template.importedFrom.name !== p.id ? p.result.template.importedFrom.name : p.name },
-            unsupported: p.result.unsupported,
-          })
-        }}
-      />
     </Page>
   )
 }
 
-function Row({ tpl, line, readOnly, onOpen }: { tpl: MetaPublishTemplate; line: string; readOnly: boolean; onOpen: () => void }) {
+function Row({ tpl, line, readOnly }: { tpl: MetaPublishTemplate; line: string; readOnly: boolean }) {
   const t = useTranslations("metaTemplates")
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1.5 rounded-lg border border-line bg-card p-3.5">
@@ -167,9 +149,9 @@ function Row({ tpl, line, readOnly, onOpen }: { tpl: MetaPublishTemplate; line: 
         {tpl.isDefault ? <Pill tone="def">{t("pillDefault")}</Pill> : null}
         {tpl.source === "IMPORTED" ? <Pill tone="imp">{t("pillImported")}</Pill> : null}
       </div>
-      <Button size="sm" onClick={onOpen} aria-label={`${readOnly ? t("view") : t("edit")} ${tpl.name}`}>
+      <Link href={`${TEMPLATES_LIST}/${encodeURIComponent(tpl.id)}`} className={buttonVariants({ size: "sm" })} aria-label={`${readOnly ? t("view") : t("edit")} ${tpl.name}`}>
         {readOnly ? t("view") : t("edit")}
-      </Button>
+      </Link>
       <span className="col-span-2 text-[13px] text-fg-2 tablet:col-span-1">{line}</span>
     </li>
   )

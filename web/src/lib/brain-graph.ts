@@ -7,10 +7,17 @@ import type { BrainCategory, BrainEdge, BrainEdgeKind, BrainGraph, BrainNode, Br
  */
 export const BRAIN_KINDS = [
   "workspace", "business", "offer", "audience", "proof", "instructions", "goal", "hook", "script", "creative", "meta_ad",
+  // lacunas-home-eddy-v1 §3.2 (31/10): Iterate batch, drawn with the creatives
+  "batch",
+  // brain-preenchido-v1 (04/11): brand kit, logo colors, offer fields, pains/proofs as items, pages read
+  "brand_asset", "brand_color", "offer_field", "pain", "proof_item", "source",
 ] as const satisfies readonly BrainNodeKind[]
 export const CATEGORY_OF = {
   workspace: "center", business: "business", proof: "business", instructions: "business",
   offer: "offers", audience: "audience", goal: "goals", hook: "hooks", script: "scripts", creative: "creatives", meta_ad: "meta_ads",
+  batch: "creatives",
+  brand_asset: "business", brand_color: "business", proof_item: "business", source: "business",
+  offer_field: "offers", pain: "audience",
 } as const satisfies Record<BrainNodeKind, BrainCategory>
 
 export type Cat = Exclude<BrainCategory, "center">
@@ -74,8 +81,12 @@ export function creativeNames(n: Pick<BrainNode, "label" | "meta">): { label: st
 /** Display label of any node (drawer, neighbors): the creative's own name first. */
 export const nodeLabel = (n: Pick<BrainNode, "label" | "meta">) => creativeNames(n).label
 
-/** What search looks at: label + the other creative name + summary + hook angle. */
-export const searchText = (n: GNode) => `${n.label} ${n.aka} ${n.summary ?? ""} ${n.meta.kind === "hook" ? (n.meta.angle ?? "") : ""}`.toLowerCase()
+/** What search looks at: label + the other creative name + summary + hook angle + a source's URL + a color's hex. */
+export const searchText = (n: GNode) => {
+  const m = n.meta
+  const extra = m.kind === "hook" ? (m.angle ?? "") : m.kind === "source" ? m.url : m.kind === "brand_color" ? m.hex : ""
+  return `${n.label} ${n.aka} ${n.summary ?? ""} ${extra}`.toLowerCase()
+}
 
 export const endId = (v: string | GNode) => (typeof v === "string" ? v : v.id)
 

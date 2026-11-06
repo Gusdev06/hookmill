@@ -353,18 +353,20 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     expect(vids.data.some((i: any) => i.variation?.code === 'CUT-20S')).toBe(true);
   });
 
-  it('travas: peça AUTO recusa edit, render, editor e generate com variation_locked', async () => {
+  it('travas: peça AUTO recusa edit, render e generate com variation_locked; editor de tipo fora do F-U1 = 422', async () => {
     const ps = await pieces();
     const id = ps.find((p) => p.code === 'LAYOUT-STORY')!.creativeId!;
     for (const [m, path, body] of [
       ['PATCH', `/creatives/${id}/edit`, { headline: 'x' }],
       ['POST', `/creatives/${id}/render`, {}],
-      ['GET', `/creatives/${id}/editor`, undefined],
       ['POST', `/creatives/${id}/generate`, { engine: 'SCENES', engineModel: 'kling-3.0', format: 'VERTICAL_9_16', expectedCostUsd: 1 }],
     ] as const) {
       const r = await call(m, path, body);
       expect([path, r.error]).toEqual([path, expect.objectContaining({ code: 'INVALID_STATE', details: expect.objectContaining({ reason: 'variation_locked' }) })]);
     }
+    // editor-universal-v1 §7.3 (F-U1): o editor deixou de usar o variation_locked; tipo fora do F-U1 = 422 auto_type_not_editable
+    const ed = await call('GET', `/creatives/${id}/editor`);
+    expect(ed.error).toMatchObject({ code: 'EDIT_NOT_SUPPORTED', details: { reason: 'auto_type_not_editable' } });
   });
 
   it('Home: lote AUTO conta 1 vez (PIECES_READY, readyCount) e as peças não entram no needs_you', async () => {

@@ -11,6 +11,10 @@ import { PrismaService } from '../prisma/prisma.service';
  * com confirm, api.md §9). Cada linha: de onde pode sair e pra onde pode ir.
  */
 export const TRANSITIONS = {
+  AI_PLAN_DONE: { from: ['SCRIPTS_WRITING'], to: ['FACES_GENERATING'] },
+  AI_FACES_DONE: { from: ['FACES_GENERATING'], to: ['SCENES_GENERATING'] },
+  AI_PRODUCTION_FAILED: { from: ['SCRIPTS_WRITING', 'SCRIPTS_FAILED', 'FACES_GENERATING', 'FACES_FAILED', 'SCENES_GENERATING', 'SCENES_FAILED'], to: ['RENDER_FAILED'] },
+  AI_PRODUCTION_RETRY: { from: ['RENDER_FAILED', 'SCENES_FAILED'], to: ['SCRIPTS_WRITING'] },
   /** job de roteiros terminou: SUCCEEDED/PARTIAL (há roteiro READY) ou FAILED sem nenhum roteiro. Também o boot (INTERRUPTED). */
   SCRIPTS_JOB_DONE: { from: ['SCRIPTS_WRITING'], to: ['SCRIPTS_READY', 'SCRIPTS_FAILED'] },
   /** gerar/regerar roteiros */

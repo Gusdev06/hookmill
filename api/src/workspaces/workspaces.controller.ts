@@ -2,7 +2,10 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } fr
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext, ClientAllowed, Roles } from '../common/auth/auth-context';
 import { Paginated } from '../common/http/envelope.interceptor';
-import { CreateClientDto, CreateInviteDto, SpendQueryDto, UpdateMemberDto, UpdateWorkspaceDto } from './dto/workspaces.dto';
+import {
+  CreateClientDto, CreateInviteDto, ProductEventsDto, SeeTipDto, SpendQueryDto, TourQueryDto, UpdateMemberDto, UpdateWorkspaceDto,
+} from './dto/workspaces.dto';
+import { ProductEventsService } from './eventos-produto.service';
 import { WorkspacesService } from './workspaces.service';
 
 @ApiTags('workspace')
@@ -56,10 +59,22 @@ export class WorkspacesController {
     return this.ws.services();
   }
 
-  /** onboarding-v2 §3.4: estado do tour do usuário NESTE workspace (todos, inclusive CLIENT). */
+  /** onboarding-v2 §3.4 + tour-v2 §1: estado do tour do usuário NESTE workspace (todos, inclusive CLIENT). `?v=2` = paradas v2. */
   @Get('tour')
-  tour(@Auth() auth: AuthContext) {
-    return this.ws.tour(auth);
+  tour(@Auth() auth: AuthContext, @Query() q: TourQueryDto) {
+    return this.ws.tour(auth, q.v);
+  }
+
+  /** tour-v2 §2: marca uma dica como vista (idempotente). */
+  @ClientAllowed() @HttpCode(200) @Post('tour/tips')
+  seeTip(@Auth() auth: AuthContext, @Body() dto: SeeTipDto) {
+    return this.ws.seeTip(auth, dto.tip);
+  }
+
+  /** tour-v2 §2: "Show tips again". */
+  @ClientAllowed() @HttpCode(200) @Delete('tour/tips')
+  resetTips(@Auth() auth: AuthContext) {
+    return this.ws.resetTips(auth);
   }
 
   @ClientAllowed() @HttpCode(200) @Post('tour/complete')
@@ -89,5 +104,18 @@ export class ClientsController {
   @Roles('OWNER', 'ADMIN') @Post()
   create(@Auth() auth: AuthContext, @Body() dto: CreateClientDto) {
     return this.ws.createClient(auth, dto);
+  }
+}
+
+/** tour-v2 §3: eventos de produto do tour e das dicas, em lote (fogo-e-esquece no web). */
+@ApiTags('events')
+@ApiBearerAuth()
+@Controller('events')
+export class ProductEventsController {
+  constructor(private readonly events: ProductEventsService) {}
+
+  @ClientAllowed() @HttpCode(204) @Post()
+  async record(@Auth() auth: AuthContext, @Body() dto: ProductEventsDto): Promise<void> {
+    await this.events.record(auth, dto.events);
   }
 }

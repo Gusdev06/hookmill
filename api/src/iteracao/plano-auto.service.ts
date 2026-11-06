@@ -1,7 +1,8 @@
+import { BRAND_LOGO_INCLUDE } from '../brand-kit/logo';
 import { DEFAULT_ANSWERS, selectPieces } from './selecao';
 import type { IterateAnswers } from '@maquina/contratos';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { AnalysisStage, AutoInsight, AutoVariationType, FrameTemplateId } from '@maquina/contratos';
+import type { AnalysisStage, AutoInsight, AutoVariationType, FrameTemplateId, ListTemplateId } from '@maquina/contratos';
 import type { Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import { editMapOf, measurementsOf, sectionsOf, transcriptOf } from '../campeoes/champion-views';
@@ -18,8 +19,12 @@ import { flagsOf, planCtxOf, withCaptionGuard } from './contexto';
 import { targetCpaOf, targetCpaText } from '../workspaces/cliente';
 import { SAMPLE_BLOCKED_TYPES, capSampleSelection, isSampleSettings } from '../amostra/acesso';
 import { MEDIA_RULES, PAGE_CAPTURE, type MediaRulesPort, type PageCapturePort } from './portas';
+import { templateSettingsOf } from '../creditos/creditos.service';
+import { batchFitOf, captionBlockedForTemplate, keysOf, pieceKeyOf, restrictToTemplate, templateFitOf } from './templates-lote';
+import type { TemplateFit } from '@maquina/contratos';
+import { WANT_OF } from './selecao';
 import {
-  type AllowedType, type FinalItem, type PlanCtx, type Violation, allowedFor, allowedFrames, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
+  type AllowedType, type PlanCtx, type Violation, allowedFor, pickedMissing, listCtxOf, listTemplatesOf, endcardVariants, templateOnlyTypesOf, allowedFrames, allowedFrameIds, buildInsight, fallbackWhy, finalizePlan, partialInsight, repairPlan, rulesFor, swapsFor, validatePlan, violationText,
 } from './regras';
 
 /** Etapas do job AUTO_PLAN (JOB_CHECKLIST) e progresso do job. */
@@ -30,35 +35,18 @@ const PAGE_TEXT_MAX = 4000;
 export const FROM_VIDEO = 'From the video';
 
 const PLAN_BATCH_INCLUDE = {
-  offer: true, workspace: true, createdBy: { select: { uiLocale: true } },
+  offer: true, workspace: { include: { brandAssets: BRAND_LOGO_INCLUDE } }, createdBy: { select: { uiLocale: true } },
   champion: { include: { teardown: true, videoFile: { select: { width: true, height: true } } } },
 } satisfies Prisma.VariationBatchInclude;
 type PlanBatch = Prisma.VariationBatchGetPayload<{ include: typeof PLAN_BATCH_INCLUDE }>;
 
-/** 29/10 (legenda-protegida-v1 §8): formato bloqueado pela legenda que a pessoa pode pôr de volta ("Gerar mesmo assim"). */
-export interface CaptionForceTarget { type: AutoVariationType; template: FrameTemplateId | null }
-const sameTarget = (a: CaptionForceTarget, b: CaptionForceTarget) => a.type === b.type && (a.template ?? null) === (b.template ?? null);
-const targetOfFinal = (it: Pick<FinalItem, 'type' | 'params'>): CaptionForceTarget =>
-  ({ type: it.type, template: it.type === 'FRAME' ? ((it.params as { template?: FrameTemplateId }).template ?? null) : null });
-
-/**
- * §8: peças que o Claude planejou e a guarda da legenda tirou (validação, reparo ou checagem final), já finalizadas. Ficam
- * em `variation_batches.settings.captionCandidates` (JSON, sem migração): o "Gerar mesmo assim" reusa sem chamar o Claude.
- */
-export function captionCandidatesOf(settings: unknown): FinalItem[] {
-  const c = (settings as { captionCandidates?: unknown } | null)?.captionCandidates;
-  return Array.isArray(c) ? (c as FinalItem[]).filter((x) => !!x && typeof x === 'object' && !!x.type && !!x.params) : [];
-}
-export function captionCandidateFor(settings: unknown, t: CaptionForceTarget): FinalItem | null {
-  return captionCandidatesOf(settings).find((c) => sameTarget(targetOfFinal(c), t)) ?? null;
-}
-
+const listTemplateOf = (params: unknown): ListTemplateId | null => ((params as { templateId?: ListTemplateId } | null)?.templateId ?? null);
 /** `insight.headlineBlocked` (TRANSIÇÃO, fora do AutoInsight até o arquiteto tipar): motivo e modo do HEADLINE fora do plano. */
 export function headlineBlockedOf(ctx: { headline?: { blockedReason: string | null; mode: string } | null }): { reason: string; mode: string } | null {
   return ctx.headline?.blockedReason ? { reason: ctx.headline.blockedReason, mode: ctx.headline.mode } : null;
 }
 
-type CaptionBlockedEntry = { type: AutoVariationType; template: FrameTemplateId | null };
+type CaptionBlockedEntry = { type: AutoVariationType; template: FrameTemplateId | null; listTemplate?: ListTemplateId };
 const frameTemplateOfDraft = (it: unknown): FrameTemplateId | null => ((it as { params?: { template?: FrameTemplateId } } | null)?.params?.template ?? null);
 
 /**
@@ -67,10 +55,10 @@ const frameTemplateOfDraft = (it: unknown): FrameTemplateId | null => ((it as { 
  */
 export function captionBlockedOf(ctx: PlanCtx, allowed: AllowedType[], removed: CaptionBlockedEntry[] = []): { captionBlocked?: AutoInsight['captionBlocked'] } {
   const out: CaptionBlockedEntry[] = [
-    ...allowed.filter((a) => a.blockedReason === 'burned_captions').map((a) => ({ type: a.type, template: null })),
+    ...allowed.filter((a) => a.blockedReason === 'burned_captions').map((a): CaptionBlockedEntry => ({ type: a.type, template: null, ...(a.templateId && { listTemplate: a.templateId }) })),
     ...allowedFrames(ctx).filter((f) => f.blockedReason === 'burned_captions').map((f) => ({ type: 'FRAME' as const, template: f.template })),
   ];
-  for (const r of removed) if (!out.some((o) => o.type === r.type && o.template === r.template)) out.push(r);
+  for (const r of removed) if (!out.some((o) => o.type === r.type && o.template === r.template && o.listTemplate === r.listTemplate)) out.push(r);
   return out.length ? { captionBlocked: out.map((o) => ({ ...o, reason: 'burned_captions' as const })) } : {};
 }
 
@@ -136,25 +124,54 @@ export class PlanoAutoService {
       // amostra-gratis-v1 §2: só tipos grátis (sem STATIC; IA nem entra no allowedFor) e os templates grátis CHAT_DM e
       // PERSON_MOTION entram mesmo com ITERATE_TEMPLATES desligado (a flag é do lote normal; a amostra decide por ela)
       const sample = isSampleSettings(b.settings);
-      if (sample && ctx.templates) ctx.templates = { ...ctx.templates, enabled: true };
-      const allowed = sample ? allowedFor(ctx).filter((a) => !SAMPLE_BLOCKED_TYPES.includes(a.type)) : allowedFor(ctx);
+      // templates-creditos-v1 §2: lote de template = só as chaves do template (o `use` já conferiu a disponibilidade)
+      const tpl = templateSettingsOf(b.settings);
+      if ((sample || tpl?.keys.some((k) => k === 'CHAT_DM' || k === 'PERSON_MOTION')) && ctx.templates) ctx.templates = { ...ctx.templates, enabled: true };
+      const base = sample ? allowedFor(ctx).filter((a) => !SAMPLE_BLOCKED_TYPES.includes(a.type)) : allowedFor(ctx);
+      const restricted = tpl ? restrictToTemplate(ctx, base, tpl) : null;
+      const allowed = restricted ? restricted.allowed : base;
+      // templates-multi-v1 §4.2-4.3: seleção = fit de cada marcado (as regras do template único) e o do lote pela regra do
+      // pack (ok se algum cabe; nenhum = o do 1º marcado). `picked` = as chaves dos marcados que cabem.
+      const sel = tpl?.selection ? await this.selectionFits(ctx, tpl) : null;
+      const fit = !tpl ? null : sel && !allowed.some((a) => a.max > 0) ? sel.first : batchFitOf(allowed, tpl.pack || !!tpl.selection);
+      const sumMax = Math.max(1, allowed.reduce((n, a) => n + a.max, 0));
+      // template único: 1..Σmax peças (o piso 4 e o teto 12 são do lote auto); o pack segue as regras do lote auto. Seleção: o
+      // piso da VALIDAÇÃO é 1 (marcado que o plano não fez vira `not_planned`, não reprova); o pedido à ia leva o nº de marcados.
+      if (tpl && !tpl.pack) ctx.planRules = { min: 1, max: sumMax };
+      // troca-texto-queimado-v1 §15.3: lote de template com a guarda ligada; a lista só traz as chaves dele
+      const blockedOf = (x: { captionBlocked?: AutoInsight['captionBlocked'] }) => {
+        if (!tpl) return x;
+        const captionBlocked = captionBlockedForTemplate(x.captionBlocked, tpl.keys);
+        return captionBlocked.length ? { captionBlocked } : {};
+      };
       const swaps = swapsFor(allowed);
       const flags = flagsOf(ctx);
       // régua parcial (blocos sem função) já na tela durante o plano
-      await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...captionBlockedOf(ctx, allowed), ...(cleanVersion && { cleanVersion }) } as unknown as Prisma.InputJsonValue } });
+      await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed)), ...(cleanVersion && { cleanVersion }) } as unknown as Prisma.InputJsonValue } });
+      // template que não cabe (legenda queimada ou motivo duro): plano pronto SEM peça e sem chamar o Claude; o fit diz por quê
+      if (tpl && !allowed.some((a) => a.max > 0)) {
+        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed)), ...(cleanVersion && { cleanVersion }) }, fit!, sel?.fits);
+        return;
+      }
 
       // 2. planning: Claude → validação → 1 reparo pela ia → reparo determinístico
       stage = 'planning';
       await this.jobs.stage(jobId, 'planning', AUTO_PLAN_STAGES.planning);
       const sections = sectionsOf(teardown.sections)!;
-      const input = await this.planInput(b, ctx, allowed, jobId, { captured: !!page.fileId, text: page.text });
+      const input0 = await this.planInput(b, ctx, allowed, jobId, { captured: !!page.fileId, text: page.text });
+      // template único: 1..Σmax peças, sem regra de diversidade; molduras só as do template
+      const input: AutoPlanInput = !tpl ? input0 : {
+        ...input0, allowedFrames: restricted!.frames,
+        ...(!tpl.pack && !sel && { rules: { min: 1, max: sumMax, minDiversityPct: 0 } }),
+        // templates-multi-v1 §4.4-4.5: min = nº de marcados que cabem (≤ Σmax), 1 peça de cada
+        ...(sel && { rules: { min: Math.max(1, Math.min(sel.picked.length, sumMax)), max: sumMax, minDiversityPct: 0 }, picked: sel.picked }),
+      };
       const first = await this.plan(input);
       let draft: AutoPlanDraft = first;
-      let violations: Violation[] = validatePlan(first, ctx, allowed);
+      // `picked_missing` só pede o reparo à ia; depois dele não reprova (fica fora do 2º validatePlan)
+      let violations: Violation[] = [...validatePlan(first, ctx, allowed), ...(sel ? pickedMissing(first, sel.picked) : [])];
       let removedByCaption: CaptionBlockedEntry[] = [];
       let rDraftItems: unknown[] = [];
-      // §8 (29/10): o que a guarda tirou, finalizado, pro "Gerar mesmo assim" sem nova chamada
-      const captionCandidates: FinalItem[] = [];
       if (violations.length) {
         // 1 nova chamada com as violações (a ia corrige); se ela mesma falhar, o reparo determinístico parte da 1ª
         const second = await this.plan({ ...input, violations: violations.map((v) => violationText(v, first.items ?? [])) }).catch((e) => {
@@ -175,50 +192,55 @@ export class PlanoAutoService {
         };
         rDraftItems = (draft.items ?? []) as unknown[];
         const r = repairPlan(draft, ctx, allowed, fb);
-        if (!r.ok && !(ctx.caption?.bands.length && r.draft.items.length > 0)) {
+        // lote de template em que a legenda tirou tudo: plano vazio com a faixa `soft` (abaixo), não falha
+        const soLegenda = !!tpl && r.removed.some((x) => x.rules.includes('burned_captions'));
+        if (!r.ok && !(ctx.caption?.bands.length && (r.draft.items.length > 0 || soLegenda))) {
           const detail = violations.map((v) => violationText(v, draft.items ?? [])).join('; ').slice(0, 2000);
           throw new AutoPlanError('PLAN_INVALID', 'planning', detail);
         }
         this.log.log(`lote ${b.id}: reparo determinístico tirou ${r.removed.length} peça(s): ${r.removed.map((x) => `${x.type}(${x.rules.join(',')})`).join(' ')}`);
         draft = r.draft;
-        removedByCaption = r.removed.filter((x) => x.rules.includes('burned_captions')).map((x) => ({ type: x.type, template: frameTemplateOfDraft(rDraftItems[x.index]) }));
-        for (const x of r.removed) {
-          // só a peça que caiu APENAS pela legenda serve de candidata (outra violação = defeito próprio)
-          if (x.rules.length !== 1 || x.rules[0] !== 'burned_captions' || !rDraftItems[x.index]) continue;
-          try {
-            const [fin] = finalizePlan({ ...draft, items: [rDraftItems[x.index]] as AutoPlanDraft['items'] }, ctx, this.media);
-            if (fin) captionCandidates.push(fin);
-          } catch (e) {
-            this.log.warn(`lote ${b.id}: candidata ${x.type} da legenda não finalizou (${(e as Error).message})`);
-          }
-        }
+        removedByCaption = r.removed.filter((x) => x.rules.includes('burned_captions')).map((x) => ({
+          type: x.type, template: x.type === 'FRAME' ? frameTemplateOfDraft(rDraftItems[x.index]) : null,
+          ...(x.type === 'LIST_OVERLAY' && { listTemplate: listTemplateOf((rDraftItems[x.index] as { params?: unknown } | undefined)?.params) ?? undefined }),
+        }));
       }
-      const finalized = finalizePlan(draft, ctx, this.media);
+      const tplKeys = tpl ? keysOf(tpl.keys) : null;
+      // lote de template: peça de outra chave (moldura fora do template) sai antes da checagem
+      const finalized = finalizePlan(draft, ctx, this.media).filter((it) => !tpl || tpl.keys.includes(pieceKeyOf(it.type, it.params)) || (it.type !== 'FRAME' && it.type !== 'LIST_OVERLAY' && tplKeys!.types.has(it.type)));
       // Check the final payload too: snapped cuts and finalized layout are what the render queue will receive.
       const items = finalized.filter((it) => {
         if (!ctx.caption?.check({ type: it.type, params: it.params as unknown as Record<string, unknown> })) return true;
-        removedByCaption.push({ type: it.type, template: it.type === 'FRAME' ? (it.params as { template: FrameTemplateId }).template : null });
-        captionCandidates.push(it);
+        removedByCaption.push({ type: it.type, template: it.type === 'FRAME' ? (it.params as { template: FrameTemplateId }).template : null, ...(it.type === 'LIST_OVERLAY' && { listTemplate: listTemplateOf(it.params) ?? undefined }) });
         return false;
       });
+      if (!items.length && tpl && removedByCaption.length) {
+        // template tirado pela legenda queimada: plano sem peça + faixa `soft` (saídas: versão sem legenda, outro template)
+        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed, removedByCaption)), ...(cleanVersion && { cleanVersion }) }, { level: 'soft', reason: 'burned_captions' }, sel?.fits);
+        return;
+      }
       if (!items.length) throw new AutoPlanError('PLAN_INVALID', 'planning', 'No compatible pieces remain after caption validation');
       // §2.1: `captionsAuto` no insight (TRANSIÇÃO: fora do AutoInsight até o arquiteto tipar; o web já lê)
       // 26/10: por que o HEADLINE ficou fora (o web mostra); null = entrou ou o campeão não tem dado pra ele
-      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...captionBlockedOf(ctx, allowed, removedByCaption), ...(cleanVersion && { cleanVersion }) };
+      const insight = { ...buildInsight(draft, ctx, flags, swaps, FROM_VIDEO, items.length), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed, removedByCaption)), ...(cleanVersion && { cleanVersion }) };
 
       // 3. PLAN_READY: itens e insight na mesma transação da troca de estado
       await this.prisma.$transaction(async (tx) => {
         const prev = await tx.variationBatch.findUniqueOrThrow({ where: { id: b.id }, select: { settings: true } });
-        const { captionCandidates: _old, ...rest } = (prev.settings ?? {}) as Record<string, unknown>;
-        const settings = captionCandidates.length ? { ...rest, captionCandidates } : rest;
+        const settings = { ...((prev.settings ?? {}) as Record<string, unknown>) };
+        if (tpl) settings.template = { ...tpl, fit, ...(sel && { fits: sel.fits }) };
         const locked = await tx.variationBatch.update({ where: { id: b.id }, data: { updatedAt: new Date(), settings: settings as unknown as Prisma.InputJsonValue } });
         const result = selectPieces(items.map((it) => ({ ...it, autoType: it.type })), (locked.answers as unknown as IterateAnswers | null) ?? DEFAULT_ANSWERS);
         // §2: amostra = no máximo 4 peças selecionadas
-        const selected = sample ? capSampleSelection(result.selected) : result.selected;
+        // templates-creditos-v1: template único = todas as peças marcadas; pack = a seleção de hoje (sem o corte de 4 da amostra antiga)
+        const selected = tpl && !tpl.pack
+          ? items.map((it) => ({ item: { ...it, autoType: it.type }, included: true, wantKey: WANT_OF[it.type] ?? null, selection: 'auto' as const }))
+          : sample && !tpl ? capSampleSelection(result.selected) : result.selected;
         await tx.variationItem.deleteMany({ where: { batchId: b.id } });
         await tx.variationItem.createMany({
           data: selected.map(({ item: it, included, wantKey, selection }) => ({
-            included, wantKey, selection, priority: it.index,
+            // templates-lista-v1 §2.3: lista com < 2 âncoras (`fill: 'pending'`) fica fora do lote e do quote até "Fill from Brain"
+            included: included && (it.params as { fill?: string }).fill !== 'pending', wantKey, selection, priority: it.index,
             workspaceId: b.workspaceId, batchId: b.id, kind: 'AUTO_EDIT' as const, index: it.index, status: 'READY' as const,
             rationale: it.rationale, payload: { params: it.params, whyKey: it.whyKey } as unknown as Prisma.InputJsonValue,
             autoType: it.type, code: it.code, axis: it.axis, change: it.change, inZip: true, jobId,
@@ -237,10 +259,67 @@ export class PlanoAutoService {
     }
   }
 
+  /**
+   * templates-creditos-v1 §6: lote de template sem peça possível (não cabe) → PLAN_READY vazio, com o fit no settings.
+   * Nada a gerar = nada a cobrar.
+   */
+  private async readyEmpty(batchId: string, jobId: string, insight: Record<string, unknown>, fit: { level: string; reason: string | null }, fits?: Record<string, TemplateFit>): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const prev = await tx.variationBatch.findUniqueOrThrow({ where: { id: batchId }, select: { settings: true } });
+      const rest = (prev.settings ?? {}) as Record<string, unknown>;
+      const settings: Record<string, unknown> = { ...rest, template: { ...(rest.template as object), fit, ...(fits && { fits }) } };
+      await tx.variationBatch.update({ where: { id: batchId }, data: { settings: settings as unknown as Prisma.InputJsonValue } });
+      await tx.variationItem.deleteMany({ where: { batchId } });
+      await this.sm.transition({
+        tx, batchId, event: 'AUTO_PLAN_DONE', from: 'PLANNING', to: 'PLAN_READY',
+        data: { insight: insight as unknown as Prisma.InputJsonValue, errorCode: null, failReason: null, failDetail: null, failStage: null },
+      });
+    }, { timeout: 30_000 });
+    await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: { pieces: 0 } });
+  }
+
+  /**
+   * templates-multi-v1 §4.2: fit de cada marcado (as regras do template único, no contexto do plano, com a guarda da legenda)
+   * → `fits` por slug, as chaves dos que cabem (`picked`; `soft` não cabe, §15.4) e o fit do 1º marcado.
+   */
+  private async selectionFits(ctx: PlanCtx, tpl: { slugs?: string[]; keys: string[] }): Promise<{ fits: Record<string, TemplateFit>; picked: string[]; first: TemplateFit }> {
+    const slugs = tpl.slugs ?? [];
+    const rows = await this.prisma.template.findMany({ where: { slug: { in: slugs } }, select: { slug: true, internalKey: true, autoType: true, frameId: true, pack: true } });
+    const fits: Record<string, TemplateFit> = {};
+    const picked: string[] = [];
+    for (const slug of slugs) {
+      const t = rows.find((r) => r.slug === slug);
+      const f: TemplateFit = t ? templateFitOf(ctx, t) : { level: 'hard', reason: 'no_data' };
+      fits[slug] = f;
+      if (t && f.level === 'ok') picked.push(t.internalKey);
+    }
+    return { fits, picked, first: fits[slugs[0]] ?? { level: 'hard', reason: 'no_data' } };
+  }
+
+  /** templates-creditos-v1: contexto das regras do campeão (fit na galeria e validação dos textos editados). */
+  async ctxForChampion(championId: string, language?: string | null): Promise<PlanCtx | null> {
+    const c = await this.prisma.champion.findUnique({
+      where: { id: championId },
+      include: { teardown: true, videoFile: { select: { width: true, height: true } }, offer: true, workspace: { include: { brandAssets: BRAND_LOGO_INCLUDE } } },
+    });
+    if (!c || c.status !== 'READY' || !c.teardown || !sectionsOf(c.teardown.sections)) return null;
+    const { offer, workspace, ...champion } = c;
+    const b = { offer, workspace, champion, language: language ?? c.language ?? offer.language } as unknown as PlanBatch;
+    return this.guardedCtx(b, true);
+  }
+
   /** Contexto das regras com a guarda da legenda (o mesmo do plano). */
   private guardedCtx(b: PlanBatch, captured: boolean): PlanCtx {
     const ctxSrc = { offer: b.offer, workspace: b.workspace, champion: b.champion, teardown: b.champion.teardown };
-    return withCaptionGuard(planCtxOf(ctxSrc, this.media, { captured }), { ...ctxSrc, video: b.champion.videoFile, language: b.language });
+    const ctx = withCaptionGuard(planCtxOf(ctxSrc, this.media, { captured }), { ...ctxSrc, video: b.champion.videoFile, language: b.language });
+    // templates-creditos-v1 A6: COLD_OPEN/ENDCARD só no lote de template que tem a chave (o Iterate normal segue sem)
+    const tpl = templateSettingsOf((b as { settings?: unknown }).settings);
+    if (tpl) {
+      ctx.templateOnlyTypes = templateOnlyTypesOf(tpl.keys);
+      // templates-lista-v1 §1: as chaves `LIST_OVERLAY:<id>` (template, pack ou seleção) liberam os templates de lista
+      ctx.listTemplates = listTemplatesOf(tpl.keys);
+    }
+    return ctx;
   }
 
   /** Entrada do planAutoBatch (o mesmo pedido do plano do lote; `allowed`/regras decidem o que pode sair). */
@@ -259,53 +338,17 @@ export class PlanoAutoService {
       media: { durationSec: ctx.durationSec, cuts: m?.cuts?.length ?? 0, silences: ctx.silences, hasWrittenHook: ctx.hasWrittenHook, hasEndCard: ctx.hasEndCard },
       keyframes: await this.keyframes(m?.keyframes ?? []),
       // headline-e-legenda-v1: HEADLINE no `allowed` (TRANSIÇÃO: fora do AutoVariationType até a fusão) + o que a ia precisa
-      allowed: allowed.map((a) => ({ type: a.type, max: a.max })) as unknown as AutoPlanInput['allowed'],
+      // templates-lista-v1 §1: LIST_OVERLAY = 1 entrada por template, com `templateId`; `list` = maxPairs do posicionarLista
+      allowed: allowed.map((a) => ({ type: a.type, max: a.max, ...(a.templateId && { templateId: a.templateId }) })) as unknown as AutoPlanInput['allowed'],
+      ...(allowed.some((a) => a.type === 'LIST_OVERLAY' && a.max > 0) && { list: listCtxOf(ctx) }),
       allowedFrames: allowedFrameIds(ctx),
       rules: rulesFor(allowed, true),
+      // templates-creditos-v1 A6: as variantes de end card que o Brain sustenta (só com ENDCARD no lote de template)
+      ...(allowed.some((a) => a.type === 'ENDCARD' && a.max > 0) && { endcardVariants: endcardVariants(ctx) }),
       ...(ctx.headline && !ctx.headline.blockedReason && {
         headline: { mode: ctx.headline.mode, original: ctx.headline.original, lines: ctx.headline.lines, maxChars: ctx.headline.maxChars, hasHighlight: ctx.headline.hasHighlight, language: ctx.headline.language },
       }),
     };
-  }
-
-  /**
-   * legenda-protegida-v1 §8 (29/10), "Gerar mesmo assim" sem candidata guardada (o Claude nem planejou o formato porque o
-   * `allowed` já o tirava): 1 chamada do planAutoBatch só com esse tipo (máx. 1; FRAME só com esse template), SEM a guarda
-   * da legenda (a pessoa aceitou cobrir). Custo gravado no lote (cost_entry LLM, job AUTO_PLAN próprio). Não muda o estado
-   * do lote. null = o Claude não devolveu uma peça válida desse formato (ou outra regra, que não a legenda, o tira).
-   */
-  async planForced(batchId: string, t: CaptionForceTarget, userId: string): Promise<{ item: FinalItem; jobId: string } | null> {
-    const b = await this.prisma.variationBatch.findUniqueOrThrow({ where: { id: batchId }, include: PLAN_BATCH_INCLUDE });
-    if (!b.champion.teardown || !sectionsOf(b.champion.teardown.sections)) return null;
-    const ctx: PlanCtx = { ...this.guardedCtx(b, !!b.pageCaptureFileId), caption: null };
-    const own = allowedFor(ctx).find((a) => a.type === t.type);
-    if (!own || own.max <= 0) return null;
-    if (t.type === 'FRAME' && (!t.template || !allowedFrameIds(ctx).includes(t.template))) return null;
-    const allowed: AllowedType[] = [{ ...own, max: 1 }];
-    const job = await this.prisma.job.create({
-      data: { workspaceId: b.workspaceId, type: 'AUTO_PLAN', status: 'RUNNING', stage: 'planning', startedAt: new Date(), input: { batchId, captionForce: { type: t.type, template: t.template } } as unknown as Prisma.InputJsonValue, variationBatchId: b.id, championId: b.championId, offerId: b.offerId, createdById: userId },
-    });
-    try {
-      // a página não é recapturada (o texto não fica guardado); o Brain e a transcrição seguem iguais
-      const input = await this.planInput(b, ctx, allowed, job.id, { captured: !!b.pageCaptureFileId, text: null });
-      const draft = await this.plan({ ...input, ...(t.template && { allowedFrames: [t.template] }), rules: { min: 1, max: 1, minDiversityPct: 0 } });
-      for (const it of draft.items ?? []) {
-        if (it.type !== t.type) continue;
-        const one: AutoPlanDraft = { ...draft, items: [it] };
-        if (t.type === 'FRAME' && frameTemplateOfDraft(it) !== t.template) continue;
-        if (validatePlan(one, ctx, allowed).some((v) => v.item !== null)) continue;
-        const [fin] = finalizePlan(one, ctx, this.media);
-        if (!fin) continue;
-        await this.jobs.finish(job.id, { status: 'SUCCEEDED', output: { pieces: 1 } });
-        return { item: fin, jobId: job.id };
-      }
-      await this.jobs.finish(job.id, { status: 'FAILED', errorCode: 'PLAN_INVALID', failReason: autoFailReason('PLAN_INVALID') });
-      return null;
-    } catch (e) {
-      const code = plannerCode(e);
-      await this.jobs.finish(job.id, { status: 'FAILED', errorCode: code, failReason: autoFailReason(code) }).catch(() => undefined);
-      throw e;
-    }
   }
 
   /**

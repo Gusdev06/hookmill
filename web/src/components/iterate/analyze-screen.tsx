@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
 import {
   AxisTag, Bar, Card, Code, Cols, GenThumb, Head, InkBig, InkList, InkNote, InkPanel, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, isImagePiece, mmss, PieceKind, pieceType, Tag, TypeThumb, useIterFormat, useTypeName,
 } from "./parts"
-import { CaptionBlocked, CleanVersionStatus } from "./captions"
+import { CaptionBlocked, CleanVersionStatus, HeadlinePending } from "./captions"
 import { usePriceLabel } from "./piece-actions"
 import { useSession } from "@/components/providers/session-provider"
 import { ClientPreferences, GoalsScreen, LeftOut, SelectPieceButton } from "./goals"
@@ -217,6 +217,7 @@ function BatchPlan({ batch }: { batch: IterateBatch }) {
       <CaptionsBadge batch={batch} />
       <CleanVersionStatus batch={batch} />
       <CaptionBlocked batch={batch} />
+      <HeadlinePending batch={batch} />
       <PlanGroup axis="ITERATION" pieces={stretch} batchId={batch.quizEnabled ? batch.id : undefined} />
       <PlanGroup axis="DIVERSITY" pieces={fresh} batchId={batch.quizEnabled ? batch.id : undefined} />
       <div className="border-t border-line-soft pt-2.5 text-xs text-fg-3">{t("formatsLine")}</div>

@@ -2,6 +2,47 @@
 Data: 2026-10-05 (feature 2: 06/10) · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0 05/10; F2-G0 06/10)**
 Fonte da verdade do banco: [`api/prisma/schema.prisma`](../../api/prisma/schema.prisma) (validado com Prisma 6.19). Este arquivo explica o porquê e as regras que o schema sozinho não diz.
 
+## Mudanças 06/11 (F0b da troca de texto queimado; detalhe em [`troca-texto-queimado-v1.md`](troca-texto-queimado-v1.md) §15.8, §16.5) · **arquivo escrito, NÃO aplicado em nenhum banco**
+- Migração aditiva `20261110000200_champion_plates`: enums `PlateKind` e `PlateStatus`, `FileKind` + `CHAMPION_PLATE`, `JobType` + `CHAMPION_PLATE`, tabela `champion_plates`. Gerada por `prisma migrate diff` entre schemas, sem conectar em banco; schema resultante validado. **`schema.prisma` ainda sem este bloco:** entra na fase A0, depois do QA do F1a. Até lá, `db:diff` mostra a diferença.
+- Regras que o schema não diz: 1 linha por campeão × `kind` × `layerKey` × `version`; `version` sobe quando o método muda, e placa antiga não vale. **REJECTED e FAILED ficam guardadas** para não reprocessar. `CHAMPION_PLATE` é máquina; `CHAMPION_CLEAN_VIDEO` é enviado pela pessoa, e com ele não há placa nem portão. Headline em caixa não usa a tabela: a imagem é data URI em `teardowns.edit_map.headlineLook`, sem arquivo. `headlineLook` é JSON, sem coluna (ausente = não medido; null = medido, sem headline).
+```prisma
+// enum JobType, acrescentar:   CHAMPION_PLATE // troca-texto-queimado-v1 §15.8
+// enum FileKind, acrescentar:  CHAMPION_PLATE // vídeo do campeão com o texto apagado (máquina), distinto do CHAMPION_CLEAN_VIDEO (enviado)
+// model Workspace, acrescentar: championPlates ChampionPlate[]
+// model Champion, acrescentar:  plates ChampionPlate[]
+// model File, acrescentar:      championPlates ChampionPlate[]
+enum PlateKind { HEADLINE CAPTION }     // em linhas separadas no schema
+enum PlateStatus { QUEUED RUNNING READY REJECTED FAILED }
+model ChampionPlate {
+  id          String      @id @default(cuid())
+  workspaceId String      @map("workspace_id")
+  championId  String      @map("champion_id")
+  kind        PlateKind
+  layerKey    String      @map("layer_key") // HEADLINE: layerId; CAPTION: 'caption'
+  version     Int // sobe quando o método muda; placa antiga deixa de valer
+  status      PlateStatus @default(QUEUED)
+  fileId      String?     @map("file_id") // FileKind CHAMPION_PLATE
+  reason      String? // razão do portão ou da falha
+  metrics     Json? // conferência e tempos, sem pixel
+  costUsd     Decimal?    @map("cost_usd") @db.Decimal(10, 6)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  champion  Champion  @relation(fields: [championId], references: [id], onDelete: Cascade)
+  file      File?     @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@unique([championId, kind, layerKey, version])
+  @@index([workspaceId])
+  @@index([fileId])
+  @@map("champion_plates")
+}
+```
+
+## Mudanças 31/10 noite (lacunas da Home v2 e do Eddy; detalhe em [`lacunas-home-eddy-v1.md`](lacunas-home-eddy-v1.md) §1) · **aditivo, aguarda visto do Gusta**
+- Migração aditiva `20261031000300_onboarding_confirmed`: enum `OnboardingConfirm { business offer meta goals kit }` e `workspaces.onboarding_confirmed OnboardingConfirm[] DEFAULT '{}'`. Aplicada em `maquina_test` (backup `.infra/backups/maquina_test-2026-10-31-2355.sql.gz`) e `maquina` (backup `maquina-2026-10-31-2355.sql.gz`). `db:diff` vazio depois.
+- Regras que o schema não diz: array na ordem em que a pessoa confirmou, sem repetição (o service garante); "Meta pulada" e "kit pulado" continuam derivados (item confirmado + passo não `done` / kit vazio). Logo e 2ª cor da leitura, `needsYou`/`statusLabel`, o nó `batch` do Brain, `lastIteratedAt` e o `GET /iterate` são derivados, sem coluna.
+
 ## Mudanças 26/10 (legenda queimada protegida; detalhe em [`legenda-protegida-v1.md`](legenda-protegida-v1.md)) · **aprovado pelo Gusta 26/10**
 - Migração aditiva `20261026000100_champion_clean_video`: `champions.clean_video_file_id` (FK `files`, SetNull) e `FileKind` + `CHAMPION_CLEAN_VIDEO`. Aplicada em `maquina` (backup `.infra/backups/maquina-2026-10-26-1554.sql.gz`) e `maquina_test` (backup `maquina_test-2026-10-26-1554.sql.gz`). `db:diff` vazio depois.
 - Regras que o schema não diz: com `clean_video_file_id`, **todas** as peças novas usam esse vídeo como fonte e a faixa deixa de ser protegida. `protectedBands` mora no `editMap` (JSON do teardown) e o veredito da checagem em `renders.input.captionCheck`, os dois sem coluna nova.
@@ -237,6 +278,16 @@ Jobs do Claude e renders rodam dentro do processo. No boot o backend: (1) marca 
 
 ## Vencedores
 `creatives.is_winner` (só em `APPROVED`). A ia recebe, ao escrever roteiros, até 5 vencedores da mesma oferta (roteiro escolhido + ângulo) e até 3 de outras ofertas do workspace (só estrutura). Sem tabela própria na v1: a métrica de anúncio (Meta) entra depois.
+
+## Templates e créditos (31/10, `templates-creditos-v1.md` §2)
+- `templates`: catálogo da galeria (seed na migração `20261031000200_templates_creditos`; admin edita preço/status/vídeo).
+- `template_runs`: 1 por lote nascido de template (1-1 com `variation_batches`): linhas congeladas no Gerar, `held`/`charged`/`refunded`. Estados `DRAFT → RESERVED → SETTLED` (Retry depois do estorno volta pra `RESERVED`).
+- `credit_entries`: livro-razão append-only por **conta** (`users.credit_balance` e `users.sample_uses`, CHECK ≥ 0), idempotente por `idempotency_key`. Só o `CreditosService` escreve.
+
+## Ad Radar (04/11, `ads-research-v1.md` seção "Construção 04/11", migração `20261107000100_ads_research`)
+- **Globais** (públicos, sem `workspace_id`): `ad_sources` (Página + país), `library_ads` (dedupe por `ad_archive_id`), `ad_source_ads` (N–N), `research_syncs` (coletas e sondas; também a fila, com `status` + `not_before`).
+- **Por workspace:** `competitors` (status/origem/`relation` DIRECT|ADJACENT/motivo/remoção), `competitor_discoveries` (fila da descoberta), `competitor_candidates` e `research_terms` (memória entre descobertas, não apagam a cada rodada), `saved_ads`.
+- Colunas novas opcionais: `champions.research_ad_id` (único por workspace), `cost_entries.research_sync_id` / `discovery_id` (ledger da pesquisa; teto separado do `monthly_spend_cap_usd`).
 
 ## Fora da v1 (já previsto pra não quebrar)
 Credenciais de provedor por workspace (hoje as chaves vêm do `.env` da API; a tela Settings só mostra mascarado), métricas de anúncio, cobrança. Variar campeão saiu daqui: é a feature 2 ([`feature-2-variar-campeao.md`](feature-2-variar-campeao.md)), com `Creative.championId` (não `sourceCreativeId`, porque o campeão quase nunca é um criativo nosso).

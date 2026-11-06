@@ -1,0 +1,622 @@
+<title>HookMill Hero Mill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: review toolbar (ink) on top, then the landing hero exactly as it would ship (paper + ink cards + lime),
+   container-queried so the same DOM shows desktop (>=1061), tablet and 390 px. Single light look = the landing's own. */
+:root {
+  color-scheme: light;
+  --bg: #eeeeea; --shell: #e3e4de; --card: #fdfdfb; --card-2: #f3f4f0;
+  --line: #dcddd7; --line-soft: #e4e5e0; --line-strong: #cfd1cb; --control: #a9ada6;
+  --fg: #15171a; --fg-2: #3b4047; --fg-3: #5a6068;
+  --brand: #c8f03c; --brand-ink: #3e5200; --brand-soft: #f0f8d2; --brand-edge: #c9df7a;
+  --ink: #16181b; --ink-2: #202328; --ink-3: #2a2e33; --ink-line: #2e3238;
+  --ink-fg: #f2f3ee; --ink-fg-2: #c5cad0; --ink-fg-3: #9aa1a9;
+  --ok: #0b6b43; --ok-bg: #dff2e7; --ok-dot: #1c9a5e; --info: #2b4bc8; --info-bg: #e6ebfb; --info-on-ink: #8fa6ff; --meta: #1877f2;
+  --r-card: 16px; --r-ctl: 10px;
+  --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--shell); color: var(--fg); font: 15px/1.5 var(--sans); margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- review toolbar (prototype only) ---------- */
+.tb { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: var(--ink); color: var(--ink-fg);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 50; background: var(--ink); }
+.tb-row { max-width: 1440px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.tb-name { font: 600 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-fg-3); }
+.seg { display: inline-flex; border: 1px solid var(--ink-line); border-radius: 8px; overflow: hidden; }
+.seg button { all: unset; cursor: pointer; padding: 6px 10px; font: 500 12px/1 var(--mono); color: var(--ink-fg-2); }
+.seg button[aria-pressed="true"] { background: var(--ink-fg); color: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--info-on-ink); outline-offset: -2px; }
+.tb-btn { all: unset; cursor: pointer; border: 1px solid var(--ink-line); border-radius: 8px; padding: 6px 10px; font: 500 12px/1 var(--mono); color: var(--ink-fg); }
+.tb-btn:focus-visible { outline: 2px solid var(--info-on-ink); }
+.scrub { flex: 1 1 320px; min-width: 0; display: grid; gap: 4px; }
+.scrub input { width: 100%; accent-color: var(--brand); margin: 0; }
+.ticks { position: relative; height: 14px; overflow-x: clip; font: 500 10px/1 var(--mono); color: var(--ink-fg-3); }
+.ticks span { position: absolute; top: 0; translate: -2px 0; white-space: nowrap; }
+.ticks span::before { content: ""; position: absolute; left: 0; top: -6px; width: 1px; height: 5px; background: var(--ink-fg-3); }
+.tnow { font: 500 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--brand); min-width: 5.5ch; }
+@media (max-width: 700px) { .ticks span:nth-child(even) { display: none; } }
+
+/* ---------- stage ---------- */
+.stage-wrap { padding-block: 24px 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stage { container: hero / inline-size; background: var(--bg); margin: 0 auto; max-width: 1440px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.stage.phone { max-width: 390px; border-radius: 28px; border: 8px solid var(--ink); }
+.lp-hdr { display: flex; justify-content: space-between; align-items: center; height: 60px; gap: 12px; padding-inline: 32px; border-bottom: 1px solid var(--line-soft); background: rgba(238,238,234,.9); }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-stretch: 115%; letter-spacing: -.02em; }
+.logo i { width: 18px; height: 18px; border-radius: 5px; background: var(--fg); position: relative; }
+.logo i::after { content: ""; position: absolute; inset: 5px; border-radius: 2px; background: var(--brand); }
+.nav { display: flex; gap: 2px; font-size: 14px; font-weight: 600; color: var(--fg-2); }
+.nav span { padding: 8px 12px; }
+.btn { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: var(--r-ctl); background: var(--fg); color: var(--card); font-weight: 700; font-size: 14px; border: 0; white-space: nowrap; }
+.btn.lg { height: 52px; padding: 0 26px; font-size: 16px; }
+
+.hero { padding: 72px 32px 96px; }
+.hero-grid { display: grid; gap: 48px; }
+.copy { display: grid; gap: 26px; min-width: 0; align-content: center; }
+.eyebrow { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--fg-3); margin: 0; }
+h1 { margin: 0; font-weight: 800; font-stretch: 125%; letter-spacing: -.035em; line-height: 1.02; font-size: clamp(32px, 4.1cqi, 58px); text-wrap: balance; }
+h1 .hi { display: block; color: var(--fg-3); }
+h1 mark { background: linear-gradient(var(--brand), var(--brand)) no-repeat 0 88% / 100% 30%; color: var(--fg); padding: 0 .04em; }
+.lede { margin: 0; font-size: 16px; color: var(--fg-2); max-width: 34em; }
+.ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+.arrow { font-weight: 700; border-bottom: 1px solid var(--line-strong); padding-bottom: 2px; }
+.note { margin: 0; font: 400 12px/1.5 var(--mono); color: var(--fg-3); }
+.note b { color: var(--fg-2); font-weight: 500; }
+
+/* ---------- collage ---------- */
+.collage { position: relative; min-width: 0; }
+.slot { position: relative; }
+.cc { position: relative; border-radius: var(--r-card); border: 1px solid var(--line); background: var(--card); padding: 14px; height: 100%;
+  box-shadow: 0 1px 0 rgba(21,23,26,.04), 0 24px 48px -28px rgba(21,23,26,.35); }
+.cc.on-ink { background: var(--ink-2); border-color: var(--ink-line); color: var(--ink-fg); box-shadow: 0 30px 70px -30px rgba(22,24,27,.6); }
+.lbl { font: 500 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--fg-3); display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 18px; }
+.on-ink .lbl { color: var(--ink-fg-3); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 10.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; white-space: nowrap; flex: none; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ok { background: var(--ok-bg); color: var(--ok); }
+.on-ink .chip.ok { background: rgba(28,154,94,.18); color: #7fd6a5; }
+.chip.info { background: rgba(143,166,255,.14); color: var(--info-on-ink); }
+.chip.free { background: var(--brand-soft); color: var(--brand-ink); }
+.chip.free::before, .chip.ex::before, .chip.pv::before { display: none; }
+.chip.ex { border: 1px dashed currentColor; color: var(--fg-3); }
+.chip.pv { background: var(--info-bg); color: var(--info); }
+.flash { position: absolute; inset: -1px; border-radius: inherit; border: 2px solid var(--brand); box-shadow: 0 0 0 4px rgba(200,240,60,.25); pointer-events: none; }
+
+/* winner */
+.file { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.thumb { width: 34px; aspect-ratio: 9/16; border-radius: 6px; flex: none; object-fit: cover; border: 1px solid var(--line); display: block; }
+.fname { font: 500 11px/1.3 var(--mono); color: var(--fg-2); word-break: break-all; }
+.meta { margin-top: 3px; font-size: 12px; color: var(--fg-3); }
+.bar { height: 4px; border-radius: 99px; background: var(--card-2); overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; background: var(--ok-dot); transform-origin: left; }
+
+/* why */
+.ruler { position: relative; height: 18px; margin-top: 12px; border-radius: 5px; background: var(--card-2); border: 1px solid var(--line-soft); overflow: hidden; }
+.ruler .sg { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; }
+.ruler .h { left: 1%; width: 10%; background: var(--brand); }
+.ruler .p { left: 30%; width: 10%; background: #b9c6f5; }
+.ruler .c { left: 84%; width: 15%; background: #f3d27a; }
+.ruler .fill { position: absolute; inset: 0; background: rgba(21,23,26,.07); transform-origin: left; }
+.why { display: grid; margin-top: 6px; }
+.wrow { position: relative; display: grid; grid-template-columns: 56px minmax(0, 1fr) 14px; gap: 2px 8px; padding: 8px 6px; border-top: 1px solid var(--line-soft); }
+.wrow .hl { position: absolute; inset: 2px 0; border-radius: 8px; background: var(--brand-soft); }
+.wrow > *:not(.hl) { position: relative; }
+.wrow b { font-size: 12.5px; }
+.wrow b .ul { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--fg); transform-origin: left; }
+.wrow .t { font: 500 10.5px/1.6 var(--mono); color: var(--fg-3); grid-column: 2; grid-row: 1; }
+.wrow p { grid-column: 2; margin: 0; font-size: 12.5px; color: var(--fg-2); line-height: 1.35; }
+.tick { grid-column: 3; grid-row: 1; width: 14px; height: 14px; border-radius: 50%; background: var(--ok-dot); position: relative; align-self: center; }
+.tick::after, .chk::after { content: ""; position: absolute; left: 4.5px; top: 2px; width: 3.5px; height: 7px; border: solid #fff; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+
+/* phone */
+.reel { position: relative; aspect-ratio: 9/16; border-radius: 11px; overflow: hidden; background: #1d2027; max-width: 100%; }
+.reel video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.edge { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--brand); box-shadow: 0 0 12px rgba(200,240,60,.8); z-index: 3; }
+.badge { position: absolute; top: 8px; left: 8px; z-index: 4; display: inline-flex; align-items: center; gap: 6px; font: 600 9.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--fg); background: var(--brand); padding: 4px 6px; border-radius: 4px; }
+.badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--fg); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.wm { position: absolute; top: 8px; right: 8px; z-index: 4; font: 500 9px/1 var(--mono); letter-spacing: .08em; color: rgba(255,255,255,.8); background: rgba(0,0,0,.4); padding: 3px 5px; border-radius: 4px; }
+.lock { position: absolute; left: 50%; top: 46%; translate: -50% -50%; z-index: 4; display: grid; justify-items: center; gap: 8px; }
+.pad { position: relative; width: 30px; height: 30px; border-radius: 9px; background: rgba(22,24,27,.85); border: 1px solid rgba(255,255,255,.18); display: grid; place-items: center; }
+.pad::before { content: ""; width: 10px; height: 8px; border-radius: 2px; background: #fff; margin-top: 5px; }
+.pad::after { content: ""; position: absolute; top: 6px; width: 8px; height: 8px; border: 2px solid #fff; border-bottom: 0; border-radius: 5px 5px 0 0; }
+.lock small { font: 600 11px/1.2 var(--sans); color: #fff; background: rgba(22,24,27,.85); padding: 5px 8px; border-radius: 7px; white-space: nowrap; }
+.hud { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 4; display: grid; gap: 6px; }
+.track { height: 3px; background: rgba(255,255,255,.25); border-radius: 99px; position: relative; overflow: hidden; }
+.track i { position: absolute; inset: 0; background: #fff; transform-origin: left; }
+.track::after { content: ""; position: absolute; left: 12%; top: -2px; bottom: -2px; width: 2px; background: var(--brand); }
+.hud-row { display: flex; justify-content: space-between; gap: 6px; font: 500 9.5px/1 var(--mono); color: rgba(255,255,255,.9); letter-spacing: .04em; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.ctl { all: unset; position: absolute; left: 18px; bottom: 54px; z-index: 6; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; background: rgba(22,24,27,.6); }
+.ctl::before { content: ""; position: absolute; inset: -6px; }
+.ctl:focus-visible { outline: 2px solid var(--brand); }
+.ctl .ic-pause { display: flex; gap: 3px; } .ctl .ic-pause i { width: 3px; height: 11px; background: #fff; border-radius: 1px; }
+.ctl .ic-play { width: 0; height: 0; border-left: 10px solid #fff; border-top: 6px solid transparent; border-bottom: 6px solid transparent; margin-left: 2px; display: none; }
+.ctl[data-state="paused"] .ic-pause { display: none; } .ctl[data-state="paused"] .ic-play { display: block; }
+.has-hud .ctl { bottom: 86px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 4px 2px; }
+.codes { position: relative; flex: 1; height: 1.3em; overflow: hidden; font: 600 12px/1.3 var(--mono); }
+.codes b { position: absolute; inset: 0 auto auto 0; white-space: nowrap; }
+
+/* plan */
+.plan { display: grid; margin-top: 10px; }
+.prow { display: flex; align-items: center; gap: 8px; padding: 6px 6px; border-top: 1px solid var(--line-soft); border-radius: 6px; font-size: 12.5px; }
+.box { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--control); flex: none; position: relative; }
+.chk { position: absolute; inset: -1.5px; border-radius: 4px; background: var(--fg); }
+.mini { width: 14px; height: 24px; border-radius: 3px; object-fit: cover; flex: none; border: 1px solid var(--line); display: block; }
+.code { font: 500 11px/1 var(--mono); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.code.off { color: var(--fg-3); }
+.chips2 { position: relative; display: grid; justify-items: end; }
+.chips2 > * { grid-area: 1 / 1; }
+.sub { font: 500 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); padding: 10px 6px 4px; }
+.why-s { color: var(--fg-3); font-size: 11.5px; }
+.count { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* publish */
+.mf { width: 20px; height: 20px; border-radius: 5px; background: var(--meta); color: #fff; font: 800 13px/20px var(--sans); text-align: center; flex: none; }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; margin: 12px 0 0; font-size: 12.5px; align-items: center; }
+.kv dt { color: var(--ink-fg-3); font: 500 10.5px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.kv dd { margin: 0; color: var(--ink-fg); min-width: 0; }
+.roll { position: relative; display: block; height: 1.5em; overflow: hidden; }
+.roll > span { position: absolute; inset: 0 auto auto 0; display: flex; align-items: center; gap: 8px; white-space: nowrap; height: 1.5em; }
+.adsets { display: flex; gap: 4px; margin-top: 12px; }
+.adsets i { position: relative; flex: 1; height: 22px; border-radius: 5px; background: var(--ink-3); border: 1px solid var(--ink-line); overflow: hidden; display: grid; place-items: center; font: 500 9.5px/1 var(--mono); color: var(--ink-fg-2); font-style: normal; }
+.adsets i span { position: relative; }
+.adsets i em { position: absolute; inset: 0; background: rgba(200,240,60,.18); border-right: 1px solid rgba(200,240,60,.6); transform-origin: left; }
+.adsets i.f { color: var(--brand); }
+
+/* mobile rail */
+.rail { display: none; }
+.wstrip { display: none; }
+
+/* ---- desktop collage: >= 1061 ---- */
+@container hero (min-width: 1061px) {
+  .hero-grid { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 40px; align-items: center; }
+  .collage { height: 580px; }
+  .slot { position: absolute; }
+  .s-up { left: 0; top: 18px; width: 248px; }
+  .s-why { left: 22px; top: 172px; width: 300px; }
+  .s-ph { left: 50%; top: 0; width: 212px; margin-left: -40px; z-index: 3; }
+  .s-ph .cc { padding: 10px; }
+  .s-plan { right: 0; top: 56px; width: 268px; }
+  .s-meta { right: 14px; bottom: 0; width: 290px; z-index: 4; }
+}
+/* ---- tablet: 561–1060 ---- */
+@container hero (max-width: 1060px) {
+  .hero { padding: 56px 24px 72px; }
+  .collage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .s-ph { grid-row: span 2; grid-column: 2; grid-row-start: 1; }
+  .s-ph .cc { padding: 10px; max-width: 300px; margin-inline: auto; }
+  .s-up { grid-column: 1; } .s-why { grid-column: 1; }
+  .s-plan, .s-meta { grid-column: span 1; }
+  .nav { display: none; }
+}
+/* ---- phone: <= 560 ---- */
+@container hero (max-width: 560px) {
+  .lp-hdr { padding-inline: 16px; }
+  .lp-hdr .btn { display: none; }
+  .hero { padding: 36px 16px 48px; }
+  .hero-grid { gap: 32px; }
+  .collage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; justify-items: center; }
+  .s-up, .s-why, .s-plan, .s-meta { display: none; }
+  .wstrip { display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); background: var(--card); border-radius: 12px; position: relative; }
+  .wstrip .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wstrip .bar { position: absolute; left: 12px; right: 12px; bottom: 0; margin: 0; height: 2px; border-radius: 0; background: transparent; }
+  .s-ph { grid-column: auto; grid-row: auto; width: 232px; max-width: 100%; }
+  .s-ph .cc { max-width: none; }
+  .rail { display: grid; gap: 10px; width: 100%; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px; }
+  .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .step { display: grid; gap: 6px; font: 500 10.5px/1.1 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-3); min-width: 0; }
+  .step i { display: block; height: 4px; border-radius: 99px; background: var(--card-2); border: 1px solid var(--line-soft); }
+  .step.done i { background: var(--fg); border-color: var(--fg); }
+  .step.on { color: var(--fg); }
+  .step.on i { background: var(--brand); border-color: var(--brand-edge); }
+  .rcap { font-size: 13.5px; color: var(--fg-2); min-height: 1.5em; }
+  .rcap b { color: var(--fg); }
+}
+
+/* ---------- below the stage (prototype notes) ---------- */
+.notes { max-width: 1440px; margin: 0 auto; padding-block: 18px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+.notes h2 { margin: 0; font-size: 18px; font-weight: 800; font-stretch: 112%; letter-spacing: -.01em; }
+.board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .board { grid-template-columns: minmax(0, 1fr); } }
+.beat { all: unset; cursor: pointer; display: grid; gap: 4px; align-content: start; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); min-width: 0; }
+.beat:hover { border-color: var(--fg-3); }
+.beat:focus-visible { outline: 2px solid var(--info); }
+.beat[aria-current="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); background: var(--brand-soft); }
+.beat .bt { font: 500 11px/1 var(--mono); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.beat b { font-size: 14px; }
+.beat span { font-size: 13px; color: var(--fg-2); }
+.cmp { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.cmp table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px; }
+.cmp th, .cmp td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid var(--line-soft); }
+.cmp thead th { border-top: 0; font: 500 10.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); background: var(--card-2); }
+.cmp td:first-child { font-weight: 700; white-space: nowrap; }
+.cmp .pick { background: var(--brand-soft); }
+.small { font-size: 13px; color: var(--fg-3); margin: 0; max-width: 70ch; }
+
+@media (prefers-reduced-motion: reduce) { .badge::before { animation: none; } }
+</style>
+
+<div class="tb" role="toolbar" aria-label="Controles do protótipo">
+  <div class="tb-row">
+    <span class="tb-name">Hero · protótipo</span>
+    <div class="seg" aria-label="Largura">
+      <button id="v-desk" aria-pressed="true">Desktop</button><button id="v-phone" aria-pressed="false">390 px</button>
+    </div>
+    <div class="seg" aria-label="Idioma">
+      <button id="l-en" aria-pressed="true">EN</button><button id="l-pt" aria-pressed="false">PT</button>
+    </div>
+    <div class="seg" aria-label="Movimento">
+      <button id="m-on" aria-pressed="true">Movimento</button><button id="m-off" aria-pressed="false">Reduzir</button>
+    </div>
+    <button class="tb-btn" id="tb-play">Pausar</button>
+    <div class="scrub">
+      <input type="range" id="scrub" min="0" max="14" step="0.02" value="0" aria-label="Tempo do loop">
+      <div class="ticks" aria-hidden="true">
+        <span style="left:0%">0,0 upload</span><span style="left:7.1%">1,0 leitura</span><span style="left:30%">4,2 lote</span><span style="left:66.4%">9,3 prévia</span><span style="left:77.1%">10,8 Meta</span><span style="left:95.7%">13,4</span>
+      </div>
+    </div>
+    <span class="tnow" id="tnow">0,00 s</span>
+  </div>
+</div>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <header class="lp-hdr">
+      <span class="logo"><i></i>HookMill</span>
+      <nav class="nav" aria-label="Main"><span data-i="nav1">How it works</span><span data-i="nav2">Examples</span><span data-i="nav3">Pricing</span><span data-i="nav4">Agencies</span></nav>
+      <span class="btn" data-i="cta">Test it with your ad, free</span>
+    </header>
+
+    <section class="hero" aria-labelledby="hero-t">
+      <div class="hero-grid">
+        <div class="copy">
+          <p class="eyebrow" data-i="eyebrow">Video ads for any offer</p>
+          <h1 id="hero-t"><span data-i="titleA">Your next ads,</span> <span class="hi"><span data-i="titleB">made from</span> <mark data-i="mark">the one that sells.</mark></span></h1>
+          <p class="lede" data-i="sub">Upload an ad that's working. HookMill reads why it works and turns it into a batch of new hooks, cuts and formats, ready to publish on Meta.</p>
+          <div class="ctas"><span class="btn lg" data-i="cta">Test it with your ad, free</span><span class="arrow"><span data-i="agencies">For agencies</span> →</span></div>
+          <p class="note" data-ih="note"><b>4 variations</b> with preview, free. You pay only to unlock them.</p>
+        </div>
+
+        <div class="collage" role="group" data-ia="label" aria-label="What HookMill shows you (example)">
+          <!-- mobile only: the winner as one line -->
+          <div class="wstrip">
+            <img class="thumb" src="ex/champion.jpg" alt="">
+            <span class="fname">POCKETWISE_UGC_A_9x16.mp4</span>
+            <span class="chip ok" data-read-m><span data-i="read">Read</span></span>
+            <div class="bar" aria-hidden="true"><i data-winbar-m></i></div>
+          </div>
+
+          <!-- 1. the winner going in -->
+          <div class="slot s-up">
+            <article class="cc">
+              <span class="flash" data-flash aria-hidden="true"></span>
+              <div class="lbl"><span data-i="winner">Your winner</span> <span class="chip ok" data-read><span data-i="read">Read</span></span></div>
+              <div class="file">
+                <img class="thumb" src="ex/champion.jpg" alt="">
+                <div style="min-width:0"><div class="fname">POCKETWISE_UGC_A_9x16.mp4</div><div class="meta" data-i="winnerMeta">0:20 · speech · burned captions</div></div>
+              </div>
+              <div class="bar" aria-hidden="true"><i data-winbar></i></div>
+            </article>
+          </div>
+
+          <!-- 2. why it works -->
+          <div class="slot s-why">
+            <article class="cc">
+              <div class="lbl"><span data-i="why">Why it works</span> <span class="chip ex" data-i="example">Example</span></div>
+              <div class="ruler" aria-hidden="true"><span class="sg h"></span><span class="sg p"></span><span class="sg c"></span><span class="fill" data-rulerfill></span></div>
+              <div class="why">
+                <div class="wrow" data-why><span class="hl"></span><b><span data-i="hook">Hook</span><span class="ul"></span></b><span class="t" style="grid-column:1;grid-row:2">0:00–0:02</span><p data-i="whyHook">Opens mid-thought: “Okay, I have to show you this.”</p><span class="tick" aria-hidden="true"></span></div>
+                <div class="wrow" data-why><span class="hl"></span><b><span data-i="proof">Proof</span><span class="ul"></span></b><span class="t" style="grid-column:1;grid-row:2">0:06</span><p data-i="whyProof">Names the trick: cancelling the subscriptions people forgot.</p><span class="tick" aria-hidden="true"></span></div>
+                <div class="wrow" data-why><span class="hl"></span><b><span data-i="ctaL">CTA</span><span class="ul"></span></b><span class="t" style="grid-column:1;grid-row:2">0:17</span><p data-i="whyCta">7-day free trial, said once and shown as text.</p><span class="tick" aria-hidden="true"></span></div>
+              </div>
+            </article>
+          </div>
+
+          <!-- 3. the phone: the mill (one Remotion reel in production; 5 synced clips here) -->
+          <div class="slot s-ph">
+            <article class="cc on-ink">
+              <div class="reel" id="reel" aria-hidden="true">
+                <video data-layer muted playsinline loop preload="auto" poster="ex/champion.jpg" src="ex/champion.mp4"></video>
+                <video data-layer muted playsinline loop preload="auto" src="ex/new-headline.mp4"></video>
+                <video data-layer muted playsinline loop preload="auto" src="ex/split-screen.mp4"></video>
+                <video data-layer muted playsinline loop preload="auto" src="ex/breaking-news.mp4"></video>
+                <video data-layer muted playsinline loop preload="auto" src="ex/meme-pov.mp4"></video>
+                <span class="edge" data-edge></span>
+                <span class="badge" data-reading><span data-i="reading">Reading</span></span>
+                <span class="wm" data-wm>HOOKMILL PREVIEW</span>
+                <div class="lock" data-lock><span class="pad"></span><small data-i="unlock">Unlock to download</small></div>
+                <div class="hud" data-hud>
+                  <div class="track"><i data-trackfill></i></div>
+                  <div class="hud-row"><span>0:00</span><span data-i="hookSharp">hook sharp to 0:03</span></div>
+                </div>
+              </div>
+              <button class="ctl" id="ctl" data-state="playing" aria-label="Pause animation"><span class="ic-pause"><i></i><i></i></span><span class="ic-play"></span></button>
+              <div class="foot">
+                <span class="codes" aria-hidden="true"><b data-code>WINNER</b><b data-code>NEW-HEADLINE</b><b data-code>SPLIT-SCREEN</b><b data-code>BREAKING-NEWS</b><b data-code>MEME-POV</b></span>
+                <span class="chip info" data-i="preview">Preview</span>
+              </div>
+            </article>
+          </div>
+
+          <!-- 4. variation plan -->
+          <div class="slot s-plan">
+            <article class="cc">
+              <div class="lbl"><span data-i="plan">Variation plan</span> <span class="count"><span data-count>0</span> <span data-i="of">of</span> 4</span></div>
+              <div class="plan">
+                <div class="prow" data-prow><span class="box"><span class="chk"></span></span><img class="mini" src="ex/new-headline.jpg" alt=""><span class="code">NEW-HEADLINE</span><span class="chips2"><span class="chip free" data-i="free">Free</span></span></div>
+                <div class="prow" data-prow><span class="box"><span class="chk"></span></span><img class="mini" src="ex/split-screen.jpg" alt=""><span class="code">SPLIT-SCREEN</span><span class="chips2"><span class="chip free" data-i="free">Free</span></span></div>
+                <div class="prow" data-prow><span class="box"><span class="chk"></span></span><img class="mini" src="ex/breaking-news.jpg" alt=""><span class="code">BREAKING-NEWS</span><span class="chips2"><span class="chip free" data-i="free">Free</span></span></div>
+                <div class="prow" data-prow><span class="box"><span class="chk"></span></span><img class="mini" src="ex/meme-pov.jpg" alt=""><span class="code">MEME-POV</span><span class="chips2"><span class="chip free" data-i="free">Free</span><span class="chip pv" data-pv data-i="preview">Preview</span></span></div>
+                <div class="sub" data-i="withAi">With AI · paid plan</div>
+                <div class="prow"><span class="box"></span><span class="code off">AVATAR-FACE ×3</span><span class="why-s" data-i="newFaces">new faces</span></div>
+              </div>
+            </article>
+          </div>
+
+          <!-- 5. Meta publish template -->
+          <div class="slot s-meta">
+            <article class="cc on-ink">
+              <div class="lbl"><span style="display:flex;align-items:center;gap:8px"><span class="mf" aria-hidden="true">f</span><span data-i="publish">Publish template</span></span><span class="chip ok" data-i="default">Default</span></div>
+              <dl class="kv">
+                <dt data-i="budget">Budget</dt><dd data-i="budgetV">CBO · lowest cost</dd>
+                <dt data-i="adsets">Ad sets</dt><dd data-i="adsetsV">4 to 8 ads each</dd>
+                <dt data-i="status">Status</dt>
+                <dd><span class="roll"><span data-st-draft data-i="draft">Draft</span><span data-st-paused><span data-i="paused">Paused on Meta</span><span class="chip ok" data-okchip style="padding:3px 6px">OK</span></span></span></dd>
+              </dl>
+              <div class="adsets" role="img" data-ia="adsetsLabel" aria-label="Approved ads split into ad sets of 8 and 4">
+                <i><em data-adfill></em><span data-i="ads8">8 ads</span></i>
+                <i><em data-adfill></em><span data-i="ads4">4 ads</span></i>
+                <i><span data-i="next">next</span></i>
+              </div>
+            </article>
+          </div>
+
+          <!-- mobile only: 4-step rail (replaces Why + Plan + Publish) -->
+          <div class="rail" aria-live="off">
+            <div class="steps">
+              <div class="step" data-step><i></i><span data-i="r0">Read</span></div>
+              <div class="step" data-step><i></i><span data-i="r1">Batch</span></div>
+              <div class="step" data-step><i></i><span data-i="r2">Preview</span></div>
+              <div class="step" data-step><i></i><span data-i="r3">Paused</span></div>
+            </div>
+            <div class="rcap" id="rcap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="notes">
+  <h2>Storyboard do loop (14 s) · clique pra pular</h2>
+  <div class="board" id="board">
+    <button class="beat" data-go="0.2"><span class="bt">0,0–1,0 s</span><b>O vencedor entra</b><span>Barra do upload enche, chip READ chega.</span></button>
+    <button class="beat" data-go="1.6"><span class="bt">1,0–4,2 s</span><b>É lido</b><span>Gancho, prova e CTA acendem na ordem; playhead na régua.</span></button>
+    <button class="beat" data-go="5.9"><span class="bt">4,2–9,3 s</span><b>Vira lote</b><span>A mesma fala, 4 molduras; o plano marca 1 a 4.</span></button>
+    <button class="beat" data-go="9.9"><span class="bt">9,3–10,8 s</span><b>Prévia grátis</b><span>Nítido até 0:03, borra, cadeado.</span></button>
+    <button class="beat" data-go="12.4"><span class="bt">10,8–14 s</span><b>Pausado no Meta</b><span>Conjuntos 8 + 4 enchem; Draft vira Paused on Meta.</span></button>
+  </div>
+  <p class="small">No protótipo o celular toca 5 vídeos reais da galeria sincronizados e faz o wipe em CSS. Em produção é um vídeo só, renderizado no Remotion (composição HeroMill, 432×768, 30 fps, 14 s, sem texto de interface), e a timeline GSAP segue o tempo desse vídeo. "Reduzir" mostra o quadro de repouso (12,8 s): tudo no estado final, nada se mexe, o botão do celular vira Play.</p>
+  <h2>Por que híbrido</h2>
+  <div class="cmp">
+    <table>
+      <thead><tr><th></th><th>A · vídeo do hero inteiro</th><th>B · HTML + vários vídeos</th><th class="pick">C · híbrido (escolhido)</th></tr></thead>
+      <tbody>
+        <tr><td>Peso</td><td>2,5–4 MB pra texto nítido em retina</td><td>4–5 vídeos decodificando juntos</td><td class="pick">1 vídeo ≈ 0,6–0,9 MB + pôster 25 KB</td></tr>
+        <tr><td>EN / PT</td><td>2 renders a cada ajuste de copy</td><td>grátis</td><td class="pick">grátis: o vídeo não tem texto de interface</td></tr>
+        <tr><td>Acessível</td><td>texto queimado, leitor de tela não lê</td><td>texto real</td><td class="pick">texto real; vídeo decorativo; botão de pausa</td></tr>
+        <tr><td>Celular</td><td>UI encolhida ilegível</td><td>engasga em aparelho médio</td><td class="pick">1 vídeo + trilho de 4 etapas</td></tr>
+        <tr><td>Manutenção</td><td>Remotion a cada palavra</td><td>sincronia frágil entre vídeos</td><td class="pick">vídeo muda só se trocar os templates</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(function () {
+  const T = 14, W = [4.2, 5.7, 7.2, 8.7], REST = 12.8;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  /* ---------- copy ---------- */
+  const L = {
+    en: {
+      nav1: "How it works", nav2: "Examples", nav3: "Pricing", nav4: "Agencies",
+      eyebrow: "Video ads for any offer", titleA: "Your next ads,", titleB: "made from", mark: "the one that sells.",
+      sub: "Upload an ad that's working. HookMill reads why it works and turns it into a batch of new hooks, cuts and formats, ready to publish on Meta.",
+      cta: "Test it with your ad, free", agencies: "For agencies", note: "<b>4 variations</b> with preview, free. You pay only to unlock them.",
+      label: "What HookMill shows you (example)", winner: "Your winner", read: "Read", winnerMeta: "0:20 · speech · burned captions",
+      why: "Why it works", example: "Example", hook: "Hook", proof: "Proof", ctaL: "CTA",
+      whyHook: "Opens mid-thought: “Okay, I have to show you this.”", whyProof: "Names the trick: cancelling the subscriptions people forgot.", whyCta: "7-day free trial, said once and shown as text.",
+      reading: "Reading", unlock: "Unlock to download", hookSharp: "hook sharp to 0:03", preview: "Preview",
+      plan: "Variation plan", of: "of", free: "Free", withAi: "With AI · paid plan", newFaces: "new faces",
+      publish: "Publish template", default: "Default", budget: "Budget", budgetV: "CBO · lowest cost", adsets: "Ad sets", adsetsV: "4 to 8 ads each",
+      status: "Status", draft: "Draft", paused: "Paused on Meta", ads8: "8 ads", ads4: "4 ads", next: "next",
+      adsetsLabel: "Approved ads split into ad sets of 8 and 4", pause: "Pause animation", play: "Play animation", playPreview: "Play preview",
+      r0: "Read", r1: "Batch", r2: "Preview", r3: "Paused",
+      c0: "Reading your winner…", c0b: "<b>Hook, proof and CTA</b> found", c1: "<b>{n} of 4</b> variations, free", c2: "<b>Sharp to 0:03</b>, then locked", c3: "<b>Paused on Meta</b> until you turn it on"
+    },
+    pt: {
+      nav1: "Como funciona", nav2: "Exemplos", nav3: "Preços", nav4: "Agências",
+      eyebrow: "Anúncios em vídeo pra qualquer oferta", titleA: "Seus próximos anúncios,", titleB: "feitos a partir", mark: "do que já vende.",
+      sub: "Suba um anúncio que está funcionando. O HookMill lê por que ele funciona e transforma num lote de ganchos, cortes e formatos novos, prontos pra publicar no Meta.",
+      cta: "Teste com o seu anúncio, grátis", agencies: "Para agências", note: "<b>4 variações</b> com prévia, grátis. Você só paga pra liberar.",
+      label: "O que o HookMill mostra (exemplo)", winner: "Seu vencedor", read: "Lido", winnerMeta: "0:20 · fala · legenda queimada",
+      why: "Por que funciona", example: "Exemplo", hook: "Gancho", proof: "Prova", ctaL: "CTA",
+      whyHook: "Abre no meio da conversa: “Okay, I have to show you this.”", whyProof: "Mostra o truque: cancelar as assinaturas esquecidas.", whyCta: "Teste grátis de 7 dias, dito uma vez e mostrado em texto.",
+      reading: "Lendo", unlock: "Libere pra baixar", hookSharp: "gancho nítido até 0:03", preview: "Prévia",
+      plan: "Plano de variações", of: "de", free: "Grátis", withAi: "Com IA · plano pago", newFaces: "rostos novos",
+      publish: "Modelo de publicação", default: "Padrão", budget: "Orçamento", budgetV: "CBO · menor custo", adsets: "Conjuntos", adsetsV: "4 a 8 anúncios cada",
+      status: "Status", draft: "Rascunho", paused: "Pausado no Meta", ads8: "8 anúncios", ads4: "4 anúncios", next: "próximo",
+      adsetsLabel: "Anúncios aprovados divididos em conjuntos de 8 e 4", pause: "Pausar animação", play: "Tocar animação", playPreview: "Tocar prévia",
+      r0: "Lido", r1: "Lote", r2: "Prévia", r3: "Pausado",
+      c0: "Lendo o seu vencedor…", c0b: "<b>Gancho, prova e CTA</b> encontrados", c1: "<b>{n} de 4</b> variações, grátis", c2: "<b>Nítido até 0:03</b>, depois travado", c3: "<b>Pausado no Meta</b> até você ligar"
+    }
+  };
+  let lang = "en";
+  function applyLang() {
+    const d = L[lang];
+    $$("[data-i]").forEach(el => { const k = el.dataset.i; if (d[k] != null) el.textContent = d[k]; });
+    $$("[data-ih]").forEach(el => { el.innerHTML = d[el.dataset.ih]; });
+    $$("[data-ia]").forEach(el => el.setAttribute("aria-label", d[el.dataset.ia]));
+    document.documentElement.lang = lang === "en" ? "en" : "pt-BR";
+    syncCtl(); render(true);
+  }
+
+  /* ---------- timeline (mirrors production: paused, driven by the reel's time) ---------- */
+  const layers = $$("[data-layer]");
+  const codes = $$("[data-code]");
+  const rows = $$("[data-why]");
+  const prows = $$("[data-prow]");
+  const fills = $$("[data-adfill]");
+  const edge = $("[data-edge]");
+  gsap.set(codes.slice(1), { yPercent: 130 });
+  gsap.set($("[data-st-paused]"), { yPercent: 130 });
+  gsap.set(layers.slice(1), { clipPath: "inset(0% 100% 0% 0%)" });
+
+  const tl = gsap.timeline({ paused: true, defaults: { overwrite: false } });
+  tl.set(edge, { autoAlpha: 0 }, 0)
+    .fromTo(["[data-winbar]", "[data-winbar-m]"], { scaleX: 0 }, { scaleX: 1, duration: 0.9, ease: "power2.inOut" }, 0)
+    .fromTo(["[data-read]", "[data-read-m]"], { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 0.9)
+    .fromTo("[data-flash]", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 }, 0.9)
+    .to("[data-flash]", { autoAlpha: 0, duration: 0.45 }, 1.15)
+    .fromTo("[data-reading]", { autoAlpha: 0, y: -4 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: "power3.out" }, 1.0)
+    .to("[data-reading]", { autoAlpha: 0, duration: 0.25 }, 4.2)
+    .fromTo("[data-rulerfill]", { scaleX: 0 }, { scaleX: 1, duration: 3.2, ease: "none" }, 1.0);
+  [[1.0, 2.0], [2.0, 3.1], [3.1, 4.2]].forEach(([s, e], i) => {
+    const r = rows[i];
+    tl.fromTo($(".hl", r), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.25 }, s)
+      .to($(".hl", r), { autoAlpha: 0, duration: 0.25 }, e)
+      .fromTo($(".ul", r), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power3.out" }, s + 0.05)
+      .fromTo($(".tick", r), { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, e - 0.15);
+  });
+  W.forEach((ti, i) => {
+    const v = layers[i + 1], pr = prows[i];
+    tl.fromTo(v, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.45, ease: "power3.inOut" }, ti)
+      .fromTo(edge, { left: "0%", autoAlpha: 1 }, { left: "100%", duration: 0.45, ease: "power3.inOut", immediateRender: false }, ti)
+      .set(edge, { autoAlpha: 0 }, ti + 0.46)
+      .fromTo(codes[i], { yPercent: 0 }, { yPercent: -130, duration: 0.4, ease: "power3.in", immediateRender: false }, ti)
+      .fromTo(codes[i + 1], { yPercent: 130 }, { yPercent: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, ti + 0.15)
+      .fromTo($(".chk", pr), { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, ti + 0.1)
+      .fromTo($(".chip.free", pr), { autoAlpha: 0, x: -6 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: "power3.out" }, ti + 0.15)
+      .fromTo(pr, { backgroundColor: "rgba(200,240,60,0)" }, { backgroundColor: "rgba(200,240,60,0.22)", duration: 0.2 }, ti + 0.1)
+      .to(pr, { backgroundColor: "rgba(200,240,60,0)", duration: 0.7 }, ti + 0.6);
+  });
+  const free4 = $(".chip.free", prows[3]);
+  tl.fromTo("[data-pv]", { autoAlpha: 0 }, { autoAlpha: 0, duration: 0.01 }, 0)
+    .fromTo("[data-hud]", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, 8.7)
+    .fromTo("[data-trackfill]", { scaleX: 0 }, { scaleX: 0.12, duration: 0.6, ease: "none" }, 8.7)
+    .fromTo("[data-wm]", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, 8.7)
+    .fromTo(layers[4], { filter: "blur(0px)", scale: 1 }, { filter: "blur(12px)", scale: 1.06, duration: 0.35, ease: "power2.out" }, 9.3)
+    .fromTo("[data-lock]", { autoAlpha: 0, scale: 0.85 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 9.35)
+    .to(free4, { autoAlpha: 0, duration: 0.2 }, 9.35)
+    .to("[data-pv]", { autoAlpha: 1, duration: 0.25 }, 9.4)
+    .fromTo(fills[0], { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power3.out" }, 10.8)
+    .fromTo(fills[1], { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power3.out" }, 11.1)
+    .fromTo("[data-st-draft]", { yPercent: 0 }, { yPercent: -130, duration: 0.35, ease: "power3.in", immediateRender: false }, 11.6)
+    .fromTo("[data-st-paused]", { yPercent: 130 }, { yPercent: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 11.7)
+    .fromTo("[data-okchip]", { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 11.9)
+    /* 13.4: soft reset so the loop has no cut */
+    .to(layers.slice(1), { autoAlpha: 0, duration: 0.6, ease: "power2.inOut" }, 13.4)
+    .to(["[data-lock]", "[data-hud]", "[data-wm]", "[data-pv]", "[data-okchip]", "[data-read]", "[data-read-m]"], { autoAlpha: 0, duration: 0.4 }, 13.4)
+    .to([...$$(".chk"), ...$$(".tick"), ...$$(".chip.free")], { autoAlpha: 0, duration: 0.4 }, 13.4)
+    .to([...$$(".ul"), ...fills, "[data-rulerfill]", "[data-winbar]", "[data-winbar-m]"], { scaleX: 0, duration: 0.4, ease: "power2.inOut" }, 13.4)
+    .fromTo(codes[4], { yPercent: 0 }, { yPercent: -130, duration: 0.35, ease: "power3.in", immediateRender: false }, 13.45)
+    .fromTo(codes[0], { yPercent: 130 }, { yPercent: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 13.6)
+    .fromTo("[data-st-paused]", { yPercent: 0 }, { yPercent: 130, duration: 0.35, ease: "power3.in", immediateRender: false }, 13.45)
+    .fromTo("[data-st-draft]", { yPercent: -130 }, { yPercent: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 13.6)
+    .set({}, {}, T);
+
+  /* ---------- clock ---------- */
+  let t = 0, playing = true, reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, last = performance.now(), lastSync = 0;
+  const scrub = $("#scrub"), tnow = $("#tnow"), ctl = $("#ctl"), reel = $("#reel");
+
+  function seekVideos(sec) { layers.forEach(v => { try { v.currentTime = sec % 8; } catch (e) {} }); }
+  function playVideos(on) { layers.forEach(v => { if (on) { const p = v.play(); if (p) p.catch(() => {}); } else v.pause(); }); }
+
+  function railState() {
+    const d = L[lang], steps = $$("[data-step]");
+    let s, cap;
+    const n = W.filter(w => t >= w + 0.1).length;
+    if (t < 4.2) { s = 0; cap = t < 1.0 ? d.c0 : d.c0b; }
+    else if (t < 9.3) { s = 1; cap = d.c1.replace("{n}", n); }
+    else if (t < 10.8) { s = 2; cap = d.c2; }
+    else if (t < 13.4) { s = 3; cap = d.c3; }
+    else { s = -1; cap = d.c3; }
+    steps.forEach((el, i) => { el.classList.toggle("on", i === s); el.classList.toggle("done", s > i || s === -1); });
+    $("#rcap").innerHTML = cap;
+    $("[data-count]").textContent = t >= 13.45 ? 0 : n;
+  }
+  function render(force) {
+    tl.time(t, false);
+    reel.parentElement.classList.toggle("has-hud", t >= 8.7 && t < 13.6);
+    railState();
+    scrub.value = t.toFixed(2);
+    tnow.textContent = t.toFixed(2).replace(".", ",") + " s";
+    $$(".beat").forEach((b, i) => {
+      const st = [0, 1.0, 4.2, 9.3, 10.8][i], en = [1.0, 4.2, 9.3, 10.8, 14][i];
+      b.setAttribute("aria-current", t >= st && t < en ? "true" : "false");
+    });
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing && !reduce) {
+      const prev = t; t += dt;
+      if (t >= T) { t -= T; seekVideos(0); }
+      if (now - lastSync > 1000) {
+        lastSync = now; const base = layers[0].currentTime;
+        layers.slice(1).forEach(v => { if (Math.abs(v.currentTime - base) > 0.15) { try { v.currentTime = base; } catch (e) {} } });
+      }
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+  function syncCtl() {
+    const d = L[lang];
+    const isPlaying = playing && !reduce;
+    ctl.dataset.state = isPlaying ? "playing" : "paused";
+    ctl.setAttribute("aria-label", isPlaying ? d.pause : (reduce ? d.playPreview : d.play));
+    $("#tb-play").textContent = isPlaying ? "Pausar" : "Tocar";
+  }
+  function setPlaying(on) {
+    playing = on;
+    if (on && reduce) { reduce = false; setPressed("m-on", "m-off"); }
+    playVideos(playing && !reduce);
+    syncCtl();
+  }
+  function setReduce(on) {
+    reduce = on;
+    if (on) { playing = false; t = REST; seekVideos(1.0); playVideos(false); }
+    else { playing = true; playVideos(true); }
+    syncCtl(); render(true);
+  }
+  function setPressed(onId, offId) { $("#" + onId).setAttribute("aria-pressed", "true"); $("#" + offId).setAttribute("aria-pressed", "false"); }
+
+  ctl.addEventListener("click", () => setPlaying(!(playing && !reduce)));
+  $("#tb-play").addEventListener("click", () => setPlaying(!(playing && !reduce)));
+  scrub.addEventListener("input", () => { playing = false; playVideos(false); t = parseFloat(scrub.value); seekVideos(t); syncCtl(); render(true); });
+  $$(".beat").forEach(b => b.addEventListener("click", () => { t = parseFloat(b.dataset.go); seekVideos(t); if (!(playing && !reduce)) render(true); }));
+  $("#v-desk").addEventListener("click", () => { $("#stage").classList.remove("phone"); setPressed("v-desk", "v-phone"); });
+  $("#v-phone").addEventListener("click", () => { $("#stage").classList.add("phone"); setPressed("v-phone", "v-desk"); });
+  $("#l-en").addEventListener("click", () => { lang = "en"; setPressed("l-en", "l-pt"); applyLang(); });
+  $("#l-pt").addEventListener("click", () => { lang = "pt"; setPressed("l-pt", "l-en"); applyLang(); });
+  $("#m-on").addEventListener("click", () => { setPressed("m-on", "m-off"); setReduce(false); });
+  $("#m-off").addEventListener("click", () => { setPressed("m-off", "m-on"); setReduce(true); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) playVideos(false); else if (playing && !reduce) playVideos(true); });
+
+  if (reduce) { setPressed("m-off", "m-on"); setReduce(true); }
+  else { seekVideos(0); playVideos(true); }
+  applyLang();
+  requestAnimationFrame(frame);
+})();
+</script>

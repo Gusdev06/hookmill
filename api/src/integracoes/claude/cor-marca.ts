@@ -86,3 +86,56 @@ export function brandColorOf(ctaHex: string | null | undefined, themeHex: string
   if (themeHex) return { hex: themeHex, source: 'theme_color' };
   return null;
 }
+
+// ───────── lacunas-home-eddy-v1 §2 (31/10): 2ª cor da marca ─────────
+
+export type SecondColorSource = 'cta' | 'theme_color' | 'css';
+export interface SecondColorPick { hex: string; source: SecondColorSource }
+/** Distância RGB mínima entre a 1ª e a 2ª cor (abaixo disso é a mesma cor com outra sombra). */
+export const SECOND_COLOR_MIN_DIST = 60;
+
+/** Os grupos de cor dos CTAs, do mais pesado pro mais leve (a mesma quantização do `pickCtaColor`). */
+export function pickCtaColors(samples: readonly CtaColorSample[], max = 3): string[] {
+  const groups = new Map<string, { area: number; sum: [number, number, number] }>();
+  for (const s of samples) {
+    const c = parseCssColor(s.color);
+    if (!c || !isAccent(c) || !(s.area > 0)) continue;
+    const key = c.slice(0, 3).map((x) => x >> 4).join(',');
+    const g = groups.get(key) ?? { area: 0, sum: [0, 0, 0] };
+    g.area += s.area;
+    for (let i = 0; i < 3; i++) g.sum[i] += c[i] * s.area;
+    groups.set(key, g);
+  }
+  return [...groups.values()].sort((a, b) => b.area - a.area).slice(0, max).map((g) => toHex(g.sum.map((x) => Math.round(x / g.area))));
+}
+
+/** Nome de variável CSS que costuma carregar a cor da marca. */
+const BRAND_VAR = /^--(?:[\w-]*-)?(?:primary|secondary|accent|brand|main|highlight)(?:-color|-colour)?(?:-\d{2,3}|-base|-default)?$/i;
+
+/** Cores de destaque declaradas em variáveis CSS com nome de marca (`<style>` e `style=`), na ordem em que aparecem. */
+export function cssAccentColorsOf(html: string, max = 6): string[] {
+  const out: string[] = [];
+  const re = /(--[\w-]{2,60})\s*:\s*(#[0-9a-f]{3}\b|#[0-9a-f]{6}\b|rgba?\([^)]{5,40}\))/gi;
+  for (const m of html.slice(0, 600_000).matchAll(re)) {
+    if (!BRAND_VAR.test(m[1])) continue;
+    const c = parseCssColor(m[2]);
+    if (!c || !isAccent(c)) continue;
+    const hex = toHex(c);
+    if (!out.includes(hex)) out.push(hex);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+export function colorDistance(a: string, b: string): number {
+  const x = parseCssColor(a), y = parseCssColor(b);
+  if (!x || !y) return 0;
+  return Math.sqrt((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2);
+}
+
+/** A 1ª candidata (na ordem dada) longe o bastante da 1ª cor; sem 1ª cor = null (o web nunca mostra só a "segunda"). */
+export function secondColorOf(primary: string | null | undefined, candidates: readonly { hex: string | null | undefined; source: SecondColorSource }[]): SecondColorPick | null {
+  if (!primary) return null;
+  for (const c of candidates) if (c.hex && colorDistance(primary, c.hex) >= SECOND_COLOR_MIN_DIST) return { hex: c.hex.toUpperCase(), source: c.source };
+  return null;
+}

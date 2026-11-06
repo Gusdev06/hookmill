@@ -5,6 +5,8 @@ import { corDeDestaque } from './cores';
 import { METRIC_CHARS, METRIC_FONTS, METRIC_UNITS } from './metricas-fontes';
 import { CJK_EXCECOES, CJK_UNITS } from './metricas-cjk';
 import { captionsAutoSchema, outputProtectedBandSchema, protectedBandSchema } from './captionsSchema';
+import { brandLogoSchema } from './logo';
+import { frameReframeSchema } from './reframeSchema';
 
 // Molduras de vídeo (contrato docs/contratos/estatico-montado-e-molduras-v1.md §B2-§B4). Puro (sem React): a composição
 // `Moldura` (src/molduras/) e o buildFrameInput da API usam as mesmas funções. Promovido do protótipo aprovado em 25/10
@@ -204,6 +206,8 @@ export interface FitTextOptions {
   lineHeight?: number; uppercase?: boolean; letterSpacingEm?: number; step?: number;
   /** Noto do idioma (cjkDe(language)); só pesa se o texto tiver CJK */
   cjk?: CjkFont;
+  /** piso absoluto (px) no lugar do FRAME_MIN_FONT_PX: só os templates de lista (templates-lista-v1, 30/26 px) */
+  piso?: number;
 }
 export interface FittedText {
   /** texto original (com a marcação *destaque*) */
@@ -298,7 +302,8 @@ const quebrarCJK = (s: string, cabe: (t: string) => boolean) => {
  */
 export const fitText = (text: string, o: FitTextOptions): FittedText => {
   const lh = o.lineHeight ?? 1.12;
-  let min = Math.max(o.min, FRAME_MIN_FONT_PX);
+  const pisoAbs = o.piso ?? FRAME_MIN_FONT_PX;
+  let min = Math.max(o.min, pisoAbs);
   const max = Math.max(o.max, min);
   const visivel = textoVisivel(text);
   const corpo = o.uppercase ? visivel.toUpperCase() : visivel;
@@ -307,7 +312,7 @@ export const fitText = (text: string, o: FitTextOptions): FittedText => {
   // Os limites do contrato são em caracteres (calibrados no latino); o ideograma tem largura cheia (~2 letras), então
   // em CJK o mínimo do template cai pro mínimo geral de 36 px (legível; CJK é denso).
   const cjk = temCJK(corpo) && corpo.length === visivel.length;
-  if (cjk) min = FRAME_MIN_FONT_PX;
+  if (cjk) min = pisoAbs;
   const palavras = corpo.split(/\s+/).filter(Boolean);
   const tentar = (s: number): { linhas: string[]; partiu: boolean; ranges?: [number, number][] } => (cjk ? quebrarCJK(corpo, cabe(s)) : quebrar(palavras, cabe(s)));
   for (let s = max; s >= min; s -= o.step ?? 2) {
@@ -333,7 +338,10 @@ export type Rect = { x: number; y: number; w: number; h: number };
 export type Focus = { x: number; y: number };
 /** cover: `focus` (0-1 da contentBox) é o centro da janela; `scale` (≤ 1) = fração do zoom de cover (o rosto não coube:
  *  sobra fundo na cor da marca). `contain_blur` = legado (inputs antigos): vira o vídeo inteiro sobre a cor da marca. */
-export type FrameReframe = { mode: 'cover'; focus: Focus; scale?: number } | { mode: 'contain_blur'; focus?: Focus };
+export type FrameReframe = { mode: 'cover'; focus: Focus; scale?: number } | { mode: 'contain_blur'; focus?: Focus } | FrameReframeManual;
+/** Enquadramento manual do editor universal (F-U2, `video.framing`): `zoom` sobre a base (cover cobre a caixa; contain_blur
+ *  cabe, com o próprio vídeo desfocado atrás) e o centro da contentBox a `dx`/`dy` px do centro da caixa. Sem push-in. */
+export type FrameReframeManual = { mode: 'manual'; fit: 'cover' | 'contain_blur'; zoom: number; dx: number; dy: number };
 
 /** Rosto principal (px do arquivo): mediana dos trechos `main` do faceTrack, ponderada pela duração. */
 export const rostoPrincipal = (source: { width: number; height: number }, m: EditMapLike | null): { cx: number; cy: number; w: number; h: number } | null => {
@@ -442,6 +450,14 @@ export const pinturaNaCaixa = (box: { w: number; h: number }, source: { width: n
   const C = contentBox ?? { x: 0, y: 0, w: source.width, h: source.height };
   const cover = Math.max(box.w / C.w, box.h / C.h);
   const conter = Math.min(box.w / C.w, box.h / C.h);
+  if (r.mode === 'manual') {
+    const s = (r.fit === 'cover' ? cover : conter) * r.zoom;
+    const area = { left: box.w / 2 + r.dx - (C.w * s) / 2, top: box.h / 2 + r.dy - (C.h * s) / 2, w: C.w * s, h: C.h * s };
+    return {
+      area, video: { left: -C.x * s, top: -C.y * s, w: source.width * s, h: source.height * s }, s,
+      origem: { x: box.w / 2, y: box.h / 2 }, cheio: area.left <= 0.5 && area.top <= 0.5 && area.left + area.w >= box.w - 0.5 && area.top + area.h >= box.h - 0.5,
+    };
+  }
   const s = r.mode === 'cover' ? cover * (r.scale ?? 1) : conter;
   const focus = r.focus ?? { x: 0.5, y: 0.5 };
   const ww = box.w / s, wh = box.h / s; // janela, px da contentBox
@@ -474,11 +490,8 @@ export const faixasNaSaida = (bands: BurnedBand[] | undefined, source: { width: 
 
 // ───────────────────────── entrada de render ─────────────────────────
 
-const focusSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
-export const frameReframeSchema = z.discriminatedUnion('mode', [
-  z.object({ mode: z.literal('cover'), focus: focusSchema, scale: z.number().positive().max(1).optional() }),
-  z.object({ mode: z.literal('contain_blur'), focus: focusSchema.optional() }),
-]);
+const rectPxSchema = z.object({ x: z.number(), y: z.number(), w: z.number().positive(), h: z.number().positive() });
+export { frameReframeSchema };
 const fonteSchema = z.object({
   /** URL http(s) assinada; em dev, caminho relativo a public/ */
   videoUrl: z.string().min(1),
@@ -518,7 +531,8 @@ export const faceSourceSchema = z.discriminatedUnion('kind', [
 const frameDe = <K extends FrameTemplateId>(id: K) => z.object({
   id: z.literal(id), texts: frameTextsSchemas[id] as (typeof frameTextsSchemas)[K],
   /** = FrameBrand do contrato (backend preenche): nome = offer.name, handle = workspace normalizado, cor da marca */
-  brand: z.object({ name: z.string().min(1), handle: z.string().min(1), initials: z.string(), color: z.string() }),
+  brand: z.object({ name: z.string().min(1), handle: z.string().min(1), initials: z.string(), color: z.string(), logo: brandLogoSchema.nullable().optional() }),
+  // kit-marca-v1 §5: `logo` = logo do kit (URL assinada pela API); ausente/null = iniciais
 });
 const frameSchema = z.discriminatedUnion('id', [
   frameDe('question_box'), frameDe('meme'), frameDe('cinema'), frameDe('news'), frameDe('read_caption'), frameDe('pov_testimonial'),
@@ -544,6 +558,8 @@ export const molduraSchema = z.object({
     protectedBands: z.array(protectedBandSchema).optional(),
     /** Source pixels: preserve the main face when finding space for a template around burned-in captions. */
     faceSafeBand: z.object({ x: z.number(), y: z.number(), w: z.number().positive(), h: z.number().positive() }).optional(),
+    /** editor universal F-U2: rosto principal (px do arquivo), pro auto reframe numa caixa nova sem o editMap. A composição ignora. */
+    faceHint: z.object({ x: z.number(), y: z.number(), w: z.number().positive(), h: z.number().positive() }).optional(),
   }),
   second: secondSourceSchema.optional(),
   face: faceSourceSchema.optional(),
@@ -555,6 +571,15 @@ export const molduraSchema = z.object({
   captionMode: z.enum(['avoid', 'replace']).optional(),
   /** faixa da legenda no vídeo renderizado (checagem por visão); a composição ignora */
   outputProtectedBands: z.array(outputProtectedBandSchema).optional(),
+  /** editor universal v1 (F-U1, `resolverPropsMoldura`): caixas mexidas/escondidas pelo doc, px do canvas. `de` = caixa do
+   *  layout de hoje, `para` = caixa nova (null = só esconder). Ausente = o layout do template (render de hoje). */
+  edicao: z.object({
+    camadas: z.array(z.object({ id: z.string(), visible: z.boolean(), de: rectPxSchema, para: rectPxSchema.nullable() })),
+    /** F-U2: caixa/enquadramento mexidos. `video.reframe`/`contentBox` já vêm editados; o layout dos TEXTOS continua o da base
+     *  (`layoutReframe`/`layoutContentBox`: mexer no vídeo não reposiciona texto). `box` null = caixa do template; `boxBase` =
+     *  caixa do template (o post_card guarda o lugar do vídeo no cartão). */
+    video: z.object({ box: rectPxSchema.nullable(), boxBase: rectPxSchema, layoutReframe: frameReframeSchema, layoutContentBox: rectPxSchema.nullable() }).optional(),
+  }).optional(),
 });
 export type MolduraProps = z.infer<typeof molduraSchema>;
 export type SecondSourceProps = z.infer<typeof secondSourceSchema>;
@@ -1047,7 +1072,14 @@ export const textosQueNaoCouberam = (l: FrameLayout) => Object.entries(l.text).f
  * Layout da peça inteira (o que a composição desenha e o buildFrameInput valida): frameLayout com a imagem do slide
  * (call) e as faixas de legenda queimada do campeão já mapeadas pra saída (pelo reenquadramento da caixa do vídeo).
  */
-export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'frame' | 'video' | 'second' | 'captionMode'>): FrameLayout => {
+export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'frame' | 'video' | 'second' | 'captionMode'> & Partial<Pick<MolduraProps, 'edicao'>>): FrameLayout => {
+  const ev = p.edicao?.video;
+  if (ev) {
+    // editor F-U2: textos no layout da base (mesmo enquadramento de antes); só a caixa do vídeo muda
+    const { edicao: _e, ...sem } = p;
+    const L = layoutDaPeca({ ...sem, video: { ...p.video, reframe: ev.layoutReframe, contentBox: ev.layoutContentBox } });
+    return ev.box ? { ...L, videoBox: ev.box } : L;
+  }
   const id = p.frame.id;
   const texts = p.frame.texts as FrameTextsMap[typeof id];
   const base: FrameLayoutOptions = opcoesDeLayout(p.second);

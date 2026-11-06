@@ -1,0 +1,889 @@
+<title>HookMill Templates</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: HookMill app shell (ink sidebar + light main). Templates = gallery of 9:16 example videos; using one = Template → Ad → Plan → Generate → Download, with a sticky action bar.
+   Single light theme on purpose (same as the product, web/src/app/globals.css). Lime = the one action per screen, never a status. */
+:root {
+  --bg: #eeeeea; --card: #fdfdfb; --card-2: #f3f4f0; --field: #ffffff;
+  --line: #dcddd7; --line-soft: #e4e5e0; --line-strong: #cfd1cb;
+  --fg: #15171a; --fg-2: #3b4047; --fg-3: #5a6068;
+  --brand: #c8f03c; --brand-hover: #bde52f; --brand-ink: #3e5200; --brand-soft: #f0f8d2; --brand-edge: #a9cc2a;
+  --ink: #16181b; --ink-2: #202328; --ink-3: #2a2e33; --ink-line: #2e3238; --ink-fg: #f2f3ee; --ink-fg-2: #c5cad0; --ink-fg-3: #9aa1a9;
+  --ok-bg: #e2f3e8; --ok: #0b6b43; --ok-dot: #1c9a5e;
+  --warn-bg: #fbf0d3; --warn: #7a5000; --warn-edge: #e9c76b;
+  --bad-bg: #fbe7dd; --bad: #a8360c; --bad-edge: #e4b9a6;
+  --info-bg: #e6ebfc; --info: #2b4bc8; --info-edge: #c3cef6; --info-on-ink: #8fa6ff;
+  /* drawn example videos (placeholders) */
+  --th-sky: #8fb3c9; --th-sand: #d8c3a0; --th-sage: #9fb89a; --th-dusk: #6f6a8f; --th-clay: #c08a6a;
+  --th-skin: #c99b7c; --th-skin-2: #8d5f45; --th-hair: #3a2b22; --th-shirt: #3b4047;
+  --th-red: #d83a2a; --th-pink: #f2a7c3; --th-chat: #e9e9ef; --th-chat-b: #3d6cf0; --th-white: #ffffff;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r-chip: 8px; --r-ctl: 10px; --r-btn: 12px; --r-card: 16px; --r-panel: 18px;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased }
+button, input, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px }
+h1, h2, h3 { margin: 0; text-wrap: balance }
+h1 { font-size: 30px; line-height: 1.1; font-weight: 800; font-stretch: 125%; letter-spacing: -0.015em }
+h2 { font-size: 16px; font-weight: 700 }
+h3 { font-size: 14px; font-weight: 700 }
+p { margin: 0 }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3) }
+.num { font-variant-numeric: tabular-nums }
+.muted { color: var(--fg-3) }
+
+/* shell */
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh }
+.side { background: var(--ink); color: var(--ink-fg-2); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto }
+.logo { font-weight: 800; font-stretch: 112%; font-size: 17px; color: var(--ink-fg); padding: 4px 10px 14px; display: flex; gap: 8px; align-items: center }
+.logo i { width: 18px; height: 18px; border-radius: 5px; background: var(--brand); border: 1px solid var(--brand-edge) }
+.ws { margin: 0 4px 12px; padding: 8px 10px; border: 1px solid var(--ink-line); border-radius: var(--r-ctl); font-size: 13px; color: var(--ink-fg); display: flex; justify-content: space-between }
+.grp { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-fg-3); padding: 14px 10px 6px }
+.nav { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r-chip); border: 0; background: none; text-align: left; color: var(--ink-fg-2); min-height: 36px; width: 100% }
+.nav:hover { background: var(--ink-3) }
+.nav.on { background: var(--ink-3); color: var(--ink-fg); font-weight: 600 }
+.nav .new { margin-left: auto; font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 4px; background: var(--brand); color: var(--fg) }
+.side .foot { margin-top: auto; display: grid; gap: 8px; padding-top: 14px }
+.meter { border: 1px solid var(--ink-line); border-radius: var(--r-ctl); padding: 10px; display: grid; gap: 6px; font-size: 12px }
+.meter b { color: var(--ink-fg); font-size: 18px; font-weight: 800; font-stretch: 112% }
+.meter .bar { height: 4px; background: var(--ink-3); border-radius: 4px; overflow: hidden }
+.meter .bar i { display: block; height: 100%; background: var(--ink-fg-2) }
+.meter button { background: none; border: 1px solid var(--ink-line); color: var(--ink-fg); border-radius: var(--r-chip); padding: 6px 8px; font-size: 12px }
+.topbar { display: none }
+
+.main { min-width: 0; display: flex; flex-direction: column }
+.proto { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--warn-bg); border-bottom: 1px solid var(--warn-edge); font-size: 12px; color: var(--warn) }
+.proto b { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase }
+.proto label { display: inline-flex; gap: 6px; align-items: center }
+.proto select { border: 1px solid var(--warn-edge); background: var(--card); border-radius: var(--r-chip); padding: 4px 6px; font-size: 12px; max-width: 200px }
+.view { padding-block: 24px 120px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 1240px }
+
+/* buttons, chips */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 14px; border-radius: var(--r-btn); border: 1px solid var(--line-strong); background: var(--card); font-weight: 600; font-size: 13px; color: var(--fg); white-space: nowrap }
+.btn:hover { background: var(--card-2) }
+.btn.lime { background: var(--brand); border-color: var(--brand-edge); color: var(--fg) }
+.btn.lime:hover { background: var(--brand-hover) }
+.btn.ghost { border-color: transparent; background: none; color: var(--fg-2) }
+.btn.ink { background: var(--fg); border-color: var(--fg); color: var(--card) }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.btn.sm { min-height: 34px; padding: 6px 10px; font-size: 12px; border-radius: var(--r-ctl) }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--card-2); color: var(--fg-2); white-space: nowrap }
+.pill.cr { background: var(--card); border-color: var(--line-strong); color: var(--fg) }
+.pill.ai { background: var(--ink); border-color: var(--ink); color: var(--ink-fg) }
+.pill.ok { background: var(--ok-bg); border-color: transparent; color: var(--ok) }
+.pill.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn) }
+.pill.bad { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad) }
+.pill.info { background: var(--info-bg); border-color: var(--info-edge); color: var(--info) }
+.pill.beta { border-style: dashed }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--fg-3) }
+.dot.prog { background: var(--info); box-shadow: 0 0 0 3px var(--info-bg); animation: pulse 1.6s ease-in-out infinite }
+.dot.okd { background: var(--ok-dot) }
+
+/* library header */
+.lhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap }
+.lhead .t { display: grid; gap: 6px; min-width: 0 }
+.lhead .t p { color: var(--fg-2); max-width: 62ch }
+.bal { display: flex; gap: 8px; align-items: center }
+.bal .n { display: grid; text-align: right; font-size: 12px; color: var(--fg-3) }
+.bal .n b { font-size: 20px; font-weight: 800; font-stretch: 112%; color: var(--fg); line-height: 1 }
+.sample { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--ink); color: var(--ink-fg); border-radius: var(--r-card); padding: 14px 16px }
+.sample p { color: var(--ink-fg-2); font-size: 13px }
+.sample .ticks { display: flex; gap: 4px }
+.sample .ticks i { width: 22px; height: 6px; border-radius: 3px; background: var(--brand) }
+.sample .ticks i.used { background: var(--ink-3) }
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.search { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; background: var(--field); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); padding: 0 12px; min-height: 40px; max-width: 420px }
+.search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; font-size: 14px }
+.search:focus-within { outline: 2px solid var(--info); outline-offset: 1px }
+.tabs { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; background: var(--card) }
+.tabs button { border: 0; background: none; padding: 8px 14px; font-weight: 600; font-size: 13px; color: var(--fg-2); min-height: 38px }
+.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--card) }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px }
+.chips::-webkit-scrollbar { display: none }
+.chip { border: 1px solid var(--line); background: var(--card); border-radius: 99px; padding: 6px 12px; font-size: 13px; color: var(--fg-2); white-space: nowrap; min-height: 34px }
+.chip[aria-pressed="true"] { border-color: var(--fg); color: var(--fg); font-weight: 600; box-shadow: inset 0 0 0 1px var(--fg) }
+.chip small { font-family: var(--mono); font-size: 10px; color: var(--fg-3); margin-left: 4px }
+.sect { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 4px; flex-wrap: wrap }
+.sect .eyebrow b { color: var(--fg) }
+
+/* grid of templates */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px }
+.tcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px; display: flex; flex-direction: column; gap: 10px; min-width: 0; text-align: left; cursor: pointer }
+.tcard:hover { border-color: var(--line-strong) }
+.tcard:hover .vid .play { opacity: 1 }
+.tcard .body { display: grid; gap: 6px; padding: 0 4px 2px; min-width: 0 }
+.tcard .nm { display: flex; justify-content: space-between; gap: 8px; align-items: center }
+.tcard .nm b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.tcard .ds { font-size: 12.5px; color: var(--fg-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 3.9em }
+.tcard .ft { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 4px 4px }
+.tcard .ft .u { font-size: 11px; color: var(--fg-3); font-family: var(--mono) }
+.tcard.off { cursor: default }
+.tcard.off .vid { filter: saturate(.3); opacity: .7 }
+.tcard.nofit .vid::after { content: ""; position: absolute; inset: 0; background: rgba(238, 238, 234, .55) }
+.fit { font-size: 11.5px; display: flex; gap: 5px; align-items: center }
+.fit.y { color: var(--ok) } .fit.n { color: var(--warn) }
+
+/* the auto pack card */
+.pack { grid-column: span 2; background: var(--ink); color: var(--ink-fg); border-color: var(--ink); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; padding: 14px }
+.pack .stack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-content: start }
+.pack .stack .vid { border-radius: 8px }
+.pack .txt { display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+.pack .txt p { color: var(--ink-fg-2); font-size: 13px }
+.pack .txt ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 12.5px; color: var(--ink-fg-2) }
+.pack .txt li { display: flex; gap: 8px }
+.pack .txt li::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--brand); margin-top: 6px; flex: none }
+.pack .pill { background: var(--ink-3); border-color: var(--ink-line); color: var(--ink-fg) }
+.pack .btn { margin-top: auto; align-self: flex-start; background: var(--ink-2); border-color: var(--ink-line); color: var(--ink-fg) }
+
+/* drawn example video */
+.vid { position: relative; aspect-ratio: 9 / 16; width: 100%; max-width: 100%; border-radius: 10px; overflow: hidden; background: var(--th-sky); isolation: isolate }
+.vid .ph { position: absolute; top: 7px; left: 7px; z-index: 5; font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em; background: rgba(22, 24, 27, .78); color: var(--ink-fg); padding: 2px 5px; border-radius: 4px }
+.vid .asp { position: absolute; top: 7px; right: 7px; z-index: 5; font-family: var(--mono); font-size: 9px; background: rgba(255, 255, 255, .88); color: var(--fg); padding: 2px 5px; border-radius: 4px }
+.vid .play { position: absolute; z-index: 6; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(22, 24, 27, .62); display: grid; place-items: center; opacity: .0; transition: opacity .15s }
+.vid .play::after { content: ""; border-left: 13px solid var(--th-white); border-top: 8px solid transparent; border-bottom: 8px solid transparent; margin-left: 3px }
+.vid .prog { position: absolute; z-index: 5; left: 7px; right: 7px; bottom: 7px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .3); overflow: hidden }
+.vid .prog i { display: block; height: 100%; background: var(--th-white); transform-origin: left; animation: tick 9s linear infinite }
+.sc { position: absolute; inset: 0; background: linear-gradient(180deg, var(--th-sky), var(--th-sand)) }
+.sc.b { background: linear-gradient(180deg, var(--th-sage), var(--th-sand)) }
+.sc.c { background: linear-gradient(180deg, var(--th-dusk), var(--th-clay)) }
+.pp { position: absolute; left: 50%; bottom: 0; width: 62%; aspect-ratio: 3 / 4; transform: translateX(-50%) }
+.pp i { position: absolute; display: block }
+.pp .hr { inset: 0 12% 60%; border-radius: 50% 50% 22% 22%; background: var(--th-hair) }
+.pp .h { inset: 8% 18% 36%; border-radius: 48% 48% 44% 44%; background: var(--th-skin) }
+.pp .bd { left: 0; right: 0; bottom: 0; height: 36%; border-radius: 40% 40% 0 0; background: var(--th-shirt) }
+.pp.alt .h { background: var(--th-skin-2) } .pp.alt .hr { inset: 2% 20% 66%; border-radius: 50% }
+.cap { position: absolute; z-index: 3; left: 8%; right: 8%; bottom: 13%; text-align: center; font-weight: 800; font-size: 11px; color: var(--th-white); text-shadow: 0 1px 3px rgba(0,0,0,.7); line-height: 1.15 }
+.k { position: absolute; z-index: 3; font-weight: 800; line-height: 1.12 }
+.k em { font-style: normal }
+.box-w { background: var(--th-white); color: var(--fg); border-radius: 6px; padding: 6px 7px; font-size: 10.5px }
+.ink-box { background: var(--ink); color: var(--ink-fg) }
+.bub { max-width: 80%; padding: 5px 8px; border-radius: 11px; font-size: 9.5px; line-height: 1.25; font-weight: 500 }
+.bub.in { background: var(--th-chat); color: var(--fg); align-self: flex-start }
+.bub.out { background: var(--th-chat-b); color: var(--th-white); align-self: flex-end }
+
+/* step bar */
+.flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px }
+.flow span { display: inline-flex; gap: 6px; align-items: center; color: var(--fg-3); padding: 4px 10px 4px 4px; border-radius: 99px; border: 1px solid var(--line) }
+.flow span i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-family: var(--mono); font-size: 10px; background: var(--card-2); color: var(--fg-3) }
+.flow span.done { color: var(--fg-2); background: var(--card) } .flow span.done i { background: var(--fg); color: var(--card) }
+.flow span.cur { color: var(--fg); font-weight: 600; border-color: var(--fg) } .flow span.cur i { background: var(--brand); color: var(--fg) }
+.flow .sep { width: 10px; height: 1px; background: var(--line-strong); border: 0; padding: 0 }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.panel { background: var(--ink); color: var(--ink-fg); border-radius: var(--r-panel); padding: 18px; display: grid; gap: 14px; position: sticky; top: 16px }
+.panel .eyebrow { color: var(--ink-fg-3) }
+.panel .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink-fg-2) }
+.panel .row b { color: var(--ink-fg); font-weight: 600; text-align: right }
+.panel hr { border: 0; border-top: 1px solid var(--ink-line); margin: 0; width: 100% }
+.panel .total { display: flex; justify-content: space-between; align-items: baseline }
+.panel .total b { font-size: 26px; font-weight: 800; font-stretch: 112%; color: var(--ink-fg) }
+.panel .small { font-size: 12px; color: var(--ink-fg-3) }
+.panel .after { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-fg-2) }
+.panel .after b { color: var(--ink-fg) }
+.panel .after.low b { color: var(--warn-edge) }
+
+/* detail sheet */
+.scrim { position: fixed; inset: 0; background: rgba(22, 24, 27, .5); z-index: 40; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+.sheet { background: var(--card); border-radius: var(--r-panel); width: min(860px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 22px; padding: 20px; position: relative }
+.sheet .x { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 18px; line-height: 1 }
+.sheet .info { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding-top: 6px }
+.kv { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 12px; font-size: 13px }
+.kv dt { color: var(--fg-3) } .kv dd { margin: 0 }
+.needs { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px }
+.needs li { display: flex; gap: 8px; align-items: center }
+.needs li::before { content: ""; width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--fg-3); flex: none }
+.sheet .act { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line) }
+
+/* source picker */
+.srcrow { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); text-align: left; width: 100% }
+.srcrow:hover { border-color: var(--line-strong) }
+.srcrow[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg) }
+.srcrow .vid { border-radius: 6px }
+.srcrow .vid .ph, .srcrow .vid .asp, .srcrow .vid .prog { display: none }
+.srcrow .m { display: grid; gap: 3px; min-width: 0 }
+.srcrow .m b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.srcrow .m span { font-size: 12px; color: var(--fg-3) }
+.srcrow .r { display: grid; gap: 4px; justify-items: end; font-size: 12px }
+.list { display: grid; gap: 8px }
+.drop { border: 1.5px dashed var(--line-strong); border-radius: var(--r-card); padding: 28px 16px; text-align: center; display: grid; gap: 8px; justify-items: center; color: var(--fg-2); background: var(--card) }
+
+/* waiting */
+.wait { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: start }
+.orb { width: 56px; height: 56px; position: relative; flex: none }
+.orb i { position: absolute; inset: 0; border-radius: 50%; mix-blend-mode: multiply; animation: orb 3.2s ease-in-out infinite }
+.orb i:nth-child(1) { background: radial-gradient(circle at 35% 35%, var(--fg-3) 0, rgba(90,96,104,.35) 30%, transparent 62%) }
+.orb i:nth-child(2) { background: radial-gradient(circle at 65% 45%, var(--info) 0, rgba(43,75,200,.3) 30%, transparent 60%); animation-delay: -1s; animation-duration: 2.6s }
+.orb i:nth-child(3) { background: radial-gradient(circle at 45% 70%, var(--brand) 0, var(--brand-edge) 30%, transparent 60%); animation-delay: -2s; animation-duration: 3.8s }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px }
+.steps li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13.5px }
+.steps li .ic { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line-strong) }
+.steps li.done .ic { background: var(--ok-dot); border-color: var(--ok-dot) }
+.steps li.run .ic { border-color: var(--info); border-top-color: transparent; animation: spin 1s linear infinite }
+.steps li.todo { color: var(--fg-3) }
+.steps li small { font-family: var(--mono); font-size: 11px; color: var(--fg-3) }
+.bar { height: 6px; background: var(--card-2); border-radius: 6px; overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--info); border-radius: 6px }
+.beam { position: relative }
+.beam::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; background: conic-gradient(from var(--a), transparent 0 70%, var(--brand) 82%, var(--info) 92%, transparent 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); animation: beam 2.4s linear infinite; pointer-events: none; z-index: 8 }
+
+/* plan */
+.plan2 { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 18px; align-items: start }
+.field { display: grid; gap: 5px }
+.field label { font-size: 12px; color: var(--fg-3); display: flex; justify-content: space-between }
+.field input, .field textarea { width: 100%; border: 1px solid var(--line-strong); background: var(--field); border-radius: var(--r-ctl); padding: 9px 11px; font-size: 14px; resize: vertical }
+.src-tag { font-family: var(--mono); font-size: 10px; color: var(--fg-3) }
+.banner { border-radius: var(--r-card); padding: 14px 16px; display: grid; gap: 10px; border: 1px solid }
+.banner.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn) }
+.banner.warn p { color: var(--fg-2) }
+.banner .acts { display: flex; gap: 8px; flex-wrap: wrap }
+.faces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+.face-c { border: 1px solid var(--line); border-radius: 12px; padding: 6px; display: grid; gap: 6px; background: var(--card); font-size: 12px }
+.face-c .vid { border-radius: 8px; aspect-ratio: 3 / 4 }
+.face-c .vid .asp, .face-c .vid .prog { display: none }
+.face-c .r { display: flex; justify-content: space-between; align-items: center; gap: 6px }
+.face-c button { border: 1px solid var(--line); background: var(--card); border-radius: 8px; font-size: 11px; padding: 4px 8px; min-height: 30px }
+.pick { display: grid; gap: 6px }
+.pick label { display: grid; grid-template-columns: 22px 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); font-size: 13px }
+.pick label.sugg { border-style: dashed }
+.pick input { width: 18px; height: 18px; accent-color: var(--fg) }
+.pick .vid { border-radius: 5px }
+.pick .vid .ph, .pick .vid .asp, .pick .vid .prog { display: none }
+.pick .m { display: grid; min-width: 0 } .pick .m span { font-size: 12px; color: var(--fg-3) }
+
+/* ready */
+.stage { background: var(--ink); border-radius: var(--r-panel); padding: 18px; display: grid; place-items: center; min-height: 420px }
+.stage .vid { width: min(320px, 100%); border-radius: 12px }
+.stage .vid .play { opacity: 1 }
+.lockv .sc, .lockv .k, .lockv .pp, .lockv .cap { filter: blur(7px) }
+.lockv .lk { position: absolute; z-index: 7; inset: 0; display: grid; place-items: center; align-content: center; gap: 8px; color: var(--ink-fg); font-weight: 700; text-align: center; padding: 16px }
+.rail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+.mini { border: 1px solid var(--line); border-radius: 12px; padding: 6px; display: grid; gap: 6px; background: var(--card); text-align: left; font-size: 12px }
+.mini .vid { border-radius: 8px }
+.mini .vid .ph, .mini .vid .prog { display: none }
+.mini b { font-size: 12.5px }
+
+/* buy */
+.packs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.copyrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--card-2); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 8px 10px; font-family: var(--mono); font-size: 13px }
+.copyrow span { user-select: all }
+
+/* admin */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--card) }
+.tbl table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px }
+.tbl th { text-align: left; font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--line) }
+.tbl td { padding: 10px 12px; border-top: 1px solid var(--line-soft); vertical-align: middle }
+.tbl tr:first-child td { border-top: 0 }
+.tbl .vid { width: 36px; border-radius: 5px }
+.tbl .vid .ph, .tbl .vid .asp, .tbl .vid .prog { display: none }
+.tbl .empty-v { width: 36px; aspect-ratio: 9/16; border-radius: 5px; border: 1.5px dashed var(--line-strong); background: var(--card-2) }
+.tbl input { width: 54px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 7px; background: var(--field) }
+
+/* sticky action bar */
+.abar { position: fixed; bottom: 0; right: 0; left: 232px; z-index: 30; background: var(--card); border-top: 1px solid var(--line); padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; gap: 10px; align-items: center }
+.abar .hint { margin-right: auto; font-size: 13px; color: var(--fg-2); min-width: 0 }
+.abar .hint b { color: var(--fg) }
+.empty { border: 1px dashed var(--line-strong); border-radius: var(--r-card); padding: 36px 16px; text-align: center; display: grid; gap: 8px; justify-items: center; color: var(--fg-2) }
+.sk { display: block; background: linear-gradient(90deg, var(--card-2) 0%, var(--line-soft) 50%, var(--card-2) 100%); background-size: 200% 100%; animation: sk 1.4s linear infinite; border-radius: 6px }
+.toast { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--ink-fg); padding: 10px 14px; border-radius: 10px; font-size: 13px }
+
+@property --a { syntax: "<angle>"; initial-value: 0deg; inherits: false }
+@keyframes beam { to { --a: 360deg } }
+@keyframes orb { 0%, 100% { transform: rotate(0) scale(1) } 50% { transform: rotate(180deg) scale(.86) } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes tick { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+@keyframes sk { to { background-position: -200% 0 } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px transparent } }
+
+@media (max-width: 1000px) { .cols { grid-template-columns: minmax(0, 1fr) } .panel { position: static } .pack { grid-column: 1 / -1 } }
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr) }
+  .side { position: fixed; z-index: 45; left: 0; top: 0; bottom: 0; width: 260px; height: auto; transform: translateX(-100%); transition: transform .2s; padding-top: calc(18px + env(safe-area-inset-top, 0px)) }
+  .side.open { transform: none }
+  .topbar { display: flex; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; height: 56px; align-items: center; gap: 10px; background: var(--ink); color: var(--ink-fg); padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)) }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ink) }
+  .topbar .mb { width: 44px; height: 44px; border: 0; background: none; color: var(--ink-fg); font-size: 20px }
+  .topbar .logo { padding: 0; font-size: 16px }
+  .topbar .cr { margin-left: auto; font-family: var(--mono); font-size: 12px; border: 1px solid var(--ink-line); border-radius: 8px; padding: 5px 8px; background: none; color: var(--ink-fg); min-height: 36px }
+  h1 { font-size: 24px }
+  .view { padding-block: 18px 130px }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+  .tcard { padding: 6px; gap: 8px }
+  .tcard .ds { -webkit-line-clamp: 2; min-height: 2.6em; font-size: 12px }
+  .tcard .ft .u { display: none }
+  .tcard .ft .btn { flex: 1 }
+  .pack { grid-template-columns: minmax(0, 1fr) }
+  .pack .stack { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .search { max-width: none }
+  .tools .tabs { width: 100% } .tools .tabs button { flex: 1 }
+  .lhead .bal { display: none }
+  .sheet { grid-template-columns: minmax(0, 1fr); padding: 16px; max-height: calc(100vh - 24px) }
+  .sheet .vid { max-width: 230px; margin: 0 auto }
+  .scrim { padding: 8px; align-items: end }
+  .plan2 { grid-template-columns: minmax(0, 1fr) }
+  .plan2 > .vid { max-width: 220px; margin: 0 auto }
+  .abar { left: 0 }
+  .abar .hint { font-size: 12px }
+  .abar .btn.ghost { display: none }
+  .rail { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .packs { grid-template-columns: minmax(0, 1fr) }
+  .stage { min-height: 0; padding: 12px }
+  .flow span { padding-right: 8px } .flow span em { display: none } .flow span.cur em { display: inline }
+  .srcrow { grid-template-columns: 44px minmax(0, 1fr) }
+  .srcrow .r { grid-column: 2; justify-items: start; display: flex; gap: 6px; flex-wrap: wrap }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition: none !important }
+}
+</style>
+
+<div class="app">
+  <aside class="side" id="side" aria-label="HookMill navigation">
+    <div class="logo"><i></i>HookMill</div>
+    <div class="ws"><span>Sleepwell</span><span aria-hidden="true">⌄</span></div>
+    <div class="grp">Workspace</div>
+    <button class="nav" type="button">Home</button>
+    <button class="nav" type="button">Campaigns</button>
+    <button class="nav" type="button">Eddy</button>
+    <button class="nav" type="button">Brain</button>
+    <div class="grp">Make ads</div>
+    <button class="nav on" type="button" data-go="library">Templates <span class="new">NEW</span></button>
+    <button class="nav" type="button">New concepts</button>
+    <button class="nav" type="button">Review</button>
+    <button class="nav" type="button">Library</button>
+    <div class="foot">
+      <div class="meter">
+        <span>Credits</span>
+        <b class="num" id="sideBal">42</b>
+        <div class="bar"><i id="sideBar" style="width:42%"></i></div>
+        <button type="button" data-go="buy">Get credits</button>
+      </div>
+      <button class="nav" type="button">Settings</button>
+      <button class="nav" type="button" data-go="admin">Admin · Templates</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="mb" type="button" id="menuBtn" aria-label="Open menu">≡</button>
+      <div class="logo">HookMill</div>
+      <button class="cr" type="button" data-go="buy" id="topBal">42 credits</button>
+    </header>
+
+    <div class="proto" role="region" aria-label="Mockup controls">
+      <b>Mockup</b>
+      <label for="pScreen">Screen
+        <select id="pScreen">
+          <option value="library">1 · Templates</option>
+          <option value="detail">2 · Template detail</option>
+          <option value="source">3 · Pick your ad</option>
+          <option value="reading">4 · Reading your ad</option>
+          <option value="plan">5 · Plan + cost</option>
+          <option value="planai">5b · Plan, AI template</option>
+          <option value="planauto">5c · Plan, Let HookMill pick</option>
+          <option value="generating">6 · Generating</option>
+          <option value="ready">7 · Download</option>
+          <option value="buy">Get credits</option>
+          <option value="admin">Admin · catalog</option>
+        </select>
+      </label>
+      <label for="pState">State
+        <select id="pState">
+          <option value="normal">Normal (42 credits)</option>
+          <option value="incompat">Template doesn't fit the ad</option>
+          <option value="nocredits">Not enough credits</option>
+          <option value="sample">Free sample (new account)</option>
+          <option value="loading">Library loading</option>
+        </select>
+      </label>
+      <span>Example videos are drawn placeholders. Gusta uploads the real ones in Admin.</span>
+    </div>
+
+    <main class="view" id="view"></main>
+  </div>
+</div>
+<div id="layer"></div>
+
+<script>
+(function () {
+  var TPL = [
+    { id: 'news', name: 'Breaking news', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'news', uses: 34,
+      desc: 'Your ad plays inside a news broadcast. The headline is written from your promise and proof.', needs: [] },
+    { id: 'meme', name: 'Meme POV', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'meme', uses: 51,
+      desc: '"POV:" caption on top of your ad, written from the pain your buyer feels.', needs: [] },
+    { id: 'post', name: 'Post card', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'post', uses: 22,
+      desc: 'Your hook as a social post, your ad below it. No verified badge, no made-up numbers.', needs: [] },
+    { id: 'question', name: 'Question box', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'question', uses: 18,
+      desc: 'A question sticker with the question your ad answers, your creator answering it.', needs: ['A face in the video'], fit: 'face' },
+    { id: 'ranking', name: 'Top 5', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'ranking', uses: 12,
+      desc: 'A ranking built only from what your Brain says: pains, promise and proof.', needs: ['3 or more points in the Brain'] },
+    { id: 'live', name: 'Live', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'live', uses: 9,
+      desc: 'Your ad framed as a live broadcast, with your handle and limited comments.', needs: [] },
+    { id: 'split', name: 'Split screen', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'split', uses: 27,
+      desc: 'Your creator on top. Below, stock footage that shows what she is saying.', needs: ['A face in the video'], fit: 'face' },
+    { id: 'gossip', name: 'Gossip page', cat: 'frames', tier: 'edit', cr: 1, out: '1 video', kind: 'gossip', uses: 15,
+      desc: 'Your ad as a post from a gossip page, with a headline that teases the promise.', needs: ['A face in the video'], fit: 'face' },
+    { id: 'headline', name: 'New headline', cat: 'headline', tier: 'edit', cr: 1, out: '3 videos', kind: 'headline', uses: 63,
+      desc: 'Same video, three new written hooks over the first 3 seconds. Everything else stays.', needs: [] },
+    { id: 'search', name: 'Native search', cat: 'headline', tier: 'edit', cr: 1, out: '1 video', kind: 'search', uses: 8,
+      desc: 'Opens on a search bar typing the problem your hook names, then cuts to your ad.', needs: ['A hook that names a problem'] },
+    { id: 'cut', name: 'Short cuts', cat: 'cuts', tier: 'edit', cr: 1, out: '2 videos', kind: 'cut', uses: 30,
+      desc: '15 s and 20 s versions that keep your hook, your proof and your call to action.', needs: ['Video 25 s or longer'] },
+    { id: 'cold', name: 'Cold open', cat: 'cuts', tier: 'edit', cr: 1, out: '1 video', kind: 'cold', uses: 11,
+      desc: 'Starts on the strongest moment of your ad, then goes back to the hook.', needs: ['A proof or reaction after 0:05'] },
+    { id: 'endcard', name: 'Offer end card', cat: 'cuts', tier: 'edit', cr: 1, out: '1 video', kind: 'endcard', uses: 14,
+      desc: 'Adds an end card with your offer, guarantee or price, taken from the Brain.', needs: ['Offer or price in the Brain'] },
+    { id: 'chat', name: 'Chat DM', cat: 'chat', tier: 'edit', cr: 1, out: '1 video', kind: 'chat', uses: 40,
+      desc: 'Your ad turned into a Direct conversation: a buyer asks, the brand answers. No person, no voice.', needs: ['Speech in the video'] },
+    { id: 'pm', name: 'Person + motion', cat: 'chat', tier: 'edit', cr: 1, out: '1 video', kind: 'pm', uses: 37,
+      desc: 'Your own creator in a box below, your promise animated above in sync with what she says.', needs: ['A face in the video', 'Speech, 15 s or longer', 'Face clear of burned-in captions'], fit: 'captions' },
+    { id: 'static', name: 'Static ad', cat: 'static', tier: 'edit', cr: 2, out: '1 image', kind: 'static', uses: 19,
+      desc: 'A new image ad made from your Brain, using your ad as reference. 9:16, 4:5 and 1:1.', needs: [] },
+    { id: 'face', name: 'New face', cat: 'avatar', tier: 'ai', cr: 8, out: '3 videos', kind: 'face', uses: 21,
+      desc: 'Same video, same voice, same edit. Only the face changes, three times.', needs: ['A face in the video', 'Speech in the video'], fit: 'face' },
+    { id: 'persona', name: 'New persona', cat: 'persona', tier: 'ai', cr: 9, out: '3 videos', kind: 'persona', uses: 13,
+      desc: 'Three different people in their own settings say your script, each opening adapted to them.', needs: ['Audience in the Brain'] },
+    { id: 'discovery', name: 'Found it by accident', cat: 'remix', tier: 'ai', cr: 6, out: '1 video + 2 hooks', kind: 'discovery', uses: 6,
+      desc: 'Phone-in-hand discovery format. New script from your ad, a generated person, two extra hooks.', needs: ['Speech in the video', 'A promise or proof'] },
+    { id: 'podcast', name: 'Podcast clip', cat: 'remix', tier: 'ai', cr: null, out: '1 video + 2 hooks', kind: 'podcast', uses: 0, beta: true,
+      desc: 'A host asks, a guest answers. Opens after our quality test.', needs: [] }
+  ];
+  var CATS = {
+    edit: [['frames', 'Frames'], ['headline', 'Headline & hooks'], ['cuts', 'Cuts'], ['chat', 'Chat DM & motion'], ['static', 'Static']],
+    ai: [['avatar', 'Avatar swap'], ['persona', 'Persona'], ['remix', 'Format remix']]
+  };
+  var ADS = [
+    { id: 'a1', name: 'Sleep in 7 nights · UGC v3', meta: 'Meta · Active · $1,240 spent · CPA $18.20', read: true, face: true, captions: false, len: '0:32', sc: '' },
+    { id: 'a2', name: '3am wake-ups · talking head', meta: 'Meta · Active · $860 spent · CPA $21.05', read: true, face: true, captions: true, len: '0:41', sc: 'b' },
+    { id: 'a3', name: 'App demo · screen only', meta: 'Meta · Paused · $310 spent · CPA $29.80', read: false, face: false, captions: false, len: '0:24', sc: 'c' },
+    { id: 'a4', name: 'Founder story · v2', meta: 'Meta · Active · $95 spent · not enough data', read: false, face: true, captions: false, len: '0:58', sc: '' }
+  ];
+
+  var S = { screen: 'library', state: 'normal', tab: 'all', chip: null, q: '', tpl: 'pm', ad: 'a2', srcTab: 'meta', bal: 42, sampleLeft: 3 };
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function byId(id) { return TPL.filter(function (t) { return t.id === id; })[0]; }
+  function adById(id) { return ADS.filter(function (a) { return a.id === id; })[0]; }
+  function credits() { return S.state === 'nocredits' ? 0 : S.bal; }
+  function crLabel(t) { if (t.cr == null) return 'Soon'; return t.cr + (t.cr === 1 ? ' credit' : ' credits'); }
+
+  var person = function (alt) { return '<div class="pp' + (alt ? ' alt' : '') + '"><i class="hr"></i><i class="h"></i><i class="bd"></i></div>'; };
+  function scene(cls, alt) { return '<div class="sc ' + (cls || '') + '"></div>' + person(alt); }
+  function art(kind) {
+    switch (kind) {
+      case 'news': return scene() + '<div class="k" style="left:0;right:0;bottom:16%;background:var(--ink);color:var(--ink-fg);padding:6px 8px;font-size:10.5px"><span style="background:var(--th-red);color:var(--th-white);font-size:8px;padding:1px 4px;border-radius:2px;font-family:var(--mono)">BREAKING</span><br>Doctors are talking about the <em style="color:var(--brand)">12-minute</em> sleep routine</div>';
+      case 'meme': return '<div class="sc" style="top:30%"></div><div class="pp" style="width:52%"><i class="hr"></i><i class="h"></i><i class="bd"></i></div><div class="k" style="left:0;right:0;top:0;height:30%;background:var(--th-white);color:var(--fg);padding:22px 9px 6px;font-size:11.5px">POV: it\'s 3am and you\'re awake again for no reason</div>';
+      case 'post': return '<div class="sc" style="top:38%"></div><div class="pp" style="width:50%"><i class="hr"></i><i class="h"></i><i class="bd"></i></div><div class="k" style="left:0;right:0;top:0;height:38%;background:var(--th-white);color:var(--fg);padding:22px 9px 6px;font-size:10px;font-weight:600"><span style="display:flex;gap:5px;align-items:center;margin-bottom:5px"><i style="width:16px;height:16px;border-radius:50%;background:var(--ink);display:inline-block"></i><b style="font-size:9.5px">Sleepwell</b></span>Nobody told me waking at 3am is a habit you can unlearn.</div>';
+      case 'question': return scene('b') + '<div class="k box-w" style="left:12%;right:12%;top:16%;padding:0;overflow:hidden;text-align:center"><div style="background:var(--th-red);color:var(--th-white);font-size:8px;padding:4px">ASK ME A QUESTION</div><div style="padding:7px 6px;font-size:10.5px">Why do I always wake up at 3am?</div></div>';
+      case 'ranking': return '<div class="sc" style="background:var(--ink)"></div><div class="k" style="left:9%;right:9%;top:13%;color:var(--ink-fg);font-size:10px;display:grid;gap:5px"><span style="color:var(--brand);font-size:18px;font-stretch:125%">TOP 5</span><span>1 · Falls asleep in 12 min</span><span>2 · No pills</span><span>3 · 7-night plan</span><span>4 · Works at 3am</span><span>5 · Free first week</span></div><div style="position:absolute;left:18%;right:18%;bottom:6%;height:34%;border-radius:8px;overflow:hidden">' + scene() + '</div>';
+      case 'live': return scene('c') + '<div class="k" style="left:8px;top:24px;display:flex;gap:4px"><span style="background:var(--th-red);color:var(--th-white);font-size:8.5px;padding:2px 5px;border-radius:3px">LIVE</span><span style="background:rgba(0,0,0,.5);color:var(--th-white);font-size:8.5px;padding:2px 5px;border-radius:3px">@sleepwell</span></div><div class="k" style="left:8px;bottom:12%;display:grid;gap:3px;font-size:8.5px;color:var(--th-white);font-weight:600"><span>does it work for shift workers?</span><span>link pls</span></div>';
+      case 'split': return '<div style="position:absolute;inset:0 0 50% 0;overflow:hidden">' + scene() + '</div><div style="position:absolute;inset:50% 0 0 0;background:linear-gradient(160deg,var(--th-dusk),var(--th-sage))"></div><div style="position:absolute;left:0;right:0;top:50%;height:2px;background:var(--th-white)"></div><div class="cap" style="bottom:46%">your brain is still on</div>';
+      case 'gossip': return scene('b') + '<div class="k" style="left:0;right:0;top:0;padding:22px 8px 7px;background:var(--th-pink);color:var(--fg);font-size:10.5px"><span style="font-family:var(--mono);font-size:8px">THE TEA ·</span><br>She stopped waking at 3am in one week</div>';
+      case 'headline': return scene() + '<div class="k box-w" style="left:8%;right:8%;top:16%;font-size:11px">I tried 11 sleep apps. This is the one I kept.</div><div class="cap">night three was different</div>';
+      case 'search': return '<div class="sc" style="background:var(--th-white)"></div><div class="k" style="left:9%;right:9%;top:30%;border:1.5px solid var(--line-strong);border-radius:99px;padding:7px 10px;font-size:10px;color:var(--fg);font-weight:500">why do i wake up at 3am|</div><div class="k" style="left:9%;right:9%;top:42%;display:grid;gap:5px"><i style="height:6px;background:var(--line);border-radius:3px;display:block"></i><i style="height:6px;width:70%;background:var(--line);border-radius:3px;display:block"></i></div>';
+      case 'cut': return scene() + '<div class="k" style="left:8px;top:24px;font-family:var(--mono);font-size:9px;background:var(--brand);color:var(--fg);padding:2px 5px;border-radius:3px">15 S</div><div class="k" style="left:8%;right:8%;bottom:15%;display:flex;gap:2px"><i style="flex:2;height:5px;background:var(--brand)"></i><i style="flex:3;height:5px;background:var(--th-white)"></i><i style="flex:1;height:5px;background:var(--brand)"></i></div>';
+      case 'cold': return scene('c', true) + '<div class="k" style="left:8px;top:24px;font-family:var(--mono);font-size:9px;background:rgba(0,0,0,.6);color:var(--th-white);padding:2px 5px;border-radius:3px">0:14 → 0:00</div><div class="cap">wait, it worked on night two?</div>';
+      case 'endcard': return '<div class="sc" style="background:var(--ink)"></div><div class="k" style="left:10%;right:10%;top:30%;color:var(--ink-fg);text-align:center;font-size:15px;font-stretch:120%">First week<br><em style="color:var(--brand)">free</em></div><div class="k" style="left:22%;right:22%;top:52%;background:var(--brand);color:var(--fg);border-radius:99px;text-align:center;font-size:9.5px;padding:6px">Start tonight</div>';
+      case 'chat': return '<div class="sc" style="background:var(--th-white)"></div><div class="k" style="left:7px;right:7px;top:24px;display:flex;flex-direction:column;gap:5px"><span style="font-size:9px;border-bottom:1px solid var(--line);padding-bottom:4px;color:var(--fg)">sleepwell · Direct</span><span class="bub in">does it work if I wake up at 3am?</span><span class="bub out">That\'s who it was built for. 12 min a night.</span><span class="bub in">price?</span><span class="bub out">First week free.</span></div>';
+      case 'pm': return '<div class="sc" style="background:var(--ink)"></div><div class="k" style="left:8%;right:8%;top:16%;color:var(--ink-fg);text-align:center;font-size:16px;font-stretch:118%">7 nights.<br><em style="color:var(--brand)">12 minutes</em><br>a night.</div><div style="position:absolute;left:14%;right:14%;bottom:6%;height:38%;border-radius:10px;overflow:hidden">' + scene('b') + '</div><div class="cap" style="bottom:9%">this is what changed</div>';
+      case 'static': return '<div class="sc" style="background:var(--brand-soft)"></div><div class="k" style="left:9%;right:9%;top:14%;color:var(--fg);font-size:17px;font-stretch:122%">Sleep through<br>the 3am wake-up.</div><div class="k" style="left:9%;top:44%;font-size:9.5px;color:var(--fg-2);font-weight:500">7-night plan · 12 min a night</div><div class="k" style="left:9%;bottom:10%;background:var(--fg);color:var(--card);border-radius:99px;font-size:9px;padding:6px 10px">Try it free</div>';
+      case 'face': return scene('', true) + '<div class="k" style="left:7px;right:7px;bottom:12%;display:flex;gap:3px;justify-content:center"><span style="background:var(--th-white);color:var(--fg);font-size:8px;padding:2px 5px;border-radius:3px;font-family:var(--mono)">FACE 1</span><span style="background:rgba(255,255,255,.4);color:var(--th-white);font-size:8px;padding:2px 5px;border-radius:3px;font-family:var(--mono)">2</span><span style="background:rgba(255,255,255,.4);color:var(--th-white);font-size:8px;padding:2px 5px;border-radius:3px;font-family:var(--mono)">3</span></div>';
+      case 'persona': return scene('c', true) + '<div class="cap">as a nurse on night shifts…</div>';
+      case 'discovery': return '<div class="sc b"></div><div class="pp" style="width:70%;left:58%"><i class="hr"></i><i class="h"></i><i class="bd"></i></div><div class="k" style="left:8%;bottom:30%;width:26%;aspect-ratio:9/16;background:var(--ink);border-radius:5px;border:2px solid var(--th-white)"></div><div class="cap">found this by accident</div>';
+      case 'podcast': return '<div class="sc c"></div><div class="pp" style="width:46%;left:28%"><i class="hr"></i><i class="h"></i><i class="bd"></i></div><div class="pp alt" style="width:46%;left:74%"><i class="hr"></i><i class="h"></i><i class="bd"></i></div>';
+      default: return scene();
+    }
+  }
+  function vid(kind, opts) {
+    opts = opts || {};
+    return '<div class="vid' + (opts.cls ? ' ' + opts.cls : '') + '">' + art(kind) +
+      '<span class="ph">EXAMPLE · PLACEHOLDER</span><span class="asp">9:16</span>' +
+      (opts.noplay ? '' : '<span class="play" aria-hidden="true"></span>') +
+      '<span class="prog"><i style="animation-delay:-' + (opts.delay || 0) + 's"></i></span>' + (opts.extra || '') + '</div>';
+  }
+
+  function fitFor(t) {
+    var ad = adById(S.ad);
+    if (!t.fit || !ad) return null;
+    if (t.fit === 'face' && !ad.face) return 'Needs a face';
+    if (t.fit === 'captions' && (ad.captions || S.state === 'incompat')) return 'Captions over the face';
+    return null;
+  }
+
+  function flow(cur) {
+    var steps = ['Template', 'Ad', 'Plan', 'Generate', 'Download'];
+    return '<nav class="flow" aria-label="Steps">' + steps.map(function (s, i) {
+      var c = i < cur ? 'done' : (i === cur ? 'cur' : '');
+      return (i ? '<span class="sep" aria-hidden="true"></span>' : '') + '<span class="' + c + '"' + (i === cur ? ' aria-current="step"' : '') + '><i>' + (i < cur ? '✓' : i + 1) + '</i><em style="font-style:normal">' + s + '</em></span>';
+    }).join('') + '</nav>';
+  }
+
+  function abar(hint, buttons) {
+    return '<div class="abar">' + '<div class="hint">' + hint + '</div>' + buttons + '</div>';
+  }
+
+  /* ---------- 1 · library ---------- */
+  function vLibrary() {
+    var sample = S.state === 'sample';
+    var h = '';
+    h += '<div class="lhead"><div class="t"><span class="eyebrow">Make ads</span><h1>Templates</h1><p>Pick a format and we apply it to one of your ads. Edit templates rework the video you already have. AI templates make new people and new scenes.</p></div>' +
+      '<div class="bal"><div class="n"><span>Balance</span><b class="num">' + (sample ? '0' : credits()) + '</b></div><button class="btn sm" type="button" data-go="buy">Get credits</button></div></div>';
+    if (sample) {
+      h += '<div class="sample"><div style="display:grid;gap:4px"><b>Free sample · ' + S.sampleLeft + ' of 4 left</b><p>Try any Edit template on your own ad. You watch the first 3 seconds; unlock to get the full video.</p></div><div class="ticks" aria-hidden="true"><i class="used"></i><i></i><i></i><i></i></div></div>';
+    }
+    h += '<div class="tools"><div class="search"><span aria-hidden="true" class="muted">⌕</span><input id="q" type="search" placeholder="Search templates" value="' + esc(S.q) + '" aria-label="Search templates"></div>' +
+      '<div class="tabs" role="group" aria-label="Tier">' + [['all', 'All'], ['edit', 'Edit'], ['ai', 'With AI']].map(function (x) {
+        return '<button type="button" data-tab="' + x[0] + '" aria-pressed="' + (S.tab === x[0]) + '">' + x[1] + '</button>';
+      }).join('') + '</div></div>';
+    var cats = S.tab === 'all' ? CATS.edit.concat(CATS.ai) : CATS[S.tab];
+    h += '<div class="chips" role="group" aria-label="Category"><button class="chip" type="button" data-chip="" aria-pressed="' + (!S.chip) + '">Everything</button>' + cats.map(function (c) {
+      var n = TPL.filter(function (t) { return t.cat === c[0]; }).length;
+      return '<button class="chip" type="button" data-chip="' + c[0] + '" aria-pressed="' + (S.chip === c[0]) + '">' + c[1] + '<small>' + n + '</small></button>';
+    }).join('') + '</div>';
+
+    if (S.state === 'loading') {
+      h += '<div class="grid" aria-busy="true">' + Array(8).join('.').split('.').map(function () {
+        return '<div class="tcard" style="cursor:default"><span class="sk" style="aspect-ratio:9/16"></span><div class="body"><span class="sk" style="height:14px;width:60%"></span><span class="sk" style="height:10px"></span><span class="sk" style="height:10px;width:80%"></span></div></div>';
+      }).join('') + '</div>';
+      return h;
+    }
+
+    var list = TPL.filter(function (t) {
+      if (S.tab !== 'all' && t.tier !== S.tab) return false;
+      if (S.chip && t.cat !== S.chip) return false;
+      if (S.q && (t.name + ' ' + t.desc).toLowerCase().indexOf(S.q.toLowerCase()) < 0) return false;
+      if (sample && t.tier === 'ai') return true;
+      return true;
+    });
+    if (!list.length) {
+      h += '<div class="empty"><b>No template matches "' + esc(S.q) + '"</b><span>Try "chat", "headline" or "face".</span><button class="btn sm" type="button" id="clearQ">Clear search</button></div>';
+      return h;
+    }
+    var showPack = !S.q && !S.chip && S.tab !== 'ai';
+    function section(title, sub, items) {
+      if (!items.length) return '';
+      var out = '<div class="sect"><span class="eyebrow"><b>' + title + '</b> · ' + sub + '</span></div><div class="grid">';
+      if (title === 'Edit' && showPack) out += packCard();
+      out += items.map(card).join('') + '</div>';
+      return out;
+    }
+    var edit = list.filter(function (t) { return t.tier === 'edit'; });
+    var ai = list.filter(function (t) { return t.tier === 'ai'; });
+    h += section('Edit', 'reworks the video you have · 1 credit each', edit);
+    h += section('With AI', 'new faces, people and scenes · credits cover the whole job, retries included', ai);
+    return h;
+  }
+  function packCard() {
+    var sample = S.state === 'sample';
+    return '<div class="tcard pack" role="button" tabindex="0" data-pack="1">' +
+      '<div class="stack">' + vid('headline', { noplay: true, delay: 1 }) + vid('chat', { noplay: true, delay: 3 }) + vid('news', { noplay: true, delay: 5 }) + '</div>' +
+      '<div class="txt"><span class="pill">Pack · up to 12 videos</span><h2 style="color:var(--ink-fg);font-size:18px;font-stretch:115%;font-weight:800">Let HookMill pick</h2>' +
+      '<p>We read your ad and pick the Edit templates that fit it best. You see the list and the total before anything runs.</p>' +
+      '<ul><li>Uncheck any template you don\'t want</li><li>AI templates show up as suggestions, never on by default</li><li>' + (sample ? 'Free sample: up to 4 videos' : '1 credit per template, never more than 10 for the pack') + '</li></ul>' +
+      '<button class="btn" type="button" data-pack="1">Use the pack</button></div></div>';
+  }
+  function card(t, i) {
+    var sample = S.state === 'sample';
+    var locked = sample && (t.tier === 'ai' || t.id === 'static');
+    var off = t.beta;
+    var price = off ? '<span class="pill beta">Soon</span>' : (sample && !locked ? '<span class="pill ok">Free sample</span>' : '<span class="pill ' + (t.tier === 'ai' ? 'ai' : 'cr') + '">' + crLabel(t) + '</span>');
+    return '<article class="tcard' + (off ? ' off' : '') + '" ' + (off ? '' : 'role="button" tabindex="0" data-open="' + t.id + '"') + ' aria-label="' + esc(t.name) + '">' +
+      vid(t.kind, { delay: (i * 1.3) % 9 }) +
+      '<div class="body"><div class="nm"><b>' + esc(t.name) + '</b>' + price + '</div><p class="ds">' + esc(t.desc) + '</p></div>' +
+      '<div class="ft"><span class="u num">' + (off ? 'Beta' : t.out + ' · used ' + t.uses + '×') + '</span>' +
+      (off ? '<button class="btn sm" type="button" disabled>Soon</button>' : (locked ? '<button class="btn sm" type="button" data-go="buy">Paid plan</button>' : '<button class="btn sm" type="button" data-use="' + t.id + '">Use template</button>')) + '</div></article>';
+  }
+
+  /* ---------- 2 · detail sheet ---------- */
+  function sheet() {
+    var t = byId(S.tpl);
+    var sample = S.state === 'sample';
+    return '<div class="scrim" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">' +
+      '<button class="x" type="button" data-close="1" aria-label="Close">×</button>' +
+      vid(t.kind, { extra: '' }) +
+      '<div class="info"><span class="eyebrow">' + (t.tier === 'ai' ? 'With AI' : 'Edit') + ' template</span><h1 id="shT" style="font-size:26px">' + esc(t.name) + '</h1><p style="color:var(--fg-2);max-width:52ch">' + esc(t.desc) + '</p>' +
+      '<dl class="kv"><dt>You get</dt><dd>' + t.out + ', 9:16' + (t.kind === 'pm' || t.kind === 'chat' ? ' only' : '; 4:5 and 1:1 at no extra cost') + '</dd>' +
+      '<dt>Cost</dt><dd><b>' + (sample && t.tier === 'edit' && t.id !== 'static' ? 'Free sample' : crLabel(t)) + '</b>' + (t.tier === 'ai' ? ' · covers script, faces, generation and retries. Preparing is free; you pay when you approve.' : ' · if it fails, the credit comes back') + '</dd>' +
+      '<dt>Time</dt><dd>' + (t.tier === 'ai' ? 'About 15 min. You can leave.' : 'About 2 min after your ad is read') + '</dd>' +
+      '<dt>Language</dt><dd>Same as your ad</dd></dl>' +
+      (t.needs.length ? '<div style="display:grid;gap:6px"><span class="eyebrow">Your ad needs</span><ul class="needs">' + t.needs.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul></div>' : '<p class="muted" style="font-size:13px">Works with any ad that has video.</p>') +
+      '<div class="act"><span class="muted" style="font-size:12px;margin-right:auto">Example video. Yours uses your ad, your Brain and your language.</span><button class="btn lime" type="button" data-use="' + t.id + '">Use this template</button></div>' +
+      '</div></div></div>';
+  }
+
+  /* ---------- 3 · source ---------- */
+  function vSource() {
+    var t = byId(S.tpl);
+    var h = flow(1);
+    h += '<div style="display:grid;gap:6px"><span class="eyebrow">' + esc(t.name) + ' · ' + crLabel(t) + '</span><h1>Which ad do we use?</h1><p style="color:var(--fg-2)">Pick a winner from Meta, upload a video, or reuse something from your Library. Ads we already read start right away.</p></div>';
+    h += '<div class="tabs" role="group" aria-label="Source" style="align-self:flex-start">' + [['meta', 'Meta winners'], ['upload', 'Upload'], ['lib', 'Library']].map(function (x) {
+      return '<button type="button" data-src="' + x[0] + '" aria-pressed="' + (S.srcTab === x[0]) + '">' + x[1] + '</button>';
+    }).join('') + '</div>';
+    if (S.srcTab === 'upload') {
+      h += '<div class="drop"><b>Drop a video here</b><span>MP4 or MOV, up to 2 min, 500 MB. Vertical works best.</span><label class="btn sm" for="up">Choose file</label><input id="up" type="file" accept="video/*" hidden></div>';
+      h += '<p class="muted" style="font-size:13px">Have a version without burned-in captions? Upload that one. More templates fit it.</p>';
+    } else if (S.srcTab === 'lib') {
+      h += '<div class="empty"><b>Nothing in your Library yet</b><span>Pieces you approve land here and can feed a new template.</span><button class="btn sm" type="button" data-src="meta">See Meta winners</button></div>';
+    } else {
+      h += '<div class="list" role="radiogroup" aria-label="Ads">' + ADS.map(function (a) {
+        var bad = (t.fit === 'face' && !a.face) ? 'Needs a face' : ((t.fit === 'captions' && a.captions) ? 'Captions over the face' : null);
+        var fit = a.read ? (bad ? '<span class="pill warn">' + bad + '</span>' : '<span class="pill ok">Fits</span>') : '<span class="pill">Not read yet · ~1 min</span>';
+        return '<button class="srcrow" type="button" role="radio" data-ad="' + a.id + '" aria-pressed="' + (S.ad === a.id) + '" aria-checked="' + (S.ad === a.id) + '">' +
+          '<div class="vid">' + scene(a.sc, a.id === 'a4') + '</div>' +
+          '<div class="m"><b>' + esc(a.name) + '</b><span class="num">' + esc(a.meta) + '</span></div>' +
+          '<div class="r"><span class="num muted">' + a.len + '</span>' + fit + '</div></button>';
+      }).join('') + '</div>';
+    }
+    var a = adById(S.ad);
+    h += abar('<b>' + esc(a.name) + '</b>' + (a.read ? ' · already read' : ' · we read it first, ~1 min, no charge'),
+      '<button class="btn ghost" type="button" data-go="library">Back</button><button class="btn lime" type="button" data-go="' + (a.read ? (byId(S.tpl).tier === 'ai' ? 'planai' : 'plan') : 'reading') + '">Continue</button>');
+    return h;
+  }
+
+  /* ---------- 4 · reading ---------- */
+  function vReading() {
+    var t = byId(S.tpl);
+    var h = flow(2);
+    h += '<div class="cols"><div class="card beam" style="border-radius:var(--r-card)">' +
+      '<div class="wait"><div class="orb" aria-hidden="true"><i></i><i></i><i></i></div><div style="display:grid;gap:6px;min-width:0"><span class="eyebrow">Reading your ad · about 1 min left</span><h1 style="font-size:24px">' + esc(adById(S.ad).name) + '</h1><p style="color:var(--fg-2)">We read each ad once. After that, every template on it starts right away.</p></div></div>' +
+      '<ul class="steps" aria-live="polite">' +
+      '<li class="done"><span class="ic"></span><span>Downloaded the video</span><small>0:58</small></li>' +
+      '<li class="run"><span class="ic"></span><span>Transcribing the speech</span><small class="num">0:31 of 0:58</small></li>' +
+      '<li class="todo"><span class="ic"></span><span>Finding hook, body and call to action</span><small></small></li>' +
+      '<li class="todo"><span class="ic"></span><span>Checking face and burned-in captions</span><small></small></li>' +
+      '<li class="todo"><span class="ic"></span><span>Checking that ' + esc(t.name) + ' fits</span><small></small></li></ul>' +
+      '<div class="bar" aria-hidden="true"><i style="width:38%"></i></div>' +
+      '<p class="muted" style="font-size:13px">You can leave this page. We keep the template picked and show the plan when you come back.</p></div>' +
+      '<aside class="panel"><span class="eyebrow">Your template</span>' + '<div style="display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:center">' + vid(t.kind, { noplay: true }) + '<div style="display:grid;gap:4px"><b>' + esc(t.name) + '</b><span class="small">' + t.out + ' · ' + crLabel(t) + '</span></div></div>' +
+      '<hr><p class="small">Reading the ad is free. Nothing is charged until you press Generate.</p></aside></div>';
+    h += abar('Reading takes about 1 min', '<button class="btn" type="button" data-go="library">Browse templates</button><button class="btn lime" type="button" data-go="plan">Skip ahead (mockup)</button>');
+    return h;
+  }
+
+  /* ---------- 5 · plan ---------- */
+  function costPanel(t, n) {
+    var sample = S.state === 'sample';
+    var bal = credits();
+    var cost = sample ? 0 : (n != null ? n : t.cr);
+    var short = !sample && bal < cost;
+    var p = '<aside class="panel"><span class="eyebrow">Summary</span>' +
+      '<div class="row"><span>Template</span><b>' + (t ? esc(t.name) : 'Let HookMill pick') + '</b></div>' +
+      '<div class="row"><span>Ad</span><b>' + esc(adById(S.ad).name) + '</b></div>' +
+      '<div class="row"><span>You get</span><b>' + (t ? t.out + ', 9:16' : '8 videos, 9:16') + '</b></div><hr>' +
+      '<div class="total"><span class="small">Cost</span><b class="num">' + (sample ? 'Free' : cost + (cost === 1 ? ' credit' : ' credits')) + '</b></div>';
+    if (sample) p += '<div class="after"><span>Free sample</span><b>' + (S.sampleLeft - 1) + ' of 4 left after this</b></div><p class="small">You\'ll watch the first 3 seconds. Unlock to download the full video.</p>';
+    else p += '<div class="after' + (short ? ' low' : '') + '"><span>Balance</span><b class="num">' + bal + ' → ' + (short ? 'not enough' : (bal - cost)) + '</b></div>' +
+      '<p class="small">' + (t && t.tier === 'ai' ? 'Covers script, faces, generation and retries. If a piece fails for good, its share comes back.' : 'If it fails, the credit comes back. 4:5 and 1:1 versions don\'t cost extra.') + '</p>';
+    if (short) p += '<div style="background:var(--ink-2);border:1px solid var(--ink-line);border-radius:12px;padding:12px;display:grid;gap:8px"><b>You need ' + (cost - bal) + ' more credit' + (cost - bal === 1 ? '' : 's') + '</b><span class="small">Your plan and the read of your ad stay saved.</span><button class="btn" type="button" data-go="buy" style="background:var(--ink-3);border-color:var(--ink-line);color:var(--ink-fg)">Get credits</button></div>';
+    return p + '</aside>';
+  }
+  function genBtn(t, n) {
+    var sample = S.state === 'sample';
+    var cost = n != null ? n : t.cr;
+    if (sample) return '<button class="btn lime" type="button" data-go="generating">Generate free sample</button>';
+    if (credits() < cost) return '<button class="btn" type="button" disabled>Generate</button><button class="btn lime" type="button" data-go="buy">Get credits</button>';
+    return '<button class="btn lime" type="button" data-go="generating">Generate · ' + cost + (cost === 1 ? ' credit' : ' credits') + '</button>';
+  }
+  function vPlan() {
+    var t = byId(S.tpl);
+    var a = adById(S.ad);
+    var incompat = S.state === 'incompat' || (t.fit === 'captions' && a.captions) || (t.fit === 'face' && !a.face);
+    var h = flow(2);
+    h += '<div style="display:grid;gap:6px"><span class="eyebrow">Plan · nothing charged yet</span><h1>' + esc(t.name) + ' on "' + esc(a.name) + '"</h1></div>';
+    if (incompat) {
+      h += '<div class="banner warn" role="status"><b>Your ad has captions burned in where the face box goes.</b><p>' + esc(t.name) + ' puts your creator in a box below the animation, and we never cover your captions. Upload the version without captions and it fits. Or generate anyway: we look for space around the captions, and if nothing fits you get the credit back.</p>' +
+        '<div class="acts"><button class="btn" type="button" data-go="source" data-srcTab="upload">Upload the version without captions</button><button class="btn" type="button" id="anyway">Generate anyway</button><button class="btn ghost" type="button" data-go="library">Pick another template</button></div></div>';
+    }
+    h += '<div class="cols"><div class="card"><div class="plan2">' + vid(t.kind, { cls: '' }) +
+      '<div style="display:grid;gap:12px;min-width:0"><span class="eyebrow">What comes out · written from your ad</span>' +
+      '<div class="field"><label for="f1">Animated line 1 <span class="src-tag">from: Brain › promise</span></label><input id="f1" value="7 nights."></div>' +
+      '<div class="field"><label for="f2">Animated line 2 <span class="src-tag">from: transcript 0:04</span></label><input id="f2" value="12 minutes a night."></div>' +
+      '<div class="field"><label for="f3">Call to action <span class="src-tag">from: Brain › CTA</span></label><input id="f3" value="Start tonight"></div>' +
+      '<div class="field"><label>Clips of your creator</label><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill num">0:02–0:09</span><span class="pill num">0:14–0:22</span><span class="pill num">0:30–0:38</span></div></div>' +
+      '<p class="muted" style="font-size:12.5px">Edits here are free. Every word comes from your ad or your Brain; we never invent numbers or testimonials.</p></div></div></div>' +
+      costPanel(t) + '</div>';
+    h += abar(S.state === 'sample' ? '<b>Free sample</b> · ' + (S.sampleLeft - 1) + ' left after this' : '<b>' + crLabel(t) + '</b> · balance ' + credits(),
+      '<button class="btn ghost" type="button" data-go="source">Back</button>' + (incompat && S.state !== 'sample' ? '<button class="btn lime" type="button" data-go="source" data-srcTab="upload">Upload without captions</button>' : genBtn(t)));
+    return h;
+  }
+  function vPlanAI() {
+    var t = byId(S.tpl).tier === 'ai' ? byId(S.tpl) : byId('face');
+    S.tpl = t.id;
+    var h = flow(2);
+    h += '<div style="display:grid;gap:6px"><span class="eyebrow">Approve before we spend · preparing was free</span><h1>' + esc(t.name) + ' on "' + esc(adById(S.ad).name) + '"</h1><p style="color:var(--fg-2)">Here are the 3 faces. Same voice and same edit as your ad. Swap any face for free, up to 3 times.</p></div>';
+    if (S.state === 'sample') h += '<div class="banner warn"><b>AI templates are on paid plans.</b><p>Your free sample covers Edit templates. Your ad is read and saved, so you can come back here after unlocking.</p><div class="acts"><button class="btn" type="button" data-go="buy">See how to unlock</button><button class="btn ghost" type="button" data-go="library">Back to Edit templates</button></div></div>';
+    h += '<div class="cols"><div class="card"><div class="faces">' + [1, 2, 3].map(function (i) {
+      return '<div class="face-c"><div class="vid">' + scene(['', 'b', 'c'][i - 1], i === 2) + '<span class="ph">FACE ' + i + '</span></div><div class="r"><b>Face ' + i + '</b><button type="button">Swap · free</button></div></div>';
+    }).join('') + '</div><p class="muted" style="font-size:12.5px">3 free swaps left. Faces are generated people, never the person in your ad.</p></div>' +
+      costPanel(t) + '</div>';
+    var sample = S.state === 'sample';
+    h += abar('<b>' + crLabel(t) + '</b> · 3 videos · charged when you approve',
+      '<button class="btn ghost" type="button" data-go="source">Back</button>' + (sample ? '<button class="btn lime" type="button" data-go="buy">See how to unlock</button>' : (credits() < t.cr ? '<button class="btn" type="button" disabled>Approve</button><button class="btn lime" type="button" data-go="buy">Get credits</button>' : '<button class="btn lime" type="button" data-go="generating">Approve and generate · ' + t.cr + ' credits</button>')));
+    return h;
+  }
+  function vPlanAuto() {
+    var sample = S.state === 'sample';
+    var picks = ['headline', 'chat', 'pm', 'news', 'meme', 'cut', 'endcard', 'post'];
+    if (sample) picks = picks.slice(0, 4);
+    var n = sample ? 0 : Math.min(10, picks.length);
+    var h = flow(2);
+    h += '<div style="display:grid;gap:6px"><span class="eyebrow">Let HookMill pick · plan ready</span><h1>' + picks.length + ' templates fit "' + esc(adById(S.ad).name) + '"</h1><p style="color:var(--fg-2)">Ordered by how well each one fits your ad. Uncheck anything you don\'t want; the total updates.</p></div>';
+    h += '<div class="cols"><div class="card"><div class="pick">' + picks.map(function (id) {
+      var t = byId(id);
+      return '<label><input type="checkbox" checked><div class="vid">' + art(t.kind) + '</div><div class="m"><b>' + esc(t.name) + '</b><span>' + t.out + '</span></div><span class="pill ' + (sample ? 'ok' : 'cr') + '">' + (sample ? 'Free' : '1 credit') + '</span></label>';
+    }).join('') + '</div>' +
+      (sample ? '' : '<span class="eyebrow" style="margin-top:6px">Suggested with AI · off unless you check them</span><div class="pick">' + ['face', 'discovery'].map(function (id) {
+        var t = byId(id);
+        return '<label class="sugg"><input type="checkbox"><div class="vid">' + art(t.kind) + '</div><div class="m"><b>' + esc(t.name) + '</b><span>' + t.out + ' · approve faces before we spend</span></div><span class="pill ai">' + crLabel(t) + '</span></label>';
+      }).join('') + '</div>') +
+      '</div>' + costPanel(null, n) + '</div>';
+    h += abar(sample ? '<b>Free sample</b> · 4 videos' : '<b>' + picks.length + ' videos · ' + n + ' credits</b> · pack price, capped at 10', '<button class="btn ghost" type="button" data-go="source">Back</button>' + (sample ? '<button class="btn lime" type="button" data-go="generating">Generate free sample</button>' : (credits() < n ? '<button class="btn" type="button" disabled>Generate</button><button class="btn lime" type="button" data-go="buy">Get credits</button>' : '<button class="btn lime" type="button" data-go="generating">Generate · ' + n + ' credits</button>')));
+    return h;
+  }
+
+  /* ---------- 6 · generating ---------- */
+  function vGenerating() {
+    var t = byId(S.tpl);
+    var ai = t.tier === 'ai';
+    var h = flow(3);
+    h += '<div class="cols"><div class="card" style="display:grid;gap:16px">' +
+      '<div style="display:grid;gap:6px"><span class="eyebrow">Generating · ' + (ai ? 'about 12 min left' : 'about 1 min left') + '</span><h1 style="font-size:24px">' + esc(t.name) + '</h1><p style="color:var(--fg-2)">' + (S.state === 'sample' ? 'Free sample · nothing charged.' : crLabel(t) + ' reserved. Charged when the video is ready; back to you if it fails.') + '</p></div>' +
+      '<div style="display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:18px;align-items:start">' +
+      '<div class="vid beam" style="border-radius:10px"><div class="sc" style="background:var(--card-2)"></div><span class="ph">RENDERING</span></div>' +
+      '<ul class="steps" aria-live="polite">' + (ai ?
+        '<li class="done"><span class="ic"></span><span>Faces approved</span><small></small></li><li class="done"><span class="ic"></span><span>Face 1 · lipsync</span><small>done</small></li><li class="run"><span class="ic"></span><span>Face 2 · lipsync</span><small class="num">0:18 of 0:32</small></li><li class="todo"><span class="ic"></span><span>Face 3 · lipsync</span><small></small></li><li class="todo"><span class="ic"></span><span>Putting your edit back on</span><small></small></li>' :
+        '<li class="done"><span class="ic"></span><span>Texts written from your ad</span><small></small></li><li class="run"><span class="ic"></span><span>Rendering 9:16</span><small class="num">62%</small></li><li class="todo"><span class="ic"></span><span>Checking every word on screen</span><small></small></li>') +
+      '</ul></div><div class="bar" aria-hidden="true"><i style="width:' + (ai ? 41 : 62) + '%"></i></div>' +
+      '<p class="muted" style="font-size:13px">You can leave. It lands in Download and in your Library, and the Templates tab shows a dot while it runs.</p></div>' +
+      '<aside class="panel"><span class="eyebrow">While you wait</span><p class="small">Same ad, other templates that fit it:</p><div class="rail">' + ['chat', 'headline', 'news'].map(function (id) { var x = byId(id); return '<button type="button" class="mini" data-use="' + id + '" style="background:var(--ink-2);border-color:var(--ink-line);color:var(--ink-fg)">' + vid(x.kind, { noplay: true }) + '<b>' + esc(x.name) + '</b></button>'; }).join('') + '</div></aside></div>';
+    h += abar('Running · you can leave this page', '<button class="btn" type="button" data-go="library">Back to Templates</button><button class="btn lime" type="button" data-go="ready">See result (mockup)</button>');
+    return h;
+  }
+
+  /* ---------- 7 · ready ---------- */
+  function vReady() {
+    var t = byId(S.tpl);
+    var sample = S.state === 'sample';
+    var h = flow(4);
+    h += '<div style="display:grid;gap:6px"><span class="eyebrow">' + (sample ? 'Free sample · ready' : 'Ready · in your Library') + '</span><h1>' + esc(t.name) + ' · ' + esc(adById(S.ad).name) + '</h1></div>';
+    h += '<div class="cols"><div class="stage">' + vid(t.kind, { cls: sample ? 'lockv' : '', extra: sample ? '<div class="lk"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>First 3 seconds play in full.<br>Unlock to watch the rest.</div>' : '' }) + '</div>' +
+      '<aside class="card" style="align-content:start"><span class="eyebrow">Download</span>' +
+      (sample ? '<p style="color:var(--fg-2);font-size:13px">This is your free sample. Unlock to download it, make 4:5 and 1:1 versions and send it to Meta. No new render; the same video unlocks.</p>' :
+        '<div style="display:grid;gap:8px"><button class="btn" type="button" id="dl">Download MP4 · 9:16</button><div style="display:flex;gap:8px"><button class="btn sm" type="button" style="flex:1">Make 4:5</button><button class="btn sm" type="button" style="flex:1">Make 1:1</button></div><button class="btn" type="button">Send to Meta</button></div><p class="muted" style="font-size:12px">File name MC_1031_PERSON-MOTION_9x16.mp4 · 4:5 and 1:1 don\'t cost credits.</p>') +
+      '<hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0"><span class="eyebrow">Same ad, another template</span><div class="rail">' + ['chat', 'headline', 'face'].map(function (id) { var x = byId(id); return '<button type="button" class="mini" data-use="' + id + '">' + vid(x.kind, { noplay: true }) + '<b>' + esc(x.name) + '</b><span class="muted">' + crLabel(x) + '</span></button>'; }).join('') + '</div></aside></div>';
+    h += abar(sample ? '<b>' + (S.sampleLeft - 1) + ' free samples left</b>' : 'Saved to your Library', sample ? '<button class="btn ghost" type="button" data-go="library">Templates</button><button class="btn lime" type="button" data-go="buy">Unlock full videos</button>' : '<button class="btn ghost" type="button" data-go="library">Templates</button><button class="btn lime" type="button" id="dl2">Download MP4</button>');
+    return h;
+  }
+
+  /* ---------- buy ---------- */
+  function vBuy() {
+    var h = '<div style="display:grid;gap:6px"><span class="eyebrow">Credits</span><h1>Get credits</h1><p style="color:var(--fg-2);max-width:62ch">Edit templates cost 1 credit. AI templates cost more because they generate new people and scenes, and their price covers the whole job, retries included. Credits don\'t expire.</p></div>';
+    h += '<div class="banner warn"><b>Checkout isn\'t open in the app yet.</b><p>Talk to us and we add the credits to your workspace by hand, usually the same day.</p><div class="copyrow"><span>hello@hookmill.app</span><button class="btn sm" type="button" id="copy">Copy</button></div></div>';
+    h += '<div class="packs">' + [['Starter', 'X', 'about 50 edit videos'], ['Studio', 'Y', 'about 150 edit videos, or 18 New face jobs'], ['Agency', 'Z', 'for several client workspaces']].map(function (p) {
+      return '<div class="card"><span class="eyebrow">' + p[0] + '</span><b style="font-size:22px;font-weight:800;font-stretch:115%">' + p[1] + ' credits</b><span class="muted" style="font-size:13px">' + p[2] + '</span><span class="pill warn" style="justify-self:start">Price to be set</span></div>';
+    }).join('') + '</div>';
+    h += '<div class="card"><span class="eyebrow">History · this workspace</span><div class="tbl" style="border:0"><table><thead><tr><th>Date</th><th>What</th><th>Credits</th><th>Balance</th></tr></thead><tbody>' +
+      '<tr><td class="num">Oct 31</td><td>Person + motion · Sleep in 7 nights</td><td class="num">−1</td><td class="num">42</td></tr>' +
+      '<tr><td class="num">Oct 31</td><td>New face · 3am wake-ups (1 face failed, refunded)</td><td class="num">−8 +3</td><td class="num">43</td></tr>' +
+      '<tr><td class="num">Oct 30</td><td>Added by HookMill (manual)</td><td class="num">+50</td><td class="num">48</td></tr></tbody></table></div><p class="muted" style="font-size:12px">Example rows.</p></div>';
+    return h;
+  }
+
+  /* ---------- admin ---------- */
+  function vAdmin() {
+    var h = '<div class="lhead"><div class="t"><span class="eyebrow">Admin · visible to HookMill staff only</span><h1>Template catalog</h1><p>Upload the example video for each template. A template without an example stays hidden from customers.</p></div><button class="btn lime" type="button">Upload example videos</button></div>';
+    h += '<div class="tbl"><table><thead><tr><th>Example</th><th>Template</th><th>Type inside</th><th>Tier</th><th>Credits</th><th>Uses</th><th>Status</th><th></th></tr></thead><tbody>' +
+      TPL.map(function (t, i) {
+        var has = i % 5 !== 3;
+        return '<tr><td>' + (has ? '<div class="vid">' + art(t.kind) + '</div>' : '<div class="empty-v" title="No example yet"></div>') + '</td><td><b>' + esc(t.name) + '</b></td><td class="num" style="font-family:var(--mono);font-size:11.5px">' + typeOf(t) + '</td><td>' + (t.tier === 'ai' ? '<span class="pill ai">AI</span>' : '<span class="pill">Edit</span>') + '</td><td><input type="number" aria-label="Credits for ' + esc(t.name) + '" value="' + (t.cr == null ? '' : t.cr) + '"></td><td class="num">' + t.uses + '</td><td>' + (t.beta ? '<span class="pill">Hidden · beta</span>' : (has ? '<span class="pill ok">Live</span>' : '<span class="pill warn">Needs example</span>')) + '</td><td><button class="btn sm" type="button">' + (has ? 'Replace video' : 'Upload video') + '</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    h += '<p class="muted" style="font-size:12.5px">Example video: MP4 9:16, up to 60 s, plays muted in the card and with sound in the detail. Uses = times generated across all workspaces.</p>';
+    return h;
+  }
+  function typeOf(t) {
+    var m = { news: 'FRAME:news', meme: 'FRAME:meme', post: 'FRAME:post_card', question: 'FRAME:question_box', ranking: 'FRAME:ranking', live: 'FRAME:live', split: 'FRAME:split_stack', gossip: 'FRAME:gossip_page', headline: 'HEADLINE ×3', search: 'NATIVE_SEARCH', cut: 'CUT 15+20', cold: 'COLD_OPEN', endcard: 'ENDCARD', chat: 'CHAT_DM', pm: 'PERSON_MOTION', static: 'STATIC', face: 'AVATAR_FACE', persona: 'AVATAR_PERSONA', discovery: 'REMIX_DISCOVERY', podcast: 'REMIX_PODCAST' };
+    return m[t.id];
+  }
+
+  /* ---------- render ---------- */
+  var view = document.getElementById('view');
+  var layer = document.getElementById('layer');
+  function render() {
+    var s = S.screen;
+    layer.innerHTML = '';
+    var map = { library: vLibrary, detail: vLibrary, source: vSource, reading: vReading, plan: vPlan, planai: vPlanAI, planauto: vPlanAuto, generating: vGenerating, ready: vReady, buy: vBuy, admin: vAdmin };
+    view.innerHTML = (map[s] || vLibrary)();
+    if (s === 'detail') layer.innerHTML = sheet();
+    document.getElementById('pScreen').value = s;
+    var bal = S.state === 'sample' ? 0 : credits();
+    document.getElementById('sideBal').textContent = bal;
+    document.getElementById('sideBar').style.width = Math.min(100, bal) + '%';
+    document.getElementById('topBal').textContent = (S.state === 'sample' ? S.sampleLeft + ' free left' : bal + ' credits');
+    document.querySelectorAll('.side .nav').forEach(function (n) { n.classList.toggle('on', n.getAttribute('data-go') === (s === 'buy' ? '' : s === 'admin' ? 'admin' : 'library')); });
+    var q = document.getElementById('q');
+    if (q && S.focusQ) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); S.focusQ = false; }
+  }
+  function go(screen) {
+    S.screen = screen;
+    if (screen === 'planai' && byId(S.tpl).tier !== 'ai') S.tpl = 'face';
+    if (screen === 'plan' && byId(S.tpl).tier === 'ai') S.screen = 'planai';
+    document.getElementById('side').classList.remove('open');
+    render();
+    window.scrollTo(0, 0);
+  }
+  function toast(msg) {
+    var t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+    document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200);
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-close],[data-use],[data-open],[data-go],[data-tab],[data-chip],[data-src],[data-ad],[data-pack],#clearQ,#anyway,#dl,#dl2,#copy,#menuBtn');
+    if (!el) return;
+    if (el.hasAttribute('data-close')) { if (e.target === el || el.classList.contains('x')) { S.screen = 'library'; render(); } return; }
+    if (el.id === 'menuBtn') { document.getElementById('side').classList.toggle('open'); return; }
+    if (el.hasAttribute('data-use')) { e.stopPropagation(); S.tpl = el.getAttribute('data-use'); S.mode = 'single'; go('source'); return; }
+    if (el.hasAttribute('data-pack')) { e.stopPropagation(); S.mode = 'pack'; S.ad = 'a1'; go('planauto'); return; }
+    if (el.hasAttribute('data-open')) { S.tpl = el.getAttribute('data-open'); S.screen = 'detail'; render(); var x = layer.querySelector('.x'); if (x) x.focus(); return; }
+    if (el.hasAttribute('data-srcTab')) S.srcTab = el.getAttribute('data-srcTab');
+    if (el.hasAttribute('data-go')) { go(el.getAttribute('data-go')); return; }
+    if (el.hasAttribute('data-tab')) { S.tab = el.getAttribute('data-tab'); S.chip = null; render(); return; }
+    if (el.hasAttribute('data-chip')) { S.chip = el.getAttribute('data-chip') || null; render(); return; }
+    if (el.hasAttribute('data-src')) { S.srcTab = el.getAttribute('data-src'); render(); return; }
+    if (el.hasAttribute('data-ad')) { S.ad = el.getAttribute('data-ad'); render(); return; }
+    if (el.id === 'clearQ') { S.q = ''; render(); return; }
+    if (el.id === 'anyway') { if (S.state === 'incompat') S.state = 'normal'; go('generating'); return; }
+    if (el.id === 'dl' || el.id === 'dl2') { toast('Download starts in the real app (mockup)'); return; }
+    if (el.id === 'copy') {
+      try { navigator.clipboard.writeText('hello@hookmill.app').then(function () { toast('Copied'); }, function () { toast('Select the address to copy it'); }); } catch (err) { toast('Select the address to copy it'); }
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && S.screen === 'detail') { S.screen = 'library'; render(); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-open],[data-pack].tcard')) { e.preventDefault(); e.target.click(); }
+  });
+  document.addEventListener('input', function (e) {
+    if (e.target.id === 'q') { S.q = e.target.value; S.focusQ = true; render(); }
+  });
+  document.getElementById('pScreen').addEventListener('change', function (e) {
+    var v = e.target.value;
+    if (v === 'detail') { S.screen = 'detail'; render(); return; }
+    if (v === 'plan' && byId(S.tpl).tier === 'ai') S.tpl = 'pm';
+    go(v);
+  });
+  document.getElementById('pState').addEventListener('change', function (e) {
+    S.state = e.target.value;
+    if (S.state === 'incompat') { S.tpl = 'pm'; S.ad = 'a2'; if (S.screen === 'library' || S.screen === 'detail') S.screen = 'plan'; }
+    if (S.state === 'nocredits' && (S.screen === 'library' || S.screen === 'detail')) { S.tpl = 'face'; S.ad = 'a1'; S.screen = 'planai'; }
+    if (S.state === 'loading') S.screen = 'library';
+    if (S.state === 'normal' && S.ad === 'a2') S.ad = 'a1';
+    render();
+  });
+  S.ad = 'a1';
+  render();
+})();
+</script>

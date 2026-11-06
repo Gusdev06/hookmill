@@ -27,14 +27,19 @@ import { MetaEscritaService } from './escrita.service';
 import { POLICY_BLOCKED } from './campanhas.views';
 import type { MetaPublishBatchDto, MetaPublishDto } from './meta.dto';
 import { MetaTemplatesService } from './templates.service';
-import { groupKeyOf, isoDate, parseGroupKey, pixelMissing, planGroups, planOf, resolveName, structureOf } from './templates';
+import {
+  type MetaTemplateSnapshot, type ResolvedSchedule, applyOverride, budgetTooLow, groupKeyOf, isoDate, mergedErrors, overrideErrors, parseGroupKey, pixelMissing, planGroups, planOf,
+  resolveName, resolveSchedule, reusesTemplateCampaign, snapshotOf, structureOf, v2Settings,
+} from './templates';
 import { RESULT_PROFILE, pixelEventFor } from '../workspaces/resultado';
+import { markActivation } from '../workspaces/ativacao';
 
 const PUB_INCLUDE = { createdBy: { select: { id: true, name: true } } } satisfies Prisma.MetaPublicationInclude;
 type PubRow = Prisma.MetaPublicationGetPayload<{ include: typeof PUB_INCLUDE }>;
 
 const STAGE_PROGRESS: Record<string, number> = { uploading_video: 5, processing_video: 25, creating_campaign: 50, creating_adset: 65, creating_creative: 80, creating_ad: 92 };
-const CTA_BY_OBJECTIVE: Record<MetaObjective, MetaCallToAction> = { OUTCOME_SALES: 'SHOP_NOW', OUTCOME_LEADS: 'SIGN_UP', OUTCOME_APP_PROMOTION: 'DOWNLOAD', OUTCOME_TRAFFIC: 'LEARN_MORE' };
+// meta-templates-v2 §2.1 (B0, 03/11): Awareness/Engagement = LEARN_MORE
+const CTA_BY_OBJECTIVE: Record<MetaObjective, MetaCallToAction> = { OUTCOME_SALES: 'SHOP_NOW', OUTCOME_LEADS: 'SIGN_UP', OUTCOME_APP_PROMOTION: 'DOWNLOAD', OUTCOME_TRAFFIC: 'LEARN_MORE', OUTCOME_AWARENESS: 'LEARN_MORE', OUTCOME_ENGAGEMENT: 'LEARN_MORE' };
 const NEEDS_PIXEL: MetaObjective[] = ['OUTCOME_SALES', 'OUTCOME_LEADS', 'OUTCOME_APP_PROMOTION'];
 
 @Injectable()
@@ -190,6 +195,8 @@ export class MetaPublicacaoService {
    */
   async publish(auth: AuthContext, id: string, dto: MetaPublishDto): Promise<MetaPublicationView> {
     if (dto.templateId !== undefined) return this.publishWithTemplate(auth, id, dto);
+    // §14: override só vale em cima de um template
+    if (dto.override !== undefined) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'override', rule: 'requiresTemplateId' }] });
     const pubId = await this.locks.run(`meta-pub:${id}`, async () => {
       const c = await this.creative(auth, id);
       const render = c.finalRender;
@@ -253,16 +260,31 @@ export class MetaPublicacaoService {
     return { fresh, minimum: health?._account?.minimumDailyBudgetMinor ?? null };
   }
 
-  /** Template → checagens de pixel e orçamento iguais às da publicação de hoje. */
-  private async templateFor(auth: AuthContext, templateId: string, fresh: MetaConnection & { adAccountId: string }, minimum: number | null): Promise<MetaPublishTemplateView> {
-    const tpl = this.templates.present(await this.templates.load(auth, templateId, fresh));
+  /**
+   * Template → gate de envio (meta-templates-v2 §3): agendamento resolvido UMA vez no fuso da conta (início passado =
+   * agora; fim `AT` passado ou a < 24 h = 400 com `templateId`), Instagram/público que sumiu (400 `notAvailable`), pixel
+   * (422) e orçamento (422; LIFETIME = mínimo × dias resolvidos). O `sched` vai igual pra todo o lote (e o retry reusa os settings).
+   * §14 (04/11): o `override` (níveis inteiros, já validados no formato) entra ANTES do gate; o gate e tudo depois rodam
+   * sobre o mesclado. `tpl` devolvido = o template com os níveis do envio (o id/nome/reuseCampaignId seguem do original).
+   */
+  private async templateFor(auth: AuthContext, templateId: string, override: MetaPublishDto['override'], fresh: MetaConnection & { adAccountId: string }, minimum: number | null, now: Date): Promise<{ tpl: MetaPublishTemplateView; snapshot: MetaTemplateSnapshot; sched: ResolvedSchedule }> {
+    const base = this.templates.present(await this.templates.load(auth, templateId, fresh));
+    const snapshot = applyOverride(base, override);
+    const cross = mergedErrors(snapshot);
+    if (cross.length) throw new AppException('VALIDATION_ERROR', { fields: cross, templateId: base.id });
+    const tpl: MetaPublishTemplateView = { ...base, campaign: snapshot.campaign, adset: snapshot.adset, ad: snapshot.ad };
+    const sched = resolveSchedule(tpl.adset.schedule, fresh.timezoneName ?? 'UTC', now, 'send');
+    if (sched.errors.length) throw new AppException('VALIDATION_ERROR', { fields: sched.errors, templateId: tpl.id });
+    const gone = await this.templates.availability(fresh, tpl, 'send');
+    if (gone.length) throw new AppException('VALIDATION_ERROR', { fields: gone, templateId: tpl.id });
     if (pixelMissing(tpl.campaign, tpl.adset)) throw new AppException('META_PIXEL_REQUIRED', { objective: tpl.campaign.objective });
-    if (minimum != null && tpl.campaign.dailyBudgetMinor < minimum) throw new AppException('META_BUDGET_TOO_LOW', { minimumMinor: minimum, currency: fresh.currency ?? 'USD' });
-    return tpl;
+    const low = budgetTooLow(tpl.campaign, minimum, sched.value.days, fresh.currency ?? 'USD');
+    if (low) throw new AppException('META_BUDGET_TOO_LOW', { ...low });
+    return { tpl, snapshot, sched: sched.value };
   }
 
   /** Settings resolvidos do template (só o que a publicação usa; o template fica no templateId). Texto null herda do criativo/oferta. */
-  private templateSettings(c: Awaited<ReturnType<MetaPublicacaoService['creative']>>, conn: MetaConnection, tpl: MetaPublishTemplateView): MetaPublishSettings {
+  private templateSettings(c: Awaited<ReturnType<MetaPublicacaoService['creative']>>, conn: MetaConnection, tpl: MetaPublishTemplateView, sched: ResolvedSchedule): MetaPublishSettings {
     const d = this.defaults(c, conn);
     const objective = tpl.campaign.objective;
     const primaryText = (tpl.ad.primaryText ?? d.primaryText ?? '').trim();
@@ -274,13 +296,16 @@ export class MetaPublicacaoService {
       ageMin: tpl.adset.ageMin, ageMax: tpl.adset.ageMax,
       objectiveReason: objective === d.objective ? d.objectiveReason : 'business_type',
       pixelEvent: tpl.adset.pixelId ? tpl.adset.pixelEvent ?? pixelEventFor(objective, c.workspace.resultType) : null,
+      // meta-templates-v2 §6: total, agendamento resolvido, meta de desempenho, idiomas, públicos e Instagram (v1 = nada novo)
+      ...v2Settings(tpl, sched),
     };
   }
 
-  /** POST /creatives/:id/meta/publish { templateId }: 1 anúncio; campanha nova ou a reaproveitada (REUSE), ad set próprio. */
+  /** POST /creatives/:id/meta/publish { templateId, override? }: 1 anúncio; campanha nova ou a reaproveitada (REUSE), ad set próprio. */
   private async publishWithTemplate(auth: AuthContext, id: string, dto: MetaPublishDto): Promise<MetaPublicationView> {
-    const extra = Object.entries(dto).filter(([k, v]) => k !== 'templateId' && v !== undefined).map(([k]) => ({ field: k, rule: 'exclusiveWithTemplateId' }));
-    if (extra.length) throw new AppException('VALIDATION_ERROR', { fields: extra });
+    const extra = Object.entries(dto).filter(([k, v]) => k !== 'templateId' && k !== 'override' && v !== undefined).map(([k]) => ({ field: k, rule: 'exclusiveWithTemplateId' }));
+    const shape = overrideErrors(dto.override);
+    if (extra.length || shape.length) throw new AppException('VALIDATION_ERROR', { fields: [...extra, ...shape] });
     const pubId = await this.locks.run(`meta-pub:${id}`, async () => {
       const c = await this.creative(auth, id);
       const render = c.finalRender;
@@ -291,13 +316,14 @@ export class MetaPublicacaoService {
         throw new AppException('INVALID_STATE', { state: c.state, allowed: ['APPROVED'], reason: 'publish_in_progress' });
       }
       const { fresh, minimum } = await this.gate(auth);
-      const tpl = await this.templateFor(auth, dto.templateId!, fresh, minimum);
-      const settings = this.templateSettings(c, fresh, tpl);
+      const { tpl, snapshot, sched } = await this.templateFor(auth, dto.templateId!, dto.override, fresh, minimum, new Date());
+      const settings = this.templateSettings(c, fresh, tpl, sched);
       return this.prisma.$transaction(async (tx) => {
         const pub = await tx.metaPublication.create({
           data: {
             workspaceId: auth.workspaceId, connectionId: fresh.id, creativeId: c.id, status: 'PUBLISHING', adAccountId: fresh.adAccountId, pageId: fresh.pageId,
             pixelId: tpl.adset.pixelId, settings: settings as unknown as Prisma.InputJsonValue, renderFileId: render.file!.id, createdById: auth.userId, templateId: tpl.id,
+            templateSnapshot: snapshot as unknown as Prisma.InputJsonValue,
           },
         });
         const job = await tx.job.create({
@@ -318,6 +344,8 @@ export class MetaPublicacaoService {
    * 1× por grupo (run(): trava por grupo e reaproveita o id do irmão). 409 com os ids que não estão APPROVED.
    */
   async publishBatch(auth: AuthContext, dto: MetaPublishBatchDto): Promise<MetaPublishBatchResponse> {
+    const shape = overrideErrors(dto.override);
+    if (shape.length) throw new AppException('VALIDATION_ERROR', { fields: shape });
     const r = await this.locks.run(`meta-batch:${auth.workspaceId}`, async () => {
       const rows = await this.prisma.creative.findMany({
         where: { id: { in: dto.creativeIds }, workspaceId: auth.workspaceId, archivedAt: null },
@@ -339,8 +367,8 @@ export class MetaPublicacaoService {
       const busy = await this.prisma.metaPublication.findMany({ where: { creativeId: { in: dto.creativeIds }, status: 'PUBLISHING' }, select: { creativeId: true } });
       if (busy.length) throw new AppException('INVALID_STATE', { allowed: ['APPROVED'], reason: 'publish_in_progress', creativeIds: [...new Set(busy.map((b) => b.creativeId))] });
       const { fresh, minimum } = await this.gate(auth);
-      const tpl = await this.templateFor(auth, dto.templateId, fresh, minimum);
-      const settings = new Map(creatives.map((c) => [c.id, this.templateSettings(c, fresh, tpl)]));
+      const { tpl, snapshot, sched } = await this.templateFor(auth, dto.templateId, dto.override, fresh, minimum, new Date());
+      const settings = new Map(creatives.map((c) => [c.id, this.templateSettings(c, fresh, tpl, sched)]));
       const batchId = randomUUID();
       const now = Date.now();
       const date = isoDate(new Date(now));
@@ -357,7 +385,7 @@ export class MetaPublicacaoService {
               data: {
                 workspaceId: auth.workspaceId, connectionId: fresh.id, creativeId: c.id, status: 'PUBLISHING', adAccountId: fresh.adAccountId, pageId: fresh.pageId,
                 pixelId: tpl.adset.pixelId, settings: settings.get(c.id) as unknown as Prisma.InputJsonValue, renderFileId: c.finalRender!.file!.id, createdById: auth.userId,
-                templateId: tpl.id, groupKey: groupKeyOf(batchId, g.n),
+                templateId: tpl.id, groupKey: groupKeyOf(batchId, g.n), templateSnapshot: snapshot as unknown as Prisma.InputJsonValue,
                 createdAt: new Date(now + k++), // ordem estável dentro do lote: o 1º do grupo dá o nome do ad set, a posição dá o {n} do anúncio
               },
             });
@@ -405,11 +433,11 @@ export class MetaPublicacaoService {
 
   /**
    * Campanha da publicação com template (dentro da trava, gravando antes de soltar): irmão do lote que já tem campanha →
-   * ela; REUSE → a guardada no template se ainda existe na Meta (senão cria e grava); NEW → cria (1× por lote).
+   * ela; REUSE → a guardada no template se ainda existe na Meta (senão cria e grava NO TEMPLATE original); NEW → cria (1×
+   * por lote). §14: `reuse` = `reusesTemplateCampaign` (override que muda a forma da campanha = NEW só nesse envio).
    */
-  private async templateCampaign(auth: MetaAuth, p: MetaPublication, tpl: MetaPublishTemplateView, input: MetaPublishInput, save: (data: Prisma.MetaPublicationUncheckedUpdateInput) => Promise<unknown>): Promise<string> {
+  private async templateCampaign(auth: MetaAuth, p: MetaPublication, tpl: MetaPublishTemplateView, reuse: boolean, input: MetaPublishInput, save: (data: Prisma.MetaPublicationUncheckedUpdateInput) => Promise<unknown>): Promise<string> {
     const batch = parseGroupKey(p.groupKey)?.batchId ?? null;
-    const reuse = tpl.campaign.destination === 'REUSE_CAMPAIGN';
     const key = reuse ? `meta-camp:tpl:${tpl.id}` : batch ? `meta-camp:batch:${batch}` : `meta-camp:pub:${p.id}`;
     return this.locks.run(key, async () => {
       let id: string | null = null;
@@ -490,14 +518,18 @@ export class MetaPublicacaoService {
       const publicMedia = (process.env.PUBLIC_MEDIA ?? 'on').toLowerCase() !== 'off';
       const fileUrl = await this.storage.signedUrl(p.renderFile);
       const renderFile = p.renderFile;
-      // meta-templates-v1: com template, nomes pelos padrões e a estrutura (CBO/ABO, lance, público, posicionamentos, UTM)
-      const tpl = p.template ? this.templates.present(p.template) : null;
+      // meta-templates-v1: com template, nomes pelos padrões e a estrutura (CBO/ABO, lance, público, posicionamentos, UTM).
+      // §14 (04/11): a estrutura sai do snapshot gravado no envio (template + override); sem snapshot (antes de 04/11) = template ao vivo
+      const live = p.template ? this.templates.present(p.template) : null;
+      const snap = live ? snapshotOf(p.templateSnapshot) : null;
+      const tpl = live && snap ? { ...live, campaign: snap.campaign, adset: snap.adset, ad: snap.ad } : live;
+      const reuse = !!live && !!tpl && reusesTemplateCampaign(tpl.campaign, live.campaign);
       const names = tpl ? await this.templateNames(p, tpl) : null;
       const input: MetaPublishInput = {
         adAccountId: conn.adAccountId, pageId: conn.pageId, pixelId: tpl ? p.pixelId : conn.pixelId,
         adName: await this.metaName(p, names?.ad ?? p.creative.adName ?? p.creative.name),
         settings,
-        structure: tpl && names ? structureOf(tpl, names) : null,
+        structure: tpl && names ? structureOf(tpl, names, settings) : null,
         video: {
           fileUrl: publicMedia ? fileUrl : null,
           sizeBytes: p.renderFile.sizeBytes,
@@ -521,7 +553,7 @@ export class MetaPublicacaoService {
           case 'uploading_video': ids.videoId = (await this.meta.uploadVideo(auth, input)).videoId; await save({ videoId: ids.videoId }); break;
           case 'processing_video': await this.meta.waitVideoReady(auth, input, ids); break;
           case 'creating_campaign':
-            if (tpl) ids.campaignId = await this.templateCampaign(auth, p, tpl, input, save);
+            if (tpl) ids.campaignId = await this.templateCampaign(auth, p, tpl, reuse, input, save);
             else { ids.campaignId = (await this.meta.createCampaign(auth, input)).campaignId; await save({ campaignId: ids.campaignId }); }
             break;
           case 'creating_adset':
@@ -541,6 +573,7 @@ export class MetaPublicacaoService {
       const now = new Date();
       await this.prisma.$transaction(async (tx) => {
         await tx.metaPublication.update({ where: { id: p.id }, data: { status: 'PAUSED', publishedAt: p.publishedAt ?? now, previewUrl, errorCode: null, failReason: null, failDetail: null, failedStage: null } });
+        await markActivation(tx, p.workspaceId, 'firstSendAt', p.publishedAt ?? now); // tour-v2 §6
         // §3.3 passo 7: o anúncio aparece na Home sem esperar o sync (métricas zeradas)
         await tx.metaAdSnapshot.upsert({
           where: { connectionId_metaAdId: { connectionId: conn.id, metaAdId: ids.adId! } },

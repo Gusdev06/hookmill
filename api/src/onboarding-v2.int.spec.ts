@@ -144,7 +144,7 @@ describe(isLocal ? 'Onboarding v2 (integração local)' : 'Onboarding v2 [pulado
     const ws0 = await call('GET', '/workspace', users.owner.token);
     expect(ws0.body.data.onboarding).toMatchObject({ percent: 0, updatedBy: null, updatedAt: null });
     expect(ws0.body.data.onboarding.steps.map((s: any) => [s.key, s.state, s.enabled])).toEqual([
-      ['business', 'current', true], ['meta', 'todo', true], ['offer', 'todo', true], ['audience', 'todo', true], ['goals', 'todo', true], ['brain', 'todo', true],
+      ['business', 'current', true], ['meta', 'todo', true], ['offer', 'todo', true], ['audience', 'todo', true], ['goals', 'todo', false], ['brain', 'todo', true], // QA 01/11: goals oculto desde 31/10, fora do %
     ]);
 
     const offer = await call('POST', '/offers', users.member.token, { name: 'Sheets', language: 'en', what: 'Bamboo sheets', promise: 'Sleep cooler' });
@@ -156,28 +156,28 @@ describe(isLocal ? 'Onboarding v2 (integração local)' : 'Onboarding v2 [pulado
 
     const patch = await call('PATCH', '/workspace', users.admin.token, { name: 'Mooncloth', businessType: 'ONLINE_STORE', monthlySpendCapUsd: 25, onboardingStep: 3 });
     expect(patch.status).toBe(200);
-    expect(patch.body.data.onboarding).toMatchObject({ step: 3, percent: 17, updatedBy: { id: users.admin.id, initials: 'OA' } }); // business (1 < 3); offer e goals done mas não alcançados
+    expect(patch.body.data.onboarding).toMatchObject({ step: 3, percent: 20, updatedBy: { id: users.admin.id, initials: 'OA' } }); // business (1 < 3); offer e goals done mas não alcançados
     expect(patch.body.data.onboarding.steps.find((s: any) => s.key === 'goals').state).toBe('done');
     expect(patch.body.data.onboarding.steps.find((s: any) => s.key === 'meta').state).toBe('skipped');
     expect(patch.body.data.onboarding.updatedAt).toEqual(expect.any(String));
 
     const cards = await call('GET', '/workspaces', users.owner.token);
     const card = cards.body.data.find((c: any) => c.id === w1);
-    expect(card.onboarding).toMatchObject({ step: 3, percent: 17, updatedBy: { id: users.admin.id } });
+    expect(card.onboarding).toMatchObject({ step: 3, percent: 20, updatedBy: { id: users.admin.id } });
     const me = await call('GET', '/auth/me', users.member.token);
-    expect(me.body.data.workspace.onboarding).toEqual({ step: 3, percent: 17, completedAt: null });
+    expect(me.body.data.workspace.onboarding).toEqual({ step: 3, percent: 20, completedAt: null, confirmed: [] });
 
     const audience = await call('PATCH', `/offers/${offer.body.data.id}`, users.owner.token, { audience: 'Hot sleepers' });
     expect(audience.status).toBe(200);
-    expect((await call('GET', '/workspace', users.owner.token)).body.data.onboarding.percent).toBe(17); // audience done, passo 4 não alcançado
-    // Continue até o passo 6: business + offer + audience + goals contam (meta skipped não) = 4 de 6
+    expect((await call('GET', '/workspace', users.owner.token)).body.data.onboarding.percent).toBe(20); // audience done, passo 4 não alcançado
+    // Continue até o passo 6: business + offer + audience contam (meta skipped não; goals oculto desde 31/10) = 3 de 5
     const fwd = await call('PATCH', '/workspace', users.owner.token, { onboardingStep: 6 });
     expect(fwd.status).toBe(200);
-    expect(fwd.body.data.onboarding.percent).toBe(67);
-    expect((await call('GET', '/workspaces', users.owner.token)).body.data.find((c: any) => c.id === w1).onboarding.percent).toBe(67);
+    expect(fwd.body.data.onboarding.percent).toBe(60);
+    expect((await call('GET', '/workspaces', users.owner.token)).body.data.find((c: any) => c.id === w1).onboarding.percent).toBe(60);
     // borda aceita (D10): voltar pelo trilho regrava o step menor e o % cai até avançar de novo
-    expect((await call('PATCH', '/workspace', users.owner.token, { onboardingStep: 2 })).body.data.onboarding.percent).toBe(17);
-    expect((await call('PATCH', '/workspace', users.owner.token, { onboardingStep: 6 })).body.data.onboarding.percent).toBe(67);
+    expect((await call('PATCH', '/workspace', users.owner.token, { onboardingStep: 2 })).body.data.onboarding.percent).toBe(20);
+    expect((await call('PATCH', '/workspace', users.owner.token, { onboardingStep: 6 })).body.data.onboarding.percent).toBe(60);
   });
 
   it('403 por papel: MEMBER e CLIENT não editam o setup; CLIENT não cria oferta', async () => {
@@ -194,7 +194,7 @@ describe(isLocal ? 'Onboarding v2 (integração local)' : 'Onboarding v2 [pulado
   it('tour: stops sem iterate; complete idempotente; CLIENT completa o dele; com WINNER no snapshot a parada iterate entra', async () => {
     const t0 = await call('GET', '/workspace/tour', users.client.token);
     expect(t0.status).toBe(200);
-    expect(t0.body.data).toEqual({ completedAt: null, stops: ['brain', 'concepts', 'eddy', 'home'] });
+    expect(t0.body.data).toEqual({ completedAt: null, stops: ['brain', 'concepts', 'eddy', 'home'], winnerMetaAdId: null, winnerName: null, tipsSeen: [] });
 
     const c1 = await call('POST', '/workspace/tour/complete', users.client.token, {});
     expect(c1.status).toBe(200);

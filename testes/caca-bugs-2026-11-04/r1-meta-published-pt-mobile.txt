@@ -1,0 +1,49 @@
+HM
+Q
+QA Alfa
+Ilimitado
+Voltar pro OK final
+Publicar na Meta
+
+Cria uma campanha pausada em Mock Store (USD) com este vídeo. Nada gasta até você clicar em Ativar.
+
+Criado, pausado
+Pausado
+
+Campanha, conjunto e anúncio estão em Mock Store (USD), pausados. Revise no Gerenciador de Anúncios e clique em Ativar pra começar a gastar.
+
+Publicado há 3 minutos · por QA Dono Alfa
+US$ 35,00/dia · US · Vendas
+Campanha
+mock_campaign_3495d392
+Conjunto
+mock_adset_5d7868e3
+Anúncio
+mock_ad_d65f654d
+Vídeo
+mock_video_07df34ca
+Criativo
+mock_creative_79a81682
+Resultados
+Gasto
+US$ 0,00
+Resultados
+0
+Custo / resultado
+—
+CTR
+0.00%
+Ativar
+Abrir no Gerenciador de Anúncios
+Hunt ad 1
+HUNT_1104_1.mp4
+Hunt sleep 🧪
+0:20 · 9:16
+Aprovado · pronto pra enviar
+Baixar MP4
+f
+Mock Store (USD)
+act_mock_1 · USD
+Página: Mock Page
+Pixel: Mock Pixel
+Gerenciar em Configurações

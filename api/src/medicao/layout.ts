@@ -8,8 +8,12 @@
 // Faixas: fronteira = pico do perfil de gradiente que sobrevive em todas as amostras (mínimo entre frames), acima de
 // mediana + 4 desvios e nítido contra a vizinhança (ambos relativos ao próprio vídeo).
 import type { Measurements, Rect } from '@maquina/contratos';
-import { run, streamFrames, type Bins } from './ffmpeg';
+import { run, streamFrames, streamFramesAsync, type Bins } from './ffmpeg';
 import { cellsFromFrames, type RgbFrame } from './celulas';
+
+// Laço por pixel usa `abs` do módulo, não `Math.abs`: no Jest (vm própria) cada leitura do global `Math` é ~20x mais
+// lenta e a API dos int specs travava o event loop por segundos (F3 do QA 01/11). Em node puro dá na mesma.
+const abs = Math.abs;
 
 /** measureLayout + células (§13.1): cada segmento ganha `cells` (px, cobrem o quadro). Subtipo do Measurements. */
 export type LayoutMeasure = Pick<Measurements, 'cuts'> & {
@@ -44,7 +48,7 @@ export function signature(rgb: Uint8Array, w: number, h: number): Float64Array {
 
 export function sigDistance(a: Float64Array, b: Float64Array): number {
   let t = 0;
-  for (let i = 0; i < a.length; i++) t += Math.abs(a[i] - b[i]);
+  for (let i = 0; i < a.length; i++) t += abs(a[i] - b[i]);
   return t / a.length;
 }
 
@@ -82,7 +86,7 @@ export function describeBand(sig: Float64Array, h: number, y0: number, y1: numbe
 export function gradientProfile(sig: Float64Array, h: number): Float64Array {
   const g = new Float64Array(h - 1);
   for (let y = 0; y < h - 1; y++) {
-    g[y] = (Math.abs(sig[y + 1] - sig[y]) + Math.abs(sig[h + y + 1] - sig[h + y]) + Math.abs(sig[2 * h + y + 1] - sig[2 * h + y])) / 3;
+    g[y] = (abs(sig[y + 1] - sig[y]) + abs(sig[h + y + 1] - sig[h + y]) + abs(sig[2 * h + y + 1] - sig[2 * h + y])) / 3;
   }
   const k = Math.max(3, Math.floor(h / 200));
   const off = Math.floor((k - 1) / 2);
@@ -170,7 +174,8 @@ export function halfCliffIndex(sigs: Float64Array[], before: Float64Array, after
  * por amostra (cada seek decodifica do keyframe anterior; no podcast de 49 s eram ~90 seeks). `atSec` → o 1º frame com
  * pts ≥ instante (o mesmo do -ss). O buffer do frame só vale durante o callback.
  */
-async function grabMany(bins: Bins, path: string, info: Info, atSec: number[], onFrame: (k: number, f: RgbFrame) => void): Promise<void> {
+async function grabMany(bins: Bins, path: string, info: Info, atSec: number[], onFrame: (k: number, f: RgbFrame) => void | Promise<void>,
+  assincrono = false): Promise<void> {
   if (!atSec.length) return;
   const idx = atSec.map((t) => Math.max(0, Math.ceil(t * info.fps - 1e-6)));
   const uniq = [...new Set(idx)].sort((a, b) => a - b);
@@ -178,11 +183,19 @@ async function grabMany(bins: Bins, path: string, info: Info, atSec: number[], o
   idx.forEach((n, k) => quem.set(n, [...(quem.get(n) ?? []), k]));
   const expr = uniq.map((n) => `eq(n\\,${n})`).join('+');
   let i = 0;
-  await streamFrames(bins.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-i', path, '-an', '-vf',
-    `select='${expr}',scale=${info.w}:${info.h}`, '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
-  info.w * info.h * 3, (buf) => {
+  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-i', path, '-an', '-vf',
+    `select='${expr}',scale=${info.w}:${info.h}`, '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'];
+  // `assincrono`: callback assíncrono com contrapressão (células: cede o event loop entre os cálculos, F3 01/11)
+  if (assincrono) {
+    await streamFramesAsync(bins.ffmpeg, args, info.w * info.h * 3, async (buf) => {
+      const n = uniq[i++];
+      for (const k of quem.get(n) ?? []) await onFrame(k, { data: buf, w: info.w, h: info.h });
+    });
+    return;
+  }
+  await streamFrames(bins.ffmpeg, args, info.w * info.h * 3, (buf) => {
     const n = uniq[i++];
-    for (const k of quem.get(n) ?? []) onFrame(k, { data: buf, w: info.w, h: info.h });
+    for (const k of quem.get(n) ?? []) void onFrame(k, { data: buf, w: info.w, h: info.h });
   });
 }
 
@@ -267,14 +280,20 @@ export async function measureLayout(bins: Bins, path: string, info: Info, opt: L
   const inst5 = segs.flatMap((s) => Array.from({ length: opt.samplesPerSegment }, (_, j) => s.inicio + ((s.fim - s.inicio) * (j + 0.5)) / opt.samplesPerSegment));
   const porSeg: RgbFrame[][] = segs.map(() => []);
   const celulas: { cells: Rect[]; cellsAlt: Rect[] }[] = segs.map(() => ({ cells: [{ x: 0, y: 0, w: info.w, h: info.h }], cellsAlt: [{ x: 0, y: 0, w: info.w, h: info.h }] }));
-  await grabMany(bins, path, info, inst5, (k, f) => {
+  // cada cellsFromFrames é CPU síncrona (5 quadros inteiros): cede o event loop antes de cada uma, pra API seguir
+  // respondendo durante a leitura (F3 01/11)
+  const cede = () => new Promise<void>((r) => setImmediate(r));
+  await grabMany(bins, path, info, inst5, async (k, f) => {
     const si = Math.floor(k / opt.samplesPerSegment);
     porSeg[si].push({ data: Uint8Array.from(f.data), w: f.w, h: f.h });
     if (porSeg[si].length === opt.samplesPerSegment) {
-      celulas[si] = { cells: cellsFromFrames(porSeg[si]), cellsAlt: cellsFromFrames(porSeg[si], undefined, 'x') };
+      await cede();
+      const cells = cellsFromFrames(porSeg[si]);
+      await cede();
+      celulas[si] = { cells, cellsAlt: cellsFromFrames(porSeg[si], undefined, 'x') };
       porSeg[si] = [];
     }
-  });
+  }, true);
   porSeg.forEach((fs, si) => { if (fs.length) celulas[si] = { cells: cellsFromFrames(fs), cellsAlt: cellsFromFrames(fs, undefined, 'x') }; });
   for (const [si, s] of segs.entries()) {
     segments.push({

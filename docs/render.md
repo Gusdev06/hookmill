@@ -195,3 +195,16 @@ Script: `api/src/render/auto-edit-real.ts <saida> [tipos] [formatos]` (RemotionR
 
   Prova: `ITERATE_TEMPLATES=on npx ts-node --transpile-only src/render/templates-campeao-real.ts` (de `api/`, banco dev só leitura). Saída em `video/out/f1-templates-2026-10-28/` (MP4, `contact-sheet.png`, `stills/`, `relatorio.json`).
 - **Lambda (NÃO feito; rodar com ok do Gusta, depois do merge, do checkout principal):** o bundle ganhou a composição `Template` e `public/sfx/*.wav`, então o site precisa ser republicado: `npm run build:bundle -w video && set -a; source <(grep '^REMOTION_AWS_' api/.env); set +a; SITE=hookmill-dev BUNDLE_DIR=video/dist/bundle node scripts/sonda-lambda-l1.mjs deploy` (mesmo `REMOTION_SERVE_URL`; a função é idempotente). Depois, no `api/.env`/EasyPanel: `RENDER_LAMBDA_KINDS=...,template` e `ITERATE_TEMPLATES=on`, e reiniciar a API. Custo esperado: ~US$ 0,011 por render de 30 s (sonda L1).
+
+## Templates de lista (04/11): `versus` e `value-stack` (`LIST_OVERLAY`)
+
+- **Composição:** a mesma `Template`, ids `versus`/`value-stack`, nos 3 formatos (`calcularTemplate` lê `format`). Componente `video/src/templates/ListOverlay.tsx`; funções puras em `video/src/lib/listaOverlay.ts` (`needLista`, `posicionarLista`, `agendaLista`, `medirLista`, `geometriaLista`, `checkpointsLista`). O painel entra no `checarLegendaProtegida` (aceita `ListOverlayProps`) e `faixasProtegidasNaSaidaLista` dá a faixa na saída pra checagem por visão. Sem a nossa legenda. Piso de fonte 30 px (Versus) / 26 px (Stack) via `fitText({ piso })`.
+- **Medido (Mac, render local, concurrency 1, jpeg 90, avatar Pocketwise 464×832 25 fps, 19,7 s = 590 frames):**
+
+| peça | render | pico RSS (Node) | pico RSS (Node + Chrome) |
+|---|---|---|---|
+| `versus.mp4` 9:16 | 56,7 s (inclui o bundle) | 753 MB (bundle) | ~1,66 GB |
+| `value-stack.mp4` 9:16 | 55,6 s | 170 MB | idem |
+
+  Prova: `node video/scripts/lista-exemplos.mjs <saida> [stills]` (avatar em `video/public/fixtures/avatar-pocketwise.mp4`, palavras reais do mlx-whisper em `video/scripts/lista-exemplos-palavras.json`). 30 s de vídeo ≈ 85 s de render no mesmo ritmo.
+- **Lambda:** site de dev `hookmill-dev` republicado em 04/11 com o bundle novo. Produção NÃO publicada (ok do Gusta): `npm run build:bundle -w video && set -a; source <(grep '^REMOTION_AWS_' .env); set +a; SITE=hookmill-$(git rev-parse --short HEAD) BUNDLE_DIR=video/dist/bundle node scripts/sonda-lambda-l1.mjs deploy` e trocar o `REMOTION_SERVE_URL` do EasyPanel pela URL impressa (não há `npm run lambda:deploy` na raiz ainda).

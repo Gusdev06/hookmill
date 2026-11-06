@@ -1,9 +1,12 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth, AuthContext, Roles } from '../common/auth/auth-context';
 import { ExpensiveAction } from '../common/throttle/app-throttler.guard';
-import { CreateIterateDto, EmptyBodyDto, ForceCaptionBlockedDto, StartIterateDto, UpdateAnswersDto, SelectItemDto } from './iteracao.dto';
+import { AppException } from '../common/errors/app-exception';
+import { Paginated } from '../common/http/envelope.interceptor';
+import { CreateIterateDto, EmptyBodyDto, StartIterateDto, UpdateAnswersDto, SelectItemDto, UpdateItemTextsDto, UpdateListOptionsDto } from './iteracao.dto';
 import { IteracaoService } from './iteracao.service';
+import { IteracaoListaService, ListIterateQueryDto } from './lista.service';
 
 /**
  * Variação automática de campeão (variacao-auto-v1.md §5.1): o lote. Workspace sempre do token; CLIENT só lê (o config
@@ -13,7 +16,17 @@ import { IteracaoService } from './iteracao.service';
 @ApiBearerAuth()
 @Controller('iterate')
 export class IteracaoController {
-  constructor(private readonly iteracao: IteracaoService) {}
+  constructor(
+    private readonly iteracao: IteracaoService,
+    private readonly lista: IteracaoListaService,
+  ) {}
+
+  /** lacunas-home-eddy-v1 §5: lista de lotes (updatedAt desc). Todos os papéis (só leitura). */
+  @Get()
+  async list(@Auth() auth: AuthContext, @Query() q: ListIterateQueryDto) {
+    const r = await this.lista.list(auth, q);
+    return new Paginated(r.data, r.meta); // envelope { success, data: IterateBatchRow[], meta: { nextCursor } }
+  }
 
   @Roles('OWNER', 'ADMIN', 'MEMBER') @Get('config')
   config(@Auth() auth: AuthContext) {
@@ -41,6 +54,18 @@ export class IteracaoController {
     return this.iteracao.select(auth, id, itemId, dto.included);
   }
 
+  /** templates-creditos-v1 A7: editar o texto de uma peça no Plan (FRAME/HEADLINE), grátis. Só PLAN_READY. */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Patch(':id/items/:itemId/texts')
+  updateTexts(@Auth() auth: AuthContext, @Param('id') id: string, @Param('itemId') itemId: string, @Body() dto: UpdateItemTextsDto) {
+    return this.iteracao.updateTexts(auth, id, itemId, dto.texts);
+  }
+
+  /** templates-lista-v1 §5: look, colunas e "Fill from Brain" de uma peça LIST_OVERLAY no Plan, grátis. Só PLAN_READY. */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Patch(':id/items/:itemId/list')
+  updateList(@Auth() auth: AuthContext, @Param('id') id: string, @Param('itemId') itemId: string, @Body() dto: UpdateListOptionsDto) {
+    return this.iteracao.updateListOptions(auth, id, itemId, dto);
+  }
+
   @Get(':id')
   get(@Auth() auth: AuthContext, @Param('id') id: string) {
     return this.iteracao.get(auth, id);
@@ -57,22 +82,20 @@ export class IteracaoController {
     return this.iteracao.replan(auth, id);
   }
 
-  /** legenda-protegida-v1 §8 (29/10): "Gerar mesmo assim" num formato bloqueado pela legenda queimada. Só PLAN_READY.
-   *  Sem candidata guardada = 1 chamada do plano (custo no lote, teto do workspace). */
-  @Roles('OWNER', 'ADMIN', 'MEMBER') @ExpensiveAction() @HttpCode(200) @Post(':id/caption-blocked/force')
-  forceCaption(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: ForceCaptionBlockedDto) {
-    return this.iteracao.forceCaptionBlocked(auth, id, { type: dto.type, template: dto.template ?? null });
+  /** troca-texto-queimado-v1 §15.3: "Gerar mesmo assim" saiu. 410 por uma versão, com qualquer corpo; depois as rotas somem. */
+  @Post(':id/caption-blocked/force')
+  forceCaption(): never {
+    throw new AppException('CAPTION_FORCE_RETIRED');
   }
 
-  /** §8: desfaz o "Gerar mesmo assim" (a peça sai do plano; o formato volta pra `captionBlocked` sem `forced`). */
-  @Roles('OWNER', 'ADMIN', 'MEMBER') @HttpCode(200) @Delete(':id/caption-blocked/force')
-  unforceCaption(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: ForceCaptionBlockedDto) {
-    return this.iteracao.unforceCaptionBlocked(auth, id, { type: dto.type, template: dto.template ?? null });
+  @Delete(':id/caption-blocked/force')
+  unforceCaption(): never {
+    throw new AppException('CAPTION_FORCE_RETIRED');
   }
 
   @HttpCode(202) @Post(':id/start')
   start(@Auth() auth: AuthContext, @Param('id') id: string, @Body() dto: StartIterateDto) {
-    return this.iteracao.start(auth, id, dto.expectedPieces, dto.expectedCostUsd);
+    return this.iteracao.start(auth, id, dto.expectedPieces, dto.expectedCostUsd, dto.expectedCredits);
   }
 
 }

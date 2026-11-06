@@ -2,7 +2,9 @@
 // Nenhuma chamada paga: o SDK nunca é instanciado aqui.
 import type { AutoPlanInput, AutoVariationType, AutoVariationTypeWithFrame, Measurements, OfferBriefDraft, TranscriptWord } from './contrato';
 import { CatalogServiceImpl } from './catalogo/catalog.service';
-import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, AUTO_TYPES, autoPlanContext, autoPlanUserMessage, clip, parseAutoPlan } from './claude/auto-plano';
+import { AUTO_PLAN_SCHEMA, AUTO_PLAN_SYSTEM, AUTO_TYPES, autoPlanContext, autoPlanSchemaFor, autoPlanUserMessage, clip, parseAutoPlan, pickedRequest, templateOnlyRequest } from './claude/auto-plano';
+import { mockAutoPlan } from './mock/fake-auto-plan';
+import { schemaStats } from './claude/schema-stats';
 import { ClaudeLiveService } from './claude/claude.service';
 import type { ClaudeCall, ClaudeResult, ClaudeTransport } from './claude/transporte';
 import { FakeClaudeService, mockTeardown } from './mock/fake-claude.service';
@@ -10,6 +12,9 @@ import { FRAMES_DETAIL_SCHEMA, STATIC_DETAIL_SCHEMA } from './claude/auto-plano-
 import { staticCopyLength } from './claude/auto-plano-estatico';
 import { MemoryCostStore } from './store/memoria.store';
 import { isIntegracaoError } from './erros';
+import { LIST_SCHEMAS, STACK_SCHEMA, VERSUS_SCHEMA, anchorOf, listDetailMessage, listTemplatesOf } from './claude/auto-plano-lista';
+import { mockListNoRoom } from './mock/fake-template';
+import type { AutoListOverlayDraft } from './contrato';
 
 function speak(sentences: string[], start = 0.2): TranscriptWord[] {
   const out: TranscriptWord[] = [];
@@ -51,9 +56,9 @@ function input(over: Partial<AutoPlanInput> = {}): AutoPlanInput {
     media: { durationSec: DUR, cuts: 1, silences: [{ startSec: 3.4, endSec: 3.9 }], hasWrittenHook: false, hasEndCard: false },
     keyframes: [{ atSec: 0, reason: 't0', url: 'https://x/0.jpg' }],
     // catálogo dos lotes novos (25/10): CUT, REVIEW, NATIVE_SEARCH, STATIC (2) e FRAME (8); os antigos ficam no allowed
-    // pra provar que o plano novo não os usa mais
+    // pra provar que o plano novo não os usa mais. COLD_OPEN/ENDCARD (A6, 01/11) só no lote de template: testes próprios.
     allowed: [
-      { type: 'CUT', max: 2 }, { type: 'COLD_OPEN', max: 1 }, { type: 'HOOK_TEXT', max: 3 }, { type: 'ENDCARD', max: 1 },
+      { type: 'CUT', max: 2 }, { type: 'HOOK_TEXT', max: 3 },
       { type: 'SPLIT_LP', max: 1 }, { type: 'STORY', max: 1 }, { type: 'REVIEW', max: 1 }, { type: 'NATIVE_SEARCH', max: 2 }, { type: 'STATIC', max: 2 },
       { type: 'FRAME' as AutoVariationType, max: 8 },
     ],
@@ -70,7 +75,7 @@ class FakeTransport implements ClaudeTransport {
   details: ClaudeCall[] = [];
   constructor(private readonly reply: (call: ClaudeCall, n: number) => ClaudeResult | Error, private readonly detail: (call: ClaudeCall) => ClaudeResult = () => DETAIL_RES) {}
   async run(call: ClaudeCall): Promise<ClaudeResult> {
-    if (call.schema === STATIC_DETAIL_SCHEMA || call.schema === FRAMES_DETAIL_SCHEMA) {
+    if (call.schema === STATIC_DETAIL_SCHEMA || call.schema === FRAMES_DETAIL_SCHEMA || Object.values(LIST_SCHEMAS).includes(call.schema as Record<string, unknown>)) {
       this.details.push(call);
       return this.detail(call);
     }
@@ -361,7 +366,7 @@ describe('planAutoBatch mock (§10)', () => {
     const i = input({
       offer: { ...OFFER, proof: null, offerAndPrice: null, pains: null, audience: null, promise: null, cta: null },
       page: { captured: false, text: null },
-      allowed: [{ type: 'CUT', max: 1 }, { type: 'HOOK_TEXT', max: 3 }, { type: 'ENDCARD', max: 1 }, { type: 'STORY', max: 1 }, { type: 'STATIC', max: 2 }, { type: 'NATIVE_SEARCH', max: 2 }, { type: 'SPLIT_LP', max: 1 }],
+      allowed: [{ type: 'CUT', max: 1 }, { type: 'HOOK_TEXT', max: 3 }, { type: 'STORY', max: 1 }, { type: 'STATIC', max: 2 }, { type: 'NATIVE_SEARCH', max: 2 }, { type: 'SPLIT_LP', max: 1 }],
     });
     const out = await fake().planAutoBatch(i, () => undefined);
     checkRules(i, out.items);
@@ -406,5 +411,272 @@ describe('estimateAutoAnalysis', () => {
     // 25/10: + 2ª etapa: 2 STATIC (4000 × 4 + (8000 + 750) × 0,2 + 2500 × 20) + 1 de molduras ((10000 + 750) × 4 + 4000 × 20), por milhão
     const details = (2 * (4000 * 4 + 8750 * 0.2 + 2500 * 20) + (10750 * 4 + 4000 * 20)) / 1e6;
     expect(plan).toBeCloseTo(noRefs + 0.0256 + details, 4);
+  });
+});
+
+// templates-creditos-v1 A6 (01/11): COLD_OPEN e ENDCARD voltam SÓ no lote de template (o backend os põe em `allowed`).
+describe('COLD_OPEN e ENDCARD no plano (só lote de template)', () => {
+  type Params = { properties: Record<string, { enum?: string[] }> };
+  const itemsOf = (sc: ReturnType<typeof autoPlanSchemaFor>) => (sc.properties.items as { items: { properties: { type: { enum: string[] }; params: Params } } }).items.properties;
+  const coldOpen = input({ allowed: [{ type: 'COLD_OPEN', max: 1 }], rules: { min: 1, max: 1, minDiversityPct: 0 } });
+  const endcard = input({ allowed: [{ type: 'ENDCARD', max: 1 }], rules: { min: 1, max: 1, minDiversityPct: 0 }, endcardVariants: ['offer', 'cta'] });
+
+  it('sem eles em `allowed` (Iterate normal): o MESMO esquema e nenhum bloco no pedido', () => {
+    expect(autoPlanSchemaFor(input())).toBe(AUTO_PLAN_SCHEMA);
+    expect(autoPlanSchemaFor(input({ allowed: [{ type: 'COLD_OPEN', max: 0 }, { type: 'CUT', max: 2 }] }))).toBe(AUTO_PLAN_SCHEMA);
+    expect(autoPlanUserMessage(input())).not.toMatch(/edit_templates|COLD_OPEN|ENDCARD/);
+    expect(AUTO_PLAN_SYSTEM).not.toMatch(/COLD_OPEN|ENDCARD/); // sistema igual em todo lote (cache)
+  });
+
+  it('esquema: + o tipo e só os campos dele; variante só as que o Brain sustenta; sem union e abaixo do teto medido', () => {
+    const co = itemsOf(autoPlanSchemaFor(coldOpen));
+    expect(co.type.enum).toEqual(['HEADLINE', 'CUT', 'REVIEW', 'NATIVE_SEARCH', 'STATIC', 'FRAME', 'CHAT_DM', 'PERSON_MOTION', 'COLD_OPEN']);
+    expect(Object.keys(co.params.properties)).toEqual(expect.arrayContaining(['teaserStartSec', 'teaserEndSec']));
+    expect(co.params.properties.variant).toBeUndefined();
+    const ec = itemsOf(autoPlanSchemaFor(endcard));
+    expect(ec.type.enum.slice(-1)).toEqual(['ENDCARD']);
+    expect(ec.params.properties.variant.enum).toEqual(['offer', 'cta', 'none']);
+    expect(Object.keys(ec.params.properties)).toEqual(expect.arrayContaining(['headline', 'subline', 'ctaText']));
+    expect(ec.params.properties.teaserStartSec).toBeUndefined();
+    // pack com os dois + tudo: o pior caso
+    const both = autoPlanSchemaFor(input({ allowed: [...input().allowed, { type: 'COLD_OPEN', max: 1 }, { type: 'ENDCARD', max: 1 }] }));
+    for (const sc of [autoPlanSchemaFor(coldOpen), autoPlanSchemaFor(endcard), both]) {
+      const st = schemaStats(sc);
+      expect(JSON.stringify(sc)).not.toMatch(/anyOf|oneOf|"null"/);
+      expect(st.properties).toBeLessThanOrEqual(55);
+      expect(st.enumValues).toBeLessThanOrEqual(80);
+      expect([st.unions, st.optional]).toEqual([0, 0]);
+    }
+  });
+
+  it('pedido: bloco <edit_templates> com as regras do tipo (janela do teaser; variantes, limites, nada inventado)', () => {
+    const u = autoPlanUserMessage(coldOpen);
+    expect(u).toMatch(/<allowed>\nCOLD_OPEN: up to 1\n<\/allowed>/);
+    expect(u).toMatch(/teaserStartSec at or after 5 s; teaserEndSec 1\.5 to 3\.5 s after it/);
+    expect(u).not.toMatch(/ENDCARD \[ITERATION\]/);
+    const e = templateOnlyRequest(endcard)!;
+    expect(e).toMatch(/Allowed variants here: offer, cta\./);
+    expect(e).toMatch(/headline at most 40 characters, subline at most 60 .* ctaText at most 24/);
+    expect(e).toMatch(/Nothing invented/);
+    expect(templateOnlyRequest({ allowed: [{ type: 'CUT', max: 2 }] })).toBeNull();
+  });
+
+  it('planAutoBatch real: manda o esquema estendido e normaliza teaser e end card (variante fora vira cta; textos no limite)', async () => {
+    const reply = {
+      ...GOOD,
+      items: [
+        { type: 'COLD_OPEN', change: 'Opens on the neighbor proof', rationale: 'r', whyKey: 'proof', params: { ...EMPTY, teaserStartSec: 9.5, teaserEndSec: 12.1 } },
+        { type: 'ENDCARD', change: 'Offer end card', rationale: 'r', whyKey: 'cta', params: { ...EMPTY, variant: 'bogus', headline: 'Wake up without back pain, finally, for real now', subline: '', ctaText: 'Start tonight' } },
+      ],
+    };
+    const t = new FakeTransport(() => res(reply));
+    const svc = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'claude-opus-5-5', fetchImpl: jpegFetch });
+    const out = await svc.planAutoBatch(input({ allowed: [{ type: 'COLD_OPEN', max: 1 }, { type: 'ENDCARD', max: 1 }], rules: { min: 1, max: 2, minDiversityPct: 0 } }), () => undefined);
+    expect(t.calls).toHaveLength(1);
+    expect(t.calls[0].system).toBe(AUTO_PLAN_SYSTEM);
+    expect(t.calls[0].schema).not.toBe(AUTO_PLAN_SCHEMA);
+    expect(itemsOf(t.calls[0].schema as ReturnType<typeof autoPlanSchemaFor>).type.enum).toEqual(expect.arrayContaining(['COLD_OPEN', 'ENDCARD']));
+    expect(t.calls[0].user).toContain('<edit_templates>');
+    expect(out.items[0].params).toEqual({ type: 'COLD_OPEN', teaserStartSec: 9.5, teaserEndSec: 12.1 });
+    const ec = out.items[1].params as Extract<typeof out.items[1]['params'], { type: 'ENDCARD' }>;
+    expect(ec).toMatchObject({ type: 'ENDCARD', variant: 'cta', subline: null, ctaText: 'Start tonight' });
+    expect(ec.headline.length).toBeLessThanOrEqual(40);
+  });
+
+  it('mock: COLD_OPEN e ENDCARD só quando vêm em `allowed`; variante dentro das liberadas', async () => {
+    const fake = new FakeClaudeService(new MemoryCostStore(), { model: 'mock', stepMs: 0 });
+    const a = await fake.planAutoBatch(coldOpen, () => undefined);
+    expect(a.items.map((x) => x.type)).toEqual(['COLD_OPEN']);
+    expect((a.items[0].params as { teaserStartSec: number }).teaserStartSec).toBeGreaterThanOrEqual(5);
+    const b = await fake.planAutoBatch({ ...endcard, endcardVariants: ['cta'] }, () => undefined);
+    expect(b.items.map((x) => x.type)).toEqual(['ENDCARD']);
+    expect(b.items[0].params).toMatchObject({ type: 'ENDCARD', variant: 'cta' });
+  });
+});
+
+// templates-multi-v1 §4.5 (04/11): templates marcados pela pessoa → bloco <picked_templates> no pedido (sistema intacto)
+describe('planAutoBatch · templates marcados (picked)', () => {
+  const frames = ['news', 'meme', 'question_box', 'cinema', 'live', 'call', 'story', 'post_card', 'ranking', 'pov_testimonial'] as const;
+  const sel = (over: Partial<AutoPlanInput> = {}) => input({
+    allowed: [{ type: 'FRAME' as AutoVariationType, max: frames.length }, { type: 'CUT', max: 2 }],
+    allowedFrames: [...frames], rules: { min: 11, max: 12, minDiversityPct: 0 },
+    picked: [...frames.map((f) => `FRAME:${f}`), 'CUT'], ...over,
+  });
+
+  it('pedido: 1 linha por marcado (FRAME = exatamente 1 por moldura); sem picked = sem bloco; sistema igual', () => {
+    const u = autoPlanUserMessage(sel());
+    expect(u).toMatch(/<picked_templates>[\s\S]*- FRAME with template "news": exactly 1 piece[\s\S]*- CUT: at least 1 piece\n<\/picked_templates>/);
+    expect(u.indexOf('<picked_templates>')).toBeLessThan(u.indexOf('Write the plan.'));
+    expect(autoPlanUserMessage(input())).not.toMatch(/picked_templates/);
+    expect(pickedRequest({ picked: [] })).toBeNull();
+    expect(AUTO_PLAN_SYSTEM).not.toMatch(/picked_templates/);
+  });
+
+  it('mock: 1 peça de cada marcado, mesmo acima do teto de 8 molduras; [mock:picked-drop] esquece o último', () => {
+    const keyOf = (it: { type: string; params: unknown }) => (it.type === 'FRAME' ? `FRAME:${(it.params as { template: string }).template}` : it.type);
+    const out = mockAutoPlan(sel() as never);
+    const keys = new Set(out.items.map(keyOf));
+    for (const k of sel().picked!) expect(keys.has(k)).toBe(true);
+    const drop = mockAutoPlan(sel({ offer: { ...OFFER, notes: '[mock:picked-drop]' } }) as never);
+    expect(drop.items.map(keyOf)).not.toContain('CUT');
+    expect(drop.items.length).toBeGreaterThan(0);
+  });
+});
+
+// templates-lista-v1 §2 (04/11): LIST_OVERLAY (Versus, Value stack) = 2ª etapa do planAutoBatch, 1 chamada por template.
+describe('planAutoBatch · listas (LIST_OVERLAY)', () => {
+  type Params = { properties: Record<string, { enum?: string[] }> };
+  const itemsOf = (sc: ReturnType<typeof autoPlanSchemaFor>) => (sc.properties.items as { items: { properties: { type: { enum: string[] }; params: Params } } }).items.properties;
+  const LIST_ALLOWED = [{ type: 'LIST_OVERLAY' as AutoVariationType, max: 1, templateId: 'versus' as const }, { type: 'LIST_OVERLAY' as AutoVariationType, max: 1, templateId: 'value-stack' as const }];
+  const lst = (over: Partial<AutoPlanInput> = {}) => input({ allowed: LIST_ALLOWED, rules: { min: 1, max: 2, minDiversityPct: 0 }, picked: ['LIST_OVERLAY:versus', 'LIST_OVERLAY:value-stack'], ...over });
+  const wordIdx = (w: string) => WORDS.findIndex((x) => x.word === w);
+
+  it('templates liberados: entradas com templateId (max > 0); senão as chaves do picked; senão os 2', () => {
+    expect(listTemplatesOf(lst())).toEqual(['versus', 'value-stack']);
+    expect(listTemplatesOf({ allowed: [{ ...LIST_ALLOWED[0], max: 0 }, LIST_ALLOWED[1]] })).toEqual(['value-stack']);
+    expect(listTemplatesOf({ allowed: [{ type: 'LIST_OVERLAY', max: 2 }], picked: ['LIST_OVERLAY:value-stack', 'FRAME:news'] })).toEqual(['value-stack']);
+    expect(listTemplatesOf({ allowed: [{ type: 'LIST_OVERLAY', max: 2 }] })).toEqual(['versus', 'value-stack']);
+    expect(listTemplatesOf({ allowed: [{ type: 'CUT', max: 2 }] })).toEqual([]);
+  });
+
+  it('esquema do plano: + LIST_OVERLAY e só `listTemplate` (ids liberados); sistema intacto; esquemas da lista planos e pequenos', () => {
+    const it0 = itemsOf(autoPlanSchemaFor(lst()));
+    expect(it0.type.enum).toContain('LIST_OVERLAY');
+    expect(it0.params.properties.listTemplate.enum).toEqual(['versus', 'value-stack', 'none']);
+    expect(itemsOf(autoPlanSchemaFor(lst({ allowed: [LIST_ALLOWED[1]] }))).params.properties.listTemplate.enum).toEqual(['value-stack', 'none']);
+    expect(autoPlanSchemaFor(input())).toBe(AUTO_PLAN_SCHEMA);
+    expect(AUTO_PLAN_SYSTEM).not.toMatch(/LIST_OVERLAY|versus|value-stack/);
+    for (const sc of [autoPlanSchemaFor(lst({ allowed: [...input().allowed, ...LIST_ALLOWED, { type: 'COLD_OPEN', max: 1 }, { type: 'ENDCARD', max: 1 }] })), VERSUS_SCHEMA, STACK_SCHEMA]) {
+      const st = schemaStats(sc);
+      expect(JSON.stringify(sc)).not.toMatch(/anyOf|oneOf|"null"/);
+      expect(st.properties).toBeLessThanOrEqual(55);
+      expect([st.unions, st.optional]).toEqual([0, 0]);
+    }
+  });
+
+  it('pedido do plano: 1 linha LIST_OVERLAY no <allowed> e as regras no <edit_templates> (change na língua da interface)', () => {
+    const u = autoPlanUserMessage(lst());
+    expect(u).toMatch(/<allowed>\nLIST_OVERLAY: up to 2 \(1 per template: versus, value-stack\)\n<\/allowed>/);
+    expect(u).toMatch(/<edit_templates>[\s\S]*LIST_OVERLAY \[DIVERSITY\][\s\S]*listTemplate = its id[\s\S]*<\/edit_templates>/);
+    expect(u).toContain('The speech becomes a before × after table');
+    expect(autoPlanUserMessage(lst({ uiLocale: 'PT_BR' }))).toContain('A fala vira uma tabela de antes × depois');
+    expect(autoPlanUserMessage(input())).not.toMatch(/LIST_OVERLAY/);
+  });
+
+  it('pedido da 2ª etapa: limites do contrato, 4º par só com maxPairs 4, preço só de offerAndPrice, violações da lista', () => {
+    const t = { whyKey: 'proof', change: 'c', rationale: 'r' };
+    const v = listDetailMessage('versus', t, { screenLanguage: 'English (en-US)', whys: {}, maxPairs: 3, hasPrice: true, violations: ['item 2 (LIST_OVERLAY): invented_number: "97%"', 'item 0 (FRAME): x'] });
+    expect(v).toMatch(/template "versus"/);
+    expect(v).toMatch(/heads\.bad: max 14[\s\S]*heads\.good: max 14[\s\S]*exactly 3 pairs[\s\S]*max 24/);
+    expect(v).toMatch(/invented_number[\s\S]*Return list\.$/);
+    expect(v).not.toMatch(/item 0 \(FRAME\)/);
+    expect(listDetailMessage('versus', t, { screenLanguage: 'en', whys: {}, maxPairs: 4, hasPrice: true })).toMatch(/exactly 3 or 4 pairs/);
+    const st = listDetailMessage('value-stack', t, { screenLanguage: 'en', whys: {}, maxPairs: 3, hasPrice: true });
+    expect(st).toMatch(/title: max 18[\s\S]*at most 5 bars[\s\S]*item \(max 30[\s\S]*proof \(max 30[\s\S]*price \(max 34[\s\S]*ONLY from Brain › offerAndPrice[\s\S]*cta \(max 22/);
+    const noPrice = listDetailMessage('value-stack', t, { screenLanguage: 'en', whys: {}, maxPairs: 3, hasPrice: false });
+    expect(noPrice).toMatch(/offerAndPrice is empty: no "price" bar/);
+    expect(noPrice).not.toMatch(/0-1 "price"/);
+  });
+
+  it('âncora: palavra + segundo → índice global; texto que não bate cai no mais perto (≤ 0,4 s); longe = null', () => {
+    const k = wordIdx('pillows,');
+    expect(anchorOf(WORDS, WORDS[k].startSec + 0.3, 'pillows')).toBe(k);
+    expect(anchorOf(WORDS, WORDS[k].startSec + 0.05, 'zzz')).toBe(k);
+    expect(anchorOf(WORDS, 999, 'pillows')).toBeNull();
+    expect(anchorOf(WORDS, -1, 'pillows')).toBeNull();
+  });
+
+  it('planAutoBatch real: 1 chamada por template (mesmo sistema + contexto), template repetido vira o livre, parse com âncora e campo', async () => {
+    const LI = (listTemplate: string) => ({ type: 'LIST_OVERLAY', change: 'Before × after table', rationale: 'r', whyKey: 'proof', params: { ...EMPTY, listTemplate } });
+    const plan = { ...GOOD, items: [LI('versus'), LI('versus'), LI('versus')] };
+    const k1 = wordIdx('pillows,'), k2 = wordIdx('routine');
+    const tr = (text: string, w: string, extra: object = {}) => ({ text, source: 'transcript', field: 'pains', anchorSec: WORDS[wordIdx(w)].startSec, anchorWord: w.replace(/,$/, ''), ...extra });
+    const br = (text: string, field: string, extra: object = {}) => ({ text, source: 'brain', field, anchorSec: -1, anchorWord: '', ...extra });
+    const versus = { list: { order: 'by_speech', heads: { bad: br('Other ways', 'none', { source: 'generic' }), good: br('Calma', 'name') },
+      lines: [{ side: 'bad', ...tr('Pillows and pills', 'pillows,') }, { side: 'good', ...tr('A simple routine', 'routine') }, { side: 'maybe', ...br('x', 'pains') }] } };
+    const stack = { list: { title: br('What you get', 'none', { source: 'generic' }),
+      lines: [{ kind: 'item', ...tr('A simple routine', 'routine') }, { kind: 'price', ...br('7-day free trial, then $9/month', 'offerAndPrice') }, { kind: 'cta', ...br('Start tonight', 'cta') }] } };
+    const t = new FakeTransport(() => res(plan), (call) => res(call.schema === VERSUS_SCHEMA ? versus : stack));
+    const svc = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'claude-opus-5-5', fetchImpl: jpegFetch });
+    const out = await svc.planAutoBatch(lst(), () => undefined);
+    expect(t.details.map((c) => c.schema)).toEqual([VERSUS_SCHEMA, STACK_SCHEMA]);
+    expect(t.details.every((c) => c.system === AUTO_PLAN_SYSTEM && c.context === t.calls[0].context)).toBe(true);
+    expect(t.details[0].user).toMatch(/template "versus"/);
+    expect(t.details[1].user).toMatch(/template "value-stack"[\s\S]*0-1 "price"/);
+    expect(out.items.map((x) => (x.params as AutoListOverlayDraft).templateId)).toEqual(['versus', 'value-stack']);
+    const v = out.items[0].params as AutoListOverlayDraft;
+    expect(v).toMatchObject({ type: 'LIST_OVERLAY', templateId: 'versus', order: 'by_speech', title: null });
+    expect(v.heads).toEqual({ bad: { text: 'Other ways', source: 'generic', field: null, anchorWordIndex: null }, good: { text: 'Calma', source: 'brain', field: 'name', anchorWordIndex: null } });
+    // lado inválido sai; transcript: field null, âncora = índice global
+    expect(v.lines).toEqual([
+      { text: 'Pillows and pills', source: 'transcript', field: null, anchorWordIndex: k1, side: 'bad', kind: 'item' },
+      { text: 'A simple routine', source: 'transcript', field: null, anchorWordIndex: k2, side: 'good', kind: 'item' },
+    ]);
+    const s2 = out.items[1].params as AutoListOverlayDraft;
+    expect(s2).toMatchObject({ templateId: 'value-stack', order: 'by_speech', heads: null, title: { text: 'What you get', source: 'generic' } });
+    expect(s2.lines.map((l) => [l.kind, l.side, l.field])).toEqual([['item', null, null], ['price', null, 'offerAndPrice'], ['cta', null, 'cta']]);
+  });
+
+  it('planAutoBatch real: 2ª etapa da lista falhou = a peça sai, o resto fica', async () => {
+    const plan = { ...GOOD, items: [GOOD.items[0], { type: 'LIST_OVERLAY', change: 'Table', rationale: 'r', whyKey: 'proof', params: { ...EMPTY, listTemplate: 'versus' } }] };
+    const t = new FakeTransport(() => res(plan), () => res('not json'));
+    const out = await new ClaudeLiveService(t, new MemoryCostStore(), { model: 'm', fetchImpl: jpegFetch })
+      .planAutoBatch(lst({ allowed: [{ type: 'CUT', max: 2 }, LIST_ALLOWED[0]] }), () => undefined);
+    expect(out.items.map((x) => x.type)).toEqual(['CUT']);
+  });
+
+  it('mock: Versus e Value stack do Brain e da fala (ancorados), nada inventado, preço só do offerAndPrice, ≤ 5 barras', async () => {
+    const fake = new FakeClaudeService(new MemoryCostStore(), { model: 'mock', stepMs: 0 });
+    const out = await fake.planAutoBatch(lst(), () => undefined);
+    expect(out.items.map((x) => [x.type, (x.params as AutoListOverlayDraft).templateId])).toEqual([['LIST_OVERLAY', 'versus'], ['LIST_OVERLAY', 'value-stack']]);
+    expect(out.items[0].change).toBe('The speech becomes a before × after table');
+    const v = out.items[0].params as AutoListOverlayDraft;
+    const bad = v.lines.filter((l) => l.side === 'bad'), good = v.lines.filter((l) => l.side === 'good');
+    expect(bad.length).toBe(good.length);
+    expect(bad.length).toBeGreaterThanOrEqual(1);
+    expect(v.heads!.good).toMatchObject({ source: 'brain', field: 'name' });
+    expect(v.heads!.good.text.length).toBeLessThanOrEqual(14);
+    for (const l of v.lines) {
+      expect(l.text.length).toBeLessThanOrEqual(24);
+      expect(l.text).not.toMatch(/[0-9]/);
+      if (l.source === 'transcript') expect(WORDS[l.anchorWordIndex!]).toBeDefined();
+      if (l.source === 'brain') expect(l.field).not.toBeNull();
+    }
+    const st = out.items[1].params as AutoListOverlayDraft;
+    expect(st.lines.length).toBeLessThanOrEqual(5);
+    expect(st.lines[st.lines.length - 1].kind).toBe('cta');
+    const price = st.lines.filter((l) => l.kind === 'price');
+    expect(price).toHaveLength(1);
+    expect(price[0]).toMatchObject({ source: 'brain', field: 'offerAndPrice' });
+    expect(OFFER.offerAndPrice).toContain(price[0].text);
+    expect(st.lines.filter((l) => l.kind === 'item' || l.kind === 'proof').length).toBeGreaterThanOrEqual(3);
+    for (const l of st.lines) if (l.kind !== 'price' && l.kind !== 'proof') expect(l.text).not.toMatch(/[0-9]/);
+    expect(st.lines.some((l) => l.anchorWordIndex != null)).toBe(true);
+    // sem preço no Brain: nada de barra price
+    const noPrice = await fake.planAutoBatch(lst({ offer: { ...OFFER, offerAndPrice: null } }), () => undefined);
+    expect((noPrice.items[1].params as AutoListOverlayDraft).lines.some((l) => l.kind === 'price')).toBe(false);
+    // só um template liberado = só aquele
+    const one = await fake.planAutoBatch(lst({ allowed: [LIST_ALLOWED[1]], picked: ['LIST_OVERLAY:value-stack'] }), () => undefined);
+    expect(one.items.map((x) => (x.params as AutoListOverlayDraft).templateId)).toEqual(['value-stack']);
+  });
+
+  it('mock: [mock:list-thin] = 1 linha ancorada; [mock:list-invented] só na 1ª chamada; [mock:list-no-room] é do backend', async () => {
+    const fake = new FakeClaudeService(new MemoryCostStore(), { model: 'mock', stepMs: 0 });
+    const rich = { ...OFFER, pains: 'Stiff back every morning. Bad sleep all night long. Pills that wear off fast', promise: 'Wake up without back pain. Sleep through the night', what: 'A short night routine. Gentle stretches in bed' };
+    const thin = await fake.planAutoBatch(lst({ offer: { ...rich, notes: '[mock:list-thin]' } }), () => undefined);
+    for (const it of thin.items) {
+      const l = (it.params as AutoListOverlayDraft).lines;
+      expect(l.filter((x) => x.anchorWordIndex != null)).toHaveLength(1);
+      expect(l.length).toBeGreaterThanOrEqual(3);
+      for (const x of l.filter((y) => y.anchorWordIndex == null)) expect(x.source).toBe('brain');
+    }
+    const inv = { ...OFFER, notes: '[mock:list-invented]' };
+    const first = await fake.planAutoBatch(lst({ offer: inv }), () => undefined);
+    expect(first.items.every((it) => (it.params as AutoListOverlayDraft).lines.some((l) => l.text.startsWith('97%')))).toBe(true);
+    const repaired = await fake.planAutoBatch(lst({ offer: inv, violations: ['item 0 (LIST_OVERLAY): invented_number: 97%'] }), () => undefined);
+    expect(repaired.items.some((it) => (it.params as AutoListOverlayDraft).lines.some((l) => l.text.includes('97%')))).toBe(false);
+    expect(mockListNoRoom('[mock:list-no-room]')).toBe(true);
+    expect(mockListNoRoom(null)).toBe(false);
+    expect((await fake.planAutoBatch(lst({ offer: { ...OFFER, notes: '[mock:list-no-room]' } }), () => undefined)).items).toHaveLength(2);
   });
 });

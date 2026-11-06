@@ -1,0 +1,64 @@
+Settings
+›
+Templates
+›
+New campaign template
+Import from a campaign
+Default for Mock Store (USD)
+1
+Campaign
+2
+Ad set
+3
+Ad
+Ad
+applies to every approved video in the batch
+Ad name
+Ad name
+Variables: {offer}{code}{date}{n}
+→ HEADLINE-02
+Identity
+Facebook Page
+f
+Mock Page
+from your Meta connection
+Instagram account
+Use Facebook Page (Mock Page)
+Loading Instagram accounts…
+Ad setup
+Format
+Single video
+one ad per approved video
+Carousel and Flexible formats
+SOON
+Ad creative
+Primary text
+optional
+Same text on every ad of the batch. Empty = written per ad.
+Headline
+optional
+Description
+optional
+Call to action
+Shop now
+Destination
+Website URL
+Tracking
+URL parameters
+optional
+Added to the website URL, without the “?”.
+Website events
+Mock Pixel
+from the ad set
+PREVIEW · FACEBOOK FEED
+Mock Page
+Sponsored
+
+HookMill writes this from each ad’s script.
+
+YOURSITE.COM
+Headline from the ad
+Shop now
+Each ad uses its own approved video.
+Back
+Save template

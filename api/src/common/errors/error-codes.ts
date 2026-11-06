@@ -15,6 +15,7 @@ export const ERROR_HTTP_STATUS = {
   PAYMENT_REQUIRED: 402, // amostra-gratis-v1 §4
   ESTIMATE_CHANGED: 409,
   INVITE_INVALID: 410,
+  CAPTION_FORCE_RETIRED: 410, // troca-texto-queimado-v1 §15.8
   EMAIL_TAKEN: 409,
   LAST_OWNER: 409,
   RATE_LIMITED: 429,
@@ -66,6 +67,16 @@ export const ERROR_HTTP_STATUS = {
   BROLL_SOURCE_NOT_SUPPORTED: 422,
   // legenda-protegida-v1 §2.3 (26/10): details { reason: 'duration' | 'resolution' | 'fps' | 'content' }
   CLEAN_VERSION_MISMATCH: 422,
+  // templates-creditos-v1 §9 (31/10)
+  INSUFFICIENT_CREDITS: 402,
+  CREDITS_CHANGED: 409,
+  TEMPLATE_UNAVAILABLE: 422,
+  TEMPLATE_DOESNT_FIT: 422,
+  TEMPLATE_UNPRICED: 422,
+  TEXT_INVALID: 422,
+  // templates-multi-v1 §6 (04/11): details { reason: 'not_found' | 'pack' | 'ai_tier' | 'too_many_videos' | 'too_many_frames'; slugs; videos?; maxVideos?; frames?; max? }
+  TEMPLATE_SELECTION_INVALID: 422,
+  EDIT_BLOCKED: 422, // editor-universal-v1 §7.1: export com aviso que bloqueia (details.issues)
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_HTTP_STATUS;
@@ -85,6 +96,7 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   PAYMENT_REQUIRED: 'Unlock a plan to use this.',
   ESTIMATE_CHANGED: 'The estimate changed. Review the new cost.',
   INVITE_INVALID: 'This invite is no longer valid.',
+  CAPTION_FORCE_RETIRED: 'This option was removed. Upload a version without captions or pick another template.',
   EMAIL_TAKEN: 'This email is already a member.',
   LAST_OWNER: 'The workspace needs at least one owner.',
   RATE_LIMITED: 'Too many requests. Try again shortly.',
@@ -126,6 +138,14 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   META_POLICY: 'Meta rejected this ad for a policy reason. Fix it in Ads Manager before turning it on.',
   BROLL_SOURCE_NOT_SUPPORTED: 'That link is from a source we cannot use. Paste a Pexels link or pick one of the suggested clips.',
   CLEAN_VERSION_MISMATCH: 'This is not the same video without captions. Upload the exact same cut, only without the burned-in captions.',
+  INSUFFICIENT_CREDITS: 'Not enough credits.',
+  CREDITS_CHANGED: 'The credit cost changed. Review it before generating.',
+  TEMPLATE_UNAVAILABLE: 'This template is not available yet.',
+  TEMPLATE_DOESNT_FIT: 'This template does not fit this ad.',
+  TEMPLATE_UNPRICED: 'Set a credit price before publishing this template.',
+  TEXT_INVALID: 'This text breaks a rule. Fix it and try again.',
+  TEMPLATE_SELECTION_INVALID: 'Some of the templates you picked cannot go in one batch. Review your selection.',
+  EDIT_BLOCKED: 'Fix the red warnings (or confirm the numbers) before exporting.',
 };
 
 /** Códigos de falha DENTRO de trabalho assíncrono (viram status FAILED + errorCode no recurso, nunca erro HTTP). */

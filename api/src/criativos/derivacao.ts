@@ -75,8 +75,9 @@ export function filterStates(filter: CreativeFilter): CreativeState[] | null {
 }
 
 /**
- * where de cada filtro da Home (needs_you não conta rascunho parado há 7+ dias). Única fonte da regra: a lista da Home,
- * os `counts` e o `waitingOnYou` (Home e Clients, fase2-agencia.md §3.6) usam esta função.
+ * where de cada filtro da Home (needs_you não conta rascunho parado há 7+ dias). Única fonte da regra: a lista da Home e
+ * os `counts` (via listWhere, que soma a peça AUTO com falha no needs_you) e o `waitingOnYou` (Home e Clients,
+ * fase2-agencia.md §3.6) usam esta função.
  */
 export function filterWhere(filter: CreativeFilter, now = Date.now()): Prisma.CreativeWhereInput {
   const states = filterStates(filter);
@@ -89,4 +90,15 @@ export function filterWhere(filter: CreativeFilter, now = Date.now()): Prisma.Cr
     where.OR = [{ variationKind: null }, { variationKind: { not: 'AUTO_EDIT' } }];
   }
   return where;
+}
+
+/**
+ * Peça de lote AUTO que falhou no render (04/11, Gusta): aparece no "Revisar → Precisa de você" (lista e counts.needs_you
+ * da Home/sidebar) com o "Try again" do lote. NÃO entra no waitingOnYou (o lote já é cobrado lá; senão conta duas vezes).
+ */
+export const FAILED_PIECE_WHERE: Prisma.CreativeWhereInput = { variationKind: 'AUTO_EDIT', state: 'RENDER_FAILED', variationBatchId: { not: null } };
+
+/** where da LISTA da Home (rows + counts): needs_you = filterWhere('needs_you') + peça AUTO com falha. */
+export function listWhere(filter: CreativeFilter, now = Date.now()): Prisma.CreativeWhereInput {
+  return filter === 'needs_you' ? { OR: [filterWhere('needs_you', now), FAILED_PIECE_WHERE] } : filterWhere(filter, now);
 }

@@ -7,10 +7,12 @@ import type {
   TakeKind, TeardownSections, TextStyle, TranscriptWord, VariationKind,
   SwapEngine, SwapFit, SwapQuote, SwapResolution, SwapVoiceSource,
   AutoVariationType, BlockFn, BrainField, EndcardVariant, ProtectedBand,
+  MetaDestinationSource, ListTemplateId,
+  LibraryAdFormat, LibraryAdPlatform,
 } from '@maquina/contratos';
 import type { CaptionsAuto } from '@maquina/video';
 export type {
-  AutoVariationType, BlockFn, BrainField, EndcardVariant,
+  AutoVariationType, BlockFn, BrainField, EndcardVariant, ListTemplateId,
   AdLibraryMeta, CastingStyle, EditLayer, EditMap, FaceTrackSegment, FontId, HookMode, Measurements, PersonProfile, Rect, ScenePipeline,
   TakeKind, TeardownSections, TextStyle, TranscriptWord, VariationKind,
   SwapEngine, SwapFit, SwapQuote, SwapResolution, SwapVoiceSource,
@@ -54,13 +56,17 @@ export interface ExtractSources {
   business?: { industry: string | null; market: string | null; resultType: ResultType | null };
   /** resultado-v1 (A2): cor de destaque lida do DOM (CTA) ou do theme-color; null = não achou. Nunca vem do modelo. */
   brandColor?: { hex: string; source: 'cta' | 'theme_color' } | null;
+  /** lacunas-home-eddy-v1 §2 (31/10): logo do HTML (cabeçalho → ícones → og:image); null = não achou. Nunca vem do modelo. */
+  logo?: { url: string; source: 'header' | 'icon' | 'og_image' } | null;
+  /** lacunas-home-eddy-v1 §2: 2ª cor de destaque, diferente da brandColor; null = não achou. Nunca vem do modelo. */
+  secondaryColor?: { hex: string; source: 'cta' | 'theme_color' | 'css' } | null;
 }
 /** Etapas do checklist (§4.3). Texto colado só emite as duas últimas; etapa pulada é emitida mesmo assim (o backend marca feita). */
 /** `walking_quiz` (28/10, A1) só é emitido quando o caminhante de funil roda ("Walking the quiz to the final offer…"), entre `rendering_page` e `reading_subpages`. */
 export type ExtractStage = 'fetching_page'|'rendering_page'|'walking_quiz'|'reading_subpages'|'reading_images'|'extracting'|'detecting_language';
 
 /** 25/10: `extends StaticTextCheckPort` (checkStaticText, estatico-montado-e-molduras-v1 §A6), ligado no fechamento do A-I. */
-export interface ClaudeService extends StaticTextCheckPort {
+export interface ClaudeService extends StaticTextCheckPort, CompetitorAiPort {
   /**
    * Lê a oferta em cascata (HTTP → render headless → subpáginas → imagens com visão) ou usa o texto colado, e devolve o
    * briefing com a origem de cada campo. Erros: PAGE_FORBIDDEN, PAGE_UNREADABLE (details.reason = login_wall | empty_after_render), RATE_LIMITED.
@@ -152,14 +158,26 @@ export interface AutoPlanInput {
   /** até 8 (os do teardown): teaser do COLD_OPEN e, rev. 23/10, REFERÊNCIA do STATIC (pessoa genérica, cenário, paleta,
    *  momento da prova). O STATIC nunca copia o frame: é uma imagem nova no GPT Image 2 (§14.3). */
   keyframes: { atSec: number; reason: string; url: string }[];
-  /** 25/10 (molduras §B2): aceita FRAME (o backend só manda FRAME depois do B1-B) */
-  allowed: { type: AutoVariationTypeWithFrame; max: number }[];
+  /** 25/10 (molduras §B2): aceita FRAME (o backend só manda FRAME depois do B1-B).
+   *  templates-lista-v1 §1 (04/11): LIST_OVERLAY vem 1 entrada por template liberado, com `templateId` (max 0|1).
+   *  Sem `templateId` nas entradas LIST_OVERLAY, a ia lê os templates das chaves `LIST_OVERLAY:<id>` de `picked`. */
+  allowed: { type: AutoVariationTypeWithFrame; max: number; templateId?: ListTemplateId }[];
+  /** templates-lista-v1 §1/§2.1: saída do `posicionarLista` por template (`ctx.list[id]`). Só o `maxPairs` importa pra ia
+   *  (Versus: 4º par só com 4). Ausente = 3. */
+  list?: Partial<Record<ListTemplateId, { maxPairs: 3 | 4 }>>;
   /** 25/10 (§B2, TRANSIÇÃO): templates liberados pelo `allowedFrames` do backend pra este lote; ausente = padrão
    *  conservador da ia (`defaultAllowedFrames`, só B1). Só tem efeito com FRAME em `allowed`. */
   allowedFrames?: FrameTemplateId[];
   rules: { min: number; max: number; minDiversityPct: 0 | 40 };
   /** 25/10 (headline-e-legenda-v1 §1.2): o que a IA precisa pra escrever as headlines (backend, do editMap). Ausente = sem HEADLINE no `allowed`. */
   headline?: { mode: 'replace' | 'add'; original: string | null; lines: number; maxChars: number; hasHighlight: boolean; language: string };
+  /** templates-creditos-v1 A6 (01/11): variantes de end card que o Brain sustenta (backend, `endcardVariants`). Só com
+   *  ENDCARD em `allowed` (lote de template); ausente = as 4. */
+  endcardVariants?: EndcardVariant[];
+  /** templates-multi-v1 §4.5 (04/11): lote de vários templates marcados pela pessoa = as chaves do catálogo dos marcados
+   *  que cabem ("FRAME:news", "HEADLINE", "STATIC"…). A ia escreve pelo menos 1 peça de cada (FRAME = 1 por moldura
+   *  listada). Ausente = lote sem essa garantia. Faltou chave = violação `picked_missing` só no reparo (não reprova). */
+  picked?: string[];
   /** 2ª chamada (reparo) */
   violations?: string[];
 }
@@ -204,7 +222,39 @@ export type AutoParamsDraft =
   | AutoHeadlineDraft
   // 28/10 (iterate-v2-quiz-templates-ia F1.2): templates grátis
   | AutoChatDmDraft
-  | AutoPersonMotionDraft;
+  | AutoPersonMotionDraft
+  // 04/11 (templates-lista-v1 §2): Versus e Value stack
+  | AutoListOverlayDraft;
+
+// ---------- templates-lista-v1 §2 (04/11): LIST_OVERLAY (Versus, Value stack) ----------
+// O modo NÃO é escolha da IA: vem do `templateId`. Limites (caracteres visíveis; CJK 1 = 1) e "nada inventado" são
+// conferidos pelo backend (iteracao/lista-plano.ts) e voltam como `violations` no reparo; a ia só garante a FORMA.
+/** texto de tela com rastreio. source 'generic' só em heads.bad e title (rótulo do template traduzido). */
+export interface ListTextDraft {
+  text: string;
+  source: 'transcript' | 'brain' | 'both' | 'generic';
+  /** obrigatório em brain/both; 'name' = offer.name (só heads.good) */
+  field: 'pains' | 'promise' | 'what' | 'proof' | 'offerAndPrice' | 'cta' | 'name' | null;
+  /** índice GLOBAL de TranscriptWord; obrigatório em transcript/both; null nos outros (ou quando a âncora não bateu) */
+  anchorWordIndex: number | null;
+}
+export interface ListLineDraft extends ListTextDraft {
+  /** Versus: obrigatório · Stack: null */
+  side: 'bad' | 'good' | null;
+  /** Versus: sempre 'item' */
+  kind: 'item' | 'proof' | 'price' | 'cta';
+}
+export interface AutoListOverlayDraft {
+  type: 'LIST_OVERLAY';
+  templateId: ListTemplateId;
+  /** Stack: sempre 'by_speech' */
+  order: 'by_speech' | 'alternate';
+  /** Versus */
+  heads: { bad: ListTextDraft; good: ListTextDraft } | null;
+  /** Stack */
+  title: ListTextDraft | null;
+  lines: ListLineDraft[];
+}
 /** 25/10 (headline-e-legenda-v1 §1.2): headline do vídeo inteiro. `text` = a headline toda; `highlight` = trecho do `text`
  *  na cor de destaque (null = nenhum; só se a original tem destaque). Limite: replace = nº de caracteres da original × 1,2
  *  (mín. 20, máx. 90); add = 60. Nada inventado (§6.2.5); as do lote diferentes entre si e da original. */
@@ -505,8 +555,10 @@ export interface CaptionCheckPort {
 export type AutoFrameDraft = {
   [K in FrameTemplateId]: { type: 'FRAME'; template: K; texts: FrameTexts[K]; sources: Record<string, CopySource> }
 }[FrameTemplateId];
-/** Marca na moldura (backend preenche; a IA não escreve): nome = offer.name, handle = workspace.name normalizado, cor = paleta. */
-export interface FrameBrand { name: string; handle: string; initials: string; color: string }
+/** Marca na moldura (backend preenche; a IA não escreve): nome = offer.name, handle = workspace.name normalizado, cor = paleta.
+ *  kit-marca-v1 §5 (31/10): `logoFileId` = logo do kit da marca (File BRAND_LOGO); ausente/null = só iniciais. O render
+ *  resolve a URL assinada na hora (a spec fica gravada no plano, URL vence). */
+export interface FrameBrand { name: string; handle: string; initials: string; color: string; logoFileId?: string | null }
 /** 2ª mídia (B2, §B3). `stock_broll` = clipe de terceiro (§B3.1) já baixado no nosso storage. */
 export type FrameSecondSource =
   | { kind: 'champion_segment'; startSec: number; endSec: number }
@@ -595,10 +647,12 @@ export interface BrollPort {
 // (integracoes/meta/cifra.ts) e passa `MetaAuth` em cada chamada; o que volta ele grava. Erros = `MetaError`
 // (integracoes/meta/erros.ts) com `code` META_* do contrato, `action`, `details` e `failDetail` (code/subcode/fbtrace).
 import type {
-  BusinessType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions,
-  MetaPublishSettings, MetaSpecialAdCategory, ResultType,
+  BusinessType, MetaAdTrend, MetaAdVerdict, MetaBudgetType, MetaCallToAction, MetaCustomAudiencesResponse, MetaHealth,
+  MetaInstagramAccountsResponse, MetaLocalesResponse, MetaMetrics, MetaObjective, MetaOptions, MetaPublishSettings,
+  MetaSpecialAdCategory, MetaTemplateOptimizationGoal, ResultType,
 } from '@maquina/contratos';
 export type { BusinessType, ResultType, MetaAdTrend, MetaAdVerdict, MetaCallToAction, MetaHealth, MetaMetrics, MetaObjective, MetaOptions, MetaPublishSettings, MetaSpecialAdCategory };
+export type { MetaBudgetType, MetaTemplateOptimizationGoal, MetaInstagramAccountsResponse, MetaCustomAudiencesResponse, MetaLocalesResponse };
 
 export type MetaMode = 'mock' | 'live' | 'off';
 export type MetaReturnTo = '/onboarding/meta' | '/settings/connections' | '/settings' | '/meta/done';
@@ -666,7 +720,16 @@ export interface MetaAdSnapshotDraft {
   adCreatedTime: string | null;
   /** campanhas-v1 (22/10): status configurado do anúncio (ACTIVE | PAUSED). Opcional até a I4 entregar; o backend grava 'ACTIVE' se faltar */
   status?: 'ACTIVE' | 'PAUSED';
+  // meta-oferta-v1 §2 (04/11): link de destino do criativo (lookup por criativo, cache entre syncs)
+  /** links http(s) como lidos (já sem encurtador), ≤ 5, cada ≤ 2048; [] = sem link legível */
+  destinationUrls: string[];
+  /** null = não lido ainda (teto de 250 por sync ou erro da Graph no criativo): relido no próximo sync */
+  destinationSource: MetaDestinationSource | null;
+  /** creative.url_tags (≤ 1024); só reforço por nome */
+  urlTags: string | null;
 }
+/** meta-oferta-v1 §2.2: link já lido de um criativo (o criativo da Meta é imutável, então não é relido). */
+export interface MetaKnownCreativeLink { destinationUrls: string[]; destinationSource: MetaDestinationSource; urlTags: string | null }
 
 // ---------- campanhas-v1 (docs/contratos/campanhas-v1.md §1, §2, §4; I4/B4, aprovado 22/10) ----------
 /** Uma linha do MetaCampaignSnapshot (sem ids do banco). Orçamentos em centavos da moeda da conta (a Graph devolve string). */
@@ -720,6 +783,8 @@ export interface MetaSyncInput {
   maxAds?: number;
   /** relógio (testes) */
   now?: Date;
+  /** meta-oferta-v1 §2.2: metaCreativeId → link já lido (snapshots atuais com destinationSource != null); quem está aqui não é relido */
+  knownCreativeLinks?: Record<string, MetaKnownCreativeLink>;
 }
 export interface MetaSyncResult {
   ads: MetaAdSnapshotDraft[];
@@ -771,6 +836,25 @@ export interface MetaPublishStructure {
   placements: 'AUTO' | { platforms: string[]; positions: string[] };
   /** `url_tags` do creative (query sem "?") */
   urlTags: string | null;
+  // ── meta-templates-v2 §6 (03/11, I1): todos opcionais; ausente = corpo v1 idêntico. O backend copia de
+  //    `MetaPublication.settings` (resolvidos UMA vez no envio; retry usa os mesmos). ──
+  /** ausente = DAILY. LIFETIME: `lifetime_budget` no lugar de `daily_budget` (CBO = campanha; ABO = conjunto) */
+  budgetType?: MetaBudgetType;
+  /** LIFETIME: total em centavos (obrigatório com LIFETIME) */
+  lifetimeBudgetMinor?: number | null;
+  /** ISO 8601 UTC. `start_time` só vai quando é futuro; null/ausente/passado = começa ao publicar */
+  startTime?: string | null;
+  /** ISO 8601 UTC. `end_time` quando não nulo (LIFETIME sempre tem) */
+  endTime?: string | null;
+  /** só OUTCOME_AWARENESS/OUTCOME_ENGAGEMENT; null = padrão do objetivo (REACH / THRUPLAY). Ignorado nos outros objetivos */
+  optimizationGoal?: MetaTemplateOptimizationGoal | null;
+  /** `targeting.locales` (chaves da Meta); vazio/ausente = não vai */
+  locales?: number[];
+  /** `targeting.custom_audiences` / `excluded_custom_audiences` ([{id}]); vazio/ausente = não vai */
+  customAudienceIds?: string[];
+  excludedCustomAudienceIds?: string[];
+  /** `object_story_spec.instagram_user_id`; null/ausente = a Página como identidade (v1) */
+  instagramUserId?: string | null;
 }
 /** meta-templates-v1 §3: leitura de campanha/conjunto/anúncio pra virar template (o mapeamento é do backend). */
 export interface MetaTemplateSourceRead {
@@ -778,6 +862,8 @@ export interface MetaTemplateSourceRead {
     id: string; name: string; objective: string; bidStrategy: string | null;
     dailyBudgetMinor: number | null; lifetimeBudgetMinor: number | null; specialAdCategories: string[];
     startTime: string | null; stopTime: string | null;
+    /** meta-templates-v2 §7: `buying_type` (AUCTION | RESERVED); ausente/null = não leu */
+    buyingType?: string | null;
   };
   adset: {
     id: string; name: string; bidStrategy: string | null; bidAmountMinor: number | null;
@@ -786,10 +872,18 @@ export interface MetaTemplateSourceRead {
     /** targeting cru da Graph (geo_locations, age_min/max, genders, custom_audiences, excluded_*, flexible_spec, publisher_platforms…) */
     targeting: Record<string, unknown> | null;
     startTime: string | null; endTime: string | null;
+    /** meta-templates-v2 §7: `destination_type` (ON_VIDEO, ON_POST, WEBSITE, MESSENGER…); null = não veio */
+    destinationType?: string | null;
   } | null;
   ad: {
     id: string; name: string;
-    creative: { message: string | null; title: string | null; description: string | null; callToAction: string | null; link: string | null; urlTags: string | null } | null;
+    creative: {
+      message: string | null; title: string | null; description: string | null; callToAction: string | null; link: string | null; urlTags: string | null;
+      /** meta-templates-v2 §7: `object_story_spec.instagram_user_id` (ou o do criativo); null = a Página como identidade */
+      instagramUserId?: string | null;
+      /** meta-templates-v2 §7: o criativo é flexível/dinâmico (`asset_feed_spec`) ou carrossel (`child_attachments`) → `unsupported` */
+      format?: 'VIDEO' | 'LINK' | 'ASSET_FEED' | 'CAROUSEL' | null;
+    } | null;
   } | null;
 }
 /** Ids já criados (retomada idempotente: etapa com id gravado não roda de novo). */
@@ -834,7 +928,7 @@ export interface MetaService {
   syncAds(auth: MetaAuth, i: MetaSyncInput, onProgress?: (p: { stage: MetaSyncStage; done: number; total: number }) => void): Promise<MetaSyncResult>;
   /** GET /{videoId}?fields=source,… → URL temporária da CDN pro `storage.ingestVideoWithThumbnail`.
    *  Sem `source` = META_VIDEO_UNAVAILABLE (action upload_video). Mock: videoId 'mock_video_novideo' cai aqui. */
-  videoSource(auth: MetaAuth, videoId: string, ctx?: { adAccountId?: string | null; pageId?: string | null }): Promise<{ sourceUrl: string; permalinkUrl: string | null; lengthSec: number | null }>;
+  videoSource(auth: MetaAuth, videoId: string, ctx?: { adAccountId?: string | null; pageId?: string | null; metaAdId?: string | null }): Promise<{ sourceUrl: string; permalinkUrl: string | null; lengthSec: number | null }>;
   /** Regra do §5 em uso (pra MetaSummary.rule e pra recalcular sobre snapshots). */
   rule(): MetaWinnerRule;
 
@@ -881,6 +975,19 @@ export interface MetaService {
    *  listagem dos filhos. Objeto inexistente = META_OBJECT_GONE. Mock: estrutura fixa do §6 (com público personalizado e
    *  agendamento em `mock_adset_cbo_1`, pra exercitar o `unsupported`). */
   readTemplateSource(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string; hint?: { adsetId?: string | null; adId?: string | null } }): Promise<MetaTemplateSourceRead>;
+
+  // ---------- meta-templates-v2 §4 (03/11, I1): listas da conta pro editor (o `data` das rotas, sem envelope) ----------
+  /** GET /meta/instagram-accounts. Junta (sem repetir id) `act/instagram_accounts` (token do usuário, source AD_ACCOUNT) com
+   *  `{pageId}/instagram_accounts` (token da Página via `{pageId}?fields=access_token`, source PAGE). PAGE primeiro, depois
+   *  username asc. `pageId` null = `pageLookup: 'no_page'`; Meta negou a Página = `'unavailable'` (só as da conta). Sem cache.
+   *  Mock: act_mock_1 = ig_mock_1 + ig_mock_page (ok); act_mock_2 = [] (unavailable). */
+  listInstagramAccounts(auth: MetaAuth, i: { adAccountId: string; pageId: string | null }): Promise<MetaInstagramAccountsResponse>;
+  /** GET /meta/custom-audiences. `act/customaudiences` até 500, `updatedAt` desc; `usable` = delivery_status.code < 300 e
+   *  operation_status.code ≠ 471. Cache de 5 min por conta no processo. */
+  listCustomAudiences(auth: MetaAuth, i: { adAccountId: string }): Promise<MetaCustomAudiencesResponse>;
+  /** GET /meta/locales. `search?type=adlocale&q=&limit=1000&locale=en_US`, `name` asc. Cache de 24 h por versão da Graph
+   *  (igual pra todo workspace). */
+  listLocales(auth: MetaAuth): Promise<MetaLocalesResponse>;
 }
 
 // ---------- iterate-v2-quiz-templates-ia F1.2 (28/10): templates grátis CHAT_DM e PERSON_MOTION ----------
@@ -963,3 +1070,162 @@ export type TemplateSpec =
     endCard: { proof: Omit<ProofStatDraft, 'source'>[]; cta: { button: string; note: string | null } } | null;
     sources: Record<string, CopySource>;
   };
+
+// ---------- ads-research-v1 (Ad Radar), C.8 — portas da maquina-ia (04/11) ----------
+// Assinaturas estáveis pro maquina-backend (api/src/research/). Nenhuma porta grava cost_entry: devolvem o custo e o
+// backend grava/rateia (C.5). Erros = IntegracaoError com estes códigos:
+//   AD_LIBRARY_UNAVAILABLE { reason: 'quota' | 'not_configured' | 'provider_error', retryAfter } · PROVIDER_TIMEOUT ·
+//   PROVIDER_ERROR · RETRYABLE (402 concurrent-runs-limit-exceeded da Apify depois das tentativas internas; não cobrado).
+export type { LibraryAdFormat, LibraryAdPlatform };
+
+/** Resumo do Brain que o backend monta (workspace + ofertas lidas). O nicho vem SÓ daqui (prompts agnósticos).
+ *  O mock decide tudo pelo `industry` (gatilhos `mock-*`, C.8). */
+export interface BrainDigest {
+  /** nome do cliente (workspace) */
+  name: string;
+  industry: string | null;
+  market: string | null;
+  websiteUrl: string | null;
+  /** idioma principal das ofertas (BCP 47), se houver */
+  language: string | null;
+  /** até 3 ofertas (a principal primeiro); campos do briefing, texto livre */
+  offers: {
+    name: string; kind: string | null; what: string | null; audience: string | null; promise: string | null;
+    pains: string | null; offerAndPrice: string | null; cta: string | null; sourceUrl: string | null;
+    /** URLs das páginas lidas (readMeta.pages), até 5 */
+    pagesRead?: string[];
+  }[];
+}
+
+/** Card de DCO/carrossel (LibraryAd.cards). URLs do fbcdn valem ~4,4 dias (R0). `type` (não interface) pra caber em
+ *  Prisma.InputJsonValue sem cast. */
+export type LibraryAdCardDraft = {
+  headline: string | null; body: string | null; linkUrl: string | null;
+  mediaKind: 'VIDEO' | 'IMAGE' | null; posterUrl: string | null; videoUrl: string | null;
+};
+
+/** Item do actor já mapeado (adlibrary/mapear.ts). Datas AAAA-MM-DD; o backend funde por `adArchiveId`. */
+export interface LibraryAdDraft {
+  adArchiveId: string;
+  pageId: string | null;
+  pageName: string;
+  /** foto da Página (fbcdn) e curtidas: vão pro AdSource */
+  pageAvatarUrl: string | null;
+  pageLikeCount: number | null;
+  format: LibraryAdFormat;
+  /** vídeo no topo OU em algum card (DCO/carrossel) */
+  hasVideo: boolean;
+  primaryText: string | null; headline: string | null; ctaText: string | null;
+  linkUrl: string | null;
+  /** host do link sem www (o D2 compara com o domínio da marca) */
+  linkHost: string | null;
+  cards: LibraryAdCardDraft[];
+  platforms: LibraryAdPlatform[];
+  startDate: string | null; endDate: string | null;
+  isActive: boolean;
+  collationCount: number | null;
+  euReach: number | null;
+  /** carimbo "<100" (não vem nos EUA) */
+  lowImpressions: boolean;
+  /** palpite local pelo texto (ISO 639-1); null = curto/ambíguo */
+  language: string | null;
+  /** 1º vídeo (topo, senão 1º card com vídeo) e o poster dele; sem vídeo, poster = 1ª imagem */
+  videoUrl: string | null;
+  posterUrl: string | null;
+  /** validade da URL do vídeo (senão do poster): `oe` hex → ISO; null = sem `oe` */
+  mediaExpiresAt: string | null;
+  width: number | null; height: number | null;
+  durationSec: number | null;
+  /** termo de busca que trouxe o item (KEYWORD), lido do `url` do item; null em PAGE */
+  searchTerm: string | null;
+}
+
+export interface ResearchScrapeInput {
+  /** PAGE: `query` = page_id (view_all_page_id). KEYWORD: `query` = termo ou domínio. */
+  kind: 'PAGE' | 'KEYWORD';
+  query: string;
+  /** só KEYWORD (padrão 'unordered'); 'exact_phrase' põe o termo entre aspas (D3) */
+  searchType?: 'unordered' | 'exact_phrase';
+  /** ISO-2 maiúsculo */
+  countryCode: string;
+  /** ≥ 10 (o actor recusa menos e cobra o item de erro); a porta sobe pra 10 se vier menor */
+  limit: number;
+  /** referência do chamador (id do ResearchSync), vai no log e no nome do run */
+  ref: string;
+}
+
+export interface ResearchScrapeResult {
+  items: LibraryAdDraft[];
+  /** itens de erro do actor (PAGE_PRIVATE, ADS_NOT_FOUND…), já descartados de `items`; cobrados igual */
+  errors: { code: string; message: string }[];
+  runId: string;
+  /** custo real do run (usageTotalUsd relido ~15 s depois do fim; fórmula R0 se a releitura falhar) */
+  costUsd: number;
+  /** itens no dataset (anúncios + erros) */
+  itemsRaw: number;
+  /** id do actor (pro CostEntry.model) */
+  actor: string;
+}
+
+export interface AdLibraryResearchService {
+  /** Barato, cacheado 10 min (limites da conta Apify). off/sem token = not_configured. */
+  status(): Promise<{ available: boolean; reason: 'quota' | 'not_configured' | null; retryAfter: string | null }>;
+  /** Uma coleta (run do actor) com `maxTotalChargeUsd = (limit + 30) × 0,00075 + 0,001`; espera até ADS_RESEARCH_SYNC_TIMEOUT_MS.
+   *  Concorrência: no máximo ADS_RESEARCH_APIFY_CONCURRENCY runs ao mesmo tempo por processo (fila interna). */
+  scrape(i: ResearchScrapeInput): Promise<ResearchScrapeResult>;
+}
+
+/** Uso de uma chamada do Claude do Ad Radar (a porta NÃO grava): o backend grava 2 CostEntry (ktoken_in / ktoken_out)
+ *  com `discoveryId`, provider ANTHROPIC, kind LLM. `costUsd` = inputUsd + outputUsd. */
+export interface ResearchLlmUsage extends Usage {
+  model: string;
+  inputKtok: number; outputKtok: number;
+  inputUsd: number; outputUsd: number;
+}
+
+export type ProposedTermKind = 'promise' | 'product' | 'pain';
+
+export interface ProposeCompetitorsInput {
+  brain: BrainDigest;
+  /** Páginas e domínios removidos pelo cliente (bloqueio): "não sugerir" */
+  blocked: { pageNames: string[]; domains: string[] };
+  /** termos da memória (C.4) que já serão buscados: o D1 não repete */
+  reuseTerms: string[];
+  /** até 6 (SAMPLE usa as 2 primeiras) */
+  maxBrands: number;
+}
+export interface ProposeCompetitorsResult extends ResearchLlmUsage {
+  /** ISO-2 maiúsculo (US quando nada aponta pra lugar nenhum) */
+  countryCode: string;
+  countryReason: string;
+  /** 0..maxBrands; domínio "nu" (sem protocolo, www ou caminho); nunca o cliente nem um bloqueado */
+  brands: { brand: string; domain: string; why: string }[];
+  /** 6 termos de 2–3 palavras, 2 de cada tipo, na ordem promise, promise, product, product, pain, pain */
+  terms: { term: string; kind: ProposedTermKind }[];
+}
+
+export interface JudgePageInput {
+  pageId: string; pageName: string; likeCount: number | null;
+  /** hosts dos links dos anúncios (até 5) */
+  hosts: string[];
+  /** até 3 textos (título — corpo) */
+  texts: string[];
+  adsSeen: number;
+  oldestDays: number | null;
+  /** regra determinística do backend (nome sem sentido, alfabetos misturados, 0 ativos) */
+  suspectDisposable: boolean;
+}
+export interface JudgeCompetitorsInput { brain: BrainDigest; pages: JudgePageInput[] }
+export interface JudgeCompetitorsResult extends ResearchLlmUsage {
+  /** 1 por Página pedida, mesma ordem; Página que o modelo esqueceu volta como none/0 */
+  items: { pageId: string; relation: 'direct' | 'adjacent' | 'none'; score: number; reason: string }[];
+}
+
+/** D1 (Sonnet) e D4 (Haiku) da descoberta. Faz parte do ClaudeService (CLAUDE_SERVICE), mas o modo vem do
+ *  ADS_RESEARCH_MODE: mock = determinístico (fake), off = AD_LIBRARY_UNAVAILABLE not_configured, live = Claude real. */
+export interface CompetitorAiPort {
+  /** Erros: SAFETY_BLOCK, RATE_LIMITED, PROVIDER_* (resposta inválida depois de 1 nova tentativa = PROVIDER_ERROR). */
+  proposeCompetitors(i: ProposeCompetitorsInput): Promise<ProposeCompetitorsResult>;
+  /** Até 25 Páginas por chamada (o backend corta). reason em PT-BR. */
+  judgeCompetitors(i: JudgeCompetitorsInput): Promise<JudgeCompetitorsResult>;
+}

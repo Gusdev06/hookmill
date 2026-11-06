@@ -1,0 +1,17 @@
+HM
+Q
+QA Alfa
+Configurações
+›
+Meta
+›
+Templates de publicação
+Templates de publicação
+Mock Store (USD) (act_mock_1)
+
+Defina uma vez como o HookMill cria campanhas, conjuntos e anúncios na sua conta. Todo "Enviar pra Meta" usa o template padrão, a menos que você escolha outro.
+
+Hunt Sales
+Padrão
+Ver
+Campanha "Hunt — {offer}" · Vendas · CBO US$ 40,00/dia · Compra · US 18–65 · Público Advantage+ · posicionamentos automáticos · 4–8 anúncios

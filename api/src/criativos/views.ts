@@ -17,6 +17,7 @@ import { loadEditMap, swapSceneEstimate } from '../troca/estimativa';
 import { engineOfModel } from '../troca/regras';
 import { sceneSwapOf } from '../troca/vista';
 import { docTemConteudo, editDocOf, montarScratchSource } from '../edicao/editor-doc';
+import { docV3TemConteudo, isEditorExport } from '../edicao/pecas';
 import type { VariationRefAuto } from './contrato-auto';
 
 export const CREATIVE_INCLUDE = {
@@ -191,6 +192,8 @@ export class CreativeViews {
         where: { creativeId: c.id, status: 'READY', stale: false }, orderBy: { createdAt: 'desc' }, select: { doc: true, settings: true },
       });
     }
+    // editor-universal-v1 §7.5: peça AUTO = o render final é um export do editor que passou com doc que muda algo (doc v3)
+    if (r && (r.settings as { templateId?: string } | null)?.templateId === 'auto-edit') return isEditorExport(r.settings) && docV3TemConteudo(r.doc);
     if (!r || !docTemConteudo(r.doc)) return false;
     // final (aprovado) e vigente (não stale): as cenas vigentes são as que o render usou
     return !!(await this.docNormalizado(c, editSettingsOf(r.settings), r.doc));

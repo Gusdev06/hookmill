@@ -4,12 +4,14 @@
  */
 import { delay, http, HttpResponse } from "msw"
 import { API_URL } from "@/lib/api/client"
-import type { MetaAdsQuery, MetaConnectBody, MetaOAuthErrorCode, MetaOAuthStatus, MetaPublishBody, MetaSelectionBody, TourStop } from "@/lib/api/types"
+import type { MetaAdsQuery, MetaConnectBody, MetaOAuthErrorCode, MetaOAuthStatus, MetaOfferLinkBody, MetaOfferLinkLevel, MetaOfferLinkResult, MetaPublishBody, MetaSelectionBody, ProductEventsBody, SeeTipBody, TipKey, TipsSeenResponse, TourEventName, TourStateV2, TourStop, TourStopV2 } from "@/lib/api/types"
+import { mockAccess } from "./amostra"
 import { db, save, toDetail } from "./db"
 import { mockWorkspaceOf } from "./auth"
 import { ME } from "./fixtures"
 import { allPublications, defaultsOf, listOf, MIN_BUDGET_MINOR, newPublication, publicationView, retryPublication } from "./publish"
-import { campaignAds, mockTotals } from "./campaigns"
+import { campaignAds, campaignIdOfAd, mockTotals, snapshotAdRefs } from "./campaigns"
+import { byGroup, decorateAds, linksOf, offerExists, offerInfoOf, offerQuery, setLinks, type OfferLink } from "./offer-match"
 import { accountOf, ACCOUNTS, adRows, connectionView, healthOf, metaFlag, newMeta, PAGES, PIXELS, summaryOf, syncState, type MetaState } from "./v2"
 
 const u = (p: string) => API_URL + p
@@ -141,7 +143,9 @@ export const metaHandlers = [
     const m = metaOf(request)
     if (!m) return ok(null)
     settle(m)
-    return ok(connectionView(m, rowsOf(m)))
+    // meta-templates-v2 §4: the account's daily minimum, so the template editor validates before the 422
+    const view = connectionView(m, rowsOf(m))
+    return ok(view.adAccount ? { ...view, adAccount: { ...view.adAccount, minDailyBudgetMinor: MIN_BUDGET_MINOR } } : view)
   }),
 
   http.get(u("/meta/options"), async ({ request }) => {
@@ -214,14 +218,22 @@ export const metaHandlers = [
     if (sp.get("format") === "all" || ["status", "origin", "campaignId", "adsetId"].some((k) => sp.has(k))) return campaignAds(request, m)
     settle(m)
     const q = Object.fromEntries(new URL(request.url).searchParams) as unknown as MetaAdsQuery
+    // meta-oferta-v1 §4.1: offerScope without offerId = 400; an offer of another workspace = 404 { resource: 'offer' }
+    const oq = offerQuery(sp)
+    if ("error" in oq) return oq.error === "requires_offer" ? fail("VALIDATION_ERROR", 400, "offerScope needs offerId.", { fields: [{ field: "offerScope", rule: "requires_offer" }] }) : fail("NOT_FOUND", 404, "Offer not found.", { resource: "offer" })
     await delay(250)
     const sync = syncState(m)
-    let rows = sync.state === "first_sync" ? [] : rowsOf(m)
+    // the `offer` of each row (and the verdict inside the offer, §4.3) before the filters, like the API
+    const dec = decorateAds(sync.state === "first_sync" ? [] : rowsOf(m), oq.offerId, wid(request), roleOf(request) !== "CLIENT", (id) => campaignIdOfAd(request, id))
+    let rows = dec.rows
     if (q.verdict) rows = rows.filter((r) => r.verdict === q.verdict)
     if (q.trend) rows = rows.filter((r) => r.trend === q.trend)
     if (q.q) rows = rows.filter((r) => r.name.toLowerCase().includes(String(q.q).toLowerCase()))
+    const offer = dec.meta ? { ...dec.meta, counts: { this: rows.filter((r) => r.offer.fit === "this").length, unknown: rows.filter((r) => r.offer.fit === "unknown").length, other: rows.filter((r) => r.offer.fit === "other").length } } : undefined
+    if (oq.scope) rows = rows.filter((r) => r.offer.fit === oq.scope)
+    if (oq.offerId) rows = byGroup(rows, (r) => r.offer.fit)
     const limit = Math.max(1, Math.min(50, Number(q.limit) || 20))
-    return ok(rows.slice(0, limit), { nextCursor: null, summary: summaryOf(m, "30d", rowsOf(m)), totals: mockTotals(rows, q.period === "7d" ? "7d" : "30d") })
+    return ok(rows.slice(0, limit), { nextCursor: null, summary: summaryOf(m, "30d", rowsOf(m)), totals: mockTotals(rows, q.period === "7d" ? "7d" : "30d"), ...(offer ? { offer } : {}) })
   }),
 
   http.get(u("/meta/summary"), async ({ request }) => {
@@ -252,10 +264,11 @@ export const metaHandlers = [
     const [cur, ...rest] = list.map((p) => publicationView(p))
     if (!m || m.status === "DISCONNECTED") return ok({ publication: cur ?? null, history: rest, defaults: null, connection: null })
     const view = connectionView(m, rowsOf(m))
-    const ready = metaReadyOf(m)
+    // like the API (publicacao.service creativeMeta): defaults whenever the connection isn't DISCONNECTED, also with the
+    // login expired, so the Send screen shows the expired alert + the templates (F4) instead of "Connect Meta first"
     return ok({
       publication: cur ?? null, history: rest,
-      defaults: ready ? defaultsOf(m, c, wsOf(request)) : null,
+      defaults: selectedOf(m) ? defaultsOf(m, c, wsOf(request)) : null,
       connection: { status: view.status, canPublish: view.status === "ACTIVE" && !!view.health?.canPublish },
     })
   }),
@@ -326,15 +339,75 @@ export const metaHandlers = [
     return ok(publicationView(p))
   }),
 
-  // ───── tour (onboarding-v2 §3.4)
+  // ───── meta-oferta-v1 §5: manual correction (BELONGS is exclusive per object; NOT_BELONGS only excludes)
+  http.put(u("/meta/offer-links"), async ({ request }) => {
+    const g = offerLinkGuard(request)
+    if (g) return g
+    const b = await body<MetaOfferLinkBody>(request)
+    const bad = offerLinkInvalid(request, b.level, b.objectId, b.offerId)
+    if (bad) return bad
+    const ws = wid(request)
+    const before = fitsFor(request, b.offerId)
+    const same = (l: OfferLink) => l.level === b.level && l.objectId === b.objectId
+    const list = linksOf(ws).filter((l) => !(same(l) && (b.belongs ? l.decision === "BELONGS" || l.offerId === b.offerId : l.offerId === b.offerId)))
+    list.push({ level: b.level, objectId: b.objectId, offerId: b.offerId, decision: b.belongs ? "BELONGS" : "NOT_BELONGS" })
+    setLinks(ws, list)
+    await delay(350)
+    return ok<MetaOfferLinkResult, undefined>({ level: b.level, objectId: b.objectId, offerId: b.offerId, decision: b.belongs ? "BELONGS" : "NOT_BELONGS", affectedAds: changed(before, fitsFor(request, b.offerId)) })
+  }),
+  http.delete(u("/meta/offer-links"), async ({ request }) => {
+    const g = offerLinkGuard(request)
+    if (g) return g
+    const sp = new URL(request.url).searchParams
+    const level = sp.get("level") as MetaOfferLinkLevel
+    const objectId = sp.get("objectId") ?? ""
+    const offerId = sp.get("offerId") ?? ""
+    const bad = offerLinkInvalid(request, level, objectId, offerId)
+    if (bad) return bad
+    const ws = wid(request)
+    const before = fitsFor(request, offerId)
+    setLinks(ws, linksOf(ws).filter((l) => !(l.level === level && l.objectId === objectId && l.offerId === offerId)))
+    await delay(300)
+    return ok<MetaOfferLinkResult, undefined>({ level, objectId, offerId, decision: null, affectedAds: changed(before, fitsFor(request, offerId)) })
+  }),
+
+  // ───── tour v2 (docs/contratos/tour-v2.md): stops by role, the winner (lowest CPA), the tips seen. No `?v=2` = legacy shape.
   http.get(u("/workspace/tour"), async ({ request }) => {
     const id = wid(request)
     const completedAt = db.v2.tour[id] ?? null
     const m = metaOf(request)
-    const winner = metaReadyOf(m) && syncState(m).state !== "first_sync" && rowsOf(m).some((r) => r.verdict === "WINNER")
-    const stops: TourStop[] = ["brain", ...(winner ? (["iterate"] as TourStop[]) : []), "concepts", "eddy", "home"]
+    const winners = metaReadyOf(m) && syncState(m).state !== "first_sync" ? rowsOf(m).filter((r) => r.verdict === "WINNER") : []
+    const client = roleOf(request) === "CLIENT"
+    const best = client ? null : (winners.sort((x, y) => (x.metrics.cpa ?? Infinity) - (y.metrics.cpa ?? Infinity))[0] ?? null)
+    const tipsSeen = tipsOf(request)
     await delay(150)
-    return ok({ completedAt, stops })
+    if (new URL(request.url).searchParams.get("v") !== "2") {
+      const stops: TourStop[] = ["brain", ...(winners.length ? (["iterate"] as TourStop[]) : []), "concepts", "eddy", "home"]
+      return ok({ completedAt, stops, winnerMetaAdId: best?.metaAdId ?? null, winnerName: best?.name ?? null, tipsSeen })
+    }
+    const stops: TourStopV2[] = client ? ["brain", "review"] : ["brain", "templates", ...(mockAccess() === "INTERNAL" ? [] : (["credits"] as TourStopV2[]))]
+    return ok<TourStateV2, undefined>({ completedAt, stops, winnerMetaAdId: best?.metaAdId ?? null, winnerName: best?.name ?? null, tipsSeen })
+  }),
+  http.post(u("/workspace/tour/tips"), async ({ request }) => {
+    const { tip } = (await request.json()) as SeeTipBody
+    if (!TIP_KEYS.includes(tip)) return fail("VALIDATION_ERROR", 400, "Unknown tip.")
+    const cur = tipsOf(request)
+    if (!cur.includes(tip)) setTips(request, [...cur, tip])
+    await delay(100)
+    return ok<TipsSeenResponse, undefined>({ tipsSeen: tipsOf(request) })
+  }),
+  http.delete(u("/workspace/tour/tips"), async ({ request }) => {
+    setTips(request, [])
+    await delay(100)
+    return ok<TipsSeenResponse, undefined>({ tipsSeen: [] })
+  }),
+  // tour-v2 §6: 204; the whole batch is refused when a name is unknown. The mock logs it so the funnel can be read in the console.
+  http.post(u("/events"), async ({ request }) => {
+    const { events } = (await request.json()) as ProductEventsBody
+    if (!Array.isArray(events) || !events.length || events.length > 50 || events.some((e) => !EVENT_NAMES.includes(e.name)))
+      return fail("VALIDATION_ERROR", 400, "Invalid events.")
+    console.info("[mock events]", events.map((e) => `${e.name} ${JSON.stringify(e.props ?? {})}`).join("\n"))
+    return new HttpResponse(null, { status: 204 })
   }),
   http.post(u("/workspace/tour/complete"), async ({ request }) => {
     const id = wid(request)
@@ -344,6 +417,43 @@ export const metaHandlers = [
     return ok({ tourCompletedAt: db.v2.tour[id] })
   }),
 ]
+
+// tour-v2: values of TIP_KEYS / TOUR_EVENT_NAMES (types-only package)
+const TIP_KEYS: readonly TipKey[] = ["adSource", "plan", "result", "send", "library"]
+const EVENT_NAMES: readonly TourEventName[] = ["tour_started", "tour_stop_viewed", "tour_stop_next", "tour_stop_back", "tour_stop_missing", "tour_skipped", "tour_completed", "tip_shown", "tip_dismissed", "tip_action"]
+/** tips seen per workspace + user (sessionStorage, so "Show tips again" and a new tab behave like the API) */
+const tipsKey = (req: Request) => `mock:tips:${wid(req)}`
+const tipsOf = (req: Request): TipKey[] => {
+  try {
+    return JSON.parse(sessionStorage.getItem(tipsKey(req)) ?? "[]") as TipKey[]
+  } catch {
+    return []
+  }
+}
+const setTips = (req: Request, v: TipKey[]) => sessionStorage.setItem(tipsKey(req), JSON.stringify(v))
+const roleOf = (req: Request) => (typeof window !== "undefined" && sessionStorage.getItem("mock:role")) || mockWorkspaceOf(req.headers.get("Authorization")).role
+function offerLinkGuard(req: Request): Response | null {
+  if (metaOff()) return offError()
+  if (roleOf(req) === "CLIENT") return fail("FORBIDDEN", 403, "Clients can't change this.")
+  const m = metaOf(req)
+  if (!m || !m.adAccountId) return fail("META_SELECTION_MISSING", 409, "Choose an ad account first.", { missing: ["adAccount"] })
+  return null
+}
+function offerLinkInvalid(req: Request, level: string, objectId: string, offerId: string): Response | null {
+  if (level !== "AD" && level !== "CAMPAIGN") return fail("VALIDATION_ERROR", 400, "Invalid request.", { fields: [{ field: "level", rule: "isIn" }] })
+  if (!objectId || objectId.length > 64) return fail("VALIDATION_ERROR", 400, "Invalid request.", { fields: [{ field: "objectId", rule: "length" }] })
+  if (!offerExists(offerId)) return fail("NOT_FOUND", 404, "Offer not found.", { resource: "offer" })
+  const refs = snapshotAdRefs(req)
+  if (level === "AD" ? !refs.some((a) => a.metaAdId === objectId) : !refs.some((a) => a.campaignId === objectId))
+    return fail("NOT_FOUND", 404, "Not in the snapshot of this ad account.", { resource: level === "AD" ? "ad" : "campaign" })
+  return null
+}
+/** fit of every snapshot ad for one offer (to count `affectedAds`) */
+function fitsFor(req: Request, offerId: string) {
+  const ws = wid(req)
+  return new Map(snapshotAdRefs(req).map((a) => [a.metaAdId, offerInfoOf(a, offerId, ws, true).fit]))
+}
+const changed = (a: Map<string, unknown>, b: Map<string, unknown>) => [...a].filter(([k, v]) => b.get(k) !== v).length
 
 function job(m: MetaState) {
   const now = Date.now()

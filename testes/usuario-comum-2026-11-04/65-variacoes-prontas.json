@@ -1,0 +1,83 @@
+{
+  "step": 65,
+  "url": "http://localhost:3311/templates/run/cmw1nr9ss000922hspx7jo4i4",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "body": "HM\nS\nSonoLeve\n0 grátis restante\nTEMPLATES · PRODUZIR\nGeração\nPasso 4 de 5\n\nDeixa o HookMill escolher\nAmostra grátis · 1 uso. Volta se o vídeo falhar.\n\nAMOSTRA GRÁTIS · ATÉ 4 VARIAÇÕES, SEM CUSTO\nRenderizando 6 peças · 5 prontas\nLegenda adicionada\nO campeão não tem legenda queimada, então toda peça de vídeo ganha legenda palavra a palavra.\nEsticar a vida\n· 4\nMesmo conceito, edição nova. A Meta lê como o mesmo anúncio.\nHEADLINE-1\nPronta\nHeadline nova\nHeadline nova: \"Você já tentou de tudo e nada funciona\"\n“I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.”\n→\nvira\n“Você já tentou de tudo e nada funciona”\nVeja no próximo passo\nHEADLINE-2\nPronta\nHeadline nova\nHeadline nova: \"Resultado visível na primeira semana\"\n“I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.”\n→\nvira\n“Resultado visível na primeira semana”\nVeja no próximo passo\nHEADLINE-3\nPronta\nHeadline nova\nHeadline nova: \"Milhares de pessoas já usam todo dia\"\n“I FOUND OUT WHY MY BILLS KEPT GOING UP EVERY MONTH.”\n→\nvira\n“Milhares de pessoas já usam todo dia”\nVeja no próximo passo\nCOLD-OPEN\nPronta\nCold open\nAbre com teaser de 9.15 s\nVeja no próximo passo\nPúblico novo\n· 2\nPrimeiro frame e layout diferentes. A Meta lê como anúncios novos.\nCHAT-DM\nPronta\nChat · conversa no Direct\nTemplate novo · Grátis\nA história vira uma conversa no Direct\nVeja no próximo passo\nLAYOUT-REVIEW\nRenderizando · 61%\nLayout · fundo com review\nCard de review em cima do vídeo\n9:16 · frame 400 de 600\nRENDERIZANDO\n5/6\npeças\nAgora\nLAYOUT-REVIEW\nFalta\ncerca de 5 s\nArquivos\n5 de 6\nCusto pra você\nNenhum\nCréditos de vídeo\nNenhum usado\n\nPode fechar esta página. O lote continua renderizando e aparece em Início › Esperando por você.\n\nVoltar ao Início\nAmostra grátis: renderizando. Pode sair desta página; continua sozinho.\nContinuar pro download",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "S\nSonoLeve",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "0 grátis restante",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Abrir menu",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "",
+      "label": "Sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Voltar ao Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Continuar pro download",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

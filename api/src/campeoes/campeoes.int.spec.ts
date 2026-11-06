@@ -18,6 +18,8 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { AppModule } from '../app.module';
 import { hashPassword } from '../common/util/crypto';
+import { CLAUDE_SERVICE } from '../integracoes';
+import type { ClaudeService } from '../integracoes/contrato';
 import { mockMediaUrl } from '../integracoes/mock/midia';
 import { configureApp } from '../main';
 import { AD_LIBRARY, type AdLibraryService } from './portas';
@@ -268,6 +270,78 @@ describe(isLocal ? 'Campeões B4a (integração local)' : 'Campeões B4a [pulado
     const t = await prisma.teardown.findUniqueOrThrow({ where: { championId: cr.data.id } });
     expect((t.measurements as any).durationSec).toBeGreaterThan(5);
     expect((t.transcript as any).words).toBeDefined();
+  });
+
+  /** Atraso artificial (só no teste) nas duas chamadas ao Claude, gravando início/fim de cada uma. O mock não tem latência. */
+  function atrasarClaude(ms: number) {
+    const claude = app.get<ClaudeService>(CLAUDE_SERVICE);
+    const marcas: { nome: string; ini: number; fim: number }[] = [];
+    const spies = (['analyzeChampion', 'describeEdit'] as const).map((nome) => {
+      const orig = (claude[nome] as (...a: unknown[]) => Promise<unknown>).bind(claude);
+      return jest.spyOn(claude, nome).mockImplementation((async (...a: unknown[]) => {
+        const ini = Date.now();
+        await new Promise((ok) => setTimeout(ok, ms));
+        try {
+          return await orig(...a);
+        } finally {
+          marcas.push({ nome, ini, fim: Date.now() });
+        }
+      }) as never);
+    });
+    return { marcas, restore: () => spies.forEach((s) => s.mockRestore()) };
+  }
+
+  it('análise: describeEdit e analyzeChampion correm em paralelo (tempo ≈ max, não soma) e os dois custos ficam', async () => {
+    const ATRASO = 3000;
+    const { id } = await upload(await makeVideo('paralelo.mp4', 6));
+    const t = atrasarClaude(ATRASO);
+    try {
+      const cr = await call('POST', '/champions', { offerId, uploadId: id, rights: 'OWN' });
+      const r = await settled(cr.data.id);
+      expect(r.data.status).toBe('READY');
+      const a = t.marcas.find((m) => m.nome === 'analyzeChampion')!;
+      const d = t.marcas.find((m) => m.nome === 'describeEdit')!;
+      expect(a && d).toBeTruthy();
+      const janela = Math.max(a.fim, d.fim) - Math.min(a.ini, d.ini);
+      // eslint-disable-next-line no-console
+      console.log(`[paralelo] analyzeChampion ${a.fim - a.ini} ms, describeEdit ${d.fim - d.ini} ms, janela das duas ${janela} ms (soma ${a.fim - a.ini + d.fim - d.ini} ms)`);
+      expect(Math.abs(a.ini - d.ini)).toBeLessThan(ATRASO / 2); // saem juntas
+      expect(janela).toBeLessThan(ATRASO * 1.6); // serial daria ≥ 2×ATRASO
+      const tr = await prisma.teardown.findUniqueOrThrow({ where: { championId: cr.data.id } });
+      expect(tr.editMap).not.toBeNull();
+      expect(Object.keys(tr.sections as object)).toHaveLength(12);
+      const custos = await prisma.costEntry.count({ where: { championId: cr.data.id, provider: 'ANTHROPIC', kind: 'LLM' } });
+      expect(custos).toBe(2);
+      expect(r.data.job.checklist.every((c: any) => c.done)).toBe(true);
+    } finally {
+      t.restore();
+    }
+  });
+
+  it('análise: Claude falha com o mapa ainda no ar → FAILED PROVIDER_ERROR na hora, e o mapa termina antes da limpeza', async () => {
+    const { id } = await upload(await makeVideo('paralelo-falha.mp4', 6));
+    const claude = app.get<ClaudeService>(CLAUDE_SERVICE);
+    let mapaFim = 0;
+    const orig = claude.describeEdit.bind(claude);
+    const spy = jest.spyOn(claude, 'describeEdit').mockImplementation(async (i) => {
+      await new Promise((ok) => setTimeout(ok, 4000));
+      try {
+        return await orig(i);
+      } finally {
+        mapaFim = Date.now();
+      }
+    });
+    try {
+      const cr = await call('POST', '/champions', { offerId, uploadId: id, rights: 'OWN', notes: '[mock:analysis-fail]' });
+      const r = await settled(cr.data.id);
+      const mapaNaFalha = mapaFim;
+      expect(r.data).toMatchObject({ status: 'FAILED', errorCode: 'PROVIDER_ERROR' });
+      expect(mapaNaFalha).toBe(0); // falhou sem esperar o mapa (que leva 4 s)
+      await until(async () => mapaFim, (v) => v > 0, 15_000); // e o mapa não ficou pendurado
+      expect(mapaFim).toBeGreaterThan(0);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('vídeo sem trilha de áudio: análise segue sem transcrição e sem fala', async () => {

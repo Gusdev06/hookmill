@@ -12,6 +12,24 @@ import { Icon } from "@/components/icon"
 import { mk } from "@/hooks/use-meta"
 import { cn } from "@/lib/utils"
 import { Chip, useFormat } from "./cells"
+import { Reveal } from "@/components/ui/reveal"
+
+const SAMPLE_CHANGES: MetaChangeRow[] = Array.from({ length: 3 }, (_, i) => ({
+  id: `sample-change-${i}`,
+  level: "campaign",
+  objectId: "sample-campaign",
+  objectName: "Sample campaign name",
+  field: "DAILY_BUDGET",
+  from: "5000",
+  to: "6000",
+  alsoChanged: [],
+  alsoChangedRefs: [],
+  result: "APPLIED",
+  errorCode: null,
+  source: "CAMPAIGNS",
+  by: { id: "sample-user", name: "Member name", initials: "MN" },
+  at: "2026-11-01T12:00:00.000Z",
+}))
 
 /*
  * History (spec §2.13): drawer on the right (460 px), bottom sheet of 88 % on the phone. Opens for one object (row menu)
@@ -63,6 +81,7 @@ export function HistorySheet({ scope, account, currency, onScope, onClose }: { s
 
 function HistoryList({ obj, currency }: { obj: { level: MetaLevel; id: string } | null; currency: string | null }) {
   const t = useTranslations("campaigns")
+  const tl = useTranslations("skeleton")
   const scope = obj ? { level: obj.level, objectId: obj.id } : {}
   const q = useInfiniteQuery({
     queryKey: mk.changes(scope),
@@ -70,16 +89,14 @@ function HistoryList({ obj, currency }: { obj: { level: MetaLevel; id: string } 
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.meta?.nextCursor ?? null,
   })
-  if (q.isPending)
-    return (
-      <div className="flex flex-col gap-3" aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="sk block h-14 rounded-md" />
-        ))}
-      </div>
-    )
-  if (q.isError)
-    return (
+  // skullet (04/11): the first page is measured from sample changes (avatar + two lines each)
+  return (
+    <Reveal
+      data={q.data ? q.data.pages.flatMap((p) => p.data) : null}
+      sample={SAMPLE_CHANGES}
+      id="campaigns.history"
+      label={tl("history")}
+      error={q.isError ? (
       <div className="flex flex-col items-start gap-2 rounded-lg bg-card-2 p-4">
         <b>{t("hist.loadFailed")}</b>
         <Button size="sm" variant="outline" onClick={() => q.refetch()}>
@@ -87,17 +104,15 @@ function HistoryList({ obj, currency }: { obj: { level: MetaLevel; id: string } 
           {t("retry")}
         </Button>
       </div>
-    )
-  const rows = q.data.pages.flatMap((p) => p.data)
-  if (!rows.length)
-    return (
+      ) : undefined}
+    >
+      {(rows) => !rows.length ? (
       <div className="flex flex-col gap-1 rounded-lg bg-card-2 p-4">
         <b>{t("hist.emptyTitle")}</b>
         <span className="text-[13px] text-fg-3">{t("hist.emptyBody")}</span>
       </div>
-    )
-  return (
-    <>
+      ) : (
+    <div className="flex flex-col gap-3">
       <ul className="m-0 flex list-none flex-col p-0">
         {rows.map((r) => (
           <ChangeItem key={r.id} r={r} currency={currency} />
@@ -108,7 +123,9 @@ function HistoryList({ obj, currency }: { obj: { level: MetaLevel; id: string } 
           {t("hist.loadMore")}
         </Button>
       ) : null}
-    </>
+    </div>
+      )}
+    </Reveal>
   )
 }
 

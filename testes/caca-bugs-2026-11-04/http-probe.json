@@ -1,0 +1,603 @@
+[
+  {
+    "role": "OWNER",
+    "path": "/auth/me",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/workspace",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/ad-templates",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/credits",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/credits/ledger?limit=9999999999999999999999",
+    "status": 400,
+    "code": "VALIDATION_ERROR"
+  },
+  {
+    "role": "OWNER",
+    "path": "/admin/ad-templates",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/brain",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "role": "OWNER",
+    "path": "/brand-kit",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/meta/connection",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/meta/templates",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/meta/campaigns",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/iterate",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/creatives",
+    "status": 200
+  },
+  {
+    "role": "OWNER",
+    "path": "/offers",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/auth/me",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/workspace",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/ad-templates",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/credits",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/credits/ledger?limit=9999999999999999999999",
+    "status": 400,
+    "code": "VALIDATION_ERROR"
+  },
+  {
+    "role": "ADMIN",
+    "path": "/admin/ad-templates",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "role": "ADMIN",
+    "path": "/brain",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "role": "ADMIN",
+    "path": "/brand-kit",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/meta/connection",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/meta/templates",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/meta/campaigns",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/iterate",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/creatives",
+    "status": 200
+  },
+  {
+    "role": "ADMIN",
+    "path": "/offers",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/auth/me",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/workspace",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/ad-templates",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/credits",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/credits/ledger?limit=9999999999999999999999",
+    "status": 400,
+    "code": "VALIDATION_ERROR"
+  },
+  {
+    "role": "MEMBER",
+    "path": "/admin/ad-templates",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "role": "MEMBER",
+    "path": "/brain",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "role": "MEMBER",
+    "path": "/brand-kit",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/meta/connection",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/meta/templates",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/meta/campaigns",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/iterate",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/creatives",
+    "status": 200
+  },
+  {
+    "role": "MEMBER",
+    "path": "/offers",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/auth/me",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/workspace",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/ad-templates",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "role": "CLIENT",
+    "path": "/credits",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "role": "CLIENT",
+    "path": "/credits/ledger?limit=9999999999999999999999",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "role": "CLIENT",
+    "path": "/admin/ad-templates",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "role": "CLIENT",
+    "path": "/brain",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "role": "CLIENT",
+    "path": "/brand-kit",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/meta/connection",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/meta/templates",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/meta/campaigns",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/iterate",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/creatives",
+    "status": 200
+  },
+  {
+    "role": "CLIENT",
+    "path": "/offers",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/auth/signup",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "name",
+              "rule": "minLength"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/auth/signup",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "name",
+              "rule": "maxLength"
+            },
+            {
+              "field": "email",
+              "rule": "isEmail"
+            },
+            {
+              "field": "password",
+              "rule": "minLength"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "email",
+              "rule": "maxLength"
+            },
+            {
+              "field": "email",
+              "rule": "isEmail"
+            },
+            {
+              "field": "password",
+              "rule": "maxLength"
+            },
+            {
+              "field": "password",
+              "rule": "minLength"
+            },
+            {
+              "field": "password",
+              "rule": "isString"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/ad-templates/fits",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "sources.0",
+              "rule": "nestedValidation"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/ad-templates/fits",
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "source": {},
+            "read": false,
+            "championId": null,
+            "fit": {
+              "level": "unknown",
+              "reason": "not_read"
+            }
+          }
+        ]
+      }
+    },
+    "status": 200,
+    "data": {
+      "items": [
+        {
+          "source": {},
+          "read": false,
+          "championId": null,
+          "fit": {
+            "level": "unknown",
+            "reason": "not_read"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/ad-templates/use",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "slugs",
+              "rule": "arrayUnique"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/ad-templates/use",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "TEMPLATE_SELECTION_INVALID",
+        "message": "Some of the templates you picked cannot go in one batch. Review your selection.",
+        "statusCode": 422,
+        "details": {
+          "reason": "not_found",
+          "slugs": [
+            "bad",
+            "missing"
+          ]
+        }
+      }
+    },
+    "status": 422
+  },
+  {
+    "method": "POST",
+    "path": "/meta/templates",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "name",
+              "rule": "isDefined"
+            },
+            {
+              "field": "name",
+              "rule": "isString"
+            },
+            {
+              "field": "campaign",
+              "rule": "isDefined"
+            },
+            {
+              "field": "campaign",
+              "rule": "isObject"
+            },
+            {
+              "field": "adset",
+              "rule": "isDefined"
+            },
+            {
+              "field": "adset",
+              "rule": "isObject"
+            },
+            {
+              "field": "ad",
+              "rule": "isDefined"
+            },
+            {
+              "field": "ad",
+              "rule": "isObject"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/meta/publish-batch",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "creativeIds",
+              "rule": "arrayMinSize"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/brand-kit/assets",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request.",
+        "statusCode": 400,
+        "details": {
+          "fields": [
+            {
+              "field": "uploadId",
+              "rule": "maxLength"
+            },
+            {
+              "field": "uploadId",
+              "rule": "minLength"
+            },
+            {
+              "field": "uploadId",
+              "rule": "isString"
+            }
+          ]
+        }
+      }
+    },
+    "status": 400
+  },
+  {
+    "method": "PATCH",
+    "path": "/workspace",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "INTERNAL_ERROR",
+        "message": "Something went wrong.",
+        "statusCode": 500
+      }
+    },
+    "status": 500
+  },
+  {
+    "method": "PATCH",
+    "path": "/auth/me",
+    "body": {
+      "success": false,
+      "error": {
+        "code": "INTERNAL_ERROR",
+        "message": "Something went wrong.",
+        "statusCode": 500
+      }
+    },
+    "status": 500
+  }
+]

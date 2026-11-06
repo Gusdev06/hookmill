@@ -75,13 +75,23 @@ async function confereHeadlines(b: any, mode: 'replace' | 'add', n: number) {
 
 // ───────────────────────── HEADLINE + legenda sempre ─────────────────────────
 
-test('R26-01 HEADLINE replace (faixa sólida): 3 peças HEADLINE-1..3 distintas, nada inventado, captionsAuto; gerar → só 9:16 (4:5 = format_not_supported), remix-keep, zip', async () => {
+// F1a (troca-texto-queimado-v1 §15.4, 06/11): HEADLINE `replace` fora do ar até o F1b. Era "3 peças HEADLINE-1..3 replace"; agora prova que não é oferecida.
+test('R26-01a HEADLINE replace (faixa sólida): não oferecida, insight.headlineBlocked = headline_pending (F1a)', async () => {
   const o = await oferta('A');
   const b = await lotePronto('donoA', PODCAST, o.id);
   expect(b.status, JSON.stringify(b.error)).toBe('PLAN_READY');
+  expect(b.insight.headlineBlocked).toEqual({ reason: 'headline_pending', mode: 'replace' });
+  expect([...b.pieces, ...(b.notSelected ?? [])].some((p: any) => p.type === 'HEADLINE')).toBe(false);
+});
+
+test('R26-01 HEADLINE add (sem headline no campeão): HEADLINE distintas, nada inventado, captionsAuto; gerar → só 9:16 (4:5 = format_not_supported), remix-keep, zip', async () => {
+  const o = await oferta('A');
+  const champ = await campeaoComNotas(o.id, '[mock:headline-none]');
+  const b = await loteDoCampeao(champ);
+  expect(b.status, JSON.stringify(b.error)).toBe('PLAN_READY');
   test.info().annotations.push({ type: 'plano', description: b.pieces.map((p: any) => p.code).join(', ') });
   confereContagem(b);
-  await confereHeadlines(b, 'replace', 3);
+  await confereHeadlines(b, 'add', 2);
   expect(b.insight.captionsAuto, 'campeão sem legenda queimada → captionsAuto').toBe(true);
   expect(b.insight.captionBlocked ?? [], 'sem legenda queimada, nada bloqueado').toEqual([]);
   expect(b.pieces.some((p: any) => p.type === 'HOOK_TEXT'), 'HOOK_TEXT saiu do catálogo em 25/10').toBe(false);
@@ -126,11 +136,12 @@ test('R26-02 [mock:headline-none]: campeão sem headline → 2 HEADLINE modo add
   await confereHeadlines(b, 'add', 2);
 });
 
-test('R26-03 [mock:headline-over-video]: headline sobre o vídeo → replace (placa); lote assenta sem falha', async () => {
+test('R26-03 [mock:headline-over-video]: headline solta → headline_pending (F1a: sem placa), nada de HEADLINE; lote assenta sem falha', async () => {
   const o = await oferta('A');
   const champ = await campeaoComNotas(o.id, '[mock:headline-over-video]');
   const b = await loteDoCampeao(champ);
-  await confereHeadlines(b, 'replace', 3);
+  expect(b.insight.headlineBlocked).toEqual({ reason: 'headline_pending', mode: 'replace' });
+  expect([...b.pieces, ...(b.notSelected ?? [])].some((p: any) => p.type === 'HEADLINE')).toBe(false);
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 900_000 });
   expect(fim.pieces.filter((p: any) => p.status === 'failed').map((p: any) => `${p.code}:${p.errorCode}`)).toEqual([]);

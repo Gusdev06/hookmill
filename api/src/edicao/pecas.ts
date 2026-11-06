@@ -7,6 +7,7 @@ import type {
   StaticAspect, StaticCopy, StaticImageCatalog, StaticImageSpec, StaticImageSpecAny, StaticImageSpecV2, StaticLayoutAny, StaticVisualDraft, StaticVisualV2,
 } from '../integracoes/contrato';
 import { STATIC_IMAGE_MODEL } from '../integracoes/catalogo/precos';
+import { listSupportedFormats } from '../iteracao/lista-plano';
 
 /** Template das renders de peça AUTO (Render.settings.templateId). O input real é do maquina-video (`auto-edit`). */
 export const AUTO_EDIT_TEMPLATE = 'auto-edit';
@@ -58,7 +59,8 @@ export function pieceStatus(p: {
     const v = latestByFormat(p.renders).get('VERTICAL_9_16');
     return v && (v.status === 'QUEUED' || v.status === 'RENDERING') ? 'rendering' : 'ready';
   }
-  if (p.creativeState === 'RENDER_FAILED') return 'failed';
+  if (p.creativeState === 'RENDER_FAILED' || p.creativeState === 'SCENES_FAILED') return 'failed';
+  if (p.creativeState === 'FACES_GENERATING' || p.creativeState === 'SCENES_GENERATING' || p.creativeState === 'SCRIPTS_WRITING') return 'rendering';
   if (p.renders.some((r) => r.status === 'RENDERING')) return 'rendering';
   return 'queued';
 }
@@ -184,7 +186,9 @@ export function supportedFormatsOf(type: string | null, params: Record<string, u
   // headline-e-legenda-v1 §1.5: o HEADLINE só existe no aspecto do campeão (remix-keep sai no tamanho dele)
   if (type === 'HEADLINE') return [FORMAT_CODE[primaryFormatOf(type, params)]];
   // iterate-v2 F1.1 (D2 do Gusta): os templates grátis só existem em 9:16 na v1
-  if (type === 'CHAT_DM' || type === 'PERSON_MOTION') return ['9x16'];
+  if (type === 'CHAT_DM' || type === 'PERSON_MOTION' || type === 'AI_VIDEO') return ['9x16'];
+  // templates-lista-v1 §2.4: os formatos em que o `posicionarLista` acha lugar (`supported: false` nos outros)
+  if (type === 'LIST_OVERLAY') return listSupportedFormats(params);
   if (type !== 'FRAME') return undefined;
   const t = frameTemplateOf(params);
   return t ? FRAME_FORMATS[t] : ['9x16'];
@@ -360,7 +364,7 @@ export function median(xs: number[]): number | null {
 
 // ───────── legenda-protegida-v1 ─────────
 
-/** legenda-protegida-v1 §8 (29/10): item posto de volta com "Gerar mesmo assim" (`payload.captionOverride`). */
+/** Marca antiga de "Gerar mesmo assim" (`payload.captionOverride`). Só tira o item do plano (troca-texto-queimado-v1 §15.3.1). Nenhum render nem validação lê isto. */
 export function captionOverrideOf(payload: unknown): boolean {
   return (payload as { captionOverride?: unknown } | null)?.captionOverride === true;
 }
@@ -383,4 +387,52 @@ export function pieceTemplateOf(type: string | null | undefined, params: Record<
   if (type !== 'PERSON_MOTION') return null;
   const tl = Array.isArray(params?.timeline) ? (params!.timeline as { startSec: number; endSec: number }[]) : [];
   return { id: 'person-motion', spans: tl.map((t) => ({ startSec: t.startSec, endSec: t.endSec })) };
+}
+
+// ───────── editor universal v1 (editor-universal-v1 §7.5, §9; F-U1) ─────────
+
+/** Render de export do editor: `settings.editorExport = true` (re-render grátis da peça com o doc salvo, §9). */
+export function isEditorExport(settings: unknown): boolean {
+  return (settings as { editorExport?: unknown } | null)?.editorExport === true;
+}
+
+/**
+ * §9.6: renders que a peça SERVE (vista do lote, zip, status). Export do editor só entra quando passou (READY): enquanto
+ * roda ou se reprovou, a peça continua com o render anterior.
+ */
+export function servedRenders<R extends { status: string; settings: unknown }>(renders: R[]): R[] {
+  return renders.filter((r) => !isEditorExport(r.settings) || r.status === 'READY');
+}
+
+/** `PieceEditorView.edited`: o render servido do formato principal é um export que passou com doc que muda algo. */
+export function editedFromRenders<R extends PieceRenderState & { settings: unknown; doc: unknown }>(renders: R[], primary: VideoFormat): boolean {
+  const r = latestReadyByFormat(renders).get(primary);
+  return !!r && isEditorExport(r.settings) && docV3TemConteudo(r.doc);
+}
+
+/** Doc v3 (ou v1) salvo com alguma mudança (= `docV3Vazio` do video, sem depender do formato exato). */
+export function docV3TemConteudo(json: unknown): boolean {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return false;
+  const d = json as Record<string, unknown>;
+  const cheio = (v: unknown) => (Array.isArray(v) ? v.length > 0 : !!v && typeof v === 'object' && Object.keys(v as object).length > 0);
+  return ['clips', 'layers', 'captionWords', 'templateOpts', 'items', 'clipSwaps', 'confirmations', 'formatOverrides'].some((k) => cheio(d[k])) || !!d.video || !!d.trim;
+}
+
+/** D-E1-4: código mostrado com `-ED` quando a peça foi editada (derivado; `variation_items.code` não muda). */
+export function codeWithEd(code: string, edited: boolean): string {
+  return edited && code && !code.endsWith('-ED') ? `${code}-ED` : code;
+}
+
+/** D-E1-4 no nome do arquivo: `MC_1013_FRAME-NEWS` → `MC_1013_FRAME-NEWS-ED` (sufixo de colisão `_2` fica depois). */
+export function adNameWithEd(adName: string, code: string | null | undefined, edited: boolean): string {
+  if (!edited) return adName;
+  if (code) {
+    const i = adName.lastIndexOf(`_${code}`);
+    if (i >= 0) {
+      const fim = i + code.length + 1;
+      const resto = adName.slice(fim);
+      if (resto === '' || /^_\d+$/.test(resto)) return `${adName.slice(0, fim)}-ED${resto}`;
+    }
+  }
+  return `${adName}-ED`;
 }

@@ -4,6 +4,7 @@ import type { WaitingOnYou } from '@maquina/contratos';
 import type { WaitingBatchRefAuto } from '../criativos/contrato-auto';
 import type { Prisma } from '@prisma/client';
 import { filterWhere } from '../criativos/derivacao';
+import { SENT_PUBLICATION_WHERE } from '../iteracao/lote-etapa';
 import type { PrismaService } from '../prisma/prisma.service';
 
 type Db = Pick<PrismaService, 'creative' | 'variationBatch'>;
@@ -12,14 +13,24 @@ type Db = Pick<PrismaService, 'creative' | 'variationBatch'>;
  * Lote esperando a pessoa, de campeão não arquivado (PLANNING/ANALYZING e lote gerando não contam):
  * - MANUAL: plano pronto (launch) ou falhou (replan);
  * - AUTO (variacao-auto-v1 §5.4): PLAN_READY, ANALYSIS_FAILED, ou LAUNCHED com todas as peças assentadas (nenhum criativo
- *   RENDERING) e zip ainda não baixado. Conta 1 vez por lote; as peças não entram no counts.needs_you (derivacao.ts).
+ *   RENDERING), zip ainda não baixado e NEM todas as peças prontas enviadas pra Meta (04/11: sem peça pronta, ou alguma
+ *   pronta sem MetaPublication ≠ FAILED — bate com `published` do batchStageOf). Conta 1 vez por lote; as peças não entram
+ *   no waitingOnYou (derivacao.ts).
  */
+const READY_PIECE = { state: 'APPROVED', archivedAt: null } as const;
+
 export const WAITING_BATCH_WHERE: Prisma.VariationBatchWhereInput = {
   champion: { archivedAt: null },
   OR: [
     { status: { in: ['PLAN_READY', 'PLAN_FAILED'] } },
     { mode: 'AUTO', status: 'ANALYSIS_FAILED' },
-    { mode: 'AUTO', status: 'LAUNCHED', downloadedAt: null, creatives: { some: {}, none: { state: 'RENDERING' } } },
+    {
+      mode: 'AUTO', status: 'LAUNCHED', downloadedAt: null, creatives: { some: {}, none: { state: 'RENDERING' } },
+      OR: [
+        { creatives: { none: READY_PIECE } },
+        { creatives: { some: { ...READY_PIECE, metaPublications: { none: SENT_PUBLICATION_WHERE } } } },
+      ],
+    },
   ],
 };
 

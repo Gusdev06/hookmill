@@ -28,7 +28,7 @@ export function SetupInProgress() {
   if (!ws.data) return <OnboardingLoading />
   const w = ws.data
   const steps = stepsOf(w)
-  const pos = Math.max(0, steps.findIndex((s) => s.step === w.onboarding.step))
+  const pos = Math.max(0, steps.findIndex((s) => s.step >= w.onboarding.step)) // >=: a hidden step (goals) resumes at the next visible one
   const pct = percentOf(w)
   const by = w.onboarding.updatedBy?.name ?? null
   const others = (me.data?.workspaces ?? []).filter((x) => x.id !== session.workspace.id)

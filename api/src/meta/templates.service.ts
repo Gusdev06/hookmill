@@ -1,6 +1,8 @@
 // meta-templates-v1 §1-§3 (29/10): templates de publicação por (workspace, conta de anúncio) — CRUD com 1 padrão por
 // conta (o primeiro criado vira padrão; arquivar o padrão promove o mais antigo que sobrou) e o import de campanha,
 // ad set ou anúncio da conta (lê a Graph pela porta, mapeia, NÃO salva).
+// meta-templates-v2 §3/§7 (B1, 03/11): agendamento no fuso da conta, mínimo do total, `notAvailable` (Instagram/público
+// que sumiu da conta; pulado ao salvar se a Meta estiver fora) e import com idiomas/públicos/Instagram/total.
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   MetaPublishTemplate as MetaPublishTemplateView, MetaTemplateAd, MetaTemplateAdset, MetaTemplateBody, MetaTemplateCampaign,
@@ -8,6 +10,7 @@ import type {
 } from '@maquina/contratos';
 import { Prisma, type MetaConnection, type MetaPublishTemplate } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
+import type { FieldError } from '../common/http/validation';
 import { AppException } from '../common/errors/app-exception';
 import { KeyedMutex } from '../common/util/mutex';
 import { AppConfig } from '../config/app-config';
@@ -15,7 +18,12 @@ import { META_SERVICE, type MetaService } from '../integracoes';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertSelected, countriesOf, metaAuthOf, viaPorta } from './comum';
 import { MetaConexaoService, storedHealthOf } from './conexao.service';
-import { campaignShapeChanged, pixelMissing, templateBodyErrors, templateFromSource } from './templates';
+import {
+  availabilityErrors, budgetTooLow, campaignShapeChanged, patchNeedsRecheck, pixelMissing, referencedIds, resolveSchedule, templateBodyErrors, templateFromSource,
+} from './templates';
+
+type Sections = { campaign: MetaTemplateCampaign; adset: MetaTemplateAdset; ad: MetaTemplateAd };
+type SelectedConn = MetaConnection & { adAccountId: string };
 
 const json = (v: unknown) => v as unknown as Prisma.InputJsonValue;
 
@@ -43,26 +51,70 @@ export class MetaTemplatesService {
     return assertSelected(await this.conexao.usable(auth.workspaceId));
   }
 
-  /** Template ativo da conta selecionada; de outra conta, arquivado ou de outro workspace = 404. */
+  /**
+   * Conta selecionada pra LER templates (B1 do QA, 03/11): os templates moram no nosso banco, então a lista abre com a
+   * conexão TOKEN_INVALID (editor com a faixa âmbar, F4). Exige só conexão existente (422 META_NOT_CONNECTED sem linha ou
+   * DISCONNECTED) e a seleção (422 META_SELECTION_MISSING). Salvar/importar/publicar continuam no `selected` (token válido).
+   */
+  private async readable(auth: AuthContext) {
+    const conn = await this.prisma.metaConnection.findUnique({ where: { workspaceId: auth.workspaceId } });
+    if (!conn || conn.status === 'DISCONNECTED') throw new AppException('META_NOT_CONNECTED');
+    return assertSelected(conn);
+  }
+
+  /** Template ativo da conta selecionada; de outra conta, arquivado ou de outro workspace = 404. Sem `conn`, só leitura. */
   async load(auth: AuthContext, id: string, conn?: MetaConnection & { adAccountId: string }): Promise<MetaPublishTemplate> {
-    const c = conn ?? (await this.selected(auth));
+    const c = conn ?? (await this.readable(auth));
     const t = await this.prisma.metaPublishTemplate.findFirst({ where: { id, workspaceId: auth.workspaceId, adAccountId: c.adAccountId, archivedAt: null } });
     if (!t) throw new AppException('NOT_FOUND');
     return t;
   }
 
-  /** P2/§2: 400 de formato; 422 META_PIXEL_REQUIRED; 422 META_BUDGET_TOO_LOW (mínimo do último health, como a publicação). */
-  private check(conn: MetaConnection, b: MetaTemplateBody) {
-    const errors = templateBodyErrors(b, false);
-    if (errors.length) throw new AppException('VALIDATION_ERROR', { fields: errors });
-    if (pixelMissing(b.campaign, b.adset)) throw new AppException('META_PIXEL_REQUIRED', { objective: b.campaign.objective });
-    const minimum = storedHealthOf(conn.lastHealth)?._account?.minimumDailyBudgetMinor ?? null;
-    if (minimum != null && b.campaign.dailyBudgetMinor < minimum) throw new AppException('META_BUDGET_TOO_LOW', { minimumMinor: minimum, currency: conn.currency ?? 'USD' });
+  /**
+   * v2 §3 `notAvailable`: Instagram/público gravado que não aparece mais nas listas da conta. Só lê a Meta quando o
+   * template referencia algum. `save`: Meta fora (META_UNAVAILABLE) pula a checagem (roda de novo no envio).
+   * Lista de públicos truncada (> 500) não acusa ausência.
+   */
+  async availability(conn: SelectedConn, t: Pick<Sections, 'adset' | 'ad'>, mode: 'save' | 'send'): Promise<FieldError[]> {
+    const ref = referencedIds(t);
+    if (!ref.instagram && !ref.audiences.length) return [];
+    const auth = metaAuthOf(conn, this.config);
+    const read = async <T>(fn: () => Promise<T>): Promise<T | null> => {
+      try {
+        return await viaPorta(this.prisma, conn, fn);
+      } catch (e) {
+        if (mode === 'save' && e instanceof AppException && e.code === 'META_UNAVAILABLE') return null;
+        throw e;
+      }
+    };
+    const ig = ref.instagram ? await read(() => this.meta.listInstagramAccounts(auth, { adAccountId: conn.adAccountId, pageId: conn.pageId })) : null;
+    const au = ref.audiences.length ? await read(() => this.meta.listCustomAudiences(auth, { adAccountId: conn.adAccountId })) : null;
+    return availabilityErrors(t, {
+      instagram: ig ? new Set(ig.accounts.map((x) => x.id)) : null,
+      audiences: au && !au.truncated ? new Set(au.audiences.map((x) => x.id)) : null,
+    });
   }
 
-  /** GET /meta/templates: da conta selecionada, padrão primeiro (depois o mais antigo). */
+  /**
+   * P2/§2 + v2 §3: 400 de formato e regras cruzadas; 400 de relógio (agendamento no fuso da conta) e `notAvailable`;
+   * 422 META_PIXEL_REQUIRED; 422 META_BUDGET_TOO_LOW (mínimo do último health; LIFETIME = mínimo × dias quando dá pra
+   * calcular). Sempre sobre o template inteiro (no PATCH, o mesclado — B2 do QA, 03/11).
+   */
+  private async check(conn: SelectedConn, b: MetaTemplateBody, now = new Date()) {
+    const errors = templateBodyErrors(b, false);
+    if (errors.length) throw new AppException('VALIDATION_ERROR', { fields: errors });
+    const sched = resolveSchedule(b.adset.schedule, conn.timezoneName ?? 'UTC', now, 'save');
+    const late = [...sched.errors, ...(await this.availability(conn, b, 'save'))];
+    if (late.length) throw new AppException('VALIDATION_ERROR', { fields: late });
+    if (pixelMissing(b.campaign, b.adset)) throw new AppException('META_PIXEL_REQUIRED', { objective: b.campaign.objective });
+    const minimum = storedHealthOf(conn.lastHealth)?._account?.minimumDailyBudgetMinor ?? null;
+    const low = budgetTooLow(b.campaign, minimum, sched.value.days, conn.currency ?? 'USD');
+    if (low) throw new AppException('META_BUDGET_TOO_LOW', { ...low });
+  }
+
+  /** GET /meta/templates: da conta selecionada, padrão primeiro (depois o mais antigo). Funciona com o token expirado. */
   async list(auth: AuthContext): Promise<MetaPublishTemplateView[]> {
-    const c = await this.selected(auth);
+    const c = await this.readable(auth);
     const rows = await this.prisma.metaPublishTemplate.findMany({
       where: { workspaceId: auth.workspaceId, adAccountId: c.adAccountId, archivedAt: null },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }],
@@ -75,7 +127,7 @@ export class MetaTemplatesService {
     const errors = templateBodyErrors(body, false);
     if (errors.length) throw new AppException('VALIDATION_ERROR', { fields: errors });
     const c = await this.selected(auth);
-    this.check(c, body);
+    await this.check(c, body);
     const t = await this.locks.run(`meta-tpl:${auth.workspaceId}:${c.adAccountId}`, () => this.prisma.$transaction(async (tx) => {
       const scope = { workspaceId: auth.workspaceId, adAccountId: c.adAccountId, archivedAt: null };
       const hasDefault = (await tx.metaPublishTemplate.count({ where: { ...scope, isDefault: true } })) > 0;
@@ -92,7 +144,10 @@ export class MetaTemplatesService {
     return this.present(t);
   }
 
-  /** PATCH /meta/templates/:id: seções inteiras; mudar a forma da campanha esquece a campanha reaproveitada. */
+  /**
+   * PATCH /meta/templates/:id: seções inteiras; mudar a forma da campanha esquece a campanha reaproveitada. Revalida o
+   * template mesclado inteiro, salvo quando o corpo só tem `name`/`isDefault` (v2 §3, B2 do QA).
+   */
   async update(auth: AuthContext, id: string, patch: UpdateMetaTemplateBody): Promise<MetaPublishTemplateView> {
     const errors = templateBodyErrors(patch, true);
     if (errors.length) throw new AppException('VALIDATION_ERROR', { fields: errors });
@@ -104,7 +159,7 @@ export class MetaTemplatesService {
         name: patch.name ?? before.name, campaign: patch.campaign ?? before.campaign, adset: patch.adset ?? before.adset, ad: patch.ad ?? before.ad,
         importedFrom: patch.importedFrom !== undefined ? patch.importedFrom : before.importedFrom,
       };
-      this.check(c, merged);
+      if (patchNeedsRecheck(patch)) await this.check(c, merged);
       return this.prisma.$transaction(async (tx) => {
         if (patch.isDefault === true && !cur.isDefault) {
           await tx.metaPublishTemplate.updateMany({ where: { workspaceId: auth.workspaceId, adAccountId: c.adAccountId, archivedAt: null, isDefault: true }, data: { isDefault: false } });
@@ -159,6 +214,20 @@ export class MetaTemplatesService {
     if (!hint.adId) delete hint.adId;
     const src = await viaPorta(this.prisma, c, () => this.meta.readTemplateSource(metaAuthOf(c, this.config), { level: body.level, id: body.id, hint }));
     const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: auth.workspaceId }, select: { market: true, websiteUrl: true } });
-    return templateFromSource(src, { level: body.level, id: body.id, defaultCountries: countriesOf(ws.market), fallbackLink: ws.websiteUrl ?? null });
+    // v2 §7: nomes dos idiomas e o @ do Instagram saem das listas da conta (§4); falhou = "Locale <key>" / username = id
+    const auth2 = metaAuthOf(c, this.config);
+    const soft = async <T>(fn: () => Promise<T>): Promise<T | null> => viaPorta(this.prisma, c, fn).catch((e) => {
+      if (e instanceof AppException) return null;
+      throw e;
+    });
+    const t = src.adset?.targeting;
+    const wantsLocales = !!t && Array.isArray(t.locales) && t.locales.length > 0;
+    const locales = wantsLocales ? (await soft(() => this.meta.listLocales(auth2)))?.locales ?? null : null;
+    const instagramAccounts = src.ad?.creative?.instagramUserId
+      ? (await soft(() => this.meta.listInstagramAccounts(auth2, { adAccountId: c.adAccountId, pageId: c.pageId })))?.accounts ?? null
+      : null;
+    return templateFromSource(src, {
+      level: body.level, id: body.id, defaultCountries: countriesOf(ws.market), fallbackLink: ws.websiteUrl ?? null, locales, instagramAccounts,
+    });
   }
 }

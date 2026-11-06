@@ -1,12 +1,13 @@
 // Template `chat-dm` (iterate-v2 F1.1/F1.4), promovido do protótipo aprovado de 28/10 (src/prototipos/formatos/ChatDM.tsx).
 // Conversa estilo Direct, modo escuro: a dor/objeção do campeão vira pergunta de quem quer comprar; prova, mecanismo e
 // oferta viram resposta da marca. Fecha numa cena de motion opaca (promessa + números reais do Brain + CTA).
-// Tudo desenhado em código: sem print da landing, sem logo (monograma), sem pessoa, sem vídeo do campeão. Áudio: só SFX.
+// Tudo desenhado em código: sem print da landing, logo do kit da marca (sem logo = monograma; kit-marca-v1 §5), sem pessoa, sem vídeo do campeão. Áudio: só SFX.
 // A agenda (quando cada mensagem entra, altura, y) vem PRONTA do builder (chatTimeline, mesma medida do fitText).
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from 'remotion';
-import { CHAT_AREA_H, CHAT_GEO, PROOF_ROW, fechoChatGeo, TEMPLATE_H, TEMPLATE_SAFE, TEMPLATE_W, chatLayout, type ChatDmProps, type ChatMessageProps, type TemplateProps } from '../lib/templatesFormato';
+import { CHAT_AREA_H, CHAT_GEO, PROOF_ROW, fechoChatGeo, LOGO_FECHO, logoNoFechoChat, TEMPLATE_H, TEMPLATE_SAFE, TEMPLATE_W, chatLayout, type ChatDmProps, type ChatMessageProps, type TemplateProps } from '../lib/templatesFormato';
 import type { FittedText } from '../lib/molduras';
+import { LogoMarca } from '../componentes/LogoMarca';
 import { BotaoCTA, clamp, Contador, coresDaMarca, entrada, FPS, fonte, FundoMarca, Icone, iconeDaProva, Linhas, Monograma, Seta, Sfx, surge, VERDE, VERMELHO, type Cores } from './comum';
 
 const W = TEMPLATE_W;
@@ -82,7 +83,7 @@ const Bolha: React.FC<{ m: ChatMessageProps; i: number; t: number; fits: Fits; c
   }
   return (
     <div style={base}>
-      {!eu ? <div style={{ position: 'absolute', left: -82, bottom: 0 }}><Monograma tam={62} iniciais={brand.initials} cores={cores} /></div> : null}
+      {!eu ? <div style={{ position: 'absolute', left: -82, bottom: 0 }}><Monograma tam={62} iniciais={brand.initials} cores={cores} logo={brand.logo} /></div> : null}
       {corpo}
     </div>
   );
@@ -90,7 +91,7 @@ const Bolha: React.FC<{ m: ChatMessageProps; i: number; t: number; fits: Fits; c
 
 const Perfil: React.FC<{ t: number; brand: Comum['brand']; status: FittedText; cores: Cores }> = ({ t, brand, status, cores }) => (
   <div style={{ position: 'absolute', top: 10, left: 0, width: W, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, opacity: interpolate(t, [0, 0.2], [0.4, 1], clamp) }}>
-    <Monograma tam={180} iniciais={brand.initials} cores={cores} />
+    <Monograma tam={180} iniciais={brand.initials} cores={cores} logo={brand.logo} />
     <div style={{ ...fonte('inter-800'), fontSize: 48, color: '#fff', marginTop: 8, whiteSpace: 'pre' }}>{brand.name}</div>
     {brand.handle ? <div style={{ ...fonte('inter-600'), fontSize: 34, color: '#8E8E93', whiteSpace: 'pre' }}>{brand.handle}</div> : null}
     <Linhas fit={status} font="inter-600" cor="#8E8E93" />
@@ -99,7 +100,7 @@ const Perfil: React.FC<{ t: number; brand: Comum['brand']; status: FittedText; c
 
 const Digitando: React.FC<{ y: number; t: number; brand: Comum['brand']; cores: Cores }> = ({ y, t, brand, cores }) => (
   <div style={{ position: 'absolute', top: y, left: 112, background: '#262626', borderRadius: 48, padding: '34px 38px', display: 'flex', gap: 14 }}>
-    <div style={{ position: 'absolute', left: -82, bottom: 0 }}><Monograma tam={62} iniciais={brand.initials} cores={cores} /></div>
+    <div style={{ position: 'absolute', left: -82, bottom: 0 }}><Monograma tam={62} iniciais={brand.initials} cores={cores} logo={brand.logo} /></div>
     {[0, 1, 2].map((i) => (
       <div key={i} style={{ width: 20, height: 20, borderRadius: 10, background: '#9A9A9F', translate: `0px ${-9 * Math.max(0, Math.sin(t * 9 - i * 0.9))}px`, opacity: 0.6 + 0.4 * Math.max(0, Math.sin(t * 9 - i * 0.9)) }} />
     ))}
@@ -107,15 +108,23 @@ const Digitando: React.FC<{ y: number; t: number; brand: Comum['brand']; cores: 
 );
 
 /** Cena final opaca (cobre tudo, nada de texto sobre bolha): promessa + números reais do Brain + CTA. */
-const Fecho: React.FC<{ t: number; p: ChatDmProps; fits: Fits; cores: Cores; sfx: Comum['sfx'] }> = ({ t, p, fits, cores }) => {
+const Fecho: React.FC<{ t: number; p: ChatDmProps; fits: Fits; cores: Cores; sfx: Comum['sfx']; brand: Comum['brand'] }> = ({ t, p, fits, cores, brand }) => {
   const de = p.close.atSec;
   const e = entrada(t, de, 120);
   const linhas = p.close.lines.map((_, k) => fits.get(`close.lines.${k}`)!);
   const nota = p.cta.note ? fits.get('cta.note')! : null;
-  const geo = fechoChatGeo(linhas.map((x) => x.height), p.proof.length, nota ? nota.height : null);
+  const hs = linhas.map((x) => x.height);
+  // kit-marca-v1 §5: logo no topo da cena final, só se a cena ainda couber com ele (mesma conta do build)
+  const comLogo = logoNoFechoChat(!!brand.logo, hs, p.proof.length, nota ? nota.height : null);
+  const geo = fechoChatGeo(hs, p.proof.length, nota ? nota.height : null, comLogo);
   return (
     <div style={{ position: 'absolute', inset: 0, translate: `0px ${interpolate(e, [0, 1], [TEMPLATE_H, 0])}px` }}>
       <FundoMarca t={t} cores={cores} />
+      {comLogo && brand.logo ? (
+        <div style={{ position: 'absolute', top: LOGO_FECHO.topo, width: W, display: 'flex', justifyContent: 'center', ...surge(t, de + 0.15) }}>
+          <LogoMarca logo={brand.logo} tam={LOGO_FECHO.lado} forma="quadrado" raio={LOGO_FECHO.lado * 0.24} reserva={null} style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }} />
+        </div>
+      ) : null}
       <div style={{ position: 'absolute', top: geo.topoLinhas, width: W, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
         {linhas.map((f, k) => <div key={k} style={surge(t, de + 0.25 + k * 0.25)}><Linhas fit={f} font="montserrat-900" cor={k === 1 ? cores.acento : '#fff'} /></div>)}
       </div>
@@ -181,7 +190,7 @@ const Conteudo: React.FC<{ p: ChatDmProps; c: Comum }> = ({ p, c }) => {
       {/* cabeçalho do Direct */}
       <div style={{ position: 'absolute', top: g.headerTop, left: 0, width: W, height: g.headerH, borderBottom: '1px solid #262626', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', padding: '0 36px', gap: 24, background: '#000', boxSizing: 'border-box' }}>
         <Seta p={1} comp={44} cor="#fff" ang={180} espessura={7} />
-        <Monograma tam={82} iniciais={c.brand.initials} cores={cores} />
+        <Monograma tam={82} iniciais={c.brand.initials} cores={cores} logo={c.brand.logo} />
         <div>
           <div style={{ ...fonte('inter-800'), fontSize: 40, color: '#fff', whiteSpace: 'pre' }}>{c.brand.name}</div>
           <Linhas fit={digitandoAgora ? fits.get('chrome.typing')! : fits.get('chrome.profileStatus')!} font="inter-600" cor="#8E8E93" align="left" />
@@ -199,7 +208,7 @@ const Conteudo: React.FC<{ p: ChatDmProps; c: Comum }> = ({ p, c }) => {
       <div style={{ position: 'absolute', top: TEMPLATE_H - TEMPLATE_SAFE.bottom - g.inputH, left: 36, width: W - 72, height: g.inputH, borderRadius: g.inputH / 2, background: '#1C1C1E', display: 'flex', alignItems: 'center', padding: '0 40px', boxSizing: 'border-box' }}>
         <Linhas fit={fits.get('chrome.inputPlaceholder')!} font="inter-600" cor="#8E8E93" align="left" />
       </div>
-      {t >= p.close.atSec - 0.05 ? <Fecho t={t} p={p} fits={fits} cores={cores} sfx={c.sfx} /> : null}
+      {t >= p.close.atSec - 0.05 ? <Fecho t={t} p={p} fits={fits} cores={cores} sfx={c.sfx} brand={c.brand} /> : null}
       {msgs.map((m, i) => <Sfx key={`s${i}`} sfx={c.sfx} arquivo={m.from === 'prospect' ? 'send' : 'pop'} emSec={m.atSec} volume={m.from === 'prospect' ? 0.7 : 0.8} />)}
       <Sfx sfx={c.sfx} arquivo="send" emSec={p.close.atSec} volume={0.6} />
       {p.proof.map((_, i) => <Sfx key={`p${i}`} sfx={c.sfx} arquivo="pop" emSec={p.close.atSec + 0.8 + i * 0.18} volume={0.5} />)}

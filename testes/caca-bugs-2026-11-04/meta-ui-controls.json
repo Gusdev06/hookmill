@@ -1,0 +1,132 @@
+[
+  {
+    "tag": "A",
+    "txt": "HMHookMill",
+    "href": "/"
+  },
+  {
+    "tag": "A",
+    "txt": "QQA AlfaMeta · synced 2 minutes ago",
+    "href": "/settings/connections"
+  },
+  {
+    "tag": "A",
+    "txt": "Home",
+    "href": "/"
+  },
+  {
+    "tag": "A",
+    "txt": "Campaigns",
+    "href": "/campaigns"
+  },
+  {
+    "tag": "A",
+    "txt": "EddySoon",
+    "href": "/eddy"
+  },
+  {
+    "tag": "A",
+    "txt": "Brain",
+    "href": "/brain"
+  },
+  {
+    "tag": "A",
+    "txt": "Templates",
+    "href": "/templates"
+  },
+  {
+    "tag": "A",
+    "txt": "New concepts",
+    "href": "/creatives/new"
+  },
+  {
+    "tag": "A",
+    "txt": "Review",
+    "href": "/creatives?filter=needs_you"
+  },
+  {
+    "tag": "A",
+    "txt": "Library",
+    "href": "/library"
+  },
+  {
+    "tag": "A",
+    "txt": "Get credits",
+    "href": "/credits"
+  },
+  {
+    "tag": "A",
+    "txt": "Admin · Templates",
+    "href": "/templates/admin"
+  },
+  {
+    "tag": "A",
+    "txt": "Settings",
+    "href": "/settings"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "QQA Dono AlfaOwner",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "EN",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "PT",
+    "href": null
+  },
+  {
+    "tag": "A",
+    "txt": "HM",
+    "href": "/"
+  },
+  {
+    "tag": "A",
+    "txt": "QQA Alfa",
+    "href": "/settings/connections"
+  },
+  {
+    "tag": "A",
+    "txt": "Unlimited",
+    "href": "/credits"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "href": null
+  },
+  {
+    "tag": "A",
+    "txt": "Settings",
+    "href": "/settings"
+  },
+  {
+    "tag": "A",
+    "txt": "Meta",
+    "href": "/settings/connections"
+  },
+  {
+    "tag": "A",
+    "txt": "Import from a campaign",
+    "href": "/settings/connections/templates/new?import=1"
+  },
+  {
+    "tag": "A",
+    "txt": "New template",
+    "href": "/settings/connections/templates/new"
+  },
+  {
+    "tag": "A",
+    "txt": "Edit",
+    "href": "/settings/connections/templates/cmw1m1r070013226yj9v9f16v"
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "href": null
+  }
+]

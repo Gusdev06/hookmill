@@ -382,7 +382,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* skeleton shimmer */
+  /* skeleton shimmer (hand-made; screens with data use skullet, see components/ui/reveal.tsx) */
   .sk {
     display: block;
     background: linear-gradient(90deg, var(--card-2) 0%, var(--line-soft) 50%, var(--card-2) 100%);
@@ -584,6 +584,14 @@
   }
 }
 
+/* Decisão do Gusta (31/10): nenhuma barra de scroll visível no produto; tudo continua rolando por roda/trackpad/toque. */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 @property --a {
   syntax: "<angle>";
   initial-value: 0deg;
@@ -655,5 +663,41 @@
   [data-flash],
   [data-flash] > td {
     animation: none !important;
+  }
+}
+
+/* tour-v2 §4: the tip's beacon (12 px lime dot pulsing on the target; no pulse with reduced motion) */
+@keyframes tour-beacon {
+  70% {
+    box-shadow: 0 0 0 12px rgba(200, 240, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 240, 60, 0);
+  }
+}
+.tour-beacon {
+  box-shadow: 0 0 0 0 rgba(200, 240, 60, 0.7);
+  animation: tour-beacon 1.6s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-beacon {
+    animation: none !important;
+  }
+}
+
+/*
+ * skullet (04/11): skeleton colors from our tokens, never fixed colors. Declared on every scope that re-points the
+ * surface tokens, so a skeleton inside .on-ink (dark) or .on-light picks that scope's --card-2 / --line-soft (same pair as .sk).
+ */
+:root,
+.on-ink,
+.on-light {
+  --skullet-base: var(--card-2);
+  --skullet-highlight: var(--line-soft);
+  --skullet-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --skullet-animation: none;
   }
 }

@@ -100,8 +100,8 @@ describe(isLocal ? 'Cadastro self-serve (integração local)' : 'Cadastro [pulad
     expect(await counts()).toEqual(before);
   });
 
-  it('senha de 9 → 400 VALIDATION_ERROR no campo password', async () => {
-    const r = await call('POST', '/auth/signup', undefined, { name: 'Cris', email: `${PREFIX}cris@teste.local`, password: '123456789' });
+  it('senha de 5 → 400 VALIDATION_ERROR no campo password', async () => {
+    const r = await call('POST', '/auth/signup', undefined, { name: 'Cris', email: `${PREFIX}cris@teste.local`, password: '12345' });
     expect(r.status).toBe(400);
     expect(r.body.error.code).toBe('VALIDATION_ERROR');
     expect(r.body.error.details.fields).toContainEqual({ field: 'password', rule: 'minLength' });

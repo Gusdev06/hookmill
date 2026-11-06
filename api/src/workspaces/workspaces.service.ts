@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import type { ClientCard, ClientsMeta, CreateClientResponse, TourCompleteResponse, TourState, TourStop, Workspace as WorkspaceView } from '@maquina/contratos';
+import { Injectable, Optional } from '@nestjs/common';
+import type {
+  ClientCard, ClientsMeta, CreateClientResponse, MetaMetrics, TipKey, TipsSeenResponse, TourCompleteResponse, TourState, TourStateV2, TourStop, TourStopV2,
+  Workspace as WorkspaceView,
+} from '@maquina/contratos';
 import type { BusinessType, MemberRole, Prisma, ResultType, Workspace } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
+import { BrainCache } from '../brain/brain.cache';
 import { AppConfig } from '../config/app-config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthContext } from '../common/auth/auth-context';
@@ -12,8 +16,11 @@ import { CreateClientDto, CreateInviteDto, UpdateWorkspaceDto } from './dto/work
 import { clientStatusOf, presentWorkspace, shortCodeFromName } from './cliente';
 import { normalizeHex } from '../iteracao/paleta';
 import { legacyBusinessTypeOf, resultPatchOf, resultStateError } from './resultado';
-import { NO_FACTS, OnboardingService, onboardingCalc, onboardingFull, type OnboardingCalc, type UpdatedByRow } from './onboarding';
+import { NO_FACTS, OnboardingService, onboardingCalc, onboardingFull, withConfirmed, type OnboardingCalc, type UpdatedByRow } from './onboarding';
 import { waitingOnYou, ZERO_WAITING } from './waiting';
+import { CreditosService } from '../creditos/creditos.service';
+import { TIP_KEYS } from './tour';
+import { DiscoveryService } from '../research/discovery.service';
 
 const WS_WITH_UPDATED_BY = { onboardingUpdatedBy: { select: { id: true, name: true } } } satisfies Prisma.WorkspaceInclude;
 type WsFull = Prisma.WorkspaceGetPayload<{ include: typeof WS_WITH_UPDATED_BY }>;
@@ -30,6 +37,9 @@ export class WorkspacesService {
     private readonly config: AppConfig,
     private readonly authService: AuthService,
     private readonly onboarding: OnboardingService,
+    private readonly brain: BrainCache,
+    private readonly creditos: CreditosService,
+    @Optional() private readonly discovery?: DiscoveryService, // ads-research-v1 §2.1
   ) {}
 
   /** `Workspace` do contrato com `onboarding.percent/steps/updatedBy/updatedAt` (onboarding-v2 §3.2). */
@@ -77,10 +87,15 @@ export class WorkspacesService {
         // D3: `#RRGGBB` maiúsculo; null limpa (a paleta volta a ser derivada, §A3.3)
         ...(dto.brandColor !== undefined && { brandColor: dto.brandColor === null ? null : normalizeHex(dto.brandColor) }),
         ...(dto.onboardingStep !== undefined && { onboardingStep: dto.onboardingStep }),
+        // lacunas-home-eddy-v1 §1: idempotente; vale com o onboarding concluído (não move o passo)
+        ...(dto.confirm !== undefined && { onboardingConfirmed: withConfirmed(cur.onboardingConfirmed, dto.confirm) }),
         // pausar é só rótulo (D4): não mexe no onboarding nem bloqueia geração
         ...(dto.paused !== undefined && { pausedAt: dto.paused ? cur.pausedAt ?? new Date() : null }),
       },
     });
+    this.brain.invalidate(auth.workspaceId); // brain-preenchido-v1: negócio, metas e site no grafo na hora
+    // ads-research-v1 §2.1: ramo, mercado ou site mudou → descoberta automática (debounce 24 h; nunca lança)
+    if (dto.industry !== undefined || dto.market !== undefined || dto.websiteUrl !== undefined) void this.discovery?.onBrainEvent(auth.workspaceId, 'brain');
     return this.present(ws);
   }
 
@@ -97,24 +112,74 @@ export class WorkspacesService {
       where: { id: ws.id, onboardingCompletedAt: null },
       data: { onboardingCompletedAt: new Date(), onboardingStep: 6, onboardingUpdatedById: auth.userId, onboardingUpdatedAt: new Date() },
     });
+    void this.discovery?.onBrainEvent(ws.id, 'onboarding'); // ads-research-v1 §2.1: 1ª descoberta no fim do onboarding
     return this.present(await this.load(ws.id));
   }
 
   // ───────── onboarding-v2 §3.4: tour ─────────
 
   /**
-   * GET /workspace/tour: `completedAt` do membership do usuário neste workspace; `stops` sem `iterate` quando não há
-   * conexão Meta ativa com um anúncio WINNER no snapshot (D6: a parada só existe com vencedor real).
+   * GET /workspace/tour (tour-v2, docs/contratos/tour-v2.md §1). `v=2`: paradas v2 por papel (OWNER/ADMIN/MEMBER: brain,
+   * templates + credits se a conta não é unlimited; CLIENT: brain, review). Sem `v=2` (legado, até o web trocar): as paradas
+   * v1 de antes (`iterate` só com vencedor). Os dois trazem `winnerMetaAdId`, `winnerName` e `tipsSeen`.
    */
-  async tour(auth: AuthContext): Promise<TourState> {
-    const [m, winners] = await Promise.all([
-      this.prisma.membership.findUniqueOrThrow({ where: { workspaceId_userId: { workspaceId: auth.workspaceId, userId: auth.userId } }, select: { tourCompletedAt: true } }),
-      this.config.metaEnabled
-        ? this.prisma.metaAdSnapshot.count({ where: { workspaceId: auth.workspaceId, verdict: 'WINNER', connection: { status: 'ACTIVE', adAccountId: { not: null } } } })
-        : Promise.resolve(0),
+  async tour(auth: AuthContext, v?: string): Promise<TourState | TourStateV2> {
+    const [m, winner] = await Promise.all([
+      this.prisma.membership.findUniqueOrThrow({
+        where: { workspaceId_userId: { workspaceId: auth.workspaceId, userId: auth.userId } }, select: { tourCompletedAt: true, tourTipsSeen: true },
+      }),
+      this.winnerOf(auth.workspaceId),
     ]);
-    const stops: TourStop[] = ['brain', ...(winners > 0 ? (['iterate'] as TourStop[]) : []), 'concepts', 'eddy', 'home'];
-    return { completedAt: m.tourCompletedAt?.toISOString() ?? null, stops };
+    const base = {
+      completedAt: m.tourCompletedAt?.toISOString() ?? null,
+      winnerMetaAdId: winner.best?.metaAdId ?? null, winnerName: winner.best?.name ?? null, tipsSeen: tipsOf(m.tourTipsSeen),
+    };
+    if (v !== '2') {
+      const stops: TourStop[] = ['brain', ...(winner.any ? (['iterate'] as TourStop[]) : []), 'concepts', 'eddy', 'home'];
+      return { ...base, stops };
+    }
+    let stops: TourStopV2[];
+    if (auth.role === 'CLIENT') stops = ['brain', 'review'];
+    else {
+      const payer = await this.creditos.payerOf(auth.workspaceId);
+      stops = ['brain', 'templates', ...(payer.pool === null ? [] : (['credits'] as TourStopV2[]))];
+    }
+    return { ...base, stops };
+  }
+
+  /**
+   * O vencedor do tour (§3 decisão 3): anúncio de VÍDEO (templates só remixam vídeo) com verdict WINNER na conexão Meta ativa,
+   * de menor CPA 30 d; empate = nome. `any` = existe WINNER de qualquer formato (regra do `iterate` legado, sem mudança).
+   */
+  private async winnerOf(workspaceId: string): Promise<{ any: boolean; best: { metaAdId: string; name: string } | null }> {
+    if (!this.config.metaEnabled) return { any: false, best: null };
+    const rows = await this.prisma.metaAdSnapshot.findMany({
+      where: { workspaceId, verdict: 'WINNER', connection: { status: 'ACTIVE', adAccountId: { not: null } } },
+      select: { metaAdId: true, name: true, metrics: true, videoId: true },
+    });
+    const cpa = (r: (typeof rows)[number]) => (r.metrics as unknown as MetaMetrics | null)?.cpa ?? Number.POSITIVE_INFINITY;
+    const best = rows.filter((r) => r.videoId).sort((a, b) => cpa(a) - cpa(b) || a.name.localeCompare(b.name) || a.metaAdId.localeCompare(b.metaAdId))[0];
+    return { any: rows.length > 0, best: best ? { metaAdId: best.metaAdId, name: best.name } : null };
+  }
+
+  /** POST /workspace/tour/tips: idempotente (já vista = não repete); ordem = ordem em que foram vistas. */
+  async seeTip(auth: AuthContext, tip: TipKey): Promise<TipsSeenResponse> {
+    const where = { workspaceId_userId: { workspaceId: auth.workspaceId, userId: auth.userId } };
+    // CAS no array: só acrescenta se ainda não tem (2 abas ao mesmo tempo não duplicam)
+    await this.prisma.membership.updateMany({
+      where: { workspaceId: auth.workspaceId, userId: auth.userId, NOT: { tourTipsSeen: { has: tip } } },
+      data: { tourTipsSeen: { push: tip } },
+    });
+    const m = await this.prisma.membership.findUniqueOrThrow({ where, select: { tourTipsSeen: true } });
+    return { tipsSeen: tipsOf(m.tourTipsSeen) };
+  }
+
+  /** DELETE /workspace/tour/tips ("Show tips again"): zera as dicas vistas deste usuário neste workspace. */
+  async resetTips(auth: AuthContext): Promise<TipsSeenResponse> {
+    await this.prisma.membership.update({
+      where: { workspaceId_userId: { workspaceId: auth.workspaceId, userId: auth.userId } }, data: { tourTipsSeen: [] },
+    });
+    return { tipsSeen: [] };
   }
 
   /** POST /workspace/tour/complete: idempotente (já concluído devolve a data gravada). CLIENT também pode. */
@@ -363,4 +428,11 @@ export function mask(key: string | null): string | null {
   if (key.length <= 8) return '…' + key.slice(-2);
   const prefix = key.startsWith('sk-') ? 'sk-' : key.slice(0, 3);
   return `${prefix}…${key.slice(-4)}`;
+}
+
+/** Só as TipKey conhecidas, sem repetição (coluna é text[]; um valor antigo/estranho não vaza pro web). */
+function tipsOf(raw: readonly string[]): TipKey[] {
+  const out: TipKey[] = [];
+  for (const t of raw) if ((TIP_KEYS as readonly string[]).includes(t) && !out.includes(t as TipKey)) out.push(t as TipKey);
+  return out;
 }

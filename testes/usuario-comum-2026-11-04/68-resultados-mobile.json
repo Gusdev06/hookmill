@@ -1,0 +1,348 @@
+{
+  "step": 68,
+  "url": "http://localhost:3311/templates/run/cmw1nr9ss000922hspx7jo4i4",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "body": "HM\nS\nSonoLeve\n0 grátis restante\nTEMPLATES · ENTREGAR\nBaixar\nPasso 5 de 5\n\nDeixa o HookMill escolher\nAmostra grátis · 4 usado(s), 0 devolvido(s).\n\nAMOSTRA GRÁTIS · 6 DE 6 PRONTAS\nSuas 6 variações estão prontas. Veja o gancho de cada uma.\n\nLemos o seu anúncio “fala-split-20s” e fizemos 6 versões dele, sem custo. Os primeiros 3 segundos tocam inteiros. Libere pra receber os vídeos completos, baixar e mandar pra Meta.\n\nGANCHO · 0–3 s\nLibere pra ver o resto\nHeadline nova\nHEADLINE-1\n\nHeadline nova: \"Você já tentou de tudo e nada funciona\"\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nHeadline nova\nHEADLINE-2\n\nHeadline nova: \"Resultado visível na primeira semana\"\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nHeadline nova\nHEADLINE-3\n\nHeadline nova: \"Milhares de pessoas já usam todo dia\"\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nCold open\nCOLD-OPEN\n\nAbre com teaser de 9.15 s\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nChat · conversa no Direct\nCHAT-DM\n\nA história vira uma conversa no Direct\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nLayout · fundo com review\nLAYOUT-REVIEW\n\nCard de review em cima do vídeo\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nLibere as suas 6 variações\n\nElas já estão renderizadas. Liberar é na hora, nada é gerado de novo.\n\nVídeos completos em 9:16, e 4:5 e 1:1 quando pedir\nBaixe num zip ou mande direto pro seu conjunto na Meta\nVariações grátis novas a cada campeão que você subir\nLiberar: fale com a gente\nCom IA\nplano pago\nAvatar novo no seu roteiro, formatos novos a partir do seu anúncio. Aparece aqui e fica disponível quando você tiver um plano.\nAmostra grátis: 1 por conta, até 4 variações, nunca com IA.\nAmostra grátis: baixar, Mandar pra Meta, o editor, 4:5 / 1:1 e Tentar de novo abrem quando você libera.\nLiberar: fale com a gente",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "S\nSonoLeve",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "0 grátis restante",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Abrir menu",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "",
+      "label": "Sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Liberar: fale com a gente",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Liberar: fale com a gente",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

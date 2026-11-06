@@ -119,7 +119,7 @@ export class OrquestradorService {
         const s = await this.prisma.scene.update({ where: { id: scene.id }, data: { audioFileId: file.id, progress: 35 } });
         await this.geracao.publishScene(s);
         await this.gen.submitLipsync({
-          workspaceId: scene.workspaceId, sceneId: scene.id, faceImageUrl: await this.geracao.faceUrl(c),
+          workspaceId: scene.workspaceId, sceneId: scene.id, faceImageUrl: await this.geracao.faceUrl(c, scene.id),
           audioUrl: await this.storage.signedUrl(file), visualPrompt: scene.visualPrompt, format: c.format,
         });
       } else if (t.kind === 'TRANSCRIBE') {

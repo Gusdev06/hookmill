@@ -1,0 +1,340 @@
+<title>HookMill Setup with Eddy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: setup shell (no app sidebar). Left = the conversation with Eddy (max 680 px) + composer pinned at its foot.
+   Right = ink panel "Brain being built" (380 px) that fills as answers land. Phone: panel collapses into a strip under the
+   top bar that opens as a bottom sheet. Single light theme with the ink panel, on purpose (fase2 §2.4 instrument panel). */
+:root {
+  --bg:#eeeeea; --card:#fdfdfb; --card-2:#f3f4f0; --field:#ffffff;
+  --line:#dcddd7; --line-soft:#e4e5e0; --line-strong:#cfd1cb; --control:#b9bcb5;
+  --fg:#15171a; --fg-2:#3b4047; --fg-3:#5a6068;
+  --brand:#c8f03c; --brand-hover:#bde52f; --brand-ink:#3e5200; --brand-soft:#f0f8d2; --brand-edge:#a9cc2a;
+  --ink:#16181b; --ink-2:#202328; --ink-3:#2a2e33; --ink-line:#2e3238; --ink-fg:#f2f3ee; --ink-fg-2:#c5cad0; --ink-fg-3:#9aa1a9;
+  --ok:#0b6b43; --ok-bg:#e2f3e8; --ok-dot:#1c9a5e; --warn:#7a5000; --warn-bg:#fbf0d3; --warn-dot:#d39b12;
+  --info:#2b4bc8; --info-bg:#e6ebfc; --meta:#1877f2; --white:#ffffff; --mc:#2f3a5c;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme: light;
+}
+* { box-sizing:border-box }
+body { background:var(--bg); color:var(--fg); font:14px/1.5 var(--sans); margin:0 }
+button, input, textarea { font:inherit; color:inherit }
+:focus-visible { outline:2px solid var(--info); outline-offset:2px }
+.proto { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding-block:10px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); background:var(--ink); color:var(--ink-fg) }
+.proto .grp { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.proto b { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-3) }
+.seg { display:inline-flex; border:1px solid var(--ink-line); border-radius:10px; overflow:hidden; flex-wrap:wrap }
+.seg button { font-size:12px; font-weight:600; padding:7px 10px; border:0; background:transparent; color:var(--ink-fg-2); cursor:pointer; min-height:36px }
+.seg button[aria-pressed="true"] { background:var(--ink-fg); color:var(--ink) }
+.proto .ex { font-family:var(--mono); font-size:11px; color:var(--ink); background:var(--warn-dot); border-radius:6px; padding:3px 7px; margin-left:auto }
+.stage { padding-block:20px 48px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); display:flex; justify-content:center }
+.frame { width:100%; max-width:1440px; height:860px; background:var(--bg); border:1px solid var(--line); border-radius:18px; overflow:hidden; display:flex; flex-direction:column; container-type:inline-size; container-name:frame; position:relative }
+.frame.phone { max-width:390px; height:780px }
+
+.top { display:flex; align-items:center; gap:10px; min-height:56px; padding:8px 16px; background:var(--card); border-bottom:1px solid var(--line); flex:none }
+.logo { width:28px; height:28px; border-radius:8px; background:var(--brand); border:1px solid var(--brand-edge); display:grid; place-items:center; font-weight:800; font-size:11px; flex:none }
+.top .who { display:flex; flex-direction:column; line-height:1.2; min-width:0 }
+.top .who b { font-size:13.5px } .top .who span { font-size:12px; color:var(--fg-3) }
+.top .sp { flex:1 }
+.btn { font-weight:700; font-size:14px; min-height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line-strong); background:var(--card); color:var(--fg); display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; white-space:nowrap; text-decoration:none }
+.btn.sm { min-height:36px; padding:0 12px; font-size:13px }
+.btn.brand { background:var(--brand); border-color:var(--brand-edge) } .btn.brand:hover { background:var(--brand-hover) }
+.btn.ink { background:var(--fg); border-color:var(--fg); color:var(--white) }
+.btn.ghost { border-color:transparent; background:transparent; color:var(--fg-2) }
+.btn.fb { background:var(--meta); border-color:transparent; color:var(--white) }
+.btn:hover { border-color:var(--fg) } .btn.ghost:hover, .btn.fb:hover { border-color:transparent }
+.btn[disabled] { opacity:.5; cursor:not-allowed }
+
+.body { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 380px }
+.chatcol { display:flex; flex-direction:column; min-height:0; min-width:0 }
+.thread { flex:1; overflow-y:auto; padding:24px 24px 12px }
+.thread-in { max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:18px }
+.msg { display:flex; gap:12px; align-items:flex-start; min-width:0 }
+.ed-av { width:32px; height:32px; border-radius:9px; background:var(--ink); color:var(--brand); display:grid; place-items:center; font-family:var(--mono); font-weight:600; font-size:12px; flex:none }
+.msg .c { min-width:0; flex:1; display:flex; flex-direction:column; gap:10px }
+.msg .name { font-size:12px; font-weight:700; color:var(--fg-3) }
+.msg p { margin:0; max-width:60ch }
+.me { justify-content:flex-end }
+.me .bubble { background:var(--fg); color:var(--white); border-radius:14px 14px 4px 14px; padding:8px 14px; max-width:80%; overflow-wrap:anywhere }
+.sys { align-self:center; font-size:12px; color:var(--fg-3); font-family:var(--mono); display:flex; gap:8px; align-items:center }
+.sys i { width:7px; height:7px; border-radius:50%; background:var(--ok-dot) }
+
+.card { background:var(--card); border:1px solid var(--line); border-radius:16px; min-width:0 }
+.card .hd { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line-soft) }
+.card .hd b { font-size:13.5px }
+.card .ft { display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:12px 16px; border-top:1px solid var(--line-soft) }
+.card .ft .hint { font-size:12px; color:var(--fg-3); margin-left:auto }
+.fr { display:grid; grid-template-columns:130px minmax(0,1fr) auto; gap:4px 12px; align-items:start; padding:10px 16px; border-top:1px solid var(--line-soft) }
+.fr:first-child { border-top:0 }
+.fr .k { font-size:12.5px; font-weight:600; color:var(--fg-3); padding-top:1px }
+.fr .v { min-width:0; overflow-wrap:anywhere; white-space:pre-line }
+.fr .v.empty { color:var(--warn); font-weight:600 }
+.fr .e { font-size:12px; font-weight:700; border:0; background:transparent; color:var(--fg-2); cursor:pointer; min-height:28px; padding:0 4px; text-decoration:underline; text-underline-offset:2px }
+.fr .form { display:none; grid-column:2 / span 2; gap:6px; flex-direction:column }
+.fr.editing .v, .fr.editing .e { display:none } .fr.editing .form { display:flex }
+.inp { width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--line-strong); border-radius:10px; background:var(--field) }
+.form .acts { display:flex; gap:6px }
+.done .fr .e { display:none }
+.chips { display:flex; flex-wrap:wrap; gap:6px }
+.chip { font-size:12.5px; font-weight:600; min-height:32px; padding:0 12px; border-radius:99px; border:1px solid var(--line-strong); background:var(--card); cursor:pointer }
+.chip[aria-checked="true"] { border:1.5px solid var(--fg); box-shadow:0 0 0 1px var(--fg) }
+
+/* reading (wait state: beam allowed) */
+.reading { position:relative; padding:14px 16px; display:flex; flex-direction:column; gap:8px }
+.beam::before { content:""; position:absolute; inset:-1px; border-radius:inherit; padding:1.5px; background:conic-gradient(from var(--a), transparent 0 70%, var(--brand) 82%, var(--info) 92%, transparent 100%); -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); animation:beam 2.4s linear infinite; pointer-events:none }
+@property --a { syntax:"<angle>"; initial-value:0deg; inherits:false }
+@keyframes beam { to { --a:360deg } }
+.chk { display:flex; gap:10px; align-items:center; font-size:13px; color:var(--fg-2) }
+.chk i { width:16px; height:16px; border-radius:50%; flex:none; border:1.5px solid var(--control) }
+.chk.ok i { background:var(--ok-dot); border-color:var(--ok-dot) }
+.chk.run i { border-color:var(--info); border-top-color:transparent; animation:spin 1s linear infinite }
+@keyframes spin { to { transform:rotate(360deg) } }
+.chk .m { margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--fg-3) }
+
+.acc { display:flex; gap:10px; align-items:center; padding:10px 16px; border-top:1px solid var(--line-soft); cursor:pointer }
+.acc:first-child { border-top:0 }
+.acc input { width:18px; height:18px; accent-color:var(--fg) }
+.acc .tx { flex:1; min-width:0 } .acc .tx b { display:block; font-size:13.5px } .acc .tx span { font-family:var(--mono); font-size:11.5px; color:var(--fg-3) }
+.tag { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 8px; border-radius:99px; font-size:11.5px; font-weight:700; white-space:nowrap }
+.tag i { width:7px; height:7px; border-radius:50%; background:currentColor }
+.tag.ok { background:var(--ok-bg); color:var(--ok) } .tag.warn { background:var(--warn-bg); color:var(--warn) } .tag.neutral { background:var(--card-2); color:var(--fg-2) }
+.winner { display:flex; gap:12px; align-items:center; padding:12px 16px }
+.th { width:36px; aspect-ratio:9/16; border-radius:7px; flex:none; background:linear-gradient(165deg,#6b6450,#1d1f1a) }
+.range { display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:12px 16px }
+.range .inp { width:96px; font-family:var(--mono) }
+
+.kit { padding:12px 16px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px }
+.slot { border:1.5px dashed var(--control); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px; min-width:0; background:var(--card) }
+.slot.filled { border-style:solid; border-color:var(--line) }
+.slot b { font-size:13px } .slot span { font-size:12px; color:var(--fg-3) }
+.slot .lg { height:44px; border-radius:8px; background:var(--card-2); display:flex; align-items:center; justify-content:center; gap:6px; font-weight:800; font-stretch:125%; color:var(--mc); font-size:14px }
+.slot .lg i { width:12px; height:12px; border-radius:50%; background:var(--mc); box-shadow:inset -4px -1px 0 var(--card-2) }
+.bar { height:3px; background:var(--line); border-radius:2px; overflow:hidden } .bar i { display:block; height:100%; background:var(--info) }
+
+.confirmed { font-size:12.5px; color:var(--fg-3); display:flex; gap:6px; align-items:center }
+.confirmed::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--ok-dot) }
+
+.composer { flex:none; padding:10px 24px 16px; border-top:1px solid var(--line); background:var(--bg) }
+.composer form { max-width:680px; margin:0 auto; display:flex; gap:8px; align-items:center; background:var(--card); border:1px solid var(--line-strong); border-radius:14px; padding:6px }
+.composer input { flex:1; min-width:0; border:0; background:transparent; min-height:40px; padding:0 8px; outline:none }
+.composer form:focus-within { border-color:var(--fg) }
+.ic-btn { width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer; flex:none; font-size:16px }
+.send { width:40px; height:40px; border-radius:10px; border:0; background:var(--fg); color:var(--white); cursor:pointer; flex:none }
+.composer .note { max-width:680px; margin:6px auto 0; font-size:11.5px; color:var(--fg-3) }
+
+/* Brain panel */
+.panel { background:var(--ink); color:var(--ink-fg-2); padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; min-height:0 }
+.panel .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-3) }
+.pct { display:flex; align-items:baseline; gap:10px }
+.pct b { font-family:var(--mono); font-size:34px; font-weight:600; color:var(--ink-fg); line-height:1 }
+.pbar { height:6px; border-radius:99px; background:var(--ink-line); overflow:hidden } .pbar i { display:block; height:100%; background:var(--brand); transition:width .6s cubic-bezier(.2,.7,.2,1) }
+.sec { border:1px solid var(--ink-line); border-radius:14px; background:var(--ink-2); overflow:hidden }
+.sec .sh { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; font-size:12.5px; font-weight:700; color:var(--ink-fg) }
+.sec .sh span { font-family:var(--mono); font-size:11px; font-weight:500; color:var(--ink-fg-3) }
+.it { display:grid; grid-template-columns:10px 92px minmax(0,1fr); gap:10px; align-items:start; padding:7px 14px; border-top:1px solid var(--ink-line); font-size:12.5px }
+.it i { width:8px; height:8px; border-radius:50%; margin-top:5px; border:1.5px solid var(--ink-fg-3) }
+.it.on i { background:var(--brand); border-color:var(--brand) }
+.it.part i { background:var(--warn-dot); border-color:var(--warn-dot) }
+.it .k { color:var(--ink-fg-3) } .it .v { color:var(--ink-fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.it .v.no { color:var(--ink-fg-3) }
+.it.flash { animation:flash 1.2s ease-out }
+@keyframes flash { 0% { background:rgba(200,240,60,.18) } 100% { background:transparent } }
+.panel .foot { font-size:12px; color:var(--ink-fg-3) }
+
+.strip { display:none; flex:none; align-items:center; gap:10px; padding:8px 16px; background:var(--ink); color:var(--ink-fg); border:0; width:100%; text-align:left; cursor:pointer; min-height:48px }
+.strip .pbar { flex:1 }
+.strip b { font-family:var(--mono); font-size:13px }
+.sheet-bg { position:absolute; inset:0; background:rgba(22,24,27,.6); z-index:5 }
+.frame.sheet .panel { display:flex !important; position:absolute; left:0; right:0; bottom:0; height:78%; z-index:6; border-radius:18px 18px 0 0; padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)) }
+.sheet-close { display:none }
+.frame.sheet .sheet-close { display:inline-flex }
+.hidden { display:none !important }
+
+@container frame (max-width: 760px) {
+  .body { grid-template-columns:minmax(0,1fr) }
+  .panel { display:none }
+  .strip { display:flex }
+  .thread { padding:16px 16px 8px }
+  .composer { padding:8px 12px calc(12px + env(safe-area-inset-bottom,0px)) }
+  .fr { grid-template-columns:minmax(0,1fr) auto; padding:10px 14px }
+  .fr .k { grid-column:1 / span 2 } .fr .form { grid-column:1 / span 2 }
+  .kit { grid-template-columns:minmax(0,1fr) }
+  .msg .ed-av { width:28px; height:28px }
+  .top .save-lbl { display:none }
+  .card .ft .btn { flex:1 1 auto } .card .ft .hint { margin-left:0; flex-basis:100% }
+}
+@media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important } .beam::before { background:linear-gradient(90deg,var(--brand),var(--info)) } }
+</style>
+
+<div class="proto" role="toolbar" aria-label="Prototype controls">
+  <div class="grp"><b>Jump to</b>
+    <div class="seg" role="group" aria-label="Step" id="jump"></div>
+  </div>
+  <div class="grp"><b>Width</b>
+    <div class="seg" role="group" aria-label="Width">
+      <button type="button" id="w-desk" aria-pressed="true">Desktop</button>
+      <button type="button" id="w-phone" aria-pressed="false">Phone 390</button>
+    </div>
+  </div>
+  <span class="ex">Example data</span>
+</div>
+
+<div class="stage">
+  <div class="frame" id="frame">
+    <header class="top">
+      <span class="logo">HM</span>
+      <span class="who"><b>Setting up Mooncloth</b><span>with Eddy · about 5 minutes</span></span>
+      <span class="sp"></span>
+      <button class="btn sm ghost" type="button"><span class="save-lbl">Save and exit</span><span aria-hidden="true" style="font-size:16px">⏏</span></button>
+    </header>
+    <button class="strip" type="button" id="strip" aria-controls="panel" aria-expanded="false"><span>Brain</span><span class="pbar"><i class="js-pbar" style="width:0%"></i></span><b class="js-pct">0%</b><span aria-hidden="true">▴</span></button>
+
+    <div class="body">
+      <div class="chatcol">
+        <div class="thread" id="thread" aria-live="polite"><div class="thread-in" id="thread-in"></div></div>
+        <div class="composer">
+          <form id="composer"><button class="ic-btn" type="button" aria-label="Attach files">+</button><input id="say" placeholder="Answer Eddy, or paste a link" autocomplete="off" aria-label="Your answer"><button class="send" type="submit" aria-label="Send">↑</button></form>
+          <p class="note">Eddy only sets up the Brain here. Everything you confirm is editable later in Brain › Brand.</p>
+        </div>
+      </div>
+      <aside class="panel" id="panel" aria-label="Brain being built">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Mooncloth's Brain</span><button class="btn sm sheet-close" type="button" id="sheet-x" style="background:var(--ink-2);color:var(--ink-fg);border-color:var(--ink-line)">Close</button></div>
+        <div class="pct"><b class="js-pct">0%</b><span class="js-pcttx">Nothing yet. Start with the site.</span></div>
+        <div class="pbar"><i class="js-pbar" style="width:0%"></i></div>
+        <div id="secs"></div>
+        <span class="foot">The % counts the 13 things scripts read. Meta and the brand kit power results and statics; they don't count.</span>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var frame = document.getElementById("frame"), tin = document.getElementById("thread-in"), thread = document.getElementById("thread");
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ── the Brain panel: sections and what each step fills ──
+  var SEC = [
+    ["Business", [["industry","Industry"],["market","Market"],["result","Result"]]],
+    ["Offer", [["offer","Offer"],["what","What it is"],["promise","Promise"],["price","Offer & price"],["cta","Call to action"]]],
+    ["Audience", [["aud","Who it's for"],["pains","Pains"],["notes","Instructions"]]],
+    ["Proof", [["proof","Proof"]]],
+    ["Goals", [["cap","Spend cap"],["cpa","Target CPA"]]],
+    ["Meta", [["meta","Ad account"]]],
+    ["Brand kit", [["logo","Logo"],["colors","Colors"],["files","Files"],["demo","Demo video"]]]
+  ];
+  var VAL = {
+    industry:"Sleep products", market:"United States", result:"Purchase",
+    offer:"Weighted blanket", what:"7 kg blanket, cooling cover", promise:"Asleep in 20 min in 7 nights", price:"$129, 30-night trial", cta:"Try it for 30 nights",
+    aud:"Adults 30–55 waking at 3am", pains:"Racing thoughts, melatonin fog", notes:"",
+    proof:"", cap:"$9,000 / month", cpa:"$10–14 (not in %)",
+    meta:"Mooncloth US · act_••4821", logo:"mooncloth.svg", colors:"#2F3A5C · #E9E4D8", files:"Brand guide.pdf", demo:"blanket-unboxing.mp4"
+  };
+  // keys counted in the % (brainCompleteness: 13 items; offer counts as 1, cpa/meta/kit don't)
+  var COUNTED = ["result","industry","market","offer","what","promise","price","cta","aud","pains","proof","notes","cap"];
+  var FILLS = [[], [], [], ["industry","market","result"], ["offer","what","promise","price","cta","aud","pains"], [], ["meta"], ["cap","cpa"], ["logo","colors","files","demo"]];
+  function filledAt(step) { var f = {}; for (var i = 0; i <= step; i++) FILLS[i].forEach(function (k) { f[k] = true; }); if (step >= 2) f.logo = f.logo || false; return f; }
+  function renderPanel(step, fresh) {
+    var f = filledAt(step), html = "";
+    SEC.forEach(function (s) {
+      var n = s[1].filter(function (it) { return f[it[0]]; }).length;
+      html += '<div class="sec"><div class="sh">' + s[0] + "<span>" + n + " / " + s[1].length + "</span></div>";
+      s[1].forEach(function (it) {
+        var on = f[it[0]], isNew = fresh && FILLS[step].indexOf(it[0]) >= 0;
+        var reading = ["industry","market","result","offer","what","promise","price","cta","aud","pains"].indexOf(it[0]) >= 0;
+        var pend = !on && reading && (step === 2 || step === 3);
+        var cls = on ? "on" : (pend ? "part" : "");
+        var v = on ? VAL[it[0]] : (pend ? "read, waiting for you" : (step === 1 && reading ? "reading…" : "—"));
+        html += '<div class="it ' + cls + (isNew ? " flash" : "") + '"><i></i><span class="k">' + it[1] + '</span><span class="v' + (on ? "" : " no") + '">' + v + "</span></div>";
+      });
+      html += "</div>";
+    });
+    document.getElementById("secs").innerHTML = html;
+    var c = COUNTED.filter(function (k) { return f[k]; }).length, p = Math.round(c / 13 * 100);
+    document.querySelectorAll(".js-pct").forEach(function (e) { e.textContent = p + "%"; });
+    document.querySelectorAll(".js-pbar").forEach(function (e) { e.style.width = p + "%"; });
+    document.querySelector(".js-pcttx").textContent = p === 0 ? "Nothing yet. Start with the site." : c + " of 13 things known";
+  }
+
+  // ── conversation ──
+  var row = function (k, v, id, empty) {
+    return '<div class="fr"><span class="k">' + k + '</span><span class="v' + (empty ? " empty" : "") + '">' + v + '</span><button class="e" type="button">' + (empty ? "Add" : "Edit") + '</button><div class="form"><input class="inp" id="' + id + '" value="' + (empty ? "" : v.replace(/"/g, "&quot;")) + '"><div class="acts"><button class="btn sm ink sv" type="button">Save</button><button class="btn sm ghost cx" type="button">Cancel</button></div></div></div>';
+  };
+  var eddy = function (inner) { return '<div class="msg"><span class="ed-av" aria-hidden="true">Ed</span><div class="c"><span class="name">Eddy</span>' + inner + "</div></div>"; };
+  var me = function (t) { return '<div class="msg me"><span class="bubble">' + t + "</span></div>"; };
+  var sys = function (t) { return '<div class="sys"><i></i>' + t + "</div>"; };
+  var act = function (active, btns, doneText) { return active ? btns : '<span class="confirmed">' + doneText + "</span>"; };
+
+  var STEPS = [
+    { label: "Site", m: function (a) { return eddy('<p>Hi Gusta, I\'m Eddy. I\'ll set up Mooncloth\'s Brain with you, so every script starts from what you know. About 5 minutes.</p><p><b>What\'s the website?</b> I\'ll read it and you only fix what I got wrong.</p>' +
+        (a ? '<div class="card"><form class="ft js-site" style="border-top:0"><input class="inp" id="site" inputmode="url" placeholder="mooncloth.com" value="mooncloth.com" style="flex:1 1 200px;font-family:var(--mono)"><button class="btn brand" type="submit">Read the site</button></form></div><button class="btn sm ghost" type="button" style="align-self:flex-start" title="In the product: Eddy asks 3 questions and reads the answer as text">No site? Describe the business instead</button>' : "")); } },
+    { label: "Reading", m: function (a) { return me("mooncloth.com") + eddy('<p>Reading mooncloth.com. You can stay or leave; I\'ll keep what I find.</p><div class="card' + (a ? ' beam' : '') + '" style="position:relative"><div class="reading">' +
+        '<div class="chk ok"><i></i>Home page<span class="m">1.2 s</span></div><div class="chk ok"><i></i>Product page · /blanket<span class="m">2.0 s</span></div><div class="chk ' + (a ? "run" : "ok") + '"><i></i>Pricing and checkout<span class="m">' + (a ? "reading" : "1.4 s") + '</span></div><div class="chk ' + (a ? "" : "ok") + '"><i></i>Reviews and FAQ<span class="m">' + (a ? "next" : "0.9 s") + "</span></div></div></div>"); } },
+    { label: "Business", m: function (a) { return eddy('<p>Here\'s the business as I read it. Fix anything that\'s off, right in the card.</p><div class="card' + (a ? "" : " done") + '"><div class="hd"><b>The business</b><span class="tag neutral">from mooncloth.com</span></div>' +
+        row("Name", "Mooncloth", "b-name") + row("Industry", "Sleep products", "b-ind") + row("Market", "United States", "b-mkt") +
+        '<div class="fr"><span class="k">What counts as a result</span><span class="v">' + (a ? '<span class="chips" role="radiogroup" aria-label="Result"><button type="button" class="chip" role="radio" aria-checked="true">Purchase</button><button type="button" class="chip" role="radio" aria-checked="false">Lead</button><button type="button" class="chip" role="radio" aria-checked="false">Message</button><button type="button" class="chip" role="radio" aria-checked="false">More…</button></span>' : "Purchase") + "</span><span></span></div>" +
+        '<div class="ft">' + act(a, '<button class="btn brand" type="button" data-next>Looks right</button><span class="hint">Edit any line first if needed.</span>', "Confirmed") + "</div></div>"); } },
+    { label: "Offer", m: function (a) { return me("Looks right") + eddy('<p>And the offer. I found one main product; you can add more later.</p><div class="card' + (a ? "" : " done") + '"><div class="hd"><b>Weighted blanket</b><span class="tag neutral">from /blanket</span></div>' +
+        row("What it is", "A 7 kg weighted blanket with a cooling cotton cover.", "o-what") + row("Promise", "Fall asleep in under 20 minutes within 7 nights, or your money back.", "o-prom") + row("Offer and price", "$129, free shipping, 30-night trial", "o-price") + row("Call to action", "Try it for 30 nights", "o-cta") +
+        row("Who it's for", "Adults 30–55 who wake up at 3am and feel wrecked by 10am.", "o-aud") + row("Pains", "Racing thoughts at night\nTried melatonin, groggy next day", "o-pain") +
+        row("Proof", "I didn't find reviews or numbers on the site.", "o-proof", true) +
+        '<div class="ft">' + act(a, '<button class="btn brand" type="button" data-next>Looks right</button><span class="hint">Proof can wait. Scripts are sharper with it.</span>', "Confirmed · proof left for later") + "</div></div>"); } },
+    { label: "Meta", m: function (a) { return me("Looks right, no proof yet") + eddy("<p>Now Meta. With it I can read your ads, find the one that already works and start from it. Read-only; nothing changes in your campaigns without you.</p>" +
+        act(a, '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn fb" type="button" data-next>Continue with Facebook</button><button class="btn ghost" type="button" title="In the product: skips to the goal and brand kit">Skip for now</button></div>', "Connected with Facebook")); } },
+    { label: "Account", m: function (a) { return sys("Facebook login finished") + eddy('<p>You have 2 ad accounts. Which one is Mooncloth\'s?</p><div class="card' + (a ? "" : " done") + '">' +
+        '<label class="acc"><input type="radio" name="acc" checked' + (a ? "" : " disabled") + '><span class="tx"><b>Mooncloth US</b><span>act_••4821 · USD · Page: Mooncloth Sleep</span></span><span class="tag ok"><i></i>All good</span></label>' +
+        '<label class="acc"><input type="radio" name="acc"' + (a ? "" : " disabled") + '><span class="tx"><b>Gusta personal</b><span>act_••0193 · BRL</span></span><span class="tag neutral">No ads</span></label>' +
+        '<div class="ft">' + act(a, '<button class="btn brand" type="button" data-next>Use Mooncloth US</button><span class="hint">Health check: account active, payment valid, pixel firing.</span>', "Mooncloth US connected") + "</div></div>"); } },
+    { label: "Goal", m: function (a) { return eddy('<p>Read 212 ads from the last 30 days. Your best one:</p><div class="card"><div class="winner"><span class="th"></span><span style="flex:1;min-width:0"><b style="display:block">Sleep in 7 nights · UGC v3</b><span class="xs" style="font-size:12px;color:var(--fg-3)">$11.20 per purchase · account median $13.10 · 23 days running</span></span><span class="tag ok"><i></i>Winner</span></div></div>' +
+        '<p><b>What does a good purchase cost you?</b> From your numbers I\'d say $10 to $14. And a monthly spend cap, so I never plan past it.</p><div class="card' + (a ? "" : " done") + '"><div class="range"><span class="small" style="color:var(--fg-3)">Target</span><input class="inp" id="g-min" value="10" aria-label="Minimum" ' + (a ? "" : "disabled") + '><span>to</span><input class="inp" id="g-max" value="14" aria-label="Maximum" ' + (a ? "" : "disabled") + '><span class="small" style="color:var(--fg-3);margin-left:8px">Cap / month</span><input class="inp" id="g-cap" value="9000" aria-label="Monthly cap" ' + (a ? "" : "disabled") + ' style="width:110px"></div>' +
+        '<div class="ft">' + act(a, '<button class="btn brand" type="button" data-next>Save the goal</button>', "Target $10–14 · cap $9,000") + "</div></div>"); } },
+    { label: "Brand kit", m: function (a) { return eddy('<p>Last thing: the brand kit. I took the logo and colors from the site. Add a brand guide and a demo video of the product if you have them; statics and end cards use these.</p><div class="card' + (a ? "" : " done") + '"><div class="kit">' +
+        '<div class="slot filled"><b>Logo</b><span class="lg"><i></i>mooncloth</span><span>From the site · ' + (a ? '<a href="#" style="color:var(--fg)">Replace</a>' : "kept") + "</span></div>" +
+        '<div class="slot filled"><b>Brand files</b><span>Mooncloth brand guide.pdf · 4.2 MB</span><span class="bar"><i style="width:100%;background:var(--ok-dot)"></i></span><span>Uploaded</span></div>' +
+        '<div class="slot' + (a ? "" : " filled") + '"><b>Product demo video</b>' + (a ? '<span>blanket-unboxing.mp4 · 64%</span><span class="bar" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100"><i style="width:64%"></i></span><span>You can continue; it finishes in the background.</span>' : "<span>blanket-unboxing.mp4 · 0:42</span><span>Uploaded</span>") + "</div>" +
+        '</div><div class="ft">' + act(a, '<button class="btn" type="button">+ Add files</button><button class="btn brand" type="button" data-next>Done</button><button class="btn ghost" type="button" data-next>Skip for now</button>', "Logo, 1 file, 1 video") + "</div></div>"); } },
+    { label: "Done", m: function (a) { return me("Done") + eddy('<p><b>Mooncloth\'s Brain is ready.</b> I know 11 of 13 things. Missing: proof and script instructions; add them in Brain › Brand any time.</p><p>Best place to start: your winner, Sleep in 7 nights · UGC v3. One batch makes 4 variations.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn brand" type="button">Iterate my winner</button><button class="btn" type="button">Go to Home</button></div><span class="small" style="color:var(--fg-3)">Home opens with a 5-stop tour the first time.</span>'); } }
+  ];
+  // note: FILLS is indexed by the step that *confirms* the data (business confirmed when the offer step opens, etc.)
+
+  var cur = 0, timer;
+  function render(step, fresh) {
+    clearTimeout(timer);
+    cur = step; var html = "";
+    for (var i = 0; i <= step; i++) html += STEPS[i].m(i === step);
+    tin.innerHTML = html;
+    renderPanel(step, fresh);
+    wire();
+    document.querySelectorAll("#jump button").forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === step)); });
+    thread.scrollTop = thread.scrollHeight;
+    if (step === 1) timer = setTimeout(function () { render(2, true); }, reduce ? 300 : 2600);
+  }
+  function wire() {
+    tin.querySelectorAll("[data-next]").forEach(function (b) { b.onclick = function () { render(cur + 1, true); }; });
+    tin.querySelectorAll("[data-go]").forEach(function (b) { b.onclick = function () { render(+b.getAttribute("data-go"), true); }; });
+    var f = tin.querySelector(".js-site"); if (f) f.onsubmit = function (e) { e.preventDefault(); render(1, true); };
+    tin.querySelectorAll(".fr").forEach(function (r) {
+      var e = r.querySelector(".e"), sv = r.querySelector(".sv"), cx = r.querySelector(".cx"); if (!e || !sv) return;
+      e.onclick = function () { r.classList.add("editing"); r.querySelector(".inp").focus(); };
+      cx.onclick = function () { r.classList.remove("editing"); e.focus(); };
+      sv.onclick = function () { var i = r.querySelector(".inp"), v = r.querySelector(".v"); if (i.value.trim()) { v.textContent = i.value; v.classList.remove("empty"); e.textContent = "Edit"; } r.classList.remove("editing"); e.focus(); };
+    });
+    tin.querySelectorAll('[role="radiogroup"]').forEach(function (g) { g.onclick = function (ev) { var c = ev.target.closest(".chip"); if (!c) return; g.querySelectorAll(".chip").forEach(function (x) { x.setAttribute("aria-checked", String(x === c)); }); }; });
+    tin.querySelectorAll('a[href="#"]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); }; });
+  }
+  document.getElementById("composer").onsubmit = function (e) { e.preventDefault(); var s = document.getElementById("say"); if (!s.value.trim()) return; s.value = ""; if (cur < STEPS.length - 1 && cur !== 1) render(cur + 1, true); };
+
+  var jump = document.getElementById("jump");
+  STEPS.forEach(function (s, i) { var b = document.createElement("button"); b.type = "button"; b.textContent = (i + 1) + " " + s.label; b.onclick = function () { render(i, false); }; jump.appendChild(b); });
+
+  function press(ids, on) { ids.forEach(function (id) { document.getElementById(id).setAttribute("aria-pressed", String(id === on)); }); }
+  document.getElementById("w-desk").onclick = function () { press(["w-desk","w-phone"], "w-desk"); frame.classList.remove("phone", "sheet"); closeSheet(); };
+  document.getElementById("w-phone").onclick = function () { press(["w-desk","w-phone"], "w-phone"); frame.classList.add("phone"); };
+  var bg;
+  function closeSheet() { frame.classList.remove("sheet"); if (bg) { bg.remove(); bg = null; } document.getElementById("strip").setAttribute("aria-expanded", "false"); }
+  document.getElementById("strip").onclick = function () { frame.classList.add("sheet"); bg = document.createElement("div"); bg.className = "sheet-bg"; bg.onclick = closeSheet; frame.appendChild(bg); this.setAttribute("aria-expanded", "true"); document.getElementById("sheet-x").focus(); };
+  document.getElementById("sheet-x").onclick = closeSheet;
+
+  render(0, false);
+})();
+</script>

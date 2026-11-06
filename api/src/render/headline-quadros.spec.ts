@@ -52,7 +52,7 @@ const portRemix = (): RemotionPort => {
   };
 };
 const servico = () => new RemotionRenderService({ concurrency: 1, tmpDir: mkdtempSync(path.join(dir, 'r-')), bundleDir: null, framesConcurrency: 1, browserExecutable: null }, portRemix());
-const spec = { mode: 'replace' as const, text: '開會只敢聽、不敢講？', highlight: null, language: 'zh-TW', brandColor: '#0008FF', plateColor: '#101010' };
+const spec = { mode: 'add' as const, text: '開會只敢聽、不敢講？', highlight: null, language: 'zh-TW', brandColor: '#0008FF' };
 
 describe('HEADLINE com áudio mais longo que o vídeo (F7)', () => {
   jest.setTimeout(120_000);

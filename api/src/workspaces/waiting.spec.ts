@@ -21,6 +21,9 @@ describe('waitingOnYou (uma função pra Home e Clients)', () => {
     // variacao-auto-v1 §5.4: lote AUTO conta em ANALYSIS_FAILED e LAUNCHED assentado sem download
     expect(where).toContain('ANALYSIS_FAILED');
     expect(where).toContain('"downloadedAt":null');
+    // 04/11: sai também com todas as peças prontas enviadas pra Meta (publicação ≠ FAILED), igual ao batchStageOf
+    expect(where).toContain('"metaPublications":{"none":{"status":{"not":"FAILED"}}}');
+    expect(where).toContain('"creatives":{"none":{"state":"APPROVED","archivedAt":null}}');
   });
   it('lista vazia: nenhuma query', async () => {
     const db = { creative: { groupBy: jest.fn() }, variationBatch: { groupBy: jest.fn() } };

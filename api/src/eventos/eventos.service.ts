@@ -14,7 +14,8 @@ export type CreativeEventType =
   | 'take.updated' // §13.5
   | 'render.updated'
   | 'cost.updated'
-  | 'editor.updated'; // editor-v1 §9
+  | 'editor.updated' // editor-v1 §9
+  | 'editor.export'; // editor-universal-v1 §10 (F-U1): etapas do export do editor
 
 export interface SseMessage {
   event: CreativeEventType;

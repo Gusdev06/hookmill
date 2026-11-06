@@ -6,14 +6,16 @@ import { Auth, AuthContext, ClientAllowed, Public, Roles } from '../common/auth/
 import { Paginated } from '../common/http/envelope.interceptor';
 import { ExpensiveAction } from '../common/throttle/app-throttler.guard';
 import { MetaConexaoService } from './conexao.service';
+import { MetaListasService } from './listas.service';
 import { MetaModeGuard } from './meta-mode.guard';
 import {
-  MetaActivateDto, MetaAdsQueryDto, MetaConnectDto, MetaEmptyDto, MetaOptionsQueryDto, MetaPublicationsQueryDto, MetaPublishBatchDto, MetaPublishDto, MetaSelectionDto,
+  MetaActivateDto, MetaAdsQueryDto, MetaConnectDto, MetaEmptyDto, MetaOfferLinkBodyDto, MetaOfferLinkQueryDto, MetaOptionsQueryDto, MetaPublicationsQueryDto, MetaPublishBatchDto, MetaPublishDto, MetaSelectionDto,
   MetaSummaryQueryDto, MetaTemplateDto, MetaTemplateImportDto, MetaTemplatePatchDto,
 } from './meta.dto';
 import { MetaTemplatesService } from './templates.service';
 import { MetaPublicacaoService } from './publicacao.service';
 import { MetaSyncService } from './sync.service';
+import { MetaOfferLinksService } from './oferta-links.service';
 
 /**
  * meta-v1.md §3: conexão (OWNER/ADMIN), leitura (todos; sync também MEMBER), publicações. Papéis do api.md 21/10:
@@ -29,6 +31,8 @@ export class MetaController {
     private readonly conexao: MetaConexaoService,
     private readonly sync: MetaSyncService,
     private readonly publicacao: MetaPublicacaoService,
+    private readonly listas: MetaListasService,
+    private readonly offerLinks: MetaOfferLinksService,
   ) {}
 
   @Roles('OWNER', 'ADMIN') @HttpCode(201) @Post('connect')
@@ -91,9 +95,36 @@ export class MetaController {
     return new Paginated(r.items, r.meta);
   }
 
+  /** meta-oferta-v1 §5: correção manual anúncio/campanha → oferta (CLIENT 403: rota de escrita sem @ClientAllowed). */
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Put('offer-links')
+  putOfferLink(@Auth() auth: AuthContext, @Body() dto: MetaOfferLinkBodyDto) {
+    return this.offerLinks.put(auth, dto);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Delete('offer-links')
+  deleteOfferLink(@Auth() auth: AuthContext, @Query() q: MetaOfferLinkQueryDto) {
+    return this.offerLinks.remove(auth, q);
+  }
+
   @Get('summary')
   summary(@Auth() auth: AuthContext, @Query() q: MetaSummaryQueryDto) {
     return this.sync.summary(auth, q.period ?? '30d');
+  }
+
+  // meta-templates-v2 §4: listas da conta pro editor (quem edita template; CLIENT vê os nomes gravados e não chama)
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Get('instagram-accounts')
+  instagramAccounts(@Auth() auth: AuthContext) {
+    return this.listas.instagramAccounts(auth);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Get('custom-audiences')
+  customAudiences(@Auth() auth: AuthContext) {
+    return this.listas.customAudiences(auth);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MEMBER') @Get('locales')
+  locales(@Auth() auth: AuthContext) {
+    return this.listas.locales(auth);
   }
 
   /** meta-templates-v1 §2 (P3): lote com template → 202 { publications, plan }. */

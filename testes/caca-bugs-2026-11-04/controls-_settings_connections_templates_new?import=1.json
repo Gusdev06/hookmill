@@ -1,0 +1,378 @@
+[
+  {
+    "tag": "BUTTON",
+    "txt": "Settings",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Templates",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "INPUT",
+    "txt": "",
+    "role": null,
+    "label": "Template name",
+    "id": "_r_0_-name",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Import from a campaign",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "checkbox",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Close",
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "CampaignSleepwell — HookMill testsSales · CBO budget missing",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Ad set2 ad sets · 4–8 ads eachPurchase · US · 18–65",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "AdOne per approved videoShop now · no link",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Import its settings",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "1Campaign",
+    "role": "tab",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "2Ad set",
+    "role": "tab",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "3Ad",
+    "role": "tab",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "INPUT",
+    "txt": "",
+    "role": null,
+    "label": null,
+    "id": "_r_0_-cname",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_1_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_3_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "checkbox",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "checkbox",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "checkbox",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "checkbox",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "checkbox",
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_5_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_7_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_9_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_b_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_d_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "radio",
+    "label": null,
+    "id": "_r_f_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": "switch",
+    "label": null,
+    "id": "_r_h_",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Daily budget",
+    "role": "combobox",
+    "label": null,
+    "id": "_r_0_-btype-campaign",
+    "href": null
+  },
+  {
+    "tag": "INPUT",
+    "txt": "",
+    "role": null,
+    "label": null,
+    "id": "_r_0_-budget-campaign",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Highest volume",
+    "role": "combobox",
+    "label": null,
+    "id": "_r_0_-bid-campaign",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Back",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Next: Ad set",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Save template",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Open Next.js Dev Tools",
+    "id": "next-logo",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Campaigns",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "INPUT",
+    "txt": "",
+    "role": null,
+    "label": "Search campaigns",
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Mock — Prospecting (CBO)CBO · 2 ad sets · 4 ads",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Use",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Open Mock — Prospecting (CBO)",
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Mock — Testing (ABO)ABO · 3 ad sets · 4 ads",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Use",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Open Mock — Testing (ABO)",
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Mock — Launch (lifetime)CBO · 1 ad set · 2 ads",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Use",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "",
+    "role": null,
+    "label": "Open Mock — Launch (lifetime)",
+    "id": "",
+    "href": null
+  },
+  {
+    "tag": "BUTTON",
+    "txt": "Close",
+    "role": null,
+    "label": null,
+    "id": "",
+    "href": null
+  }
+]

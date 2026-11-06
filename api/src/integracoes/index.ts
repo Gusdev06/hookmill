@@ -1,6 +1,11 @@
 // Ponto de entrada da integracoes pro backend: tipos do contrato, tokens, módulo e erros.
 export * from './contrato';
-export { IntegracoesModule, CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, AD_LIBRARY_SERVICE, META_SERVICE, integracoesMode } from './integracoes.module';
+export { IntegracoesModule, CLAUDE_SERVICE, GENERATION_SERVICE, CATALOG_SERVICE, AD_LIBRARY_SERVICE, META_SERVICE, ADS_RESEARCH_SERVICE, integracoesMode, adsResearchMode, type AdsResearchMode } from './integracoes.module';
+// ads-research-v1 (Ad Radar): preço da Apify (R0), teto por run e o mundo fake (C.8) pros testes do backend
+export { APIFY_PRICE, maxChargeFor, formulaCost } from './adlibrary/research.service';
+export { MOCK_PAGES, MOCK_TRIGGERS, mockAdArchiveId } from './adlibrary/mock-radar';
+export { MOCK_RESEARCH_COST } from './adlibrary/fake-research.service';
+export { MOCK_RESEARCH_LLM_USD } from './mock/fake-concorrentes';
 // meta-v1 (21/10): erro, cifra do token, regra de vencedor (puras) e modo. Assinatura da porta em meta/PORTA.md.
 export { MetaError, isMetaError, META_ERROR_TEXT, META_ERROR_ACTION, META_WRITE_ERROR_ACTION, accountStatusLabel, accountUnusable, type MetaErrorCode, type MetaErrorAction } from './meta/erros';
 export { cifrar, decifrar, chaveDe, CifraError } from './meta/cifra';

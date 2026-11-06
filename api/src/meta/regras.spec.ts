@@ -4,7 +4,7 @@ import type { MetaMetrics } from '@maquina/contratos';
 import type { MetaAdSnapshot } from '@prisma/client';
 import { MetaError, compareAds, medianCpaOf, trendOf, verdictOf, type MetaWinnerRule } from '../integracoes';
 import { asMetaAsyncCode, countriesOf, metaActionOf, metricsOf, toHttp } from './comum';
-import { aggregate, presentAd } from './sync.service';
+import { aggregate, lastIteratedBy, presentAd } from './sync.service';
 
 const RULE: MetaWinnerRule = { minSpendUsd: 50, minResults: 3, trendBetter: 0.85, trendWorse: 1.25, trendFreq: 3, usdRates: { BRL: 5 } };
 const m = (spend: number, results: number, over: Partial<MetaMetrics> = {}): MetaMetrics => ({
@@ -101,6 +101,21 @@ describe('sumário e linha do anúncio', () => {
     expect(r).toMatchObject({ metaAdId: 'ad_1', verdict: 'WINNER', trend: 'WORKING', daysRunning: 10, creative: { id: 'cr' }, championId: 'ch' });
     expect(r.metrics).toEqual({ ...metricsOf(null), spend: 10 });
     expect(r.metricsPrev7d.cpa).toBeNull();
+    expect(r.lastIteratedAt).toBeNull();
+    expect(presentAd(row, null, 'ch', now, undefined, new Date(now)).lastIteratedAt).toBe('2026-10-21T12:00:00.000Z');
+  });
+
+  it('lastIteratedBy: o lote mais novo entre os campeões do anúncio (lacunas-home-eddy-v1 §4)', () => {
+    const d = (s: string) => new Date(s);
+    const m = lastIteratedBy([
+      { metaAdId: 'ad_1', batches: [{ createdAt: d('2026-10-10T00:00:00Z') }] },
+      { metaAdId: 'ad_1', batches: [{ createdAt: d('2026-10-20T00:00:00Z') }] },
+      { metaAdId: 'ad_2', batches: [] },
+      { metaAdId: null, batches: [{ createdAt: d('2026-10-25T00:00:00Z') }] },
+    ]);
+    expect(m.get('ad_1')?.toISOString()).toBe('2026-10-20T00:00:00.000Z');
+    expect(m.has('ad_2')).toBe(false);
+    expect(m.size).toBe(1);
   });
 });
 

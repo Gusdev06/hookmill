@@ -1,0 +1,22 @@
+{
+ "13-W1-webkit": {
+  "iou_mediana": 0.908,
+  "iou_p5": 0.889,
+  "fora_do_texto": 3.57
+ },
+ "13-W1-sombras": {
+  "iou_mediana": 0.907,
+  "iou_p5": 0.886,
+  "fora_do_texto": 3.56
+ },
+ "13-W1-sombras-s1": {
+  "iou_mediana": 0.866,
+  "iou_p5": 0.847,
+  "fora_do_texto": 3.6
+ },
+ "02-W1-sombras": {
+  "iou_mediana": 0.815,
+  "iou_p5": 0.742,
+  "fora_do_texto": 3.66
+ }
+}

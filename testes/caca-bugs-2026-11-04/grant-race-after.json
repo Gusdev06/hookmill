@@ -1,0 +1,16 @@
+{
+  "statuses": [
+    200,
+    200,
+    200,
+    200
+  ],
+  "errors": [
+    null,
+    null,
+    null,
+    null
+  ],
+  "before": 2,
+  "after": 4
+}

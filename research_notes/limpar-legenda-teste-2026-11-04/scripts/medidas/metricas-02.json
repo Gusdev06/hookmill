@@ -1,0 +1,278 @@
+{
+ "quadros": 900,
+ "quadros_com_legenda": 750,
+ "t_resolver": 0.7,
+ "t_inpaint": 73.4,
+ "t_compor": 217.4,
+ "t_total": 796.7,
+ "borrao_visivel_medio_%": {
+  "A": 29.0,
+  "C": 24.1,
+  "V": 45.6,
+  "N": 8.1
+ },
+ "borrao_visivel_p95_%": {
+  "A": 40.5,
+  "C": 34.1,
+  "V": 57.0,
+  "N": 25.9
+ },
+ "trechos": [
+  {
+   "ini": 0,
+   "fim": 51,
+   "texto": "SI ÉL TE IGNORA",
+   "herda": null,
+   "iou": 0.69,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 51,
+   "fim": 71,
+   "texto": "REZA ESTO",
+   "herda": null,
+   "iou": 0.78,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 77,
+   "fim": 105,
+   "texto": "SI EN DOS MINUTOS",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 105,
+   "fim": 115,
+   "texto": "NO TE",
+   "herda": null,
+   "iou": 0.78,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 115,
+   "fim": 162,
+   "texto": "BUSCA TE PAGO",
+   "herda": null,
+   "iou": 0.73,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 162,
+   "fim": 182,
+   "texto": "50",
+   "herda": null,
+   "iou": 0.51,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 207,
+   "fim": 236,
+   "texto": "CREES QUE EXISTE",
+   "herda": null,
+   "iou": 0.74,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 236,
+   "fim": 259,
+   "texto": "UNA ORACIÓN",
+   "herda": null,
+   "iou": 0.61,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 259,
+   "fim": 307,
+   "texto": "TAN PODEROSA QUE AL",
+   "herda": null,
+   "iou": 0.74,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 307,
+   "fim": 321,
+   "texto": "DECIRLA",
+   "herda": null,
+   "iou": 0.74,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 339,
+   "fim": 358,
+   "texto": "ESA PERSONA TE",
+   "herda": null,
+   "iou": 0.73,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 358,
+   "fim": 396,
+   "texto": "BUSQUE COMO SI SU",
+   "herda": null,
+   "iou": 0.69,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 396,
+   "fim": 425,
+   "texto": "VIDA DEPENDIERA DE",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 425,
+   "fim": 434,
+   "texto": "ELLO",
+   "herda": null,
+   "iou": 0.78,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 452,
+   "fim": 498,
+   "texto": "PUES ESCUCHA ESTO",
+   "herda": null,
+   "iou": 0.76,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 498,
+   "fim": 516,
+   "texto": "CON ATENCIÓN",
+   "herda": null,
+   "iou": 0.64,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 527,
+   "fim": 528,
+   "texto": "YO SOY VALENTINA",
+   "herda": 22,
+   "iou": 0.65,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 528,
+   "fim": 558,
+   "texto": "YO SOY VALENTINA",
+   "herda": null,
+   "iou": 0.65,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 558,
+   "fim": 566,
+   "texto": "HERRERA",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 570,
+   "fim": 591,
+   "texto": "TERAPEUTA",
+   "herda": null,
+   "iou": 0.76,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 591,
+   "fim": 608,
+   "texto": "ESPIRITUAL",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 608,
+   "fim": 623,
+   "texto": "COACH DE",
+   "herda": null,
+   "iou": 0.7,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 623,
+   "fim": 641,
+   "texto": "RECONEXIÓN",
+   "herda": null,
+   "iou": 0.64,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 641,
+   "fim": 654,
+   "texto": "EMOCIONAL",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 681,
+   "fim": 715,
+   "texto": "Y DESPUÉS DE MÁS",
+   "herda": null,
+   "iou": 0.61,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 715,
+   "fim": 735,
+   "texto": "DE 12 AÑOS",
+   "herda": null,
+   "iou": 0.64,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 740,
+   "fim": 756,
+   "texto": "AYUDANDO A",
+   "herda": null,
+   "iou": 0.77,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 756,
+   "fim": 771,
+   "texto": "MUJERES A",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 771,
+   "fim": 796,
+   "texto": "RECUPERAR AMORES",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 796,
+   "fim": 809,
+   "texto": "IMPOSIBLES",
+   "herda": null,
+   "iou": 0.72,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 819,
+   "fim": 849,
+   "texto": "DESCUBRÍ ALGO QUE",
+   "herda": null,
+   "iou": 0.63,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 875,
+   "fim": 900,
+   "texto": "YO CREÍA POSIBLE",
+   "herda": null,
+   "iou": 0.61,
+   "pos_por_palavra": false
+  }
+ ]
+}

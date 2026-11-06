@@ -1,0 +1,77 @@
+[
+  {
+    "path": "/workspace",
+    "input": {
+      "name": null
+    },
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {
+      "uiLocale": null
+    },
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/workspace",
+    "input": {
+      "name": "   "
+    },
+    "status": 200
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "name": null
+    },
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "uiLocale": null
+    },
+    "status": 500,
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  },
+  {
+    "path": "/auth/me",
+    "input": {
+      "name": "   "
+    },
+    "status": 200
+  },
+  {
+    "browser": {
+      "status": 500,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "INTERNAL_ERROR",
+          "message": "Something went wrong.",
+          "statusCode": 500
+        }
+      }
+    }
+  }
+]

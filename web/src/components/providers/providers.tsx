@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react"
 import { Toaster } from "sonner"
 import { isApiError } from "@/lib/api/errors"
 import { MockGate } from "./mock-gate"
+import { RevealProvider } from "@/components/ui/reveal"
 import { useToastPosition } from "@/lib/toast-position"
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -23,7 +24,9 @@ export function Providers({ children }: { children: ReactNode }) {
   )
   return (
     <MockGate>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <QueryClientProvider client={client}>
+        <RevealProvider>{children}</RevealProvider>
+      </QueryClientProvider>
       {/* mockup .toast: white pill, dark text, bottom center above the action bar */}
       <Toaster
         position={toastPos === "top" ? "top-center" : "bottom-center"}

@@ -199,6 +199,23 @@ const PATHS = {
       <path d="M18 12H9" />
     </>
   ),
+  // Ad Radar (ads-research-v1): rings + sweep
+  radar: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 12 18 6" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  bookmark: <path d="M6 3h12v18l-6-4-6 4z" />,
+  dots: (
+    <>
+      <circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </>
+  ),
 }
 export type NavIconName = keyof typeof PATHS
 

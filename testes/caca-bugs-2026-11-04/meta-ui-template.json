@@ -1,0 +1,47 @@
+{
+  "id": "cmw1mohlo009422a19ruotot9",
+  "adAccountId": "act_mock_1",
+  "name": "Hunt UI template",
+  "isDefault": false,
+  "source": "MANUAL",
+  "importedFrom": null,
+  "campaign": {
+    "objective": "OUTCOME_SALES",
+    "budgetMode": "CBO",
+    "bidStrategy": "LOWEST_COST",
+    "destination": "REUSE_CAMPAIGN",
+    "namePattern": "{offer} — HookMill tests",
+    "bidAmountMinor": null,
+    "dailyBudgetMinor": 2500,
+    "specialAdCategories": []
+  },
+  "adset": {
+    "ageMax": 65,
+    "ageMin": 18,
+    "genders": "ALL",
+    "pixelId": "pix_mock",
+    "countries": [
+      "US"
+    ],
+    "pixelEvent": "PURCHASE",
+    "placements": "AUTO",
+    "adsPerAdset": {
+      "max": 8,
+      "min": 4
+    },
+    "namePattern": "{offer} · {date} · {n}",
+    "advantageAudience": true
+  },
+  "ad": {
+    "link": "https://example.com/",
+    "urlTags": "utm_source=meta&utm_medium=paid",
+    "headline": null,
+    "description": null,
+    "namePattern": "{code}",
+    "primaryText": null,
+    "callToAction": "SHOP_NOW"
+  },
+  "reuseCampaignId": null,
+  "createdAt": "2026-11-04T04:40:05.149Z",
+  "updatedAt": "2026-11-04T04:40:05.149Z"
+}

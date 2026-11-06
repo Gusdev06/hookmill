@@ -16,7 +16,8 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
     expect(steps).toHaveLength(6);
     expect(steps.map((s) => s.step)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(states(steps)).toEqual({ business: 'current', meta: 'todo', offer: 'todo', audience: 'todo', goals: 'todo', brain: 'todo' });
-    expect(steps.every((s) => s.enabled)).toBe(true);
+    // 31/10: o passo goals está oculto no wizard (enabled=false); os outros 5 contam
+    expect(steps.filter((s) => !s.enabled).map((s) => s.key)).toEqual(['goals']);
     expect(onboardingPercent(steps, null, 1)).toBe(0);
   });
 
@@ -24,9 +25,9 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
     const row = ws({ name: 'Mooncloth', resultType: 'PURCHASE', monthlySpendCapUsd: 10 as unknown as Prisma.Decimal, onboardingStep: 3 });
     const steps = onboardingSteps(row, facts(), true);
     expect(states(steps)).toMatchObject({ business: 'done', goals: 'done', offer: 'current' });
-    expect(onboardingPercent(steps, null, 3)).toBe(17); // business (1 < 3) conta; goals (5 < 3) ainda não
-    expect(onboardingPercent(steps, null, 6)).toBe(33); // passou do passo 5: goals entra
-    expect(onboardingCalc(row, facts(), true).percent).toBe(17);
+    expect(onboardingPercent(steps, null, 3)).toBe(20); // business (1 de 5); goals oculto não conta (31/10)
+    expect(onboardingPercent(steps, null, 6)).toBe(20); // goals continua fora mesmo depois do passo 5
+    expect(onboardingCalc(row, facts(), true).percent).toBe(20);
   });
 
   it('D10: conta nova com o teto padrão do cadastro (monthlySpendCapUsd = 10, step 1) nasce em 0 %; goals fica done no trilho', () => {
@@ -34,11 +35,11 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
     const calc = onboardingCalc(signup, facts(), true);
     expect(states(calc.steps).goals).toBe('done');
     expect(calc.percent).toBe(0);
-    expect(onboardingCalc(signup, facts(), false).percent).toBe(0); // META_MODE=off: 0 de 5, não 20 %
+    expect(onboardingCalc(signup, facts(), false).percent).toBe(0); // META_MODE=off: 0 de 4
     // cliente criado por POST /workspaces (sem teto, nome dado): também 0 %
     expect(onboardingCalc(ws({ name: 'Segundo Cliente', onboardingStep: 1 }), facts(), true).percent).toBe(0);
-    // Continue do passo 5 grava onboardingStep 6 → goals conta (1 de 6)
-    expect(onboardingCalc({ ...signup, onboardingStep: 6 }, facts(), true).percent).toBe(17);
+    // 31/10: goals oculto não conta nem depois do passo 5 (o teto padrão do cadastro não infla a %)
+    expect(onboardingCalc({ ...signup, onboardingStep: 6 }, facts(), true).percent).toBe(0);
     // borda aceita: voltar pelo trilho e regravar um step menor derruba o % até avançar de novo
     expect(onboardingCalc({ ...signup, onboardingStep: 2 }, facts(), true).percent).toBe(0);
   });
@@ -53,16 +54,16 @@ describe('onboardingSteps / onboardingPercent (onboarding-v2 §2)', () => {
   it('offer done = oferta ativa com what e promise; audience done = alguma oferta com audience', () => {
     const steps = onboardingSteps(ws({ onboardingStep: 5 }), facts({ offerComplete: true, audience: true }), true);
     expect(states(steps)).toMatchObject({ offer: 'done', audience: 'done', goals: 'current', meta: 'skipped' });
-    expect(onboardingPercent(steps, null, 5)).toBe(33); // skipped não conta
+    expect(onboardingPercent(steps, null, 5)).toBe(40); // skipped não conta; 2 de 5 (goals oculto)
   });
 
-  it('META_MODE=off: meta enabled=false e o percent divide por 5', () => {
+  it('META_MODE=off: meta enabled=false e o percent divide por 4 (goals oculto, 31/10)', () => {
     const steps = onboardingSteps(ws({ name: 'Mooncloth', resultType: 'APP_INSTALL', onboardingStep: 3 }), facts({ offerComplete: true }), false);
     const meta = steps.find((s) => s.key === 'meta')!;
     expect(meta.enabled).toBe(false);
-    expect(steps.filter((s) => s.enabled)).toHaveLength(5);
-    expect(onboardingPercent(steps, null, 3)).toBe(20); // business = 1 de 5 (offer done mas o passo 3 é o atual)
-    expect(onboardingPercent(steps, null, 4)).toBe(40); // business + offer = 2 de 5
+    expect(steps.filter((s) => s.enabled)).toHaveLength(4);
+    expect(onboardingPercent(steps, null, 3)).toBe(25); // business = 1 de 4 (offer done mas o passo 3 é o atual)
+    expect(onboardingPercent(steps, null, 4)).toBe(50); // business + offer = 2 de 4
   });
 
   it('concluído: percent 100 mesmo com passo vazio; brain done; nenhum current', () => {
@@ -100,7 +101,7 @@ describe('OnboardingService (lote, sem N+1)', () => {
     expect(db.offer.findMany.mock.calls[0][0].where.workspaceId.in).toHaveLength(50);
     expect(many.size).toBe(50);
     expect(states(many.get('w3')!.steps)).toMatchObject({ meta: 'done', offer: 'done', audience: 'current' });
-    expect(many.get('w3')!.percent).toBe(33);
+    expect(many.get('w3')!.percent).toBe(40);
     expect(states(many.get('w7')!.steps)).toMatchObject({ meta: 'skipped', offer: 'todo', audience: 'done' });
     expect(many.get('w0')!.percent).toBe(0);
 
@@ -118,5 +119,24 @@ describe('OnboardingService (lote, sem N+1)', () => {
     expect(await svc.touchIfSetup('w1', 'u1', db as never)).toBe(false);
     expect(db.workspace.updateMany.mock.calls[0][0].where).toEqual({ id: 'w1', onboardingCompletedAt: null });
     expect(db.workspace.updateMany.mock.calls[0][0].data.onboardingUpdatedById).toBe('u1');
+  });
+});
+
+// lacunas-home-eddy-v1 §1 (31/10): onboarding.confirmed
+import { confirmedOf, onboardingSummaryOf, withConfirmed } from './onboarding';
+describe('onboarding.confirmed (lacunas-home-eddy-v1 §1)', () => {
+  it('withConfirmed acrescenta na ordem e é idempotente; linha sem coluna = []', () => {
+    expect(withConfirmed([], 'business')).toEqual(['business']);
+    expect(withConfirmed(['business'], 'meta')).toEqual(['business', 'meta']);
+    expect(withConfirmed(['business', 'meta'], 'business')).toEqual(['business', 'meta']);
+    expect(withConfirmed(null, 'kit')).toEqual(['kit']);
+    expect(confirmedOf({})).toEqual([]);
+  });
+  it('vai no Onboarding completo e no resumo da sessão, sem mudar o %', () => {
+    const w = { ...ws({ onboardingStep: 2 }), onboardingConfirmed: ['business'] as never, onboardingUpdatedAt: null };
+    const calc = onboardingCalc(w, facts(), true);
+    expect(onboardingFull(w, calc, null).confirmed).toEqual(['business']);
+    expect(onboardingSummaryOf(w, calc)).toMatchObject({ confirmed: ['business'], percent: calc.percent });
+    expect(calc.percent).toBe(onboardingCalc(ws({ onboardingStep: 2 }), facts(), true).percent);
   });
 });

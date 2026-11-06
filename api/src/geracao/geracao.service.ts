@@ -276,8 +276,10 @@ export class GeracaoService {
   }
 
   /** URL assinada do rosto escolhido (6 h) pra a ia. */
-  async faceUrl(c: Pick<Creative, 'selectedFaceId'>): Promise<string> {
-    const face = c.selectedFaceId ? await this.prisma.face.findUnique({ where: { id: c.selectedFaceId }, include: { file: true } }) : null;
+  async faceUrl(c: Pick<Creative, 'selectedFaceId'>, sceneId?: string): Promise<string> {
+    const scene = sceneId ? await this.prisma.scene.findUnique({ where: { id: sceneId }, select: { faceId: true, workspaceId: true } }) : null;
+    const faceId = scene?.faceId ?? c.selectedFaceId;
+    const face = faceId ? await this.prisma.face.findFirst({ where: { id: faceId, ...(scene && { workspaceId: scene.workspaceId }) }, include: { file: true } }) : null;
     if (!face?.file) throw new Error('rosto escolhido sem arquivo');
     return this.storage.signedUrl(face.file);
   }
@@ -298,8 +300,9 @@ export class GeracaoService {
       if (s.pipeline === 'AUDIO_LIPSYNC') {
         await this.submitAudioLipsync(c, s);
       } else if (c.engine === 'LIPSYNC') {
-        if (!c.voiceId) throw new Error('LIPSYNC sem voiceId');
-        await this.gen.submitTts({ workspaceId: c.workspaceId, sceneId: s.id, voiceId: c.voiceId, text: s.speech, language: c.language });
+        const voiceId = s.voiceId ?? c.voiceId;
+        if (!voiceId) throw new Error('LIPSYNC sem voiceId');
+        await this.gen.submitTts({ workspaceId: c.workspaceId, sceneId: s.id, voiceId, text: s.speech, language: c.language });
       } else {
         await this.gen.submitSceneVideo({
           workspaceId: c.workspaceId, sceneId: s.id, model: c.engineModel ?? '', faceImageUrl: await this.faceUrl(c),

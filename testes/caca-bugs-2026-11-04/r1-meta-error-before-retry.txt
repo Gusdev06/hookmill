@@ -1,0 +1,32 @@
+HM
+Q
+QA Alfa
+Unlimited
+Back to Final OK
+Publish to Meta
+
+Create a paused campaign in Mock Store (USD) with this video. Nothing spends until you press Activate.
+
+Publishing failed
+Meta returned an error. Retry; if it keeps happening, contact support.
+Meta didn't answer as expected. Try again.
+Failed at: Creating the campaign
+Started 4 minutes ago · by QA Dono Alfa
+$20.00/day · US · Sales
+Video
+mock_video_539afff1
+Retry
+Retry resumes from the steps already done; nothing is duplicated.
+Publish again
+huntcreat14
+huntcreat14.mp4
+Hunt sleep 🧪
+0:20 · 9:16
+Approved · ready to send
+Download MP4
+f
+Mock Store (USD)
+act_mock_1 · USD
+Page: Mock Page
+Pixel: Mock Pixel
+Manage in Settings

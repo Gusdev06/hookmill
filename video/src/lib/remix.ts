@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { outputProtectedBandSchema } from './captionsSchema';
+import { frameReframeSchema } from './reframeSchema';
 
 // Template `remix-keep` (§13.6 da feature 2): o vídeo do campeão de fundo, o clipe novo colado nas regiões do rosto
 // nos frames exatos e as camadas de texto redesenhadas por cima. Tudo na grade do campeão (mesma largura, altura, fps e
@@ -83,6 +84,16 @@ export const remixKeepSchema = z.object({
   language: z.string().optional(),
   /** faixa da legenda queimada no vídeo renderizado (checagem por visão); a composição ignora */
   outputProtectedBands: z.array(outputProtectedBandSchema).optional(),
+  /** editor universal F-U2: rosto principal (px da grade), pro auto reframe numa caixa nova. A composição ignora. */
+  faceHint: rectSchema.optional(),
+  /** editor universal F-U2 (resolverPropsHeadline): vídeo aparado (`inFrame` = quadro do arquivo que vira o quadro 0; camadas e
+   *  `canvas.frameCount` já vêm deslocados) e/ou na caixa com outro enquadramento (`pintura`). Ausente = o render de hoje. */
+  edicao: z.object({
+    video: z.object({
+      inFrame: z.number().int().min(0),
+      pintura: z.object({ box: rectSchema, reframe: frameReframeSchema, contentBox: rectSchema.nullable() }).nullable(),
+    }),
+  }).optional(),
 });
 
 export type RemixKeepProps = z.infer<typeof remixKeepSchema>;
@@ -92,7 +103,7 @@ export type RemixTextStyle = z.infer<typeof textStyleSchema>;
 
 /** Valida e confere as faixas de frame (end > start, dentro do quadro). */
 export const propsDeRemixInput = (input: RemixKeepProps): RemixKeepProps => {
-  const p = remixKeepSchema.parse({ canvas: input.canvas, baseVideoUrl: input.baseVideoUrl, overlays: input.overlays, textLayers: input.textLayers, ...(input.language && { language: input.language }) });
+  const p = remixKeepSchema.parse({ canvas: input.canvas, baseVideoUrl: input.baseVideoUrl, overlays: input.overlays, textLayers: input.textLayers, ...(input.language && { language: input.language }), ...(input.edicao && { edicao: input.edicao }) });
   const n = p.canvas.frameCount;
   for (const [i, o] of p.overlays.entries()) {
     if (!(o.endFrame > o.startFrame) || o.endFrame > n) throw new Error(`overlay ${i}: frames ${o.startFrame}-${o.endFrame} fora de 0-${n}`);

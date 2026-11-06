@@ -110,6 +110,8 @@ interface Snapshot {
   workspaces: unknown[];
   users: unknown[];
   memberships: unknown[];
+  /** 01/11 (templates-creditos-v1): o catálogo nasce na MIGRAÇÃO, não no seed; o TRUNCATE do reset o apagaria. */
+  templates?: unknown[];
 }
 
 function apiHasSeed(): boolean {
@@ -126,6 +128,12 @@ function apiHasSeed(): boolean {
  */
 export async function seedIdentities(opts: { useApiSeed: boolean } = { useApiSeed: true }): Promise<Snapshot> {
   await currentDatabase();
+  // catálogo de templates (seed da migração 20261031000200 + 20261101000100): guarda antes do 1º TRUNCATE e repõe em todo reset
+  const temTemplates = (await businessTables()).includes('templates');
+  const prev = existsSync(SNAPSHOT) ? (JSON.parse(readFileSync(SNAPSHOT, 'utf8')) as Snapshot).templates : undefined;
+  const catalogo = temTemplates ? await q('select * from templates order by "order", id') : [];
+  const templates = catalogo.length ? catalogo : prev ?? [];
+  if (temTemplates && !templates.length) throw new Error('[qa] maquina_test sem catálogo de templates e sem snapshot: reaplique a migração de dados');
   await truncateAll();
   let seedMode: Snapshot['seedMode'] = 'sintetico';
   let hash = 'qa-hash-sintetico-login-impossivel';
@@ -168,7 +176,9 @@ export async function seedIdentities(opts: { useApiSeed: boolean } = { useApiSee
     workspaces: await q('select * from workspaces order by id'),
     users: await q('select * from users order by id'),
     memberships: await q('select * from memberships order by id'),
+    templates: templates.map((t: any) => ({ ...t, uses: 0 })),
   };
+  if (snap.templates?.length) await q(`insert into "templates" select * from json_populate_recordset(null::"templates", $1::json)`, [JSON.stringify(snap.templates)]);
   mkdirSync(CACHE_DIR, { recursive: true });
   writeFileSync(SNAPSHOT, JSON.stringify(snap, null, 2));
   return snap;
@@ -183,7 +193,8 @@ export function readSnapshot(): Snapshot {
 export async function resetDb(): Promise<void> {
   const snap = readSnapshot();
   await truncateAll();
-  for (const t of ['workspaces', 'users', 'memberships'] as const) {
+  for (const t of ['workspaces', 'users', 'memberships', 'templates'] as const) {
+    if (!snap[t]?.length) continue;
     await q(`insert into "${t}" select * from json_populate_recordset(null::"${t}", $1::json)`, [JSON.stringify(snap[t])]);
   }
 }

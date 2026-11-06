@@ -15,6 +15,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { NavIcon } from "@/components/shell/nav-icon"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { ik } from "@/hooks/use-iterate"
+import { metaReady, useMetaConnection } from "@/hooks/use-meta"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { AxisTag, Code, Dot, FORMAT_LABEL, FormatChip, Head, IterActionBar, IterFlow, IterWrap, CaptionsBadge, HeadlineChange, PieceKind, TypeThumb, canAsk, isImagePiece, pieceFormats, pieceType, useIterFormat } from "./parts"
@@ -23,20 +24,13 @@ import { CaptionNote, NewBatchButton } from "./captions"
 import { useCanMakeFormats, useMakeFormatForAll, usePieceActions, usePriceLabel } from "./piece-actions"
 import { PiecePreview } from "./preview"
 import { BatchSendButton } from "@/components/meta/templates/batch-send"
+import { TourTip } from "@/components/tour/tip"
 import { SampleDownloadScreen, isLockedSample } from "./sample"
+import { EditedBadge } from "@/components/editor/entry"
+import { DownloadEditFooter, PieceEditState } from "@/components/editor/universal/entry"
+import { saveFile } from "@/lib/save-file"
 
 const inGrid = (p: IteratePiece) => p.status === "ready" || ((p.status === "queued" || p.status === "rendering") && p.previewReady)
-
-/** Hands the signed URL to the browser as a download (the API answers with Content-Disposition: attachment). */
-function saveFile(url: string, fileName: string) {
-  const a = document.createElement("a")
-  a.href = url
-  a.download = fileName
-  a.rel = "noopener"
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-}
 
 /**
  * Download (spec §4.3): two folder cards with where to upload, filter, grid with "In zip" (the only adjustment), zip.
@@ -169,7 +163,7 @@ function FullDownloadScreen({ batch }: { batch: IterateBatch }) {
       </div>
       <MakeForAll batchId={batch.id} pieces={ready.filter((p) => p.status === "ready")} />
 
-      <div className="grid grid-cols-2 gap-2.5 tablet:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] tablet:gap-3.5">
+      <div id="t-pieces" className="grid grid-cols-2 gap-2.5 tablet:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] tablet:gap-3.5">
         {shown.map((p) => (
           <PieceCard key={p.id} p={p} batchId={batch.id} onPreview={() => setPreviewId(p.id)} />
         ))}
@@ -188,14 +182,34 @@ function FullDownloadScreen({ batch }: { batch: IterateBatch }) {
           {t("home")}
         </Link>
         {/* meta-templates-v1 P3: the ready videos in the zip go to Meta as one batch (stills can't be published as video ads) */}
-        <BatchSendButton items={inZip.filter((p) => p.creativeId && !isImagePiece(p)).map((p) => ({ creativeId: p.creativeId!, code: p.code }))} />
+        <BatchSendButton id="t-send" items={inZip.filter((p) => p.creativeId && !isImagePiece(p)).map((p) => ({ creativeId: p.creativeId!, code: p.code }))} />
         <Button variant="brand" disabled={!inZip.length || building} onClick={() => zip.mutate()} title={!inZip.length ? t("nothingToZip") : undefined}>
           {building ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : <NavIcon name="dl" size={16} />}
           {building ? t("building") : t("downloadZip")}
         </Button>
       </IterActionBar>
       <PiecePreview batch={batch} piece={preview} onClose={() => setPreviewId(null)} />
+      {batch.template ? <ResultTip ready={inZip.length > 0} /> : null}
     </IterWrap>
+  )
+}
+
+/** tour-v2 §4: the first template batch ready (paid): with Meta the beacon sits on Send to Meta, without it "Connect Meta". */
+function ResultTip({ ready }: { ready: boolean }) {
+  const t = useTranslations("tip.result")
+  const conn = useMetaConnection()
+  const meta = metaReady(conn.data)
+  return (
+    <TourTip
+      tip="result"
+      when={ready && !conn.isPending}
+      variant={meta ? "paid" : "paidNoMeta"}
+      target="#t-pieces"
+      beacon={meta ? "#t-send" : undefined}
+      title={t("title")}
+      body={meta ? t("body") : t("bodyNoMeta")}
+      action={meta ? undefined : { label: t("actionNoMeta"), href: "/settings/connections", name: "connect_meta" }}
+    />
   )
 }
 
@@ -296,7 +310,9 @@ function PieceCard({ p, batchId, onPreview }: { p: IteratePiece; batchId: string
       </button>
       <div className="flex flex-wrap items-center gap-[5px]">
         <Code className={cn("text-[11px] whitespace-normal [overflow-wrap:anywhere]", !p.inZip && "opacity-50")}>{p.code}</Code>
+        {p.editor?.edited ? <EditedBadge /> : null}
       </div>
+      <PieceEditState editor={p.editor} />
       {p.frame ? <PieceKind p={p} className="text-xs font-semibold text-fg-2" /> : null}
       <span className="text-xs leading-[1.35] text-fg-2">{p.change}</span>
       <HeadlineChange p={p} compact />
@@ -320,12 +336,16 @@ function PieceCard({ p, batchId, onPreview }: { p: IteratePiece; batchId: string
           />
         ))}
       </div>
-      <div className="mt-auto flex items-center justify-between gap-1.5 border-t border-line-soft pt-2">
-        <AxisTag axis={p.axis} short className="text-[10px]" />
-        <label htmlFor={id} className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 text-xs font-semibold">
-          <Checkbox id={id} checked={p.inZip} disabled={inZip.isPending || busy} onCheckedChange={(v) => inZip.mutate({ piece: p, value: v === true })} />
-          {t("inZip")}
-        </label>
+      {/* editor-universal-v1 §7.5 + rule of 04/11: the card's actions sit at its foot, aligned between cards */}
+      <div className="mt-auto flex flex-col gap-2 border-t border-line-soft pt-2">
+        <div className="flex items-center justify-between gap-1.5">
+          <AxisTag axis={p.axis} short className="text-[10px]" />
+          <label htmlFor={id} className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 text-xs font-semibold">
+            <Checkbox id={id} checked={p.inZip} disabled={inZip.isPending || busy} onCheckedChange={(v) => inZip.mutate({ piece: p, value: v === true })} />
+            {t("inZip")}
+          </label>
+        </div>
+        <DownloadEditFooter file={p.files.find((f) => f.format === "9x16") ?? null} creativeId={p.creativeId} editor={p.editor} batchId={batchId} />
       </div>
     </div>
   )

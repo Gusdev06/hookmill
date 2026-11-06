@@ -3,7 +3,7 @@ import type { MetaPublishIds, MetaPublishInput } from '../contrato';
 import { GraphClient, nextLimit, parseUsageHeaders } from './cliente';
 import { MetaError, mapGraphError, scrubToken } from './erros';
 import { LiveMetaService } from './live.service';
-import { HOOK_FIELD, INSIGHT_FIELDS, INSIGHT_FIELDS_CORE, invalidFieldOf, mapInsight, resultActionTypes } from './leitura';
+import { HOOK_FIELD, INSIGHT_FIELDS, INSIGHT_FIELDS_CORE, LINK_FIELDS, invalidFieldOf, linksOfCreative, mapInsight, resolveShortener, resultActionTypes } from './leitura';
 import { adSetBody, campaignBody, creativeBody } from './publicacao';
 import { DEFAULT_RULE } from './vencedor';
 
@@ -362,8 +362,59 @@ describe('LiveMetaService leitura (meta-v1 §3.1 options/health, §3.2 sync)', (
     expect(adsCall.url.searchParams.get('fields')).toContain('creative{id,video_id,thumbnail_url,object_type}');
     expect(adsCall.url.searchParams.get('fields')).toContain(',status,');
     expect(adsCall.url.searchParams.get('fields')).not.toContain('object_story_spec'); // listagem leve (bug live 22/10)
-    const lookups = calls.filter((c) => c.url.searchParams.get('fields') === 'object_story_spec{video_data{video_id}}');
-    expect(lookups.map((c) => c.url.pathname.replace(/^\/v\d+\.\d+/, ''))).toEqual(['/cr2', '/cr3']); // sem ?ids= (deprecated na Graph)
+    // meta-oferta-v1 §2.2: um lookup por criativo (link + video_id), depois dos insights, por gasto 30 d desc; sem ?ids=
+    const lookups = calls.filter((c) => c.url.searchParams.get('fields') === LINK_FIELDS);
+    expect(lookups.map((c) => c.url.pathname.replace(/^\/v\d+\.\d+/, ''))).toEqual(['/cr1', '/cr2', '/cr3']);
+    expect(calls.indexOf(lookups[0])).toBeGreaterThan(calls.indexOf(ins[8]));
+    expect(r.ads.find((a) => a.metaAdId === 'a3')).toMatchObject({ destinationUrls: [], destinationSource: 'none' });
+    expect(r.ads.find((a) => a.metaAdId === 'a2')).toMatchObject({ destinationSource: 'existing_post' });
+  });
+  it('meta-oferta-v1 §2.2: criativo no cache não é relido (só quem precisa do video_id); link do cache vai pro snapshot', async () => {
+    const { svc, calls } = live({
+      'GET /act_1/ads': ADS,
+      'GET /cr3': { id: 'cr3', object_story_spec: { video_data: { video_id: 'v3', call_to_action: { type: 'LEARN_MORE', value: { link: 'https://novo.com/x' } } } } },
+      'GET /act_1/insights': { data: [] },
+    });
+    const known = {
+      cr1: { destinationUrls: ['https://a.com/vsl'], destinationSource: 'video_cta' as const, urlTags: 'utm_source=fb' },
+      cr2: { destinationUrls: [], destinationSource: 'existing_post' as const, urlTags: null },
+      cr3: { destinationUrls: ['https://velho.com/'], destinationSource: 'video_cta' as const, urlTags: null },
+    };
+    const r = await svc.syncAds(auth, { adAccountId: 'act_1', currency: 'USD', businessType: 'ONLINE_STORE', hasPixel: true, now: NOW, knownCreativeLinks: known });
+    const lookups = calls.filter((c) => c.url.searchParams.get('fields') === LINK_FIELDS).map((c) => c.url.pathname.replace(/^\/v\d+\.\d+/, ''));
+    // cr1 (tem video_id na listagem) não é relido; cr2/cr3 sem video_id nem object_type IMAGE são relidos pelo video_id
+    // (como o fillStoryVideoIds fazia), mas o link do cache fica
+    expect(lookups).toEqual(['/cr2', '/cr3']);
+    expect(r.ads.find((a) => a.metaAdId === 'a1')).toMatchObject({ destinationUrls: ['https://a.com/vsl'], urlTags: 'utm_source=fb' });
+    expect(r.ads.find((a) => a.metaAdId === 'a3')).toMatchObject({ videoId: 'v3', destinationUrls: ['https://velho.com/'] });
+  });
+  it('meta-oferta-v1 §2.1: ordem video_cta → story_link → template → asset_feed; lead_form, messaging, existing_post, none', () => {
+    expect(linksOfCreative({ object_story_spec: { video_data: { video_id: 'v', call_to_action: { value: { link: 'https://a.com/v' } } }, link_data: { link: 'https://b.com' } }, url_tags: 'utm_campaign=x' }))
+      .toEqual({ destinationUrls: ['https://a.com/v'], destinationSource: 'video_cta', urlTags: 'utm_campaign=x', videoId: 'v' });
+    expect(linksOfCreative({ object_story_spec: { link_data: { link: 'https://b.com/p' } } })).toMatchObject({ destinationUrls: ['https://b.com/p'], destinationSource: 'story_link' });
+    expect(linksOfCreative({ object_story_spec: { template_data: { link: 'http://c.com' } } })).toMatchObject({ destinationSource: 'template' });
+    const feed = linksOfCreative({ asset_feed_spec: { link_urls: [1, 2, 3, 4, 5, 6].map((i) => ({ website_url: `https://d.com/${i}` })) } });
+    expect(feed).toMatchObject({ destinationSource: 'asset_feed' });
+    expect(feed.destinationUrls).toHaveLength(5);
+    expect(linksOfCreative({ object_story_spec: { video_data: { call_to_action: { type: 'SIGN_UP', value: { lead_gen_form_id: '9' } } } } })).toMatchObject({ destinationUrls: [], destinationSource: 'lead_form' });
+    expect(linksOfCreative({ object_story_spec: { link_data: { link: 'https://wa.me/5511' } } })).toMatchObject({ destinationUrls: [], destinationSource: 'messaging' });
+    expect(linksOfCreative({ object_story_spec: { video_data: { call_to_action: { type: 'WHATSAPP_MESSAGE', value: {} } } } })).toMatchObject({ destinationSource: 'messaging' });
+    expect(linksOfCreative({ object_story_id: '1_2' })).toMatchObject({ destinationSource: 'existing_post' });
+    expect(linksOfCreative({ object_story_spec: { video_data: { video_id: 'v' } } })).toMatchObject({ destinationSource: 'none', videoId: 'v' });
+  });
+  it('meta-oferta-v1 §2.3: encurtador da lista com HEAD + redirect manual, para fora da lista; host fora da lista nunca é chamado', async () => {
+    const seen: string[] = [];
+    const f = (async (url: string, init?: RequestInit) => {
+      seen.push(`${init?.method} ${url} ${init?.redirect}`);
+      const loc: Record<string, string> = { 'https://bit.ly/abc': 'https://tinyurl.com/x', 'https://tinyurl.com/x': 'https://meusite.com/vsl?utm=1' };
+      return new Response(null, { status: 301, headers: loc[url] ? { location: loc[url] } : {} });
+    }) as unknown as typeof fetch;
+    expect(await resolveShortener('https://bit.ly/abc', f)).toBe('https://meusite.com/vsl?utm=1');
+    expect(seen).toEqual(['HEAD https://bit.ly/abc manual', 'HEAD https://tinyurl.com/x manual']);
+    expect(await resolveShortener('https://meusite.com/a', f)).toBe('https://meusite.com/a');
+    expect(seen).toHaveLength(2);
+    const fail = (async () => { throw new Error('timeout'); }) as unknown as typeof fetch;
+    expect(await resolveShortener('https://bit.ly/zzz', fail)).toBe('https://bit.ly/zzz');
   });
   const tooMuch = () => gerr(500, { message: "Please reduce the amount of data you're asking for, then retry your request", code: 1, fbtrace_id: 'F' });
   it('code 1 "reduce the amount of data": repete a MESMA página com limit menor (100 → 50 → 25) mantendo o cursor', async () => {
@@ -447,6 +498,23 @@ describe('LiveMetaService leitura (meta-v1 §3.1 options/health, §3.2 sync)', (
     await expect(svc.videoSource(auth, 'v2')).rejects.toMatchObject({ code: 'META_VIDEO_UNAVAILABLE', action: 'upload_video' });
     await expect(code(svc.videoSource(auth, 'v3'))).resolves.toBe('META_VIDEO_UNAVAILABLE');
   });
+  it('videoSource: #10 no video_id do criativo cai pro upload original; sem ele, pra mídia do Instagram', async () => {
+    const denied = gerr(400, { message: '(#10) Application does not have permission for this action', code: 10 });
+    const original = live({
+      'GET /pub': denied, 'GET /me/accounts': { data: [] },
+      'GET /ad1': { creative: { object_story_spec: { video_data: { video_id: 'up' } }, effective_instagram_media_id: 'ig' } },
+      'GET /up': { id: 'up', source: 'https://video.xx.fbcdn.net/up.mp4', length: 52 },
+    });
+    expect(await original.svc.videoSource(auth, 'pub', { metaAdId: 'ad1' })).toEqual({ sourceUrl: 'https://video.xx.fbcdn.net/up.mp4', permalinkUrl: null, lengthSec: 52 });
+    const instagram = live({
+      'GET /pub': denied, 'GET /me/accounts': { data: [] },
+      'GET /ad1': { creative: { object_story_spec: { video_data: { video_id: 'pub' } }, effective_instagram_media_id: 'ig' } },
+      'GET /ig': { media_type: 'VIDEO', media_url: 'https://cdn.example/ig.mp4', permalink: 'https://www.instagram.com/p/x/' },
+    });
+    expect(await instagram.svc.videoSource(auth, 'pub', { metaAdId: 'ad1' })).toEqual({ sourceUrl: 'https://cdn.example/ig.mp4', permalinkUrl: 'https://www.instagram.com/p/x/', lengthSec: null });
+    const nada = live({ 'GET /pub': denied, 'GET /me/accounts': { data: [] }, 'GET /ad1': { creative: {} } });
+    await expect(nada.svc.videoSource(auth, 'pub', { metaAdId: 'ad1' })).rejects.toMatchObject({ code: 'META_VIDEO_UNAVAILABLE', action: 'upload_video' });
+  });
 });
 
 describe('LiveMetaService publicação (meta-v1 §3.3)', () => {
@@ -458,7 +526,7 @@ describe('LiveMetaService publicação (meta-v1 §3.3)', () => {
   });
   it('corpos das chamadas: campanha PAUSED/AUCTION, ad set com optimization por objetivo, creative video_data', () => {
     const i = input();
-    expect(campaignBody(i)).toEqual({ name: 'HM — Hook A', objective: 'OUTCOME_SALES', status: 'PAUSED', special_ad_categories: [], buying_type: 'AUCTION' });
+    expect(campaignBody(i)).toEqual({ name: 'HM — Hook A', objective: 'OUTCOME_SALES', status: 'PAUSED', special_ad_categories: [], buying_type: 'AUCTION', is_adset_budget_sharing_enabled: false });
     expect(adSetBody(i, 'c1')).toEqual({
       name: 'HM — Hook A', campaign_id: 'c1', daily_budget: 2000, billing_event: 'IMPRESSIONS', bid_strategy: 'LOWEST_COST_WITHOUT_CAP', status: 'PAUSED',
       targeting: { geo_locations: { countries: ['US', 'CA'] }, age_min: 18, age_max: 65, targeting_automation: { advantage_audience: 1 } },

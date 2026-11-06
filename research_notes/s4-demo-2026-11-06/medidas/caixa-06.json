@@ -1,0 +1,66 @@
+{
+"video": "06",
+"W": 720,
+"H": 960,
+"N": 335,
+"mat": "bt709",
+"box": [
+0,
+529,
+481,
+130
+],
+"cor_texto": "#fffff7",
+"placa_uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAQCAIAAADF8ItoAAABN0lEQVR42rWWYa6EIAyE+5kme7t3/9vM/gBXgYJAfMQYEWmn03aQv8/H8gB7bSh6+WyfeH+aCWQms6Nc0lug2Y51hCIveLTAPpk31JiZTKZkj81w1PLgETeKrWvDl6g3nqSwxsp94v3tSh7fHqxWvZrydUZEhqXCCvmU37BcctEOX0k6T5jCcFkr2Anejn8ogFOhVmpWDxxxf+MrrdtGrVVRGXwWcRomgGPohY6Qbsrgng5VZOuR6Q4NmtIDzWv+LOJ083mWBxqlvoVC88X+oYspG8IDHilRMwpICUSD5Cfx6LzlnxsK7JqiOBcl+XT1DhgC9JEXmuNNJb+iSEieKQelW6YicqRLWK9seQPxQlI9a9xS6tRWeBZxYZZCuY/bJj0cw1ZhoY84r7vQVAFTecMM6LRP1zVf2gFsovBSP0UAAAAASUVORK5CYII=",
+"placa_bytes": 514,
+"placa_px": [
+60,
+16
+],
+"linhas_medidas": [
+[
+19,
+44
+],
+[
+52,
+82
+],
+[
+86,
+111
+]
+],
+"fonte": [
+{
+"fonte": "montserrat-600",
+"cos": 0.818,
+"sz": 32.16045845272206,
+"pitch": 33.5,
+"base": 42.5,
+"cxs": [
+234.5,
+234.5,
+243.5
+],
+"tr": -0.005
+},
+{
+"fonte": "montserrat-500",
+"cos": 0.799,
+"sz": 32.25182481751825,
+"pitch": 33.5,
+"base": 42.5,
+"cxs": [
+234.5,
+233.5,
+244.5
+],
+"tr": 0.0
+}
+],
+"sombra": null,
+"dil": 9,
+"seg": 2.4,
+"desvio_p99": 5.3
+}

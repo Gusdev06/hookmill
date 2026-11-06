@@ -1,8 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { FieldOrigin, FieldOrigins, FieldSources, FileRef, Job, Offer as OfferBase, OfferBrief, OfferExtractOutput, OfferReadMeta, PageImageRef, PageRole, ReadMode, ReadPageRef, ResultType } from '@maquina/contratos';
 import { Prisma, type Offer as OfferRow } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
+import { BrainCache } from '../brain/brain.cache';
 import { asAsyncErrorCode, failReasonFor, pageUnreadableDetailOf } from '../common/errors/falhas';
 import { DEFAULT_LIMIT, afterCursor, decodeCursor, page } from '../common/http/pagination';
 import { CustosService, EXTRACT_ESTIMATE_USD } from '../custos/custos.service';
@@ -12,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../arquivos/storage.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { OnboardingService } from '../workspaces/onboarding';
+import { DiscoveryService } from '../research/discovery.service';
 import { suggestShortCode } from '../workspaces/cliente';
 import { BRIEF_FIELDS, CreateOfferDto, SOURCE_KEYS, UpdateOfferDto, isReadMeta } from './ofertas.dto';
 
@@ -39,6 +41,9 @@ interface ExtractExtras {
   // resultado-v1 (28/10, A2/A3)
   business?: { industry: string | null; market: string | null; resultType: ResultType | null };
   brandColor?: { hex: string; source: 'cta' | 'theme_color' } | null;
+  // lacunas-home-eddy-v1 §2 (31/10)
+  logo?: { url: string; source: 'header' | 'icon' | 'og_image' } | null;
+  secondaryColor?: { hex: string; source: 'cta' | 'theme_color' | 'css' } | null;
 }
 
 export function readMetaOf(json: Prisma.JsonValue | null | undefined): OfferReadMeta | null {
@@ -100,6 +105,8 @@ export class OfertasService {
     private readonly uploads: UploadsService,
     private readonly onboarding: OnboardingService,
     @Inject(CLAUDE_SERVICE) private readonly claude: ClaudeService,
+    private readonly brain: BrainCache,
+    @Optional() private readonly discovery?: DiscoveryService, // ads-research-v1 §2.1: oferta lida/mudou → descoberta
   ) {}
 
   /** Oferta do workspace (404 se não existe, é de outro workspace ou, com `active`, está arquivada). */
@@ -180,6 +187,8 @@ export class OfertasService {
       },
     });
     await this.onboarding.touchIfSetup(auth.workspaceId, auth.userId); // onboarding-v2 §1: oferta criada no wizard
+    this.brain.invalidate(auth.workspaceId); // brain-preenchido-v1
+    void this.discovery?.onBrainEvent(auth.workspaceId, 'offer'); // ads-research-v1 §2.1 (nunca lança)
     return this.presentOne(o);
   }
 
@@ -202,6 +211,8 @@ export class OfertasService {
     data.fieldSources = sources as Prisma.InputJsonValue;
     const updated = await this.prisma.offer.update({ where: { id: o.id }, data });
     await this.onboarding.touchIfSetup(auth.workspaceId, auth.userId); // onboarding-v2 §1: só enquanto em SETUP
+    this.brain.invalidate(auth.workspaceId); // brain-preenchido-v1 (inclui o apply do reread, que chega por aqui)
+    void this.discovery?.onBrainEvent(auth.workspaceId, 'offer'); // ads-research-v1 §2.1: Brain mudou (debounce 24 h)
     return this.presentOne(updated);
   }
 
@@ -226,6 +237,7 @@ export class OfertasService {
       data: { archivedAt: new Date() },
     });
     if (r.count !== 1) throw new AppException('NOT_FOUND');
+    this.brain.invalidate(auth.workspaceId);
     return { ok: true as const };
   }
 
@@ -319,6 +331,11 @@ export class OfertasService {
         brandColorSource: brief.brandColor?.source ?? null,
         resultType: brief.business?.resultType ?? null,
         shortCode: suggestShortCode(brief.name, takenCodes),
+        // lacunas-home-eddy-v1 §2: texto colado não tem HTML; sem 1ª cor não há 2ª
+        logoUrl: pasted ? null : brief.logo?.url ?? null,
+        logoSource: pasted ? null : brief.logo?.source ?? null,
+        secondaryColor: pasted || !brief.brandColor ? null : brief.secondaryColor?.hex ?? null,
+        secondaryColorSource: pasted || !brief.brandColor ? null : brief.secondaryColor?.source ?? null,
       },
     };
   }

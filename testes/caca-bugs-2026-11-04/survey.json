@@ -1,0 +1,834 @@
+[
+  {
+    "path": "/",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/brain",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/brain",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/selection?t=bad,missing",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/library",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/library",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/creatives",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/creatives",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/campaigns",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/campaigns",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/settings",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/settings/connections",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections/templates",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/settings/connections/templates",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/admin",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/templates/admin",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/credits",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/credits",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/iterate/new",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/iterate/new",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/offers",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/offers",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/clients",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/eddy",
+    "width": 1440,
+    "locale": "EN",
+    "url": "http://localhost:3311/eddy",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1497,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/brain",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/brain",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 3546,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 7007,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/selection?t=bad,missing",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 7007,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/library",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/library",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/creatives",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/creatives",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/campaigns",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/campaigns",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1355,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/settings",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 2991,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/settings/connections",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1152,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections/templates",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/settings/connections/templates",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/admin",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/templates/admin",
+    "dims": {
+      "sw": 748,
+      "cw": 390,
+      "sh": 3961,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/credits",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/credits",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1289,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/iterate/new",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/iterate/new",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/offers",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/offers",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/clients",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1497,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/eddy",
+    "width": 390,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/eddy",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1479,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/brain",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/brain",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 3496,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 6987,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/selection?t=bad,missing",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 6987,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/library",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/library",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/creatives",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/creatives",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/campaigns",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/campaigns",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1355,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/settings",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 2970,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/settings/connections",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1152,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections/templates",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/settings/connections/templates",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/admin",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/templates/admin",
+    "dims": {
+      "sw": 736,
+      "cw": 390,
+      "sh": 3961,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/credits",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/credits",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1289,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/iterate/new",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/iterate/new",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/offers",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/offers",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/clients",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 1479,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/eddy",
+    "width": 390,
+    "locale": "EN",
+    "url": "http://localhost:3311/eddy",
+    "dims": {
+      "sw": 390,
+      "cw": 390,
+      "sh": 844,
+      "ch": 844
+    },
+    "errors": []
+  },
+  {
+    "path": "/",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/brain",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/brain",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/selection?t=bad,missing",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/templates",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/library",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/library",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/creatives",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/creatives",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/campaigns",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/campaigns",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/settings",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/settings/connections",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/settings/connections/templates",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/settings/connections/templates",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/templates/admin",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/templates/admin",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/credits",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/credits",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/iterate/new",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/iterate/new",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/offers",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/offers",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/clients",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  },
+  {
+    "path": "/eddy",
+    "width": 1440,
+    "locale": "PT_BR",
+    "url": "http://localhost:3311/eddy",
+    "dims": {
+      "sw": 1440,
+      "cw": 1440,
+      "sh": 900,
+      "ch": 900
+    },
+    "errors": []
+  }
+]

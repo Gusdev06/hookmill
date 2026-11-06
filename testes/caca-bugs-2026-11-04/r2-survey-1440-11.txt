@@ -1,0 +1,46 @@
+HM
+HookMill
+Q
+CLIENT SETUP
+QA Alfa
+Save and exit
+100%
+set up
+Step 1 of 5 · Business
+Business
+Connect Meta
+Product & offer
+Audience & voice
+Build the Brain
+STEP 1 OF 5
+Tell us about the business
+
+Start with the website. We read it to fill the offer, so the next steps are mostly checking what we found.
+
+Website
+Website address
+Read the site
+
+Reading takes about 20 seconds. It fills only empty fields of the offer, never what you typed.
+
+Business details
+Business name
+Client code
+QA_NEW_1104_A_F1_9x16.mp4 · 2 to 6 letters or digits. It starts every video file name, so results can be matched later.
+Industry
+Where you sell
+What counts as a result?
+Purchase
+Lead
+Message
+Appointment
+Sign-up
+More…
+Meta ads optimize for this, and it is what we count as a result. Reading the site picks one; change it if it is wrong.
+More details (optional)
+Language, brand color, target cost
+
+Invite your team later in Settings › Members. Time zone and the ad account currency come from the Meta connection.
+
+Saved when you continue.
+Continue: connect Meta

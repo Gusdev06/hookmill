@@ -26,6 +26,14 @@ describe('captionCheckTimes', () => {
 });
 
 describe('wordsAt / cropOf / captionTargetOf', () => {
+  it('HEADLINE com o vídeo editado: sem faixa na saída não há o que checar (F-U2)', () => {
+    const bands = [{ x: 0, y: 0, w: 10, h: 10, startSec: 0, endSec: 1 }];
+    const remix = { kind: 'remix-keep', canvas: { width: 100, height: 100, fps: 30, frameCount: 60 } };
+    expect(captionTargetOf(remix as never, bands)).toMatchObject({ sameFrame: true });
+    expect(captionTargetOf({ ...remix, edicao: { video: { inFrame: 60, pintura: null } }, outputProtectedBands: [] } as never, bands)).toBeNull();
+    const saida = [{ kind: 'original', x: 0, y: 0, w: 10, h: 10, startSec: 0, endSec: 1 }];
+    expect(captionTargetOf({ ...remix, edicao: { video: { inFrame: 0, pintura: null } }, outputProtectedBands: saida } as never, bands)).toMatchObject({ output: saida });
+  });
   it('palavras em volta do instante, na ordem', () => {
     const w = [{ word: 'a', startSec: 0, endSec: 0.4 }, { word: 'b', startSec: 1, endSec: 1.4 }, { word: 'c', startSec: 5, endSec: 5.4 }];
     expect(wordsAt(w, 1.2)).toEqual(['a', 'b']);

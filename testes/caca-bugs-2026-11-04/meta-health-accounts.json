@@ -1,0 +1,383 @@
+[
+  {
+    "badHealth": {
+      "status": 200,
+      "data": {
+        "status": "ACTIVE",
+        "user": {
+          "id": "mock_user",
+          "name": "Mock User"
+        },
+        "scopes": [
+          "ads_management",
+          "ads_read",
+          "business_management",
+          "pages_show_list"
+        ],
+        "tokenExpiresAt": "2027-01-03T04:41:07.592Z",
+        "adAccount": {
+          "id": "act_mock_2",
+          "name": "Mock Disabled (BRL)",
+          "currency": "BRL",
+          "timezoneName": "America/Sao_Paulo",
+          "accountStatus": 2,
+          "minDailyBudgetMinor": 500
+        },
+        "page": {
+          "id": "page_mock",
+          "name": "Mock Page"
+        },
+        "pixel": {
+          "id": "pix_mock",
+          "name": "Mock Pixel"
+        },
+        "health": {
+          "level": "bad",
+          "checks": [
+            {
+              "key": "token",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "scopes",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "account",
+              "level": "bad",
+              "detail": "Account disabled, choose another"
+            },
+            {
+              "key": "funding",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "page",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "pixel",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "budget",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "verified",
+              "level": "warn",
+              "detail": "Business not verified: Meta may limit spend"
+            }
+          ],
+          "adsCount": 8,
+          "checkedAt": "2026-11-04T04:41:07.592Z",
+          "canPublish": false,
+          "activeCount": 5
+        },
+        "lastSyncAt": "2026-11-04T04:41:07.605Z",
+        "syncing": false,
+        "connectedBy": {
+          "id": "qa_user_dono_a",
+          "name": "QA Dono Alfa",
+          "initials": "QA"
+        },
+        "connectedAt": "2026-11-04T04:35:20.034Z"
+      },
+      "body": {
+        "success": true,
+        "data": {
+          "status": "ACTIVE",
+          "user": {
+            "id": "mock_user",
+            "name": "Mock User"
+          },
+          "scopes": [
+            "ads_management",
+            "ads_read",
+            "business_management",
+            "pages_show_list"
+          ],
+          "tokenExpiresAt": "2027-01-03T04:41:07.592Z",
+          "adAccount": {
+            "id": "act_mock_2",
+            "name": "Mock Disabled (BRL)",
+            "currency": "BRL",
+            "timezoneName": "America/Sao_Paulo",
+            "accountStatus": 2,
+            "minDailyBudgetMinor": 500
+          },
+          "page": {
+            "id": "page_mock",
+            "name": "Mock Page"
+          },
+          "pixel": {
+            "id": "pix_mock",
+            "name": "Mock Pixel"
+          },
+          "health": {
+            "level": "bad",
+            "checks": [
+              {
+                "key": "token",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "scopes",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "account",
+                "level": "bad",
+                "detail": "Account disabled, choose another"
+              },
+              {
+                "key": "funding",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "page",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "pixel",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "budget",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "verified",
+                "level": "warn",
+                "detail": "Business not verified: Meta may limit spend"
+              }
+            ],
+            "adsCount": 8,
+            "checkedAt": "2026-11-04T04:41:07.592Z",
+            "canPublish": false,
+            "activeCount": 5
+          },
+          "lastSyncAt": "2026-11-04T04:41:07.605Z",
+          "syncing": false,
+          "connectedBy": {
+            "id": "qa_user_dono_a",
+            "name": "QA Dono Alfa",
+            "initials": "QA"
+          },
+          "connectedAt": "2026-11-04T04:35:20.034Z"
+        }
+      }
+    }
+  },
+  {
+    "unmanaged": {
+      "status": 422,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "META_PERMISSION",
+          "message": "You don't have permission to advertise on this account. Ask the account admin to add you (Business Settings → Ad accounts → Add people).",
+          "statusCode": 422,
+          "details": {
+            "adAccountId": "act_mock_3",
+            "reason": "no_advertise_task"
+          }
+        }
+      }
+    }
+  },
+  {
+    "restore": {
+      "status": 200,
+      "data": {
+        "status": "ACTIVE",
+        "user": {
+          "id": "mock_user",
+          "name": "Mock User"
+        },
+        "scopes": [
+          "ads_management",
+          "ads_read",
+          "business_management",
+          "pages_show_list"
+        ],
+        "tokenExpiresAt": "2027-01-03T04:41:32.522Z",
+        "adAccount": {
+          "id": "act_mock_1",
+          "name": "Mock Store (USD)",
+          "currency": "USD",
+          "timezoneName": "America/New_York",
+          "accountStatus": 1,
+          "minDailyBudgetMinor": 500
+        },
+        "page": {
+          "id": "page_mock",
+          "name": "Mock Page"
+        },
+        "pixel": {
+          "id": "pix_mock",
+          "name": "Mock Pixel"
+        },
+        "health": {
+          "level": "warn",
+          "checks": [
+            {
+              "key": "token",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "scopes",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "account",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "funding",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "page",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "pixel",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "budget",
+              "level": "ok",
+              "detail": null
+            },
+            {
+              "key": "verified",
+              "level": "warn",
+              "detail": "Business not verified: Meta may limit spend"
+            }
+          ],
+          "adsCount": 0,
+          "checkedAt": "2026-11-04T04:41:32.522Z",
+          "canPublish": true,
+          "activeCount": 0
+        },
+        "lastSyncAt": null,
+        "syncing": true,
+        "connectedBy": {
+          "id": "qa_user_dono_a",
+          "name": "QA Dono Alfa",
+          "initials": "QA"
+        },
+        "connectedAt": "2026-11-04T04:35:20.034Z"
+      },
+      "body": {
+        "success": true,
+        "data": {
+          "status": "ACTIVE",
+          "user": {
+            "id": "mock_user",
+            "name": "Mock User"
+          },
+          "scopes": [
+            "ads_management",
+            "ads_read",
+            "business_management",
+            "pages_show_list"
+          ],
+          "tokenExpiresAt": "2027-01-03T04:41:32.522Z",
+          "adAccount": {
+            "id": "act_mock_1",
+            "name": "Mock Store (USD)",
+            "currency": "USD",
+            "timezoneName": "America/New_York",
+            "accountStatus": 1,
+            "minDailyBudgetMinor": 500
+          },
+          "page": {
+            "id": "page_mock",
+            "name": "Mock Page"
+          },
+          "pixel": {
+            "id": "pix_mock",
+            "name": "Mock Pixel"
+          },
+          "health": {
+            "level": "warn",
+            "checks": [
+              {
+                "key": "token",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "scopes",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "account",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "funding",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "page",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "pixel",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "budget",
+                "level": "ok",
+                "detail": null
+              },
+              {
+                "key": "verified",
+                "level": "warn",
+                "detail": "Business not verified: Meta may limit spend"
+              }
+            ],
+            "adsCount": 0,
+            "checkedAt": "2026-11-04T04:41:32.522Z",
+            "canPublish": true,
+            "activeCount": 0
+          },
+          "lastSyncAt": null,
+          "syncing": true,
+          "connectedBy": {
+            "id": "qa_user_dono_a",
+            "name": "QA Dono Alfa",
+            "initials": "QA"
+          },
+          "connectedAt": "2026-11-04T04:35:20.034Z"
+        }
+      }
+    }
+  }
+]

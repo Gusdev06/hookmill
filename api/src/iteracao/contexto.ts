@@ -6,18 +6,22 @@ import { initials, num } from '../common/util/format';
 import type { FrameBrand } from '../integracoes';
 import { handleDe } from '../render/auto-edit';
 import { paletaDoEstatico } from './paleta';
+import { brandLogoOf } from '../brand-kit/logo';
 import { captionsAutoOf, headlineInfoOf } from './headline-plano';
 import type { MediaRulesPort } from './portas';
 import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, allowedFrameIds, brainEmpty, codeLanguageOf, screenLangOf } from './regras';
 import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
 import { captionGuardOf, type CaptionGuardSource } from './legenda-protegida';
-import { fracaoComRosto, type FaceMapLike } from '@maquina/video';
+import { fracaoComRosto, rostoPrincipal, type FaceMapLike } from '@maquina/video';
+import type { ListGeom } from './lista-plano';
+import { mockListNoRoom } from '../integracoes/mock/fake-template';
 import { templatesLigados } from './templates-plano';
 
 export interface CtxSource {
   offer: OfferRow;
-  /** 25/10: `brandColor` (D3) entra na cor da marca das molduras */
-  workspace: { name: string; brandColor?: string | null };
+  /** 25/10: `brandColor` (D3) entra na cor da marca das molduras. 31/10 (kit-marca-v1 §5): `brandAssets` = o LOGO do kit
+   *  (`include: { brandAssets: BRAND_LOGO_INCLUDE }`); ausente = sem logo */
+  workspace: { name: string; brandColor?: string | null; brandAssets?: { fileId: string; colors: string[] }[] | null };
   /** 25/10: `language` = idioma da fala (textos de tela). 26/10: `cleanVideoFileId` = versão sem legenda (legenda-protegida-v1 §2.3) */
   champion: { durationSec: unknown; hasSpeech: boolean; language?: string | null; cleanVideoFileId?: string | null };
   teardown: TeardownRow | null;
@@ -52,10 +56,17 @@ export function faceAtSecOf(editMap: EditMap | null): number | null {
   return Math.round((start + Math.min(0.5, len / 2)) * 1000) / 1000;
 }
 
-/** §B2 FrameBrand: nome = offer.name, handle = workspace.name normalizado (= handle do STORY), cor = acento da paleta. */
+/**
+ * §B2 FrameBrand: nome = offer.name, handle = workspace.name normalizado (= handle do STORY), cor = acento da paleta.
+ * kit-marca-v1 §5: com logo no kit, `logoFileId` vai junto e a cor do logo entra na cadeia antes da do campeão
+ * (cor do cadastro > dominante saturada do logo > campeão > padrão).
+ */
 export function frameBrandOf(src: Pick<CtxSource, 'offer' | 'workspace'>, championPalette: string[] | null | undefined): FrameBrand {
-  const { accent } = paletaDoEstatico({ brandColor: src.workspace.brandColor ?? null, championPalette });
-  return { name: src.offer.name, handle: handleDe(src.workspace.name), initials: initials(src.offer.name), color: accent };
+  const logo = brandLogoOf(src.workspace.brandAssets);
+  const { accent } = paletaDoEstatico({ brandColor: src.workspace.brandColor ?? null, pageColors: logo?.colors ?? null, championPalette });
+  const brand: FrameBrand = { name: src.offer.name, handle: handleDe(src.workspace.name), initials: initials(src.offer.name), color: accent };
+  if (logo) brand.logoFileId = logo.fileId;
+  return brand;
 }
 
 export function planCtxOf(src: CtxSource, media: MediaRulesPort, page: { captured: boolean }): PlanCtx {
@@ -92,6 +103,19 @@ export function planCtxOf(src: CtxSource, media: MediaRulesPort, page: { capture
     captionsAuto: src.champion.cleanVideoFileId ? (transcript?.words.length ?? 0) > 0 : captionsAutoOf(editMap, transcript?.words ?? []),
     // iterate-v2 F1.1: rosto e legenda queimada pros templates grátis (atrás da flag ITERATE_TEMPLATES)
     templates: templatesCtxOf(src, editMap, m),
+    // templates-lista-v1 §1 regra 4: rosto e legenda pro `posicionarLista` (a legenda só conta com a guarda ligada)
+    listGeom: { ...listGeomOf(src, editMap, m, durationSec), ...(process.env.INTEGRACOES_MODE !== 'live' && mockListNoRoom(src.offer.notes) && { mockNoRoom: true }) },
+  };
+}
+
+/** Rosto principal (caixa, px do arquivo) e legenda queimada (faixas protegidas) do campeão. Versão sem legenda = sem faixa. */
+export function listGeomOf(src: Pick<CtxSource, 'champion'>, editMap: EditMap | null, m: ReturnType<typeof measurementsOf>, durationSec: number): ListGeom {
+  const source = { width: m?.width ?? editMap?.width ?? 1080, height: m?.height ?? editMap?.height ?? 1920, durationSec };
+  const r = editMap ? rostoPrincipal(source, editMap as never) : null;
+  return {
+    source,
+    faceSafeBand: r ? { x: r.cx - r.w / 2, y: r.cy - r.h / 2, w: r.w, h: r.h } : null,
+    bands: src.champion.cleanVideoFileId ? [] : faixasDoCampeao(editMap, source),
   };
 }
 

@@ -1,0 +1,437 @@
+<title>HookMill Home v2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: Home = the Brain. Center column = dark stage with the Brain (live nodes called out) + Eddy bar at its foot + a compact Recent strip.
+   Right column (360 px) = greeting, brand summary with the CPA goal, Next steps, Connections.
+   Under 760 px of frame width: one column. Order: greeting/brand, Next steps, Brain card (fixed 300 px), Eddy bar, Recent strip, Connections.
+   Single light theme + ink sidebar + darker stage (brain-3d-v1 §3), on purpose. */
+:root {
+  --bg:#eeeeea; --card:#fdfdfb; --card-2:#f3f4f0; --field:#ffffff;
+  --line:#dcddd7; --line-soft:#e4e5e0; --line-strong:#cfd1cb; --control:#b9bcb5;
+  --fg:#15171a; --fg-2:#3b4047; --fg-3:#5a6068;
+  --brand:#c8f03c; --brand-hover:#bde52f; --brand-ink:#3e5200; --brand-soft:#f0f8d2; --brand-edge:#a9cc2a;
+  --ink:#16181b; --ink-2:#202328; --ink-3:#2a2e33; --ink-line:#2e3238; --ink-fg:#f2f3ee; --ink-fg-2:#c5cad0; --ink-fg-3:#9aa1a9;
+  --stage:#0e1012; --stage-2:#16191c; --glass:rgba(22,25,28,.86);
+  --ok:#0b6b43; --ok-bg:#e2f3e8; --ok-dot:#1c9a5e; --warn:#7a5000; --warn-bg:#fbf0d3; --warn-dot:#d39b12;
+  --bad:#a8360c; --bad-bg:#fbe7dd; --info:#2b4bc8; --info-bg:#e6ebfc; --meta:#1877f2; --white:#ffffff;
+  --c-business:#e6e1d3; --c-offer:#f2b33d; --c-aud:#4cc9b0; --c-goal:#9aa8ff; --c-hook:#ff8466; --c-script:#c7a4f5; --c-creative:#6fc8f2; --c-ad:#f27ba8;
+  --mc:#2f3a5c;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme: light;
+}
+* { box-sizing:border-box }
+body { background:var(--bg); color:var(--fg); font:14px/1.45 var(--sans); margin:0 }
+button, input { font:inherit; color:inherit }
+:focus-visible { outline:2px solid var(--info); outline-offset:2px }
+.proto { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding-block:10px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); background:var(--ink); color:var(--ink-fg) }
+.proto .grp { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.proto b { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-3) }
+.seg { display:inline-flex; border:1px solid var(--ink-line); border-radius:10px; overflow:hidden }
+.seg button { font-size:12px; font-weight:600; padding:7px 11px; border:0; background:transparent; color:var(--ink-fg-2); cursor:pointer; min-height:36px }
+.seg button[aria-pressed="true"] { background:var(--ink-fg); color:var(--ink) }
+.proto .ex { font-family:var(--mono); font-size:11px; color:var(--ink); background:var(--warn-dot); border-radius:6px; padding:3px 7px; margin-left:auto }
+.stage-wrap { padding-block:20px 48px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); display:flex; justify-content:center }
+.frame { width:100%; max-width:1440px; background:var(--bg); border:1px solid var(--line); border-radius:18px; overflow:hidden; display:flex; container-type:inline-size; container-name:frame }
+.frame.phone { max-width:390px; flex-direction:column }
+
+/* shell */
+.side { width:232px; flex:none; background:var(--ink); color:var(--ink-fg-2); padding:14px 10px; display:flex; flex-direction:column; gap:14px }
+.ws { display:flex; gap:10px; align-items:center; padding:8px; border:1px solid var(--ink-line); border-radius:12px; background:var(--ink-2) }
+.av { width:30px; height:30px; border-radius:8px; display:grid; place-items:center; font-weight:800; font-size:12px; flex:none; background:var(--brand); color:var(--fg) }
+.ws b { color:var(--ink-fg); font-size:13px; display:block } .ws small { font-size:11px; color:var(--ink-fg-3) }
+.navg { display:flex; flex-direction:column; gap:2px }
+.navg .h { font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-fg-3); padding:6px 10px 4px }
+.navg a { display:flex; align-items:center; gap:10px; min-height:36px; padding:0 10px; border-radius:10px; color:var(--ink-fg-2); text-decoration:none; font-weight:600; font-size:13px }
+.navg a.on { background:var(--ink-3); color:var(--white) }
+.navg a .soon { margin-left:auto; font-size:10px; font-family:var(--mono); color:var(--ink-fg-3); border:1px solid var(--ink-line); border-radius:6px; padding:1px 5px }
+.navg a .n { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink); background:var(--warn-dot); border-radius:99px; padding:0 6px }
+.ico { width:16px; height:16px; flex:none; border:1.5px solid currentColor; border-radius:4px; opacity:.8 } .ico.c { border-radius:50% }
+.topbar { display:none; align-items:center; gap:10px; height:56px; padding:0 16px; background:var(--ink); color:var(--ink-fg) }
+.topbar .sp { flex:1 }
+.burger { width:40px; height:40px; border-radius:10px; border:1px solid var(--ink-line); background:transparent; color:var(--ink-fg) }
+
+.main { flex:1; min-width:0; padding:20px; display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start }
+.center { display:flex; flex-direction:column; gap:12px; min-width:0 }
+.right { display:flex; flex-direction:column; gap:12px; min-width:0 }
+
+/* common */
+.eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-3) }
+h1 { margin:0; font-size:24px; line-height:1.15; font-weight:800; font-stretch:125%; letter-spacing:-.015em; text-wrap:balance }
+h2 { margin:0; font-size:14px; font-weight:700 }
+.card { background:var(--card); border:1px solid var(--line); border-radius:16px; min-width:0 }
+.card .hd { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line-soft) }
+.card .hd .t { display:flex; gap:8px; align-items:center }
+.btn { font-weight:700; font-size:14px; min-height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line-strong); background:var(--card); color:var(--fg); display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; white-space:nowrap; text-decoration:none }
+.btn.sm { min-height:34px; padding:0 12px; font-size:13px }
+.btn.brand { background:var(--brand); border-color:var(--brand-edge) } .btn.brand:hover { background:var(--brand-hover) }
+.btn.ghost { border-color:transparent; background:transparent; color:var(--fg-2) }
+.btn.fb { background:var(--meta); border-color:transparent; color:var(--white) }
+.btn:hover { border-color:var(--fg) } .btn.ghost:hover, .btn.fb:hover { border-color:transparent }
+.btn.glass { background:var(--glass); border-color:var(--ink-line); color:var(--ink-fg); backdrop-filter:blur(8px) }
+.btn.glass:hover { border-color:var(--ink-fg-3) }
+.arrow::after { content:"→" }
+.tag { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 8px; border-radius:99px; font-size:11.5px; font-weight:700; white-space:nowrap }
+.tag i { width:7px; height:7px; border-radius:50%; background:currentColor }
+.tag.ok { background:var(--ok-bg); color:var(--ok) } .tag.warn { background:var(--warn-bg); color:var(--warn) } .tag.info { background:var(--info-bg); color:var(--info) } .tag.bad { background:var(--bad-bg); color:var(--bad) }
+.tag.neutral { background:var(--card-2); color:var(--fg-2); border:1px solid var(--line-soft) }
+.count { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--fg-3); background:var(--card-2); border:1px solid var(--line-soft); border-radius:99px; padding:0 7px; line-height:20px }
+.muted { color:var(--fg-3) } .xs { font-size:12px } .small { font-size:13px }
+.mono { font-family:var(--mono); font-variant-numeric:tabular-nums }
+.hidden { display:none !important }
+
+/* ── the Brain stage ── */
+.brain { position:relative; background:var(--stage); border-radius:18px; overflow:hidden; height:600px; color:var(--ink-fg) }
+.brain canvas { position:absolute; inset:0; width:100%; height:100% }
+.brain .tl { position:absolute; top:14px; left:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; z-index:2 }
+.brain .tr { position:absolute; top:14px; right:14px; display:flex; gap:8px; z-index:2 }
+.known { display:flex; gap:10px; align-items:center; background:var(--glass); border:1px solid var(--ink-line); border-radius:12px; padding:7px 12px 7px 8px; backdrop-filter:blur(8px); font-size:12.5px; color:var(--ink-fg-2); text-decoration:none }
+.known b { color:var(--ink-fg) }
+.ringmini { width:30px; height:30px; border-radius:50%; background:conic-gradient(var(--brand) calc(var(--p)*1%), var(--ink-line) 0); display:grid; place-items:center; flex:none }
+.ringmini span { width:22px; height:22px; border-radius:50%; background:var(--stage-2); display:grid; place-items:center; font-family:var(--mono); font-size:9.5px; color:var(--ink-fg) }
+.cats { position:absolute; left:14px; bottom:14px; display:flex; gap:6px; flex-wrap:wrap; z-index:2; max-width:calc(100% - 28px) }
+.cats span { display:inline-flex; gap:6px; align-items:center; font-size:11.5px; color:var(--ink-fg-2); background:var(--glass); border:1px solid var(--ink-line); border-radius:99px; padding:3px 9px }
+.cats span i { width:8px; height:8px; border-radius:50% }
+.cats span.empty { border-style:dashed; color:var(--ink-fg-3) }
+.cats span.empty i { background:transparent !important; border:1.5px dashed var(--ink-fg-3) }
+.foot { position:absolute; right:14px; bottom:14px; font-family:var(--mono); font-size:11px; color:var(--ink-fg-3); z-index:2 }
+
+/* callouts on live nodes */
+.callout { position:absolute; z-index:3; transform:translate(14px,-50%); display:flex; gap:10px; align-items:center; background:var(--glass); border:1px solid var(--ink-line); border-radius:12px; padding:8px 12px 8px 8px; color:var(--ink-fg); text-align:left; cursor:pointer; backdrop-filter:blur(8px); max-width:250px; transition:border-color .15s }
+.callout:hover { border-color:var(--ink-fg-3) }
+.callout .th { width:26px; aspect-ratio:9/16; border-radius:5px; flex:none; background:linear-gradient(165deg,#6b6450,#1d1f1a) }
+.callout .th.b { background:linear-gradient(165deg,#4c5a6e,#15171a) } .callout .th.c { background:linear-gradient(165deg,#76705f,#2a2e33) }
+.callout b { display:block; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.callout small { display:flex; gap:6px; align-items:center; font-size:11.5px; color:var(--ink-fg-2) }
+.callout small i { width:7px; height:7px; border-radius:50% }
+.callout.win { border-color:var(--brand-edge) }
+.callout.win small i { background:var(--brand) } .callout.wait small i { background:var(--warn-dot) }
+.callout .tx { min-width:0 }
+.callout.left { transform:translate(calc(-100% - 14px),-50%) }
+.center-label { position:absolute; z-index:2; transform:translate(-50%, 22px); font-weight:800; font-stretch:125%; font-size:13px; color:var(--ink-fg); pointer-events:none; white-space:nowrap }
+
+.drawer { position:absolute; z-index:4; top:60px; right:14px; width:300px; max-width:calc(100% - 28px); background:var(--card); color:var(--fg); border-radius:16px; border:1px solid var(--line); box-shadow:0 18px 50px rgba(0,0,0,.35); display:flex; flex-direction:column }
+.drawer .dh { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid var(--line-soft) }
+.drawer .db { padding:14px; display:flex; flex-direction:column; gap:10px }
+.drawer .vid { aspect-ratio:9/16; width:110px; max-width:100%; border-radius:10px; background:linear-gradient(165deg,#6b6450,#1d1f1a) }
+.drawer .mets { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px }
+.drawer .mets span { display:flex; flex-direction:column; font-size:11.5px; color:var(--fg-3) } .drawer .mets b { font-family:var(--mono); font-size:15px; color:var(--fg) }
+.x { width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--card); cursor:pointer }
+
+.newcard { position:absolute; z-index:3; left:50%; bottom:64px; transform:translateX(-50%); width:min(420px, calc(100% - 28px)); background:var(--glass); border:1px solid var(--ink-line); border-radius:14px; padding:14px 16px; backdrop-filter:blur(8px); color:var(--ink-fg-2); font-size:13px }
+.newcard b { color:var(--ink-fg); display:block; margin-bottom:4px; font-size:14px }
+
+/* Eddy bar */
+.eddybar { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:10px; display:flex; flex-direction:column; gap:8px }
+.eb-row { display:flex; gap:10px; align-items:center }
+.eb-av { width:32px; height:32px; border-radius:9px; background:var(--ink); color:var(--brand); display:grid; place-items:center; font-family:var(--mono); font-weight:600; font-size:12px; flex:none }
+.eb-in { flex:1; min-width:0; min-height:44px; border:1px solid var(--line-soft); border-radius:12px; background:var(--card-2); padding:0 12px; color:var(--fg-3) }
+.eb-in::placeholder { color:var(--fg-3) }
+.soon { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--fg-3); border:1px solid var(--line-strong); border-radius:6px; padding:2px 6px; white-space:nowrap }
+.eb-short { display:flex; gap:6px; flex-wrap:wrap; align-items:center; padding-left:42px }
+.eb-short .lab { font-size:12px; color:var(--fg-3) }
+.pill { font-size:12.5px; font-weight:600; min-height:32px; padding:0 12px; border-radius:99px; border:1px solid var(--line-strong); background:var(--card); cursor:pointer; text-decoration:none; color:var(--fg); display:inline-flex; align-items:center; gap:6px }
+.pill:hover { border-color:var(--fg) }
+
+/* Recent strip */
+.recent .strip { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(150px,1fr); gap:10px; padding:12px 16px 14px; overflow-x:auto }
+.rc { display:flex; flex-direction:column; gap:6px; text-decoration:none; color:inherit; min-width:0 }
+.rc .pic { aspect-ratio:16/10; border-radius:10px; position:relative; overflow:hidden; background:linear-gradient(165deg,#4c5a6e,#15171a); max-width:100% }
+.rc .pic.a { background:linear-gradient(165deg,#6b6450,#1d1f1a) } .rc .pic.c { background:linear-gradient(165deg,#76705f,#2a2e33) } .rc .pic.d { background:linear-gradient(165deg,#5b6b5a,#1b1d1a) }
+.rc .pic .bar { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.2) } .rc .pic .bar i { display:block; height:100%; background:var(--info) }
+.rc .pic .k { position:absolute; top:6px; left:6px; font-family:var(--mono); font-size:10px; color:var(--white); background:rgba(0,0,0,.45); border-radius:5px; padding:1px 5px }
+.rc b { font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.rc:hover b { text-decoration:underline }
+.emptyline { padding:14px 16px; font-size:13px; color:var(--fg-3) }
+
+/* right column */
+.hello { display:flex; flex-direction:column; gap:4px; padding:4px 2px }
+.brandsum { padding:14px 16px; display:flex; flex-direction:column; gap:12px }
+.bs-top { display:flex; gap:12px; align-items:center }
+.logo { width:44px; height:44px; border-radius:10px; background:var(--card-2); border:1px solid var(--line); display:grid; place-items:center; flex:none }
+.logo span { width:18px; height:18px; border-radius:50%; background:var(--mc); box-shadow:inset -6px -2px 0 var(--card-2) }
+.logo.none { border-style:dashed } .logo.none span { display:none }
+.swatches { display:flex; gap:4px } .swatches i { width:14px; height:14px; border-radius:4px; border:1px solid var(--line-strong) }
+.goal { border-top:1px solid var(--line-soft); padding-top:12px; display:flex; flex-direction:column; gap:6px }
+.goal .row { display:flex; justify-content:space-between; gap:8px; align-items:baseline }
+.goal .big { font-family:var(--mono); font-size:22px; font-weight:600; font-variant-numeric:tabular-nums }
+.band { position:relative; height:30px }
+.band .r { position:absolute; left:0; right:0; top:9px; height:2px; background:var(--line) }
+.band .z { position:absolute; top:3px; height:14px; background:var(--ok-bg); border:1px solid var(--ok-dot); border-radius:4px }
+.band .p { position:absolute; top:1px; width:3px; height:18px; background:var(--fg); border-radius:2px; transform:translateX(-1px) }
+.band .tk { position:absolute; top:19px; font-family:var(--mono); font-size:10px; color:var(--fg-3); transform:translateX(-50%) }
+.bs-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; border-top:1px solid var(--line-soft); padding-top:10px }
+.pbar { height:6px; border-radius:99px; background:var(--line-soft); overflow:hidden; flex:1 } .pbar i { display:block; height:100%; background:var(--brand-edge) }
+
+.steps { display:flex; flex-direction:column }
+.step { display:flex; gap:12px; align-items:flex-start; padding:12px 16px; border-top:1px solid var(--line-soft) }
+.step:first-child { border-top:0 }
+.step .ic { width:30px; height:30px; border-radius:9px; border:1px solid var(--line); background:var(--card-2); display:grid; place-items:center; flex:none; font-family:var(--mono); font-size:11px; font-weight:600; color:var(--fg-3) }
+.step .ic.win { background:var(--brand-soft); border-color:var(--brand-edge); color:var(--brand-ink) }
+.step .ic.wait { background:var(--warn-bg); border-color:var(--warn-dot); color:var(--warn) }
+.step .tx { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px }
+.step .tx b { font-size:13.5px } .step .tx span { font-size:12.5px; color:var(--fg-3) }
+.step .tx .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px }
+.more { width:100%; border:0; border-top:1px solid var(--line-soft); background:transparent; min-height:42px; font-size:13px; font-weight:600; color:var(--fg-2); cursor:pointer; border-radius:0 0 16px 16px }
+.more:hover { background:var(--card-2); color:var(--fg) }
+.conn { display:flex; gap:12px; align-items:center; padding:12px 16px }
+.fsq { width:30px; height:30px; border-radius:8px; background:var(--meta); color:var(--white); display:grid; place-items:center; font-weight:800; flex:none }
+.conn .tx { flex:1; min-width:0 } .conn .tx b { display:block; font-size:13.5px } .conn .tx span { font-size:12px; color:var(--fg-3) }
+
+/* ── phone ── */
+@container frame (max-width: 760px) {
+  .side { display:none } .topbar { display:flex }
+  .main { grid-template-columns:minmax(0,1fr); padding:16px }
+  .center, .right { display:contents }
+  .hello { order:1 } .brandcard { order:2 } .stepscard { order:3 } .brain { order:4; height:300px } .eddybar { order:5 } .recent { order:6 } .conncard { order:7 }
+  .brain .tr .full-lbl { display:none }
+  .brain .cats, .brain .foot { display:none }
+  .callout { max-width:190px; padding:6px 10px 6px 6px; transform:translate(-50%, 16px) } .callout.hide-sm { display:none }
+  .drawer { top:auto; bottom:10px; right:10px; left:10px; width:auto }
+  .eb-short { padding-left:0 }
+  .newcard { bottom:12px }
+}
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important } }
+</style>
+
+<div class="proto" role="toolbar" aria-label="Prototype controls">
+  <div class="grp"><b>State</b>
+    <div class="seg" role="group" aria-label="State">
+      <button type="button" id="st-new" aria-pressed="false">(a) New account</button>
+      <button type="button" id="st-meta" aria-pressed="true">(b) Meta + batches</button>
+    </div>
+  </div>
+  <div class="grp"><b>Width</b>
+    <div class="seg" role="group" aria-label="Width">
+      <button type="button" id="w-desk" aria-pressed="true">Desktop 1440</button>
+      <button type="button" id="w-phone" aria-pressed="false">Phone 390</button>
+    </div>
+  </div>
+  <span class="ex">Example data</span>
+</div>
+
+<div class="stage-wrap">
+  <div class="frame" id="frame">
+    <aside class="side" aria-label="Main">
+      <div class="ws"><span class="av">MC</span><span><b>Mooncloth</b><small>Owner</small></span></div>
+      <nav class="navg"><span class="h">Workspace</span>
+        <a href="#" class="on"><i class="ico"></i>Home</a>
+        <a href="#"><i class="ico"></i>Campaigns</a>
+        <a href="#"><i class="ico c"></i>Eddy<span class="soon">Soon</span></a>
+        <a href="#"><i class="ico c"></i>Brain</a>
+      </nav>
+      <nav class="navg"><span class="h">Make ads</span>
+        <a href="#"><i class="ico"></i>Iterate a winner</a>
+        <a href="#"><i class="ico"></i>New concepts</a>
+        <a href="#"><i class="ico"></i>Review<span class="n js-m">2</span></a>
+        <a href="#"><i class="ico"></i>Library</a>
+      </nav>
+    </aside>
+    <div class="topbar"><span class="av">MC</span><b>Mooncloth</b><span class="sp"></span><button class="burger" type="button" aria-label="Open menu">≡</button></div>
+
+    <main class="main">
+      <div class="center">
+        <!-- THE BRAIN, first thing on Home -->
+        <section class="brain" id="t-brain" role="application" aria-label="Mooncloth's Brain. Use Open Brain for the list view.">
+          <canvas id="cv" aria-hidden="true"></canvas>
+          <div class="tl">
+            <a class="known" href="#"><span class="ringmini js-ring" style="--p:92"><span class="js-ringt">92</span></span><span><b class="js-known">92% known</b> · <span class="js-miss">1 thing missing</span></span></a>
+          </div>
+          <div class="tr"><a class="btn sm glass" href="#"><span class="full-lbl">Open Brain</span><span aria-hidden="true">⤢</span></a></div>
+          <span class="center-label" id="lbl-center">Mooncloth</span>
+          <!-- live nodes (b) -->
+          <button class="callout win js-m" type="button" data-node="win" data-d="win"><span class="th"></span><span class="tx"><b>Sleep in 7 nights · UGC v3</b><small><i></i>Winner · CPA $11.20</small></span></button>
+          <button class="callout wait js-m" type="button" data-node="w1" data-d="w1"><span class="th b"></span><span class="tx"><b>Batch 2 · 4 pieces ready</b><small><i></i>Waiting for you</small></span></button>
+          <button class="callout wait left hide-sm js-m" type="button" data-node="w2" data-d="w2"><span class="th c"></span><span class="tx"><b>Insomnia hook test</b><small><i></i>Waiting for you · pick a script</small></span></button>
+          <div class="cats">
+            <span><i style="background:var(--c-business)"></i>Business 4</span><span><i style="background:var(--c-offer)"></i>Offers <span class="js-co">2</span></span><span><i style="background:var(--c-aud)"></i>Audience <span class="js-ca">3</span></span><span><i style="background:var(--c-goal)"></i>Goals 3</span>
+            <span class="js-m"><i style="background:var(--c-hook)"></i>Hooks 24</span><span class="js-m"><i style="background:var(--c-script)"></i>Scripts 18</span><span class="js-m"><i style="background:var(--c-creative)"></i>Creatives 31</span><span class="js-m"><i style="background:var(--c-ad)"></i>Meta ads 64</span>
+            <span class="empty js-n hidden"><i></i>Hooks</span><span class="empty js-n hidden"><i></i>Creatives</span><span class="empty js-n hidden"><i></i>Meta ads · connect</span>
+          </div>
+          <span class="foot js-m">149 nodes · 312 connections · Meta synced 4 min ago</span>
+          <div class="newcard js-n hidden"><b>The Brain grows as you work</b>Right now it knows your setup. Hooks and scripts appear with your first batch, creatives after the first video, Meta ads once you connect Meta.</div>
+
+          <div class="drawer hidden" id="drawer" role="dialog" aria-labelledby="dr-t">
+            <div class="dh"><span style="display:flex;gap:8px;align-items:center"><span class="tag ok js-dtag"><i></i>Winner</span><b id="dr-t" class="small">Sleep in 7 nights · UGC v3</b></span><button class="x" type="button" id="dr-x" aria-label="Close">×</button></div>
+            <div class="db js-dbody"></div>
+          </div>
+        </section>
+
+        <!-- Eddy bar: visible, honest, input off; the shortcuts under it work today -->
+        <section class="eddybar" aria-label="Eddy">
+          <div class="eb-row"><span class="eb-av">Ed</span><input class="eb-in" id="eddy" disabled placeholder="Ask Eddy to turn this brief into ad concepts…"><span class="soon">Soon</span></div>
+          <div class="eb-short"><span class="lab">Eddy will take requests like this here. Until then, Next steps has what to do.</span></div>
+        </section>
+
+        <!-- Recent: compact strip, full list lives in Library / Review -->
+        <section class="card recent" aria-labelledby="rc-h">
+          <div class="hd"><span class="t"><h2 id="rc-h">Recent</h2><span class="count js-rc">12</span></span><a class="btn sm ghost arrow js-m" href="#">All creatives</a></div>
+          <div class="strip js-m">
+            <a class="rc" href="#"><span class="pic"><span class="k">×4</span><span class="bar"><i style="width:50%"></i></span></span><b>Batch 3 · Sleep in 7 nights</b><span><span class="tag info"><i></i>Generating 2 of 4</span></span></a>
+            <a class="rc" href="#"><span class="pic a"><span class="k">×4</span></span><b>Batch 2 · Sleep in 7 nights</b><span><span class="tag ok"><i></i>4 ready</span></span></a>
+            <a class="rc" href="#"><span class="pic c"></span><b>Insomnia hook test</b><span><span class="tag warn"><i></i>Pick a script</span></span></a>
+            <a class="rc" href="#"><span class="pic d"></span><b>Founder story · cut B</b><span><span class="tag ok"><i></i>Approved</span></span></a>
+            <a class="rc" href="#"><span class="pic"><span class="k">×4</span></span><b>3am wake-up · new faces</b><span><span class="tag bad"><i></i>1 failed · retry</span></span></a>
+          </div>
+          <div class="emptyline js-n hidden">Nothing made yet. Batches and concepts show up here with their stage, live.</div>
+        </section>
+      </div>
+
+      <div class="right">
+        <div class="hello"><span class="eyebrow">Your business · Mooncloth</span><h1>Good evening, Gusta</h1></div>
+
+        <!-- brand summary + the goal (CPA vs target) -->
+        <section class="card brandcard" aria-labelledby="bs-h">
+          <div class="brandsum">
+            <div class="bs-top"><span class="logo js-logo"><span></span></span><span style="flex:1;min-width:0"><b id="bs-h" style="display:block">Mooncloth</b><span class="xs muted">Sleep products · United States</span></span><span class="swatches" aria-label="Brand colors"><i style="background:var(--mc)"></i><i style="background:#e9e4d8"></i></span></div>
+            <div class="goal">
+              <div class="row"><span class="small muted">Goal · cost per purchase</span><span class="mono small">$10–14</span></div>
+              <div class="js-m">
+                <div class="row"><span class="big">$13.10</span><span class="tag ok"><i></i>In target · 30 days</span></div>
+                <!-- scale 0–30 -->
+                <div class="band" role="img" aria-label="Account cost per purchase $13.10 against a $10 to $14 target"><span class="r"></span><span class="z" style="left:33.3%;width:13.4%"></span><span class="p" style="left:43.7%"></span><span class="tk" style="left:33.3%">$10</span><span class="tk" style="left:46.7%">$14</span><span class="tk" style="left:auto;right:0;transform:none">$30</span></div>
+                <span class="xs muted">Spend $6,420 of $9,000 cap · ROAS 2.4x</span>
+              </div>
+              <span class="xs muted js-n hidden">Your real number shows here once Meta is connected.</span>
+            </div>
+            <div class="bs-foot"><span class="pbar" aria-label="Brain 92% full"><i class="js-pbar" style="width:92%"></i></span><span class="mono xs js-pct">92%</span><a class="btn sm ghost arrow" href="#">View brand</a></div>
+          </div>
+        </section>
+
+        <!-- Next steps: waiting-on-you + suggestions, one list, one lime -->
+        <section class="card stepscard" aria-labelledby="ns-h">
+          <div class="hd"><span class="t"><h2 id="ns-h">Next steps</h2><span class="count js-nc">4</span></span></div>
+          <div class="steps js-m">
+            <div class="step"><span class="ic win">W</span><span class="tx"><b>Iterate your winner</b><span>Sleep in 7 nights · UGC v3 is inside target at $11.20. 4 new hooks and faces.</span><span class="acts"><a class="btn sm brand arrow" href="#">Iterate this ad</a></span></span></div>
+            <div class="step"><span class="ic wait">×4</span><span class="tx"><b>Batch 2 is ready</b><span>4 pieces to download or send to Meta.</span><span class="acts"><a class="btn sm" href="#">Open batch</a></span></span></div>
+            <div class="step"><span class="ic wait">S</span><span class="tx"><b>Pick a script</b><span>Insomnia hook test · 3 scripts written.</span><span class="acts"><a class="btn sm" href="#">Choose</a></span></span></div>
+            <div class="step hidden js-more"><span class="ic">B</span><span class="tx"><b>Add customer proof</b><span>The Brain's last gap. Scripts get sharper with real reviews.</span><span class="acts"><a class="btn sm" href="#">Fill</a></span></span></div>
+          </div>
+          <div class="steps js-n hidden">
+            <div class="step"><span class="ic win">↑</span><span class="tx"><b>Start from an ad that sells</b><span>Upload a winning video ad. You get 4 variations, free.</span><span class="acts"><a class="btn sm brand arrow" href="#">Upload a winning ad</a></span></span></div>
+            <div class="step"><span class="ic">f</span><span class="tx"><b>Connect Meta</b><span>So the Brain reads your ads and marks the winner.</span><span class="acts"><a class="btn sm" href="#">Connect</a></span></span></div>
+            <div class="step"><span class="ic">B</span><span class="tx"><b>Finish the Brain</b><span>3 things missing: proof, pains, monthly spend cap.</span><span class="acts"><a class="btn sm" href="#">Fill</a></span></span></div>
+          </div>
+          <button class="more js-m" type="button" id="more">Show 1 more step</button>
+        </section>
+
+        <section class="card conncard" aria-labelledby="cx-h">
+          <div class="hd"><h2 id="cx-h">Connections</h2></div>
+          <div class="conn"><span class="fsq">f</span><span class="tx"><b>Meta</b><span class="js-m">Mooncloth US · act_••4821 · synced 4 min ago</span><span class="js-n hidden">Not connected</span></span><span class="tag ok js-m"><i></i>On</span><a class="btn sm fb js-n hidden" href="#">Connect</a></span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  var frame = document.getElementById("frame");
+  var meta = true;
+  function press(ids, on) { ids.forEach(function (id) { document.getElementById(id).setAttribute("aria-pressed", String(id === on)); }); }
+
+  // ── Brain stage: 2D stand-in for the existing 3D globe (same categories and colors as brain-3d-v1) ──
+  var cv = document.getElementById("cv"), ctx = cv.getContext("2d"), brain = document.getElementById("t-brain");
+  var css = getComputedStyle(document.documentElement);
+  var COL = ["--c-business","--c-offer","--c-aud","--c-goal","--c-hook","--c-script","--c-creative","--c-ad"].map(function (k) { return css.getPropertyValue(k).trim(); });
+  var LIME = css.getPropertyValue("--brand").trim(), AMBER = css.getPropertyValue("--warn-dot").trim(), LINE = css.getPropertyValue("--ink-line").trim();
+  var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+  var nodes = [], links = [];
+  function build() {
+    nodes = []; links = []; seed = 7;
+    var counts = meta ? [4, 2, 3, 3, 24, 18, 31, 64] : [4, 1, 2, 3, 0, 0, 0, 0];
+    counts.forEach(function (n, c) {
+      // each category owns a sector of the sphere
+      var lon0 = (c / 8) * Math.PI * 2;
+      for (var i = 0; i < n; i++) {
+        var lon = lon0 + (rnd() - .2) * (Math.PI * 2 / 8) * 1.3, lat = (rnd() - .5) * Math.PI * .85, r = 0.72 + rnd() * .28;
+        nodes.push({ x: r * Math.cos(lat) * Math.cos(lon), y: r * Math.sin(lat), z: r * Math.cos(lat) * Math.sin(lon), c: c, s: c === 7 ? 1.6 + rnd() * 2.4 : 2.2 + rnd() * 1.4 });
+      }
+    });
+    nodes.forEach(function (n, i) { if (n.c <= 3) links.push([-1, i]); else if (rnd() < .5) links.push([i, Math.floor(rnd() * nodes.length)]); });
+    // pinned live nodes: placed on the front of the globe so the callouts stay readable
+    if (meta) {
+      nodes.push({ id: "win", x: .55, y: -.18, z: .78, c: 7, s: 7, ring: LIME });
+      nodes.push({ id: "w1", x: .28, y: .5, z: .8, c: 6, s: 5, ring: AMBER });
+      nodes.push({ id: "w2", x: -.5, y: -.35, z: .76, c: 5, s: 5, ring: AMBER });
+      var L = nodes.length; links.push([L - 3, -1], [L - 2, L - 3], [L - 1, -1]);
+    }
+  }
+  var t = 0, W = 0, H = 0, reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function size() { var r = brain.getBoundingClientRect(), d = window.devicePixelRatio || 1; W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+  function proj(n, a) {
+    // sway (not a full spin): ±0.35 rad, so pinned nodes never go behind
+    var ca = Math.cos(a), sa = Math.sin(a), x = n.x * ca - n.z * sa, z = n.x * sa + n.z * ca;
+    var R = Math.min(W, H) * .36, f = 2.6 / (2.6 - z);
+    return { x: W / 2 + x * R * f, y: H / 2 + n.y * R * f, z: z, f: f };
+  }
+  function draw() {
+    var a = reduce ? 0 : Math.sin(t / 900) * .35;
+    ctx.clearRect(0, 0, W, H);
+    var C = { x: W / 2, y: H / 2 };
+    var P = nodes.map(function (n) { return proj(n, a); });
+    ctx.lineWidth = 1; ctx.strokeStyle = LINE;
+    links.forEach(function (l) { var p = l[0] < 0 ? C : P[l[0]], q = l[1] < 0 ? C : P[l[1]]; if (!p || !q) return; ctx.globalAlpha = .55; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
+    ctx.globalAlpha = 1;
+    var order = P.map(function (p, i) { return i; }).sort(function (i, j) { return P[i].z - P[j].z; });
+    order.forEach(function (i) {
+      var n = nodes[i], p = P[i];
+      ctx.globalAlpha = .35 + .65 * ((p.z + 1) / 2);
+      ctx.fillStyle = COL[n.c]; ctx.beginPath(); ctx.arc(p.x, p.y, n.s * p.f * .8, 0, Math.PI * 2); ctx.fill();
+      if (n.ring) {
+        ctx.globalAlpha = 1; ctx.strokeStyle = n.ring; ctx.lineWidth = 2;
+        var pulse = reduce ? 0 : (Math.sin(t / 400) + 1) * 2;
+        ctx.beginPath(); ctx.arc(p.x, p.y, n.s * p.f + 5 + pulse, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = LINE;
+        var el = brain.querySelector('[data-node="' + n.id + '"]'); if (el) { el.style.left = p.x + "px"; el.style.top = p.y + "px"; }
+      }
+    });
+    // the client orb in the center
+    ctx.globalAlpha = 1; ctx.fillStyle = LIME; ctx.beginPath(); ctx.arc(C.x, C.y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = LIME; ctx.globalAlpha = .35; ctx.beginPath(); ctx.arc(C.x, C.y, 16 + (reduce ? 0 : Math.sin(t / 700) * 2), 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+    var lc = document.getElementById("lbl-center"); lc.style.left = C.x + "px"; lc.style.top = C.y + "px";
+  }
+  function loop(ts) { t = ts || 0; draw(); if (!reduce) requestAnimationFrame(loop); }
+  new ResizeObserver(function () { size(); draw(); }).observe(brain);
+
+  // ── drawer for a live node ──
+  var D = {
+    win: { tag: ["ok", "Winner"], t: "Sleep in 7 nights · UGC v3", b: '<span style="display:flex;gap:12px"><span class="vid"></span><span class="mets" style="flex:1"><span>Spend<b>$1,840</b></span><span>CPA<b>$11.20</b></span><span>Hook rate<b>31%</b></span><span>Days<b>23</b></span></span></span><span class="xs muted">Hook: "I stopped waking up at 3am." Inside your $10–14 target.</span><a class="btn brand arrow" href="#">Iterate this winner</a>' },
+    w1: { tag: ["warn", "Waiting for you"], t: "Batch 2 · Sleep in 7 nights", b: '<span class="small">4 pieces ready: 2 new hooks, 2 new faces. Iterated from UGC v3.</span><a class="btn" href="#">Open batch</a>' },
+    w2: { tag: ["warn", "Waiting for you"], t: "Insomnia hook test", b: '<span class="small">3 scripts written. Pick one to go on to the face.</span><a class="btn" href="#">Choose a script</a>' }
+  };
+  var dr = document.getElementById("drawer");
+  brain.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-d]"); if (!b) return;
+    var d = D[b.getAttribute("data-d")];
+    var tg = dr.querySelector(".js-dtag"); tg.className = "tag " + d.tag[0] + " js-dtag"; tg.innerHTML = "<i></i>" + d.tag[1];
+    document.getElementById("dr-t").textContent = d.t; dr.querySelector(".js-dbody").innerHTML = d.b; dr.classList.remove("hidden");
+    dr.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener("click", function (ev) { ev.preventDefault(); }); });
+    document.getElementById("dr-x").focus();
+    // one lime on screen: an open drawer takes it from the first step
+    document.querySelectorAll(".stepscard .btn.brand").forEach(function (x) { x.classList.remove("brand"); x.classList.add("was-brand"); });
+  });
+  document.getElementById("dr-x").onclick = function () { dr.classList.add("hidden"); document.querySelectorAll(".stepscard .was-brand").forEach(function (x) { x.classList.add("brand"); x.classList.remove("was-brand"); }); };
+
+  function state(s) {
+    meta = s === "meta"; press(["st-new", "st-meta"], meta ? "st-meta" : "st-new");
+    document.querySelectorAll(".js-m").forEach(function (el) { el.classList.toggle("hidden", !meta); });
+    document.querySelectorAll(".js-n").forEach(function (el) { el.classList.toggle("hidden", meta); });
+    document.querySelector(".js-more").classList.add("hidden");
+    document.getElementById("more").textContent = "Show 1 more step";
+    var p = meta ? 92 : 77;
+    document.querySelector(".js-ring").style.setProperty("--p", p); document.querySelector(".js-ringt").textContent = p;
+    document.querySelector(".js-known").textContent = p + "% known"; document.querySelector(".js-miss").textContent = meta ? "1 thing missing" : "3 things missing";
+    document.querySelector(".js-pbar").style.width = p + "%"; document.querySelector(".js-pct").textContent = p + "%";
+    document.querySelector(".js-nc").textContent = meta ? "4" : "3"; document.querySelector(".js-rc").textContent = meta ? "12" : "0";
+    document.querySelector(".js-co").textContent = meta ? "2" : "1"; document.querySelector(".js-ca").textContent = meta ? "3" : "2";
+    document.getElementById("dr-x").onclick(); build(); draw();
+  }
+  document.getElementById("more").onclick = function () { var m = document.querySelector(".js-more"); var open = m.classList.toggle("hidden"); this.textContent = open ? "Show 1 more step" : "Show less"; };
+  document.getElementById("st-new").onclick = function () { state("new"); };
+  document.getElementById("st-meta").onclick = function () { state("meta"); };
+  document.getElementById("w-desk").onclick = function () { press(["w-desk", "w-phone"], "w-desk"); frame.classList.remove("phone"); };
+  document.getElementById("w-phone").onclick = function () { press(["w-desk", "w-phone"], "w-phone"); frame.classList.add("phone"); };
+  document.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
+  build(); size(); requestAnimationFrame(loop);
+})();
+</script>

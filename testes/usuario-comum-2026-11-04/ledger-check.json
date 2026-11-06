@@ -1,0 +1,82 @@
+{
+  "users": [
+    {
+      "id": "cmw1nzn88003y22hs1srkyw88",
+      "email": "ux-joao-20261104-manual@teste.local",
+      "account_mode": "OWN",
+      "access": "SAMPLE",
+      "sample_uses": 2,
+      "credit_balance": 0
+    },
+    {
+      "id": "cmw1nimzr0000228asn0ypuu8",
+      "email": "ux-marina-20261104-1304@teste.local",
+      "account_mode": "OWN",
+      "access": "SAMPLE",
+      "sample_uses": 0,
+      "credit_balance": 0
+    }
+  ],
+  "runs": [
+    {
+      "batch_id": "cmw1nr9ss000922hspx7jo4i4",
+      "pool": "SAMPLE",
+      "status": "SETTLED",
+      "held": 0,
+      "charged": 4,
+      "refunded": 0
+    },
+    {
+      "batch_id": "cmw1o7oht004l22hsa5r1hqbl",
+      "pool": "SAMPLE",
+      "status": "SETTLED",
+      "held": 0,
+      "charged": 2,
+      "refunded": 0
+    }
+  ],
+  "entries": [
+    {
+      "user_id": "cmw1nimzr0000228asn0ypuu8",
+      "pool": "SAMPLE",
+      "kind": "GRANT",
+      "delta": 4,
+      "balance_after": 4
+    },
+    {
+      "user_id": "cmw1nimzr0000228asn0ypuu8",
+      "pool": "SAMPLE",
+      "kind": "RESERVE",
+      "delta": -4,
+      "balance_after": 0
+    },
+    {
+      "user_id": "cmw1nimzr0000228asn0ypuu8",
+      "pool": "SAMPLE",
+      "kind": "CHARGE",
+      "delta": 0,
+      "balance_after": 0
+    },
+    {
+      "user_id": "cmw1nzn88003y22hs1srkyw88",
+      "pool": "SAMPLE",
+      "kind": "GRANT",
+      "delta": 4,
+      "balance_after": 4
+    },
+    {
+      "user_id": "cmw1nzn88003y22hs1srkyw88",
+      "pool": "SAMPLE",
+      "kind": "RESERVE",
+      "delta": -2,
+      "balance_after": 2
+    },
+    {
+      "user_id": "cmw1nzn88003y22hs1srkyw88",
+      "pool": "SAMPLE",
+      "kind": "CHARGE",
+      "delta": 0,
+      "balance_after": 2
+    }
+  ]
+}

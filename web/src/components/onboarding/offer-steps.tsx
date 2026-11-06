@@ -12,9 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { BriefFields, EMPTY_DRAFT, toDraft, type Draft, type DraftKey } from "@/components/brief-form"
-import { originsOf } from "@/components/offer-extract"
 import { Icon } from "@/components/icon"
-import { SoonBlock } from "@/components/soon"
+import { BrandKit } from "@/components/brand/brand-kit"
 import { BackLink, Card, OnboardingFrame, onboardingHref, type useOnboarding } from "./shared"
 
 type Ctx = ReturnType<typeof useOnboarding>
@@ -32,21 +31,8 @@ function useOfferDraft(ws: Workspace, offer: Offer | null) {
   const [draft, setDraft] = useState<Draft>(base)
   const [lp, setLp] = useState(offer?.sourceUrl ?? ws.websiteUrl ?? "")
   const [notes, setNotes] = useState(offer?.notes ?? "")
-  const [fromPage, setFromPage] = useState<Set<DraftKey>>(
-    () => new Set(Object.entries(offer?.fieldSources ?? {}).filter(([k, v]) => v === "page" && k !== "language").map(([k]) => k as DraftKey))
-  )
-  // briefing-leitura-v2 D5: where each field came from, when the offer kept it
-  const origins = originsOf(offer?.readMeta)
-
-  const change = (k: DraftKey, v: string) => {
-    setDraft((d) => ({ ...d, [k]: v }))
-    setFromPage((s) => {
-      if (!s.has(k)) return s
-      const n = new Set(s)
-      n.delete(k)
-      return n
-    })
-  }
+  // 31/10: the onboarding no longer shows where each field came from ("From checkout…" tags)
+  const change = (k: DraftKey, v: string) => setDraft((d) => ({ ...d, [k]: v }))
 
   const hasContent = BRIEF.some((k) => draft[k].trim()) || !!notes.trim()
   const needsName = !offer && hasContent && !draft.name.trim()
@@ -77,7 +63,7 @@ function useOfferDraft(ws: Workspace, offer: Offer | null) {
     return o
   }
 
-  return { draft, change, fromPage, origins, lp, setLp, notes, setNotes, save, needsName }
+  return { draft, change, lp, setLp, notes, setNotes, save, needsName }
 }
 
 /** Save the offer, then PATCH the step and move. */
@@ -151,47 +137,18 @@ export function ProductStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         </Alert>
       ) : null}
 
-      <SoonBlock what={t.rich("offer.soonProducts", { b: (c) => <b>{c}</b> })} example>
-        <ul className="m-0 grid list-none gap-2 p-0">
-          {[
-            ["Silk sleep mask", "$49"],
-            ["Travel kit", "$69"],
-          ].map(([n, p]) => (
-            <li key={n} className="flex items-center justify-between gap-3 rounded-md border border-line bg-card px-3 py-2.5">
-              <strong>{n}</strong>
-              <span className="font-mono">{p}</span>
-            </li>
-          ))}
-        </ul>
-      </SoonBlock>
-
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-[18px] desktop:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <Card title={t("offer.theOffer")}>
-          <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} origins={d.origins} only={STEP3} disabled={!ctx.canEdit} labels={{ name: t("offer.nameLabel") }} />
-          <div className="grid gap-1.5">
-            <Label htmlFor="ob-lp">{t("offer.lp")}</Label>
-            <Input id="ob-lp" type="text" inputMode="url" value={d.lp} disabled={!ctx.canEdit} onChange={(e) => d.setLp(e.target.value)} placeholder="example.com/offer" />
-          </div>
-          <SoonBlock what={t.rich("offer.soonWhy", { b: (c) => <b>{c}</b> })} />
-        </Card>
-        <Card title={t("offer.proofTitle")}>
-          <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} origins={d.origins} only={["proof"]} disabled={!ctx.canEdit} labels={{ proof: tf("proof") }} />
-          <p className="m-0 text-xs text-fg-3">{t("offer.proofHint")}</p>
-        </Card>
-      </div>
-
-      <SoonBlock what={t.rich("offer.soonObjections", { b: (c) => <b>{c}</b> })} example>
-        <div className="grid gap-2 tablet:grid-cols-2">
-          <div className="flex flex-col gap-1 rounded-md border border-line bg-card p-3">
-            <strong>&ldquo;Is it hot to sleep in?&rdquo;</strong>
-            <span className="text-[13px] text-fg-2">Mulberry silk breathes and stays cool.</span>
-          </div>
-          <div className="flex flex-col gap-1 rounded-md border border-line bg-card p-3">
-            <strong>&ldquo;$49 for a sleep mask?&rdquo;</strong>
-            <span className="text-[13px] text-fg-2">It lasts for years, and the trial costs nothing.</span>
-          </div>
+      {/* 31/10: one column, proofs under the offer (side by side left a tall hole next to the short proofs card) */}
+      <Card title={t("offer.theOffer")}>
+        <BriefFields draft={d.draft} onChange={d.change} only={STEP3} disabled={!ctx.canEdit} labels={{ name: t("offer.nameLabel") }} />
+        <div className="grid gap-1.5">
+          <Label htmlFor="ob-lp">{t("offer.lp")}</Label>
+          <Input id="ob-lp" type="text" inputMode="url" value={d.lp} disabled={!ctx.canEdit} onChange={(e) => d.setLp(e.target.value)} placeholder="example.com/offer" />
         </div>
-      </SoonBlock>
+      </Card>
+      <Card title={t("offer.proofTitle")}>
+        <BriefFields draft={d.draft} onChange={d.change} only={["proof"]} disabled={!ctx.canEdit} labels={{ proof: tf("proof") }} />
+        <p className="m-0 text-xs text-fg-3">{t("offer.proofHint")}</p>
+      </Card>
     </OnboardingFrame>
   )
 }
@@ -214,8 +171,9 @@ export function AudienceStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       hint={t("savedAsYouGo")}
       back={<BackLink href={onboardingHref(3)}>{t("back")}</BackLink>}
       primary={
-        <Button variant="brand" size="lg" disabled={pending} onClick={() => go(5, ctx.next(4))}>
-          {t("audience.continue")}
+        <Button variant="brand" size="lg" disabled={pending} onClick={() => go(ctx.nextStep(4), ctx.next(4))}>
+          {/* goals hidden (31/10): the next step is the Brain, so the label says so */}
+          {ctx.nextStep(4) === 6 ? t("goals.continue", { name: ws.name }) : t("audience.continue")}
           <Icon name="arrowr" />
         </Button>
       }
@@ -235,8 +193,7 @@ export function AudienceStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
       ) : null}
 
       <Card title={t("audience.who")}>
-        <BriefFields draft={d.draft} onChange={d.change} fromPage={d.fromPage} origins={d.origins} only={STEP4} disabled={disabled} />
-        <SoonBlock what={t.rich("audience.soonGroups", { b: (c) => <b>{c}</b> })} />
+        <BriefFields draft={d.draft} onChange={d.change} only={STEP4} disabled={disabled} />
       </Card>
 
       <Card title={t("audience.instructions")}>
@@ -247,42 +204,8 @@ export function AudienceStep({ ws, ctx }: { ws: Workspace; ctx: Ctx }) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-[18px] desktop:grid-cols-2">
-        <SoonBlock what={t.rich("audience.soonVoice", { b: (c) => <b>{c}</b> })} example>
-          <div className="grid gap-3">
-            {[
-              ["Calm", "Energetic", 30],
-              ["Playful", "Serious", 55],
-              ["Casual", "Polished", 40],
-            ].map(([a, b, v]) => (
-              <div key={a as string} className="grid gap-1">
-                <span className="flex justify-between text-xs text-fg-2">
-                  <span>{a}</span>
-                  <span>{b}</span>
-                </span>
-                <span className="h-1.5 rounded-full bg-line">
-                  <span className="block h-full rounded-full bg-fg" style={{ width: `${v}%` }} />
-                </span>
-              </div>
-            ))}
-          </div>
-        </SoonBlock>
-        <SoonBlock what={t.rich("audience.soonWords", { b: (c) => <b>{c}</b> })} example>
-          <div className="flex flex-wrap gap-1.5">
-            {["sleep in", "real dark", "60 nights"].map((w) => (
-              <span key={w} className="rounded-full border border-line bg-card px-2.5 py-1 text-xs font-semibold">
-                {w}
-              </span>
-            ))}
-            {["cure", "guaranteed"].map((w) => (
-              <span key={w} className="rounded-full border border-status-failed-edge bg-status-failed-bg px-2.5 py-1 text-xs font-semibold text-status-failed line-through">
-                {w}
-              </span>
-            ))}
-          </div>
-        </SoonBlock>
-      </div>
-      <SoonBlock what={t.rich("audience.soonBrand", { b: (c) => <b>{c}</b> })} />
+      {/* kit-marca-v1 (31/10): optional, never blocks Continue */}
+      <BrandKit aside={t("audience.brandKitOptional")} />
     </OnboardingFrame>
   )
 }

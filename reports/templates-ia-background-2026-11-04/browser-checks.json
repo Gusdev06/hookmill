@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "URL antiga redireciona para With AI; três formatos ativos; menu sem planejador separado",
+    "escolher template → campeão → Gerar inicia produção; nenhum Plan intermediário",
+    "reload retoma produção e entrega vídeo no mesmo endereço",
+    "galeria mobile sem overflow"
+  ],
+  "errors": [],
+  "mode": "mock",
+  "at": "2026-11-04T15:12:41.226Z"
+}

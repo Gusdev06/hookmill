@@ -34,16 +34,22 @@ import { decidirWebhook, lambdaConfig, prazoEstourado, type LambdaConfig } from 
 import { UpdateEditDto } from './edicao.dto';
 import { normalizarDoc, resolverProps } from '@maquina/video';
 import { EDITABLE, aplicarMudancaDeSettings, definidos, cenaPronta, docJson, editDocOf, montarScratchSource } from './editor-doc';
-import { EditorSaves, anunciarEdicao } from './editor-saves';
+import { anunciarEdicao } from './editor-saves';
+import { EditorExportService } from './editor-export.service';
+import { docV3TemConteudo, isEditorExport, FORMAT_CODE } from './pecas';
+import { editedTextsToCheck } from './editor-auto';
+import { docV3De, resolverPropsHeadline, resolverPropsMoldura, type MolduraProps, type RemixKeepProps } from '@maquina/video';
 import { integracoesMode } from '../integracoes';
 import { computeAdName, isAdNameConflict } from '../biblioteca/ad-names';
 import { AUTO_EDIT_BUILDER, type AutoEditBuilder, type AutoEditContext } from './auto-edit-input';
-import { AUTO_EDIT_TEMPLATE, captionOverrideOf, frameTemplateOf, mockRenderFail, pieceOutcome, primaryFormatOf } from './pecas';
+import { AUTO_EDIT_TEMPLATE, frameTemplateOf, mockRenderFail, pieceOutcome, primaryFormatOf } from './pecas';
 import { FRAME_BUILDER, frameSpecOf, type FrameBuilder } from './frame-input';
 import { capturaValida } from './captura-valida';
 import { HEADLINE_BUILDER, type HeadlineBuilder } from './headline-input';
 import type { OpcoesDeBuild } from '../render/frame';
 import { TemplateTextOverflowError, buildTemplateInput } from '../render/template';
+import type { ListSpec } from '../iteracao/lista-plano';
+import { resolverLogoDaMarca } from '../render/logo';
 import { palavrasNaEscrita } from '../render/escrita-chinesa';
 import { PREVIEW, gerarPrevia } from '../render/previa';
 import type { TemplateSpec } from '../integracoes/contrato';
@@ -54,6 +60,7 @@ import { ChecagemLegendaService } from './checagem-legenda';
 import { semLegendaQueimada } from '../campeoes/faixas-protegidas';
 import { blocksOf } from '../iteracao/contexto';
 import type { AutoVariationType } from '@maquina/contratos';
+import { markActivation } from '../workspaces/ativacao';
 
 /** Código de falha de um formato da peça AUTO (variacao-auto-v1 §5.3; rev. 23/10 §14.3: os da imagem do STATIC). */
 export type AutoFailCode =
@@ -64,12 +71,12 @@ export type AutoFailCode =
   /** render-lambda-v1 §2.8: timeout depois das tentativas */
   | 'RENDER_TIMEOUT'
   /** headline-e-legenda-v1 §1.3/§1.4 (HeadlineError do buildHeadlineInput): refazer não adianta (Leave out) */
-  | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE'
+  | 'HEADLINE_TOO_LONG' | 'HEADLINE_NO_ROOM' | 'HEADLINE_OVER_FACE' | 'HEADLINE_LOW_CONFIDENCE' | 'HEADLINE_PENDING'
   /** legenda-protegida-v1 §3/§4.2: o build caiu em `blocked` (Leave out) · a visão viu a legenda tampada (Retry, fora do zip) */
   | 'CAPTION_PROTECTED' | 'CAPTION_COVERED'
   /** iterate-v2 F1.7: texto do template não coube (Leave out) */
   | 'TEMPLATE_TEXT_OVERFLOW';
-export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE'] as const;
+export const HEADLINE_FAIL_CODES = ['HEADLINE_TOO_LONG', 'HEADLINE_NO_ROOM', 'HEADLINE_OVER_FACE', 'HEADLINE_LOW_CONFIDENCE', 'HEADLINE_PENDING'] as const;
 
 /** Falha da peça AUTO antes do render (sem vídeo do campeão, etc.): vira o errorCode do formato (e da peça, no 9:16). */
 class AutoPieceError extends Error {
@@ -94,6 +101,7 @@ export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   HEADLINE_NO_ROOM: 'There is no free room for a headline in this video. Leave it out.',
   HEADLINE_OVER_FACE: 'The headline would cover the face. Leave it out.',
   HEADLINE_LOW_CONFIDENCE: "We couldn't read the original headline style. Leave it out.",
+  HEADLINE_PENDING: "This video's headline can't be rewritten yet. Leave it out.",
   CAPTION_PROTECTED: 'This format would cover the original captions. It needs the video without captions. Leave it out.',
   CAPTION_COVERED: 'The original captions came out covered or cut. Retry.',
   TEMPLATE_TEXT_OVERFLOW: 'The template text does not fit. Leave it out.',
@@ -104,9 +112,14 @@ const RENDER_MAX_ATTEMPTS = 2;
 const FINALIZE_MAX_TRIES = 3;
 const FINALIZE_STALE_MS = 10 * 60_000;
 const STUCK_SUBMIT_MS = 2 * 60_000;
+/** 02/11: montar o input pode chamar o Claude e o b-roll (split 2 fontes) e passar de 2 min com o processo vivo. Se o
+ *  processo morrer, a recuperação do boot devolve o render; aqui só um teto pra trava de verdade. */
+const STUCK_BUILD_MS = 15 * 60_000;
 const POLL_PARALLEL = 20;
 
 type RenderRow = Prisma.RenderGetPayload<{ include: { creative: true } }>;
+/** O que o builder da peça AUTO precisa do render (o editor monta a base com um id próprio, sem linha de render). */
+type AutoRow = { id: string; workspaceId: string; creative: Creative };
 
 
 
@@ -132,7 +145,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     private readonly config: AppConfig,
     @Inject(RENDER_PORTS) private readonly ports: RenderPorts,
     @Inject(MEDIA_ANALYSIS_SERVICE) private readonly media: MediaAnalysisService,
-    private readonly saves: EditorSaves,
+    private readonly exportFin: EditorExportService,
     @Inject(AUTO_EDIT_BUILDER) private readonly buildAutoInput: AutoEditBuilder,
     @Inject(FRAME_BUILDER) private readonly buildFrameInput: FrameBuilder,
     @Inject(HEADLINE_BUILDER) private readonly buildHeadline: HeadlineBuilder,
@@ -202,8 +215,10 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       const before = editDocOf(c.editDoc);
       const doc = aplicarMudancaDeSettings(before, current, settings);
       const revision = c.editRevision + 1;
+      const now = new Date();
       const data: Prisma.CreativeUncheckedUpdateManyInput = {
         editSettings: settings as unknown as Prisma.InputJsonValue, editDirty: true, editRevision: revision,
+        editSavedById: auth.userId, editSavedAt: now, // editor-universal-v1 §10: quem salvou vira coluna
         ...(doc !== before && { editDoc: docJson(doc) }),
       };
       if (c.state === 'RENDER_READY') {
@@ -212,7 +227,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
         await this.prisma.creative.update({ where: { id: c.id }, data });
         this.sm.announce(c.id);
       }
-      await anunciarEdicao({ prisma: this.prisma, eventos: this.eventos, saves: this.saves }, c.id, auth.userId, revision, new Date());
+      await anunciarEdicao({ prisma: this.prisma, eventos: this.eventos }, c.id, auth.userId, revision, now);
       return { settings, dirty: true as const };
     });
   }
@@ -260,6 +275,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const render = await tx.render.create({
       data: {
         workspaceId: c.workspaceId, creativeId: c.id, status: 'QUEUED', settings: settings as unknown as Prisma.InputJsonValue, input: {},
+        ...(c.variationKind === 'AUTO_EDIT' && { format: c.format, priority: 0 }),
         doc: docJson(doc), editRevision: c.editRevision,
       },
     });
@@ -374,7 +390,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const t = (r.settings as { templateId?: string } | null)?.templateId;
     if (t === AUTO_EDIT_TEMPLATE) {
       const at = r.creative.variationItem?.autoType as string | null | undefined;
-      if (at === 'CHAT_DM' || at === 'PERSON_MOTION') return 'template'; // iterate-v2 F1.4: composição `Template`
+      if (at === 'CHAT_DM' || at === 'PERSON_MOTION' || at === 'LIST_OVERLAY') return 'template'; // iterate-v2 F1.4 / templates-lista-v1 §3: composição `Template`
       return at === 'FRAME' ? 'frame' : at === 'HEADLINE' ? 'remix-keep' : 'auto-edit'; // HEADLINE = remix-keep (§1.3)
     }
     if (t === REMIX_KEEP_TEMPLATE) return 'remix-keep';
@@ -411,16 +427,50 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     return Number.isInteger(n) && n > 0 ? n : 1;
   }
 
+  /**
+   * 02/11: queda de internet/DNS ao montar o input (storage, Claude, Pexels) não é defeito da peça. Volta pra fila em 30 s,
+   * até 5 vezes por render neste processo; depois disso falha como antes.
+   */
+  private readonly offlineTries = new Map<string, number>();
+  private async requeueIfOffline(renderId: string, e: unknown): Promise<boolean> {
+    const msg = `${(e as { code?: string })?.code ?? ''} ${(e as Error)?.message ?? ''} ${String((e as { cause?: unknown })?.cause ?? '')}`;
+    if (!/ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|fetch failed|socket hang up|network/i.test(msg)) return false;
+    const n = (this.offlineTries.get(renderId) ?? 0) + 1;
+    if (n > 5) {
+      this.offlineTries.delete(renderId);
+      return false;
+    }
+    this.offlineTries.set(renderId, n);
+    const back = await this.prisma.render.updateMany({
+      where: { id: renderId, status: 'RENDERING' },
+      data: { status: 'QUEUED', stage: null, progress: 0, startedAt: null, impl: null, notBefore: new Date(Date.now() + 30_000) },
+    });
+    if (!back.count) return false;
+    this.log.warn(`render ${renderId}: sem rede ao montar (${msg.trim().slice(0, 120)}); de volta pra fila em 30 s (tentativa ${n}/5)`);
+    await this.publish(renderId);
+    setTimeout(() => this.kick(), 30_050).unref?.();
+    return true;
+  }
+
   /** Acorda a fila. Idempotente: se já está rodando, o laço pega o novo render. */
   kick(): void {
-    if (this.running || this.stopped) return;
+    if (this.stopped) return;
+    // 02/11: kick durante um drain que já está terminando (a busca dele não viu o render novo) se perdia e o render ficava
+    // QUEUED pra sempre. Agora marca e o drain roda de novo ao acabar.
+    if (this.running) {
+      this.kickAgain = true;
+      return;
+    }
     this.running = true;
+    this.kickAgain = false;
     void this.drain()
       .catch((e) => this.log.error(`fila de render: ${(e as Error).stack ?? e}`))
       .finally(() => {
         this.running = false;
+        if (this.kickAgain) this.kick();
       });
   }
+  private kickAgain = false;
 
   private async drain() {
     while (!this.stopped) {
@@ -579,8 +629,11 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     let res: (RenderResult & { costUsd?: number | null }) | null = null;
     try {
       res = await port.finalize(input, sub);
-      const auto = (r.settings as { templateId?: string } | null)?.templateId === AUTO_EDIT_TEMPLATE;
-      if (auto) await this.completeAuto(r, res);
+      // AI_VIDEO usa a composição de cenas, mas entrega/ledger seguem o ciclo de peça AUTO.
+      const auto = r.creative.variationKind === 'AUTO_EDIT';
+      // editor-universal-v1 §9: export do editor tem fim próprio (checagens; reprovado nunca vira READY)
+      if (auto && this.exportFin.isExport(r)) await this.exportFin.complete(r, res);
+      else if (auto) await this.completeAuto(r, res);
       else await this.completeScratch(r, res);
     } catch (e) {
       if (res) await rm(dirname(res.outputPath), { recursive: true, force: true }).catch(() => undefined);
@@ -703,11 +756,6 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   private async captionCovered(r: RenderRow, res: RenderResult, fileId: string): Promise<boolean> {
     const c = r.creative;
     if (!c.variationBatchId) return false;
-    // §8 (29/10): a pessoa aceitou cobrir a legenda ("Gerar mesmo assim"); CAPTION_COVERED nunca reprova essa peça
-    if (c.variationItemId) {
-      const item = await this.prisma.variationItem.findUnique({ where: { id: c.variationItemId }, select: { payload: true } });
-      if (captionOverrideOf(item?.payload)) return false;
-    }
     const input = r.input as unknown as RenderInput;
     const [batch, offer, attempt] = await Promise.all([
       this.prisma.variationBatch.findUnique({ where: { id: c.variationBatchId }, select: { language: true } }),
@@ -778,7 +826,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const r = await this.prisma.render.findUnique({ where: { id: renderId }, include: { creative: true } });
     if (!r || r.status !== 'RENDERING' || (r.finalizingAt && !claimed)) return;
     this.lastWrite.delete(r.id);
-    const auto = (r.settings as { templateId?: string } | null)?.templateId === AUTO_EDIT_TEMPLATE;
+    const auto = r.creative.variationKind === 'AUTO_EDIT';
     if (auto) {
       await this.failAuto(r, code, failedFrame);
     } else {
@@ -814,8 +862,10 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       const live: typeof rows = [];
       for (const r of rows) {
         if (!r.externalId) {
-          if (r.startedAt && now - r.startedAt.getTime() > STUCK_SUBMIT_MS) {
-            await this.prisma.render.updateMany({ where: { id: r.id, status: 'RENDERING', externalId: null }, data: { status: 'QUEUED', stage: null, progress: 0, impl: null, startedAt: null } });
+          const limit = r.stage === 'bundling' ? STUCK_BUILD_MS : STUCK_SUBMIT_MS;
+          if (r.startedAt && now - r.startedAt.getTime() > limit) {
+            const back = await this.prisma.render.updateMany({ where: { id: r.id, status: 'RENDERING', externalId: null }, data: { status: 'QUEUED', stage: null, progress: 0, impl: null, startedAt: null } });
+            if (back.count) this.kick(); // 02/11: sem isso o render voltava pra fila e ninguém o pegava
           }
           continue;
         }
@@ -890,8 +940,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const clean = ch.cleanVideoFile && (await this.storage.head(ch.cleanVideoFile.storageKey)) ? ch.cleanVideoFile : null;
     const video = clean ?? ch.videoFile;
     if (!video || !(await this.storage.head(video.storageKey))) throw new AutoPieceError('SOURCE_UNAVAILABLE', 'vídeo do campeão sumiu do storage');
-    // §8 (29/10): "Gerar mesmo assim" = layout normal, sem as faixas protegidas (pode cobrir a legenda queimada)
-    const editMap = clean || captionOverrideOf(item.payload) ? semLegendaQueimada(editMapOf(ch.teardown?.editMap)) : editMapOf(ch.teardown?.editMap);
+    const editMap = clean ? semLegendaQueimada(editMapOf(ch.teardown?.editMap)) : editMapOf(ch.teardown?.editMap);
     const sections = (ch.teardown?.sections ?? {}) as {
       structure?: { status?: string; data?: { blocks?: { startSec: number; endSec: number }[] } | null };
       hook?: { status?: string; data?: { endSec?: number } | null };
@@ -922,6 +971,8 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       blocks: teardownBlocks?.length ? teardownBlocks : insight?.blocks ?? [],
       hookEndSec: typeof sections.hook?.data?.endSec === 'number' ? sections.hook.data.endSec : null,
       palette: meas.palette ?? [], brandName: ws.name, page,
+      // kit-marca-v1 §5: logo do kit (URL assinada na hora); sem logo = iniciais
+      brandLogo: await resolverLogoDaMarca({ prisma: this.prisma as never, storage: this.storage }, c.workspaceId, payload.params ?? null),
     };
   }
 
@@ -930,30 +981,9 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const format = r.format ?? 'VERTICAL_9_16';
     try {
       const ctx = await this.autoContext(r.id, r.creative);
-      // headline-e-legenda-v1 §2: legenda automática do lote (campeão sem legenda queimada) em toda peça de vídeo
-      const captions = await this.captionsDoLote(r, ctx);
-      const tipo = ctx.type as string;
-      // legenda-protegida §4.2: o Retry depois de CAPTION_COVERED grava `captionForce` no item → vai direto pro recorte
-      const opts = await this.buildOpts(r);
-      if (tipo === 'HEADLINE') {
-        // §1.3: troca/acrescenta a headline pelo remix-keep (buildHeadlineInput do video), no aspecto do campeão
-        const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string };
-        return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx, opts);
-      }
-      if (tipo === 'CHAT_DM' || tipo === 'PERSON_MOTION') {
-        // iterate-v2 F1.4: template grátis (composição `Template`, buildTemplateInput do video); só 9:16
-        if (await this.mockTemplateOverflow(r, tipo)) throw new TemplateTextOverflowError([{ slot: 'mock', overflow: 'lines', size: 0, lines: 0 }]);
-        return buildTemplateInput(ctx.params as unknown as TemplateSpec, ctx, format);
-      }
-      if (tipo === 'FRAME') {
-        // 25/10 §B2: moldura = composição `Moldura` do video (`kind 'frame'`), montada pelo buildFrameInput dele
-        let params = ctx.params as unknown as Record<string, unknown>;
-        if (precisaSegundaFonte(frameTemplateOf(params)) && !params.second) params = await this.segundaFonte(r, ctx, params);
-        const fi = this.buildFrameInput(frameSpecOf(params), ctx, format, opts);
-        return captions ? ({ ...fi, captions } as RenderInput) : fi;
-      }
-      const ai = this.buildAutoInput(ctx, format, opts);
-      return captions && tipo !== 'STATIC' ? ({ ...ai, captions } as RenderInput) : ai;
+      const input = await this.inputAuto(r, ctx, format, { novaSegundaFonte: true });
+      // editor-universal-v1 §9.2: export (e o 4:5/1:1 pedido depois de um export) = builder de hoje + resolver do editor
+      return await this.comDocDoEditor(r, input, format);
     } catch (e) {
       const hc = (e as { code?: string })?.code;
       const code: AutoFailCode = e instanceof AutoPieceError ? e.code
@@ -961,6 +991,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
           : hc === 'TEMPLATE_TEXT_OVERFLOW' ? 'TEMPLATE_TEXT_OVERFLOW'
           : hc === 'CAPTION_PROTECTED' ? 'CAPTION_PROTECTED'
           : hc && (HEADLINE_FAIL_CODES as readonly string[]).includes(hc) ? (hc as AutoFailCode) : 'RENDER_ERROR';
+      if (await this.requeueIfOffline(r.id, e)) return null;
       this.log.warn(`render AUTO ${r.id}: input falhou: ${(e as Error).message}`);
       await this.failAuto(r, code, null);
       this.kick();
@@ -968,11 +999,91 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** Builder de hoje da peça AUTO (sem doc). `novaSegundaFonte: false` (editor) = não resolve 2ª fonte nova (custo). */
+  private async inputAuto(r: AutoRow, ctx: AutoEditContext, format: VideoFormat, o: { novaSegundaFonte: boolean }): Promise<RenderInput> {
+    // headline-e-legenda-v1 §2: legenda automática do lote (campeão sem legenda queimada) em toda peça de vídeo
+    const captions = await this.captionsDoLote(r, ctx);
+    const tipo = ctx.type as string;
+    // legenda-protegida §4.2: o Retry depois de CAPTION_COVERED grava `captionForce` no item → vai direto pro recorte
+    const opts = await this.buildOpts(r);
+    if (tipo === 'HEADLINE') {
+      // §1.3: troca/acrescenta a headline pelo remix-keep (buildHeadlineInput do video), no aspecto do campeão
+      const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string };
+      return this.buildHeadline({ mode: p.mode, text: p.text, highlight: p.highlight, language: p.language ?? ctx.language, brandColor: await this.brandColorOf(r), captions }, ctx, opts);
+    }
+    if (tipo === 'CHAT_DM' || tipo === 'PERSON_MOTION') {
+      // iterate-v2 F1.4: template grátis (composição `Template`, buildTemplateInput do video); só 9:16
+      if (await this.mockTemplateOverflow(r, tipo)) throw new TemplateTextOverflowError([{ slot: 'mock', overflow: 'lines', size: 0, lines: 0 }]);
+      return buildTemplateInput(ctx.params as unknown as TemplateSpec, ctx, format);
+    }
+    if (tipo === 'LIST_OVERLAY') {
+      // templates-lista-v1 §3: versus/value-stack nos 3 formatos; sem legenda nossa (captionsAuto ignorado)
+      return buildTemplateInput(ctx.params as unknown as ListSpec, ctx, format);
+    }
+    if (tipo === 'FRAME') {
+      // 25/10 §B2: moldura = composição `Moldura` do video (`kind 'frame'`), montada pelo buildFrameInput dele
+      let params = ctx.params as unknown as Record<string, unknown>;
+      if (precisaSegundaFonte(frameTemplateOf(params)) && !params.second) {
+        if (!o.novaSegundaFonte) throw new AutoPieceError('RENDER_ERROR', 'moldura de 2 fontes ainda sem 2ª fonte');
+        params = await this.segundaFonte(r, ctx, params);
+      }
+      const fi = this.buildFrameInput(frameSpecOf(params), ctx, format, opts);
+      return captions ? ({ ...fi, captions } as RenderInput) : fi;
+    }
+    const ai = this.buildAutoInput(ctx, format, opts);
+    return captions && tipo !== 'STATIC' ? ({ ...ai, captions } as RenderInput) : ai;
+  }
+
+  /**
+   * editor-universal-v1 §9.2: aplica o doc do editor no input (FRAME → `resolverPropsMoldura`, HEADLINE →
+   * `resolverPropsHeadline`; o resolver devolve `MolduraProps.edicao` com as caixas mexidas, que vai junto no input).
+   * Doc: o snapshot do render (export) ou, no 4:5/1:1 pedido depois, o do último export que passou (`formatOverrides[fmt]`
+   * + o que vale pra todos). Sem doc = o input de hoje, intocado (render idêntico).
+   */
+  private async comDocDoEditor(r: RenderRow, input: RenderInput, format: VideoFormat): Promise<RenderInput> {
+    if (input.kind !== 'frame' && input.kind !== 'remix-keep') return input;
+    const exp = isEditorExport(r.settings);
+    let doc: unknown = r.doc;
+    if (!exp && !docV3TemConteudo(doc)) {
+      const last = await this.prisma.render.findFirst({
+        where: { creativeId: r.creativeId, status: 'READY', stale: false, settings: { path: ['editorExport'], equals: true } },
+        orderBy: { createdAt: 'desc' }, select: { doc: true },
+      });
+      doc = last?.doc ?? null;
+      if (docV3TemConteudo(doc)) await this.prisma.render.update({ where: { id: r.id }, data: { doc: doc as Prisma.InputJsonValue } });
+    }
+    if (!docV3TemConteudo(doc)) return input;
+    const d = docV3De(doc as never);
+    const code = FORMAT_CODE[format];
+    const res = input.kind === 'frame'
+      ? resolverPropsMoldura(input as unknown as MolduraProps, d, { format: code, principal: '9x16' })
+      : resolverPropsHeadline(input as unknown as RemixKeepProps, d, { format: code, principal: code });
+    const out = { ...input, ...(res.props as object) } as RenderInput;
+    return exp ? ({ ...out, editorCheck: { texts: editedTextsToCheck(res) } } as unknown as RenderInput) : out;
+  }
+
+  /**
+   * editor-universal-v1 §7.2: `base` da peça AUTO num formato = builder de hoje SEM doc. `videoUrl` troca só a URL do
+   * vídeo do campeão (proxy 540p): as dimensões continuam as do original (o proxy é troca de URL, não de layout).
+   * Lança AutoPieceError (sem vídeo/sem 2ª fonte) e os erros do builder (FRAME_TEXT_OVERFLOW, HEADLINE_*).
+   */
+  async editorBase(c: Creative, format: VideoFormat, o: { videoUrl?: string | null; ctx?: AutoEditContext } = {}): Promise<{ input: RenderInput; ctx: AutoEditContext }> {
+    const ctx = o.ctx ?? (await this.autoContext(`editor-${c.id}`, c));
+    const used = o.videoUrl ? { ...ctx, source: { ...ctx.source, videoUrl: o.videoUrl } } : ctx;
+    const input = await this.inputAuto({ id: ctx.renderId, workspaceId: c.workspaceId, creative: c }, used, format, { novaSegundaFonte: false });
+    return { input, ctx };
+  }
+
+  /** Contexto do builder da peça AUTO (pro editor: guarda, palavras, duração). */
+  async editorContext(c: Creative): Promise<AutoEditContext> {
+    return this.autoContext(`editor-${c.id}`, c);
+  }
+
   /**
    * §B3/§B3.1 (Gusta 25/10): 2ª fonte da moldura de 2 fontes, resolvida 1x por peça e gravada no item (o Retry e os
    * formatos sob demanda reusam; a proveniência do b-roll vai na peça e no README do zip).
    */
-  private async segundaFonte(r: RenderRow, ctx: AutoEditContext, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async segundaFonte(r: AutoRow, ctx: AutoEditContext, params: Record<string, unknown>): Promise<Record<string, unknown>> {
     const c = r.creative;
     const [td, offer] = await Promise.all([
       c.championId ? this.prisma.teardown.findUnique({ where: { championId: c.championId } }) : null,
@@ -997,7 +1108,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** §2.1/§2.2: `captionsAuto` do lote → palavras do campeão (tempo do arquivo), destaque na cor da marca e idioma da fala. */
-  private async captionsDoLote(r: RenderRow, ctx: AutoEditContext): Promise<CaptionsAuto | null> {
+  private async captionsDoLote(r: AutoRow, ctx: AutoEditContext): Promise<CaptionsAuto | null> {
     if (!r.creative.variationBatchId) return null;
     const b = await this.prisma.variationBatch.findUnique({ where: { id: r.creative.variationBatchId }, select: { insight: true } });
     if ((b?.insight as { captionsAuto?: boolean } | null)?.captionsAuto !== true || !ctx.words.length) return null;
@@ -1005,19 +1116,19 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     return { words: palavrasNaEscrita(ctx.words, ctx.language).map((w) => ({ word: w.word, startSec: w.startSec, endSec: w.endSec })), highlightColor: accent, language: ctx.language }; // zh-TW/HK = tradicional (escrita-chinesa.ts)
   }
 
-  private async buildOpts(r: RenderRow): Promise<OpcoesDeBuild> {
+  private async buildOpts(r: AutoRow): Promise<OpcoesDeBuild> {
     if (!r.creative.variationItemId) return {};
     const item = await this.prisma.variationItem.findUnique({ where: { id: r.creative.variationItemId }, select: { payload: true } });
     return (item?.payload as { captionForce?: string } | null)?.captionForce === 'replace' ? { captionMode: 'replace' } : {};
   }
 
-  private async brandColorOf(r: RenderRow): Promise<string | null> {
+  private async brandColorOf(r: AutoRow): Promise<string | null> {
     const ws = await this.prisma.workspace.findUnique({ where: { id: r.workspaceId }, select: { brandColor: true } });
     return ws?.brandColor ?? null;
   }
 
   /** iterate-v2 F1.7: `[mock:template-overflow:<TYPE>]` nas notes da oferta (só INTEGRACOES_MODE=mock) = o texto não coube. */
-  private async mockTemplateOverflow(r: RenderRow, tipo: string): Promise<boolean> {
+  private async mockTemplateOverflow(r: AutoRow, tipo: string): Promise<boolean> {
     if (integracoesMode() !== 'mock') return false;
     const offer = await this.prisma.offer.findUnique({ where: { id: r.creative.offerId }, select: { notes: true } });
     return !!offer?.notes?.includes(`[mock:template-overflow:${tipo}]`);
@@ -1043,6 +1154,13 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
    * A falha de uma peça não para as outras: a fila segue.
    */
   async failAuto(r: { id: string; creativeId: string; format: VideoFormat | null; creative: Pick<Creative, 'variationItemId'> }, code: AutoFailCode, failedFrame: number | null) {
+    // editor-universal-v1 §9.4: export reprovado = só o render (a peça e o item ficam como estavam)
+    const row = await this.prisma.render.findUnique({ where: { id: r.id }, select: { settings: true } });
+    if (row && isEditorExport(row.settings)) {
+      await this.exportFin.fail(r.id, code, failedFrame, null);
+      this.kick();
+      return;
+    }
     const reason = AUTO_FAIL_REASON[code];
     await this.prisma.render.updateMany({ where: { id: r.id }, data: { status: 'FAILED', stage: null, errorCode: code, failReason: reason, failedFrame, finishedAt: new Date() } });
     if ((r.format ?? 'VERTICAL_9_16') === 'VERTICAL_9_16' && r.creative.variationItemId) {
@@ -1082,6 +1200,7 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
               data: { approvedAt, approvedById: c.createdById, finalRenderId: vertical.id, adName },
             });
             if (c.variationItemId) await tx.variationItem.update({ where: { id: c.variationItemId }, data: { errorCode: null, failReason: null } });
+            await markActivation(tx, c.workspaceId, 'firstReadyAt', approvedAt); // tour-v2 §6
           });
           break;
         } catch (e) {

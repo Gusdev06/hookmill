@@ -3,12 +3,14 @@
 // health 1×/dia), GET /meta/ads e GET /meta/summary.
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import type { Job, MetaAdRow, MetaAdsMeta, MetaCampaignAdRow, MetaPeriod, MetaSort, MetaStatusFilter, MetaSummary, MetaSyncState } from '@maquina/contratos';
+import type { Job, MetaAdOfferInfo, MetaAdRow, MetaAdVerdict, MetaAdsMeta, MetaCampaignAdRow, MetaOfferFit, MetaOfferListMeta, MetaOfferScope, MetaPeriod, MetaSort, MetaStatusFilter, MetaSummary, MetaSyncState } from '@maquina/contratos';
 import type { MetaAdSnapshot, MetaConnection, Prisma } from '@prisma/client';
 import type { AuthContext } from '../common/auth/auth-context';
 import { AppException } from '../common/errors/app-exception';
 import { AppConfig } from '../config/app-config';
 import { META_SERVICE, type MetaService, compareAds, isEligible, isMetaError, medianCpaOf } from '../integracoes';
+import { median } from '../integracoes/meta/vencedor';
+import type { MetaKnownCreativeLink, MetaWinnerRule } from '../integracoes/contrato';
 import { JobsService } from '../jobs/jobs.service';
 import { presentJob } from '../jobs/job.presenter';
 import { legacyBusinessTypeOf } from '../workspaces/resultado';
@@ -17,6 +19,8 @@ import { assertHealthy, assertSelected, assertUsable, isForeignToMode, markToken
 import { MetaConexaoService, storedHealthOf } from './conexao.service';
 import { type RowCtx, adsManagerObjectUrl, canToggleOf, canWriteOf, matchesStatus, periodMetrics, sortRows, statusCounts, toggleOf } from './campanhas.views';
 import { SyncBackoff } from './sync-backoff';
+import { MetaOfferLinksService, type OfferMatch } from './oferta-links.service';
+import { FIT_RANK, linkCoverage } from './oferta-match';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
@@ -40,6 +44,7 @@ export class MetaSyncService {
     private readonly jobs: JobsService,
     private readonly conexao: MetaConexaoService,
     @Inject(META_SERVICE) private readonly meta: MetaService,
+    private readonly offerLinks: MetaOfferLinksService,
   ) {}
 
   // ───────── disparo ─────────
@@ -112,7 +117,8 @@ export class MetaSyncService {
       assertSelected(assertUsable(c));
       const ws = await this.prisma.workspace.findUniqueOrThrow({ where: { id: c.workspaceId }, select: { resultType: true } });
       stage('listing_ads', STAGE_PROGRESS.listing_ads);
-      let r = await this.meta.syncAds(metaAuthOf(c, this.config), { adAccountId: c.adAccountId!, currency: c.currency ?? 'USD', businessType: legacyBusinessTypeOf(ws.resultType), resultType: ws.resultType, hasPixel: !!c.pixelId }, (p) => {
+      const knownCreativeLinks = await this.knownCreativeLinks(c);
+      let r = await this.meta.syncAds(metaAuthOf(c, this.config), { adAccountId: c.adAccountId!, currency: c.currency ?? 'USD', businessType: legacyBusinessTypeOf(ws.resultType), resultType: ws.resultType, hasPixel: !!c.pixelId, knownCreativeLinks }, (p) => {
         if (p.stage === 'reading_insights') stage('reading_insights', 10 + Math.round((p.total ? p.done / p.total : 1) * 80), { done: p.done, total: p.total });
         else stage(p.stage, STAGE_PROGRESS[p.stage] ?? 50, { done: p.done, total: p.total });
       });
@@ -132,6 +138,9 @@ export class MetaSyncService {
       const uniq = <T,>(xs: T[] | undefined, key: (x: T) => string) => (xs ? [...new Map(xs.map((x) => [key(x), x])).values()] : xs);
       r = { ...r, ads: uniq(r.ads, (a) => a.metaAdId)!, campaigns: uniq(r.campaigns, (k) => k.campaignId), adsets: uniq(r.adsets, (k) => k.adsetId) };
       await this.prisma.$transaction(async (tx) => {
+        // 02/11 (QA F4): dois syncs da mesma conexão em paralelo apagavam juntos e inseriam juntos → unique (connection_id,
+        // campaign_id). A trava por conexão faz o 2º esperar o 1º terminar; aí ele apaga o que o 1º gravou e grava o dele.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'meta_sync:' + c.id}))`;
         // campanhas-v1 §2: as 3 tabelas substituídas inteiras no MESMO instante; porta antiga (sem campaigns/adsets) = vazias
         await tx.metaCampaignSnapshot.deleteMany({ where: { connectionId: c.id } });
         await tx.metaAdsetSnapshot.deleteMany({ where: { connectionId: c.id } });
@@ -167,6 +176,8 @@ export class MetaSyncService {
               metaCreativeId: a.metaCreativeId, videoId: a.videoId, thumbnailUrl: a.thumbnailUrl, resultType: a.resultType,
               metrics: a.metrics as unknown as Prisma.InputJsonValue, metrics7d: a.metrics7d as unknown as Prisma.InputJsonValue, metricsPrev7d: a.metricsPrev7d as unknown as Prisma.InputJsonValue,
               verdict: a.verdict, trend: a.trend, adCreatedTime: a.adCreatedTime ? new Date(a.adCreatedTime) : null, syncedAt,
+              // meta-oferta-v1 §2: porta antiga sem os campos = não lido (null), relido no próximo sync
+              destinationUrls: a.destinationUrls ?? [], destinationSource: a.destinationSource ?? null, urlTags: a.urlTags ?? null,
             })),
           });
         }
@@ -202,6 +213,23 @@ export class MetaSyncService {
       await this.prisma.metaConnection.update({ where: { id: c.id }, data: { lastSyncError: code, lastSyncJobId: jobId } }).catch(() => undefined);
       await this.jobs.finish(jobId, { status: 'FAILED', errorCode: code, failReason: reason }).catch(() => undefined);
     }
+  }
+
+  /**
+   * meta-oferta-v1 §2.2: cache por criativo a partir dos snapshots atuais da mesma conexão e conta (só os já lidos,
+   * destinationSource != null). O criativo da Meta é imutável depois de criado, então o link não envelhece.
+   */
+  async knownCreativeLinks(c: MetaConnection): Promise<Record<string, MetaKnownCreativeLink>> {
+    if (!c.adAccountId) return {};
+    const rows = await this.prisma.metaAdSnapshot.findMany({
+      where: { connectionId: c.id, adAccountId: c.adAccountId, metaCreativeId: { not: null }, destinationSource: { not: null } },
+      select: { metaCreativeId: true, destinationUrls: true, destinationSource: true, urlTags: true },
+    });
+    const out: Record<string, MetaKnownCreativeLink> = {};
+    for (const r of rows) {
+      out[r.metaCreativeId!] = { destinationUrls: r.destinationUrls ?? [], destinationSource: r.destinationSource as MetaKnownCreativeLink['destinationSource'], urlTags: r.urlTags };
+    }
+    return out;
   }
 
   // ───────── cron (§6) ─────────
@@ -309,6 +337,11 @@ export class MetaSyncService {
     }));
   }
 
+  /** Regra do vencedor da porta (meta-v1 §5), pro veredito dentro da oferta (meta-oferta-v1 §4.3). */
+  ruleOf(): MetaWinnerRule {
+    return this.meta.rule();
+  }
+
   /** Contexto das linhas (link do Ads Manager por nível, quem pode escrever, mínimo da conta). */
   rowCtx(auth: AuthContext, c: MetaConnection): RowCtx {
     const adAccountId = c.adAccountId ?? '';
@@ -325,14 +358,14 @@ export class MetaSyncService {
     const [pubs, champs] = ids.length
       ? await Promise.all([
           this.prisma.metaPublication.findMany({ where: { workspaceId, metaAdId: { in: ids } }, include: { creative: { select: { id: true, name: true, adName: true } } }, orderBy: { createdAt: 'desc' } }),
-          this.prisma.champion.findMany({ where: { workspaceId, metaAdId: { in: ids }, archivedAt: null }, select: { id: true, metaAdId: true }, orderBy: { createdAt: 'desc' } }),
+          this.prisma.champion.findMany({ where: { workspaceId, metaAdId: { in: ids }, archivedAt: null }, select: CHAMP_LINK_SELECT, orderBy: { createdAt: 'desc' } }),
         ])
       : [[], []];
     const pubBy = new Map<string, { id: string; name: string; adName: string | null }>();
     for (const p of pubs) if (p.metaAdId && !pubBy.has(p.metaAdId)) pubBy.set(p.metaAdId, p.creative);
     const champBy = new Map<string, string>();
     for (const ch of champs) if (ch.metaAdId && !champBy.has(ch.metaAdId)) champBy.set(ch.metaAdId, ch.id);
-    return { pubBy, champBy };
+    return { pubBy, champBy, iterBy: lastIteratedBy(champs) };
   }
 
   /**
@@ -340,12 +373,19 @@ export class MetaSyncService {
    * Filtros verdict/trend/status/origin/campaignId/adsetId/q; ordem padrão WINNER primeiro, gasto desc; `sort` + `period` + `dir`.
    */
   async ads(auth: AuthContext, q: MetaAdsFilter): Promise<{ items: MetaAdRow[]; meta: MetaAdsMeta }> {
+    // meta-oferta-v1 §4.1: offerScope só com offerId; offerId de outro workspace = 404
+    if (q.offerScope && !q.offerId) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'offerScope', rule: 'requires_offer' }] });
+    if (q.offerId) await this.offerLinks.assertOffer(auth.workspaceId, q.offerId);
     const c = await this.readable(auth.workspaceId);
     const all = await this.snapshots(c, 'all');
     const videoRows = all.filter((r) => !!r.videoId);
     const now = Date.now();
+    // §3: casamento calculado na leitura sobre a conta inteira (o irmão precisa dos vizinhos); §4.3 veredito da oferta
+    const om = await this.offerLinks.match(auth, c, all, q.offerId ?? null);
+    const ov = q.offerId ? offerVerdicts(all, om, this.meta.rule(), c.currency) : null;
+    const verdictOf = (r: MetaAdSnapshot): MetaAdVerdict => ov?.verdicts.get(r.metaAdId) ?? r.verdict;
     let list = q.format === 'all' ? all : videoRows;
-    if (q.verdict) list = list.filter((r) => r.verdict === q.verdict);
+    if (q.verdict) list = list.filter((r) => verdictOf(r) === q.verdict);
     if (q.trend) list = list.filter((r) => r.trend === q.trend);
     if (q.campaignId) list = list.filter((r) => r.campaignId === q.campaignId);
     if (q.adsetId) list = list.filter((r) => r.adsetId === q.adsetId);
@@ -359,12 +399,25 @@ export class MetaSyncService {
     // campanhas-v1 §10: contagem por status com os outros filtros, ignorando o de status
     const counts = statusCounts(list, (r, f) => matchesStatus(r.effectiveStatus, f));
     if (q.status) list = list.filter((r) => matchesStatus(r.effectiveStatus, q.status));
+    // meta-oferta-v1 §4.2-4.4: contagem por grupo e cobertura de link com os filtros de hoje, antes do offerScope
+    let offerMeta: MetaOfferListMeta | undefined;
+    if (q.offerId && ov) {
+      offerMeta = {
+        offerId: q.offerId, counts: fitCounts(list, (r) => om.fit(r.metaAdId)),
+        verdictScope: ov.scope, medianCpa: ov.medianCpa,
+        links: linkCoverage(list.map((r) => ({ destinationUrls: r.destinationUrls ?? [], destinationSource: r.destinationSource }))),
+        offerHasUrl: om.offerHasUrl(),
+      };
+      if (q.offerScope && q.offerScope !== 'all') list = list.filter((r) => om.fit(r.metaAdId) === q.offerScope);
+    }
     const period = q.period ?? '30d';
-    const scored = list.map((r) => ({ row: r, verdict: r.verdict, metrics: periodMetrics(r, period) }));
+    const scored = list.map((r) => ({ row: r, verdict: verdictOf(r), metrics: periodMetrics(r, period) }));
     // `dir` sem `sort` = ordena por gasto nessa direção (o web não ordena mais no cliente)
-    const ordered = q.sort || q.dir
+    let ordered = q.sort || q.dir
       ? sortRows(scored, (x) => ({ m: x.metrics, budget: null, name: x.row.name }), (q.sort ?? 'spend') as MetaSort, q.dir)
       : scored.sort(compareAds);
+    // §4.2 passo 4: grupo primeiro (this → unknown → other), o sort de hoje dentro do grupo (sort estável)
+    if (q.offerId) ordered = [...ordered].sort((a, b) => FIT_RANK[om.fit(a.row.metaAdId) ?? 'unknown'] - FIT_RANK[om.fit(b.row.metaAdId) ?? 'unknown']);
     // campanhas-v1 §11: totais do conjunto FILTRADO inteiro (antes de paginar), na janela de `period`
     const t = aggregate(ordered.map((x) => x.metrics));
     const totals = { count: ordered.length, spend: t.spend, results: t.results, resultType: t.resultType, cpa: t.cpa, ctr: t.ctr, hookRate: t.hookRate };
@@ -372,24 +425,74 @@ export class MetaSyncService {
     const offset = decodeOffset(q.cursor);
     const slice = ordered.slice(offset, offset + limit);
     const nextCursor = offset + limit < ordered.length ? encodeOffset(offset + limit) : null;
-    const { pubBy, champBy } = links ?? (await this.adLinks(c.workspaceId, slice.map((s) => s.row.metaAdId)));
+    const { pubBy, champBy, iterBy } = links ?? (await this.adLinks(c.workspaceId, slice.map((s) => s.row.metaAdId)));
     const ctx = this.rowCtx(auth, c);
-    const items = slice.map(({ row: r }) => presentAd(r, pubBy.get(r.metaAdId) ?? null, champBy.get(r.metaAdId) ?? null, now, ctx));
-    return { items, meta: { nextCursor, counts, totals, summary: await this.summaryOf(c, videoRows, '30d', now) } };
+    const items = slice.map(({ row: r, verdict }) => ({
+      ...presentAd(r, pubBy.get(r.metaAdId) ?? null, champBy.get(r.metaAdId) ?? null, now, ctx, iterBy.get(r.metaAdId) ?? null, om.info(r)),
+      verdict,
+    }));
+    return { items, meta: { nextCursor, counts, totals, summary: await this.summaryOf(c, videoRows, '30d', now), ...(offerMeta && { offer: offerMeta }) } };
   }
+}
+
+/**
+ * meta-oferta-v1 §4.3 (D7): com ≥ 3 anúncios de vídeo elegíveis no grupo `this`, o veredito das linhas `this` é recalculado
+ * contra a mediana de CPA só desses (WINNER ≤ mediana, OK acima, LOW_DATA não elegível). Abaixo disso vale o da conta.
+ * `unknown`/`other` mantêm o da conta; o snapshot não muda.
+ */
+export function offerVerdicts(rows: MetaAdSnapshot[], om: Pick<OfferMatch, 'fit'>, rule: MetaWinnerRule, currency: string | null): { scope: 'offer' | 'account'; medianCpa: number | null; verdicts: Map<string, MetaAdVerdict> } {
+  const mine = rows.filter((r) => om.fit(r.metaAdId) === 'this');
+  const cpas = mine.filter((r) => !!r.videoId).map((r) => metricsOf(r.metrics)).filter((m) => isEligible(m, rule, currency)).map((m) => m.cpa as number);
+  if (cpas.length < OFFER_VERDICT_MIN_ELIGIBLE) return { scope: 'account', medianCpa: null, verdicts: new Map() };
+  const med = median(cpas)!;
+  const verdicts = new Map<string, MetaAdVerdict>();
+  for (const r of mine) {
+    const m = metricsOf(r.metrics);
+    verdicts.set(r.metaAdId, !isEligible(m, rule, currency) ? 'LOW_DATA' : (m.cpa as number) <= med ? 'WINNER' : 'OK');
+  }
+  return { scope: 'offer', medianCpa: med, verdicts };
+}
+/** D7 (aprovado 04/11): mínimo de elegíveis na oferta pro veredito dentro dela. */
+export const OFFER_VERDICT_MIN_ELIGIBLE = 3;
+
+/** §4.2: { this, unknown, other }. Sem fit (sem offerId) conta como unknown. */
+export function fitCounts<T>(rows: T[], fit: (r: T) => MetaOfferFit | null): { this: number; unknown: number; other: number } {
+  const out = { this: 0, unknown: 0, other: 0 };
+  for (const r of rows) out[fit(r) ?? 'unknown']++;
+  return out;
 }
 
 /** Filtros do GET /meta/ads (meta-v1 §3.2 + campanhas-v1 §3). */
 export interface MetaAdsFilter {
   verdict?: string; trend?: string; q?: string; sort?: string; limit?: number; cursor?: string;
   status?: MetaStatusFilter; origin?: 'all' | 'hookmill'; campaignId?: string; adsetId?: string; format?: 'video' | 'all'; period?: MetaPeriod; dir?: 'asc' | 'desc';
+  /** meta-oferta-v1 §4.1 */
+  offerId?: string; offerScope?: MetaOfferScope;
+}
+
+/** lacunas-home-eddy-v1 §4: o lote mais novo de cada campeão vem junto da consulta de campeões (sem query nova). */
+export const CHAMP_LINK_SELECT = {
+  id: true, metaAdId: true, batches: { select: { createdAt: true }, orderBy: { createdAt: 'desc' as const }, take: 1 },
+} as const;
+/** metaAdId → createdAt do lote mais recente entre os campeões (não arquivados) daquele anúncio. */
+export function lastIteratedBy(champs: { metaAdId: string | null; batches: { createdAt: Date }[] }[]): Map<string, Date> {
+  const out = new Map<string, Date>();
+  for (const ch of champs) {
+    const at = ch.batches[0]?.createdAt;
+    if (!ch.metaAdId || !at) continue;
+    const cur = out.get(ch.metaAdId);
+    if (!cur || at > cur) out.set(ch.metaAdId, at);
+  }
+  return out;
 }
 
 export function presentAd(
   r: MetaAdSnapshot, creative: { id: string; name: string; adName: string | null } | null, championId: string | null, now = Date.now(),
-  ctx?: Pick<RowCtx, 'canWrite' | 'url'>,
+  ctx?: Pick<RowCtx, 'canWrite' | 'url'>, lastIteratedAt: Date | null = null, offer?: MetaAdOfferInfo,
 ): MetaCampaignAdRow {
   return {
+    ...(offer && { offer }), // meta-oferta-v1 §4.5
+    lastIteratedAt: lastIteratedAt?.toISOString() ?? null, // lacunas-home-eddy-v1 §4
     // campanhas-v1 §3: sempre presentes (o toggle, selo HookMill, link por nível, permissões)
     status: toggleOf(r.status ?? 'ACTIVE'), fromHookMill: !!creative,
     adsManagerUrl: ctx?.url('ad', r.metaAdId) ?? '', canToggle: canToggleOf(ctx?.canWrite ?? false, r.effectiveStatus), canIterate: !!r.videoId,

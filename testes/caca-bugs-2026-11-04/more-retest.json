@@ -1,0 +1,141 @@
+[
+  {
+    "path": "/offers/cmw1lzn97000f226yzski1cc8",
+    "field": "name",
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "name",
+            "rule": "maxLength"
+          },
+          {
+            "field": "name",
+            "rule": "minLength"
+          },
+          {
+            "field": "name",
+            "rule": "isString"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/offers/cmw1lzn97000f226yzski1cc8",
+    "field": "language",
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "language",
+            "rule": "maxLength"
+          },
+          {
+            "field": "language",
+            "rule": "matches"
+          },
+          {
+            "field": "language",
+            "rule": "isString"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "order",
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "order",
+            "rule": "max"
+          },
+          {
+            "field": "order",
+            "rule": "min"
+          },
+          {
+            "field": "order",
+            "rule": "isInt"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "field": "beta",
+    "status": 400,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request.",
+      "statusCode": 400,
+      "details": {
+        "fields": [
+          {
+            "field": "beta",
+            "rule": "isBoolean"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "/offers/cmw1lzn97000f226yzski1cc8",
+    "input": {},
+    "status": 200
+  },
+  {
+    "path": "/offers/cmw1lzn97000f226yzski1cc8",
+    "input": {
+      "notes": null
+    },
+    "status": 200
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "input": {
+      "credits": null
+    },
+    "status": 422
+  },
+  {
+    "path": "/admin/ad-templates/breaking-news",
+    "input": {
+      "order": 0,
+      "beta": false
+    },
+    "status": 200
+  },
+  {
+    "locale": "EN",
+    "drawer": "Brain item\nBUSINESS\nDigital product\nResult type\nPurchase\nIndustry\nDigital product\nWhere you sell\nUnited States\nWebsite\nhttps://example.com/\nLogo\nlogo\nLogo colors\n#7EFD02, #F00801, #0908F9, #0AF4FB, #EB11F3\nBrand files\n1\nDemo videos\n1\nFrom setup · step 1\nConnections\n5\nClient (1)\nWe sell comfortable mattresses online in the United States f\npart of\nBusiness (4)\nLogo\nbrand\nrosto-a\nbrand\ncurto-6s\nbrand\nexample.com\nread from\nEdit in setup",
+    "errors": []
+  },
+  {
+    "browserValidation": 400
+  },
+  {
+    "locale": "PT_BR",
+    "drawer": "Item do Cérebro\nNEGÓCIO\nDigital product\nTipo de resultado\nPurchase\nSetor\nDigital product\nOnde você vende\nUnited States\nSite\nhttps://example.com/\nLogo\nlogo\nCores do logo\n#7EFD02, #F00801, #0908F9, #0AF4FB, #EB11F3\nArquivos da marca\n1\nVídeos de demonstração\n1\nDo setup · passo 1\nConexões\n5\nCliente (1)\nWe sell comfortable mattresses online in the United States f\nparte de\nNegócio (4)\nLogo\nmarca\nrosto-a\nmarca\ncurto-6s\nmarca\nexample.com\nlido de\nEditar no setup",
+    "errors": []
+  },
+  {
+    "browserValidation": 400
+  }
+]

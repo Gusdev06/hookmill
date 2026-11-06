@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "geracao pela UI com tres propostas e modo simulado explicito",
+    "retomada do plano salvo apos reload",
+    "download JSON fiel e podcast alternando quatro turnos",
+    "expansao de publico exige revisao da adequacao em todas as propostas",
+    "390px sem transbordamento horizontal",
+    "interface EN e PT, roteiro preservado no idioma da oferta",
+    "sem erros JavaScript na pagina"
+  ],
+  "errors": []
+}

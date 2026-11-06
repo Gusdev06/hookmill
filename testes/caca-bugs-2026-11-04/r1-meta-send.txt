@@ -1,0 +1,60 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 6 minutes ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Admin · Templates
+Settings
+Q
+QA Dono Alfa
+Owner
+EN
+PT
+Back to Final OK
+Publish to Meta
+
+Create a paused campaign in Mock Store (USD) with this video. Nothing spends until you press Activate.
+
+Publish template
+Manage templates
+Hunt Sales (default)
+Edit
+New template
+Import from a campaign
+Hunt Sales
+Edit template
+Campaign
+Campaign "Hunt — {offer}" · Sales · CBO $20.00/day
+Ad set
+Purchase · US 18–65 · Advantage+ audience · auto placements · 4–8 ads
+Ad
+Shop now · https://example.com/
+Review and send
+Send without reviewing
+Campaign, ad set and ad are created paused. Nothing spends until Activate.
+Hunt ad 1
+HUNT_1104_1.mp4
+Hunt sleep 🧪
+0:20 · 9:16
+Approved · ready to send
+Download MP4
+f
+Mock Store (USD)
+act_mock_1 · USD
+Page: Mock Page
+Pixel: Mock Pixel
+Manage in Settings

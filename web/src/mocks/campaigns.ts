@@ -23,6 +23,7 @@ import { mockWorkspaceOf } from "./auth"
 import { ME } from "./fixtures"
 import { metaOf, selectedOf, settle } from "./handlers-meta"
 import { accountOf, ADS, adRows, metaFlag, metrics, summaryOf, syncState, type MetaState } from "./v2"
+import { byGroup, campaignFit, countsOf, decorateAds, offerQuery } from "./offer-match"
 
 const u = (p: string) => API_URL + p
 const ok = <D, M>(data: D, meta?: M, status = 200) => HttpResponse.json({ success: true, data, ...(meta ? { meta } : {}) }, { status })
@@ -158,6 +159,24 @@ const writer = (req: Request) => {
   return role === "OWNER" || role === "ADMIN"
 }
 const unusable = () => metaFlag() === "unusable"
+// meta-oferta-v1: CLIENT can't correct the offer (OWNER/ADMIN/MEMBER can)
+const offerEditor = (req: Request) => ((typeof window !== "undefined" && sessionStorage.getItem("mock:role")) || mockWorkspaceOf(req.headers.get("Authorization")).role) !== "CLIENT"
+const wsIdOf = (req: Request) => mockWorkspaceOf(req.headers.get("Authorization")).id
+/** meta-oferta-v1: the campaign of an ad in this workspace's snapshot (the Home rows say "c_1"; the corrections use these ids) */
+export function campaignIdOfAd(req: Request, adId: string): string | undefined {
+  const s = stateOf(req)
+  const d = s.ads.find((x) => x.id === adId)
+  return d ? s.adsets.find((a) => a.id === d.adsetId)?.campaignId : undefined
+}
+/** every ad of the snapshot (for `affectedAds` of PUT/DELETE /meta/offer-links) */
+export function snapshotAdRefs(req: Request) {
+  const s = stateOf(req)
+  return s.ads.map((d) => ({ metaAdId: d.id, campaignId: s.adsets.find((a) => a.id === d.adsetId)!.campaignId }))
+}
+const offerFail = (e: "requires_offer" | "offer_not_found") =>
+  e === "requires_offer"
+    ? fail("VALIDATION_ERROR", 400, "offerScope needs offerId.", { fields: [{ field: "offerScope", rule: "requires_offer" }] })
+    : fail("NOT_FOUND", 404, "Offer not found.", { resource: "offer" })
 
 function effAd(s: CState, d: MD): string {
   if (d.disapproved) return "DISAPPROVED"
@@ -273,6 +292,8 @@ function guard(req: Request): MetaState | Response {
 function campaignList(req: Request, m: MetaState) {
   const s = stateOf(req)
   const sp = new URL(req.url).searchParams
+  const oq = offerQuery(sp)
+  if ("error" in oq) return { error: oq.error }
   const period: MetaPeriod = sp.get("period") === "7d" ? "7d" : "30d"
   const status = (sp.get("status") ?? "all") as StatusF
   const origin = sp.get("origin") === "hookmill" ? "hookmill" : "all"
@@ -280,7 +301,14 @@ function campaignList(req: Request, m: MetaState) {
   const sort = sp.get("sort") ?? "spend"
   const sync = syncState(m)
   const canWrite = writer(req)
-  const all = sync.state === "first_sync" || metaFlag() === "nocamp" ? [] : s.campaigns.map((c) => campaignView(s, m, c, canWrite))
+  const all0 = sync.state === "first_sync" || metaFlag() === "nocamp" ? [] : s.campaigns.map((c) => campaignView(s, m, c, canWrite))
+  // meta-oferta-v1 §4.2: with offerId, the ads carry `offer`, the campaign row its `offerMix`
+  const all = all0.map(({ row, sets }) => {
+    if (!oq.offerId) return { row, sets }
+    const sets2 = sets.map((a) => ({ ...a, ads: decorateAds(a.ads, oq.offerId, wsIdOf(req), offerEditor(req), () => row.id).rows }))
+    const offerMix = countsOf(sets2.flatMap((a) => a.ads.map((d) => d.offer.fit)))
+    return { row: { ...row, offerMix }, sets: sets2 }
+  })
   // origin + q first (counts ignore only `status`)
   const pre = all.flatMap(({ row, sets }) => {
     const hmOk = origin === "all" || row.fromHookMill || sets.some((a) => a.fromHookMill || a.ads.some((d) => d.fromHookMill))
@@ -294,9 +322,21 @@ function campaignList(req: Request, m: MetaState) {
   })
   const statusHit = (x: (typeof pre)[number], f: StatusF) => matchStatus(x.row.effectiveStatus, f) || x.sets.some((a) => matchStatus(a.effectiveStatus, f) || a.ads.some((d) => matchStatus(d.effectiveStatus, f)))
   const counts: MetaStatusCounts = { all: pre.length, active: pre.filter((x) => statusHit(x, "active")).length, paused: pre.filter((x) => statusHit(x, "paused")).length, issues: pre.filter((x) => statusHit(x, "issues")).length }
-  const all2 = pre.filter((x) => statusHit(x, status)).map((x) => x.row).sort(sorter(sort, dirOf(sp, sort), period))
+  let all2 = pre.filter((x) => statusHit(x, status)).map((x) => x.row).sort(sorter(sort, dirOf(sp, sort), period))
+  const fitOf = (r: MetaCampaignRow) => (r.offerMix ? campaignFit(r.offerMix) : null)
+  const offer = oq.offerId
+    ? (() => {
+        const ads = all.flatMap((x) => x.sets.flatMap((a) => a.ads)) as MetaCampaignAdRow[]
+        const d = decorateAds(ads, oq.offerId, wsIdOf(req), offerEditor(req), (id) => campaignIdOfAd(req, id))
+        return { ...d.meta!, counts: countsOf(all2.map(fitOf)) }
+      })()
+    : undefined
+  if (oq.offerId) {
+    if (oq.scope) all2 = all2.filter((r) => fitOf(r) === oq.scope)
+    all2 = byGroup(all2, fitOf)
+  }
   const { items: rows, nextCursor } = pageOf(all2, sp)
-  return { rows, meta: { nextCursor, period, currency: accountOf(m.adAccountId)?.currency ?? "USD", totals: totals(all2, period), truncated: metaFlag() === "trunc", sync, counts } }
+  return { rows, meta: { nextCursor, period, currency: accountOf(m.adAccountId)?.currency ?? "USD", totals: totals(all2, period), truncated: metaFlag() === "trunc", sync, counts, ...(offer ? { offer } : {}) } }
 }
 
 /** GET /meta/ads in the Campaigns "Ads only" mode (handlers-meta routes here when format=all or a campaigns filter is sent). */
@@ -309,6 +349,8 @@ export async function campaignAds(req: Request, m: MetaState) {
   const sort = sp.get("sort") ?? "spend"
   const sync = syncState(m)
   const canWrite = writer(req)
+  const oq = offerQuery(sp)
+  if ("error" in oq) return offerFail(oq.error)
   await delay(250)
   let ads = sync.state === "first_sync" || metaFlag() === "nocamp" ? [] : s.ads.map((d) => adView(s, m, d, canWrite))
   if (sp.get("format") !== "all") ads = ads.filter((d) => d.videoId)
@@ -317,10 +359,18 @@ export async function campaignAds(req: Request, m: MetaState) {
   if (sp.get("adsetId")) ads = ads.filter((d) => d.adset.id === sp.get("adsetId"))
   if (q) ads = ads.filter((d) => has(d.name, q) || has(d.campaign.name, q) || has(d.adset.name, q))
   const counts: MetaStatusCounts = { all: ads.length, active: ads.filter((d) => matchStatus(d.effectiveStatus, "active")).length, paused: ads.filter((d) => matchStatus(d.effectiveStatus, "paused")).length, issues: ads.filter((d) => matchStatus(d.effectiveStatus, "issues")).length }
-  const rows = ads.filter((d) => matchStatus(d.effectiveStatus, status)).sort(sorter(sort, dirOf(sp, sort), period))
+  let rows = ads.filter((d) => matchStatus(d.effectiveStatus, status)).sort(sorter(sort, dirOf(sp, sort), period))
+  // meta-oferta-v1 §4.2: offer on every row (always), counts before offerScope, then the group first
+  const dec = decorateAds(rows, oq.offerId, wsIdOf(req), offerEditor(req), (id) => campaignIdOfAd(req, id))
+  rows = dec.rows
+  if (oq.offerId) {
+    if (sp.get("verdict")) rows = rows.filter((d) => d.verdict === sp.get("verdict"))
+    if (oq.scope) rows = rows.filter((d) => d.offer?.fit === oq.scope)
+    rows = byGroup(rows, (d) => d.offer?.fit)
+  }
   if (Number(sp.get("limit")) > 100) return fail("VALIDATION_ERROR", 400, "limit max 100", { fields: [{ field: "limit", rule: "max" }] })
   const pg = pageOf(rows, sp)
-  return ok(pg.items, { nextCursor: pg.nextCursor, summary: summaryOf(m, "30d", adRows(m, new Set(m.iterated ?? []))), counts, totals: totals(rows, period) })
+  return ok(pg.items, { nextCursor: pg.nextCursor, summary: summaryOf(m, "30d", adRows(m, new Set(m.iterated ?? []))), counts, totals: totals(rows, period), ...(dec.meta ? { offer: dec.meta } : {}) })
 }
 
 // ───────────────────────── writes ─────────────────────────
@@ -451,8 +501,9 @@ export const campaignHandlers = [
     const g = guard(request)
     if (g instanceof Response) return g
     await delay(300)
-    const { rows, meta } = campaignList(request, g)
-    return ok(rows, meta)
+    const r = campaignList(request, g)
+    if ("error" in r) return offerFail(r.error!)
+    return ok(r.rows, r.meta)
   }),
   http.get(u("/meta/campaigns/:id"), async ({ request, params }) => {
     const g = guard(request)
@@ -463,9 +514,16 @@ export const campaignHandlers = [
     const sp = new URL(request.url).searchParams
     const period: MetaPeriod = sp.get("period") === "7d" ? "7d" : "30d"
     await delay(450)
+    const oq = offerQuery(sp)
+    if ("error" in oq) return offerFail(oq.error)
     const { row, sets } = campaignView(s, g, c, writer(request))
     const by = sorter("spend", "desc", period)
-    return ok({ campaign: row, adsets: sets.sort(by).map((a) => ({ ...a, ads: a.ads.sort(by) })) })
+    // meta-oferta-v1 §4.2: the ads with `offer`, each ad set ordered by the group
+    const adsOf = (ads: MetaCampaignAdRow[]) => {
+      const d = decorateAds(ads.sort(by), oq.offerId, wsIdOf(request), offerEditor(request), () => c.id).rows
+      return oq.offerId ? byGroup(d, (x) => x.offer.fit) : d
+    }
+    return ok({ campaign: row, adsets: sets.sort(by).map((a) => ({ ...a, ads: adsOf(a.ads) })) })
   }),
   http.post(u("/meta/:lvl/:id/status"), ({ request, params }) => {
     const level = LEVEL[String(params.lvl)]

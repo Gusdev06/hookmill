@@ -1,0 +1,77 @@
+{
+  "step": 21,
+  "url": "http://localhost:3311/onboarding/business",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nConfigurando SonoLeve\ncom o Eddy · uns 5 minutos\nSair\nEd\nEddy\n\nOi, eu sou o Eddy. Vou montar o Cérebro de SonoLeve com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.\n\nQual é o site? Eu leio e você só corrige o que eu errar.\n\nA SonoLeve vende colchões online para adultos no Brasil que acordam com dor nas costas. Colchão casal por R$ 1.299, teste de 30 noites e entrega em todo o Brasil. Temos avaliações de clientes. Quero gerar novas versões do vídeo de anúncio que já uso no Instagram.\nEd\nEddy\n\nLi a sua descrição.\n\nLido do texto colado\nEd\nEddy\n\nEste é o negócio como eu li. Corrija o que estiver errado direto no cartão.\n\nO negócio\nNome\nSonoLeve\nRamo\nProduto digital\nOnde você vende\nBrasil\nO que conta como resultado\nCompra\nConfirmado\nEstá certo\nEd\nEddy\n\nAgora a oferta. Achei um produto principal; dá pra adicionar outros depois.\n\nA SonoLeve vende colchões online para adultos no Brasil que\nO que é\nA SonoLeve vende colchões online para adultos no Brasil que resolve o problema principal do cliente em poucos minutos.\nPromessa\nResultado visível na primeira semana.\nOferta e preço\nAinda não achei\nChamada pra ação\nToca no link e testa hoje.\nPra quem é\ngente como você\nDores\nVocê já tentou de tudo e nada funciona.\nProvas\nMilhares de pessoas já usam todo dia.\nInstruções pros roteiros\nOpcional\nConfirmado\nEstá certo\nEd\nEddy\n\nAgora a Meta. Com ela eu leio seus anúncios, acho o que já funciona e começo dele. Só leitura; nada muda nas campanhas sem você.\n\nConectar a conta Meta de SonoLeve\n\nEntre com o perfil do Facebook que gerencia os anúncios de SonoLeve. A conta de anúncios e a Página você escolhe na próxima tela.\n\nf\nContinuar com o Facebook\nConectar por outro navegador\nO que vamos pedir\nLer suas contas de anúncio, anúncios e 30 dias de resultados\nCriar anúncios numa campanha quando você apertar Enviar\nNunca: postar na sua Página, mudar orçamento, pausar anúncio sozinho\nPular por agora\n↑\n\nAqui o Eddy só monta o Cérebro. Tudo o que você confirmar dá pra editar depois em Cérebro › Marca.\n\nCÉREBRO DE SONOLEVE\n85%\n11 de 13 coisas conhecidas\nNegócio\n3 / 3\nRamo\nProduto digital\nOnde você vende\nBrasil\nResultado\nCompra\nOferta\n4 / 5\nOferta\nA SonoLeve vende colchões online para adultos no Brasil que\nO que é\nA SonoLeve vende colchões online para adultos no Brasil que resolve o problema principal do cliente em poucos minutos.\nPromessa\nResultado visível na primeira semana.\nOferta e preço\n—\nChamada pra ação\nToca no link e testa hoje.\nPúblico\n2 / 3\nPra quem é\ngente como você\nDores\nVocê já tentou de tudo e nada funciona.\nInstruções\n—\nProvas\n1 / 1\nProvas\nMilhares de pessoas já usam todo dia.\nMetas\n0 / 2\nTeto de gasto\nlido, esperando você\nCPA alvo\n—\nMeta\n0 / 1\nConta de anúncios\n—\nKit da marca\n0 / 4\nLogo\n—\nCores\n—\nArquivos\n—\nVídeo demo\n—\nO % conta as 13 coisas que os roteiros leem. Meta e kit da marca alimentam resultados e estáticos; não contam.",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Sair",
+      "label": "Sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "f\nContinuar com o Facebook",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Conectar por outro navegador",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Pular por agora",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Sua resposta",
+      "id": "",
+      "type": null,
+      "placeholder": "Responda pelo cartão acima",
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "↑",
+      "label": "Enviar",
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

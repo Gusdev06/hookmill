@@ -1,0 +1,79 @@
+{
+  "endpoint": "http://localhost:9000",
+  "Bucket": "maquina-anuncios-test",
+  "before": [
+    {
+      "AllowedMethods": [
+        "GET",
+        "HEAD"
+      ],
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3100",
+        "http://localhost:3216",
+        "http://localhost:3226",
+        "http://localhost:3210",
+        "http://localhost:3236",
+        "http://localhost:3256",
+        "http://localhost:3311"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "ExposeHeaders": [
+        "Content-Length",
+        "Content-Range",
+        "Accept-Ranges",
+        "Content-Type",
+        "ETag"
+      ],
+      "MaxAgeSeconds": 3600
+    }
+  ],
+  "after": [
+    {
+      "AllowedMethods": [
+        "GET",
+        "HEAD"
+      ],
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3100",
+        "http://localhost:3216",
+        "http://localhost:3226",
+        "http://localhost:3210",
+        "http://localhost:3236",
+        "http://localhost:3256",
+        "http://localhost:3311"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "ExposeHeaders": [
+        "Content-Length",
+        "Content-Range",
+        "Accept-Ranges",
+        "Content-Type",
+        "ETag"
+      ],
+      "MaxAgeSeconds": 3600
+    },
+    {
+      "AllowedOrigins": [
+        "http://localhost:3311"
+      ],
+      "AllowedMethods": [
+        "PUT"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "ExposeHeaders": [
+        "ETag"
+      ],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "step": 104,
+  "url": "http://localhost:3311/onboarding/business",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nConfigurando Vendo colchões online no Brasil, para adultos que acordam co\ncom o Eddy · uns 5 minutos\nSalvar e sair\nEd\nEddy\n\nOi, eu sou o Eddy. Vou montar o Cérebro de Vendo colchões online no Brasil, para adultos que acordam co com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.\n\nQual é o site? Eu leio e você só corrige o que eu errar.\n\nVendo colchões online no Brasil, para adultos que acordam com dor nas costas. Preço R$ 1299 e teste de 30 noites. Quero variar meu vídeo de anúncio.\nEd\nEddy\n\nLi a sua descrição.\n\nLido do texto colado\nEd\nEddy\n\nEste é o negócio como eu li. Corrija o que estiver errado direto no cartão.\n\nO negócio\nNome\nVendo colchões online no Brasil, para adultos que acordam co\nRamo\nProduto digital\nOnde você vende\nBrasil\nO que conta como resultado\nCompra\nConfirmado\nEstá certo\nEd\nEddy\n\nAgora a oferta. Achei um produto principal; dá pra adicionar outros depois.\n\nVendo colchões online no Brasil, para adultos que acordam co\nO que é\nVendo colchões online no Brasil, para adultos que acordam co resolve o problema principal do cliente em poucos minutos.\nPromessa\nResultado visível na primeira semana.\nOferta e preço\nAinda não achei\nChamada pra ação\nToca no link e testa hoje.\nPra quem é\ngente como você\nDores\nVocê já tentou de tudo e nada funciona.\nProvas\nMilhares de pessoas já usam todo dia.\nInstruções pros roteiros\nOpcional\nConfirmado\nEstá certo\nEd\nEddy\n\nAgora a Meta. Com ela eu leio seus anúncios, acho o que já funciona e começo dele. Só leitura; nada muda nas campanhas sem você.\n\nPular por agora\nEd\nEddy\nPulado. Conecte quando quiser em Configurações › Conexões.\nEd\nEddy\n\nQuanto custa um bom resultado pra você? E um teto mensal de gasto, pra eu nunca planejar além dele.\n\nCusto alvo por resultado e teto mensal\nAlvo (USD)\na\nTeto / mês (USD)\nteto US$ 10\nEd\nEddy\n\nÚltima coisa: o kit da marca. Adicione o logo, um guia da marca e um vídeo de demonstração do produto, se tiver; os estáticos e os cartões finais usam isso.\n\nKit da marca\nOpcional\nLOGO\nSolte seu logo\nPNG, JPG, WEBP ou SVG · até 5 MB\nARQUIVOS DA MARCA\nSolte fotos do produto, prints ou o manual da marca\nPNG, JPG, WEBP, PDF · até 25 MB cada · até 30 arquivos\nEscolher arquivos\nVÍDEOS DEMO DO PRODUTO\nSolte uma gravação de tela ou uma demo do produto\nMP4 ou MOV · de 1 s a 10 min · até 500 MB · até 5 vídeos\nEscolher arquivos\nNada ainda. Adicione em Cérebro › Marca quando quiser.\nPular por agora\nEd\nEddy\n\nO Cérebro de Vendo colchões online no Brasil, para adultos que acordam co está pronto. Sei 11 de 13 coisas. Falta: oferta e preço, notas. Adicione em Cérebro › Marca quando quiser.\n\nIr pra Home\nNa primeira vez, a Home abre com um tour de 5 paradas.\n↑\n\nAqui o Eddy só monta o Cérebro. Tudo o que você confirmar dá pra editar depois em Cérebro › Marca.\n\nCÉREBRO DE VENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\n85%\n11 de 13 coisas conhecidas\nNegócio\n3 / 3\nRamo\nProduto digital\nOnde você vende\nBrasil\nResultado\nCompra\nOferta\n4 / 5\nOferta\nVendo colchões online no Brasil, para adultos que acordam co\nO que é\nVendo colchões online no Brasil, para adultos que acordam co resolve o problema principal do cliente em poucos minutos.\nPromessa\nResultado visível na primeira semana.\nOferta e preço\n—\nChamada pra ação\nToca no link e testa hoje.\nPúblico\n2 / 3\nPra quem é\ngente como você\nDores\nVocê já tentou de tudo e nada funciona.\nInstruções\n—\nProvas\n1 / 1\nProvas\nMilhares de pessoas já usam todo dia.\nMetas\n1 / 2\nTeto de gasto\nUS$ 10 / mês\nCPA alvo\n—\nMeta\n0 / 1\nConta de anúncios\n—\nKit da marca\n0 / 4\nLogo\n—\nCores\n—\nArquivos\n—\nVídeo demo\n—\nO % conta as 13 coisas que os roteiros leem. Meta e kit da marca alimentam resultados e estáticos; não contam.",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Salvar e sair",
+      "label": "Salvar e sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Mínimo",
+      "id": "",
+      "type": null,
+      "placeholder": "10",
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Máximo",
+      "id": "",
+      "type": null,
+      "placeholder": "14",
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Teto mensal de gasto em USD",
+      "id": "",
+      "type": null,
+      "placeholder": "9000",
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "",
+      "type": "file",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Solte seu logo\nPNG, JPG, WEBP ou SVG · até 5 MB",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "",
+      "type": "file",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Escolher arquivos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "",
+      "type": "file",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Escolher arquivos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Ir pra Home",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Sua resposta",
+      "id": "",
+      "type": null,
+      "placeholder": "Responda pelo cartão acima",
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "↑",
+      "label": "Enviar",
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

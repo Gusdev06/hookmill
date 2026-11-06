@@ -1,0 +1,159 @@
+[
+  {
+    "newer": false,
+    "kind": "business",
+    "http": 200,
+    "dialog": "Brain item\nBUSINESS\nVerified customer reviews.\nProof\nVerified customer reviews. Tested for durability.\nFrom setup · step 3\nConnections\n3\nBusiness (2)\nVerified customer reviews.\nproof\nTested for durability.\nproof\nOffers (1)\nHunt sleep 🧪\nuses proof\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "source",
+    "http": 200,
+    "dialog": "Brain item\nWEBSITE\nexample.com\nAddress\nhttps://example.com/\nFrom setup · step 1\nConnections\n1\nBusiness (1)\nUS\nread from\nOpen page\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "offer",
+    "http": 200,
+    "dialog": "Brain item\nOFFERS\nHunt sleep 🧪\nWhat it is\nA mattress for better sleep\nPromise\nComfort through the night\nOffer and price\n$500, 30-day trial\nCall to action\nShop now\nCreatives\n8\nWinners\n0\nFrom setup · step 3\nConnections\n12\nClient (1)\nQA Alfa\npart of\nBusiness (1)\nVerified customer reviews.\nuses proof\nOffers (4)\nA mattress for better sleep\ndetail\nComfort through the night\ndetail\n$500, 30-day trial\ndetail\nShop now\ndetail\nAudience (1)\nAdults who want better sleep\ntargets\nCreatives (1)\nHook A — the pain\nfor offer\nMeta ads (4)\nHook A — the pain\nWinner\nfor offer\nHEADLINE-02\nfor offer\nHEADLINE-01\nfor offer\nHEADLINE-03\nfor offer\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "audience",
+    "http": 200,
+    "dialog": "Brain item\nAUDIENCE\nAdults who want better sleep\nWho it's for\nAdults who want better sleep\nPains\nPoor sleep; back pain; heat at night\nFrom setup · step 4\nConnections\n4\nOffers (1)\nHunt sleep 🧪\ntargets\nAudience (3)\nPoor sleep\npain\nback pain\npain\nheat at night\npain\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "proof",
+    "http": 200,
+    "dialog": "Brain item\nBUSINESS\nVerified customer reviews.\nProof\nVerified customer reviews. Tested for durability.\nFrom setup · step 3\nConnections\n3\nBusiness (2)\nVerified customer reviews.\nproof\nTested for durability.\nproof\nOffers (1)\nHunt sleep 🧪\nuses proof\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "offer_field",
+    "http": 200,
+    "dialog": "Brain item\nOFFER DETAIL · WHAT IT IS\nA mattress for better sleep\nWhat it is\nA mattress for better sleep\nOffer\nHunt sleep 🧪\nFrom setup · step 3\nConnections\n1\nOffers (1)\nHunt sleep 🧪\ndetail\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "pain",
+    "http": 200,
+    "dialog": "Brain item\nPAIN · 1 OF 3\nPoor sleep\nText\nPoor sleep\nOffer\nHunt sleep 🧪\nFrom setup · step 4\nConnections\n1\nAudience (1)\nAdults who want better sleep\npain\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "proof_item",
+    "http": 200,
+    "dialog": "Brain item\nBUSINESS\nVerified customer reviews.\nProof\nVerified customer reviews. Tested for durability.\nFrom setup · step 3\nConnections\n3\nBusiness (2)\nVerified customer reviews.\nproof\nTested for durability.\nproof\nOffers (1)\nHunt sleep 🧪\nuses proof\nEdit in setup"
+  },
+  {
+    "newer": false,
+    "kind": "batch",
+    "http": 200,
+    "dialog": "Brain item\nCREATIVES\nHook A — the pain\nConnections\n4\nOffers (1)\nHunt sleep 🧪\nfor offer\nCreatives (2)\nHook A — the pain · FRAME-MEME\nin batch\nHook A — the pain · FRAME-NEWS\nin batch\nMeta ads (1)\nHook A — the pain\nWinner\niterated from"
+  },
+  {
+    "newer": false,
+    "kind": "meta_ad",
+    "http": 200,
+    "dialog": "Brain item\nCREATIVES\nHook A — the pain\nConnections\n4\nOffers (1)\nHunt sleep 🧪\nfor offer\nCreatives (2)\nHook A — the pain · FRAME-MEME\nin batch\nHook A — the pain · FRAME-NEWS\nin batch\nMeta ads (1)\nHook A — the pain\nWinner\niterated from"
+  },
+  {
+    "newer": false,
+    "kind": "hook",
+    "http": 200,
+    "dialog": "Brain item\nHOOKS & ANGLES\nNobody tells you this about the problem you have.\nNobody tells you this about the problem you have.\nAngle\n—\nScripts\n0\nMeta ads using it\n1\nBest CPA\n$20.00\nConnections\n1\nMeta ads (1)\nHook A — the pain\nWinner\nuses hook\nNew concept with this hook"
+  },
+  {
+    "newer": false,
+    "kind": "creative",
+    "http": 200,
+    "dialog": "Brain item\nCREATIVES\nHunt ad 6\napproved\nEngine\n—\nLength\n0:20\nCost\n$0.00\nOpen creative\nSend to Meta"
+  },
+  {
+    "newer": false,
+    "errors": []
+  },
+  {
+    "newer": true,
+    "kind": "business",
+    "http": 200,
+    "dialog": "Brain item\nBUSINESS\nDigital product\nResult type\nPurchase\nIndustry\nDigital product\nWhere you sell\nUnited States\nWebsite\nhttps://example.com/\nLogo\nlogo\nLogo colors\n#7EFD02, #F00801, #0908F9, #0AF4FB, #EB11F3\nbrain.g.drawer.field.files\n1\nbrain.g.drawer.field.demoVideos\n1\nFrom setup · step 1\nConnections\n5\nClient (1)\nWe sell comfortable mattresses online in the United States f\npart of\nBusiness (4)\nLogo\nbrand\nrosto-a\nbrand\ncurto-6s\nbrand\nexample.com\nread from\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "goal",
+    "http": 200,
+    "dialog": "Brain item\nGOALS\nPURCHASES · CPA 20–30 USD · US$ 10\nMonthly cap\n$10.00\nResult\nPurchases\nTarget cost per result\n20–30 USD\nConnections\n1\nClient (1)\nWe sell comfortable mattresses online in the United States f\npart of"
+  },
+  {
+    "newer": true,
+    "kind": "brand_asset",
+    "http": 200,
+    "dialog": "Brain item\nBRAND KIT\nLogo\nLogo colors\n#7EFD02\n#F00801\n#0908F9\n#0AF4FB\n#EB11F3\nFormat\nPNG\nSize\n75 kB\nAdded\nNov 4, 2026\nConnections\n6\nBusiness (6)\nDigital product\nbrand\n#7EFD02\ncolor\n#F00801\ncolor\n#0908F9\ncolor\n#0AF4FB\ncolor\n#EB11F3\ncolor\nOpen the brand kit"
+  },
+  {
+    "newer": true,
+    "kind": "brand_color",
+    "http": 200,
+    "dialog": "Brain item\nBRAND COLOR\n#7EFD02\nColor\n#7EFD02\nLogo\nLogo\nConnections\n1\nBusiness (1)\nLogo\ncolor\nOpen the brand kit"
+  },
+  {
+    "newer": true,
+    "kind": "source",
+    "http": 200,
+    "dialog": "Brain item\nWEBSITE\nexample.com\nAddress\nhttps://example.com/\nFrom setup · step 1\nConnections\n1\nBusiness (1)\nDigital product\nread from\nOpen page\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "offer",
+    "http": 200,
+    "dialog": "Brain item\nOFFERS\nWe sell comfortable mattresses online in the United States f\nType\nDigital product\nWhat it is\nWe sell comfortable mattresses online in the United States f solves the customer's main problem in minutes.\nPromise\nVisible results in the first week.\nCall to action\nTap the link and try it today.\nImages read\n0\nCreatives\n0\nWinners\n0\nFrom setup · step 3\nConnections\n6\nClient (1)\nWe sell comfortable mattresses online in the United States f\npart of\nBusiness (1)\nCustomer reviews\nuses proof\nOffers (3)\nWe sell comfortable mattresses online in the United States f solves the custome…\ndetail\nVisible results in the first week.\ndetail\nTap the link and try it today.\ndetail\nAudience (1)\npeople like you\ntargets\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "audience",
+    "http": 200,
+    "dialog": "Brain item\nAUDIENCE\npeople like you\nWho it's for\npeople like you\nPains\nInsomnia; Back pain\nFrom setup · step 4\nConnections\n3\nOffers (1)\nWe sell comfortable mattresses online in the United States f\ntargets\nAudience (2)\nInsomnia\npain\nBack pain\npain\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "proof",
+    "http": 200,
+    "dialog": "Brain item\nBUSINESS\nCustomer reviews\nProof\nCustomer reviews; 30-day trial\nFrom setup · step 3\nConnections\n3\nBusiness (2)\nCustomer reviews\nproof\n30-day trial\nproof\nOffers (1)\nWe sell comfortable mattresses online in the United States f\nuses proof\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "offer_field",
+    "http": 200,
+    "dialog": "Brain item\nOFFER DETAIL · WHAT IT IS\nWe sell comfortable mattresses online in the United States f solves the custome…\nFrom your page\nWhat it is\nWe sell comfortable mattresses online in the United States f solves the customer's main problem in minutes.\nRead from\nmain page\nOffer\nWe sell comfortable mattresses online in the United States f\nFrom setup · step 3\nConnections\n1\nOffers (1)\nWe sell comfortable mattresses online in the United States f\ndetail\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "pain",
+    "http": 200,
+    "dialog": "Brain item\nPAIN · 1 OF 2\nInsomnia\nText\nInsomnia\nOffer\nWe sell comfortable mattresses online in the United States f\nFrom setup · step 4\nConnections\n1\nAudience (1)\npeople like you\npain\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "proof_item",
+    "http": 200,
+    "dialog": "Brain item\nBUSINESS\nCustomer reviews\nProof\nCustomer reviews; 30-day trial\nFrom setup · step 3\nConnections\n3\nBusiness (2)\nCustomer reviews\nproof\n30-day trial\nproof\nOffers (1)\nWe sell comfortable mattresses online in the United States f\nuses proof\nEdit in setup"
+  },
+  {
+    "newer": true,
+    "kind": "meta_ad",
+    "http": 200,
+    "dialog": "Brain item\nMETA ADS\nHook A — the pain\nWinner\nWorking\nNo video here. Open it in Campaigns.\nSpend 30 d\n$420.00\nCPA\n$20.00\nCTR\n2.5%\nHook rate\n40%\nRunning\n40 days\nHook\n—\nCampaign\nMock — Prospecting (CBO)\nAd set\nMock — Broad US\nConnections\n1\nClient (1)\nWe sell comfortable mattresses online in the United States f\npart of\nIterate this winner\nOpen in Campaigns"
+  },
+  {
+    "newer": true,
+    "errors": [
+      "IntlError: MISSING_MESSAGE: Could not resolve `brain.g.drawer.field.files` in messages for locale `en`.\n    at getFallbackFromErrorAndNotify (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10243:23)\n    at translateBaseFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10273:28)\n    at translateFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10301:24)\n    at http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:857:17\n    at Array.map (<anonymous>)\n    at BrainNodePanel (http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:845:68)\n    at Object.react_stack_bottom_frame (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:14894:24)\n    at renderWithHooks (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4425:24)\n    at updateFunctionComponent (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:5892:21)\n    at beginWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6518:24)\n    at runWithFiberInDEV (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:761:74)\n    at performUnitOfWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9385:97)\n    at workLoopSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9279:40)\n    at renderRootSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9263:13)\n    at performWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:8891:186)\n    at performSyncWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10093:9)\n    at flushSyncWorkAcrossRoots_impl (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10009:316)\n    at processRootScheduleInMicrotask (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10030:106)\n    at http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10104:158",
+      "IntlError: MISSING_MESSAGE: Could not resolve `brain.g.drawer.field.demoVideos` in messages for locale `en`.\n    at getFallbackFromErrorAndNotify (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10243:23)\n    at translateBaseFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10273:28)\n    at translateFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10301:24)\n    at http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:857:17\n    at Array.map (<anonymous>)\n    at BrainNodePanel (http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:845:68)\n    at Object.react_stack_bottom_frame (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:14894:24)\n    at renderWithHooks (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4425:24)\n    at updateFunctionComponent (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:5892:21)\n    at beginWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6518:24)\n    at runWithFiberInDEV (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:761:74)\n    at performUnitOfWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9385:97)\n    at workLoopSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9279:40)\n    at renderRootSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9263:13)\n    at performWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:8891:186)\n    at performSyncWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10093:9)\n    at flushSyncWorkAcrossRoots_impl (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10009:316)\n    at processRootScheduleInMicrotask (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10030:106)\n    at http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10104:158",
+      "IntlError: MISSING_MESSAGE: Could not resolve `brain.g.drawer.field.files` in messages for locale `en`.\n    at getFallbackFromErrorAndNotify (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10243:23)\n    at translateBaseFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10273:28)\n    at translateFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10301:24)\n    at http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:857:17\n    at Array.map (<anonymous>)\n    at BrainNodePanel (http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:845:68)\n    at Object.react_stack_bottom_frame (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:14894:24)\n    at renderWithHooksAgain (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4480:24)\n    at renderWithHooks (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4431:28)\n    at updateFunctionComponent (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:5892:21)\n    at beginWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6518:24)\n    at runWithFiberInDEV (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:761:74)\n    at performUnitOfWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9385:97)\n    at workLoopSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9279:40)\n    at renderRootSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9263:13)\n    at performWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:8891:186)\n    at performSyncWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10093:9)\n    at flushSyncWorkAcrossRoots_impl (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10009:316)\n    at processRootScheduleInMicrotask (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10030:106)\n    at http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10104:158",
+      "IntlError: MISSING_MESSAGE: Could not resolve `brain.g.drawer.field.demoVideos` in messages for locale `en`.\n    at getFallbackFromErrorAndNotify (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10243:23)\n    at translateBaseFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10273:28)\n    at translateFn (http://localhost:3311/_next/static/chunks/node_modules_1s610x8._.js:10301:24)\n    at http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:857:17\n    at Array.map (<anonymous>)\n    at BrainNodePanel (http://localhost:3311/_next/static/chunks/web_src_044odk-._.js:845:68)\n    at Object.react_stack_bottom_frame (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:14894:24)\n    at renderWithHooksAgain (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4480:24)\n    at renderWithHooks (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4431:28)\n    at updateFunctionComponent (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:5892:21)\n    at beginWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6518:24)\n    at runWithFiberInDEV (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:761:74)\n    at performUnitOfWork (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9385:97)\n    at workLoopSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9279:40)\n    at renderRootSync (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9263:13)\n    at performWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:8891:186)\n    at performSyncWorkOnRoot (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10093:9)\n    at flushSyncWorkAcrossRoots_impl (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10009:316)\n    at processRootScheduleInMicrotask (http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10030:106)\n    at http://localhost:3311/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10104:158"
+    ]
+  }
+]

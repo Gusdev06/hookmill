@@ -1,0 +1,79 @@
+[
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:51.112Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/offers/extract",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:16:55.748Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/offers",
+    "method": "POST",
+    "status": 201,
+    "at": "2026-11-04T05:16:57.805Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:57.959Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:58.555Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:58.873Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:59.419Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:59.813Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:16:59.855Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:17:00.333Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:17:00.398Z"
+  }
+]

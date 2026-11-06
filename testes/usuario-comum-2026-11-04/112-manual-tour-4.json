@@ -1,0 +1,277 @@
+{
+  "step": 112,
+  "url": "http://localhost:3311/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nV\nVendo colchões online no Brasil, para adultos que acordam co\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n4\nComprar créditos\nConfigurações\nJ\nJoão Teste\nDono\nEN\nPT\nVendo colchões online no Brasil, …\n85%\n85% conhecido · faltam 2 itens\nAbrir Cérebro\nNegócio 2\nOfertas 4\nPúblico 2\nMetas 1\nGanchos e ângulos\nRoteiros\nCriativos\nAnúncios Meta\n10 nós · 9 conexões\nO Cérebro cresce enquanto você trabalha\nAgora ele sabe o seu setup. Ganchos e roteiros aparecem depois dos primeiros conceitos; criativos depois do primeiro vídeo; anúncios da Meta depois de conectar a Meta.\nEd\nEM BREVE\n\nO Eddy vai receber pedidos assim aqui. Até lá, Próximos passos mostra o que fazer.\n\nRecentes\n0\n\nNada feito ainda. Lotes e conceitos aparecem aqui com a etapa, ao vivo.\n\nSEU NEGÓCIO · VENDO COLCHÕES ONLINE NO BRASIL, PARA ADULTOS QUE ACORDAM CO\nBoa tarde, João\nVendo colchões online no Brasil, para adultos que acordam co\nProduto digital · Brasil\nMeta · custo por compra\nSem faixa alvo\nO número real aparece aqui quando a Meta estiver conectada.\n85%\nVer marca\nPróximos passos\n3\n↑\nComece por um anúncio que vende\nEnvie um anúncio de vídeo vencedor e receba variações dele.\nEnviar um anúncio vencedor\nf\nConectar a Meta\nPro Cérebro ler seus anúncios e marcar o vencedor.\nConectar\nB\nCompletar o Cérebro\nFaltam 2 itens: oferta e preço, notas.\nPreencher\nConexões\nf\nMeta\nNão conectada\nConectar\nTOUR · 4 DE 4\nA Home é o seu placar\n\nGasto, custo por compra, ROAS e os anúncios rodando, da Meta. Os melhores anúncios pra iterar e o que estiver esperando você. É isso. Vá fazer um anúncio.\n\nVoltar\nConcluir",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "V\nVendo colchões online no Brasil, para adultos que acordam co\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "J\nJoão Teste\nDono",
+      "label": "Conta",
+      "id": "radix-_r_h_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "85%\n85% conhecido · faltam 2 itens",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Abrir Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain?view=map"
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Pergunte ao Eddy",
+      "id": "",
+      "type": null,
+      "placeholder": "Peça ao Eddy pra transformar este briefing em conceitos de anúncio…",
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Ver marca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Enviar um anúncio vencedor",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conectar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Preencher",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conectar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Voltar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Concluir",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    }
+  ]
+}

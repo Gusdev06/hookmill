@@ -1,0 +1,117 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · sincronizada há 1 minuto
+WORKSPACE
+Início
+Campanhas
+Eddy
+EM BREVE
+Cérebro
+FAZER ANÚNCIOS
+Templates
+Conceitos novos
+Revisar
+Biblioteca
+Equipe · ilimitado
+∞
+Comprar créditos
+Admin · Templates
+Configurações
+Q
+QA Dono Alfa
+Dono
+EN
+PT
+Configurações
+
+Espaço de trabalho, pessoas, serviços conectados e gastos.
+
+Espaço de trabalho
+Nome
+Cor da marca
+Escolher a cor da marca
+Cor de destaque dos estáticos. Vazio: a gente tira da sua página ou do campeão.
+Idioma da interface
+English
+Português (BR)
+Configuração
+Editar configuração
+Progresso
+100% configurado
+Tour do produto
+Refazer o tour
+Conexões
+Gerenciar
+Meta (anúncios, meta-v1)
+Conectado · sincronizada há 1 minuto
+Modo da conta
+Só eu
+
+Troque pra Agência pra adicionar clientes. Seu espaço vira o seu primeiro cliente; nada se perde.
+
+Trocar pra Agência
+Liberar uma conta
+Equipe HookMill
+
+Cole o id da conta que a pessoa mandou pelo “Fale com a gente” e escolha o plano. A amostra dela destrava na próxima vez que ela olhar; nada é renderizado de novo.
+
+Id da conta
+Plano
+Pago
+Pago
+Amostra grátis (travada)
+Equipe (nunca trava)
+Salvar plano
+Créditos
+Comprar e histórico
+Saldo
+Ilimitado
+Catálogo de templates
+Admin · Templates
+Creditar uma conta
+Só a equipe
+
+Ainda sem checkout: quando alguém te pagar, adicione os créditos aqui. Número negativo tira créditos (nunca abaixo de zero).
+
+E-mail ou id da conta
+Créditos
+Observação
+Adicionar créditos
+Apertar duas vezes nunca credita duas vezes.
+Membros
+Convidar
+QA
+QA Dono Alfa
+Dono
+QA
+QA Admin Alfa
+Admin
+QA
+QA Membro Alfa
+Membro
+QD
+QA Duplo
+Membro
+QA
+QA Cliente Alfa
+Cliente · aprova anúncios
+Serviços conectados
+Anthropic (roteiros)
+Não conectado
+WaveSpeed (vídeo, lipsync)
+Não conectado
+Higgsfield (rostos)
+Não conectado
+Apify (link da Ad Library)
+Não conectado
+Armazenamento (arquivos)
+Conectado · …na
+Meta (anúncios, meta-v1)
+Conectado · mock
+Gastos
+Este mês
+US$ 0,00
+Teto mensal
+$

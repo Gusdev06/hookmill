@@ -16,6 +16,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { autoFailReason } from './plano-auto.service';
 import { ZipService } from './zip.service';
 import { isSampleSettings } from '../amostra/acesso';
+import type { IterateTemplateRun } from '@maquina/contratos';
+import { CreditosService, templateSettingsOf } from '../creditos/creditos.service';
+import { editableTextsOf } from './templates-lote';
+import { isListSpec } from './lista-plano';
+import { listOverlayPropsOf } from '../render/template';
+import { paramsOf } from '../edicao/pecas';
+import { semLegendaQueimada } from '../campeoes/faixas-protegidas';
 
 export const ITERATE_INCLUDE = {
   offer: true,
@@ -80,17 +87,13 @@ export function phaseOf(status: IterateStatus, generatePending: number): Iterate
 }
 
 /**
- * legenda-protegida-v1 §8 (29/10): `captionBlocked[].forced` = há peça incluída no plano, com `captionOverride`, desse
- * tipo/moldura ("Gerar mesmo assim"). Sem `captionBlocked` = como veio.
+ * troca-texto-queimado-v1 §15.3/§15.3.1: lote antigo pode ter `captionNote` e `captionBlocked[].forced` no JSON guardado.
+ * Saem da resposta; a lista `captionBlocked` continua legível.
  */
-export function withForced(insight: AutoInsight, pieces: Pick<IteratePiece, 'type' | 'captionOverride' | 'frame'>[]): AutoInsight {
-  if (!insight.captionBlocked?.length) return insight;
-  return {
-    ...insight,
-    captionBlocked: insight.captionBlocked.map((e) => ({
-      ...e, forced: pieces.some((p) => p.captionOverride === true && p.type === e.type && (p.type !== 'FRAME' || (p.frame?.template ?? null) === e.template)),
-    })),
-  };
+export function insightView(insight: AutoInsight): AutoInsight {
+  const { captionNote: _note, ...rest } = insight as AutoInsight & { captionNote?: boolean };
+  if (!rest.captionBlocked?.length) return rest;
+  return { ...rest, captionBlocked: rest.captionBlocked.map((e) => { const { forced: _f, ...x } = e as typeof e & { forced?: boolean }; return x; }) };
 }
 
 @Injectable()
@@ -102,10 +105,43 @@ export class IteracaoViews {
     private readonly pecas: PecasAutoService,
     private readonly zips: ZipService,
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
+    private readonly creditos: CreditosService,
   ) {}
+
+  /** templates-creditos-v1 §7: `IterateBatch.template` (quote, saldo, linhas, fit e textos editáveis). null = lote do quiz. */
+  private async templateView(b: IterateRow): Promise<IterateTemplateRun | null> {
+    const tpl = templateSettingsOf(b.settings);
+    if (!tpl) return null;
+    const locale = (await this.prisma.user.findUnique({ where: { id: b.createdBy.id }, select: { uiLocale: true } }))?.uiLocale ?? 'EN';
+    const run = await this.creditos.runView(b, locale);
+    if (!run) return null;
+    const items = b.status === 'PLAN_READY'
+      ? await this.prisma.variationItem.findMany({ where: { batchId: b.id, kind: 'AUTO_EDIT', OR: [{ included: true }, { autoType: 'LIST_OVERLAY', payload: { path: ['params', 'fill'], equals: 'pending' } }] }, orderBy: { index: 'asc' }, select: { id: true, autoType: true, payload: true } })
+      : [];
+    return {
+      ...run,
+      ...(run.tier === 'AI' && {
+        autoGenerate: true,
+        productionStage: await this.aiStage(b.id, b.status),
+      }),
+      fit: tpl.fit ? { level: tpl.fit.level, reason: tpl.fit.reason } : { level: 'unknown', reason: 'not_read' },
+      texts: items.map((i) => ({ pieceId: i.id, items: editableTextsOf(i.autoType, ((i.payload as { params?: Record<string, unknown> } | null)?.params) ?? null) })).filter((t) => t.items.length),
+    };
+  }
 
   private async ref(f: import('@prisma/client').File | null | undefined): Promise<FileRef | null> {
     return f ? this.storage.fileRef(f) : null;
+  }
+
+  private async aiStage(batchId: string, status: string): Promise<NonNullable<IterateTemplateRun['productionStage']>> {
+    const c = await this.prisma.creative.findFirst({ where: { variationBatchId: batchId, variationItem: { autoType: 'AI_VIDEO' } }, select: { state: true } });
+    if (status === 'ANALYZING') return 'reading';
+    if (!c || c.state === 'SCRIPTS_WRITING') return 'writing';
+    if (c.state === 'FACES_GENERATING') return 'presenters';
+    if (c.state === 'SCENES_GENERATING') return 'video';
+    if (c.state === 'RENDERING') return 'render';
+    if (c.state === 'APPROVED' || c.state === 'RENDER_READY') return 'done';
+    return 'failed';
   }
 
   async batch(b: IterateRow): Promise<IterateBatch> {
@@ -125,7 +161,11 @@ export class IteracaoViews {
       piece.askedByUser = !!piece.wantKey && !!answers?.wants.includes(piece.wantKey);
       piece.priceUsd = piece.type === 'STATIC' ? this.pecas.staticImageUsd() : null;
     }
-    const pieces = all.filter((p) => metadata.get(p.id)?.included !== false);
+    // templates-lista-v1 §2.3: a lista com `fill: 'pending'` aparece no Plan (alerta "Too few items" + Fill from Brain), mas
+    // fica fora do lote e do quote (`included: false`) até o PATCH …/list { acceptFill }
+    const pieces = all.filter((p) => metadata.get(p.id)?.included !== false || p.list?.fill === 'pending');
+    if (status === 'PLAN_READY') await this.listPreviews(b, pieces);
+    const counted = pieces.filter((p) => metadata.get(p.id)?.included !== false);
     const notSelected = all.filter((p) => ['not_asked', 'user_removed'].includes(metadata.get(p.id)?.selection ?? ''));
     const leftOut = [...new Set(notSelected.map((p) => p.wantKey).filter((w): w is IterateWant => !!w))].map((wantKey) => {
       const ps = notSelected.filter((p) => p.wantKey === wantKey);
@@ -148,17 +188,18 @@ export class IteracaoViews {
         thumbnail: await this.ref(b.champion.thumbnailFile), video: await this.ref(video),
       },
       analysis: await this.analysis(b, champJob, planJob),
-      insight: b.insight ? withForced({ ...(b.insight as unknown as AutoInsight), flags: { ...(b.insight as unknown as AutoInsight).flags, smallBatch: pieces.length < 8 } }, pieces) : null,
+      insight: b.insight ? insightView({ ...(b.insight as unknown as AutoInsight), flags: { ...(b.insight as unknown as AutoInsight).flags, smallBatch: counted.length < 8 } }) : null,
       error: this.error(b, cost.analysisUsd),
       sample: isSampleSettings(b.settings), // amostra-gratis-v1 §2
+      template: await this.templateView(b), // templates-creditos-v1 §7
       quizEnabled: !!(b.settings as Record<string, unknown> | null)?.quizEnabled,
       answers, selectionInfo: selectionInfo(answers ?? DEFAULT_ANSWERS), notSelected, leftOut,
       pieces,
       summary: {
-        pieces: pieces.length,
-        stretch: pieces.filter((p) => p.axis === 'ITERATION').length,
-        newAudience: pieces.filter((p) => p.axis === 'DIVERSITY').length,
-        files: filesOf(launched, pieces),
+        pieces: counted.length, // = o `expectedPieces` do start (sem a lista pendente)
+        stretch: counted.filter((p) => p.axis === 'ITERATION').length,
+        newAudience: counted.filter((p) => p.axis === 'DIVERSITY').length,
+        files: filesOf(launched, counted),
         ready: pieces.filter((p) => p.status === 'ready').length,
         failed: pieces.filter((p) => p.status === 'failed').length,
         leftOut: pieces.filter((p) => p.status === 'left_out').length,
@@ -175,6 +216,37 @@ export class IteracaoViews {
       createdAt: b.createdAt.toISOString(),
       launchedAt: b.launchedAt?.toISOString() ?? null,
     };
+  }
+
+  /**
+   * templates-lista-v1 §5: `piece.list.preview` = props do render 9:16 (as mesmas do build) com a URL assinada do vídeo do
+   * campeão, pro `@remotion/player`. Recalculado a cada leitura (cada PATCH devolve o lote). Sem lugar/texto que não cabe = null.
+   */
+  private async listPreviews(b: IterateRow, pieces: IteratePiece[]): Promise<void> {
+    const lists = pieces.filter((p) => p.type === 'LIST_OVERLAY' && p.list);
+    if (!lists.length) return;
+    const ch = await this.prisma.champion.findUnique({ where: { id: b.championId }, include: { videoFile: true, cleanVideoFile: true, teardown: { select: { editMap: true, measurements: true } } } });
+    const file = ch?.cleanVideoFile ?? ch?.videoFile;
+    if (!ch || !file) return;
+    const items = await this.prisma.variationItem.findMany({ where: { id: { in: lists.map((p) => p.id) } }, select: { id: true, payload: true } });
+    const m = measurementsOf(ch.teardown?.measurements);
+    const map = editMapOf(ch.teardown?.editMap);
+    const source = {
+      videoUrl: await this.storage.signedUrl(file), width: file.width ?? m?.width ?? map?.width ?? 1080, height: file.height ?? m?.height ?? map?.height ?? 1920,
+      fps: map?.fps ?? 30, durationSec: m?.durationSec ?? num(ch.durationSec) ?? 0, hasAudio: true,
+    };
+    const urlsExpireAt = new Date(Date.now() + this.cfg.storage.signedUrlTtlSec * 1000).toISOString();
+    for (const p of lists) {
+      const params = paramsOf(items.find((x) => x.id === p.id)?.payload);
+      if (!isListSpec(params) || source.durationSec <= 0) continue;
+      const editMap = ch.cleanVideoFileId ? semLegendaQueimada(map) : map;
+      try {
+        const r = listOverlayPropsOf(params, { source, editMap }, 'VERTICAL_9_16');
+        p.list = { ...p.list!, preview: r.props && !r.overflow.length ? { props: r.props as unknown as Record<string, unknown>, urlsExpireAt } : null };
+      } catch {
+        p.list = { ...p.list!, preview: null };
+      }
+    }
   }
 
   /** §5.2: etapa, passo, progresso, ETA e checklist da análise. */
@@ -244,8 +316,9 @@ export class IteracaoViews {
   }
 
   /** §A10 1b: 9:16 do Gerar (prioridade 0, não stale) ainda na fila/renderizando. */
-  private generatePending(batchId: string): Promise<number> {
-    return this.prisma.render.count({
+  private async generatePending(batchId: string): Promise<number> {
+    const generating = await this.prisma.creative.count({ where: { variationBatchId: batchId, variationItem: { autoType: 'AI_VIDEO' }, state: { in: ['SCRIPTS_WRITING', 'FACES_GENERATING', 'SCENES_GENERATING'] } } });
+    return generating + await this.prisma.render.count({
       where: { stale: false, format: 'VERTICAL_9_16', priority: PRIORITY_BATCH, status: { in: ['QUEUED', 'RENDERING'] }, creative: { variationBatchId: batchId, variationKind: 'AUTO_EDIT' } },
     });
   }
@@ -255,18 +328,15 @@ export class IteracaoViews {
    * §4.2: campeão com legenda queimada (sem a versão sem legenda) soma a checagem por visão de cada peça de vídeo.
    */
   async generateEstimateUsd(batchId: string): Promise<number> {
-    const [n, allVideos, forced, templates, b] = await Promise.all([
+    const [n, videos, templates, b] = await Promise.all([
       this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: 'STATIC' } }),
       this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { notIn: ['STATIC', 'CHAT_DM', 'PERSON_MOTION'] } } }),
-      // §8 (29/10): peça forçada ("Gerar mesmo assim") não passa pela checagem por visão
-      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { notIn: ['STATIC', 'CHAT_DM', 'PERSON_MOTION'] }, payload: { path: ['captionOverride'], equals: true } } }),
-      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { in: ['CHAT_DM', 'PERSON_MOTION'] } } }),
+      this.prisma.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true, autoType: { in: ['CHAT_DM', 'PERSON_MOTION', 'LIST_OVERLAY'] } } }), // + templateCheck (F1.5); a lista também conta na legenda (§8)
       this.prisma.variationBatch.findUnique({
         where: { id: batchId },
         select: { champion: { select: { cleanVideoFileId: true, videoFile: { select: { width: true, height: true } }, teardown: { select: { editMap: true } } } } },
       }),
     ]);
-    const videos = allVideos - forced;
     const ch = b?.champion;
     const m = editMapOf(ch?.teardown?.editMap);
     const burned = !!ch && !ch.cleanVideoFileId && faixasDoCampeao(m, { width: ch.videoFile?.width ?? m?.width ?? 0, height: ch.videoFile?.height ?? m?.height ?? 0 }).length > 0;

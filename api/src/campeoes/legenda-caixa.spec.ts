@@ -1,14 +1,16 @@
 // (c) 08/10: legenda sem fundo ganha a caixa medida por pixel (medicao.captionBox, proposta ao video) nos instantes das palavras.
 import type { EditLayer } from '@maquina/contratos';
-import { AnaliseService } from './analise.service';
+import type { MediaAnalysisService } from '../medicao/contrato';
+import { refinar } from '../medicao/leitura/etapas';
 
 const cap: EditLayer = {
   id: 'cap', kind: 'caption', startFrame: 0, endFrame: 250, box: { x: 0, y: 589, w: 720, h: 80 },
   background: { kind: 'none', color: null, box: null }, style: {} as any, text: null, wordsPerPage: 3, source: 'vision',
 };
 const words = Array.from({ length: 30 }, (_, i) => ({ word: `w${i}`, startSec: i * 0.5, endSec: i * 0.5 + 0.4 }));
-const refine = (media: object, l = cap) =>
-  (AnaliseService.prototype as any).refineCaptionBox.call({ media, log: { warn: () => undefined } }, '/v.mp4', l, 25, words) as Promise<EditLayer>;
+// 31/10 (leitura-lambda-v1): o refino saiu do AnaliseService.refineCaptionBox para medicao/leitura/etapas.ts › refinar (QA 01/11).
+const refine = async (media: object, l = cap): Promise<EditLayer> =>
+  (await refinar(media as MediaAnalysisService, '/v.mp4', { layers: [l], fps: 25, frameCount: 250, words }))[0];
 
 describe('refino da legenda sem fundo (captionBox)', () => {
   it('usa a caixa medida, só nos instantes das palavras dentro do intervalo da camada', async () => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { isApiError } from "@/lib/api/errors"
@@ -22,7 +23,7 @@ import { stepHref } from "@/components/wizard/shell"
 import { PublicationCard, PublicationHistory } from "./publication-card"
 import { PublishForm, valuesFromDefaults } from "./publish-form"
 import { useMetaTemplates } from "@/hooks/use-meta-templates"
-import { CUSTOM, TemplateChooser, TemplatePublish } from "@/components/meta/templates/send-template"
+import { CUSTOM, NoTemplateCard, TemplateChooser, TemplatePublish, useEditorHref } from "@/components/meta/templates/send-template"
 
 const CONNECTIONS = "/settings/connections"
 const FORMAT_SHORT = { VERTICAL_9_16: "9:16", PORTRAIT_4_5: "4:5", SQUARE_1_1: "1:1" } as const
@@ -169,12 +170,14 @@ function Body({
 }) {
   const t = useTranslations("publish")
   const tm = useTranslations("meta")
+  const tf = useTranslations("publish.form")
   const connection = useMetaConnection()
   const canWrite = role !== "CLIENT"
   const p = data.publication
   // meta-templates-v1: the default template preselected; "Custom" keeps today's form (also when editing an attempt's text)
   const templates = useMetaTemplates(canWrite && !!data.defaults)
-  const [choice, setChoice] = useState<string | null>(null)
+  // back from the template editor with `?template=<id>` (spec template-campanha §8): that one comes selected
+  const [choice, setChoice] = useState<string | null>(useSearchParams().get("template"))
   const list = templates.data ?? []
   const picked = choice ?? (editing ? CUSTOM : (list.find((x) => x.isDefault) ?? list[0])?.id ?? CUSTOM)
   const template = list.find((x) => x.id === picked) ?? null
@@ -241,6 +244,17 @@ function Body({
             </Link>
           </AlertActions>
         </Alert>
+        {/* F4: the templates stay reachable (Edit/New open the editor with the amber band); Publish is disabled */}
+        {templates.isPending && templates.fetchStatus !== "idle" ? (
+          <span className="sk h-[74px] rounded-xl" role="status" aria-label={t("templatesLoading")} />
+        ) : list.length ? (
+          <>
+            <TemplateChooser templates={list} value={template ? template.id : CUSTOM} onChange={setChoice} blocked />
+            {template ? <TemplatePublish template={template} currency={currency} error={null} pending={false} onSubmit={() => {}} blocked /> : null}
+          </>
+        ) : (
+          <BlockedNewTemplate />
+        )}
         <PublicationHistory items={[...(p && p.status !== "DELETED" ? [] : p ? [p] : []), ...history]} currency={currency} />
       </>
     )
@@ -272,6 +286,9 @@ function Body({
           onSubmit={() => act.publish.mutate({ templateId: template.id }, { onSuccess: () => setEditing(null), onError: () => setErrorAt(Date.now()) })}
           onCancel={editing && p && p.status !== "DELETED" ? () => setEditing(null) : null}
         />
+      ) : showForm && !editing && templates.isSuccess && !list.length ? (
+        // F1: no template yet → Publish opens the template editor instead of the Custom form
+        <NoTemplateCard publishLabel={tf("submit")} />
       ) : showForm ? (
         <PublishForm
           key={editing?.id ?? "new"}
@@ -293,6 +310,18 @@ function Body({
       )}
       <PublicationHistory items={showForm && p && p.status !== "DELETED" ? [p, ...history] : history} currency={currency} />
     </>
+  )
+}
+
+/** Blocked send without a template list (none yet, or the list itself failed): "New template" still opens the editor (F4). */
+function BlockedNewTemplate() {
+  const te = useTranslations("metaTemplates.editor")
+  const href = useEditorHref()
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-card p-4 tablet:p-5">
+      <span className="text-[13px] text-fg-2">{te("emptyBody")}</span>
+      <Link href={href("new")} className={buttonVariants({ size: "sm" })}>{te("newBtn")}</Link>
+    </section>
   )
 }
 

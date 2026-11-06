@@ -71,7 +71,7 @@ export function BriefFields({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3.5 tablet:grid-cols-2">
       {(only ? only.map((k) => FIELDS.find((f) => f.key === k)!) : FIELDS).map(({ key, long }) => (
-        <div key={key} className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5", long && "tablet:col-span-2")}>
+        <div key={key} className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-1.5", long && "tablet:col-span-2")}>
           <Label htmlFor={`f-${key}`}>
             {labels?.[key] ?? t(`fields.${key}`)}
             {fromPage?.has(key) && !loading ? (origins?.[key as keyof FieldOrigins]?.length ? <OriginTag origins={origins[key as keyof FieldOrigins]!} /> : <Tag dashed>{t("fromPage")}</Tag>) : null}

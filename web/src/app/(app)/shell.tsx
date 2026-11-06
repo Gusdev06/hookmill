@@ -8,8 +8,13 @@ import { SetupInProgress } from "@/components/onboarding/setup-in-progress"
 import { onboardingHref } from "@/components/onboarding/shared"
 import { TourProvider } from "@/components/tour/tour-provider"
 import { accountModeOf, useMe } from "@/hooks/use-me"
+import { APP_SCROLL_ID } from "@/lib/scroll"
 
-/** fase2 shell: dark sidebar beside the work area (≥761 px); dark top bar + menu sheet below that. */
+/**
+ * Panel shell (31/10, Gusta): from 761 px the shell fills exactly the viewport (h-dvh, the page doesn't scroll) with
+ * floating rounded panels on a neutral frame: the dark sidebar card and the central content card, each scrolling on its
+ * own (the content scrolls in `#app-scroll`). Below 761 px: dark top bar + menu sheet and the window scrolls, full bleed.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider fallback={<ShellSkeleton />}>
@@ -19,6 +24,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </SessionProvider>
   )
 }
+
+/** Frame + panels of the shell (also used by the skeleton, so restoring the session doesn't move anything). */
+export const SHELL_FRAME =
+  "min-h-dvh tablet:grid tablet:h-dvh tablet:grid-cols-[248px_minmax(0,1fr)] tablet:gap-3 tablet:overflow-hidden tablet:bg-[color-mix(in_oklab,var(--bg)_88%,var(--fg))] tablet:p-3"
+export const SHELL_PANEL =
+  "min-w-0 tablet:min-h-0 tablet:overflow-hidden tablet:rounded-[22px] tablet:border tablet:border-line tablet:bg-bg tablet:shadow-[0_1px_2px_rgba(21,23,26,.05),0_10px_30px_rgba(21,23,26,.07)]"
 
 /** Routes that draw their own minimal shell (no sidebar): /start, /onboarding/*. */
 const bareRoute = (p: string) => p === "/start" || p === "/onboarding" || p.startsWith("/onboarding/")
@@ -58,6 +69,10 @@ function Gate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (redirect) router.replace(redirect)
   }, [redirect, router])
+  // a new route starts at the top of the content card
+  useEffect(() => {
+    document.getElementById(APP_SCROLL_ID)?.scrollTo(0, 0)
+  }, [pathname])
 
   if (!loaded || redirect) return <ShellSkeleton />
   if (status === "SETUP" && !canEdit && !bare) return <SetupInProgress />
@@ -65,11 +80,13 @@ function Gate({ children }: { children: React.ReactNode }) {
 
   return (
     <TourProvider enabled={!tourDone && status !== "SETUP"} clientName={data?.workspace.name ?? session.workspace.name}>
-      <div className="min-h-dvh tablet:grid tablet:grid-cols-[248px_minmax(0,1fr)]">
+      <div className={SHELL_FRAME}>
         <Sidebar />
-        <div className="min-w-0">
+        <div className={SHELL_PANEL}>
           <MobileTopbar />
-          <main>{children}</main>
+          <main id={APP_SCROLL_ID} className="tablet:relative tablet:h-full tablet:overflow-y-auto tablet:overscroll-contain">
+            {children}
+          </main>
         </div>
       </div>
     </TourProvider>

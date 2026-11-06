@@ -9,6 +9,7 @@ import { BatchStateMachine } from '../variacoes/batch-state-machine';
 import { IteracaoController } from './iteracao.controller';
 import { IteracaoService } from './iteracao.service';
 import { IteracaoViews } from './iteracao.views';
+import { IteracaoListaService } from './lista.service';
 import { PlanoAutoService } from './plano-auto.service';
 import { ZipModule } from './zip.module';
 import { MEDIA_RULES, PAGE_CAPTURE, regrasDeMidiaFallback, type MediaRulesPort } from './portas';
@@ -33,10 +34,11 @@ function mediaRules(): MediaRulesPort {
   controllers: [IteracaoController],
   providers: [
     IteracaoService, IteracaoViews, PlanoAutoService, BatchStateMachine,
+    IteracaoListaService, // lacunas-home-eddy-v1 §5: GET /iterate
     // V1 (§7.5 PageCaptureService): trocar por { provide: PAGE_CAPTURE, useExisting: <token da medicao> }
     { provide: PAGE_CAPTURE, ...medicao.pageCaptureProvider },   // V1: Chromium do Remotion (medicao/captura-pagina.ts)
     { provide: MEDIA_RULES, useFactory: mediaRules },
   ],
-  exports: [IteracaoService],
+  exports: [IteracaoService, PlanoAutoService], // templates-creditos-v1: o TemplatesService usa o contexto do plano (fit)
 })
 export class IteracaoModule {}

@@ -1,0 +1,117 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 2 minutes ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Admin · Templates
+Settings
+Q
+QA Dono Alfa
+Owner
+EN
+PT
+Settings
+
+Workspace, people, connected services and spend.
+
+Workspace
+Name
+Brand color
+Pick the brand color
+Accent color of the static ads. Leave empty and we take it from your page or the champion.
+Interface language
+English
+Português (BR)
+Setup
+Edit setup
+Progress
+100% set up
+Product tour
+Replay tour
+Connections
+Manage
+Meta (ads, meta-v1)
+Connected · synced 2 minutes ago
+Account mode
+Just me
+
+Switch to Agency to add clients. Your workspace becomes your first client; nothing is lost.
+
+Switch to Agency
+Unlock an account
+HookMill team
+
+Paste the account id the person sent from “Talk to us” and pick the plan. Their sample unlocks the next time they look at it; nothing is rendered again.
+
+Account id
+Plan
+Paid
+Paid
+Free sample (locked)
+Team (never locks)
+Save plan
+Credits
+Get credits & history
+Balance
+Unlimited
+Template catalog
+Admin · Templates
+Credit an account
+Team only
+
+No checkout yet: when someone pays you, add their credits here. A negative number takes credits back (never below zero).
+
+E-mail or account id
+Credits
+Note
+Add credits
+Pressing twice never credits twice.
+Members
+Invite
+QA
+QA Dono Alfa
+Owner
+QA
+QA Admin Alfa
+Admin
+QA
+QA Membro Alfa
+Member
+QD
+QA Duplo
+Member
+QA
+QA Cliente Alfa
+Client · approves ads
+Connected services
+Anthropic (scripts)
+Not connected
+WaveSpeed (video, lipsync)
+Not connected
+Higgsfield (faces)
+Not connected
+Apify (Ad Library link)
+Not connected
+Storage (files)
+Connected · …na
+Meta (ads, meta-v1)
+Connected · mock
+Spend
+This month
+$0.00
+Monthly cap
+$

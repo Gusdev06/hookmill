@@ -1,0 +1,80 @@
+Settings
+›
+Templates
+›
+New campaign template
+Import from a campaign
+Default for Mock Store (USD)
+1
+Campaign
+2
+Ad set
+3
+Ad
+Ad set
+Ad set name
+Ad set name
+Variables: {offer}{code}{date}{n}
+→ Sleepwell · 2026-11-04 · 1
+Conversion
+Conversion location
+Website
+APP, MESSAGING SOON
+Performance goal
+Maximize number of conversions
+set by the pixel
+Pixel
+Mock Pixel
+Conversion event
+Purchase
+Schedule
+
+Times in America/New_York (ad account).
+
+Start
+When published
+On a date
+End
+No end date
+After N days
+On a date
+No end date
+Audience
+Custom audiences · Include
+Add audience to include
+Custom audiences · Exclude
+Add audience to exclude
+Locations
+Country codes, comma separated. Up to 10.
+Age
+to
+18 to 65. 65 means 65+.
+Gender
+All
+Men
+Women
+Advantage+ audience
+Let Meta go beyond these settings when it finds better results.
+Languages
+Add language
+Empty = all languages.
+Detailed targeting
+SOON
+Placements
+Advantage+ placements
+Recommended. Meta shows the ads where they’re likely to perform best.
+Manual placements
+Pick where the ads can show.
+Ads per ad set
+HOOKMILL
+
+A batch fills one ad set up to the maximum, then opens the next. Tordan’s default: CBO with 4 to 8 ads per ad set.
+
+At least
+At most
+With 10 approved ads:
+Ad set 1 · 8
+Ad set 2 · 2 (below 4)
+Back
+Next
+Save template

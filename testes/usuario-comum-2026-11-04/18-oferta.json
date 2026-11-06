@@ -1,0 +1,154 @@
+{
+  "step": 18,
+  "url": "http://localhost:3311/onboarding/business",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nConfigurando SonoLeve\ncom o Eddy · uns 5 minutos\nSair\nEd\nEddy\n\nOi, eu sou o Eddy. Vou montar o Cérebro de SonoLeve com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.\n\nQual é o site? Eu leio e você só corrige o que eu errar.\n\nA SonoLeve vende colchões online para adultos no Brasil que acordam com dor nas costas. Colchão casal por R$ 1.299, teste de 30 noites e entrega em todo o Brasil. Temos avaliações de clientes. Quero gerar novas versões do vídeo de anúncio que já uso no Instagram.\nEd\nEddy\n\nLi a sua descrição.\n\nLido do texto colado\nEd\nEddy\n\nEste é o negócio como eu li. Corrija o que estiver errado direto no cartão.\n\nO negócio\nNome\nSonoLeve\nRamo\nProduto digital\nOnde você vende\nBrasil\nO que conta como resultado\nCompra\nConfirmado\nEstá certo\nEd\nEddy\n\nAgora a oferta. Achei um produto principal; dá pra adicionar outros depois.\n\nA SonoLeve vende colchões online para adultos no Brasil que\nNome da oferta\nA SonoLeve vende colchões online para adultos no Brasil que\nEditar\nO que é\nA SonoLeve vende colchões online para adultos no Brasil que resolve o problema principal do cliente em poucos minutos.\nEditar\nPromessa\nResultado visível na primeira semana.\nEditar\nOferta e preço\nAinda não achei\nAdicionar\nChamada pra ação\nToca no link e testa hoje.\nEditar\nPra quem é\ngente como você\nEditar\nDores\nVocê já tentou de tudo e nada funciona.\nEditar\nProvas\nMilhares de pessoas já usam todo dia.\nEditar\nInstruções pros roteiros\nOpcional\nAdicionar\nEstá certo\n↑\n\nAqui o Eddy só monta o Cérebro. Tudo o que você confirmar dá pra editar depois em Cérebro › Marca.\n\nCÉREBRO DE SONOLEVE\n85%\n11 de 13 coisas conhecidas\nNegócio\n3 / 3\nRamo\nProduto digital\nOnde você vende\nBrasil\nResultado\nCompra\nOferta\n0 / 5\nOferta\nlido, esperando você\nO que é\nlido, esperando você\nPromessa\nlido, esperando você\nOferta e preço\n—\nChamada pra ação\nlido, esperando você\nPúblico\n0 / 3\nPra quem é\nlido, esperando você\nDores\nlido, esperando você\nInstruções\n—\nProvas\n0 / 1\nProvas\nlido, esperando você\nMetas\n0 / 2\nTeto de gasto\nlido, esperando você\nCPA alvo\n—\nMeta\n0 / 1\nConta de anúncios\n—\nKit da marca\n0 / 4\nLogo\n—\nCores\n—\nArquivos\n—\nVídeo demo\n—\nO % conta as 13 coisas que os roteiros leem. Meta e kit da marca alimentam resultados e estáticos; não contam.",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Sair",
+      "label": "Sair",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Nome da oferta",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · O que é",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Promessa",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Adicionar",
+      "label": "Adicionar · Oferta e preço",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Chamada pra ação",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Pra quem é",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Dores",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Editar",
+      "label": "Editar · Provas",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Adicionar",
+      "label": "Adicionar · Instruções pros roteiros",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Está certo",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": "Sua resposta",
+      "id": "",
+      "type": null,
+      "placeholder": "Responda pelo cartão acima",
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "↑",
+      "label": "Enviar",
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

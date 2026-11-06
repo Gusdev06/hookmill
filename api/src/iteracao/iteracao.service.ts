@@ -1,10 +1,11 @@
-import { FREE_WANTS, WANT_OF, preferencesOf, selectPieces, validateAnswers } from './selecao';
+import { FREE_WANTS, preferencesOf, selectPieces, validateAnswers } from './selecao';
 import type { IterateAnswers } from '@maquina/contratos';
 import { TEMPLATE_TYPES, templatesLigados } from './templates-plano';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { aiSettings, TEMPLATE_AI_RUNNER, type AiAuthorization, type TemplateAiRunner } from '../templates-ai/contract';
 import { Interval } from '@nestjs/schedule';
-import type { AutoInsight, IterateBatch, IterateConfig, IterateRunningRef, LibraryItem } from '@maquina/contratos';
+import type { IterateBatch, IterateConfig, IterateRunningRef, LibraryItem } from '@maquina/contratos';
 import { Prisma, type Champion } from '@prisma/client';
 import { AnaliseService } from '../campeoes/analise.service';
 import { ChampionStateMachine } from '../campeoes/champion-state-machine';
@@ -26,13 +27,25 @@ import { UploadsService } from '../uploads/uploads.service';
 import { BATCH_ENTRY, BatchStateMachine, assertBatchCan } from '../variacoes/batch-state-machine';
 import type { CreateIterateDto } from './iteracao.dto';
 import { ITERATE_INCLUDE, IteracaoViews } from './iteracao.views';
-import { AutoPlanError, PlanoAutoService, captionCandidateFor, captionCandidatesOf, type CaptionForceTarget } from './plano-auto.service';
-import type { FinalItem } from './regras';
+import { AutoPlanError, PlanoAutoService } from './plano-auto.service';
+import { captionOverrideOf } from '../edicao/pecas';
+import { applyListOptions, isListSpec, listSpecViolations } from './lista-plano';
+import type { ListLook } from '@maquina/contratos';
 import { AUTO_TYPES_NOVOS } from './regras';
 import type { AutoVariationType } from '@maquina/contratos';
-import { SAMPLE_BLOCKED_TYPES, SAMPLE_CAP_USD, SAMPLE_MAX_PIECES, isSampleSettings } from '../amostra/acesso';
-import { isIntegracaoError } from '../integracoes';
+import { SAMPLE_CAP_USD, isSampleSettings } from '../amostra/acesso';
 import { AmostraService, SAMPLE_BATCH, paymentRequired } from '../amostra/amostra.service';
+import { CreditosService, templateSettingsOf, type BatchTemplateSettings } from '../creditos/creditos.service';
+import { templatesOn } from '../creditos/regras';
+import { applyTexts, editableTextsOf } from './templates-lote';
+import { frameContentViolations, headlineViolations, type PlanCtx } from './regras';
+import type { AutoFrameDraft, AutoParamsDraft } from '../integracoes';
+import { markActivation } from '../workspaces/ativacao';
+import { OnEvent } from '@nestjs/event-emitter';
+import { CHAMPION_SETTLED, ResearchChampionService, type ChampionSettledEvent } from '../campeoes/research-champion.service';
+
+/** templates-creditos-v1 §2: o lote nasce de um template (sem quiz; o run de créditos nasce na mesma transação). */
+export interface TemplateBatchSpec { templateId: string; settings: BatchTemplateSettings; cap: number | null; sample: boolean; aiGeneration?: AiAuthorization }
 
 /** Varredura dos lotes ANALYZING cujo campeão terminou por outro caminho (outro lote, /champions, reinício). */
 const ADVANCE_EVERY_MS = 3000;
@@ -65,6 +78,8 @@ export class IteracaoService {
     private readonly metaImport: MetaImportService,
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
     private readonly amostra: AmostraService,
+    private readonly creditos: CreditosService,
+    private readonly researchChampion: ResearchChampionService, // ads-research-v1 §6.1
   ) {}
 
   // ───────── leitura ─────────
@@ -76,6 +91,7 @@ export class IteracaoService {
   }
 
   async get(auth: AuthContext, id: string): Promise<IterateBatch> {
+    await this.retireFromPlan(this.prisma, auth.workspaceId, id);
     return this.views.batch(await this.load(auth.workspaceId, id));
   }
 
@@ -99,8 +115,8 @@ export class IteracaoService {
       const now = new Date();
       await tx.variationBatch.update({ where: { id }, data: { answers: answers as unknown as Prisma.InputJsonValue, answersAt: now, answersById: auth.userId } });
       if (b.status === 'PLAN_READY') {
-        // §8: a peça forçada ("Gerar mesmo assim") foi escolha explícita; a troca de respostas não a reseleciona
-        const result = selectPieces(b.items.filter((i) => (i.payload as { captionOverride?: boolean } | null)?.captionOverride !== true), answers);
+        // §15.3.1: item marcado no antigo "Gerar mesmo assim" não volta para o lote
+        const result = selectPieces(b.items.filter((i) => !captionOverrideOf(i.payload)), answers);
         for (const v of result.selected) await tx.variationItem.update({ where: { id: v.item.id }, data: { included: v.included, wantKey: v.wantKey, selection: v.selection } });
       }
       if (save) {
@@ -178,19 +194,35 @@ export class IteracaoService {
 
   // ───────── criar (POST /iterate) ─────────
 
-  async create(auth: AuthContext, dto: CreateIterateDto): Promise<IterateBatch> {
-    const given = [dto.uploadId && 'uploadId', dto.creativeId && 'creativeId', dto.metaAdId && 'metaAdId', dto.championId && 'championId'].filter(Boolean) as string[];
+  async create(auth: AuthContext, dto: CreateIterateDto, template?: TemplateBatchSpec): Promise<IterateBatch> {
+    const ai = template?.aiGeneration;
+    if (ai) {
+      const existing = await this.prisma.variationBatch.findFirst({ where: { workspaceId: auth.workspaceId, settings: { path: ['aiGeneration', 'requestId'], equals: ai.requestId } } });
+      if (existing) {
+        if (aiSettings(existing.settings)?.fingerprint !== ai.fingerprint) throw new AppException('INVALID_STATE', { reason: 'idempotency_conflict' });
+        return this.get(auth, existing.id);
+      }
+    }
+    const given = [dto.uploadId && 'uploadId', dto.creativeId && 'creativeId', dto.metaAdId && 'metaAdId', dto.championId && 'championId', dto.researchAdId && 'researchAdId'].filter(Boolean) as string[];
     if (given.length !== 1) {
-      throw new AppException('VALIDATION_ERROR', { fields: [{ field: given[1] ?? 'uploadId', rule: 'exactlyOneOf:uploadId,creativeId,metaAdId,championId' }] });
+      throw new AppException('VALIDATION_ERROR', { fields: [{ field: given[1] ?? 'uploadId', rule: 'exactlyOneOf:uploadId,creativeId,metaAdId,championId,researchAdId' }] });
     }
     // amostra-gratis-v1 §2/§6/P4: workspace sem plano = só a amostra (1 por conta, só modo OWN); gasta ou outro modo = 402
-    const admission = await this.amostra.admit(auth, dto.championId);
-    if (admission.kind === 'blocked') throw paymentRequired(admission.details);
-    const sample = admission.kind === 'sample';
+    // templates-creditos-v1 §5: lote de template = o TemplatesService já decidiu a amostra (usos); quiz com TEMPLATES=on e
+    // conta SAMPLE = 402 `sample_templates` (a porta da amostra é a galeria)
+    let sample: boolean;
+    if (template) sample = template.sample;
+    else {
+      if (templatesOn() && (await this.amostra.workspaceAccess(auth.workspaceId)) === 'SAMPLE') throw paymentRequired({ reason: 'sample_templates', unlock: { pieces: 0 } });
+      const admission = await this.amostra.admit(auth, dto.championId);
+      if (admission.kind === 'blocked') throw paymentRequired(admission.details);
+      sample = admission.kind === 'sample';
+    }
     const src = dto.uploadId ? await this.fromUpload(auth, dto.uploadId, dto.offerId)
       : dto.championId ? await this.fromChampion(auth, dto.championId)
       : dto.metaAdId ? await this.metaImport.prepare(auth, dto.metaAdId, dto.offerId) // meta-v1 D13: Pick from Meta
-        : await this.fromLibrary(auth, dto.creativeId!);
+        : dto.researchAdId ? await this.researchChampion.prepare(auth, dto.researchAdId, dto.offerId) // ads-research-v1 §6.1: Ad Radar
+          : await this.fromLibrary(auth, dto.creativeId!);
     // legenda-protegida-v1 D-LP5: a versão sem legenda fica presa no lote e é conferida antes do plano (a análise precisa acabar)
     const cleanFile = dto.cleanUploadId ? await this.uploads.readyFile(auth.workspaceId, dto.cleanUploadId) : null;
     const durationSec = num(src.champion.durationSec) ?? 30;
@@ -201,7 +233,15 @@ export class IteracaoService {
     if (!sample) await this.custos.assertWithinCap(auth.workspaceId, estimate);
 
     const r = await this.prisma.$transaction(async (tx) => {
-      if (sample) await this.amostra.claim(tx, auth.userId, new Date());
+      if (ai) {
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`ai-template:${auth.workspaceId}:${ai.requestId}`}, 0))::text`;
+        const existing = await tx.variationBatch.findFirst({ where: { workspaceId: auth.workspaceId, settings: { path: ['aiGeneration', 'requestId'], equals: ai.requestId } } });
+        if (existing) {
+          if (aiSettings(existing.settings)?.fingerprint !== ai.fingerprint) throw new AppException('INVALID_STATE', { reason: 'idempotency_conflict' });
+          return { batchId: existing.id, jobId: null, championId: existing.championId, duplicate: true };
+        }
+      }
+      if (sample && !template) await this.amostra.claim(tx, auth.userId, new Date());
       let champion = src.champion;
       if (src.isNew) champion = await tx.champion.create({ data: src.newData! });
       else if (src.mode === 'analyze') await this.reanalyzeChampion(tx, champion);
@@ -210,15 +250,23 @@ export class IteracaoService {
         data: {
           workspaceId: auth.workspaceId, championId: champion.id, offerId: champion.offerId, mode: 'AUTO',
           status: src.mode === 'reuse' ? BATCH_ENTRY.AUTO_REUSE : BATCH_ENTRY.AUTO_ANALYZE,
-          language: champion.language ?? src.offerLanguage, requests: [], settings: { quizEnabled: true, ...(sample && { sample: true }), ...(cleanFile ? { cleanFileId: cleanFile.id } : {}) }, estimatedCostUsd: estimate, createdById: auth.userId,
+          language: champion.language ?? src.offerLanguage, requests: [],
+          settings: { quizEnabled: !template, ...(sample && { sample: true }), ...(cleanFile ? { cleanFileId: cleanFile.id } : {}), ...(template && { template: template.settings }), ...(ai && { aiGeneration: ai }) } as unknown as Prisma.InputJsonValue,
+          estimatedCostUsd: estimate, createdById: auth.userId,
         },
       });
+      if (template) await tx.templateRun.create({ data: { workspaceId: auth.workspaceId, batchId: batch.id, templateId: template.templateId, cap: template.cap, createdById: auth.userId } });
+      if (ai) await this.moduleRef.get<TemplateAiRunner>(TEMPLATE_AI_RUNNER, { strict: false }).initialize(tx, batch.id, auth, ai);
+      await markActivation(tx, auth.workspaceId, 'firstBatchAt', batch.createdAt); // tour-v2 §6
       const job = src.mode === 'wait' ? null
         : src.mode === 'reuse' ? await this.newPlanJob(tx, batch.id, champion, auth.userId)
           : src.mode === 'import' ? await this.metaImport.newImportJob(tx, champion, auth.userId)
             : await tx.job.create({ data: { workspaceId: auth.workspaceId, type: 'CHAMPION_ANALYZE', status: 'QUEUED', input: { championId: champion.id }, championId: champion.id, offerId: champion.offerId, createdById: auth.userId } });
       return { batchId: batch.id, jobId: job?.id ?? null, championId: champion.id };
-    });
+    }, { timeout: 30000 });
+    // ads-research-v1 §6.1: o vídeo do anúncio do Ad Radar é resolvido depois do commit (o campeão espera em RESOLVING)
+    if ('duplicate' in r && r.duplicate) return this.get(auth, r.batchId);
+    (src as { afterCommit?: ((championId: string) => void) | null }).afterCommit?.(r.championId);
     this.kick(r.batchId, src.mode, r.jobId, r.championId, auth.userId);
     return this.get(auth, r.batchId);
   }
@@ -340,6 +388,12 @@ export class IteracaoService {
     return code;
   }
 
+  /** ads-research-v1 §6.1: campeão do Ad Radar terminou (READY/FAILED) fora do kick do lote: avança sem esperar a varredura. */
+  @OnEvent(CHAMPION_SETTLED, { async: true })
+  async onChampionSettled(e: ChampionSettledEvent): Promise<void> {
+    await this.advanceFromChampion(e.championId).catch((err) => this.log.warn(`avançar ${e.championId}: ${(err as Error).message}`));
+  }
+
   @Interval('iterate-advance', ADVANCE_EVERY_MS)
   async sweep(): Promise<void> {
     if (process.env.BOOT_RECOVERY === 'off' && process.env.NODE_ENV === 'test') return; // int specs dividem o banco: cada um avança o seu
@@ -360,10 +414,14 @@ export class IteracaoService {
         throw new AppException('INVALID_STATE', { state: b.status, allowed: ['ANALYSIS_FAILED'], reason: 'upload_another' });
       }
       const c = await this.prisma.champion.findUniqueOrThrow({ where: { id: b.championId } });
-      const mode: Reuse = c.status === 'READY' && sectionsOf((await this.prisma.teardown.findUnique({ where: { championId: c.id } }))?.sections) ? 'reuse'
-        : c.status === 'ANALYZING' || c.status === 'RESOLVING' ? 'wait'
-          : c.metaAdId && !c.videoFileId ? 'import' // meta-v1 D13: o download falhou; baixa de novo
-            : 'analyze';
+      // ads-research-v1 §6.1: campeão do Ad Radar sem vídeo (download/coleta falhou) volta a RESOLVING e busca o vídeo de novo
+      const researchAgain = c.status === 'FAILED' && !!c.researchAdId && !c.videoFileId
+        ? await this.researchChampion.retryVideo(auth, c) : null;
+      const mode: Reuse = researchAgain ? 'wait'
+        : c.status === 'READY' && sectionsOf((await this.prisma.teardown.findUnique({ where: { championId: c.id } }))?.sections) ? 'reuse'
+          : c.status === 'ANALYZING' || c.status === 'RESOLVING' ? 'wait'
+            : c.metaAdId && !c.videoFileId ? 'import' // meta-v1 D13: o download falhou; baixa de novo
+              : 'analyze';
       await this.capFor(b, autoAnalysisEstimateUsd(this.catalog, num(c.durationSec) ?? 30, mode === 'reuse'), 'analysis');
       const clear = { errorCode: null, failReason: null, failDetail: null, failStage: null };
       const jobId = await this.prisma.$transaction(async (tx) => {
@@ -377,6 +435,7 @@ export class IteracaoService {
         await this.reanalyzeChampion(tx, c);
         return (await tx.job.create({ data: { workspaceId: c.workspaceId, type: 'CHAMPION_ANALYZE', status: 'QUEUED', input: { championId: c.id }, championId: c.id, offerId: c.offerId, createdById: auth.userId } })).id;
       });
+      researchAgain?.();
       return { mode, jobId, championId: c.id };
     });
     this.kick(id, kick.mode, kick.jobId, kick.championId, auth.userId);
@@ -410,115 +469,106 @@ export class IteracaoService {
     return this.get(auth, id);
   }
 
-  // ───────── legenda queimada: "Gerar mesmo assim" (legenda-protegida-v1 §8, 29/10) ─────────
-
-  /** Item(ns) do plano postos de volta com override pra este formato. */
-  private overrideItems(tx: Prisma.TransactionClient | PrismaService, batchId: string, t: CaptionForceTarget) {
-    return tx.variationItem.findMany({ where: { batchId, kind: 'AUTO_EDIT', autoType: t.type, payload: { path: ['captionOverride'], equals: true } } })
-      .then((xs) => xs.filter((x) => t.type !== 'FRAME' || ((x.payload as { params?: { template?: string } } | null)?.params?.template ?? null) === t.template));
-  }
+  // ───────── o que saiu do plano (troca-texto-queimado-v1 §15.3.1) ─────────
 
   /**
-   * `POST /iterate/:id/caption-blocked/force`: põe de volta, como peça selecionada (`user_added`) e com
-   * `payload.captionOverride = true`, um formato que a guarda da legenda queimada tirou. A peça usa o layout normal (pode
-   * cobrir a legenda) e não passa pela checagem CAPTION_COVERED. Parâmetros: a candidata guardada no plano (grátis) ou,
-   * se o Claude nem planejou o formato, 1 chamada do plano só com ele (custo no lote; teto do workspace).
-   * PLAN_READY: teto de 12 selecionadas (4 na amostra, que também não aceita os tipos pagos). LAUNCHED (29/10): só lote
-   * destravado (amostra sem plano = 402 `locked`); a peça nasce já com criativo e render 9:16 na fila (o lote volta pra
-   * generate até ela assentar) e não conta no teto de 12 (a seleção acabou no Gerar; quem limita é o teto mensal).
-   * Já forçado = só reinclui (ou nada).
+   * Plano feito antes do F1a: item marcado "Gerar mesmo assim" (`captionOverride`) e HEADLINE `replace` não entram no lote,
+   * não aparecem no Plan e não contam no quote. `goal_cut` = fora da lista e não selecionável. Sem migração: resolve aqui,
+   * na leitura e no Gerar. Lote de template que fica vazio assim passa a mostrar a faixa `soft`. Sem item desses = sem escrita.
    */
-  async forceCaptionBlocked(auth: AuthContext, id: string, t: CaptionForceTarget): Promise<IterateBatch> {
+  private async retireFromPlan(db: Prisma.TransactionClient | PrismaService, workspaceId: string, batchId: string): Promise<void> {
+    const hit = await db.variationItem.updateMany({
+      where: {
+        batchId, workspaceId, kind: 'AUTO_EDIT', batch: { status: 'PLAN_READY' },
+        AND: [
+          { OR: [{ included: true }, { selection: { in: ['not_asked', 'user_removed'] } }] },
+          { OR: [{ payload: { path: ['captionOverride'], equals: true } }, { autoType: 'HEADLINE', payload: { path: ['params', 'mode'], equals: 'replace' } }] },
+        ],
+      },
+      data: { included: false, selection: 'goal_cut' },
+    });
+    if (!hit.count) return;
+    const left = await db.variationItem.count({ where: { batchId, kind: 'AUTO_EDIT', included: true } });
+    if (left) return;
+    const b = await db.variationBatch.findUniqueOrThrow({ where: { id: batchId }, select: { settings: true } });
+    const settings = (b.settings ?? {}) as Record<string, unknown>;
+    if (!templateSettingsOf(settings)) return;
+    await db.variationBatch.update({ where: { id: batchId }, data: { settings: { ...settings, template: { ...(settings.template as object), fit: { level: 'soft', reason: 'burned_captions' } } } as unknown as Prisma.InputJsonValue } });
+  }
+
+  // ───────── textos editáveis do Plan (templates-creditos-v1 A7) ─────────
+
+  /**
+   * `PATCH /iterate/:id/items/:itemId/texts`: edita os textos de tela de uma peça planejada (FRAME e HEADLINE), grátis e sem
+   * chamar o modelo. Revalida com as regras do plano ("nada inventado", limites, fonte, preço literal, legenda queimada).
+   */
+  async updateTexts(auth: AuthContext, id: string, itemId: string, edits: { path: string; value: string }[]): Promise<IterateBatch> {
     const b = await this.load(auth.workspaceId, id);
-    if (b.status !== 'PLAN_READY' && b.status !== 'LAUNCHED') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY', 'LAUNCHED'] });
-    if (b.status === 'LAUNCHED') await this.amostra.assertBatchUnlocked(auth.workspaceId, id); // 402 locked
-    const blocked = (b.insight as unknown as AutoInsight | null)?.captionBlocked ?? [];
-    if (!blocked.some((x) => x.type === t.type && (x.template ?? null) === t.template)) {
-      throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'type', rule: 'not_caption_blocked' }] });
+    if (b.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'] });
+    const item = await this.prisma.variationItem.findFirst({ where: { id: itemId, batchId: id, kind: 'AUTO_EDIT' } });
+    if (!item) throw new AppException('NOT_FOUND');
+    const payload = (item.payload ?? {}) as { params?: Record<string, unknown> };
+    const type = item.autoType as string | null;
+    if (!type || !editableTextsOf(type, payload.params ?? null).length) throw new AppException('EDIT_NOT_SUPPORTED', { reason: 'type', type });
+    const { params, unknownPaths } = applyTexts(type, payload.params!, edits);
+    if (unknownPaths.length) throw new AppException('VALIDATION_ERROR', { fields: unknownPaths.map((p) => ({ field: `texts.${p}`, rule: 'not_editable' })) });
+    const ctx = await this.plano.ctxForChampion(b.championId, b.language);
+    if (!ctx) throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'], reason: 'champion_not_ready' });
+    const violations = this.textViolations(type, params, ctx);
+    if (type !== 'LIST_OVERLAY' && ctx.caption?.check({ type: type as AutoVariationType, params })) {
+      violations.push({ path: '*', rule: 'burned_captions', detail: 'this text would cover the burned-in captions' });
     }
-    const sample = isSampleSettings(b.settings);
-    if (b.status === 'PLAN_READY' && sample && SAMPLE_BLOCKED_TYPES.includes(t.type)) throw new AppException('ITEM_NOT_SELECTABLE', { reason: 'sample_type' });
-    const cap = sample ? SAMPLE_MAX_PIECES : 12;
-    const full = async (tx: Prisma.TransactionClient | PrismaService, status: string) =>
-      status === 'PLAN_READY' && (await tx.variationItem.count({ where: { batchId: id, kind: 'AUTO_EDIT', included: true } })) >= cap;
-
-    let item: FinalItem | null = captionCandidateFor(b.settings, t);
-    let jobId: string | null = null;
-    const existing = await this.overrideItems(this.prisma, id, t);
-    if (!existing.length && !item) {
-      if (await full(this.prisma, b.status)) throw new AppException('ITEM_NOT_SELECTABLE', { reason: 'batch_full' });
-      // o Claude nem planejou: 1 chamada do plano (só esse tipo), dentro do teto do workspace (amostra em PLAN_READY: custo
-      // nosso). Render da peça forçada: Remotion (US$ 0) e sem a checagem por visão, então o teto conta só o plano.
-      const c = await this.prisma.champion.findUniqueOrThrow({ where: { id: b.championId } });
-      const est = autoAnalysisEstimateUsd(this.catalog, num(c.durationSec) ?? 30, true);
-      if (b.status === 'LAUNCHED') await this.custos.assertWithinCap(b.workspaceId, est);
-      else await this.capFor(b, est, 'analysis');
-      const planned = await this.plano.planForced(id, t, auth.userId).catch((e) => {
-        if (isIntegracaoError(e)) throw new AppException('PROVIDER_UNAVAILABLE', { provider: 'ANTHROPIC' });
-        throw e;
-      });
-      if (!planned) throw new AppException('ITEM_NOT_SELECTABLE', { reason: 'not_planned' });
-      item = planned.item;
-      jobId = planned.jobId;
-    } else if (b.status === 'LAUNCHED') {
-      await this.custos.assertWithinCap(b.workspaceId, 0);
-    }
-
-    const launched = await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
+    if (violations.length) throw new AppException('TEXT_INVALID', { violations });
+    await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
       const cur = await tx.variationBatch.update({ where: { id }, data: { updatedAt: new Date() } });
-      if (cur.status !== 'PLAN_READY' && cur.status !== 'LAUNCHED') throw new AppException('INVALID_STATE', { state: cur.status, allowed: ['PLAN_READY', 'LAUNCHED'] });
-      const isLaunched = cur.status === 'LAUNCHED';
-      // lançado: a peça nasce já com criativo + render 9:16 na fila (fim da fila)
-      const birth = (itemId: string) => (isLaunched ? this.pecas.createPieces(tx, { batchId: id, userId: auth.userId, launchedAt: new Date(), itemIds: [itemId] }) : null);
-      const again = await this.overrideItems(tx, id, t);
-      if (again.length) {
-        const live = again.find((x) => x.included);
-        if (live) {
-          if (!isLaunched || (await tx.creative.count({ where: { variationItemId: live.id } }))) return null;
-          return birth(live.id);
-        }
-        if (await full(tx, cur.status)) throw new AppException('ITEM_NOT_SELECTABLE', { reason: 'batch_full' });
-        await tx.variationItem.update({ where: { id: again[0].id }, data: { included: true, selection: 'user_added' } });
-        return (await tx.creative.count({ where: { variationItemId: again[0].id } })) ? null : birth(again[0].id);
-      }
-      if (await full(tx, cur.status)) throw new AppException('ITEM_NOT_SELECTABLE', { reason: 'batch_full' });
-      const it = item!;
-      // a candidata nova (chamada do plano) fica guardada: desfazer + forçar de novo não paga outra chamada
-      if (jobId) {
-        const settings = (cur.settings ?? {}) as Record<string, unknown>;
-        const list = captionCandidatesOf(settings).filter((x) => !(x.type === it.type && (x.type !== 'FRAME' || (x.params as { template?: string }).template === t.template)));
-        await tx.variationBatch.update({ where: { id }, data: { settings: { ...settings, captionCandidates: [...list, it] } as unknown as Prisma.InputJsonValue } });
-      }
-      const rows = await tx.variationItem.findMany({ where: { batchId: id, kind: 'AUTO_EDIT' }, select: { index: true, code: true } });
-      const index = rows.reduce((m, r) => Math.max(m, r.index), -1) + 1;
-      const codes = new Set(rows.map((r) => r.code));
-      let code = it.code;
-      for (let n = 2; codes.has(code); n++) code = `${it.code}-${n}`;
-      const created = await tx.variationItem.create({
-        data: {
-          workspaceId: b.workspaceId, batchId: id, kind: 'AUTO_EDIT', index, priority: index, status: 'READY',
-          included: true, selection: 'user_added', wantKey: WANT_OF[it.type] ?? null,
-          rationale: it.rationale, payload: { params: it.params, whyKey: it.whyKey, captionOverride: true } as unknown as Prisma.InputJsonValue,
-          autoType: it.type, code, axis: it.axis, change: it.change, inZip: true, jobId,
-        },
-      });
-      return birth(created.id);
+      if (cur.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: cur.status, allowed: ['PLAN_READY'] });
+      await tx.variationItem.update({ where: { id: itemId }, data: { payload: { ...payload, params, textsEditedAt: new Date().toISOString(), textsEditedById: auth.userId } as unknown as Prisma.InputJsonValue } });
     }, { timeout: 30_000 }));
-    if (launched) this.pecas.launched(launched);
     return this.get(auth, id);
   }
 
-  /** `DELETE /iterate/:id/caption-blocked/force`: tira do plano a peça forçada (o formato volta a ficar só em `captionBlocked`). */
-  async unforceCaptionBlocked(auth: AuthContext, id: string, t: CaptionForceTarget): Promise<IterateBatch> {
+  /** As mesmas regras do plano sobre o texto editado (o rascunho é montado com os params finais). */
+  private textViolations(type: string, params: Record<string, unknown>, ctx: PlanCtx): { path: string; rule: string; detail: string }[] {
+    // templates-lista-v1 §5: as regras do §2.3 (inclui price_not_in_brain, invented_number), caminho `list.…`
+    if (type === 'LIST_OVERLAY') return isListSpec(params) ? listSpecViolations(params, ctx) : [{ path: '*', rule: 'template_shape', detail: 'not a list piece' }];
+    if (type === 'FRAME') {
+      const draft = { type: 'FRAME', template: params.template, texts: params.texts, sources: params.sources ?? {} } as unknown as AutoFrameDraft;
+      return frameContentViolations(draft, 0, ctx).map((v) => ({ path: /^([\w.]+?)(?: |$)/.exec(v.detail)?.[1] ?? '*', rule: v.rule, detail: v.detail }));
+    }
+    const draft = { type: 'HEADLINE', mode: params.mode, text: params.text, highlight: params.highlight ?? null, sources: params.sources ?? {} } as unknown as Extract<AutoParamsDraft, { type: 'HEADLINE' }>;
+    return headlineViolations(draft, 0, ctx)
+      // a original não muda; editar de volta pra original é escolha da pessoa só se ela digitou igual (a regra do plano vale)
+      .map((v) => ({ path: 'text', rule: v.rule, detail: v.detail }));
+  }
+
+  // ───────── opções da lista (templates-lista-v1 §5) ─────────
+
+  /**
+   * `PATCH /iterate/:id/items/:itemId/list`: look, colunas (só Versus) e "Fill from Brain" (`fill` pending → accepted: a peça
+   * entra no lote e no quote, `included: true`). Grátis, sem chamada nova (as linhas do Brain já vieram no plano). Só PLAN_READY.
+   */
+  async updateListOptions(auth: AuthContext, id: string, itemId: string, body: { look?: ListLook; columns?: 1 | 2; acceptFill?: true }): Promise<IterateBatch> {
+    if (body.look === undefined && body.columns === undefined && body.acceptFill === undefined) {
+      throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'body', rule: 'at_least_one' }] });
+    }
+    const b = await this.load(auth.workspaceId, id);
+    if (b.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'] });
+    const item = await this.prisma.variationItem.findFirst({ where: { id: itemId, batchId: id, kind: 'AUTO_EDIT' } });
+    if (!item) throw new AppException('NOT_FOUND');
+    const payload = (item.payload ?? {}) as { params?: Record<string, unknown> };
+    if (item.autoType !== 'LIST_OVERLAY' || !isListSpec(payload.params)) throw new AppException('EDIT_NOT_SUPPORTED', { reason: 'type', type: item.autoType });
+    const ctx = await this.plano.ctxForChampion(b.championId, b.language);
+    if (!ctx) throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'], reason: 'champion_not_ready' });
+    const { params, error } = applyListOptions(payload.params, body, ctx);
+    if (error) throw new AppException('EDIT_NOT_SUPPORTED', { reason: error.reason, type: 'LIST_OVERLAY' });
+    const accepted = payload.params.fill === 'pending' && params.fill === 'accepted';
     await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
-      const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
-      if (!hit.count) throw new AppException('NOT_FOUND');
-      const b = await tx.variationBatch.findUniqueOrThrow({ where: { id } });
-      const items = await this.overrideItems(tx, id, t);
-      // §8: lançado = a peça já virou criativo (peça normal: Remove/Excluir do zip); 409
-      if (b.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'], ...(b.status === 'LAUNCHED' && { reason: 'launched' }) });
-      if (!items.length) throw new AppException('NOT_FOUND');
-      await tx.variationItem.deleteMany({ where: { id: { in: items.map((x) => x.id) } } });
+      const cur = await tx.variationBatch.update({ where: { id }, data: { updatedAt: new Date() } });
+      if (cur.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: cur.status, allowed: ['PLAN_READY'] });
+      await tx.variationItem.update({
+        where: { id: itemId },
+        data: { payload: { ...payload, params } as unknown as Prisma.InputJsonValue, ...(accepted && { included: true }) },
+      });
     }, { timeout: 30_000 }));
     return this.get(auth, id);
   }
@@ -530,20 +580,24 @@ export class IteracaoService {
    * §14.4: estimativa (nº de STATIC × staticImageUsd) > expectedCostUsd × 1,10 = 409 ESTIMATE_CHANGED; teto = 409
    * SPEND_CAP_EXCEEDED (estimativa 0 não chama o teto). As imagens do STATIC são submetidas depois do commit.
    */
-  async start(auth: AuthContext, id: string, expectedPieces: number, expectedCostUsd?: number): Promise<IterateBatch> {
+  async start(auth: AuthContext, id: string, expectedPieces: number, expectedCostUsd?: number, expectedCredits?: number): Promise<IterateBatch> {
     const launched = await this.locks.run(`batch:${id}`, () => this.prisma.$transaction(async (tx) => {
       const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
       if (!hit.count) throw new AppException('NOT_FOUND');
       const b = await tx.variationBatch.findUniqueOrThrow({ where: { id } });
       assertBatchCan(b.status, 'AUTO_START');
+      await this.retireFromPlan(tx, auth.workspaceId, b.id);
       const count = await tx.variationItem.count({ where: { batchId: id, kind: 'AUTO_EDIT', included: true } });
       if (!count) throw new AppException('INVALID_STATE', { reason: 'nothing_selected' });
       if (count !== expectedPieces) throw new AppException('PLAN_CHANGED', { pieces: count });
       const estimateUsd = await this.views.generateEstimateUsd(b.id);
       if (estimateUsd > (expectedCostUsd ?? 0) * 1.1 + 1e-9) throw new AppException('ESTIMATE_CHANGED', { estimateUsd });
       if (estimateUsd > 0) await this.capFor(b, estimateUsd);
+      // templates-creditos-v1 §4.3: reserva o crédito na MESMA transação (402/409 = nada lança)
+      await this.creditos.reserveOnStart(tx, b, auth, expectedCredits);
       const launchedAt = new Date();
       await this.sm.transition({ tx, batchId: b.id, event: 'AUTO_START', from: 'PLAN_READY', to: 'LAUNCHED', data: { launchedAt } });
+      await markActivation(tx, b.workspaceId, 'firstGenerateAt', launchedAt); // tour-v2 §6
       return this.pecas.createPieces(tx, { batchId: b.id, userId: auth.userId, launchedAt });
     }, { timeout: 30_000 }));
     this.pecas.launched(launched);
@@ -554,6 +608,8 @@ export class IteracaoService {
 
   /** Job AUTO_PLAN e, se o lote é a amostra, o lançamento automático (sem botão Generate). */
   private async runPlan(jobId: string, batchId: string): Promise<void> {
+    const batch = await this.prisma.variationBatch.findUniqueOrThrow({ where: { id: batchId } });
+    if (aiSettings(batch.settings)) return this.moduleRef.get<TemplateAiRunner>(TEMPLATE_AI_RUNNER, { strict: false }).run(jobId, batchId);
     await this.plano.run(jobId, batchId);
     await this.autoStartSample(batchId).catch((e) => this.log.warn(`amostra ${batchId}: lançamento automático falhou (${(e as Error).message})`));
   }
@@ -585,7 +641,7 @@ export class IteracaoService {
   async autoStartSample(batchId: string): Promise<void> {
     const launched = await this.locks.run(`batch:${batchId}`, async () => {
       const b = await this.prisma.variationBatch.findFirst({ where: { id: batchId, status: 'PLAN_READY', ...SAMPLE_BATCH } });
-      if (!b) return null;
+      if (!b || templateSettingsOf(b.settings)) return null; // templates-creditos-v1 §5: a amostra por template espera o Gerar
       const room = SAMPLE_CAP_USD - (await this.sampleGenerateSpentUsd(b.id));
       for (;;) {
         const included = await this.prisma.variationItem.findMany({ where: { batchId, kind: 'AUTO_EDIT', included: true }, orderBy: [{ priority: 'asc' }, { index: 'asc' }], select: { id: true } });

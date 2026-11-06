@@ -4,7 +4,13 @@
 //   [mock:prospect-testimonial] → a 1ª chamada põe um relato de resultado na boca de quem pergunta (violação
 //                                  `prospect_testimonial`); a de reparo (com `violations`) devolve o chat certo.
 // (`[mock:template-overflow:<TYPE>]` mora no build do render: edicao.service.)
-import type { AutoChatDmDraft, AutoPersonMotionDraft, AutoPlanInput, CopySource, PersonBeatDraft, TemplateText, TranscriptWord } from '../contrato';
+// Lista (templates-lista-v1 §2.3, LIST_OVERLAY Versus / Value stack), gatilhos nas notes da OFERTA:
+//   [mock:list-thin]     → só 1 linha ancorada na fala; o resto sai do Brain (anchor null) → o backend marca fill 'pending'.
+//   [mock:list-no-room]  → o plano sai normal; quem força `posicionarLista = none` é o backend (`mockListNoRoom(notes)`).
+//   [mock:list-invented] → a 1ª chamada (sem `violations`) põe um número inventado numa linha; a de reparo vem limpa.
+import type {
+  AutoChatDmDraft, AutoListOverlayDraft, AutoPersonMotionDraft, AutoPlanInput, CopySource, ListLineDraft, ListTemplateId, ListTextDraft, PersonBeatDraft, TemplateText, TranscriptWord,
+} from '../contrato';
 
 type Bloco = { label: string; function: string; startSec: number; endSec: number; onScreen: string; speech: string };
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -147,4 +153,136 @@ export function mockPersonMotion(i: AutoPlanInput): AutoPersonMotionDraft | null
     }
   });
   return { type: 'PERSON_MOTION', spans: spans.map((s) => ({ ...s, preserves: [] })), beats, endCard: { proof: [], cta: { button: botao, note: null } } };
+}
+
+// ───────────────────────── lista (templates-lista-v1 §2) ─────────────────────────
+
+/** Gatilho de QA pro backend: com isto nas notes da oferta, o fake do `posicionarLista` devolve `none` (fit `no_room`). */
+export const mockListNoRoom = (notes: string | null | undefined): boolean => !!notes?.includes('[mock:list-no-room]');
+
+const ROTULO_RUIM: Record<string, string> = { en: 'Other ways', pt: 'Outros jeitos', es: 'Otras formas' };
+const ROTULO_PILHA: Record<string, string> = { en: 'What you get', pt: 'O que você leva', es: 'Lo que te llevas' };
+const INVENTADO = '97% ';
+/** Frases da fala (fecham em . ! ? 。 ！ ？), cada uma com o índice global da 1ª palavra (a âncora). */
+function frasesDaFala(words: TranscriptWord[], lang: string): { text: string; k: number }[] {
+  const out: { text: string; k: number }[] = [];
+  let cur: string[] = [], k0 = 0;
+  words.forEach((w, k) => {
+    if (!cur.length) k0 = k;
+    cur.push(w.word.trim());
+    if (/[.!?。！？]$/.test(w.word.trim()) || k === words.length - 1) {
+      out.push({ text: cur.join(semEspaco(lang) ? '' : ' '), k: k0 });
+      cur = [];
+    }
+  });
+  return out;
+}
+/** Pedaços de um campo do Brain (frases, depois vírgulas), sem dígito, ≥ 2 palavras. */
+const pedacos = (x: string | null | undefined) =>
+  (x ?? '').split(/[\n.!?;,]+/).map((t) => semDigito(t.replace(/["“”]/g, ''))).filter((t) => t.split(' ').length >= 2);
+
+/** Linhas da lista a partir da fala (âncora = 1ª palavra do bloco) e do Brain (com o campo). Nada inventado (fora do gatilho). */
+export function mockListOverlay(i: AutoPlanInput, id: ListTemplateId): AutoListOverlayDraft | null {
+  const lang = i.screenLanguage;
+  const l2 = lang.toLowerCase().slice(0, 2);
+  const notes = i.offer.notes ?? '';
+  const thin = notes.includes('[mock:list-thin]');
+  const inventar = notes.includes('[mock:list-invented]') && !i.violations?.length;
+  const words = i.transcript;
+  const marcas = [i.offer.name, i.workspace?.name].filter((x): x is string => !!x && x.trim().length >= 3).map((x) => x.toLowerCase());
+  const semMarca = (x: string) => (marcas.some((m) => x.toLowerCase().includes(m)) ? '' : x);
+  // frases da fala: a última é o CTA falado (com ≥ 3); 1ª metade do resto = o lado ruim, 2ª metade = o bom / os benefícios
+  const frases = frasesDaFala(words, lang);
+  const ctaFalado = frases.length >= 3 ? frases[frases.length - 1] : undefined;
+  const corpo = ctaFalado ? frases.slice(0, -1) : frases;
+  const metade = Math.ceil(corpo.length / 2);
+  /** frase (sem dígito nem marca) no limite, ancorada na 1ª palavra; null = sem fala útil */
+  const daFalaL = (f: { text: string; k: number }, max: number): ListTextDraft | null => {
+    const t = cortar(semMarca(semDigito(f.text)).replace(/[.!?。！？]+$/, ''), max, lang);
+    return t ? { text: t, source: 'transcript', field: null, anchorWordIndex: f.k } : null;
+  };
+  const doBrainL = (field: ListTextDraft['field'], text: string, max: number): ListTextDraft | null => {
+    const t = cortar(semMarca(text), max, lang);
+    return t ? { text: t, source: 'brain', field, anchorWordIndex: null } : null;
+  };
+  // [mock:list-thin]: só a 1ª linha da fala entra; o resto vem do Brain
+  let falaRestante = thin ? 1 : Infinity;
+  const tomarFala = (b: { text: string; k: number } | undefined, max: number) => {
+    if (!b || falaRestante <= 0) return null;
+    const t = daFalaL(b, max);
+    if (t) falaRestante--;
+    return t;
+  };
+  const doCampo = (campos: ('pains' | 'promise' | 'what' | 'proof')[], max: number) => {
+    const fila = campos.flatMap((f) => pedacos(i.offer[f]).map((t) => [f, t] as const));
+    let k = 0;
+    return () => {
+      while (k < fila.length) {
+        const [f, t] = fila[k++];
+        const out = doBrainL(f, t, max);
+        if (out) return out;
+      }
+      return null;
+    };
+  };
+  const problema = corpo.slice(0, metade);
+  const beneficio = corpo.slice(metade);
+
+  if (id === 'versus') {
+    const P = i.list?.versus?.maxPairs === 4 ? 4 : 3;
+    const ruimBrain = doCampo(['pains'], 24);
+    const bomBrain = doCampo(['promise', 'what', 'proof'], 24);
+    const ruins: ListTextDraft[] = [], bons: ListTextDraft[] = [];
+    for (let k = 0; k < P; k++) {
+      const r = tomarFala(problema[k], 24) ?? ruimBrain();
+      const b = tomarFala(beneficio[k], 24) ?? bomBrain();
+      if (!r || !b) break;
+      ruins.push(r);
+      bons.push(b);
+    }
+    if (ruins.length < 1) return null;
+    if (inventar) bons[0] = { ...bons[0], text: cortar(INVENTADO + bons[0].text, 24, lang) };
+    const nome = cortar(i.offer.name ?? '', 14, lang);
+    if (!nome) return null;
+    return {
+      type: 'LIST_OVERLAY', templateId: 'versus', order: 'by_speech',
+      heads: { bad: { text: ROTULO_RUIM[l2] ?? ROTULO_RUIM.en, source: 'generic', field: null, anchorWordIndex: null }, good: { text: nome, source: 'brain', field: 'name', anchorWordIndex: null } },
+      title: null,
+      lines: [...ruins.map((t): ListLineDraft => ({ ...t, side: 'bad', kind: 'item' })), ...bons.map((t): ListLineDraft => ({ ...t, side: 'good', kind: 'item' }))],
+    };
+  }
+
+  // value-stack: itens (fala, depois promise/what) + prova (número do proof) + preço (offerAndPrice) + CTA; ≤ 5 barras
+  const provaTxt = ((i.offer.proof ?? '').split(/(?<=[.!?;])\s+|\n+/).map((t) => t.replace(/["“”]/g, '').trim()).find((t) => /[0-9]/.test(t)) ?? '');
+  const provaCort = provaTxt ? cortar(semMarca(provaTxt), 30, lang) : '';
+  const prova: ListTextDraft | null = provaCort && /[0-9]/.test(provaCort) ? { text: provaCort, source: 'brain', field: 'proof', anchorWordIndex: null } : null;
+  const preco = (i.offer.offerAndPrice ?? '').trim() ? doBrainL('offerAndPrice', i.offer.offerAndPrice!.trim(), 34) : null;
+  const cta = (i.offer.cta ?? '').trim() ? doBrainL('cta', semDigito(i.offer.cta!), 22) : ctaFalado ? daFalaL(ctaFalado, 22) : null;
+  if (!cta) return null;
+  const nItens = Math.max(2, Math.min(4, 4 - (prova ? 1 : 0) - (preco ? 1 : 0)));
+  const itemBrain = doCampo(['promise', 'what'], 30);
+  const itens: ListTextDraft[] = [];
+  for (const b of corpo.slice(1)) {
+    if (itens.length >= nItens) break;
+    const t = tomarFala(b, 30);
+    if (t) itens.push(t);
+  }
+  while (itens.length < nItens) {
+    const t = itemBrain();
+    if (!t) break;
+    itens.push(t);
+  }
+  if (itens.length + (prova ? 1 : 0) < 3) return null;
+  if (inventar) itens[0] = { ...itens[0], text: cortar(INVENTADO + itens[0].text, 30, lang) };
+  const lines: ListLineDraft[] = [
+    ...itens.map((t): ListLineDraft => ({ ...t, side: null, kind: 'item' })),
+    ...(prova ? [{ ...prova, side: null, kind: 'proof' } as ListLineDraft] : []),
+    ...(preco ? [{ ...preco, side: null, kind: 'price' } as ListLineDraft] : []),
+    { ...cta, side: null, kind: 'cta' } as ListLineDraft,
+  ].slice(0, 5);
+  return {
+    type: 'LIST_OVERLAY', templateId: 'value-stack', order: 'by_speech', heads: null,
+    title: { text: ROTULO_PILHA[l2] ?? ROTULO_PILHA.en, source: 'generic', field: null, anchorWordIndex: null },
+    lines,
+  };
 }

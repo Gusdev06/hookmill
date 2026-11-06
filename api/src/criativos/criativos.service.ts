@@ -8,7 +8,7 @@ import { CustosService, SCRIPT_ESTIMATE_USD } from '../custos/custos.service';
 import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoteirosService } from '../roteiros/roteiros.service';
-import { ALL_STATES, filterWhere } from './derivacao';
+import { ALL_STATES, listWhere } from './derivacao';
 import { waitingBatches, waitingOnYou, ZERO_WAITING } from '../workspaces/waiting';
 import { invalidState } from './state-machine';
 import { CREATIVE_INCLUDE, CreativeViews } from './views';
@@ -40,7 +40,7 @@ export class CriativosService {
     };
     const filter = q.filter ?? 'all';
     const rows = await this.prisma.creative.findMany({
-      where: { AND: [base, filterWhere(filter), afterCursor('updatedAt', cursor)] },
+      where: { AND: [base, listWhere(filter), afterCursor('updatedAt', cursor)] },
       include: CREATIVE_INCLUDE,
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
@@ -48,7 +48,7 @@ export class CriativosService {
     const p = page(rows, limit, (r) => r.updatedAt);
     const filters: CreativeFilter[] = ['all', 'progress', 'needs_you', 'approved'];
     const [counts, waiting, batches] = await Promise.all([
-      Promise.all(filters.map((f) => this.prisma.creative.count({ where: { AND: [base, filterWhere(f)] } }))),
+      Promise.all(filters.map((f) => this.prisma.creative.count({ where: { AND: [base, listWhere(f)] } }))),
       // fase2-agencia.md §3.6: número do workspace (sem q/offerId/championId/origin), a mesma função do cartão do Clients
       waitingOnYou(this.prisma, [auth.workspaceId]),
       filter === 'needs_you' ? waitingBatches(this.prisma, auth.workspaceId) : Promise.resolve([]),

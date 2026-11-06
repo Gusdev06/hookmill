@@ -1,14 +1,18 @@
 // MetaService do modo mock (META_MODE=mock, padrão; meta-v1.md §8): sem rede, determinístico, instantâneo
 // (stepMs 0 nos testes; 500 ms por passo no app pra tela mostrar progresso). Gatilhos listados em PORTA.md.
-import type { MetaAdAccountOption, MetaMetrics, MetaOptions } from '@maquina/contratos';
+import type {
+  MetaAdAccountOption, MetaCustomAudiencesResponse, MetaInstagramAccount, MetaInstagramAccountsResponse, MetaLocalesResponse, MetaMetrics, MetaOptions,
+} from '@maquina/contratos';
 import type {
   MetaAdsetSnapshotDraft, MetaCampaignSnapshotDraft, MetaLiveObject, MetaObjectLevelPort, MetaUsage,
   MetaAdAccountInfo, MetaAdSnapshotDraft, MetaAuth, MetaHealthInput, MetaHealthResult, MetaOAuthState, MetaPublishIds, MetaPublishInput,
   MetaReturnTo, MetaService, MetaServiceStatus, MetaSyncInput, MetaSyncResult, MetaSyncStage, MetaTokenGrant, MetaTokenInfo, MetaWinnerRule,
-  MetaTemplateSourceRead,
+  MetaTemplateSourceRead, MetaKnownCreativeLink,
 } from '../contrato';
 import type { Raw } from './cliente';
-import { adSetBody, campaignBody, creativeBody } from './publicacao';
+import { adSetBody, budgetTooLowDetails, campaignBody, creativeBody, graphTime, lifetimeDays, v2Of } from './publicacao';
+import { audienceOf, mergeIgAccounts, sortAudiences } from './listas';
+import type { MetaCustomAudienceOption } from '@maquina/contratos';
 import { randomBytes } from 'node:crypto';
 import { mockMediaUrl, seedOf } from '../mock/midia';
 import { MetaError, accountStatusLabel } from './erros';
@@ -89,7 +93,12 @@ const SEEDS: Seed[] = [
 
 // ---------- campanhas-v1 §6: 3 campanhas (CBO diário, ABO, CBO vitalício) e 6 conjuntos ----------
 interface CampaignSeed { id: string; name: string; objective: string; status: 'ACTIVE' | 'PAUSED'; daily: number | null; lifetime: number | null; bidStrategy: string }
-interface AdsetSeed { id: string; campaignId: string; name: string; status: 'ACTIVE' | 'PAUSED'; daily: number | null; learning: 'LEARNING' | 'SUCCESS' | 'FAIL' | null }
+interface AdsetSeed {
+  id: string; campaignId: string; name: string; status: 'ACTIVE' | 'PAUSED'; daily: number | null; learning: 'LEARNING' | 'SUCCESS' | 'FAIL' | null;
+  // meta-templates-v2 §9 (opcionais; ausente = como antes): total do conjunto (ABO), meta, agendamento (dias relativos a "agora", ou ISO nos publicados)
+  lifetime?: number | null; optimizationGoal?: string;
+  startDaysAgo?: number; endInDays?: number; startTime?: string | null; endTime?: string | null;
+}
 export const MOCK_CAMPAIGNS: CampaignSeed[] = [
   { id: 'mock_cmp_cbo', name: 'Mock — Prospecting (CBO)', objective: 'OUTCOME_SALES', status: 'ACTIVE', daily: 5000, lifetime: null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' },
   { id: 'mock_cmp_abo', name: 'Mock — Testing (ABO)', objective: 'OUTCOME_SALES', status: 'ACTIVE', daily: null, lifetime: null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' },
@@ -101,12 +110,45 @@ export const MOCK_ADSETS: AdsetSeed[] = [
   { id: 'mock_adset_abo_1', campaignId: 'mock_cmp_abo', name: 'Mock — Interests', status: 'ACTIVE', daily: 2000, learning: 'SUCCESS' },
   { id: 'mock_adset_abo_paused', campaignId: 'mock_cmp_abo', name: 'Mock — Paused test', status: 'PAUSED', daily: 1500, learning: null },
   { id: 'mock_adset_abo_stale', campaignId: 'mock_cmp_abo', name: 'Mock — Retargeting [mock:stale]', status: 'ACTIVE', daily: 1000, learning: 'FAIL' },
-  { id: 'mock_adset_life_1', campaignId: 'mock_cmp_life', name: 'Mock — Launch audience', status: 'ACTIVE', daily: null, learning: 'SUCCESS' },
+  // v2: o conjunto da campanha vitalícia tem início e fim (a Meta exige fim com orçamento total) → importa como LIFETIME + AFTER_DAYS
+  { id: 'mock_adset_life_1', campaignId: 'mock_cmp_life', name: 'Mock — Launch audience', status: 'ACTIVE', daily: null, learning: 'SUCCESS', optimizationGoal: 'LINK_CLICKS', startDaysAgo: 10, endInDays: 20 },
 ];
+/** meta-templates-v2 §9: campanha de Awareness (CBO US$ 30/dia, REACH, ig_mock_1 no criativo) SÓ PRA IMPORTAR
+ *  (`POST /meta/templates/import { level, id: 'mock_cmp_awareness' }`). Fica FORA do sync/leitura ao vivo de propósito: as
+ *  contagens do sync (3 campanhas, 6 conjuntos, 10 anúncios) que os specs do backend e do QA conferem não mudam. */
+export const MOCK_IMPORT_ONLY: Catalog = {
+  campaigns: [{ id: 'mock_cmp_awareness', name: 'Mock — Brand awareness', objective: 'OUTCOME_AWARENESS', status: 'ACTIVE', daily: 3000, lifetime: null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' }],
+  adsets: [{ id: 'mock_adset_awareness_1', campaignId: 'mock_cmp_awareness', name: 'Mock — Reach US', status: 'ACTIVE', daily: null, learning: 'SUCCESS', optimizationGoal: 'REACH' }],
+  seeds: [{ id: 'mock_ad_awareness', name: 'Brand — reach test', status: 'ACTIVE', createdDaysAgo: 15, m30: [0, 0, 0, 0, 0], m7: [0, 0, 0, 0, 0, 0], prev: [0, 0, 0, 0, 0, 0], video: true, adset: 'mock_adset_awareness_1' }],
+};
+
+// ---------- meta-templates-v2 §9: listas da conta (mesmos fixtures do MSW do web) ----------
+export const MOCK_IG_ACCOUNTS: MetaInstagramAccount[] = [
+  { id: 'ig_mock_1', username: 'hookmill.demo', profilePicUrl: null, source: 'AD_ACCOUNT' },
+  { id: 'ig_mock_page', username: 'mock.page', profilePicUrl: null, source: 'PAGE' },
+];
+/** Corpo cru como a Graph devolve (`act/customaudiences`), passado pelo mesmo `audienceOf` do live. time_updated em segundos. */
+export const MOCK_CUSTOM_AUDIENCES_RAW: Record<string, unknown>[] = [
+  { id: 'ca_mock_buyers', name: 'Website buyers 180d', subtype: 'WEBSITE', approximate_count_lower_bound: 12000, approximate_count_upper_bound: 15000, delivery_status: { code: 200, description: 'This audience is ready for use.' }, operation_status: { code: 200, description: 'Normal' }, time_updated: 1793491200 },
+  { id: 'ca_mock_lal_1', name: 'Lookalike (US, 1%) - Website buyers 180d', subtype: 'LOOKALIKE', approximate_count_lower_bound: 1200000, approximate_count_upper_bound: 1400000, delivery_status: { code: 200, description: 'This audience is ready for use.' }, operation_status: { code: 200, description: 'Normal' }, time_updated: 1793404800 },
+  { id: 'ca_mock_small', name: 'Newsletter list (small)', subtype: 'CUSTOM', approximate_count_lower_bound: -1, approximate_count_upper_bound: -1, delivery_status: { code: 300, description: 'Audience too small' }, operation_status: { code: 200, description: 'Normal' }, time_updated: 1793318400 },
+  { id: 'ca_mock_flagged', name: 'Imported list (flagged)', subtype: 'CUSTOM', approximate_count_lower_bound: 5000, approximate_count_upper_bound: 6000, delivery_status: { code: 200, description: 'This audience is ready for use.' }, operation_status: { code: 471, description: 'This audience was flagged and cannot be used.' }, time_updated: 1793232000 },
+];
+export const MOCK_CUSTOM_AUDIENCES: MetaCustomAudienceOption[] = sortAudiences(MOCK_CUSTOM_AUDIENCES_RAW.map((o) => audienceOf(o)!));
+/** 6 e 24 confirmados na doc da Meta; os outros são ilustrativos (sem colidir). O live vem da Graph (`search?type=adlocale`). */
+export const MOCK_LOCALES: MetaLocalesResponse['locales'] = [
+  { key: 1001, name: 'English (All)' }, { key: 24, name: 'English (UK)' }, { key: 6, name: 'English (US)' }, { key: 9, name: 'French (France)' },
+  { key: 5, name: 'German' }, { key: 16, name: 'Portuguese (Brazil)' }, { key: 31, name: 'Portuguese (Portugal)' }, { key: 23, name: 'Spanish' },
+];
+/** Gatilhos do §9: ids gravados num template que NÃO aparecem nas listas (o backend responde 400 notAvailable no envio). */
+export const MOCK_GONE_IDS = { instagram: 'ig_mock_gone', audience: 'ca_mock_gone' } as const;
+const DAY_MS = 86_400_000;
+/** Horário no formato da Graph (`2026-11-10T14:00:00+0000`). */
+const graphAt = (ms: number) => graphTime(new Date(ms).toISOString());
 /** Estrutura publicada pelo HookMill (createCampaign/AdSet/Ad do mock), PAUSED como no live; entra no sync com selo (§6). */
 export interface MockPublished {
-  campaigns: Map<string, { id: string; name: string; objective: string; createdAt: string; daily?: number | null }>;
-  adsets: Map<string, { id: string; campaignId: string; name: string; daily: number | null; createdAt: string }>;
+  campaigns: Map<string, { id: string; name: string; objective: string; createdAt: string; daily?: number | null; lifetime?: number | null }>;
+  adsets: Map<string, { id: string; campaignId: string; name: string; daily: number | null; createdAt: string; lifetime?: number | null; optimizationGoal?: string; startTime?: string | null; endTime?: string | null }>;
   ads: Map<string, { id: string; adsetId: string; name: string; videoId: string; createdAt: string }>;
 }
 /** Estado mutável das escritas mock de UM escopo (conexão + conta, ver FakeMetaService.scope): status/orçamento por id e a
@@ -119,11 +161,15 @@ const seedStatus = (s: Seed): 'ACTIVE' | 'PAUSED' => (s.status === 'PAUSED' ? 'P
 interface Catalog { campaigns: CampaignSeed[]; adsets: AdsetSeed[]; seeds: Seed[] }
 const Z5: Seed['m30'] = [0, 0, 0, 0, 0];
 const Z6: Seed['m7'] = [0, 0, 0, 0, 0, 0];
-function catalogOf(st: MockWriteState): Catalog {
+function catalogOf(st: MockWriteState, withImportOnly = false): Catalog {
   const p = st.published;
+  if (withImportOnly) {
+    const c = catalogOf(st);
+    return { campaigns: [...c.campaigns, ...MOCK_IMPORT_ONLY.campaigns], adsets: [...c.adsets, ...MOCK_IMPORT_ONLY.adsets], seeds: [...c.seeds, ...MOCK_IMPORT_ONLY.seeds] };
+  }
   return {
-    campaigns: [...MOCK_CAMPAIGNS, ...[...p.campaigns.values()].map<CampaignSeed>((c) => ({ id: c.id, name: c.name, objective: c.objective, status: 'PAUSED', daily: c.daily ?? null, lifetime: null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' }))],
-    adsets: [...MOCK_ADSETS, ...[...p.adsets.values()].filter((a) => p.campaigns.has(a.campaignId)).map<AdsetSeed>((a) => ({ id: a.id, campaignId: a.campaignId, name: a.name, status: 'PAUSED', daily: a.daily, learning: null }))],
+    campaigns: [...MOCK_CAMPAIGNS, ...[...p.campaigns.values()].map<CampaignSeed>((c) => ({ id: c.id, name: c.name, objective: c.objective, status: 'PAUSED', daily: c.daily ?? null, lifetime: c.lifetime ?? null, bidStrategy: 'LOWEST_COST_WITHOUT_CAP' }))],
+    adsets: [...MOCK_ADSETS, ...[...p.adsets.values()].filter((a) => p.campaigns.has(a.campaignId)).map<AdsetSeed>((a) => ({ id: a.id, campaignId: a.campaignId, name: a.name, status: 'PAUSED', daily: a.daily, learning: null, lifetime: a.lifetime ?? null, optimizationGoal: a.optimizationGoal, startTime: a.startTime ?? null, endTime: a.endTime ?? null }))],
     seeds: [...SEEDS, ...[...p.ads.values()].filter((a) => { const s = p.adsets.get(a.adsetId); return !!s && p.campaigns.has(s.campaignId); })
       .map<Seed>((a) => ({ id: a.id, name: a.name, status: 'PAUSED', createdDaysAgo: 0, createdAt: a.createdAt, m30: Z5, m7: Z6, prev: Z6, video: true, videoId: a.videoId, adset: a.adsetId }))],
   };
@@ -148,6 +194,25 @@ function effectiveOf(st: MockWriteState, cat: Catalog, level: MetaObjectLevelPor
   return parent === 'ACTIVE' ? 'ACTIVE' : parent === 'PAUSED' ? 'ADSET_PAUSED' : parent;
 }
 
+/**
+ * meta-oferta-v1 §2/§9: link de destino fake por anúncio (os casos do §3.7 com X = "Spy Gram" spygram.app/quiz + Kiwify Ab12,
+ * Y = "Zap Spy" zapspy.com.br): casa, prefixo, Kiwify da oferta, estrangeiro, post existente, formulário, Kiwify de outro,
+ * site de Y, conversa e só o domínio. Publicado pelo HookMill (fora da tabela) = `none`: casa pela regra 3 (hookmill).
+ */
+export const MOCK_AD_LINKS: Record<string, MetaKnownCreativeLink> = {
+  mock_ad_1: { destinationUrls: ['https://spygram.app/quiz?utm_source=fb&utm_campaign=cbo01'], destinationSource: 'video_cta', urlTags: 'utm_source=facebook&utm_medium=paid' },
+  mock_ad_2: { destinationUrls: ['https://spygram.app/quiz/step-2'], destinationSource: 'video_cta', urlTags: null },
+  mock_ad_3: { destinationUrls: ['https://pay.kiwify.com.br/Ab12?src=ad'], destinationSource: 'video_cta', urlTags: null },
+  mock_ad_4: { destinationUrls: ['https://outroproduto.com/vsl'], destinationSource: 'video_cta', urlTags: null },
+  mock_ad_5: { destinationUrls: [], destinationSource: 'existing_post', urlTags: null },
+  mock_ad_6: { destinationUrls: [], destinationSource: 'lead_form', urlTags: null },
+  mock_ad_7: { destinationUrls: ['https://pay.kiwify.com.br/Zz99'], destinationSource: 'video_cta', urlTags: null },
+  mock_ad_img_1: { destinationUrls: ['https://zapspy.com.br/promo'], destinationSource: 'story_link', urlTags: null },
+  mock_ad_img_2: { destinationUrls: [], destinationSource: 'messaging', urlTags: null },
+  mock_ad_novideo: { destinationUrls: ['https://lp.spygram.app/outra'], destinationSource: 'video_cta', urlTags: null },
+};
+const NO_LINK: MetaKnownCreativeLink = { destinationUrls: [], destinationSource: 'none', urlTags: null };
+
 export function mockAds(publicApiUrl: string, i: { resultType: string | null; now: Date; state?: MockWriteState }): Omit<MetaAdSnapshotDraft, 'verdict' | 'trend'>[] {
   const st = i.state ?? newMockWriteState();
   const cat = catalogOf(st);
@@ -165,6 +230,7 @@ export function mockAds(publicApiUrl: string, i: { resultType: string | null; no
       resultType: i.resultType,
       metrics: m(s.m30), metrics7d: m(s.m7), metricsPrev7d: m(s.prev),
       adCreatedTime: s.createdAt ?? new Date(i.now.getTime() - s.createdDaysAgo * DAY).toISOString(),
+      ...(MOCK_AD_LINKS[s.id] ?? NO_LINK),
     };
   });
 }
@@ -195,15 +261,25 @@ export function mockStructure(ads: Omit<MetaAdSnapshotDraft, 'verdict' | 'trend'
   });
   const adsets = cat.adsets.map<MetaAdsetSnapshotDraft>((a) => {
     const daily = a.daily != null ? st.daily.get(a.id) ?? a.daily : null;
+    const sched = adsetSchedule(a, i.now);
     return {
       adsetId: a.id, campaignId: a.campaignId, name: a.name, status: st.status.get(a.id) ?? a.status, effectiveStatus: effectiveOf(st, cat, 'adset', a.id),
-      optimizationGoal: 'OFFSITE_CONVERSIONS', billingEvent: 'IMPRESSIONS', bidStrategy: null,
-      dailyBudgetMinor: daily, lifetimeBudgetMinor: null, budgetRemainingMinor: daily, learningStage: a.learning,
-      startTime: createdOf(a.id), endTime: null, createdTime: createdOf(a.id),
+      optimizationGoal: a.optimizationGoal ?? 'OFFSITE_CONVERSIONS', billingEvent: 'IMPRESSIONS', bidStrategy: null,
+      dailyBudgetMinor: daily, lifetimeBudgetMinor: a.lifetime ?? null, budgetRemainingMinor: daily ?? (a.lifetime != null ? Math.round(a.lifetime * 0.6) : null), learningStage: a.learning,
+      startTime: sched.startTime ?? createdOf(a.id), endTime: sched.endTime, createdTime: createdOf(a.id),
       ...of((x) => x.adset.id === a.id),
     };
   });
   return { campaigns, adsets };
+}
+
+/** Agendamento do conjunto (fixos: dias relativos a `now`; publicados: o ISO gravado). Formato da Graph. */
+function adsetSchedule(a: AdsetSeed, now: Date): { startTime: string | null; endTime: string | null } {
+  const t = now.getTime();
+  return {
+    startTime: a.startTime ?? (a.startDaysAgo != null ? graphAt(t - a.startDaysAgo * DAY_MS) : null),
+    endTime: a.endTime ?? (a.endInDays != null ? graphAt(t + a.endInDays * DAY_MS) : null),
+  };
 }
 
 export function resultTypeFor(businessType: MetaSyncInput['businessType'], hasPixel: boolean, resultType?: MetaSyncInput['resultType']): string {
@@ -218,8 +294,8 @@ export function resultTypeFor(businessType: MetaSyncInput['businessType'], hasPi
 const trigger = (text: string | null | undefined, key: string) => !!text && text.includes(`[mock:${key}]`);
 
 /** Objeto mock por id (estrutura do §6 + o que foi publicado no escopo); null = não existe nesse escopo. */
-export function mockObject(id: string, st: MockWriteState = newMockWriteState()): { level: MetaObjectLevelPort; name: string } | null {
-  const cat = catalogOf(st);
+export function mockObject(id: string, st: MockWriteState = newMockWriteState(), withImportOnly = false): { level: MetaObjectLevelPort; name: string } | null {
+  const cat = catalogOf(st, withImportOnly);
   const c = cat.campaigns.find((x) => x.id === id);
   if (c) return { level: 'campaign', name: c.name };
   const a = cat.adsets.find((x) => x.id === id);
@@ -407,20 +483,39 @@ export class FakeMetaService implements MetaService {
     // com template: nome do padrão + contador (dois lotes com o mesmo nome são campanhas diferentes, como na Meta)
     const campaignId = st ? `mock_campaign_${seedOf('camp', st.campaignName, String(pub.size)).slice(0, 8)}` : `mock_campaign_${seedOf('camp', i.adName).slice(0, 8)}`;
     this.sent.campaigns.push({ id: campaignId, ...campaignBody(i) });
-    if (!pub.has(campaignId)) pub.set(campaignId, { id: campaignId, name: st?.campaignName ?? i.adName, objective: i.settings.objective, createdAt: this.now().toISOString(), daily: st?.budgetMode === 'CBO' ? i.settings.dailyBudgetMinor : null });
+    const v = v2Of(i);
+    const cbo = st?.budgetMode === 'CBO';
+    if (!pub.has(campaignId)) pub.set(campaignId, { id: campaignId, name: st?.campaignName ?? i.adName, objective: i.settings.objective, createdAt: this.now().toISOString(), daily: cbo && v.budgetType === 'DAILY' ? i.settings.dailyBudgetMinor : null, lifetime: cbo && v.budgetType === 'LIFETIME' ? v.lifetimeBudgetMinor : null });
     return { campaignId };
   }
   async createAdSet(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds) {
     this.assertToken(auth);
     const a = this.assertUsable(i);
     if (!ids.campaignId) throw new MetaError('META_ERROR', 'mock: createAdSet without campaignId', { stage: 'creating_adset' });
-    if (i.settings.dailyBudgetMinor < MOCK_MIN_DAILY_BUDGET_MINOR) throw new MetaError('META_BUDGET_TOO_LOW', null, { stage: 'creating_adset', details: { minimumMinor: MOCK_MIN_DAILY_BUDGET_MINOR, currency: a.currency } });
+    const v = v2Of(i);
+    const now = this.now();
+    // v2 §2.2: com LIFETIME o mínimo é o total (diário × dias); DAILY igual v1. CBO + LIFETIME: o total mora na campanha
+    if (v.budgetType === 'LIFETIME') {
+      const days = lifetimeDays(v, now);
+      if (days != null && (v.lifetimeBudgetMinor ?? 0) < MOCK_MIN_DAILY_BUDGET_MINOR * days)
+        throw new MetaError('META_BUDGET_TOO_LOW', null, { stage: 'creating_adset', details: budgetTooLowDetails(i, MOCK_MIN_DAILY_BUDGET_MINOR, a.currency, now) });
+    } else if (i.settings.dailyBudgetMinor < MOCK_MIN_DAILY_BUDGET_MINOR) {
+      throw new MetaError('META_BUDGET_TOO_LOW', null, { stage: 'creating_adset', details: { minimumMinor: MOCK_MIN_DAILY_BUDGET_MINOR, currency: a.currency } });
+    }
+    // v2 §9: simula o beta do ON_VIDEO/ON_POST recusado pela conta
+    if (trigger(i.settings.primaryText, 'meta-destination')) throw new MetaError('META_ERROR', 'destination_type not available for this account (mock)', { stage: 'creating_adset', failDetail: 'mock 100/2490408' });
     await this.step();
     const pub = this.scope(auth, i.adAccountId).published.adsets;
     const st = i.structure;
     const adsetId = st ? `mock_adset_${seedOf('adset', st.adsetName, ids.campaignId, String(pub.size)).slice(0, 8)}` : `mock_adset_${seedOf('adset', i.adName).slice(0, 8)}`;
-    this.sent.adsets.push({ id: adsetId, ...adSetBody(i, ids.campaignId) });
-    if (!pub.has(adsetId)) pub.set(adsetId, { id: adsetId, campaignId: ids.campaignId, name: st?.adsetName ?? i.adName, daily: st?.budgetMode === 'CBO' ? null : i.settings.dailyBudgetMinor, createdAt: this.now().toISOString() });
+    const body = adSetBody(i, ids.campaignId, now);
+    this.sent.adsets.push({ id: adsetId, ...body });
+    const abo = st?.budgetMode !== 'CBO';
+    if (!pub.has(adsetId)) pub.set(adsetId, {
+      id: adsetId, campaignId: ids.campaignId, name: st?.adsetName ?? i.adName, createdAt: now.toISOString(),
+      daily: abo && v.budgetType === 'DAILY' ? i.settings.dailyBudgetMinor : null, lifetime: abo && v.budgetType === 'LIFETIME' ? v.lifetimeBudgetMinor : null,
+      optimizationGoal: String(body.optimization_goal), startTime: (body.start_time as string | undefined) ?? null, endTime: (body.end_time as string | undefined) ?? null,
+    });
     return { adsetId };
   }
   async createAdCreative(auth: MetaAuth, i: MetaPublishInput, ids: MetaPublishIds) {
@@ -485,7 +580,7 @@ export class FakeMetaService implements MetaService {
     };
     const adsetRef = (aid: string) => {
       const a = cat.adsets.find((x) => x.id === aid)!;
-      return { id: a.id, name: a.name, status: st.status.get(a.id) ?? a.status, dailyBudgetMinor: a.daily != null ? st.daily.get(a.id) ?? a.daily : null, lifetimeBudgetMinor: null };
+      return { id: a.id, name: a.name, status: st.status.get(a.id) ?? a.status, dailyBudgetMinor: a.daily != null ? st.daily.get(a.id) ?? a.daily : null, lifetimeBudgetMinor: a.lifetime ?? null };
     };
     if (level === 'campaign') {
       const c = campaignRef(id);
@@ -493,7 +588,7 @@ export class FakeMetaService implements MetaService {
     }
     if (level === 'adset') {
       const a = adsetRef(id);
-      return { level, id, name: a.name, status: a.status, effectiveStatus: effectiveOf(st, cat, 'adset', id), dailyBudgetMinor: a.dailyBudgetMinor, lifetimeBudgetMinor: null, campaign: campaignRef(cat.adsets.find((x) => x.id === id)!.campaignId), adset: null };
+      return { level, id, name: a.name, status: a.status, effectiveStatus: effectiveOf(st, cat, 'adset', id), dailyBudgetMinor: a.dailyBudgetMinor, lifetimeBudgetMinor: a.lifetimeBudgetMinor, campaign: campaignRef(cat.adsets.find((x) => x.id === id)!.campaignId), adset: null };
     }
     const s = cat.seeds.find((x) => x.id === id)!;
     const as = adsetRef(s.adset);
@@ -522,17 +617,40 @@ export class FakeMetaService implements MetaService {
     return null;
   }
 
+  // ---------- meta-templates-v2 §4/§9 ----------
+  /** act_mock_2 = [] + unavailable (a Meta negou a Página); sem Página = só as da conta (no_page); o resto = as 2 (ok). */
+  async listInstagramAccounts(auth: MetaAuth, i: { adAccountId: string; pageId: string | null }): Promise<MetaInstagramAccountsResponse> {
+    this.assertToken(auth);
+    this.findAccount(i.adAccountId);
+    await this.step();
+    if (i.adAccountId === 'act_mock_2') return { accounts: [], pageLookup: 'unavailable' };
+    const account = MOCK_IG_ACCOUNTS.filter((a) => a.source === 'AD_ACCOUNT').map((a) => ({ ...a }));
+    if (!i.pageId) return { accounts: mergeIgAccounts([], account), pageLookup: 'no_page' };
+    return { accounts: mergeIgAccounts(MOCK_IG_ACCOUNTS.filter((a) => a.source === 'PAGE').map((a) => ({ ...a })), account), pageLookup: 'ok' };
+  }
+  async listCustomAudiences(auth: MetaAuth, i: { adAccountId: string }): Promise<MetaCustomAudiencesResponse> {
+    this.assertToken(auth);
+    this.findAccount(i.adAccountId);
+    await this.step();
+    return { audiences: MOCK_CUSTOM_AUDIENCES.map((a) => ({ ...a })), truncated: false };
+  }
+  async listLocales(auth: MetaAuth): Promise<MetaLocalesResponse> {
+    this.assertToken(auth);
+    await this.step();
+    return { locales: MOCK_LOCALES.map((l) => ({ ...l })) };
+  }
+
   // ---------- meta-templates-v1 §3 ----------
   /** Estrutura fixa do §6 (+ publicados no escopo). `mock_adset_cbo_1` tem público personalizado, exclusão e data de fim
    *  (vão pro `unsupported`); conjuntos de campanha OUTCOME_SALES otimizam pelo pix_mock/PURCHASE. */
   async readTemplateSource(auth: MetaAuth, i: { level: MetaObjectLevelPort; id: string; hint?: { adsetId?: string | null; adId?: string | null } }): Promise<MetaTemplateSourceRead> {
     this.assertToken(auth);
     const st = this.scope(auth);
-    const o = mockObject(i.id, st);
+    const o = mockObject(i.id, st, true);
     if (!o || o.level !== i.level) throw new MetaError('META_OBJECT_GONE', null, { details: { level: i.level, id: i.id }, action: 'refresh', failDetail: 'mock 100/33' });
     this.writeTriggers(o.name);
     await this.step();
-    const cat = catalogOf(st);
+    const cat = catalogOf(st, true);
     const active = (s: { status: string }) => s.status === 'ACTIVE';
     let adSeed = i.level === 'ad' ? cat.seeds.find((x) => x.id === i.id)! : null;
     let adset = i.level === 'adset' ? cat.adsets.find((x) => x.id === i.id)! : adSeed ? cat.adsets.find((x) => x.id === adSeed!.adset)! : null;
@@ -546,29 +664,47 @@ export class FakeMetaService implements MetaService {
       adSeed = (i.hint?.adId && kids.find((x) => x.id === i.hint!.adId)) || kids.find(active) || kids[0] || null;
     }
     const sales = campaign.objective === 'OUTCOME_SALES';
+    const awareness = campaign.objective === 'OUTCOME_AWARENESS';
     const custom = adset?.id === 'mock_adset_cbo_1';
+    const now = this.now().getTime();
+    // v2 §9: mock_adset_cbo_1 tem público (incluir + excluir, ids da lista), idioma e agendamento (início + fim → AFTER_DAYS),
+    // que agora COPIAM; e ganha 1 interesse (flexible_spec) e 1 cidade pra o `unsupported` continuar exercitado
+    const sched = adset ? adsetSchedule(adset, this.now()) : { startTime: null, endTime: null };
+    const startTime = custom ? graphAt(now - 3 * DAY_MS) : sched.startTime;
+    const endTime = custom ? graphAt(now + 4 * DAY_MS) : sched.endTime;
+    const goal = adset?.optimizationGoal ?? (sales ? 'OFFSITE_CONVERSIONS' : 'LINK_CLICKS');
     return {
       campaign: {
         id: campaign.id, name: campaign.name, objective: campaign.objective, bidStrategy: campaign.bidStrategy,
         dailyBudgetMinor: campaign.daily, lifetimeBudgetMinor: campaign.lifetime, specialAdCategories: [], startTime: null, stopTime: null,
+        buyingType: 'AUCTION',
       },
       adset: adset ? {
-        id: adset.id, name: adset.name, bidStrategy: adset.daily != null ? 'LOWEST_COST_WITHOUT_CAP' : null, bidAmountMinor: null,
-        dailyBudgetMinor: adset.daily, lifetimeBudgetMinor: null, optimizationGoal: sales ? 'OFFSITE_CONVERSIONS' : 'LINK_CLICKS',
-        promotedObject: sales ? { pixelId: 'pix_mock', customEventType: 'PURCHASE', applicationId: null } : null,
+        id: adset.id, name: adset.name, bidStrategy: adset.daily != null || adset.lifetime != null ? 'LOWEST_COST_WITHOUT_CAP' : null, bidAmountMinor: null,
+        dailyBudgetMinor: adset.daily, lifetimeBudgetMinor: adset.lifetime ?? null, optimizationGoal: goal,
+        // Awareness: promoted_object { page_id } (o live lê como objeto sem pixel)
+        promotedObject: sales ? { pixelId: 'pix_mock', customEventType: 'PURCHASE', applicationId: null } : awareness ? { pixelId: null, customEventType: null, applicationId: null } : null,
         targeting: {
-          geo_locations: { countries: ['US', 'CA'] }, age_min: 25, age_max: 54, genders: custom ? [2] : undefined,
+          geo_locations: { countries: ['US', 'CA'], ...(custom ? { cities: [{ key: '2420379', name: 'Los Angeles', region: 'California', country: 'US' }] } : {}) },
+          age_min: 25, age_max: 54, genders: custom ? [2] : undefined,
           targeting_automation: { advantage_audience: custom ? 0 : 1 },
           ...(custom ? {
-            custom_audiences: [{ id: 'mock_aud_1', name: 'Buyers 180d' }], excluded_custom_audiences: [{ id: 'mock_aud_2', name: 'Purchased 30d' }],
+            custom_audiences: [{ id: 'ca_mock_lal_1', name: 'Lookalike (US, 1%) - Website buyers 180d' }],
+            excluded_custom_audiences: [{ id: 'ca_mock_buyers', name: 'Website buyers 180d' }],
+            locales: [6],
+            flexible_spec: [{ interests: [{ id: '6003107902433', name: 'Sleep' }] }],
             publisher_platforms: ['facebook', 'instagram'], facebook_positions: ['feed'], instagram_positions: ['stream', 'story'],
           } : {}),
         },
-        startTime: null, endTime: custom ? '2026-12-31T23:59:00-0500' : null,
+        startTime, endTime,
+        destinationType: awareness ? null : 'WEBSITE',
       } : null,
       ad: adSeed ? {
         id: adSeed.id, name: adSeed.name,
-        creative: { message: `${adSeed.name}: sleep cooler tonight.`, title: 'Bamboo sheets', description: null, callToAction: sales ? 'SHOP_NOW' : 'LEARN_MORE', link: 'https://example.com/sheets', urlTags: 'utm_source=facebook&utm_medium=paid' },
+        creative: {
+          message: `${adSeed.name}: sleep cooler tonight.`, title: 'Bamboo sheets', description: null, callToAction: sales ? 'SHOP_NOW' : 'LEARN_MORE', link: 'https://example.com/sheets', urlTags: 'utm_source=facebook&utm_medium=paid',
+          instagramUserId: awareness ? 'ig_mock_1' : null, format: 'VIDEO',
+        },
       } : null,
     };
   }

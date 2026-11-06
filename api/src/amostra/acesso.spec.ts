@@ -35,3 +35,15 @@ describe('amostra: acesso efetivo e admissão (puro)', () => {
     expect(sel[5].included).toBe(true);
   });
 });
+
+describe('TEST_MODE (02/11)', () => {
+  const antes = process.env.TEST_MODE;
+  afterEach(() => { process.env.TEST_MODE = antes; });
+  it('on = toda conta vira INTERNAL (nada trava); off = regra normal', () => {
+    process.env.TEST_MODE = 'on';
+    expect(effectiveAccess(['SAMPLE'])).toBe('INTERNAL');
+    expect(isLocked({ sample: true }, effectiveAccess(['SAMPLE']))).toBe(false);
+    process.env.TEST_MODE = 'off';
+    expect(effectiveAccess(['SAMPLE'])).toBe('SAMPLE');
+  });
+});

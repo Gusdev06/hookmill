@@ -1,0 +1,70 @@
+HM
+HookMill
+Q
+QA Alfa
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Credits
+Get credits
+Admin · Templates
+Settings
+Q
+QA Dono Alfa
+Owner
+EN
+PT
+Settings
+
+Workspace, people, connected services and spend.
+
+Workspace
+Interface language
+English
+Português (BR)
+Setup
+Edit setup
+Connections
+Manage
+Account mode
+Just me
+
+Switch to Agency to add clients. Your workspace becomes your first client; nothing is lost.
+
+Switch to Agency
+Unlock an account
+HookMill team
+
+Paste the account id the person sent from “Talk to us” and pick the plan. Their sample unlocks the next time they look at it; nothing is rendered again.
+
+Account id
+Plan
+Paid
+Paid
+Free sample (locked)
+Team (never locks)
+Save plan
+Credits
+Get credits & history
+Balance
+Credit an account
+Team only
+
+No checkout yet: when someone pays you, add their credits here. A negative number takes credits back (never below zero).
+
+E-mail or account id
+Credits
+Note
+Add credits
+Pressing twice never credits twice.
+Members
+Connected services
+Spend

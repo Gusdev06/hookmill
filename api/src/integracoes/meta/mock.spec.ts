@@ -1,7 +1,8 @@
 import type { MetaPublishInput, MetaPublishIds, MetaService } from '../contrato';
 import { MetaError } from './erros';
 import { buildMetaService, metaMode } from './modo';
-import { FakeMetaService, MOCK_MIN_DAILY_BUDGET_MINOR, MOCK_TOKEN } from './mock.service';
+import { FakeMetaService, MOCK_CUSTOM_AUDIENCES, MOCK_GONE_IDS, MOCK_IG_ACCOUNTS, MOCK_LOCALES, MOCK_MIN_DAILY_BUDGET_MINOR, MOCK_TOKEN } from './mock.service';
+import type { MetaPublishStructure } from '../contrato';
 import { DEFAULT_RULE } from './vencedor';
 
 const NOW = new Date('2026-10-21T12:00:00.000Z');
@@ -161,7 +162,7 @@ describe('FakeMetaService (meta-v1 §8)', () => {
     expect(r4.ads.filter((a) => a.verdict === 'WINNER').map((a) => a.metaAdId)).toEqual(['mock_ad_1', 'mock_ad_2']); // 420, 380, 310, 260 ≥ 275 → 3 elegíveis → mediana 23,75
     expect(r4.ads.find((a) => a.metaAdId === 'mock_ad_4')?.verdict).toBe('LOW_DATA');
   });
-  it('campanhas-v1 §6: 3 campanhas (CBO diário, ABO, CBO vitalício), 6 conjuntos, anúncios distribuídos, effective_status de pai pausado', async () => {
+  it('campanhas-v1 §6: 3 campanhas (CBO diário, ABO, CBO vitalício), 6 conjuntos (v2: Awareness só pra importar, fora do sync), anúncios distribuídos, effective_status de pai pausado', async () => {
     const r = await svc().syncAds(auth, { adAccountId: 'act_mock_1', currency: 'USD', businessType: 'ONLINE_STORE', hasPixel: true });
     expect(r.truncated).toBe(false);
     const c = Object.fromEntries((r.campaigns ?? []).map((x) => [x.campaignId, x]));
@@ -170,6 +171,9 @@ describe('FakeMetaService (meta-v1 §8)', () => {
     expect(c.mock_cmp_life).toMatchObject({ dailyBudgetMinor: null, lifetimeBudgetMinor: 30000 });
     const a = Object.fromEntries((r.adsets ?? []).map((x) => [x.adsetId, x]));
     expect(Object.keys(a)).toHaveLength(6);
+    expect(c.mock_cmp_awareness).toBeUndefined();
+    expect(a.mock_adset_awareness_1).toBeUndefined();
+    expect(a.mock_adset_life_1).toMatchObject({ startTime: '2026-10-11T12:00:00+0000', endTime: '2026-11-10T12:00:00+0000' });
     expect(a.mock_adset_cbo_2.learningStage).toBe('LEARNING');
     expect(a.mock_adset_abo_paused).toMatchObject({ status: 'PAUSED', dailyBudgetMinor: 1500 });
     expect(a.mock_adset_abo_stale.name).toContain('[mock:stale]');
@@ -368,3 +372,152 @@ describe('FakeMetaService (meta-v1 §8)', () => {
     expect(u.searchParams.get('state')!.split('.')).toHaveLength(3);
   });
 });
+
+describe('FakeMetaService meta-templates-v2 §9 (I3)', () => {
+  const STRUCT: MetaPublishStructure = { campaignName: 'HM v2', adsetName: 'HM v2 — set', budgetMode: 'ABO', bidStrategy: 'LOWEST_COST', bidAmountMinor: null, genders: 'ALL', advantageAudience: true, placements: 'AUTO', urlTags: null };
+  const withStructure = (st: Partial<MetaPublishStructure>, over: Partial<MetaPublishInput['settings']> = {}): MetaPublishInput => ({ ...input(over), structure: { ...STRUCT, ...st } });
+  const day = 86_400_000;
+
+  it('listInstagramAccounts: act_mock_1 = @mock.page (PAGE) + @hookmill.demo (AD_ACCOUNT), ok; act_mock_2 = [] unavailable; sem Página = no_page', async () => {
+    const s = svc();
+    expect(await s.listInstagramAccounts(auth, { adAccountId: 'act_mock_1', pageId: 'page_mock' })).toEqual({
+      pageLookup: 'ok',
+      accounts: [
+        { id: 'ig_mock_page', username: 'mock.page', profilePicUrl: null, source: 'PAGE' },
+        { id: 'ig_mock_1', username: 'hookmill.demo', profilePicUrl: null, source: 'AD_ACCOUNT' },
+      ],
+    });
+    expect(await s.listInstagramAccounts(auth, { adAccountId: 'act_mock_2', pageId: 'page_mock' })).toEqual({ accounts: [], pageLookup: 'unavailable' });
+    expect(await s.listInstagramAccounts(auth, { adAccountId: 'act_mock_1', pageId: null })).toEqual({ pageLookup: 'no_page', accounts: [{ id: 'ig_mock_1', username: 'hookmill.demo', profilePicUrl: null, source: 'AD_ACCOUNT' }] });
+    expect(await code(s.listInstagramAccounts({ accessToken: 'nope' }, { adAccountId: 'act_mock_1', pageId: null }))).toBe('META_TOKEN_INVALID');
+    expect(await code(s.listInstagramAccounts(auth, { adAccountId: 'act_nope', pageId: null }))).toBe('META_PERMISSION');
+    // a lista devolvida é cópia (quem mexer nela não muda o fixture)
+    (await s.listInstagramAccounts(auth, { adAccountId: 'act_mock_1', pageId: 'page_mock' })).accounts[0].username = 'x';
+    expect(MOCK_IG_ACCOUNTS.find((a) => a.id === 'ig_mock_page')!.username).toBe('mock.page');
+  });
+
+  it('listCustomAudiences: 4 públicos (2 usáveis, small e flagged não), mais recentes primeiro, truncated false', async () => {
+    const r = await svc().listCustomAudiences(auth, { adAccountId: 'act_mock_1' });
+    expect(r.truncated).toBe(false);
+    expect(r.audiences.map((a) => [a.id, a.subtype, a.usable])).toEqual([
+      ['ca_mock_buyers', 'WEBSITE', true], ['ca_mock_lal_1', 'LOOKALIKE', true], ['ca_mock_small', 'CUSTOM', false], ['ca_mock_flagged', 'CUSTOM', false],
+    ]);
+    const by = Object.fromEntries(r.audiences.map((a) => [a.id, a]));
+    expect(by.ca_mock_buyers).toMatchObject({ sizeLower: 12000, sizeUpper: 15000, unusableReason: null, updatedAt: '2026-11-01T00:00:00.000Z' });
+    expect(by.ca_mock_lal_1).toMatchObject({ sizeLower: 1200000, sizeUpper: 1400000 });
+    expect(by.ca_mock_small).toMatchObject({ unusableReason: 'Audience too small', sizeLower: null });
+    expect(by.ca_mock_flagged.unusableReason).toContain('flagged');
+    expect(r.audiences).toEqual(MOCK_CUSTOM_AUDIENCES);
+    expect(await code(svc().listCustomAudiences({ accessToken: 'nope' }, { adAccountId: 'act_mock_1' }))).toBe('META_TOKEN_INVALID');
+  });
+
+  it('listLocales: 8 fixos em ordem de nome, com 6 = English (US) e 24 = English (UK)', async () => {
+    const r = await svc().listLocales(auth);
+    expect(r.locales).toHaveLength(8);
+    expect(r.locales).toEqual(expect.arrayContaining([{ key: 6, name: 'English (US)' }, { key: 24, name: 'English (UK)' }]));
+    expect(r.locales.map((l) => l.name)).toEqual([...r.locales.map((l) => l.name)].sort((a, b) => a.localeCompare(b, 'en')));
+    expect(new Set(r.locales.map((l) => l.key)).size).toBe(8);
+    expect(r.locales).toEqual(MOCK_LOCALES);
+  });
+
+  it('gatilhos: ig_mock_gone / ca_mock_gone nunca aparecem nas listas (o backend responde notAvailable)', async () => {
+    const s = svc();
+    const ig = await s.listInstagramAccounts(auth, { adAccountId: 'act_mock_1', pageId: 'page_mock' });
+    const ca = await s.listCustomAudiences(auth, { adAccountId: 'act_mock_1' });
+    expect(ig.accounts.map((a) => a.id)).not.toContain(MOCK_GONE_IDS.instagram);
+    expect(ca.audiences.map((a) => a.id)).not.toContain(MOCK_GONE_IDS.audience);
+    expect([MOCK_GONE_IDS.instagram, MOCK_GONE_IDS.audience]).toEqual(['ig_mock_gone', 'ca_mock_gone']);
+  });
+
+  it('[mock:meta-destination] no primaryText: createAdSet lança META_ERROR (beta do ON_VIDEO recusado)', async () => {
+    const s = svc();
+    const i = withStructure({ optimizationGoal: 'THRUPLAY' }, { objective: 'OUTCOME_ENGAGEMENT', primaryText: 'x [mock:meta-destination]' });
+    const err = await s.createAdSet(auth, i, ids({ campaignId: 'c1' })).catch((e) => e);
+    expect(err).toMatchObject({ code: 'META_ERROR', stage: 'creating_adset' });
+    expect(err.message).toContain('destination_type not available');
+    expect(s.sent.adsets).toHaveLength(0);
+  });
+
+  it('publicação v2: corpos reais (Awareness, LIFETIME ABO, agendamento, idiomas, públicos, IG) e o sync reflete orçamento/agendamento', async () => {
+    const s = svc();
+    const end = new Date(NOW.getTime() + 7 * day).toISOString();
+    const start = new Date(NOW.getTime() + day).toISOString();
+    const i = withStructure(
+      { budgetType: 'LIFETIME', lifetimeBudgetMinor: 3000, startTime: start, endTime: end, optimizationGoal: null, locales: [6], customAudienceIds: ['ca_mock_buyers'], excludedCustomAudienceIds: ['ca_mock_lal_1'], instagramUserId: 'ig_mock_1' },
+      { objective: 'OUTCOME_AWARENESS', dailyBudgetMinor: 0, pixelEvent: null },
+    );
+    const v = await s.uploadVideo(auth, i);
+    const c = await s.createCampaign(auth, i);
+    const d = await s.createAdSet(auth, i, ids({ videoId: v.videoId, campaignId: c.campaignId }));
+    await s.createAdCreative(auth, i, ids({ videoId: v.videoId, campaignId: c.campaignId, adsetId: d.adsetId }));
+    expect(s.sent.campaigns.at(-1)).toMatchObject({ objective: 'OUTCOME_AWARENESS' });
+    expect(s.sent.campaigns.at(-1)).not.toHaveProperty('lifetime_budget'); // ABO: o total mora no conjunto
+    expect(s.sent.adsets.at(-1)).toMatchObject({
+      lifetime_budget: 3000, optimization_goal: 'REACH', promoted_object: { page_id: 'page_mock' }, start_time: graphLike(start), end_time: graphLike(end),
+      targeting: { locales: [6], custom_audiences: [{ id: 'ca_mock_buyers' }], excluded_custom_audiences: [{ id: 'ca_mock_lal_1' }] },
+    });
+    expect(s.sent.creatives.at(-1)!.object_story_spec).toMatchObject({ page_id: 'page_mock', instagram_user_id: 'ig_mock_1' });
+    const r = await s.syncAds(auth, { adAccountId: 'act_mock_1', currency: 'USD', businessType: 'ONLINE_STORE', hasPixel: true });
+    expect(r.campaigns!.find((x) => x.campaignId === c.campaignId)).toMatchObject({ objective: 'OUTCOME_AWARENESS', dailyBudgetMinor: null, lifetimeBudgetMinor: null });
+    expect(r.adsets!.find((x) => x.adsetId === d.adsetId)).toMatchObject({ dailyBudgetMinor: null, lifetimeBudgetMinor: 3000, optimizationGoal: 'REACH', startTime: graphLike(start), endTime: graphLike(end) });
+    // conjunto com total: mudar o diário é recusado (orçamento vitalício)
+    expect(await code(s.setDailyBudget(auth, { level: 'adset', id: d.adsetId, dailyBudgetMinor: 900 }))).toBe('META_BUDGET_NOT_EDITABLE');
+  });
+
+  it('publicação v2: CBO + LIFETIME = total na campanha (sync e leitura ao vivo mostram); total abaixo de 500 × dias = 422 com budgetType/days', async () => {
+    const s = svc();
+    const end = new Date(NOW.getTime() + 10 * day).toISOString();
+    const ok = withStructure({ campaignName: 'HM life', budgetMode: 'CBO', budgetType: 'LIFETIME', lifetimeBudgetMinor: 20000, endTime: end }, { dailyBudgetMinor: 0 });
+    const c = await s.createCampaign(auth, ok);
+    expect(s.sent.campaigns.at(-1)).toMatchObject({ lifetime_budget: 20000, bid_strategy: 'LOWEST_COST_WITHOUT_CAP' });
+    const d = await s.createAdSet(auth, ok, ids({ campaignId: c.campaignId }));
+    expect(s.sent.adsets.at(-1)).not.toHaveProperty('lifetime_budget');
+    const r = await s.syncAds(auth, { adAccountId: 'act_mock_1', currency: 'USD', businessType: 'ONLINE_STORE', hasPixel: true });
+    expect(r.campaigns!.find((x) => x.campaignId === c.campaignId)).toMatchObject({ dailyBudgetMinor: null, lifetimeBudgetMinor: 20000 });
+    expect((await s.readObject(auth, { level: 'adset', id: d.adsetId })).campaign).toMatchObject({ lifetimeBudgetMinor: 20000, dailyBudgetMinor: null });
+    // 10 dias × 500 = 5000 de mínimo; 4000 não passa
+    const low = withStructure({ budgetType: 'LIFETIME', lifetimeBudgetMinor: 4000, endTime: end }, { dailyBudgetMinor: 0 });
+    const err = await s.createAdSet(auth, low, ids({ campaignId: 'c1' })).catch((e) => e);
+    expect(err).toMatchObject({ code: 'META_BUDGET_TOO_LOW', stage: 'creating_adset', details: { minimumMinor: 5000, currency: 'USD', budgetType: 'LIFETIME', days: 10 } });
+    // DAILY continua igual v1 (com LIFETIME o diário 0 não dispara o mínimo)
+    expect(await code(s.createAdSet(auth, withStructure({}, { dailyBudgetMinor: 400 }), ids({ campaignId: 'c1' })))).toBe('META_BUDGET_TOO_LOW@creating_adset');
+  });
+
+  it('readTemplateSource mock_cmp_cbo: públicos (ids da lista), idioma e agendamento copiáveis; 1 interesse e 1 cidade continuam pro unsupported', async () => {
+    const s = svc();
+    const r = await s.readTemplateSource(auth, { level: 'campaign', id: 'mock_cmp_cbo' });
+    expect(r.campaign).toMatchObject({ id: 'mock_cmp_cbo', buyingType: 'AUCTION', dailyBudgetMinor: 5000 });
+    const a = r.adset!;
+    expect(a).toMatchObject({ id: 'mock_adset_cbo_1', destinationType: 'WEBSITE', startTime: '2026-10-18T12:00:00+0000', endTime: '2026-10-25T12:00:00+0000' });
+    const t = a.targeting as Record<string, any>;
+    const list = (await s.listCustomAudiences(auth, { adAccountId: 'act_mock_1' })).audiences.map((x) => x.id);
+    expect([...t.custom_audiences, ...t.excluded_custom_audiences].every((x: { id: string }) => list.includes(x.id))).toBe(true);
+    expect(t.custom_audiences).toEqual([{ id: 'ca_mock_lal_1', name: 'Lookalike (US, 1%) - Website buyers 180d' }]);
+    expect(t.excluded_custom_audiences).toEqual([{ id: 'ca_mock_buyers', name: 'Website buyers 180d' }]);
+    expect(t.locales).toEqual([6]);
+    expect(t.flexible_spec).toEqual([{ interests: [{ id: '6003107902433', name: 'Sleep' }] }]);
+    expect(t.geo_locations.cities).toHaveLength(1);
+    expect(r.ad!.creative).toMatchObject({ instagramUserId: null, format: 'VIDEO', callToAction: 'SHOP_NOW' });
+  });
+
+  it('readTemplateSource mock_cmp_life (CBO total US$ 300, conjunto com início e fim) e mock_cmp_awareness (REACH, ig_mock_1 no criativo)', async () => {
+    const s = svc();
+    const life = await s.readTemplateSource(auth, { level: 'campaign', id: 'mock_cmp_life' });
+    expect(life.campaign).toMatchObject({ objective: 'OUTCOME_TRAFFIC', dailyBudgetMinor: null, lifetimeBudgetMinor: 30000 });
+    expect(life.adset).toMatchObject({ id: 'mock_adset_life_1', dailyBudgetMinor: null, lifetimeBudgetMinor: null, optimizationGoal: 'LINK_CLICKS', startTime: '2026-10-11T12:00:00+0000', endTime: '2026-11-10T12:00:00+0000' });
+    const aw = await s.readTemplateSource(auth, { level: 'campaign', id: 'mock_cmp_awareness' });
+    expect(aw.campaign).toMatchObject({ id: 'mock_cmp_awareness', objective: 'OUTCOME_AWARENESS', dailyBudgetMinor: 3000 });
+    expect(aw.adset).toMatchObject({ id: 'mock_adset_awareness_1', optimizationGoal: 'REACH', destinationType: null, promotedObject: { pixelId: null, customEventType: null, applicationId: null } });
+    expect(aw.ad).toMatchObject({ id: 'mock_ad_awareness', creative: { instagramUserId: 'ig_mock_1', callToAction: 'LEARN_MORE' } });
+    const ig = await s.listInstagramAccounts(auth, { adAccountId: 'act_mock_1', pageId: 'page_mock' });
+    expect(ig.accounts.map((a) => a.id)).toContain(aw.ad!.creative!.instagramUserId);
+    // ad e adset da Awareness também importam pelos outros níveis; leitura ao vivo não os vê (fora do sync)
+    expect(await code(s.readObject(auth, { level: 'campaign', id: 'mock_cmp_awareness' }))).toBe('META_OBJECT_GONE');
+    expect((await s.readTemplateSource(auth, { level: 'ad', id: 'mock_ad_awareness' })).campaign.id).toBe('mock_cmp_awareness');
+  });
+});
+
+/** ISO UTC → formato da Graph (+0000), igual ao que o adSetBody manda. */
+function graphLike(iso: string): string {
+  return new Date(iso).toISOString().replace(/\.\d{3}Z$/, '+0000');
+}

@@ -1,0 +1,36 @@
+HM
+Q
+QA Alfa
+Unlimited
+Connections
+
+Meta is the only connection today. Same card as step 2 of setup.
+
+Meta
+Connected
+f
+Mock Store (USD) · act_mock_1
+Page: Mock Page · Logged in as Mock User · synced 56 seconds ago
+Account health
+1 thing to look at
+Ad account active
+Payment method valid
+Pixel firing
+Business verified
+Business not verified: Meta may limit spend
+Ads found
+8 · 5 active
+Results read
+last 30 days
+Check again
+Change account
+Disconnect
+Publish templates
+How HookMill creates campaigns, ad sets and ads when you send to Meta.
+Publish templates
+Account mode
+Just me
+
+Switch to Agency to add clients. Your workspace becomes your first client; nothing is lost.
+
+Switch to Agency

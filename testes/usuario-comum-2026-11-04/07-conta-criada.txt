@@ -1,0 +1,22 @@
+HM
+HookMill
+EN
+PT
+Sair
+BEM-VINDO, MARINA
+Como você vai usar o HookMill?
+
+Isso define o seu espaço de trabalho. Dá pra trocar depois em Configurações.
+
+Agência
+Eu rodo anúncios pra clientes.
+Um espaço por cliente, com Cérebro, anúncios e conta Meta próprios
+Uma página Clientes pra trocar entre eles e ver o que espera você
+Convide clientes pra aprovar anúncios sem gastar
+Só eu
+Eu rodo os meus próprios anúncios.
+Um espaço: o seu negócio
+Sem seletor de cliente nem lista; a barra lateral fica curta
+Troque pra Agência depois e mantenha tudo
+Escolha uma opção pra continuar.
+Continuar

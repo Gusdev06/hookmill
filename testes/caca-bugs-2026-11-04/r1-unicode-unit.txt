@@ -1,0 +1,15 @@
+PASS api/src/common/util/format.spec.ts
+  initials
+    ✓ preserves complete Unicode characters in "Hunt sleep 🧪" (1 ms)
+    ✓ preserves complete Unicode characters in "🧪 Brand" (1 ms)
+    ✓ preserves complete Unicode characters in "🧪"
+    ✓ preserves complete Unicode characters in "🧪🚀" (1 ms)
+    ✓ preserves complete Unicode characters in "Álvaro Silva"
+    ✓ preserves complete Unicode characters in "Acme" (1 ms)
+    ✓ preserves complete Unicode characters in "  "
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        4.345 s
+Ran all test suites within paths "api/src/common/util/format.spec.ts".

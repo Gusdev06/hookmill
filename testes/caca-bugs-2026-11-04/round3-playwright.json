@@ -1,0 +1,517 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "testes/caca-bugs-2026-11-04/playwright.config.ts"
+    ],
+    "configFile": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes/caca-bugs-2026-11-04/playwright.config.ts",
+    "rootDir": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes/harness/global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes/caca-bugs-2026-11-04/playwright-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes",
+        "testIgnore": [],
+        "testMatch": [
+          "/specs\\/qa-0111-api\\/.*\\.spec\\.ts/",
+          "/specs\\/isolamento\\/.*\\.spec\\.ts/",
+          "/caca-bugs-2026-11-04\\/grant-race\\.spec\\.ts/"
+        ],
+        "timeout": 900000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./testes/caca-bugs-2026-11-04/round3-playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "caca-bugs-2026-11-04/grant-race.spec.ts",
+      "file": "caca-bugs-2026-11-04/grant-race.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "manual credit: concurrent grant/debit retries return one entry and preserve the balance",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 60404,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:45:30.323Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "802e5cd1651ef1e28f38-52435290be8e3e7d4635",
+          "file": "caca-bugs-2026-11-04/grant-race.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "specs/isolamento/workspaces.spec.ts",
+      "file": "specs/isolamento/workspaces.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "I-01 donoA (token de A) recebe 404 NOT_FOUND em toda rota com id de B, e B fica intacto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 177,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:30.747Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-1b9f1fac6cc725a591b6",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 61,
+          "column": 3
+        },
+        {
+          "title": "I-01 membroA (token de A) recebe 404 NOT_FOUND em toda rota com id de B, e B fica intacto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 194,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:30.927Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-64639833624cdbdd2657",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 61,
+          "column": 3
+        },
+        {
+          "title": "I-01 duplo (token de A) recebe 404 NOT_FOUND em toda rota com id de B, e B fica intacto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 179,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.124Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-30ee3e0cfbf90a92ca3a",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 61,
+          "column": 3
+        },
+        {
+          "title": "I-02 listas de A nunca trazem nada de B (Home, ofertas, biblioteca, membros, spend)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 97,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.307Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-29b8e4b66e2b57edec4d",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 80,
+          "column": 1
+        },
+        {
+          "title": "I-03 ids cruzados: criativo de A com roteiro/rosto/render de B → 404",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 78,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.407Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-2c6e517581fc2c71d172",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 96,
+          "column": 1
+        },
+        {
+          "title": "I-04 criar coisa em A apontando pra recurso de B: POST /creatives com offerId de B → 404, nada criado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 55,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.489Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-cf68f6b00b2f2c9cadab",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 113,
+          "column": 1
+        },
+        {
+          "title": "I-05 workspace nunca vem do corpo nem da query: workspaceId no body → 400; na query → ignorado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 60,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.551Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-734f2f416d4d5d1eb196",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "I-06 o que A cria nasce no workspace do token (banco confirma workspace_id = A)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 75,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.614Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-7c8d61b4a3618366434a",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 130,
+          "column": 1
+        },
+        {
+          "title": "I-07 duplo depois do switch pra B não enxerga mais A",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 53,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.693Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-0b818ae4d3a6b909231e",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "I-08 arquivos no storage são por workspace: storage_key de B começa com ws/<B>/",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 58,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.750Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1b820dc76fc7a512bf5-420de5c2015ba9391195",
+          "file": "specs/isolamento/workspaces.spec.ts",
+          "line": 144,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "specs/qa-0111-api/creditos-isolamento.spec.ts",
+      "file": "specs/qa-0111-api/creditos-isolamento.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "créditos: pagador, isolamento, Gerar duplo, validações e admin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 900000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 18670,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Gerar duplo: \u001b[33m202\u001b[39m \u001b[33m409\u001b[39m  INVALID_STATE\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T04:46:31.822Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "370358fafa3c2ee77c07-c648416a35552305b278",
+          "file": "specs/qa-0111-api/creditos-isolamento.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-04T04:45:29.615Z",
+    "duration": 80899.93100000001,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

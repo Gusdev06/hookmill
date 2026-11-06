@@ -1,0 +1,40 @@
+HM
+Q
+CONFIGURAÇÃO DO CLIENTE
+QA Alfa
+Salvar e sair
+100%
+configurado
+Passo 1 de 5 · Negócio
+PASSO 1 DE 5
+Conte sobre o negócio
+
+Comece pelo site. A gente lê e preenche a oferta, então os próximos passos são mais conferir o que achamos.
+
+Site
+Endereço do site
+Ler o site
+
+A leitura leva uns 20 segundos. Ela só preenche campos vazios da oferta, nunca o que você digitou.
+
+Dados do negócio
+Nome do negócio
+Código do cliente
+QA_NEW_0411_A_F1_9x16.mp4 · De 2 a 6 letras ou números. Abre o nome de todo arquivo de vídeo, pra casar resultados depois.
+Segmento
+Onde você vende
+O que conta como resultado?
+Compra
+Lead
+Mensagem
+Agendamento
+Cadastro
+Mais…
+Os anúncios na Meta otimizam por isso e é o que contamos como resultado. A leitura do site já marca um; troque se estiver errado.
+Mais detalhes (opcional)
+Idioma, cor da marca e custo alvo
+
+Convide o time depois em Configurações › Membros. Fuso e a moeda da conta de anúncios vêm da conexão com a Meta.
+
+Salvo quando você continua.
+Continuar: conectar Meta

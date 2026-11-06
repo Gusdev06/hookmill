@@ -29,7 +29,9 @@ export interface ApiResult<D, M = undefined> {
 
 function buildUrl(path: string, query?: Query) {
   const url = new URL(API_URL + path)
-  if (query) {
+  // ads-research-v1 §5.2: arrays go as a repeated parameter, so callers with arrays pass a URLSearchParams
+  if (query instanceof URLSearchParams) query.forEach((v, k) => url.searchParams.append(k, v))
+  else if (query) {
     for (const [k, v] of Object.entries(query as Record<string, unknown>)) {
       if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v))
     }
@@ -72,6 +74,9 @@ async function send<D, M = undefined>(method: string, path: string, opts: Reques
     if (s) return send<D, M>(method, path, opts, true)
   }
 
+  // 204 No Content (POST /events): nothing to parse
+  if (res.status === 204) return { data: undefined as D, meta: undefined as M }
+
   let json: T.SuccessEnvelope<D, M> | T.ErrorEnvelope | null = null
   try {
     json = (await res.json()) as T.SuccessEnvelope<D, M> | T.ErrorEnvelope
@@ -92,6 +97,8 @@ const patch = <D>(p: string, body: unknown, o?: RequestOptions) => send<D>("PATC
 const put = <D>(p: string, body: unknown, o?: RequestOptions) => send<D>("PUT", p, { ...o, body })
 const del = <D>(p: string, o?: RequestOptions) => send<D>("DELETE", p, o)
 const data = <D, M>(r: Promise<ApiResult<D, M>>) => r.then((x) => x.data)
+/** The verbs, for the area modules that live in their own file (lib/api/research.ts); URLs are still built only here. */
+export const http = { get, post, patch, put, del, data, seg }
 
 /**
  * Feature 2 upload (api.md §18): PUT the raw file exactly as `POST /uploads` said (method/url/headers), with progress.
@@ -149,6 +156,12 @@ type PageQuery = { limit?: number; cursor?: string | null }
 const LEVEL_PATH: Record<T.MetaLevel, string> = { campaign: "campaigns", adset: "adsets", ad: "ads" }
 
 export const api = {
+  aiVariations: {
+    config: () => data(get<T.SemanticPlannerConfig>("/ai-variations/config")),
+    list: (championId?: string, o: Signal = {}) => data(get<T.SemanticPlanJob[]>("/ai-variations", { query: { championId }, ...o })),
+    get: (id: string, o: Signal = {}) => data(get<T.SemanticPlanJob>(`/ai-variations/${seg(id)}`, o)),
+    create: (body: T.SemanticPlanRequest) => data(post<T.SemanticPlanJob>("/ai-variations", body)),
+  },
   auth: {
     me: () => data(get<T.MeResponse>("/auth/me")),
     /** onboarding-v2 §3.1: `accountMode` (AGENCY | OWN) is answered once on /start and editable in Settings. */
@@ -164,6 +177,8 @@ export const api = {
     list: (q: Omit<T.ListCreativesQuery, "cursor"> & PageQuery = {}, o: Signal = {}) =>
       get<T.CreativeRow[], T.CreativesMeta>("/creatives", { query: q, ...o }),
     get: (id: string) => data(get<T.CreativeDetail>(`/creatives/${seg(id)}`)),
+    /** fase2-agencia §3.5: signed URL with Content-Disposition: attachment (the `url` of a FileRef has none, so it only plays). */
+    download: (id: string, format?: T.FormatCode) => data(get<T.CreativeDownload>(`/creatives/${seg(id)}/download`, { query: { format } })),
     create: (b: { offerId: string; name?: string; scriptCount?: number }) => data(post<T.CreativeDetail>("/creatives", b)),
     rename: (id: string, name: string) => data(patch<T.CreativeDetail>(`/creatives/${seg(id)}`, { name })),
     remove: (id: string) => data(del<Ok>(`/creatives/${seg(id)}`)),
@@ -245,6 +260,16 @@ export const api = {
     get: (cid: string) => data(get<T.EditorState>(`/creatives/${seg(cid)}/editor`)),
     /** 409 EDIT_CONFLICT { revision, savedBy, savedAt }; 400 VALIDATION_ERROR (EditDocRule); 422 EDIT_NOT_SUPPORTED. */
     save: (cid: string, b: T.PutEditorBody) => data(put<T.PutEditorResponse>(`/creatives/${seg(cid)}/editor`, b)),
+    // ───── editor universal v1 (docs/contratos/editor-universal-v1.md §7, F-U1): same GET/PUT, v3 for the AUTO piece
+    /** Same GET as `get`: scratch answers `EditorState` (v1) until F-U2, the AUTO piece answers `EditorStateV3` (`version: 3`).
+     *  422 EDIT_NOT_SUPPORTED { reason }; 402 sample locked; 409 INVALID_STATE { reason: piece_not_ready | source_unavailable }. */
+    open: (cid: string) => data(get<T.EditorState | T.EditorStateV3>(`/creatives/${seg(cid)}/editor`)),
+    /** autosave 800 ms. 409 EDIT_CONFLICT { revision, savedBy, savedAt }; 409 INVALID_STATE { reason: read_only | export_running }; 400 VALIDATION_ERROR (EditDocRuleV3). */
+    saveV3: (cid: string, b: T.PutEditorBodyV3) => data(put<T.PutEditorResponseV3>(`/creatives/${seg(cid)}/editor`, b)),
+    /** 202. 409 EDIT_CONFLICT; 409 INVALID_STATE { reason: nothing_to_export | export_running | render_running | read_only }; 422 EDIT_BLOCKED { issues }; 409 SPEND_CAP_EXCEEDED; 429 RATE_LIMITED { limit, resetAt }. */
+    export: (cid: string, b: T.ExportEditorBody) => data(post<T.EditorExportView>(`/creatives/${seg(cid)}/editor/export`, b)),
+    /** "Retry check" after a check failure (canRecheck). 409 INVALID_STATE { reason: cannot_recheck } otherwise. */
+    recheck: (cid: string) => data(post<T.EditorExportView>(`/creatives/${seg(cid)}/editor/export/recheck`)),
   },
 
   review: {
@@ -325,14 +350,14 @@ export const api = {
     preferences: () => data(get<T.IteratePreferences | null>(`/iterate/preferences`)),
     forgetPreferences: () => data(del<void>(`/iterate/preferences`)),
     config: (o: Signal = {}) => data(get<T.IterateConfig>("/iterate/config", o)),
+    /** lacunas-home-eddy-v1 §5: batches, updatedAt desc (Home Recent merges them with the creatives) */
+    list: (q: Omit<T.ListIterateQuery, "cursor"> & PageQuery = {}, o: Signal = {}) =>
+      get<T.IterateBatchRow[], { nextCursor: string | null }>("/iterate", { query: q, ...o }),
     /** Starts the analysis by itself (§5.1 note 1). 202 ANALYZING/PLANNING. 422 OFFER_REQUIRED `{ offers }`, 409 INVALID_STATE `not_a_video`, 409 SPEND_CAP_EXCEEDED. */
     create: (b: T.CreateIterateBody) => data(post<T.IterateBatch>("/iterate", b, { timeoutMs: 30_000 })),
     get: (id: string, o: Signal = {}) => data(get<T.IterateBatch>(`/iterate/${seg(id)}`, o)),
     /** Only from ANALYSIS_FAILED with action try_again. */
     retry: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/retry`)),
-    /** 29/10 (legenda-protegida-v1 §8): "Generate anyway" a format blocked by burned captions; DELETE undoes it */
-    forceCaption: (id: string, b: T.ForceCaptionBlockedBody) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/caption-blocked/force`, b)),
-    unforceCaption: (id: string, b: T.ForceCaptionBlockedBody) => data(del<T.IterateBatch>(`/iterate/${seg(id)}/caption-blocked/force`, { body: b })),
     /** 26/10 (legenda-protegida D-LP5): plan again over the finished analysis; only PLAN_READY (409 INVALID_STATE reason 'launched') */
     replan: (id: string) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/replan`, {})),
     /** 409 PLAN_CHANGED `{ pieces }` when the plan differs from the number on the button. Rev. 23/10 (§14.4): `expectedCostUsd` =
@@ -347,12 +372,53 @@ export const api = {
     updatePiece: (pieceId: string, b: T.UpdatePieceBody) => data(patch<T.IteratePiece>(`/iterate/pieces/${seg(pieceId)}`, b)),
     /** 202 building or 200 ready (same zipKey). 409 INVALID_STATE `nothing_to_zip`. */
     zip: (id: string) => data(post<T.IterateZipResponse>(`/iterate/${seg(id)}/zip`)),
+    /** templates-creditos-v1 §7: edit the texts of a template piece in PLAN_READY (free). 409 INVALID_STATE; 422 TEXT_INVALID
+     *  `{ violations }` / EDIT_NOT_SUPPORTED. `itemId` = the piece id. */
+    updateTexts: (id: string, itemId: string, b: T.UpdateItemTextsBody) => data(patch<T.IterateBatch>(`/iterate/${seg(id)}/items/${seg(itemId)}/texts`, b)),
+  },
+
+  // ───── templates-creditos-v1 §7: the template gallery (`/ad-templates`; `/templates` is the wizard's Remotion registry)
+  adTemplates: {
+    /** at most 1 source in the query (400 otherwise); with a source every card carries `fit` */
+    list: (q: T.TemplateSourceRef = {}, o: Signal = {}) => data(get<T.TemplateList>("/ad-templates", { query: q, ...o })),
+    /** 404 unknown or not visible */
+    get: (slug: string, q: T.TemplateSourceRef = {}, o: Signal = {}) => data(get<T.TemplateCard>(`/ad-templates/${seg(slug)}`, { query: q, ...o })),
+    /** fit of one template on 1-50 ads (no paid call) */
+    fits: (b: T.TemplateFitsBody, o: Signal = {}) => data(post<T.TemplateFitsResponse>("/ad-templates/fits", b, { ...o, timeoutMs: 30_000 })),
+    /** 202 IterateBatch (with `template`). 422 TEMPLATE_UNAVAILABLE / TEMPLATE_DOESNT_FIT { reason } / OFFER_REQUIRED { offers };
+     *  402 PAYMENT_REQUIRED { reason: 'sample_tier' | 'sample_used' }. Nothing is charged here (reading + plan are free). */
+    use: (slug: string, b: T.UseTemplateBody) => data(post<T.IterateBatch>(`/ad-templates/${seg(slug)}/use`, b, { timeoutMs: 30_000 })),
+    /** templates-multi-v1 §3.1: 2-12 templates on one ad, one batch (price = sum, no cap). 202 IterateBatch with `template.selection`.
+     *  422 TEMPLATE_SELECTION_INVALID { reason, slugs } / TEMPLATE_DOESNT_FIT { items } / TEMPLATE_UNAVAILABLE { slug } / OFFER_REQUIRED;
+     *  402 PAYMENT_REQUIRED (sample) / INSUFFICIENT_CREDITS (sample uses). */
+    useMany: (b: T.UseTemplatesBody) => data(post<T.IterateBatch>("/ad-templates/use", b, { timeoutMs: 30_000 })),
+    /** history of template uses (cursor) */
+    runs: (q: PageQuery = {}, o: Signal = {}) => data(get<{ items: T.TemplateRunRef[]; nextCursor: string | null }>("/ad-templates/runs", { query: q, ...o })),
+  },
+
+  /** templates-creditos-v1 §4: balance of the paying account (INTERNAL = unlimited) and the append-only ledger */
+  credits: {
+    summary: (o: Signal = {}) => data(get<T.CreditsSummary>("/credits", o)),
+    ledger: (q: PageQuery = {}, o: Signal = {}) => data(get<{ items: T.CreditEntryView[]; nextCursor: string | null }>("/credits/ledger", { query: q, ...o })),
   },
 
   /** amostra-gratis-v1 §5 (P2, no gateway yet): manual unlock. Only an INTERNAL OWNER (else 403 FORBIDDEN); 404 unknown user. */
   admin: {
     updateAccess: (userId: string, access: T.AccountAccess) =>
       data(patch<{ id: string; access: T.AccountAccess }>(`/admin/users/${seg(userId)}/access`, { access } satisfies T.UpdateAccessBody)),
+    // templates-creditos-v1 §7 (INTERNAL OWNER only, else 403): the catalog with DRAFT/HIDDEN, price/status, example video, manual credit
+    templates: () => data(get<{ items: T.AdminTemplate[] }>("/admin/ad-templates")),
+    /** 422 TEMPLATE_UNPRICED (LIVE without a price) */
+    updateTemplate: (slug: string, b: T.UpdateTemplateBody) => data(patch<T.AdminTemplate>(`/admin/ad-templates/${seg(slug)}`, b)),
+    /** pre-signed PUT, 15 min; MP4 ≤ 60 MB */
+    exampleUpload: (slug: string, b: T.TemplateExampleUploadBody) => data(post<T.TemplateExampleUpload>(`/admin/ad-templates/${seg(slug)}/example`, b)),
+    /** sends the bytes to the pre-signed URL (with progress) */
+    sendExample: (target: T.TemplateExampleUpload, file: Blob, o: UploadOptions = {}) =>
+      sendUpload({ uploadId: target.key, method: "PUT", url: target.uploadUrl, headers: { "Content-Type": "video/mp4" }, expiresAt: target.expiresAt }, file, o),
+    /** poster by ffmpeg; 409 UPLOAD_INCOMPLETE, 422 MEDIA_INVALID / MEDIA_TOO_LONG */
+    exampleComplete: (slug: string, b: T.TemplateExampleCompleteBody) => data(post<T.AdminTemplate>(`/admin/ad-templates/${seg(slug)}/example/complete`, b, { timeoutMs: 60_000 })),
+    /** 404; 409 INVALID_STATE { state: 'insufficient_balance' }; the same idempotencyKey never credits twice */
+    grantCredits: (b: T.GrantCreditsBody) => data(post<T.GrantCreditsResponse>("/admin/credits/grant", b)),
   },
 
   /** fase2-agencia §3.1. "New client" (POST /workspaces) returns tokens, so it goes through the BFF: `createClient` in lib/session/token. */
@@ -373,10 +439,20 @@ export const api = {
     removeMember: (userId: string) => data(del<Ok>(`/workspace/members/${seg(userId)}`)),
     services: () => data(get<T.ServiceStatus[]>("/workspace/services")),
     spend: (month?: string) => data(get<T.Spend>("/workspace/spend", { query: { month } })),
-    /** onboarding-v2 §3.4: `stops` without `iterate` when there is no Meta connection or no WINNER ad. */
-    tour: (o: Signal = {}) => data(get<T.TourState>("/workspace/tour", o)),
+    /** tour-v2 (04/11): `?v=2` = stops by role (brain, templates, credits | brain, review), the winner and the tips seen.
+     *  An API before v2 answers the legacy `TourState`; the provider maps it (iterate → templates, drops the rest). */
+    tour: (o: Signal = {}) => data(get<T.TourStateV2 | T.TourState>("/workspace/tour", { query: { v: "2" }, ...o })),
+    /** tour-v2 §4: idempotent; the tip never shows again for this user in this workspace. */
+    seeTip: (tip: T.TipKey) => data(post<T.TipsSeenResponse>("/workspace/tour/tips", { tip } satisfies T.SeeTipBody)),
+    /** "Show tips again": clears `tipsSeen`. */
+    resetTips: () => data(del<T.TipsSeenResponse>("/workspace/tour/tips")),
     /** Idempotent: an already completed tour answers the saved date. */
     completeTour: () => data(post<T.TourCompleteResponse>("/workspace/tour/complete", {})),
+  },
+
+  // ───── tour-v2 §6: product events, fire-and-forget (204). workspaceId/userId/role come from the session on the server.
+  events: {
+    send: (b: T.ProductEventsBody) => post<undefined>("/events", b).then(() => undefined),
   },
 
   // ───── Brain 3D v1 (brain-3d-v1.md §1): read-only, every role (CLIENT too). Cache 60 s on the API; `fresh: "1"` skips it.
@@ -385,6 +461,16 @@ export const api = {
     graph: (q: T.BrainGraphQuery = {}, o: Signal = {}) => data(get<T.BrainGraph>("/brain/graph", { query: q, ...o })),
     /** `id` = "<kind>:<key>" (§2.1). 404 when it doesn't exist (or a meta_ad with Meta off) */
     node: (id: string, o: Signal = {}) => data(get<T.BrainNodeDetail>(`/brain/node/${seg(id)}`, o)),
+  },
+
+  // ───── Kit da marca v1 (kit-marca-v1.md §3): GET for every role; writes are 403 for CLIENT. Upload first (purpose BRAND_*).
+  brandKit: {
+    get: (o: Signal = {}) => data(get<T.BrandKit>("/brand-kit", o)),
+    /** 201. LOGO replaces the previous one. 409 INVALID_STATE { reason: 'brand_kit_full', kind, max } · 409 UPLOAD_INCOMPLETE · 422 MEDIA_INVALID */
+    addAsset: (b: T.CreateBrandAssetBody) => data(post<T.BrandAsset>("/brand-kit/assets", b)),
+    /** label ≤ 80 (null clears) · offerId (null = whole brand) */
+    updateAsset: (id: string, b: T.UpdateBrandAssetBody) => data(patch<T.BrandAsset>(`/brand-kit/assets/${seg(id)}`, b)),
+    removeAsset: (id: string) => data(del<Ok>(`/brand-kit/assets/${seg(id)}`)),
   },
 
   // ───── Meta v1 (meta-v1.md §3). The token never reaches the web; the callback is a redirect handled by the API.
@@ -412,6 +498,13 @@ export const api = {
     campaigns: (q: Omit<T.MetaCampaignsQuery, "cursor"> & PageQuery = {}, o: Signal = {}) => get<T.MetaCampaignRow[], T.MetaCampaignsMeta>("/meta/campaigns", { query: q, ...o }),
     /** GET /meta/campaigns/:id: its ad sets with their ads (every format), ordered like the list */
     campaign: (id: string, q: T.MetaCampaignDetailQuery = {}, o: Signal = {}) => data(get<T.MetaCampaignDetail>(`/meta/campaigns/${seg(id)}`, { query: q, ...o })),
+    // ───── meta-oferta-v1 §5: manual "this ad / campaign is (not) from this offer". Survives the sync. CLIENT 403.
+    offerLinks: {
+      /** PUT /meta/offer-links: `belongs: true` is exclusive (drops BELONGS to other offers). 404 { resource }, 409 META_SELECTION_MISSING */
+      put: (b: T.MetaOfferLinkBody) => data(put<T.MetaOfferLinkResult>("/meta/offer-links", b)),
+      /** DELETE /meta/offer-links?level=&objectId=&offerId=: back to automatic (`decision: null`); idempotent */
+      remove: (q: T.MetaOfferLinkQuery) => data(del<T.MetaOfferLinkResult>("/meta/offer-links", { query: q })),
+    },
     /** POST /meta/{campaigns|adsets|ads}/:id/status (409 META_OBJECT_CHANGED / META_PARENT_PAUSED, 422 META_POLICY…) */
     setStatus: (level: T.MetaLevel, id: string, b: T.MetaStatusBody) => data(post<T.MetaWriteResult>(`/meta/${LEVEL_PATH[level]}/${seg(id)}/status`, b, { timeoutMs: 30_000 })),
     /** PATCH /meta/{campaigns|adsets}/:id/budget (422 META_BUDGET_TOO_LOW / _STEP_TOO_LARGE / _NOT_EDITABLE) */
@@ -433,6 +526,13 @@ export const api = {
     pause: (cid: string) => data(post<T.MetaPublication>(`/creatives/${seg(cid)}/meta/pause`, {}, { timeoutMs: 30_000 })),
     /** meta-templates-v1 §2: 202 { publications, plan }. 409 INVALID_STATE `not_approved` | `publish_in_progress` { creativeIds }; 422 like publish. */
     publishBatch: (b: T.MetaPublishBatchBody) => data(post<T.MetaPublishBatchResponse>("/meta/publish-batch", b, { timeoutMs: 60_000 })),
+    // ───── meta-templates-v2 §4: lists of the selected account/Page for the template editor (OWNER/ADMIN/MEMBER)
+    /** Instagram accounts of the ad account + of the Page (PAGE first); `pageLookup` says if the Page side was read */
+    instagramAccounts: (o: Signal = {}) => data(get<T.MetaInstagramAccountsResponse>("/meta/instagram-accounts", { ...o, timeoutMs: 30_000 })),
+    /** custom audiences + lookalikes, newest first, up to 500 (`truncated`); the web filters locally */
+    customAudiences: (o: Signal = {}) => data(get<T.MetaCustomAudiencesResponse>("/meta/custom-audiences", { ...o, timeoutMs: 30_000 })),
+    /** the whole adlocale list (name asc, English); the web filters locally */
+    locales: (o: Signal = {}) => data(get<T.MetaLocalesResponse>("/meta/locales", { ...o, timeoutMs: 30_000 })),
 
     // ───── meta-templates-v1 §2: publish templates of the selected ad account (CLIENT only reads).
     templates: {

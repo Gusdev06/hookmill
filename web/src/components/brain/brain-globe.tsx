@@ -31,11 +31,21 @@ export interface BrainGlobeProps {
   /** WebGL context could not be created: the screen falls back to the List */
   onFail: () => void
   onGrowEnd?: () => void
+  /**
+   * Home v2 (design/home-v2-2026-10-31.md §2.2): no auto-spin, the camera sways ±20° around the side where the pinned
+   * nodes are, so they stay in front; no wheel zoom (the page scrolls); on touch one finger scrolls the page and two rotate.
+   */
+  home?: boolean
+  /** amber "waiting for you" rings (home callouts) */
+  waitIds?: ReadonlySet<string>
+  /** the engine moves every `[data-pin="<nodeId>"]` child of this element next to its node (transform, from 0,0), every frame */
+  pinHost?: { current: HTMLElement | null }
 }
 
 type Graph = ForceGraph3DInstance<GNode, GLink>
 interface Parts { mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>; halo: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>; ring: THREE.Sprite | null; sel: THREE.Sprite; r: number }
 
+const AMBER = "#D39B12"
 const sphereGeo = new THREE.SphereGeometry(1, 18, 14)
 const haloGeo = new THREE.SphereGeometry(1, 12, 10)
 let ringTex: THREE.CanvasTexture | null = null
@@ -196,7 +206,9 @@ export default function BrainGlobe(props: BrainGlobeProps) {
       const group = new THREE.Group()
       const color = new THREE.Color(colorOf(n))
       const r = radiusOf(n)
-      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 }))
+      // brain-preenchido-v1: a logo color is drawn in its own hex; the halo keeps the category color
+      const fill = n.meta.kind === "brand_color" && /^#[0-9a-f]{6}$/i.test(n.meta.hex) ? new THREE.Color(n.meta.hex) : color
+      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: fill, transparent: true, opacity: 0.95 }))
       mesh.scale.setScalar(r)
       group.add(mesh)
       const halo = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.07, depthWrite: false }))
@@ -220,6 +232,15 @@ export default function BrainGlobe(props: BrainGlobeProps) {
     function style(n: GNode) {
       const p = parts.get(n.id)
       if (!p) return
+      // home: amber ring on "waiting for you" nodes (the set can change after the scene is built)
+      const wait = !n.winner && !!P.current.waitIds?.has(n.id)
+      if (wait && !p.ring) {
+        p.ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringTexture(), color: new THREE.Color(AMBER), transparent: true, depthWrite: false }))
+        p.mesh.parent?.add(p.ring)
+      } else if (!wait && !n.winner && p.ring) {
+        p.ring.removeFromParent()
+        p.ring = null
+      }
       const f = focusId()
       const on = hl.has(n.id)
       const isSel = P.current.selectedId === n.id
@@ -257,7 +278,8 @@ export default function BrainGlobe(props: BrainGlobeProps) {
         const c = ix.byId.get(f)
         const neigh = (ix.adj.get(f) ?? []).map((e) => ix.byId.get(e.id)!).filter((n) => P.current.visibleIds.has(n.id)).sort((a, b) => Number(b.winner) - Number(a.winner) || b.deg - a.deg)
         labelNodes = c ? [c, ...neigh.filter((n) => n.id !== f).slice(0, 12)] : []
-      } else labelNodes = ix.nodes.filter((n) => (ix.hubs.has(n.id) || n.category === "center") && P.current.visibleIds.has(n.id))
+      } else if (P.current.home) labelNodes = ix.nodes.filter((n) => n.category === "center")
+      else labelNodes = ix.nodes.filter((n) => (ix.hubs.has(n.id) || n.category === "center") && P.current.visibleIds.has(n.id))
       labelNodes = labelNodes.slice(0, 24)
       while (pool.length < labelNodes.length) {
         const s = document.createElement("span")
@@ -367,19 +389,31 @@ export default function BrainGlobe(props: BrainGlobeProps) {
     controls.autoRotateSpeed = 0.45
     controls.minDistance = 60
     controls.maxDistance = 3000
-    controls.autoRotate = motionOn()
+    controls.autoRotate = motionOn() && !P.current.home
+    if (P.current.home) {
+      controls.enableZoom = false
+      // one finger scrolls the page (OrbitControls ignores an unknown ONE), two fingers rotate/zoom
+      controls.touches = { ONE: -1 as unknown as THREE.TOUCH, TWO: THREE.TOUCH.DOLLY_ROTATE }
+    }
     const jump = () => P.current.reduced
     graph.cameraPosition({ x: 0, y: 90, z: overview() * (motionOn() ? 1.3 : 1) })
-    const intro = setTimeout(() => graph.cameraPosition({ x: 0, y: 55, z: overview() }, { x: 0, y: 0, z: 0 }, motionOn() ? 2000 : 0), 200)
+    const intro = setTimeout(() => {
+      if (P.current.home) {
+        const a = pinnedAzimuth()
+        graph.cameraPosition({ x: Math.sin(a) * overview(), y: 55, z: Math.cos(a) * overview() }, { x: 0, y: 0, z: 0 }, motionOn() ? 2000 : 0)
+      } else graph.cameraPosition({ x: 0, y: 55, z: overview() }, { x: 0, y: 0, z: 0 }, motionOn() ? 2000 : 0)
+    }, 200)
     const scheduleRotate = () => {
       clearTimeout(idle)
       if (!motionOn()) return
       idle = setTimeout(() => {
-        if (motionOn() && !P.current.selectedId) controls.autoRotate = true
+        if (motionOn() && !P.current.selectedId && !P.current.home) controls.autoRotate = true
+        if (P.current.home) swayFrom = performance.now()
       }, 5000)
     }
     const onStart = () => {
       controls.autoRotate = false
+      swayFrom = null
       clearTimeout(idle)
     }
     controls.addEventListener("start", onStart)
@@ -394,7 +428,9 @@ export default function BrainGlobe(props: BrainGlobeProps) {
     function fly(id: string | null) {
       const n = id ? P.current.ix.byId.get(id) : null
       if (!n || n.x === undefined) {
-        graph.cameraPosition({ x: 0, y: 55, z: overview() }, { x: 0, y: 0, z: 0 }, jump() ? 0 : 1100)
+        const az = P.current.home ? pinnedAzimuth() : 0
+        graph.cameraPosition({ x: Math.sin(az) * overview(), y: 55, z: Math.cos(az) * overview() }, { x: 0, y: 0, z: 0 }, jump() ? 0 : 1100)
+        if (P.current.home) swayFrom = performance.now() + 1200
         scheduleRotate()
         return
       }
@@ -406,11 +442,12 @@ export default function BrainGlobe(props: BrainGlobeProps) {
       // the drawer covers the right 412 px on desktop: aim a bit to the right of the node so it lands in the free area
       graph.cameraPosition({ x: n.x + dir.x * dist, y: n.y! + dir.y * dist * 0.6 + 10, z: n.z! + dir.z * dist }, { x: n.x, y: n.y!, z: n.z! }, jump() ? 0 : 1100)
       controls.autoRotate = false
+      swayFrom = null
       clearTimeout(idle)
     }
 
     function setMotion() {
-      controls.autoRotate = motionOn() && !P.current.selectedId
+      controls.autoRotate = motionOn() && !P.current.selectedId && !P.current.home
       graph.linkDirectionalParticleSpeed(motionOn() ? 0.005 : 0)
       graph.linkDirectionalParticles(particles)
     }
@@ -465,7 +502,7 @@ export default function BrainGlobe(props: BrainGlobeProps) {
         }
         graph.cooldownTicks(0).d3ReheatSimulation()
         controls.autoRotateSpeed = 0.45
-        controls.autoRotate = motionOn() && !P.current.selectedId
+        controls.autoRotate = motionOn() && !P.current.selectedId && !P.current.home
         restyle()
         P.current.onGrowEnd?.()
       }
@@ -499,6 +536,74 @@ export default function BrainGlobe(props: BrainGlobeProps) {
     for (const n of P.current.ix.nodes) homeOf(n)
     data()
 
+    // ───── home: sway around the pinned nodes' side (they face the camera), pins follow their nodes
+    function pinnedAzimuth() {
+      let x = 0
+      let z = 0
+      const host = P.current.pinHost?.current
+      host?.querySelectorAll<HTMLElement>("[data-pin]").forEach((el) => {
+        const n = P.current.ix.byId.get(el.dataset.pin!)
+        if (n?.x !== undefined) {
+          x += n.x
+          z += n.z!
+        }
+      })
+      return x || z ? Math.atan2(x, z) : 0
+    }
+    let swayFrom: number | null = P.current.home ? performance.now() + 2200 : null
+    function sway(now: number) {
+      if (swayFrom === null || now < swayFrom || P.current.selectedId || growth) return
+      const D = overview()
+      const base = pinnedAzimuth()
+      const a = base + (motionOn() ? Math.sin((now - swayFrom) / 4200) * ((20 * Math.PI) / 180) : 0)
+      const cam = graph.camera()
+      cam.position.set(Math.sin(a) * D, 55, Math.cos(a) * D)
+      cam.lookAt(0, 0, 0)
+      controls.target.set(0, 0, 0)
+    }
+    function placePins() {
+      const host = P.current.pinHost?.current
+      if (!host) return
+      // callouts never cover each other: try the other side, then push down below the one in the way
+      const boxes: { l: number; r: number; t: number; b: number }[] = []
+      const boxOf = (x: number, y: number, side: string, bw: number, bh: number, narrowPin: boolean) => {
+        const l = narrowPin ? x - bw / 2 : side === "l" ? x - 14 - bw : x + 14
+        const t = narrowPin ? y + 16 : y - bh / 2
+        return { l, r: l + bw, t, b: t + bh }
+      }
+      const hit = (q: { l: number; r: number; t: number; b: number }) => boxes.find((o) => q.l < o.r + 6 && q.r + 6 > o.l && q.t < o.b + 6 && q.b + 6 > o.t)
+      host.querySelectorAll<HTMLElement>("[data-pin]").forEach((el) => {
+        const n = P.current.ix.byId.get(el.dataset.pin!)
+        if (!n || n.x === undefined) {
+          el.style.visibility = "hidden"
+          return
+        }
+        const c = graph.graph2ScreenCoords(n.x, n.y!, n.z!)
+        const inside = c.x > 8 && c.x < w - 8 && c.y > 8 && c.y < h - 8
+        el.style.visibility = inside ? "visible" : "hidden"
+        const bw = el.offsetWidth
+        const bh = el.offsetHeight
+        const narrowPin = !!P.current.lite
+        let side = c.x > w * 0.6 ? "l" : "r"
+        let y = c.y
+        let box = boxOf(c.x, y, side, bw, bh, narrowPin)
+        if (hit(box) && !narrowPin) {
+          side = side === "l" ? "r" : "l"
+          box = boxOf(c.x, y, side, bw, bh, narrowPin)
+        }
+        for (let i = 0; i < 3; i++) {
+          const o = hit(box)
+          if (!o) break
+          y += o.b + 6 - box.t
+          box = boxOf(c.x, y, side, bw, bh, narrowPin)
+        }
+        boxes.push(box)
+        el.dataset.side = side
+        // transform, not left/top: moving callouts are not layout shifts (CLS)
+        el.style.transform = `translate(${Math.round(box.l)}px, ${Math.round(box.t)}px)`
+      })
+    }
+
     let elapsed = 0
     let prev = performance.now()
     const loop = (now: number) => {
@@ -509,6 +614,10 @@ export default function BrainGlobe(props: BrainGlobeProps) {
       orbitals.update(elapsed, !!focusId(), growth ? Math.max(0, (growth.t - 0.3) / 0.7) : 1)
       stepGrowth(now)
       placeLabels(now)
+      if (P.current.home) {
+        sway(now)
+        placePins()
+      }
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
@@ -554,7 +663,7 @@ export default function BrainGlobe(props: BrainGlobeProps) {
   }, [])
 
   // data, filters, selection, motion, grow → the engine
-  const { ix, visibleIds, selectedId, motion, growToken } = props
+  const { ix, visibleIds, selectedId, motion, growToken, waitIds } = props
   const first = useRef(true)
   useEffect(() => {
     if (first.current) {
@@ -565,7 +674,7 @@ export default function BrainGlobe(props: BrainGlobeProps) {
   }, [ix])
   useEffect(() => {
     api.current?.restyle()
-  }, [visibleIds, selectedId])
+  }, [visibleIds, selectedId, waitIds])
   useEffect(() => {
     api.current?.fly(selectedId)
   }, [selectedId])
@@ -578,7 +687,7 @@ export default function BrainGlobe(props: BrainGlobeProps) {
 
   return (
     <div className="absolute inset-0" aria-hidden="true">
-      <div ref={host} className="absolute inset-0 touch-none cursor-grab [&_canvas]:block" />
+      <div ref={host} className={`absolute inset-0 cursor-grab [&_canvas]:block ${props.home ? "touch-pan-y" : "touch-none"}`} />
       <div ref={labelsHost} className="pointer-events-none absolute inset-0 overflow-hidden" />
     </div>
   )

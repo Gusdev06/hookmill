@@ -14,6 +14,8 @@ import { useSession } from "@/components/providers/session-provider"
 import { ME_KEY, useMe } from "@/hooks/use-me"
 import { ik } from "@/hooks/use-iterate"
 import { cn } from "@/lib/utils"
+import { CREDITS_HREF } from "@/lib/routes"
+import { TourTip } from "@/components/tour/tip"
 import { Code, Cols, Dot, GenThumb, Head, IterActionBar, IterFlow, IterWrap, usePieceName } from "./parts"
 
 /*
@@ -58,14 +60,15 @@ export function useUnlockOnFocus(batchId?: string) {
 }
 
 /** "Free sample · up to 4 variations, no cost" — the line the analysis and the generation show for the sample batch. */
-export function SampleEyebrow() {
+export function SampleEyebrow({ pieces }: { pieces?: number } = {}) {
   const t = useTranslations("sample")
-  return <>{t("badge", { n: SAMPLE_MAX_PIECES })}</>
+  return <>{pieces == null ? t("badge", { n: SAMPLE_MAX_PIECES }) : t("badgeTemplates", { n: pieces })}</>
 }
 
 // ───────────── Download (locked) ─────────────
 export function SampleDownloadScreen({ batch }: { batch: IterateBatch }) {
   const t = useTranslations("sample")
+  const tt = useTranslations("tip.result")
   useUnlockOnFocus(batch.id)
   const [contact, setContact] = useState(false)
   const panelRef = useRef<HTMLElement>(null)
@@ -88,13 +91,23 @@ export function SampleDownloadScreen({ batch }: { batch: IterateBatch }) {
       {failed ? <p className="m-0 text-[13px] text-fg-3">{t("failedNote", { n: failed })}</p> : null}
       <Cols
         main={
-          <section aria-label={t("gridAria")} className="grid grid-cols-2 gap-2.5 tablet:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] tablet:gap-3.5">
+          <section id="t-pieces" aria-label={t("gridAria")} className="grid grid-cols-2 gap-2.5 tablet:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] tablet:gap-3.5">
             {pieces.map((p) => (
               <SamplePiece key={p.id} p={p} />
             ))}
           </section>
         }
-        side={<UnlockPanel ref={panelRef} pieces={n} contact={contact} onContact={setContact} />}
+        side={<UnlockPanel ref={panelRef} pieces={n} template={!!batch.template} contact={contact} onContact={setContact} />}
+      />
+      {/* tour-v2 §4: the first free batch ready */}
+      <TourTip
+        tip="result"
+        when={!!batch.template && ready > 0}
+        variant="sample"
+        target="#t-pieces"
+        title={tt("titleSample")}
+        body={tt("bodySample")}
+        action={{ label: tt("actionSample"), href: CREDITS_HREF, name: "plans" }}
       />
       {/* review 29/10 F6: one lime per screen and no dead buttons in the bar; the hint says what opens on unlock */}
       <IterActionBar hint={t("lockedActions")}>
@@ -170,9 +183,9 @@ function SamplePiece({ p }: { p: IteratePiece }) {
  * sample. The CTA opens "Talk to us" (P2): the e-mail to copy and the account id the team needs to unlock it.
  */
 export function UnlockPanel({
-  pieces, reason = "locked", contact, onContact, ref, className,
+  pieces, reason = "locked", contact, onContact, ref, className, template = false,
 }: {
-  pieces: number; reason?: "locked" | "sample_used"; contact: boolean; onContact: (v: boolean) => void
+  pieces: number; template?: boolean; reason?: "locked" | "sample_used"; contact: boolean; onContact: (v: boolean) => void
   ref?: React.Ref<HTMLElement>; className?: string
 }) {
   const t = useTranslations("sample")
@@ -192,7 +205,7 @@ export function UnlockPanel({
             {(["li1", "li2", "li3"] as const).map((k) => (
               <li key={k} className="flex items-start gap-2">
                 <span aria-hidden="true" className="mt-1.5 size-[7px] flex-none rounded-[2px] bg-brand" />
-                {t(`panel.${k}`)}
+                {t(template && k === "li3" ? "panel.li3Templates" : `panel.${k}`)}
               </li>
             ))}
           </ul>
@@ -210,13 +223,13 @@ export function UnlockPanel({
         </b>
         <span className="text-xs text-ink-fg-2">{t("panel.aiBody")}</span>
       </div>
-      <span className="text-xs text-ink-fg-2">{t("panel.note", { n: SAMPLE_MAX_PIECES })}</span>
+      <span className="text-xs text-ink-fg-2">{template ? t("panel.noteTemplates") : t("panel.note", { n: SAMPLE_MAX_PIECES })}</span>
     </aside>
   )
 }
 
 /**
- * review 29/10 L4: unlock asked from inside another block ("Generate anyway" on a locked sample, or a 402) opens "Talk to us"
+ * review 29/10 L4: unlock asked from inside another block (a 402) opens "Talk to us"
  * in a dialog, on the ink surface, instead of dropping the whole unlock panel inline.
  */
 export function UnlockDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {

@@ -2,7 +2,7 @@
 // Exportado no index.ts. Aditivos em tipos existentes (MetaMetrics.reach, MetaAdRow.*, MetaAdsQuery.*, Action 'refresh',
 // ErrorCode) estão aplicados em meta.ts/index.ts como OPCIONAIS até a B4 entregar; o backend devolve sempre.
 import type { PageMeta, UserRef } from './index';
-import type { MetaAdRow, MetaMetrics, MetaPeriod, MetaSyncState } from './meta';
+import type { MetaAdRow, MetaMetrics, MetaOfferCounts, MetaOfferListMeta, MetaOfferScope, MetaPeriod, MetaSyncState } from './meta';
 
 // ───────────────────────── enums ─────────────────────────
 export type MetaLevel = 'campaign' | 'adset' | 'ad';
@@ -58,6 +58,8 @@ export interface MetaCampaignRow extends MetaObjectBase {
   anyAdsetLearning: boolean;
   /** só com `q`: em que níveis abaixo da campanha algo bateu (o web abre a campanha sozinho). [] = só o nome da campanha bateu; ausente sem `q` */
   matchedIn?: ('adset' | 'ad')[];
+  /** meta-oferta-v1 §4.2 (04/11): só com `?offerId`; quantos anúncios da campanha caem em cada grupo */
+  offerMix?: MetaOfferCounts;
 }
 export interface MetaAdsetRow extends MetaObjectBase {
   campaignId: string;
@@ -80,6 +82,9 @@ export interface MetaCampaignsQuery {
   q?: string;                        // nome de campanha, conjunto ou anúncio (o pai aparece quando um filho bate)
   sort?: MetaSort; dir?: 'asc' | 'desc';   // padrão spend desc
   limit?: number; cursor?: string;
+  /** meta-oferta-v1 §4.1-4.2 (04/11): campanha `this` = ≥ 1 anúncio this; `other` = todos other */
+  offerId?: string;
+  offerScope?: MetaOfferScope;
 }
 /** Totais do conjunto FILTRADO inteiro (não da página), no período pedido. Usado na linha Total das duas visões. */
 export interface MetaCampaignsTotals {
@@ -98,6 +103,8 @@ export interface MetaCampaignsMeta extends PageMeta {
   sync: MetaSyncState;
   /** §10: contagem por filtro de status com os OUTROS filtros aplicados (origin, q), no nível da lista (campanhas). Opcional até a B4b */
   counts: MetaStatusCounts;
+  /** meta-oferta-v1 §4.2: só com `?offerId` (counts em campanhas). Opcional até o B3 */
+  offer?: MetaOfferListMeta;
 }
 /** §10: chips de status (All · Active · Paused · Issues) com número. all = active + paused + issues */
 export interface MetaStatusCounts { all: number; active: number; paused: number; issues: number }
@@ -106,7 +113,11 @@ export interface MetaCampaignDetail {
   campaign: MetaCampaignRow;
   adsets: (MetaAdsetRow & { ads: MetaCampaignAdRow[] })[];
 }
-export interface MetaCampaignDetailQuery { period?: MetaPeriod }
+export interface MetaCampaignDetailQuery {
+  period?: MetaPeriod;
+  /** meta-oferta-v1 §4.2: anúncios com `offer.fit` e cada conjunto ordenado pelo grupo */
+  offerId?: string;
+}
 
 // ───────────────────────── §4 escrita (OWNER/ADMIN) ─────────────────────────
 /** POST /meta/{campaigns|adsets|ads}/:id/status */

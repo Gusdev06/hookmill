@@ -11,17 +11,24 @@ import { num } from '../common/util/format';
 import { KeyedMutex } from '../common/util/mutex';
 import { computeAdName } from '../biblioteca/ad-names';
 import { CreativeStateMachine, initialState } from '../criativos/state-machine';
+import { ModuleRef } from '@nestjs/core';
+import { TEMPLATE_AI_RUNNER, type TemplateAiRunner } from '../templates-ai/contract';
 import { CustosService } from '../custos/custos.service';
 import { CATALOG_SERVICE, type CatalogService } from '../integracoes';
 import { PrismaService } from '../prisma/prisma.service';
 import { AmostraService } from '../amostra/amostra.service';
+import { CreditosService } from '../creditos/creditos.service';
 import { EdicaoService } from './edicao.service';
 import { ImagemEstaticaService } from './imagem-estatica.service';
+import { ProxyService } from './proxy.service';
+import { pieceListOf } from '../iteracao/lista-plano';
 import {
   ALL_FORMATS, AUTO_EDIT_TEMPLATE, FORMAT_CODE, criticalErrorsOf, latestReadyByFormat, FORMAT_OF_CODE, FRAME_TEXT_OVERFLOW, PRIORITY_BATCH, PRIORITY_ON_DEMAND, STATIC_IMAGE_ETA_SEC,
   autoFileName, engineFor, estimateStaticUsd, expectedOutputSec, folderOf, latestByFormat, median, paramsOf, pieceFormats, pieceFrameOf, pieceStatus,
-  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, pieceTemplateOf, textCheckOf, captionCoveredTwice, captionNoteOf, captionOverrideOf,
+  primaryFormatOf, renderOrder, staticRenderStage, suggestedPrimaryTextOf, supportedFormatsOf, pieceTemplateOf, textCheckOf, captionCoveredTwice, captionNoteOf,
+  servedRenders, editedFromRenders, codeWithEd, adNameWithEd,
 } from './pecas';
+import { headlineRetiredOf, pieceEditorViewOf, templateKeyOf } from './editor-auto';
 
 const ITEM_INCLUDE = {
   creative: {
@@ -45,12 +52,15 @@ export class PecasAutoService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly sm: CreativeStateMachine,
+    private readonly moduleRef: ModuleRef,
     private readonly edicao: EdicaoService,
     private readonly locks: KeyedMutex,
     private readonly imagem: ImagemEstaticaService,
     private readonly custos: CustosService,
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
     private readonly amostra: AmostraService,
+    private readonly creditos: CreditosService,
+    private readonly proxy: ProxyService,
   ) {}
 
   /** §14.4: preço de 1 imagem do STATIC (`IterateConfig.staticImageUsd`, `requestUsd`, `retryUsd`). */
@@ -66,12 +76,10 @@ export class PecasAutoService {
    * Vídeo = engine REMOTION (fila); STATIC = IMAGE_GEN (submetido depois do commit). `launchedAt` = o gravado no lote
    * (MMDD do adName). Depois do commit, chame `launched(resultado)`.
    */
-  /** legenda-protegida-v1 §8 (29/10): `itemIds` = só essas peças (o "Gerar mesmo assim" num lote já lançado; `launchedAt`
-   *  = agora, a peça entra no fim da fila). */
-  async createPieces(tx: Prisma.TransactionClient, input: { batchId: string; userId: string; launchedAt: Date; itemIds?: string[] }): Promise<LaunchedPieces> {
+  async createPieces(tx: Prisma.TransactionClient, input: { batchId: string; userId: string; launchedAt: Date }): Promise<LaunchedPieces> {
     const batch = await tx.variationBatch.findUniqueOrThrow({
       where: { id: input.batchId },
-      include: { champion: { select: { name: true } }, items: { where: { kind: 'AUTO_EDIT', included: true, ...(input.itemIds && { id: { in: input.itemIds } }) }, orderBy: { index: 'asc' } } },
+      include: { champion: { select: { name: true } }, items: { where: { kind: 'AUTO_EDIT', included: true }, orderBy: { index: 'asc' } } },
     });
     const ids = new Map<string, string>();
     for (const item of batch.items) {
@@ -103,6 +111,15 @@ export class PecasAutoService {
     for (const id of p.creativeIds) this.sm.announce(id);
     this.edicao.kick();
     for (const id of p.staticRenderIds) void this.imagem.dispatch(id);
+    void this.proxyDoCampeao(p.creativeIds[0]);
+  }
+
+  /** editor-universal-v1 §8 (D-E1-6): proxy 540p do vídeo do campeão do lote, pro editor abrir já com ele (CPU, US$ 0). */
+  private async proxyDoCampeao(creativeId: string | undefined): Promise<void> {
+    if (!creativeId) return;
+    const c = await this.prisma.creative.findUnique({ where: { id: creativeId }, select: { champion: { select: { videoFile: true, cleanVideoFile: true } } } }).catch(() => null);
+    const f = c?.champion?.cleanVideoFile ?? c?.champion?.videoFile ?? null;
+    if (f && !(await this.proxy.of(f.id))) void this.proxy.ensure(f);
   }
 
   // ───────── vista ─────────
@@ -131,16 +148,18 @@ export class PecasAutoService {
    * borrada do formato principal, gerada pelo render; null enquanto não existe). Destravada: `locked: false`, `preview: null`.
    */
   private async piece(i: ItemRow, launched: boolean, locked = false): Promise<IteratePiece> {
-    const p = await this.unlockedPiece(i, launched);
+    const p = await this.unlockedPiece(i, launched, locked);
     if (!locked) return { ...p, locked: false, preview: null };
     const primary = primaryFormatOf(i.autoType, paramsOf(i.payload));
     const r = latestReadyByFormat(i.creative?.renders ?? []).get(primary);
     return { ...p, locked: true, files: [], preview: r?.previewFile ? await this.storage.fileRef(r.previewFile) : null };
   }
 
-  private async unlockedPiece(i: ItemRow, launched: boolean): Promise<IteratePiece> {
+  private async unlockedPiece(i: ItemRow, launched: boolean, locked = false): Promise<IteratePiece> {
     const c = i.creative;
-    const renders = c?.renders ?? [];
+    // editor-universal-v1 §9.6: export do editor em curso/reprovado não entra (a peça segue servindo o render anterior)
+    const allRenders = c?.renders ?? [];
+    const renders = servedRenders(allRenders);
     const status = pieceStatus({ launched, leftOutAt: i.leftOutAt, creativeState: c?.state ?? null, renders });
     const latest = latestByFormat(renders);
     // §A10.1: enquanto uma refação roda, `files` mostra a imagem pronta anterior (o READY mais novo de cada formato)
@@ -152,8 +171,10 @@ export class PecasAutoService {
     const failedish = status === 'failed' || status === 'left_out';
     const errorCode = failedish ? i.errorCode ?? 'RENDER_ERROR' : null;
     let files: IteratePiece['files'] = [];
+    const primaryFmt = primaryFormatOf(i.autoType, paramsOf(i.payload));
+    const edited = editedFromRenders(allRenders, primaryFmt); // D-E1-4: código e arquivos com -ED
     if (c && ready.length) {
-      const adName = c.adName ?? (await computeAdName(this.prisma, c.id));
+      const adName = adNameWithEd(c.adName ?? (await computeAdName(this.prisma, c.id)), i.code, edited);
       files = await Promise.all(ready.map(async (r) => {
         const name = autoFileName(adName, r.format as VideoFormat, r.file!.mimeType);
         return {
@@ -171,7 +192,7 @@ export class PecasAutoService {
         : i.autoType === 'SPLIT_LP' && errorCode?.startsWith('PAGE_') ? 'use_product_photo' : 'retry';
     const vertical = readyBy.get('VERTICAL_9_16');
     return {
-      id: i.id, index: i.index, type: i.autoType!, code: i.code ?? '', axis: i.axis as VariationAxis, change: i.change ?? '',
+      id: i.id, index: i.index, type: i.autoType!, code: codeWithEd(i.code ?? '', edited), axis: i.axis as VariationAxis, change: i.change ?? '',
       status, previewReady: (primaryFormatOf(i.autoType, params) === 'VERTICAL_9_16' ? vertical : readyBy.get(primaryFormatOf(i.autoType, params)))?.status === 'READY',
       media: isStatic ? 'image' : 'video',
       render: now ? {
@@ -187,7 +208,7 @@ export class PecasAutoService {
       }),
       errorCode, failReason: failedish ? i.failReason : null,
       retryHint,
-      retryUsd: retryHint && retryHint !== 'leave_out' ? (isStatic ? staticUsd : 0) : null,
+      retryUsd: retryHint && retryHint !== 'leave_out' ? (i.autoType === 'AI_VIDEO' ? num(c?.estimatedCostUsd) ?? 0 : isStatic ? staticUsd : 0) : null,
       inZip: i.inZip, creativeId: c?.id ?? null,
       poster: c?.thumbnail ? await this.storage.fileRef(c.thumbnail) : null,
       files, folder: folderOf(i.axis),
@@ -198,10 +219,12 @@ export class PecasAutoService {
       // iterate-v2 F1.7: selo "New template" + "Free" no web; trechos do campeão no person-motion
       isNewTemplate: i.autoType === 'CHAT_DM' || i.autoType === 'PERSON_MOTION',
       template: pieceTemplateOf(i.autoType, params),
+      // templates-lista-v1 §5: linhas, tempos, fontes, look, placement (a prévia entra na vista do lote)
+      list: i.autoType === 'LIST_OVERLAY' ? pieceListOf(params) : null,
       // legenda-protegida-v1 §2.2: "Legenda refeita no estilo do original" (o 9:16 saiu com o recorte + a nossa legenda)
       captionNote: captionNoteOf(latest.get('VERTICAL_9_16')?.input),
-      // legenda-protegida-v1 §8 (29/10): "Gerar mesmo assim" (o web mostra o selo "Cobre a legenda")
-      captionOverride: captionOverrideOf(i.payload),
+      // editor-universal-v1 §7.5: Edit no card (disponível/motivo, selo Edited, edição não exportada, export em curso/reprovado)
+      editor: c ? pieceEditorViewOf({ key: templateKeyOf(i.autoType, params), status, locked, editDoc: c.editDoc, primary: primaryFmt, renders: allRenders, headlineRetired: headlineRetiredOf(i.autoType, params) }) : null,
       // headline-e-legenda-v1 (TRANSIÇÃO, nomes do web/types.ts): "original → nova" na peça HEADLINE
       ...((i.autoType as string) === 'HEADLINE' && {
         headline: { mode: params?.mode === 'add' ? 'add' : 'replace', original: (params?.original as string | null) ?? null, text: String(params?.text ?? ''), highlight: (params?.highlight as string | null) ?? null },
@@ -267,8 +290,15 @@ export class PecasAutoService {
    */
   async retry(auth: AuthContext, pieceId: string, dto: { useProductPhoto?: boolean }): Promise<IteratePiece> {
     const pre = await this.item(auth, pieceId);
+    if (pre.autoType === 'AI_VIDEO') {
+      await this.moduleRef.get<TemplateAiRunner>(TEMPLATE_AI_RUNNER, { strict: false }).retry(auth, pieceId);
+      return this.piece(await this.item(auth, pieceId), true);
+    }
     await this.amostra.assertBatchUnlocked(auth.workspaceId, pre.batchId); // amostra-gratis-v1 §4: Retry trava (402)
     if (!pre.creative) throw PecasAutoService.invalid(this.status(pre), ['failed', 'left_out']);
+    // templates-creditos-v1 A4: peça de lote de template cujo crédito já voltou reserva de novo (402 sem saldo)
+    const st0 = this.status(pre);
+    if (st0 === 'failed' || st0 === 'left_out') await this.creditos.beforeRetry(auth.workspaceId, pre.batchId, pre.id, auth.userId);
     const creativeId = pre.creative.id;
     let staticIds: string[] = [];
     let nothingQueued = false;

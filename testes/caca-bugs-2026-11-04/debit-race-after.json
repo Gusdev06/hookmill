@@ -1,0 +1,15 @@
+{
+  "statuses": [
+    200,
+    200
+  ],
+  "errors": [
+    null,
+    null
+  ],
+  "balance": [
+    {
+      "credit_balance": 0
+    }
+  ]
+}

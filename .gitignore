@@ -36,3 +36,12 @@ tmp-*
 
 # relatórios gerados do Playwright (dev)
 testes/playwright-report-dev/
+
+# 04/11: certificado autoassinado do proxy https local (scripts/https-proxy.mjs)
+scripts/.certs/
+
+# 04/11: vídeos de exemplo dos templates (~330 MB, ficam no storage do admin) + README com login da conta de teste local
+design/exemplos-templates/
+
+# 04/11: vídeos de teste das research_notes (ex.: limpar-texto-teste) ficam fora do git
+research_notes/**/*.mp4

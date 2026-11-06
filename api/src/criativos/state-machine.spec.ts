@@ -63,9 +63,9 @@ describe('CreativeStateMachine: origens proibidas', () => {
     for (const ev of CREATIVE_EVENTS) expect(allowedFrom(ev)).not.toContain('APPROVED');
   });
 
-  it('nenhum evento leva de volta a SCRIPTS_WRITING fora de gerar roteiros, nem a APPROVED fora de aprovar', () => {
+  it('só gerar roteiros ou retry explícito de produção IA volta a SCRIPTS_WRITING; só aprovação leva a APPROVED', () => {
     for (const ev of CREATIVE_EVENTS) {
-      if (ev !== 'GENERATE_SCRIPTS') expect(TRANSITIONS[ev].to).not.toContain('SCRIPTS_WRITING');
+      if (ev !== 'GENERATE_SCRIPTS' && ev !== 'AI_PRODUCTION_RETRY') expect(TRANSITIONS[ev].to).not.toContain('SCRIPTS_WRITING');
       if (ev !== 'APPROVE' && ev !== 'AUTO_APPROVE') expect(TRANSITIONS[ev].to).not.toContain('APPROVED');
     }
   });

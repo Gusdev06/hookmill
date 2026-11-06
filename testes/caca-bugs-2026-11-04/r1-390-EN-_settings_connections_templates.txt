@@ -1,0 +1,19 @@
+HM
+Q
+QA Alfa
+Unlimited
+Settings
+›
+Meta
+›
+Publish templates
+Publish templates
+Mock Store (USD) (act_mock_1)
+Import from a campaign
+New template
+
+Set once how HookMill creates campaigns, ad sets and ads in your account. Every "Send to Meta" uses the default template unless you pick another one.
+
+No publish template yet
+
+Create one from scratch or import the settings of a campaign that already runs. The first one becomes the default.

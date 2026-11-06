@@ -4,6 +4,10 @@
 import type { Rect } from '@maquina/contratos';
 import { run, streamFrames, type Bins } from './ffmpeg';
 
+// Laço por pixel usa `abs` do módulo, não `Math.abs`: no Jest (vm própria) cada leitura do global `Math` é ~20x mais
+// lenta e a API dos int specs travava o event loop por segundos (F3 do QA 01/11). Em node puro dá na mesma.
+const abs = Math.abs;
+
 const hex = (v: number) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0');
 const toHex = (c: number[]) => `#${hex(c[0])}${hex(c[1])}${hex(c[2])}`;
 
@@ -43,32 +47,86 @@ export function presenceRun(d: number[], refFrame: number, contrast = 0): { star
 
 /** Distância média por pixel do recorte `box` de cada frame do vídeo ao mesmo recorte no frame `refFrame`. */
 export async function boxDistances(bins: Bins, file: string, box: Rect, refFrame: number): Promise<{ d: number[]; contrast: number }> {
-  const bx = { x: Math.round(box.x), y: Math.round(box.y), w: Math.max(2, Math.round(box.w) & ~1), h: Math.max(2, Math.round(box.h) & ~1) };
-  // reduz o recorte pra no máximo ~200 px de largura: presença de texto não precisa de resolução cheia
-  const f = Math.min(1, 200 / bx.w);
-  const sw = Math.max(2, Math.round(bx.w * f)), sh = Math.max(2, Math.round(bx.h * f));
-  const bytes = sw * sh * 3;
-  // referência primeiro; depois 1 passada em stream (1 recorte reduzido em memória por vez)
-  const r = await run(bins.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-i', file, '-an', '-vf',
-      `select='eq(n\\,${refFrame})',crop=${bx.w}:${bx.h}:${bx.x}:${bx.y},scale=${sw}:${sh}:flags=area`, '-fps_mode', 'passthrough',
-      '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']);
-  const ref = r.stdout.subarray(0, bytes);
-  if (ref.length < bytes) throw new RangeError(`frame de referência ${refFrame} não existe`);
-  let mean = 0;
-  for (let i = 0; i < bytes; i++) mean += ref[i];
-  mean /= bytes;
-  let contrast = 0;
-  for (let i = 0; i < bytes; i++) contrast += Math.abs(ref[i] - mean);
-  contrast /= bytes;
-  const d: number[] = [];
-  await streamFrames(bins.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-i', file, '-an', '-vf',
-    `crop=${bx.w}:${bx.h}:${bx.x}:${bx.y},scale=${sw}:${sh}:flags=area`, '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
-  bytes, (buf) => {
-    let t = 0;
-    for (let i = 0; i < bytes; i++) t += Math.abs(buf[i] - ref[i]);
-    d.push(t / bytes);
+  const [r] = await boxDistancesMany(bins, file, null, [{ box, refFrame }]);
+  if (r instanceof Error) throw r;
+  return r;
+}
+
+export interface PedidoPresenca { box: Rect; refFrame: number }
+
+/**
+ * `boxDistances` de várias caixas com DUAS decodificações no total, não duas por caixa (F3 do QA 01/11): 1) os frames de
+ * referência de todas (select por índice, para no último); 2) uma passada pelo vídeo com split → crop → scale de cada
+ * caixa empilhados (vstack). Mesmos pixels do caminho de uma caixa só: o crop/scale de cada ramo é o mesmo e o rgb24 sai
+ * do próprio scale. Erro de uma caixa (maior que o quadro, referência além do fim) volta só nela. `frame` = tamanho do
+ * quadro (null = não confere; o ffmpeg falha se a caixa não couber).
+ */
+export async function boxDistancesMany(bins: Bins, file: string, frame: { w: number; h: number } | null, pedidos: PedidoPresenca[]):
+  Promise<({ d: number[]; contrast: number } | Error)[]> {
+  const res: ({ d: number[]; contrast: number } | Error)[] = pedidos.map(() => new Error('não medida'));
+  const itens = pedidos.map((p, k) => {
+    const bx = { x: Math.round(p.box.x), y: Math.round(p.box.y), w: Math.max(2, Math.round(p.box.w) & ~1), h: Math.max(2, Math.round(p.box.h) & ~1) };
+    // reduz o recorte pra no máximo ~200 px de largura: presença de texto não precisa de resolução cheia
+    const f = Math.min(1, 200 / bx.w);
+    const sw = Math.max(2, Math.round(bx.w * f)), sh = Math.max(2, Math.round(bx.h * f));
+    return { k, bx, sw, sh, ref: Math.max(0, Math.round(p.refFrame)), off: 0 };
+  }).filter((it) => {
+    if (frame && (it.bx.w > frame.w || it.bx.h > frame.h)) { res[it.k] = new RangeError(`caixa ${it.bx.w}x${it.bx.h} maior que o quadro ${frame.w}x${frame.h}`); return false; }
+    return true;
   });
-  return { d, contrast };
+  if (!itens.length) return res;
+  const W = Math.max(...itens.map((it) => it.sw));
+  let H = 0;
+  for (const it of itens) { it.off = H; H += it.sh; }
+  const bytes = W * H * 3;
+  // um ramo por caixa, empilhados: linha y do bloco da caixa i = linha it.off + y do quadro empilhado
+  const grafo = (entrada: string) => {
+    if (itens.length === 1) { const it = itens[0]; return `${entrada}crop=${it.bx.w}:${it.bx.h}:${it.bx.x}:${it.bx.y},scale=${it.sw}:${it.sh}:flags=area[out]`; }
+    const ramos = itens.map((it, i) => `[r${i}]crop=${it.bx.w}:${it.bx.h}:${it.bx.x}:${it.bx.y},scale=${it.sw}:${it.sh}:flags=area,format=rgb24,pad=${W}:${it.sh}:0:0[c${i}]`);
+    return `${entrada}split=${itens.length}${itens.map((_, i) => `[r${i}]`).join('')};${ramos.join(';')};${itens.map((_, i) => `[c${i}]`).join('')}vstack=inputs=${itens.length}[out]`;
+  };
+  const bloco = (buf: Uint8Array, it: (typeof itens)[number]) => {
+    const out = Buffer.alloc(it.sw * it.sh * 3);
+    for (let y = 0; y < it.sh; y++) out.set(buf.subarray(((it.off + y) * W) * 3, ((it.off + y) * W + it.sw) * 3), y * it.sw * 3);
+    return out;
+  };
+  const base = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-i', file, '-an'];
+  const saida = ['-map', '[out]', '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'];
+  // 1. referências: frames por índice (como o select de uma caixa só), na ordem; o ffmpeg para no último
+  const refs = [...new Set(itens.map((it) => it.ref))].sort((a, b) => a - b);
+  const refBuf = new Map<number, Buffer>();
+  let ri = 0;
+  await streamFrames(bins.ffmpeg, [...base, '-filter_complex', grafo(`[0:v]select='${refs.map((n) => `eq(n\\,${n})`).join('+')}',`), ...saida.slice(0, 4),
+    '-frames:v', String(refs.length), ...saida.slice(4)], bytes, (buf) => { refBuf.set(refs[ri++], Buffer.from(buf)); });
+  const vivos: { it: (typeof itens)[number]; ref: Buffer; d: number[]; contrast: number }[] = [];
+  for (const it of itens) {
+    const rb = refBuf.get(it.ref);
+    if (!rb) { res[it.k] = new RangeError(`frame de referência ${it.ref} não existe`); continue; }
+    const ref = bloco(rb, it);
+    const n = ref.length;
+    let mean = 0;
+    for (let i = 0; i < n; i++) mean += ref[i];
+    mean /= n;
+    let contrast = 0;
+    for (let i = 0; i < n; i++) contrast += abs(ref[i] - mean);
+    vivos.push({ it, ref, d: [], contrast: contrast / n });
+  }
+  if (!vivos.length) return res;
+  // 2. uma passada: cada frame empilhado dá a distância de todas as caixas (1 frame reduzido em memória por vez)
+  await streamFrames(bins.ffmpeg, [...base, '-filter_complex', grafo('[0:v]'), ...saida], bytes, (buf) => {
+    for (const v of vivos) {
+      const { sw, sh, off } = v.it;
+      const ref = v.ref, linha = sw * 3;
+      let t = 0;
+      for (let y = 0; y < sh; y++) {
+        const o = (off + y) * W * 3, r = y * linha;
+        for (let i = 0; i < linha; i++) t += abs(buf[o + i] - ref[r + i]);
+      }
+      v.d.push(t / (sw * sh * 3));
+    }
+  });
+  for (const v of vivos) res[v.it.k] = { d: v.d, contrast: v.contrast };
+  return res;
 }
 
 export interface SolidBackground {
@@ -96,10 +154,10 @@ export function solidFromFrame(rgb: Uint8Array, w: number, h: number, approx: Re
     for (let x = ax0; x < ax1; x++) { const o = (y * w + x) * 3; rs.push(rgb[o]); gs.push(rgb[o + 1]); bs.push(rgb[o + 2]); }
     const m = [median(rs), median(gs), median(bs)];
     let ok = 0;
-    for (let i = 0; i < rs.length; i++) if ((Math.abs(rs[i] - m[0]) + Math.abs(gs[i] - m[1]) + Math.abs(bs[i] - m[2])) / 3 < tol) ok++;
+    for (let i = 0; i < rs.length; i++) if ((abs(rs[i] - m[0]) + abs(gs[i] - m[1]) + abs(bs[i] - m[2])) / 3 < tol) ok++;
     return { m, bg: ok / rs.length >= 0.5, frac: ok / rs.length };
   };
-  const step = (a: number[], b: number[]) => (Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2])) / 3;
+  const step = (a: number[], b: number[]) => (abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])) / 3;
   const st = new Map<number, { m: number[]; bg: boolean; frac: number }>();
   const get = (y: number) => { let v = st.get(y); if (!v) { v = lineStats(y); st.set(y, v); } return v; };
   // semente: a linha MAIS PURA (maior fração de pixels na cor dela) na caixa ou logo acima/abaixo (até a altura da caixa):

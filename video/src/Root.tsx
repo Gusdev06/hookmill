@@ -11,6 +11,7 @@ import { calcularMoldura as calcularMolduraProd, Moldura } from './molduras/Mold
 import { DEMO_ORDEM, demoProps } from './molduras/demo';
 import { CASOS, casoTrilha, TRILHA_TEMPLATES } from './molduras/casos';
 import { casosZhTw } from './molduras/casos-cjk';
+import { HERO_MILL, HeroMill } from './landing/HeroMill';
 import { FRAME_COMPOSITION_ID, molduraSchema } from './lib/molduras';
 import { AUTO_EDIT_COMPOSITION_ID, autoEditSchema, duracaoAutoEdit, SAFE_AREA, type AutoEditProps, COMPOSITION_ID, criativoSchema, duracaoEmFrames, FORMATOS, FPS, REMIX_COMPOSITION_ID, remixKeepSchema, type CriativoProps, type RemixKeepProps } from './lib';
 
@@ -83,6 +84,8 @@ const autoExemplo: AutoEditProps = {
 
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* LANDING 04/11 (fora do registro de templates): o vídeo do celular do hero. Render: src/landing/render-hero.sh */}
+    <Composition id="HeroMill" component={HeroMill} {...HERO_MILL} />
     {/* iterate-v2 F1.4: templates grátis chat-dm e person-motion (composição de produto `Template`) */}
     <TemplatesRegistrados />
     <Composition

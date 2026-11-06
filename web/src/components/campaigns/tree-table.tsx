@@ -10,6 +10,8 @@ import { Icon } from "@/components/icon"
 import { mk } from "@/hooks/use-meta"
 import { cn } from "@/lib/utils"
 import { AdThumbSmall, BudgetCell, Delta, HmChip, IterateButton, LearnChip, RowMenu, StatusSwitch, StatusText, VerdictChips, resultsText, useFormat } from "./cells"
+import { OfferFitItems, type OfferRef } from "@/components/meta/offer-fit-menu"
+import { OfferChip } from "@/components/meta/offer-sections"
 import { filtering, nodeId, selfOk, statusInfo, windowOf, type Filters, type MetricKey, type Node, type ResultKey, type SortKey } from "./model"
 
 /*
@@ -27,6 +29,10 @@ export type RowActions = {
   onHistory: (n: Node) => void
 }
 export type TableCtx = RowActions & {
+  /** meta-oferta-v1 §8: the offer the lists were asked with (null = "All offers"); `canFixOffer` = not CLIENT */
+  offer: OfferRef | null
+  offers: OfferRef[]
+  canFixOffer: boolean
   period: MetaPeriod
   filters: Filters
   currency: string | null
@@ -48,6 +54,28 @@ export function Highlight({ text, q }: { text: string; q: string }) {
 }
 
 /** the sort the API and the cards use, mirrored for children (the detail has no `sort`) */
+const FIT_RANK = { this: 0, unknown: 1, other: 2 } as const
+
+/** the offer bits of a row: the ad's assigned-offer chip, the campaign's mix; the ⋯ menu items to correct it */
+export function useOfferBits(n: Node, ctx: TableCtx) {
+  const t = useTranslations("metaOffer")
+  // the ad's chip says what the tab doesn't: its offer under "All offers", "Not sure" / the other product inside a tab
+  // (a `this` row in the offer's own tab needs no chip); the campaign row shows its mix
+  const info = n.level === "ad" ? n.row.offer : undefined
+  const mix = n.level === "campaign" && ctx.offer && n.row.offerMix ? t("mix", { ...n.row.offerMix, offer: ctx.offer.name }) : null
+  const chip =
+    info && (info.fit === null ? !!info.offerName : info.fit !== "this") ? <OfferChip info={info} />
+    : mix ? <span className="truncate" title={mix}>{mix}</span>
+    : null
+  const canAd = n.level === "ad" && !!n.row.offer?.canEdit
+  const items =
+    !ctx.offer || !ctx.canFixOffer ? null
+    : n.level === "ad" ? (canAd ? <OfferFitItems target={{ level: "AD", ad: n.row }} active={ctx.offer} offers={ctx.offers} separator /> : null)
+    : n.level === "campaign" ? <OfferFitItems target={{ level: "CAMPAIGN", id: n.row.id }} active={ctx.offer} offers={ctx.offers} separator />
+    : null
+  return { chip, items }
+}
+
 export function sortNodes<T extends Node>(list: T[], sort: SortKey, dir: "asc" | "desc", period: MetaPeriod): T[] {
   const d = dir === "asc" ? 1 : -1
   const val = (n: Node): number | null => {
@@ -55,7 +83,10 @@ export function sortNodes<T extends Node>(list: T[], sort: SortKey, dir: "asc" |
     if (sort === "budget") return n.level === "ad" ? null : n.row.budget.amountMinor
     return sort === "cpa" ? w.cpa : sort === "results" ? w.results : sort === "ctr" ? (w.spend ? w.ctr : null) : sort === "hookRate" ? w.hookRate : w.spend
   }
+  // meta-oferta-v1 §4.2: ads with `offer.fit` keep the group first (this → unknown → other), then the sort
+  const rank = (n: Node) => (n.level === "ad" && n.row.offer?.fit ? FIT_RANK[n.row.offer.fit] : 0)
   return [...list].sort((a, b) => {
+    if (rank(a) !== rank(b)) return rank(a) - rank(b)
     if (sort === "name") return d * a.row.name.localeCompare(b.row.name)
     const x = val(a), y = val(b)
     if (x === null && y === null) return 0
@@ -99,6 +130,7 @@ const LV_BG = ["bg-card", "bg-[var(--row-l1)]", "bg-[var(--row-l2)]"]
 function Row({ n, depth, ctx, expandable, open, onExpand, extraSub }: { n: Node; depth: 0 | 1 | 2; ctx: TableCtx; expandable: boolean; open?: boolean; onExpand?: () => void; extraSub?: React.ReactNode }) {
   const t = useTranslations("campaigns")
   const id = nodeId(n)
+  const offerBits = useOfferBits(n, ctx)
   const sub =
     n.level === "campaign" ? (
       <>
@@ -150,7 +182,7 @@ function Row({ n, depth, ctx, expandable, open, onExpand, extraSub }: { n: Node;
               <Highlight text={n.row.name} q={ctx.filters.q} />
             </span>
             <span className="flex items-center gap-1.5 overflow-hidden text-xs whitespace-nowrap text-fg-3">
-              {sub} <HmChip n={n} /> <LearnChip n={n} />
+              {sub} <HmChip n={n} /> <LearnChip n={n} /> {offerBits.chip}
             </span>
           </span>
         </div>
@@ -167,7 +199,7 @@ function Row({ n, depth, ctx, expandable, open, onExpand, extraSub }: { n: Node;
       <td className={cn("sticky right-0 border-b border-line-soft px-2 py-2 text-right align-middle whitespace-nowrap shadow-[-8px_0_8px_-8px_rgba(21,23,26,.12)]", LV_BG[depth])}>
         <span className="inline-flex items-center justify-end gap-1.5">
           {n.level === "ad" && !ctx.isClient ? <IterateButton n={n} /> : null}
-          <RowMenu n={n} canIterate={!ctx.isClient} onHistory={() => ctx.onHistory(n)} />
+          <RowMenu n={n} canIterate={!ctx.isClient} onHistory={() => ctx.onHistory(n)} extra={offerBits.items} />
         </span>
       </td>
     </tr>
@@ -194,8 +226,8 @@ function CampaignBranch({ row, ctx, open, toggle, sort, dir }: { row: MetaCampai
   // mockup: open by the person OR by the filter (a filter never collapses what the person opened)
   const isOpen = open.has(row.id) || auto
   const detail = useQuery({
-    queryKey: mk.campaign(row.id, ctx.period),
-    queryFn: ({ signal }) => api.meta.campaign(row.id, { period: ctx.period }, { signal }),
+    queryKey: mk.campaign(row.id, ctx.period, ctx.offer?.id),
+    queryFn: ({ signal }) => api.meta.campaign(row.id, { period: ctx.period, offerId: ctx.offer?.id }, { signal }),
     enabled: isOpen,
     staleTime: 30_000,
   })

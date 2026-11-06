@@ -27,7 +27,7 @@ describe('(1)+(3) metaCronEnabled', () => {
       for (const [env, runs] of [[{ META_MODE: 'mock' }, false], [{ META_MODE: 'off' }, false], [{ META_MODE: 'live', META_CRON: 'off' }, false], [{ META_MODE: 'live' }, true]] as const) {
         const prisma = { metaConnection: { findMany: jest.fn().mockResolvedValue([]) }, job: { findFirst: jest.fn() } };
         const config = cfg(env as Record<string, string>);
-        const svc = new MetaSyncService(prisma as never, config, {} as never, {} as never, {} as never);
+        const svc = new MetaSyncService(prisma as never, config, {} as never, {} as never, {} as never, {} as never);
         await svc.tick();
         expect([env, prisma.metaConnection.findMany.mock.calls.length]).toEqual([env, runs ? 2 : 0]);
       }
@@ -52,11 +52,11 @@ describe('(2) fora de live, conexão real é intocável', () => {
 
   it('tickSync/tickHealth em mock filtram por metaUserId mock_user (defesa extra além do gate do tick)', async () => {
     const prisma = { metaConnection: { findMany: jest.fn().mockResolvedValue([]) }, job: { findFirst: jest.fn() } };
-    const svc = new MetaSyncService(prisma as never, cfg({ META_MODE: 'mock' }), {} as never, {} as never, {} as never);
+    const svc = new MetaSyncService(prisma as never, cfg({ META_MODE: 'mock' }), {} as never, {} as never, {} as never, {} as never);
     await svc.tickSync();
     await svc.tickHealth();
     for (const call of prisma.metaConnection.findMany.mock.calls) expect(call[0].where.metaUserId).toBe('mock_user');
-    const live = new MetaSyncService(prisma as never, cfg({ META_MODE: 'live' }), {} as never, {} as never, {} as never);
+    const live = new MetaSyncService(prisma as never, cfg({ META_MODE: 'live' }), {} as never, {} as never, {} as never, {} as never);
     prisma.metaConnection.findMany.mockClear();
     await live.tickSync();
     expect(prisma.metaConnection.findMany.mock.calls[0][0].where).not.toHaveProperty('metaUserId');
@@ -94,7 +94,7 @@ describe('(2) fora de live, conexão real é intocável', () => {
 
   it('kick e startIfIdle em mock não abrem job pra conexão real', async () => {
     const jobs = { create: jest.fn() };
-    const svc = new MetaSyncService({} as never, cfg({ META_MODE: 'mock' }), jobs as never, {} as never, {} as never);
+    const svc = new MetaSyncService({} as never, cfg({ META_MODE: 'mock' }), jobs as never, {} as never, {} as never, {} as never);
     await expect(svc.kick(real as never, 'u', true)).rejects.toMatchObject({ code: 'META_NOT_CONFIGURED' });
     expect(await svc.startIfIdle(real as never, 'u')).toBeNull();
     expect(jobs.create).not.toHaveBeenCalled();

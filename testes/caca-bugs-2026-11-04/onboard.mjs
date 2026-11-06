@@ -1,0 +1,4 @@
+import {browserPage,shot,save,pool,expect} from './harness.mjs';
+const {browser,context,page,errors}=await browserPage(390,'EN','OWNER',false);
+await page.goto('/signup');await page.getByLabel('Your name',{exact:true}).fill('Bug Hunt <long> 🧪');await page.locator('#email').fill('hunt-new-'+Date.now()+'@teste.local');await page.locator('#password').fill('teste12345');await page.getByRole('button',{name:'Create account',exact:true}).click();await page.waitForURL('**/start');await shot(page,'r1-signup-start');await page.getByText('Just me',{exact:true}).click();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.waitForTimeout(2000);await shot(page,'r1-onboard-initial');console.log(await page.locator('body').innerText());
+await context.storageState({path:'testes/.cache/hunt/new-account-state.json'});save('onboard-errors',errors);await browser.close();await pool.end();

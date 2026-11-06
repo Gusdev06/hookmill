@@ -121,6 +121,7 @@ Decisão do Gusta testando ao vivo ("aceito cortar um pouco"). Prevalece sobre a
 - Prova: `video/out/molduras-cover-2026-10-29/index.html` (Amnayalife, NEWS e POV-TESTIMONIAL em cover cheio; READ-CAPTION é o caso extremo: legenda de 891 px contra janela de 787 px, faixa de 444 → 236 px, toda em cima).
 
 # §8. Revisão 29/10: "Gerar mesmo assim" por formato bloqueado
+> **REVOGADA em 05/11** pela regra "nada cobre" do Gusta. Retirada e efeito em peças existentes: `troca-texto-queimado-v1.md` §15.3. Texto mantido como histórico.
 Pedido do Gusta em 29/10, testando ao vivo. O padrão de 28/10 continua: o formato sem espaço seguro sai do plano antes de gerar. Agora a pessoa pode escolher, formato por formato, colocá-lo de volta e aceitar que o elemento novo cubra a legenda original. Remover a legenda com IA continua fora (rejeitado em 28/10).
 
 - **Rota:** `POST /iterate/:id/caption-blocked/force` `{ type, template }` (`ForceCaptionBlockedBody`; `template` = a moldura no FRAME, `null` no tipo inteiro). Vale em `PLAN_READY` e em `LAUNCHED`. O par precisa estar em `insight.captionBlocked`, senão 400 `VALIDATION_ERROR` (`rule: 'not_caption_blocked'`). Resposta 200 = `IterateBatch`. Outros estados = 409 `INVALID_STATE` (`reason: 'launched'` no lançado).

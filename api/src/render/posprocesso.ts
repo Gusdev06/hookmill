@@ -32,7 +32,12 @@ export async function comporSobreOCampeao(ff: Ff, input: RemixKeepRenderInput, m
     if (l.background.kind !== 'none' && l.background.box) areas.push({ r: caixa(l.background.box, 0), s: l.startFrame, e: l.endFrame });
   }
   const boxes = areas.map((a) => `drawbox=x=${a.r.x}:y=${a.r.y}:w=${a.r.w}:h=${a.r.h}:c=white:t=fill:enable='between(n\\,${a.s}\\,${a.e - 1})'`);
-  const filtro = [
+  // editor universal F-U2: com o vídeo em outra caixa/enquadramento, o quadro inteiro muda: vale o render, sem o campeão por baixo.
+  // Aparado: base e áudio entram a partir de `inFrame` (o áudio copiado corta no pacote AAC mais perto).
+  const ev = input.edicao?.video;
+  const inicio = ev?.inFrame ? ['-ss', String(ev.inFrame / fps)] : [];
+  const fimAudio = ev ? ['-t', String(frameCount / fps)] : [];
+  const filtro = ev?.pintura ? '[0:v]format=yuv420p[v]' : [
     `color=c=black:s=${W}x${H}:r=${fps},format=gray${boxes.length ? ',' + boxes.join(',') : ''}[m]`,
     `[0:v]format=yuv420p[top]`,
     `[top][m]alphamerge[ta]`,
@@ -45,7 +50,7 @@ export async function comporSobreOCampeao(ff: Ff, input: RemixKeepRenderInput, m
   if (audioMontado) {
     await montarAudioSplice({ ffmpeg: ff.ffmpeg, ffprobe: ff.ffprobe }, input.audioPassthroughUrl, input.audioSplice!, input.canvas, audioMontado);
   }
-  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-i', mudo, '-i', input.baseVideoUrl, '-i', audioMontado ?? input.audioPassthroughUrl,
+  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-i', mudo, ...inicio, '-i', input.baseVideoUrl, ...inicio, ...fimAudio, '-i', audioMontado ?? input.audioPassthroughUrl,
     '-filter_complex', filtro, '-map', '[v]', '-map', '2:a:0?', '-frames:v', String(frameCount),
     '-c:v', 'libx264', '-preset', 'medium', '-crf', String(RENDER_REMIX.crfFinal), '-pix_fmt', 'yuv420p', ...cor,
     '-c:a', 'copy', '-movflags', '+faststart', saida];

@@ -4,438 +4,450 @@ import { buttonVariants } from "@/components/ui/button"
 import { LanguageToggle } from "@/components/shell/language-toggle"
 import { LogoMark } from "@/components/shell/logo"
 import { cn } from "@/lib/utils"
+import { AskQuiz } from "./ask-quiz"
+import { Collage } from "./collage"
+import { Flow } from "./flow"
+import { LandingMotion } from "./landing-motion"
+import { Words } from "./words"
+import { LANDING_FLAGS, LAUNCH_NUMBERS, PRICING_HREF, SAMPLE_CTA_HREF, type Case, type CompareLink, type Testimonial } from "./config"
 import "./landing.css"
 
-type T = Awaited<ReturnType<typeof getTranslations<"landing">>>
-type Step = { t: string; d: string }
+export type T = Awaited<ReturnType<typeof getTranslations<"landing">>>
+type Item = { t: string; d: string }
 
 /**
- * Public landing (fase2-cadastro §4.4). Only what the product does today; anything not built
- * is in "Coming soon" (neutral dashed badge, F0 §2.12). Example data is labeled as such.
- * No prices, results, testimonials or client logos.
+ * Public landing v2 (design/landing-v2-2026-10-31.md, mockup-landing-v2.html, approved 31/10).
+ * Static Server Component; the only client islands are the motion layer, the workflow tabs and the quiz.
+ * Example data carries the dashed "Example" badge. Testimonials, cases, compare and pricing sit behind LANDING_FLAGS.
  */
 export async function Landing() {
   const t = await getTranslations("landing")
+  const testimonials = (t.raw("testimonials.items") as Testimonial[]) ?? []
+  const cases = (t.raw("cases.items") as Case[]) ?? []
+  const showTestimonials = LANDING_FLAGS.testimonials && testimonials.length >= 2
+  const showCases = LANDING_FLAGS.results && cases.length >= 1
   return (
-    <div className="min-h-dvh bg-bg text-fg">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-sm focus:bg-card focus:px-3 focus:py-2">
+    <LandingMotion className="lp min-h-dvh bg-bg text-fg">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-sm focus:bg-card focus:px-3 focus:py-2">
         {t("nav.skip")}
       </a>
-      <Header t={t} />
+      <Header t={t} showResults={showCases} />
       <main id="main">
         <Hero t={t} />
-        <Paths t={t} />
-        <Bento t={t} />
+        <Facts t={t} />
+        <Vision t={t} />
+        <Numbers t={t} />
+        <Examples t={t} />
+        <Flow />
+        <Functions t={t} />
+        <Ask t={t} />
         <Agencies t={t} />
-        <Soon t={t} />
+        {showTestimonials ? <Testimonials t={t} items={testimonials} /> : null}
+        {showCases ? <Cases t={t} items={cases} /> : null}
         <FinalCta t={t} />
       </main>
-      <Footer t={t} />
-    </div>
+      <Footer t={t} showCases={showCases} />
+    </LandingMotion>
   )
 }
-
-const wrap = "mx-auto w-full max-w-[1376px] px-[var(--gut)]"
 
 function Wordmark({ t }: { t: T }) {
   return (
     <Link href="/" aria-label={t("nav.home")} className="flex items-center gap-2.5 rounded-sm">
       <LogoMark />
-      <span className="text-[15px] font-extrabold tracking-[-0.01em] [font-stretch:125%]">HookMill</span>
+      <span className="text-[16px] font-extrabold tracking-[-0.01em] [font-stretch:125%]">HookMill</span>
     </Link>
   )
 }
 
-function Header({ t }: { t: T }) {
+function CtaLink({ children, className, size = "lg", magnetic }: { children: React.ReactNode; className?: string; size?: "lg" | "default" | "sm"; magnetic?: boolean }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-line-soft bg-bg/85 backdrop-blur-md">
-      <div className={cn(wrap, "flex h-14 items-center justify-between gap-3 tablet:h-16")}>
+    <Link href={SAMPLE_CTA_HREF} className={buttonVariants({ variant: "brand", size, className })} data-magnetic={magnetic || undefined}>
+      {children}
+    </Link>
+  )
+}
+
+function Header({ t, showResults }: { t: T; showResults: boolean }) {
+  return (
+    <header className="lp-hdr">
+      <div className="lp-wrap lp-hdr-row">
         <Wordmark t={t} />
-        <nav className="flex items-center gap-1.5 tablet:gap-2" aria-label="Account">
-          <LanguageToggle className="mr-1 tablet:mr-2" />
+        <nav className="lp-nav" aria-label={t("nav.main")}>
+          <a href="#how">{t("nav.product")}</a>
+          <a href="#agencies">{t("nav.agencies")}</a>
+          {showResults ? <a href="#results">{t("nav.results")}</a> : null}
+          {LANDING_FLAGS.pricing ? <Link href={PRICING_HREF}>{t("nav.pricing")}</Link> : null}
+        </nav>
+        <div className="lp-hdr-actions" aria-label={t("nav.account")}>
+          <LanguageToggle className="mr-1" />
           <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm", className: "px-2.5 tablet:px-3" })}>
             {t("nav.logIn")}
           </Link>
-          <Link href="/signup" className={cn(buttonVariants({ variant: "default", size: "sm" }), "max-tablet:hidden")}>
-            {t("nav.createAccount")}
-          </Link>
-        </nav>
+          <CtaLink size="sm" className="lp-hdr-cta">
+            {t("nav.tryFree")}
+          </CtaLink>
+        </div>
       </div>
     </header>
   )
 }
 
-/* ───────── hero: the thesis + the batch panel (signature) */
 function Hero({ t }: { t: T }) {
   return (
-    <section className={cn(wrap, "pt-10 pb-16 tablet:pt-20 tablet:pb-24")}>
-      <p className="lp-eyebrow">{t("hero.eyebrow")}</p>
-      <h1 className="lp-display lp-h1 mt-4 max-w-[15.5em]">
-        {t("hero.titleA")} <span className="text-fg-3">{t("hero.titleB")}</span>
-      </h1>
-      <div className="mt-8 grid gap-10 desktop:mt-12 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-14">
-        <div className="flex flex-col gap-6 desktop:pt-2">
-          <p className="max-w-[34em] text-[16px] leading-relaxed text-fg-2 tablet:text-[17px]">{t("hero.sub")}</p>
-          <div className="flex flex-wrap gap-2.5">
-            <Link href="/signup" className={buttonVariants({ variant: "brand", size: "lg", className: "px-6" })}>
-              {t("hero.ctaPrimary")}
-            </Link>
-            <Link href="/login" className={buttonVariants({ variant: "outline", size: "lg", className: "px-6" })}>
-              {t("hero.ctaSecondary")}
-            </Link>
+    <section id="top" className="lp-hero lp-wrap" aria-labelledby="hero-t">
+      <div className="lp-hero-grid">
+        <div className="lp-hero-copy">
+          <p className="lp-eyebrow">{t("hero.eyebrow")}</p>
+          <h1 id="hero-t" className="lp-display lp-h1" data-hero-title>
+            <Words text={t("hero.titleA")} />{" "}
+            <span className="lp-hi">
+              <Words text={t("hero.titleB")} />{" "}
+              <mark data-hero-mark>
+                <Words text={t("hero.titleMark")} />
+              </mark>
+            </span>
+          </h1>
+          <p className="lp-lede" data-hero-after>
+            {t("hero.sub")}
+          </p>
+          <div className="lp-hero-ctas" data-hero-after>
+            <CtaLink className="lp-btn-lg" magnetic>{t("hero.cta")}</CtaLink>
+            <a className="lp-link-arrow" href="#agencies">
+              {t("hero.agencies")} <span aria-hidden="true">→</span>
+            </a>
           </div>
-          <p className="font-mono text-[11px] tracking-[0.04em] text-fg-3">{t("hero.note")}</p>
+          <p className="lp-hero-note" data-hero-after>
+            {t.rich("hero.note", { b: (c) => <b>{c}</b> })}
+          </p>
         </div>
-        <BatchPanel t={t} />
+        <Collage t={t} />
       </div>
     </section>
   )
 }
 
-type RowState = "ready" | "generating" | "waiting"
-const BATCH: { kind: "control" | "newFace" | "newHook"; file: string; state: RowState; tone: [string, string, string] }[] = [
-  { kind: "control", file: "MC_ITER_1012_CTRL_ORIG_9x16", state: "ready", tone: ["#4b5059", "#2f343b", "#1f2227"] },
-  { kind: "newFace", file: "MC_ITER_1012_AV01_F1_9x16", state: "ready", tone: ["#5b5348", "#33302c", "#201f1d"] },
-  { kind: "newFace", file: "MC_ITER_1012_AV02_F2_9x16", state: "generating", tone: ["#424b5e", "#2a303b", "#1d2027"] },
-  { kind: "newHook", file: "MC_ITER_1012_H01_ORIG_9x16", state: "waiting", tone: ["#4b5059", "#2f343b", "#1f2227"] },
-  { kind: "newHook", file: "MC_ITER_1012_H02_ORIG_9x16", state: "generating", tone: ["#4b5059", "#2f343b", "#1f2227"] },
+function Facts({ t }: { t: T }) {
+  const items = t.raw("facts.items") as Item[]
+  return (
+    <section className="lp-facts" aria-label={t("facts.label")}>
+      <ul data-cascade>
+        {items.map((f) => (
+          <li key={f.t}>
+            <b>{f.t}</b>
+            <span>{f.d}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function Vision({ t }: { t: T }) {
+  const you = t.raw("vision.youItems") as string[]
+  const hm = t.raw("vision.hmItems") as string[]
+  return (
+    <section className="lp-band lp-wrap" aria-labelledby="vision-t">
+      <div className="lp-vision">
+        <div>
+          <p className="lp-eyebrow">{t("vision.eyebrow")}</p>
+          <h2 id="vision-t" className="lp-display lp-h2 mt-3.5 max-w-[15em]" data-reveal>
+            <Words text={t("vision.title")} />
+          </h2>
+          <p className="lp-lede mt-5">{t("vision.lede")}</p>
+        </div>
+        <div className="lp-split" aria-label={t("vision.label")} role="group" data-cascade>
+          <div>
+            <p className="lp-eyebrow">{t("vision.you")}</p>
+            <ul>
+              {you.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="lp-eyebrow">{t("vision.hm")}</p>
+            <ul>
+              {hm.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** 04/11: the 12 cards around the winner are real template outputs (public/landing/ex, made from one avatar ad) */
+const MULTIPLY: { code: string; slug: string; t1: string; t2: string }[] = [
+  { code: "BREAKING-NEWS", slug: "breaking-news", t1: "#4b5059", t2: "#2f343b" },
+  { code: "HEADLINE", slug: "new-headline", t1: "#5b5348", t2: "#33302c" },
+  { code: "CHAT-DM", slug: "chat-dm", t1: "#424b5e", t2: "#2a303b" },
+  { code: "LIVE", slug: "live", t1: "#4b5059", t2: "#2f343b" },
+  { code: "CALL", slug: "call", t1: "#535a49", t2: "#2e3328" },
+  { code: "CINEMA", slug: "cinema", t1: "#3f4652", t2: "#262a31" },
+  { code: "SPLIT", slug: "split-screen", t1: "#5b5348", t2: "#33302c" },
+  { code: "GOSSIP", slug: "gossip-pink", t1: "#424b5e", t2: "#2a303b" },
+  { code: "QUESTION", slug: "question-box", t1: "#4b5059", t2: "#2f343b" },
+  { code: "MOTION", slug: "person-motion", t1: "#535a49", t2: "#2e3328" },
+  { code: "SEARCH", slug: "native-search", t1: "#3f4652", t2: "#262a31" },
+  { code: "STORY", slug: "story", t1: "#5b5348", t2: "#33302c" },
 ]
 
-function Thumb({ tone, className }: { tone: [string, string, string]; className?: string }) {
+/** All the visible templates with an example, in gallery order (the "Cuts" ones are hidden, 04/11) */
+const EXAMPLES = [
+  "breaking-news", "meme-pov", "post-card", "question-box", "top-5", "live", "call", "cinema", "story", "read-the-caption",
+  "pov-testimonial", "direct-offer", "split-screen", "split-torn", "meet-dialog", "gossip-page", "gossip-white", "gossip-pink",
+  "new-headline", "native-search", "chat-dm", "person-motion",
+] as const
+
+/** A muted looping example; LandingMotion plays it only while it's on screen (preload none until then). */
+function ExVideo({ slug }: { slug: string }) {
   return (
-    <span
+    <video
+      className="lp-exv"
+      data-lp-video
+      src={`/landing/ex/${slug}.mp4`}
+      poster={`/landing/ex/${slug}.jpg`}
+      muted
+      loop
+      playsInline
+      preload="none"
       aria-hidden="true"
-      className={cn("lp-thumb block aspect-[9/16] flex-none rounded-[6px] border border-ink-line", className)}
-      style={{ "--t1": tone[0], "--t2": tone[1], "--t3": tone[2] } as React.CSSProperties}
     />
   )
 }
 
-function StateChip({ state, t }: { state: RowState; t: T }) {
-  const cls =
-    state === "ready"
-      ? "text-[#7fd6a5] before:bg-ok-dot"
-      : state === "generating"
-        ? "text-info-on-ink before:bg-info-on-ink before:animate-[pulse_1.6s_ease-in-out_infinite]"
-        : "text-[#f3d27a] before:bg-[#d39b12]"
+function Numbers({ t }: { t: T }) {
+  const items = t.raw("numbers.items") as { d: string }[]
+  const formats = t.raw("numbers.formats") as string[]
   return (
-    <span className={cn("inline-flex items-center gap-1.5 font-mono text-[10.5px] whitespace-nowrap uppercase tracking-[0.06em] before:size-1.5 before:rounded-full before:content-['']", cls)}>
-      {t(`panel.${state}`)}
-    </span>
-  )
-}
-
-function BatchPanel({ t }: { t: T }) {
-  return (
-    <figure className="on-ink relative m-0 overflow-hidden rounded-xl border border-ink-line bg-ink p-4 shadow-[0_30px_80px_-30px_rgba(22,24,27,.55)] tablet:p-6" aria-label={`${t("panel.label")} (${t("panel.example")})`}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-mono text-[11px] tracking-[0.1em] text-ink-fg-3 uppercase">{t("panel.label")}</span>
-        <span className="rounded-full border border-dashed border-ink-fg-3/60 px-2 py-px font-mono text-[10px] tracking-[0.08em] text-ink-fg-3 uppercase">{t("panel.example")}</span>
-      </div>
-
-      {/* the winner going in */}
-      <div className="mt-4 flex items-center gap-3 rounded-lg border border-ink-line bg-ink-2 p-3">
-        <Thumb tone={["#6b6f3a", "#3b3f22", "#22251a"]} className="w-9 tablet:w-11" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <b className="text-[13px] text-ink-fg">{t("panel.winner")}</b>
-            <span className="truncate font-mono text-[11px] text-ink-fg-3">MC_NEW_0930_A_F1_9x16.mp4</span>
-          </div>
-          <p className="mt-0.5 text-[12.5px] text-ink-fg-2">{t("panel.winnerNote")}</p>
-        </div>
-      </div>
-
-      <div aria-hidden="true" className="ml-[26px] h-4 w-px bg-ink-line tablet:ml-[30px]" />
-
-      <ul className="grid gap-1.5">
-        {BATCH.map((r, i) => (
-          <li key={r.file} className="lp-row flex items-center gap-3 rounded-lg border border-ink-line bg-ink-2/60 px-3 py-2.5" style={{ "--i": i } as React.CSSProperties}>
-            <Thumb tone={r.tone} className="w-7 tablet:w-8" />
-            <div className="grid min-w-0 flex-1 gap-0.5">
-              <div className="flex min-w-0 items-baseline gap-2">
-                <b className="flex-none text-[13px] text-ink-fg">{t(`panel.${r.kind}`)}</b>
-                {r.kind === "control" ? <span className="truncate text-[12px] text-ink-fg-3">{t("panel.controlNote")}</span> : null}
-              </div>
-              <span className="truncate font-mono text-[11px] text-ink-fg-3">{r.file}.mp4</span>
-              {r.state === "generating" ? (
-                <span className="lp-bar mt-1 block h-[3px] w-full max-w-[220px] overflow-hidden rounded-full bg-ink-3" style={{ "--i": i } as React.CSSProperties}>
-                  <span />
-                </span>
-              ) : null}
-            </div>
-            <StateChip state={r.state} t={t} />
-          </li>
-        ))}
-      </ul>
-      <figcaption className="mt-4 text-[12.5px] leading-snug text-ink-fg-3">{t("panel.foot")}</figcaption>
-    </figure>
-  )
-}
-
-/* ───────── how it works: the two real flows (order matters, so the steps are numbered) */
-function Paths({ t }: { t: T }) {
-  return (
-    <section className="border-t border-line bg-card" aria-labelledby="paths-title">
-      <div className={cn(wrap, "py-16 tablet:py-24")}>
-        <p className="lp-eyebrow">{t("paths.eyebrow")}</p>
-        <h2 id="paths-title" className="lp-display lp-h2 mt-3 max-w-[18em]">
-          {t("paths.title")}
-        </h2>
-        <div className="mt-10 grid gap-4 desktop:mt-14 desktop:grid-cols-2 desktop:gap-6">
-          <PathCard t={t} id="iterate" />
-          <PathCard t={t} id="scratch" />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function PathCard({ t, id }: { t: T; id: "iterate" | "scratch" }) {
-  const steps = t.raw(`paths.${id}.steps`) as Step[]
-  return (
-    <article className="flex flex-col rounded-xl border border-line bg-bg p-5 tablet:p-8">
-      <span className="font-mono text-[11px] tracking-[0.1em] text-fg-3 uppercase">{t(`paths.${id}.tag`)}</span>
-      <h3 className="mt-2 text-[24px] leading-tight font-extrabold tracking-[-0.02em] [font-stretch:125%] tablet:text-[30px]">{t(`paths.${id}.title`)}</h3>
-      <p className="mt-2 max-w-[36em] text-[15px] text-fg-2">{t(`paths.${id}.sub`)}</p>
-      <ol className="mt-6 grid gap-0 border-t border-line">
-        {steps.map((s, i) => (
-          <li key={s.t} className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-3 border-b border-line-soft py-3 tablet:grid-cols-[34px_minmax(0,9rem)_minmax(0,1fr)] tablet:items-baseline">
-            <span className="num font-mono text-[12px] text-fg-3">{String(i + 1).padStart(2, "0")}</span>
-            <b className="text-[14.5px] font-bold">{s.t}</b>
-            <span className="col-start-2 text-[14px] text-fg-2 tablet:col-start-3">{s.d}</span>
-          </li>
-        ))}
-      </ol>
-    </article>
-  )
-}
-
-/* ───────── bento */
-function Bento({ t }: { t: T }) {
-  const brainRows = t.raw("bento.brain.rows") as string[]
-  const parts = t.raw("bento.names.parts") as string[]
-  const file = ["MC", "NEW", "1012", "A", "F2", "9x16"]
-  return (
-    <section aria-labelledby="bento-title">
-      <div className={cn(wrap, "py-16 tablet:py-24")}>
-        <p className="lp-eyebrow">{t("bento.eyebrow")}</p>
-        <h2 id="bento-title" className="lp-display lp-h2 mt-3 max-w-[16em]">
-          {t("bento.title")}
-        </h2>
-        <div className="mt-10 grid gap-3 desktop:mt-14 desktop:grid-cols-12 desktop:gap-4">
-          {/* Brain: the big ink tile */}
-          <article className="on-ink flex flex-col justify-between gap-8 rounded-xl bg-ink p-6 desktop:col-span-7 desktop:row-span-2 desktop:p-8">
-            <div>
-              <h3 className="text-[22px] leading-tight font-extrabold tracking-[-0.015em] text-ink-fg [font-stretch:125%] tablet:text-[26px]">{t("bento.brain.title")}</h3>
-              <p className="mt-3 max-w-[34em] text-[15px] text-ink-fg-2">{t("bento.brain.body")}</p>
-            </div>
-            <ul className="grid gap-px overflow-hidden rounded-lg border border-ink-line bg-ink-line" aria-hidden="true">
-              {brainRows.map((r, i) => {
-                const ok = i !== 2
-                return (
-                  <li key={r} className="flex items-center justify-between gap-3 bg-ink-2 px-4 py-3">
-                    <span className="text-[14px] text-ink-fg">{r}</span>
-                    <span className={cn("inline-flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.06em] uppercase before:size-1.5 before:rounded-full before:content-['']", ok ? "text-[#7fd6a5] before:bg-ok-dot" : "text-[#f3d27a] before:bg-[#d39b12]")}>
-                      {ok ? t("bento.brain.ok") : t("bento.brain.partial")}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          </article>
-
-          {/* standardized file name */}
-          <article className="flex flex-col gap-5 rounded-xl border border-line bg-card p-6 desktop:col-span-5">
-            <div>
-              <h3 className="text-[18px] font-extrabold tracking-[-0.01em] [font-stretch:115%]">{t("bento.names.title")}</h3>
-              <p className="mt-2 text-[14px] text-fg-2">{t("bento.names.body")}</p>
-            </div>
-            <div className="flex flex-wrap items-end gap-x-1 gap-y-3 font-mono" aria-hidden="true">
-              {file.map((p, i) => (
-                <span key={p} className="flex items-end gap-1">
-                  <span className="grid gap-1">
-                    <span className="text-[9.5px] tracking-[0.08em] text-fg-3 uppercase">{parts[i]}</span>
-                    <span className={cn("rounded-[6px] border px-2 py-1 text-[14px] font-medium", i === 1 ? "border-brand-edge bg-brand-soft text-fg" : "border-line-strong bg-field")}>{p}</span>
+    <section className="lp-ink lp-band" aria-labelledby="count-t">
+      <div className="lp-wrap">
+        <div className="lp-num-head">
+          <div>
+            <p className="lp-eyebrow">{t("numbers.eyebrow")}</p>
+            <h2 id="count-t" className="lp-display lp-h2 mt-3.5 max-w-[14em]" data-reveal>
+              <Words text={t("numbers.title")} />
+            </h2>
+            <div className="lp-stats" style={{ "--cols": LAUNCH_NUMBERS.length } as React.CSSProperties} data-cascade>
+              {LAUNCH_NUMBERS.map((n, i) => (
+                <div className="lp-stat" key={n}>
+                  <span className="lp-big" data-count={n}>
+                    {n}
                   </span>
-                  {i < file.length - 1 ? <span className="pb-1.5 text-fg-3">_</span> : <span className="pb-1.5 text-fg-3">.mp4</span>}
-                </span>
+                  <p>{items[i]?.d}</p>
+                </div>
               ))}
             </div>
-          </article>
-
-          {/* honest waiting */}
-          <article className="flex flex-col gap-5 rounded-xl border border-line bg-card p-6 desktop:col-span-5">
-            <div>
-              <h3 className="text-[18px] font-extrabold tracking-[-0.01em] [font-stretch:115%]">{t("bento.wait.title")}</h3>
-              <p className="mt-2 text-[14px] text-fg-2">{t("bento.wait.body")}</p>
-            </div>
-            <div className="grid gap-2 rounded-lg border border-status-progress-edge bg-status-progress-bg p-3.5" aria-hidden="true">
-              <div className="flex items-center gap-2 text-[13.5px] font-semibold text-status-progress">
-                <span className="dot" data-status="progress" />
-                {t("bento.wait.status")}
-              </div>
-              <div className="grid grid-cols-5 gap-1">
-                {[1, 1, 0.5, 0, 0].map((v, i) => (
-                  <span key={i} className="h-1.5 overflow-hidden rounded-full bg-card">
-                    <span className="block h-full rounded-full bg-status-progress" style={{ width: `${v * 100}%` }} />
-                  </span>
-                ))}
-              </div>
-              <span className="font-mono text-[11px] text-fg-3">{t("bento.wait.step")}</span>
-            </div>
-          </article>
-
-          {/* editor */}
-          <article className="flex flex-col gap-5 rounded-xl border border-line bg-card p-6 desktop:col-span-7">
-            <div>
-              <h3 className="text-[18px] font-extrabold tracking-[-0.01em] [font-stretch:115%]">{t("bento.editor.title")}</h3>
-              <p className="mt-2 max-w-[38em] text-[14px] text-fg-2">{t("bento.editor.body")}</p>
-            </div>
-            <EditorStrip />
-          </article>
-
-          {/* cost */}
-          <article className="flex flex-col gap-5 rounded-xl border border-line bg-card p-6 desktop:col-span-5">
-            <div>
-              <h3 className="text-[18px] font-extrabold tracking-[-0.01em] [font-stretch:115%]">{t("bento.cost.title")}</h3>
-              <p className="mt-2 text-[14px] text-fg-2">{t("bento.cost.body")}</p>
-            </div>
-            <div className="grid gap-3 rounded-lg border border-line bg-bg p-3.5" aria-hidden="true">
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-fg-2">{t("bento.cost.estimate")}</span>
-                <span className="sk h-3 w-14" style={{ animation: "none" }} />
-              </div>
-              <div className="grid gap-1.5">
-                <span className="text-[12px] text-fg-3">{t("bento.cost.cap")}</span>
-                <span className="h-1.5 overflow-hidden rounded-full bg-line">
-                  <span className="block h-full w-[38%] rounded-full bg-fg" />
-                </span>
-              </div>
-              <span className={buttonVariants({ variant: "default", size: "sm", className: "pointer-events-none w-full" })}>{t("bento.cost.approve")}</span>
-            </div>
-          </article>
+          </div>
+          {/* the multiplication: 12 variation cards are born from the winner in the middle (GSAP, on scroll) */}
+          <figure className="lp-multiply" role="img" aria-label={t("numbers.multiplyLabel")} data-multiply>
+            {MULTIPLY.slice(0, 5).map((v) => (
+              <span key={v.code} className="lp-vcard has-v" data-vcard style={{ "--t1": v.t1, "--t2": v.t2 } as React.CSSProperties}>
+                <ExVideo slug={v.slug} />
+                <b>{v.code}</b>
+              </span>
+            ))}
+            <span className="lp-vcard champ has-v" data-champ>
+              <ExVideo slug="champion" />
+              <b>{t("numbers.champion")}</b>
+            </span>
+            {MULTIPLY.slice(5).map((v) => (
+              <span key={v.code} className="lp-vcard has-v" data-vcard style={{ "--t1": v.t1, "--t2": v.t2 } as React.CSSProperties}>
+                <ExVideo slug={v.slug} />
+                <b>{v.code}</b>
+              </span>
+            ))}
+          </figure>
+        </div>
+        <div className="lp-marquee" role="group" aria-label={t("numbers.formatsLabel")}>
+          <div className="lp-marquee-track">
+            <ul>
+              {formats.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+            <ul aria-hidden="true">
+              {formats.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </section>
   )
 }
 
-/** a tiny timeline: tracks on ink, the selected clip in lime (editor v1: selection = lime) */
-function EditorStrip() {
-  const tracks: { w: number[]; sel?: number }[] = [
-    { w: [22, 30, 18, 30], sel: 1 },
-    { w: [12, 14, 10, 16, 12, 14, 12] },
-    { w: [100] },
-  ]
+/** 04/11 (Gusta): every template, with the real piece it made from the same winner ad */
+function Examples({ t }: { t: T }) {
+  const names = Object.fromEntries((t.raw("examples.items") as { slug: string; name: string }[]).map((x) => [x.slug, x.name]))
   return (
-    <div className="on-ink grid gap-1.5 rounded-lg bg-ink p-3" aria-hidden="true">
-      <div className="relative mb-1 flex justify-between font-mono text-[9.5px] text-ink-fg-3">
-        <span>00:00</span>
-        <span>00:05</span>
-        <span>00:10</span>
-        <span>00:15</span>
+    <section id="examples" className="lp-band" aria-labelledby="ex-t">
+      <div className="lp-wrap">
+        <span className="lp-eyebrow">{t("examples.eyebrow")}</span>
+        <h2 id="ex-t" className="lp-display lp-h2 mt-3.5 max-w-[15em]" data-reveal>
+          <Words text={t("examples.title")} />
+        </h2>
+        <p className="lp-lede mt-3 max-w-[60ch]">{t("examples.lede")}</p>
       </div>
-      {tracks.map((tr, ti) => (
-        <div key={ti} className="flex h-6 gap-1">
-          {tr.w.map((w, i) => (
-            <span
-              key={i}
-              style={{ width: `${w}%` }}
-              className={cn(
-                "rounded-[4px] border",
-                tr.sel === i ? "border-brand bg-brand/25 shadow-[0_0_0_1px_var(--brand)]" : ti === 2 ? "border-ink-line bg-[repeating-linear-gradient(90deg,var(--ink-3)_0_2px,transparent_2px_5px)]" : "border-ink-line bg-ink-3"
-              )}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
+      <div className="lp-ex-strip" role="list" aria-label={t("examples.label")}>
+        <figure className="lp-ex lp-ex-champ" role="listitem">
+          <ExVideo slug="champion" />
+          <figcaption>{t("examples.champion")}</figcaption>
+        </figure>
+        {EXAMPLES.map((slug) => (
+          <figure key={slug} className="lp-ex" role="listitem">
+            <ExVideo slug={slug} />
+            <figcaption>{names[slug] ?? slug}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
   )
 }
 
-/* ───────── for agencies: full-bleed ink */
-function Agencies({ t }: { t: T }) {
-  const points = t.raw("agency.points") as Step[]
-  const clients = [
-    { name: "Mooncloth", code: "MC", live: true, waiting: 3 },
-    { name: "Northbay Dental", code: "ND", live: true, waiting: 0 },
-    { name: "Kettle & Pine", code: "KP", live: false, step: 3 },
-  ]
+function Functions({ t }: { t: T }) {
+  const items = t.raw("fn.items") as { t: string; d: string; io: string }[]
   return (
-    <section className="on-ink bg-ink" aria-labelledby="agency-title">
-      <div className={cn(wrap, "grid gap-12 py-16 tablet:py-24 desktop:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] desktop:gap-16")}>
+    <section className="lp-ink lp-band" aria-labelledby="fn-t">
+      <div className="lp-wrap">
+        <p className="lp-eyebrow">{t("fn.eyebrow")}</p>
+        <h2 id="fn-t" className="lp-display lp-h2 mt-3.5 max-w-[15em]" data-reveal>
+          <Words text={t("fn.title")} />
+        </h2>
+        <ul className="lp-fn-grid" data-cascade>
+          {items.map((f) => (
+            <li className="lp-fn" key={f.t} data-tilt>
+              <b>{f.t}</b>
+              <p>{f.d}</p>
+              <span className="lp-io">{f.io}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+function Ask({ t }: { t: T }) {
+  return (
+    <section id="sample" className="lp-band lp-wrap" aria-labelledby="ask-t">
+      <div className="lp-ask">
         <div>
-          <p className="lp-eyebrow text-ink-fg-3">{t("agency.eyebrow")}</p>
-          <h2 id="agency-title" className="lp-display lp-h2 mt-3 max-w-[15em] text-ink-fg">
-            {t("agency.title")}
+          <p className="lp-eyebrow">{t("ask.eyebrow")}</p>
+          <h2 id="ask-t" className="lp-display lp-h2 mt-3.5 max-w-[12em]" data-reveal>
+            <Words text={t("ask.title")} />
           </h2>
-          <dl className="mt-10 grid gap-x-8 gap-y-6 tablet:grid-cols-2">
+          <p className="lp-lede mt-5">{t("ask.lede")}</p>
+        </div>
+        <AskQuiz ctaHref={SAMPLE_CTA_HREF} />
+      </div>
+    </section>
+  )
+}
+
+const CLIENTS = [
+  { name: "Mooncloth", code: "MC", bg: "#1e2550", live: true, waiting: 3 },
+  { name: "Northbay Dental", code: "ND", bg: "#3b2a20", live: true, waiting: 0 },
+  { name: "Kettle & Pine", code: "KP", bg: "#22352a", live: false, step: 3 },
+]
+
+function Agencies({ t }: { t: T }) {
+  const points = t.raw("agency.points") as Item[]
+  return (
+    <section id="agencies" className="lp-ink lp-band" aria-labelledby="ag-t">
+      <div className="lp-wrap lp-ag">
+        <div>
+          <p className="lp-eyebrow">{t("agency.eyebrow")}</p>
+          <h2 id="ag-t" className="lp-display lp-h2 mt-3.5 max-w-[14em]" data-reveal>
+            <Words text={t("agency.title")} />
+          </h2>
+          <dl data-cascade>
             {points.map((p) => (
-              <div key={p.t} className="border-t border-ink-line pt-4">
-                <dt className="text-[15px] font-bold text-ink-fg">{p.t}</dt>
-                <dd className="m-0 mt-1.5 text-[14px] text-ink-fg-2">{p.d}</dd>
+              <div key={p.t}>
+                <dt>{p.t}</dt>
+                <dd>{p.d}</dd>
               </div>
             ))}
           </dl>
+          {/* spec §Agências: until P4 of the sample is decided, agency access starts with a conversation (the signup) */}
+          <p className="mt-8">
+            <Link className="lp-link-arrow" href={SAMPLE_CTA_HREF}>
+              {t("agency.cta")} <span aria-hidden="true">→</span>
+            </Link>
+          </p>
         </div>
-        <figure className="m-0 self-center rounded-xl border border-ink-line bg-ink-2 p-4 tablet:p-5" aria-label={`${t("agency.list.title")} (${t("agency.list.example")})`}>
-          <div className="flex items-center justify-between">
-            <b className="text-[15px] text-ink-fg">{t("agency.list.title")}</b>
-            <span className="rounded-full border border-dashed border-ink-fg-3/60 px-2 py-px font-mono text-[10px] tracking-[0.08em] text-ink-fg-3 uppercase">{t("agency.list.example")}</span>
+        <figure className="lp-clients m-0" aria-label={`${t("agency.list.title")} (${t("agency.list.example")})`} data-cascade>
+          <div className="lp-panel-head">
+            <b className="text-ink-fg">{t("agency.list.title")}</b>
+            <span className="lp-chip example">{t("agency.list.example")}</span>
           </div>
-          <ul className="mt-4 grid gap-2">
-            {clients.map((c) => (
-              <li key={c.code} className="flex items-center gap-3 rounded-lg border border-ink-line bg-ink px-3 py-3">
-                <span className="grid size-9 flex-none place-items-center rounded-[9px] bg-[#1e2550] text-[11px] font-extrabold text-[#e9dfc9] [font-stretch:125%]">{c.code}</span>
-                <div className="grid min-w-0 flex-1">
-                  <b className="truncate text-[14px] text-ink-fg">{c.name}</b>
-                  <span className="truncate text-[12.5px] text-ink-fg-3">
-                    {c.live ? (c.waiting ? t("agency.list.waiting", { n: c.waiting }) : t("agency.list.clientRole")) : t("agency.list.step", { n: c.step ?? 1 })}
-                  </span>
-                </div>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[10.5px] tracking-[0.06em] uppercase before:size-1.5 before:rounded-full before:content-['']",
-                    c.live ? "bg-ok-bg text-ok before:bg-ok-dot" : "bg-card-2 text-ink-fg-2 before:bg-ink-fg-3"
-                  )}
-                >
-                  {c.live ? t("agency.list.live") : t("agency.list.setup")}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {CLIENTS.map((c) => (
+            <div className="lp-cl" key={c.code}>
+              <span className="lp-av" style={{ background: c.bg }} aria-hidden="true">
+                {c.code}
+              </span>
+              <span className="lp-nm">
+                <b>{c.name}</b>
+                <span>{c.live ? (c.waiting ? t("agency.list.waiting", { n: c.waiting }) : t("agency.list.clientRole")) : t("agency.list.step", { n: c.step ?? 1 })}</span>
+              </span>
+              <span className={cn("lp-chip", c.live ? "ok" : "setup")}>{c.live ? t("agency.list.live") : t("agency.list.setup")}</span>
+            </div>
+          ))}
         </figure>
       </div>
     </section>
   )
 }
 
-/* ───────── coming soon: neutral dashed, never dressed as ready */
-function Soon({ t }: { t: T }) {
-  const items = t.raw("soon.items") as Step[]
+/* §8 — only with ≥ 2 real quotes (name, role, photo, written OK) and LANDING_TESTIMONIALS */
+function Testimonials({ t, items }: { t: T; items: Testimonial[] }) {
   return (
-    <section aria-labelledby="soon-title">
-      <div className={cn(wrap, "py-16 tablet:py-24")}>
-        <div className="grid gap-4 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-14">
-          <div>
-            <p className="lp-eyebrow">{t("soon.eyebrow")}</p>
-            <h2 id="soon-title" className="lp-display lp-h2 mt-3 max-w-[12em]">
-              {t("soon.title")}
-            </h2>
-            <p className="mt-4 max-w-[30em] text-[15px] text-fg-2">{t("soon.sub")}</p>
-          </div>
-          <ul className="grid gap-3 tablet:grid-cols-2">
-            {items.map((it) => (
-              <li key={it.t} className="rounded-lg border border-dashed border-control bg-card-2/60 p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <b className="text-[15px] text-fg-2">{it.t}</b>
-                  <span className="flex-none rounded-full border border-dashed border-control px-2 py-px font-mono text-[10px] tracking-[0.08em] text-fg-3 uppercase">{t("soon.badge")}</span>
-                </div>
-                <p className="mt-2 text-[13.5px] text-fg-3">{it.d}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <section className="lp-band lp-wrap" aria-labelledby="tst-t">
+      <p className="lp-eyebrow">{t("testimonials.eyebrow")}</p>
+      <h2 id="tst-t" className="lp-display lp-h2 mt-3.5 max-w-[14em]" data-reveal>
+        <Words text={t("testimonials.title")} />
+      </h2>
+      <div className="lp-res-grid">
+        {items.map((q) => (
+          <figure className="lp-proof" key={q.name}>
+            <blockquote className="m-0 text-[15px] text-fg-2">“{q.quote}”</blockquote>
+            <figcaption className="flex items-center gap-2.5">
+              {q.photo ? (
+                // eslint-disable-next-line @next/next/no-img-element -- content file path, small avatar
+                <img src={q.photo} alt="" width={34} height={34} loading="lazy" className="size-[34px] rounded-full object-cover" />
+              ) : null}
+              <span className="grid">
+                <b className="text-[14px]">{q.name}</b>
+                <span className="text-[12.5px] text-fg-3">{q.role}</span>
+              </span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* §9 — only with a real case (offer · period · spend · source, same metric before and after) and LANDING_RESULTS */
+function Cases({ t, items }: { t: T; items: Case[] }) {
+  return (
+    <section id="results" className="lp-band lp-wrap" aria-labelledby="res-t">
+      <p className="lp-eyebrow">{t("cases.eyebrow")}</p>
+      <h2 id="res-t" className="lp-display lp-h2 mt-3.5 max-w-[14em]" data-reveal>
+        <Words text={t("cases.title")} />
+      </h2>
+      <div className="lp-res-grid">
+        {items.map((c) => (
+          <article className="lp-proof" key={`${c.offer}-${c.period}`}>
+            <span className="lp-metric">{c.metric}</span>
+            <p className="text-[13px] text-fg-2">{[c.offer, c.period, c.spend].join(" · ")}</p>
+            <span className="lp-mono text-[11px] text-fg-3">{c.source}</span>
+          </article>
+        ))}
       </div>
     </section>
   )
@@ -443,17 +455,18 @@ function Soon({ t }: { t: T }) {
 
 function FinalCta({ t }: { t: T }) {
   return (
-    <section className={cn(wrap, "pb-16 tablet:pb-24")}>
-      <div className="on-ink flex flex-col gap-8 rounded-xl bg-ink px-6 py-12 tablet:px-12 tablet:py-16 desktop:flex-row desktop:items-end desktop:justify-between">
+    <section className="lp-wrap pt-14 pb-[72px] tablet:pt-[88px]" aria-labelledby="fin-t">
+      <div className="lp-final" data-final>
+        <span className="lp-glow" data-glow aria-hidden="true" />
         <div>
-          <h2 className="lp-display text-[clamp(32px,5vw,68px)] text-ink-fg">{t("final.title")}</h2>
-          <p className="mt-4 max-w-[34em] text-[15px] text-ink-fg-2 tablet:text-[16px]">{t("final.sub")}</p>
+          <h2 id="fin-t" className="lp-display lp-final-h" data-reveal>
+            <Words text={t("final.title")} />
+          </h2>
+          <p className="lp-lede">{t("final.sub")}</p>
         </div>
-        <div className="flex flex-none flex-wrap items-center gap-3">
-          <Link href="/signup" className={buttonVariants({ variant: "brand", size: "lg", className: "px-7" })}>
-            {t("final.cta")}
-          </Link>
-          <Link href="/login" className={buttonVariants({ variant: "ghost", size: "lg", className: "text-ink-fg-2 hover:bg-ink-3 hover:text-ink-fg" })}>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <CtaLink className="lp-btn-lg" magnetic>{t("final.cta")}</CtaLink>
+          <Link href="/login" className={buttonVariants({ variant: "ghost", size: "lg", className: "lp-btn-lg text-ink-fg-2 hover:bg-ink-3 hover:text-ink-fg" })}>
             {t("final.secondary")}
           </Link>
         </div>
@@ -462,23 +475,80 @@ function FinalCta({ t }: { t: T }) {
   )
 }
 
-function Footer({ t }: { t: T }) {
+function Footer({ t, showCases }: { t: T; showCases: boolean }) {
+  const compare = (t.raw("footer.compareItems") as CompareLink[]) ?? []
+  const showCompare = LANDING_FLAGS.compare && compare.length > 0
+  const cols = 2 + (showCompare ? 1 : 0) + (showCases ? 1 : 0)
   return (
-    <footer className="border-t border-line">
-      <div className={cn(wrap, "flex flex-col gap-6 py-8 tablet:flex-row tablet:items-center tablet:justify-between")}>
-        <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:gap-4">
-          <Wordmark t={t} />
-          <span className="text-[13px] text-fg-3">{t("footer.tagline")}</span>
+    <footer className="lp-ftr">
+      <div className="lp-wrap">
+        <div className="lp-fcols" style={{ "--fcols": cols } as React.CSSProperties}>
+          <div className="lp-brandcol">
+            <Wordmark t={t} />
+            <p className="max-w-[22em] text-[14px] text-fg-3">{t("footer.tagline")}</p>
+            <LanguageToggle />
+          </div>
+          <nav aria-labelledby="f-product">
+            <h2 id="f-product">{t("footer.product")}</h2>
+            <ul>
+              <li>
+                <a href="#how">{t("footer.iterate")}</a>
+              </li>
+              <li>
+                <a href="#how">{t("footer.concepts")}</a>
+              </li>
+              <li>
+                <a href="#how">{t("footer.brain")}</a>
+              </li>
+              <li>
+                <a href="#how">{t("footer.publish")}</a>
+              </li>
+              <li>
+                <a href="#agencies">{t("footer.agencies")}</a>
+              </li>
+            </ul>
+          </nav>
+          {showCompare ? (
+            <nav aria-labelledby="f-compare">
+              <h2 id="f-compare">{t("footer.compare")}</h2>
+              <ul>
+                {compare.map((c) => (
+                  <li key={c.href}>
+                    <Link href={c.href}>{c.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
+          {showCases ? (
+            <nav aria-labelledby="f-cases">
+              <h2 id="f-cases">{t("footer.cases")}</h2>
+              <ul>
+                <li>
+                  <a href="#results">{t("footer.allCases")}</a>
+                </li>
+              </ul>
+            </nav>
+          ) : null}
+          <nav aria-labelledby="f-company">
+            <h2 id="f-company">{t("footer.company")}</h2>
+            <ul>
+              <li>
+                <Link href="/login">{t("nav.logIn")}</Link>
+              </li>
+              <li>
+                <Link href="/signup">{t("nav.createAccount")}</Link>
+              </li>
+              {LANDING_FLAGS.pricing ? (
+                <li>
+                  <Link href={PRICING_HREF}>{t("footer.pricing")}</Link>
+                </li>
+              ) : null}
+            </ul>
+          </nav>
         </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[13px]">
-          <Link href="/login" className="font-semibold text-fg-2 hover:text-fg">
-            {t("nav.logIn")}
-          </Link>
-          <Link href="/signup" className="font-semibold text-fg-2 hover:text-fg">
-            {t("nav.createAccount")}
-          </Link>
-          <LanguageToggle />
-          <span className="font-mono text-[11px] text-fg-3">{t("footer.rights")}</span>
+        <div className="lp-fbottom">
+          <span>{t("footer.rights")}</span>
         </div>
       </div>
     </footer>

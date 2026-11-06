@@ -1,0 +1,191 @@
+{
+  "mode": "mock",
+  "paidProviderSpend": 0,
+  "batchId": "cmw27xvk1001422z0cknxxxtt",
+  "sceneCount": 4,
+  "voices": [
+    "Casual_Guy",
+    "Calm_Woman",
+    "Casual_Guy",
+    "Calm_Woman"
+  ],
+  "bytes": 6844282,
+  "renderInput": {
+    "fps": 30,
+    "format": "VERTICAL_9_16",
+    "scenes": [
+      {
+        "words": [
+          {
+            "word": "How",
+            "endSec": 0.383,
+            "startSec": 0
+          },
+          {
+            "word": "does",
+            "endSec": 0.767,
+            "startSec": 0.383
+          },
+          {
+            "word": "this",
+            "endSec": 1.15,
+            "startSec": 0.767
+          },
+          {
+            "word": "work",
+            "endSec": 1.533,
+            "startSec": 1.15
+          },
+          {
+            "word": "in",
+            "endSec": 1.917,
+            "startSec": 1.533
+          },
+          {
+            "word": "practice?",
+            "endSec": 2.3,
+            "startSec": 1.917
+          }
+        ],
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/2a843113-56aa-4265-9e92-83860d74bd62.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=3daab02ae433f46b5e1d3897d04a05af87f9aeb61dc18520993c4366f244a37c&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "durationSec": 2.5
+      },
+      {
+        "words": [
+          {
+            "word": "An",
+            "endSec": 0.389,
+            "startSec": 0
+          },
+          {
+            "word": "app",
+            "endSec": 0.778,
+            "startSec": 0.389
+          },
+          {
+            "word": "that",
+            "endSec": 1.167,
+            "startSec": 0.778
+          },
+          {
+            "word": "organizes",
+            "endSec": 1.556,
+            "startSec": 1.167
+          },
+          {
+            "word": "weekly",
+            "endSec": 1.944,
+            "startSec": 1.556
+          },
+          {
+            "word": "meals",
+            "endSec": 2.333,
+            "startSec": 1.944
+          },
+          {
+            "word": "and",
+            "endSec": 2.722,
+            "startSec": 2.333
+          },
+          {
+            "word": "shopping",
+            "endSec": 3.111,
+            "startSec": 2.722
+          },
+          {
+            "word": "lists.",
+            "endSec": 3.5,
+            "startSec": 3.111
+          }
+        ],
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/2ed6e43e-b593-4823-bf9c-87513baaa7bc.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=1b75f206445d33b43f6087e398beed75286600f0a4c9c5cd27d151303c59b0a8&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "durationSec": 3.709
+      },
+      {
+        "words": [
+          {
+            "word": "And",
+            "endSec": 0.383,
+            "startSec": 0
+          },
+          {
+            "word": "what",
+            "endSec": 0.767,
+            "startSec": 0.383
+          },
+          {
+            "word": "is",
+            "endSec": 1.15,
+            "startSec": 0.767
+          },
+          {
+            "word": "the",
+            "endSec": 1.533,
+            "startSec": 1.15
+          },
+          {
+            "word": "next",
+            "endSec": 1.917,
+            "startSec": 1.533
+          },
+          {
+            "word": "step?",
+            "endSec": 2.3,
+            "startSec": 1.917
+          }
+        ],
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/338ae51a-e1a4-48f9-afdb-9bd897f018cb.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=ad44f2ada195e8f337b5a7570b50e3fafc6e99755f705748c696f1688d693a05&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "durationSec": 2.5
+      },
+      {
+        "words": [
+          {
+            "word": "Visit",
+            "endSec": 0.386,
+            "startSec": 0
+          },
+          {
+            "word": "the",
+            "endSec": 0.771,
+            "startSec": 0.386
+          },
+          {
+            "word": "website",
+            "endSec": 1.157,
+            "startSec": 0.771
+          },
+          {
+            "word": "and",
+            "endSec": 1.543,
+            "startSec": 1.157
+          },
+          {
+            "word": "see",
+            "endSec": 1.929,
+            "startSec": 1.543
+          },
+          {
+            "word": "the",
+            "endSec": 2.314,
+            "startSec": 1.929
+          },
+          {
+            "word": "demonstration.",
+            "endSec": 2.7,
+            "startSec": 2.314
+          }
+        ],
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/eff314f5-b5a3-4179-83ef-5286592283f5.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=3bd0389a0f6d02982fa871e8511733e43ccbfb6f1d622b0a00e19dce1df27b7f&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "durationSec": 2.917
+      }
+    ],
+    "ctaText": "Visit the website and see the demonstration.",
+    "endCard": true,
+    "headline": null,
+    "language": "en",
+    "renderId": "cmw27y92p004822z0fmvnsk98",
+    "templateId": "clean",
+    "captionStyle": "word",
+    "captionPosition": "bottom"
+  }
+}

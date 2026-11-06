@@ -181,4 +181,13 @@ export function countsOf(ads: Pick<MetaAdSnapshot, 'campaignId' | 'adsetId' | 'e
   };
 }
 
+// ───────── meta-oferta-v1 §4.2 ─────────
+
+/** Campanha `this` com ≥ 1 anúncio this; `other` com todos other (≥ 1 anúncio); `unknown` no resto. */
+export function campaignFitOf(mix: { this: number; unknown: number; other: number }): 'this' | 'unknown' | 'other' {
+  if (mix.this > 0) return 'this';
+  if (mix.other > 0 && mix.unknown === 0) return 'other';
+  return 'unknown';
+}
+
 export type { MetaCampaignAdRow };

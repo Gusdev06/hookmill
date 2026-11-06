@@ -1,0 +1,7 @@
+-- templates-lista-v1 §4 (T-B1, 04/11): os 2 cards do motor ListOverlay no catálogo. Só dados, idempotente.
+-- DRAFT até o Gusta ver os 2 exemplos (o cliente não vê; a equipe testa pelo Admin). Ir pra LIVE = Admin (PATCH status).
+-- Chip `frames`, order 5 e 6 (primeiros do chip; as molduras começam em 10). 1 crédito, Edição. Precisa de fala com ≥ 12 s.
+INSERT INTO "templates" ("id", "slug", "internal_key", "auto_type", "frame_id", "pack", "tier", "credits", "outputs", "category", "name_en", "name_pt", "desc_en", "desc_pt", "out_en", "out_pt", "needs", "order", "status", "beta", "updated_at") VALUES
+('tpl_versus', 'versus', 'LIST_OVERLAY:versus', 'LIST_OVERLAY', NULL, false, 'EDIT', 1, 1, 'frames', 'Versus', 'Versus', 'Two columns fill line by line as you talk: what people put up with, and what your offer does instead.', 'Duas colunas enchem linha a linha no ritmo da fala: o que as pessoas aguentam hoje e o que a sua oferta faz no lugar.', '1 video', '1 vídeo', ARRAY['speech', 'min_12s']::TEXT[], 5, 'DRAFT', false, CURRENT_TIMESTAMP),
+('tpl_value_stack', 'value-stack', 'LIST_OVERLAY:value-stack', 'LIST_OVERLAY', NULL, false, 'EDIT', 1, 1, 'frames', 'Value stack', 'Pilha de valor', 'Each benefit lands as a bar when it''s said and stays. Ends on your price and call to action.', 'Cada benefício vira uma barra quando é dito e fica. Termina no preço e na chamada.', '1 video', '1 vídeo', ARRAY['speech', 'min_12s']::TEXT[], 6, 'DRAFT', false, CURRENT_TIMESTAMP)
+ON CONFLICT ("slug") DO NOTHING;

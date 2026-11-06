@@ -1,0 +1,522 @@
+{
+  "step": 73,
+  "url": "http://localhost:3311/templates/run/cmw1nr9ss000922hspx7jo4i4",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nS\nSonoLeve\nMeta não conectada\nWORKSPACE\nInício\nCampanhas\nEddy\nEM BREVE\nCérebro\nFAZER ANÚNCIOS\nTemplates\nConceitos novos\nRevisar\nBiblioteca\nUsos grátis restantes\n0\nComprar créditos\nConfigurações\nM\nMarina Costa\nDono\nEN\nPT\nSONOLEVE\nTemplates\nPlanejar\n3 feitos\nProduzir\nGeração · feito\nENTREGAR\n5\nBaixar\nSair\n\nDeixa o HookMill escolher\nAmostra grátis · 4 usado(s), 0 devolvido(s).\n\nAMOSTRA GRÁTIS · 6 DE 6 PRONTAS\nSuas 6 variações estão prontas. Veja o gancho de cada uma.\n\nLemos o seu anúncio “fala-split-20s” e fizemos 6 versões dele, sem custo. Os primeiros 3 segundos tocam inteiros. Libere pra receber os vídeos completos, baixar e mandar pra Meta.\n\nLibere pra ver o resto\nHeadline nova\nHEADLINE-1\n\nHeadline nova: \"Você já tentou de tudo e nada funciona\"\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nHeadline nova\nHEADLINE-2\n\nHeadline nova: \"Resultado visível na primeira semana\"\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nHeadline nova\nHEADLINE-3\n\nHeadline nova: \"Milhares de pessoas já usam todo dia\"\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nCold open\nCOLD-OPEN\n\nAbre com teaser de 9.15 s\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nChat · conversa no Direct\nCHAT-DM\n\nA história vira uma conversa no Direct\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nGANCHO · 0–3 s\nLibere pra ver o resto\nLayout · fundo com review\nLAYOUT-REVIEW\n\nCard de review em cima do vídeo\n\nBaixar\nMandar pra Meta\nTravado na amostra grátis. Libere pra baixar, editar ou mandar pra Meta.\nFale com a gente pra liberar\n\nPor enquanto a gente libera sua conta na mão. Manda o ID da sua conta que fica pronto em minutos.\n\nNosso e-mail\nhello@hookmill.app\nCopiar\nId da sua conta\ncmw1nimzr0000228asn0ypuu8\nCopiar\n\nA gente libera na hora, e as suas variações abrem inteiras.\n\nEsta página se atualiza sozinha quando você voltar pra ela. Não precisa recarregar.\n\nAbrir o e-mail\nVoltar\nCom IA\nplano pago\nAvatar novo no seu roteiro, formatos novos a partir do seu anúncio. Aparece aqui e fica disponível quando você tiver um plano.\nAmostra grátis: 1 por conta, até 4 variações, nunca com IA.\nAmostra grátis: baixar, Mandar pra Meta, o editor, 4:5 / 1:1 e Tentar de novo abrem quando você libera.\nLiberar: fale com a gente\nMarina Costa\nux-marina-20261104-1304@teste.local\nConfigurações\nRefazer o tour\nSair",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "S\nSonoLeve\nMeta não conectada",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings/connections"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Início",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Campanhas",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/campaigns"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Eddy\nEM BREVE",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/eddy"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Cérebro",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/brain"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Templates",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Conceitos novos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives/new"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Revisar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/creatives?filter=needs_you"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Biblioteca",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/library"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Comprar créditos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/credits"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "M\nMarina Costa\nDono",
+      "label": "Conta",
+      "id": "radix-_r_0_",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Planejar\n3 feitos",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Produzir\nGeração · feito",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates/run/cmw1nr9ss000922hspx7jo4i4?view=generate"
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Sair",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/templates"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Reproduzir",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "",
+      "label": "Sem som",
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Baixar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Mandar pra Meta",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Copiar",
+      "label": "Copiar Nosso e-mail",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Copiar",
+      "label": "Copiar Id da sua conta",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Abrir o e-mail",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "mailto:hello@hookmill.app?subject=Liberar%20minha%20conta%20no%20HookMill&body=Oi!%20Quero%20liberar%20minha%20conta%20no%20HookMill.%0A%0AId%20da%20conta%3A%20cmw1nimzr0000228asn0ypuu8"
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Voltar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Liberar: fale com a gente",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": "menuitem",
+      "text": "Configurações",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/settings"
+    }
+  ]
+}

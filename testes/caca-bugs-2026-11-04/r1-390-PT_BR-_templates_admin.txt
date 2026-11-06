@@ -1,0 +1,320 @@
+HM
+Q
+QA Alfa
+Ilimitado
+ADMIN · SÓ A EQUIPE DO HOOKMILL VÊ
+Catálogo de templates
+
+Suba o vídeo de exemplo de cada template. Template sem exemplo fica escondido do cliente.
+
+Creditar uma conta
+Só a equipe
+
+Ainda sem checkout: quando alguém te pagar, adicione os créditos aqui. Número negativo tira créditos (nunca abaixo de zero).
+
+E-mail ou id da conta
+Créditos
+Observação
+Adicionar créditos
+Apertar duas vezes nunca credita duas vezes.
+EXEMPLO	TEMPLATE	TIPO INTERNO	TIPO	CRÉDITOS	USOS	STATUS	
+
+	
+Breaking news
+breaking-news
+	FRAME:news	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Meme POV
+meme-pov
+	FRAME:meme	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Post card
+post-card
+	FRAME:post_card	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Question box
+question-box
+	FRAME:question_box	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Top 5
+top-5
+	FRAME:ranking	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Live
+live
+	FRAME:live	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Call
+call
+	FRAME:call	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Cinema
+cinema
+	FRAME:cinema	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Story
+story
+	FRAME:story	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Read the caption
+read-the-caption
+	FRAME:read_caption	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+POV testimonial
+pov-testimonial
+	FRAME:pov_testimonial	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Direct offer
+direct-offer
+	FRAME:direct_offer	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Split screen
+split-screen
+	FRAME:split_stack	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Split torn
+split-torn
+	FRAME:split_torn	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Meet dialog
+meet-dialog
+	FRAME:call_dialog	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Gossip page
+gossip-page
+	FRAME:gossip_page	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Gossip white
+gossip-white
+	FRAME:gossip_white	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Gossip pink
+gossip-pink
+	FRAME:gossip_pink	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+New headline
+new-headline
+	HEADLINE	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Native search
+native-search
+	NATIVE_SEARCH	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Short cuts
+short-cuts
+	CUT	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Review
+review
+	REVIEW	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Cold open
+cold-open
+	COLD_OPEN	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Offer end card
+offer-end-card
+	ENDCARD	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Chat DM
+chat-dm
+	CHAT_DM	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Person + motion
+person-motion
+	PERSON_MOTION	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+Static ad
+static-ad
+	STATIC	Estático		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+	
+New face
+new-face
+	AVATAR_FACE	AI		0	
+Rascunho
+Ainda não roda
+	
+Subir vídeo
+
+	
+New persona
+new-persona
+	AVATAR_PERSONA	AI		0	
+Rascunho
+Ainda não roda
+	
+Subir vídeo
+
+	
+Found it by accident
+found-it-by-accident
+	REMIX_DISCOVERY	AI		0	
+Rascunho
+Ainda não roda
+	
+Subir vídeo
+
+	
+Podcast clip
+podcast-clip
+	REMIX_PODCAST	AI		0	
+Escondido
+Ainda não roda
+Beta
+	
+Subir vídeo
+
+	
+Cinematic remix
+cinematic-remix
+	REMIX_KLING	AI		0	
+Rascunho
+Ainda não roda
+	
+Subir vídeo
+
+	
+Let HookMill pick
+let-hookmill-pick
+	PACK	Edição		0	
+No ar
+Falta exemplo
+	
+Subir vídeo
+
+Vídeo de exemplo: MP4 9:16, até 60 s e 60 MB, toca mudo no card e com som no detalhe. Usos = vezes gerado em todos os workspaces.

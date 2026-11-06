@@ -1,0 +1,81 @@
+{
+  "success": true,
+  "data": {
+    "id": "cmw1lz0nq0003226y98kduz2h",
+    "name": "We sell comfortable mattresses online in the United States f",
+    "uiLocale": "EN",
+    "monthlySpendCapUsd": 10,
+    "shortCode": "WSCMOI",
+    "industry": "Digital product",
+    "market": "United States",
+    "resultType": "PURCHASE",
+    "resultTypeOther": null,
+    "businessType": "ONLINE_STORE",
+    "defaultResult": "PURCHASES",
+    "targetCpa": {
+      "min": 20,
+      "max": 30,
+      "currency": "USD"
+    },
+    "websiteUrl": null,
+    "brandColor": null,
+    "status": "LIVE",
+    "onboarding": {
+      "step": 6,
+      "totalSteps": 6,
+      "completedAt": "2026-11-04T04:26:43.555Z",
+      "percent": 100,
+      "steps": [
+        {
+          "step": 1,
+          "key": "business",
+          "state": "done",
+          "enabled": true
+        },
+        {
+          "step": 2,
+          "key": "meta",
+          "state": "done",
+          "enabled": true
+        },
+        {
+          "step": 3,
+          "key": "offer",
+          "state": "done",
+          "enabled": true
+        },
+        {
+          "step": 4,
+          "key": "audience",
+          "state": "done",
+          "enabled": true
+        },
+        {
+          "step": 5,
+          "key": "goals",
+          "state": "done",
+          "enabled": false
+        },
+        {
+          "step": 6,
+          "key": "brain",
+          "state": "done",
+          "enabled": true
+        }
+      ],
+      "updatedBy": {
+        "id": "cmw1lz0np0002226yvlgv3ef9",
+        "name": "Bug Hunt <long> 🧪",
+        "initials": "B🧪"
+      },
+      "updatedAt": "2026-11-04T04:26:43.555Z",
+      "confirmed": [
+        "business",
+        "offer",
+        "meta",
+        "goals",
+        "kit"
+      ]
+    }
+  }
+}

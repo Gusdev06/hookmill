@@ -70,7 +70,9 @@ export class MetaConexaoService {
       scopes: c.scopes,
       tokenExpiresAt: c.tokenExpiresAt?.toISOString() ?? null,
       adAccount: c.adAccountId
-        ? { id: c.adAccountId, name: c.adAccountName ?? c.adAccountId, currency: c.currency ?? 'USD', timezoneName: c.timezoneName ?? 'UTC', accountStatus: c.accountStatus ?? 0 }
+        ? { id: c.adAccountId, name: c.adAccountName ?? c.adAccountId, currency: c.currency ?? 'USD', timezoneName: c.timezoneName ?? 'UTC', accountStatus: c.accountStatus ?? 0,
+          // meta-templates-v2 §4: mínimo diário do último health (null = desconhecido), pra tela validar antes do 422
+          minDailyBudgetMinor: storedHealthOf(c.lastHealth)?._account?.minimumDailyBudgetMinor ?? null }
         : null,
       page: c.pageId ? { id: c.pageId, name: c.pageName ?? c.pageId } : null,
       pixel: c.pixelId ? { id: c.pixelId, name: c.pixelName ?? c.pixelId } : null,

@@ -1,0 +1,26 @@
+{
+  "statuses": [
+    200,
+    409
+  ],
+  "errors": [
+    null,
+    {
+      "code": "INVALID_STATE",
+      "message": "This action is not allowed right now.",
+      "statusCode": 409,
+      "details": {
+        "state": "insufficient_balance",
+        "allowed": [],
+        "need": 11,
+        "balance": 0,
+        "pool": "CREDITS"
+      }
+    }
+  ],
+  "balance": [
+    {
+      "credit_balance": 0
+    }
+  ]
+}

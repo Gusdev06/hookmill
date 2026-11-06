@@ -10,8 +10,15 @@ export const SAMPLE_SHARP_SEC = 3;
 /** Tipos que a amostra NUNCA usa (§2: sem STATIC; IA nem entra no `allowedFor`). */
 export const SAMPLE_BLOCKED_TYPES: readonly string[] = ['STATIC'];
 
+/**
+ * 02/11 (Gusta): modo teste antes do lançamento. `TEST_MODE=on` = toda conta age como equipe (INTERNAL): nada trava, nada
+ * cobra crédito, amostra sem blur. Tirar a variável (ou `off`) no lançamento volta às regras normais.
+ */
+export const testMode = (): boolean => (process.env.TEST_MODE ?? '').trim().toLowerCase() === 'on';
+
 /** P1: PAID se algum OWNER for PAID; INTERNAL se algum OWNER for INTERNAL; senão SAMPLE (inclui workspace sem OWNER). */
 export function effectiveAccess(owners: readonly AccountAccess[]): AccountAccess {
+  if (testMode()) return 'INTERNAL';
   if (owners.includes('PAID')) return 'PAID';
   if (owners.includes('INTERNAL')) return 'INTERNAL';
   return 'SAMPLE';

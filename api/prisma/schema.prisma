@@ -172,6 +172,17 @@ enum FileKind {
   ZIP_ARCHIVE // variacao-auto-v1 §8: zip do lote AUTO (apagado em 72 h)
   PRODUCT_IMAGE // variacao-auto-v1 D4: foto opcional do produto na oferta (reserva do SPLIT-LP)
   CHAMPION_CLEAN_VIDEO // legenda-protegida-v1 §2.3: o mesmo vídeo do campeão SEM a legenda queimada (libera os templates)
+  BRAND_LOGO // kit-marca-v1: logo do cliente (png/jpeg/webp/svg)
+  BRAND_FILE // kit-marca-v1: imagem, PDF de apresentação, print do produto
+  BRAND_VIDEO // kit-marca-v1: vídeo demo / screen recording do produto
+  PROXY // editor-universal-v1 §8: proxy 540p de um vídeo (files.proxy_of_file_id = original)
+}
+
+// kit-marca-v1 (31/10): papel do asset no kit da marca
+enum BrandAssetKind {
+  LOGO
+  FILE
+  DEMO_VIDEO
 }
 
 enum CostKind {
@@ -232,12 +243,22 @@ enum VariationBatchStatus {
 
 // ── variação automática v1 (docs/contratos/variacao-auto-v1.md) ──
 
+// lacunas-home-eddy-v1 §1 (31/10): "lido pela leitura" ≠ "confirmado pela pessoa"
+enum OnboardingConfirm {
+  business
+  offer
+  meta
+  goals
+  kit
+}
+
 enum BatchMode {
   MANUAL // feature 2 (lote com plano revisável)
   AUTO // variacao-auto-v1: a IA decide o lote
 }
 
 enum AutoVariationType {
+  AI_VIDEO // Templates IA: planejamento interno → elenco/voz → cenas → MP4
   CUT
   COLD_OPEN
   HOOK_TEXT
@@ -251,6 +272,7 @@ enum AutoVariationType {
   HEADLINE // 25/10 (headline-e-legenda-v1 §1): headline nova (replace) ou acrescentada (add) no remix-keep; ITERATION
   CHAT_DM // 28/10 (iterate-v2 F1.6): template grátis, conversa estilo Direct (composição `Template`); DIVERSITY
   PERSON_MOTION // 28/10 (iterate-v2 F1.6): template grátis, motion + rosto/voz do campeão (composição `Template`); DIVERSITY
+  LIST_OVERLAY // 04/11 (templates-lista-v1 §1, T-B1): templates versus/value-stack (motor ListOverlay, composição `Template`); DIVERSITY
 }
 
 // Fixo por tipo (§6.1): ITERATION → pasta "esticar a vida"; DIVERSITY → "público novo"
@@ -369,36 +391,47 @@ enum MetaChangeSource {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique // sempre minúsculo
-  passwordHash String        @map("password_hash")
-  name         String
-  uiLocale     UiLocale      @default(EN) @map("ui_locale")
-  isActive     Boolean       @default(true) @map("is_active")
-  lastLoginAt  DateTime?     @map("last_login_at")
-  accountMode  AccountMode?  @map("account_mode") // onboarding-v2 §1: null = ainda não respondeu (pergunta pós-cadastro /start)
-  access       AccountAccess @default(SAMPLE) // amostra-gratis-v1 §1 (29/10): plano da CONTA (P1 = conta); quem já existia = INTERNAL
-  sampleUsedAt DateTime?     @map("sample_used_at") // amostra-gratis-v1 §2: lote da amostra criado; não nulo = amostra gasta
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id            String        @id @default(cuid())
+  email         String        @unique // sempre minúsculo
+  passwordHash  String        @map("password_hash")
+  name          String
+  uiLocale      UiLocale      @default(EN) @map("ui_locale")
+  isActive      Boolean       @default(true) @map("is_active")
+  lastLoginAt   DateTime?     @map("last_login_at")
+  accountMode   AccountMode?  @map("account_mode") // onboarding-v2 §1: null = ainda não respondeu (pergunta pós-cadastro /start)
+  access        AccountAccess @default(SAMPLE) // amostra-gratis-v1 §1 (29/10): plano da CONTA (P1 = conta); quem já existia = INTERNAL
+  sampleUsedAt  DateTime?     @map("sample_used_at") // amostra-gratis-v1 §2: lote da amostra criado; não nulo = amostra gasta
+  // templates-creditos-v1 §2 (31/10): saldos da CONTA (CHECK ≥ 0 no banco). Escrita só pelo CreditosService (livro-razão)
+  creditBalance Int           @default(0) @map("credit_balance")
+  sampleUses    Int           @default(0) @map("sample_uses") // usos da amostra (pool SAMPLE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  memberships          Membership[]
-  refreshTokens        RefreshToken[]
-  invitesSent          Invite[]              @relation("InviteCreatedBy")
-  offersCreated        Offer[]               @relation("OfferCreatedBy")
-  creativesCreated     Creative[]            @relation("CreativeCreatedBy")
-  creativesApproved    Creative[]            @relation("CreativeApprovedBy")
-  changeRequests       ChangeRequest[]
-  uploads              Upload[]
-  championsCreated     Champion[]            @relation("ChampionCreatedBy")
-  rightsDeclared       Champion[]            @relation("ChampionRightsDeclaredBy")
-  batchesCreated       VariationBatch[]      @relation("BatchCreatedBy")
-  metaTemplatesCreated MetaPublishTemplate[] @relation("MetaTemplateCreatedBy")
-  batchesAnswered      VariationBatch[]      @relation("BatchAnsweredBy")
-  onboardingUpdated    Workspace[]           @relation("OnboardingUpdatedBy")
-  metaConnections      MetaConnection[]      @relation("MetaConnectedBy")
-  metaPublications     MetaPublication[]     @relation("MetaPublishedBy")
-  metaChanges          MetaChange[]          @relation("MetaChangedBy")
+  memberships           Membership[]
+  refreshTokens         RefreshToken[]
+  invitesSent           Invite[]              @relation("InviteCreatedBy")
+  offersCreated         Offer[]               @relation("OfferCreatedBy")
+  creativesCreated      Creative[]            @relation("CreativeCreatedBy")
+  creativesApproved     Creative[]            @relation("CreativeApprovedBy")
+  creativesEditSaved    Creative[]            @relation("CreativeEditSavedBy") // editor-universal-v1 §10
+  changeRequests        ChangeRequest[]
+  uploads               Upload[]
+  championsCreated      Champion[]            @relation("ChampionCreatedBy")
+  rightsDeclared        Champion[]            @relation("ChampionRightsDeclaredBy")
+  batchesCreated        VariationBatch[]      @relation("BatchCreatedBy")
+  metaTemplatesCreated  MetaPublishTemplate[] @relation("MetaTemplateCreatedBy")
+  brandAssetsCreated    BrandAsset[]          @relation("BrandAssetCreatedBy")
+  batchesAnswered       VariationBatch[]      @relation("BatchAnsweredBy")
+  onboardingUpdated     Workspace[]           @relation("OnboardingUpdatedBy")
+  metaConnections       MetaConnection[]      @relation("MetaConnectedBy")
+  metaPublications      MetaPublication[]     @relation("MetaPublishedBy")
+  metaChanges           MetaChange[]          @relation("MetaChangedBy")
+  creditEntries         CreditEntry[]         @relation("CreditEntryAccount")
+  creditEntriesBy       CreditEntry[]         @relation("CreditEntryBy")
+  templateRunsPaid      TemplateRun[]         @relation("TemplateRunAccount")
+  templateRunsCreated   TemplateRun[]         @relation("TemplateRunCreatedBy")
+  metaOfferLinksCreated MetaOfferLink[]       @relation("MetaOfferLinkCreatedBy") // meta-oferta-v1 §2.4
+  savedAds              SavedAd[]             @relation("SavedAdBy") // ads-research-v1 §6.2
 
   @@map("users")
 }
@@ -427,24 +460,31 @@ model Workspace {
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   // fase 2 (fase2-agencia.md §1): cliente = workspace. Status SETUP/LIVE/PAUSED é DERIVADO (clientStatusOf), não salvo.
-  shortCode             String        @map("short_code") // 2-6 [A-Z0-9]; prefixo do nome do arquivo ("MC"). Não é único
+  shortCode             String              @map("short_code") // 2-6 [A-Z0-9]; prefixo do nome do arquivo ("MC"). Não é único
   industry              String? // texto livre ≤ 80
   market                String? // mercado principal, texto livre ≤ 80
-  businessType          BusinessType? @map("business_type") // DEPRECATED: derivado do resultType (resultado-v1)
-  resultType            ResultType?   @map("result_type") // resultado-v1 (28/10): null = ainda não escolheu
-  resultTypeOther       String?       @map("result_type_other") // ≤ 80, só com resultType = OTHER
-  targetCpaMin          Decimal?      @map("target_cpa_min") @db.Decimal(12, 2) // 29/10 (Loom do Tordan): faixa de custo por resultado que o cliente quer
-  targetCpaMax          Decimal?      @map("target_cpa_max") @db.Decimal(12, 2) // min ≤ max; os dois null = não informado
-  targetCpaCurrency     String?       @map("target_cpa_currency") // ISO 4217 (USD, BRL, EUR…); só com a faixa
-  websiteUrl            String?       @map("website_url") // http(s), ≤ 2048
-  brandColor            String?       @map("brand_color") // 25/10 (estatico-montado-e-molduras-v1 D3): #RRGGBB maiúsculo; null = derivada (§A3.3)
-  iteratePreferences    Json?         @map("iterate_preferences") // Iterate v2: saved answers for this client
-  onboardingStep        Int           @default(1) @map("onboarding_step") // 1..6, onde retomar o onboarding
-  onboardingCompletedAt DateTime?     @map("onboarding_completed_at") // null = em setup
-  pausedAt              DateTime?     @map("paused_at") // não null = pausado
+  businessType          BusinessType?       @map("business_type") // DEPRECATED: derivado do resultType (resultado-v1)
+  resultType            ResultType?         @map("result_type") // resultado-v1 (28/10): null = ainda não escolheu
+  resultTypeOther       String?             @map("result_type_other") // ≤ 80, só com resultType = OTHER
+  targetCpaMin          Decimal?            @map("target_cpa_min") @db.Decimal(12, 2) // 29/10 (Loom do Tordan): faixa de custo por resultado que o cliente quer
+  targetCpaMax          Decimal?            @map("target_cpa_max") @db.Decimal(12, 2) // min ≤ max; os dois null = não informado
+  targetCpaCurrency     String?             @map("target_cpa_currency") // ISO 4217 (USD, BRL, EUR…); só com a faixa
+  websiteUrl            String?             @map("website_url") // http(s), ≤ 2048
+  brandColor            String?             @map("brand_color") // 25/10 (estatico-montado-e-molduras-v1 D3): #RRGGBB maiúsculo; null = derivada (§A3.3)
+  iteratePreferences    Json?               @map("iterate_preferences") // Iterate v2: saved answers for this client
+  onboardingStep        Int                 @default(1) @map("onboarding_step") // 1..6, onde retomar o onboarding
+  onboardingCompletedAt DateTime?           @map("onboarding_completed_at") // null = em setup
+  pausedAt              DateTime?           @map("paused_at") // não null = pausado
   // onboarding-v2 §1: quem mexeu por último no setup (PATCH /workspace, complete, ofertas em SETUP, PUT /meta/selection)
-  onboardingUpdatedById String?       @map("onboarding_updated_by_id")
-  onboardingUpdatedAt   DateTime?     @map("onboarding_updated_at")
+  onboardingUpdatedById String?             @map("onboarding_updated_by_id")
+  onboardingUpdatedAt   DateTime?           @map("onboarding_updated_at")
+  // lacunas-home-eddy-v1 §1 (31/10): cartões que a pessoa confirmou no onboarding com o Eddy, na ordem; sem repetição
+  onboardingConfirmed   OnboardingConfirm[] @default([]) @map("onboarding_confirmed")
+  // tour-v2 §6 (04/11): marcos de ativação, gravados só na 1ª vez onde a ação acontece (null = ainda não aconteceu)
+  firstBatchAt          DateTime?           @map("first_batch_at") // 1º lote criado (POST /iterate e /ad-templates/use)
+  firstGenerateAt       DateTime?           @map("first_generate_at") // 1º Gerar (POST /iterate/:id/start)
+  firstReadyAt          DateTime?           @map("first_ready_at") // 1ª peça pronta (AUTO_APPROVE)
+  firstSendAt           DateTime?           @map("first_send_at") // 1º anúncio publicado na Meta
 
   memberships           Membership[]
   invites               Invite[]
@@ -474,6 +514,17 @@ model Workspace {
   metaCampaignSnapshots MetaCampaignSnapshot[]
   metaAdsetSnapshots    MetaAdsetSnapshot[]
   metaChanges           MetaChange[]
+  brandAssets           BrandAsset[]
+  templateRuns          TemplateRun[]
+  creditEntries         CreditEntry[]
+  metaOfferLinks        MetaOfferLink[] // meta-oferta-v1 §2.4
+  productEvents         ProductEvent[] // tour-v2 §6
+  // ads-research-v1 (Ad Radar, 04/11)
+  competitors           Competitor[]
+  competitorDiscoveries CompetitorDiscovery[]
+  competitorCandidates  CompetitorCandidate[]
+  researchTerms         ResearchTerm[]
+  savedAds              SavedAd[]
 
   @@map("workspaces")
 }
@@ -484,6 +535,7 @@ model Membership {
   userId          String     @map("user_id")
   role            MemberRole @default(MEMBER)
   tourCompletedAt DateTime?  @map("tour_completed_at") // onboarding-v2 §3.4: null = ainda não fez o tour NESTE workspace
+  tourTipsSeen    String[]   @default([]) @map("tour_tips_seen") // tour-v2 §4: TipKey já vistas NESTE workspace, sem repetição
   createdAt       DateTime   @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -541,13 +593,15 @@ model Offer {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy    User             @relation("OfferCreatedBy", fields: [createdById], references: [id])
-  productImage File?            @relation("OfferProductImage", fields: [productImageFileId], references: [id])
-  creatives    Creative[]
-  jobs         Job[]
-  champions    Champion[]
-  batches      VariationBatch[]
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User             @relation("OfferCreatedBy", fields: [createdById], references: [id])
+  productImage   File?            @relation("OfferProductImage", fields: [productImageFileId], references: [id])
+  creatives      Creative[]
+  jobs           Job[]
+  champions      Champion[]
+  batches        VariationBatch[]
+  brandAssets    BrandAsset[]
+  metaOfferLinks MetaOfferLink[] // meta-oferta-v1 §2.4
 
   @@index([workspaceId, archivedAt])
   @@map("offers")
@@ -582,6 +636,9 @@ model Creative {
   editDoc      Json?   @map("edit_doc")
   editRevision Int     @default(0) @map("edit_revision") // +1 a cada PATCH /edit e PUT /editor (concorrência otimista)
   remixBase    Json?   @map("remix_base") // cache do RemixKeepRenderInput (fileIds no lugar de URLs); F3, interno do backend
+  // editor-universal-v1 §10: quem salvou a edição por último (EDIT_CONFLICT.details, editor.updated); mesmo update da revisão
+  editSavedById String?   @map("edit_saved_by_id")
+  editSavedAt   DateTime? @map("edit_saved_at")
 
   finalRenderId   String?   @unique @map("final_render_id") // render aprovado
   thumbnailFileId String?   @map("thumbnail_file_id")
@@ -611,6 +668,7 @@ model Creative {
   offer            Offer             @relation(fields: [offerId], references: [id])
   createdBy        User              @relation("CreativeCreatedBy", fields: [createdById], references: [id])
   approvedBy       User?             @relation("CreativeApprovedBy", fields: [approvedById], references: [id])
+  editSavedBy      User?             @relation("CreativeEditSavedBy", fields: [editSavedById], references: [id], onDelete: SetNull)
   selectedScript   Script?           @relation("SelectedScript", fields: [selectedScriptId], references: [id])
   selectedFace     Face?             @relation("SelectedFace", fields: [selectedFaceId], references: [id])
   finalRender      Render?           @relation("FinalRender", fields: [finalRenderId], references: [id])
@@ -708,6 +766,8 @@ model Scene {
   startSec        Decimal       @map("start_sec") @db.Decimal(8, 3)
   endSec          Decimal       @map("end_sec") @db.Decimal(8, 3)
   speech          String // fala da cena
+  voiceId         String?       @map("voice_id") // snapshot da voz do participante, Templates IA
+  faceId          String?       @map("face_id") // rosto do participante; pertence ao mesmo workspace/lote
   visualPrompt    String        @map("visual_prompt")
   status          AssetStatus   @default(QUEUED)
   progress        Int           @default(0) // 0..100 (estimado por tempo quando o provedor não informa)
@@ -776,6 +836,7 @@ model Render {
   failReason     String?      @map("fail_reason")
   errorCode      String?      @map("error_code") // rev. 23/10: código do formato FAILED (RENDER_ERROR, SAFETY_BLOCK, PROVIDER_TIMEOUT, DOWNLOAD_INVALID…); PieceFormat.errorCode
   failedFrame    Int?         @map("failed_frame")
+  failDetail     Json?        @map("fail_detail") // editor-universal-v1 §9.4: { rule, atSec, layerId } do export reprovado
   fileId         String?      @unique @map("file_id")
   durationSec    Decimal?     @map("duration_sec") @db.Decimal(8, 3)
   stale          Boolean      @default(false) // cenas mudaram depois deste render
@@ -829,6 +890,10 @@ model File {
   sha256      String?
   sourceUrl   String?  @map("source_url") // URL de origem no provedor (auditoria)
   createdAt   DateTime @default(now()) @map("created_at")
+  // editor-universal-v1 §8: proxy 540p (kind PROXY) aponta pro original; apagado junto com ele
+  proxyOfFileId String? @map("proxy_of_file_id")
+  proxyOf       File?   @relation("FileProxy", fields: [proxyOfFileId], references: [id], onDelete: Cascade)
+  proxies       File[]  @relation("FileProxy")
 
   workspace             Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   face                  Face?             @relation("FaceFile")
@@ -851,8 +916,10 @@ model File {
   pageCaptureOf         VariationBatch[]  @relation("BatchPageCapture")
   zipOf                 VariationBatch[]  @relation("BatchZip")
   metaPublicationVideos MetaPublication[] @relation("MetaPublicationVideo")
+  brandAssets           BrandAsset[]
 
   @@index([workspaceId, kind])
+  @@index([proxyOfFileId])
   @@map("files")
 }
 
@@ -951,18 +1018,26 @@ model CostEntry {
   providerTaskId   String?  @unique @map("provider_task_id")
   jobId            String?  @map("job_id")
   externalRef      String?  @unique @map("external_ref") // render-lambda-v1: = renders.external_id; custo gravado 1x por tentativa
+  // ads-research-v1 §9: ledger da pesquisa = cost_entries com um destes preenchido (teto do workspace soma só estes).
+  // Custo REAL do provedor mora em research_syncs.cost_usd / competitor_discoveries.cost_usd (teto global); aqui é a parte atribuída ao workspace.
+  researchSyncId   String?  @map("research_sync_id")
+  discoveryId      String?  @map("discovery_id")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  creative       Creative?       @relation(fields: [creativeId], references: [id], onDelete: SetNull)
-  providerTask   ProviderTask?   @relation(fields: [providerTaskId], references: [id])
-  champion       Champion?       @relation(fields: [championId], references: [id], onDelete: SetNull)
-  variationBatch VariationBatch? @relation(fields: [variationBatchId], references: [id], onDelete: SetNull)
+  workspace      Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creative       Creative?            @relation(fields: [creativeId], references: [id], onDelete: SetNull)
+  providerTask   ProviderTask?        @relation(fields: [providerTaskId], references: [id])
+  champion       Champion?            @relation(fields: [championId], references: [id], onDelete: SetNull)
+  variationBatch VariationBatch?      @relation(fields: [variationBatchId], references: [id], onDelete: SetNull)
+  researchSync   ResearchSync?        @relation(fields: [researchSyncId], references: [id], onDelete: SetNull)
+  discovery      CompetitorDiscovery? @relation(fields: [discoveryId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
   @@index([creativeId])
   @@index([championId])
   @@index([variationBatchId])
+  @@index([researchSyncId])
+  @@index([discoveryId])
   @@map("cost_entries")
 }
 
@@ -1016,6 +1091,28 @@ model Upload {
   @@map("uploads")
 }
 
+// kit-marca-v1 (docs/contratos/kit-marca-v1.md): assets da marca do cliente (workspace), com vínculo opcional a uma oferta.
+// LOGO: no máximo 1 por workspace (o service troca o anterior). Apagar o asset não apaga o File (peças podem apontar pra ele).
+model BrandAsset {
+  id          String         @id @default(cuid())
+  workspaceId String         @map("workspace_id")
+  kind        BrandAssetKind
+  label       String? // ≤ 80, rótulo livre ("Logo branco", "Demo do app")
+  fileId      String         @map("file_id")
+  offerId     String?        @map("offer_id") // null = vale pra marca toda
+  colors      String[]       @default([]) // só LOGO: até 5 cores dominantes #RRGGBB (vazio = não deu pra medir)
+  createdById String         @map("created_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file      File      @relation(fields: [fileId], references: [id])
+  offer     Offer?    @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  createdBy User      @relation("BrandAssetCreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId, kind])
+  @@map("brand_assets")
+}
+
 // Criativo de referência importado (upload e/ou link da Ad Library). Só o backend escreve `status`.
 model Champion {
   id                 String         @id @default(cuid())
@@ -1040,6 +1137,7 @@ model Champion {
   sourceCreativeId   String?        @map("source_creative_id") // pós-10/10: "Variar" a partir da Biblioteca
   metaAdId           String?        @map("meta_ad_id") // meta-v1 D13: veio do "Pick from Meta" (POST /iterate { metaAdId }); sources ganha META
   metaAdAccountId    String?        @map("meta_ad_account_id")
+  researchAdId       String?        @map("research_ad_id") // ads-research-v1 §6.1: veio do Ad Radar (LibraryAd global); 1 campeão por workspace × anúncio
   errorCode          String?        @map("error_code")
   failReason         String?        @map("fail_reason")
   createdById        String         @map("created_by_id")
@@ -1061,7 +1159,9 @@ model Champion {
   jobs             Job[]
   providerTasks    ProviderTask[]
   costEntries      CostEntry[]
+  researchAd       LibraryAd?       @relation(fields: [researchAdId], references: [id], onDelete: SetNull)
 
+  @@unique([workspaceId, researchAdId])
   @@index([workspaceId, archivedAt, updatedAt])
   @@index([offerId])
   @@index([workspaceId, metaAdId])
@@ -1116,29 +1216,33 @@ model MetaConnection {
 // Um anúncio da conta escolhida + insights (30 d, 7 d, 7 d anteriores). Substituído inteiro a cada META_SYNC.
 // Desde campanhas-v1 (D2) guarda todos os formatos: videoId null = imagem/outro (GET /meta/ads filtra vídeo por padrão).
 model MetaAdSnapshot {
-  id              String        @id @default(cuid())
-  workspaceId     String        @map("workspace_id")
-  connectionId    String        @map("connection_id")
-  adAccountId     String        @map("ad_account_id")
-  metaAdId        String        @map("meta_ad_id")
-  name            String
-  effectiveStatus String        @map("effective_status") // ACTIVE, PAUSED, CAMPAIGN_PAUSED, ADSET_PAUSED, DISAPPROVED, WITH_ISSUES...
-  status          String        @default("ACTIVE") // campanhas-v1: status configurado do anúncio (o toggle): ACTIVE | PAUSED
-  campaignId      String        @map("campaign_id")
-  campaignName    String        @map("campaign_name")
-  adsetId         String        @map("adset_id")
-  adsetName       String        @map("adset_name")
-  metaCreativeId  String?       @map("meta_creative_id")
-  videoId         String?       @map("video_id") // null = não é anúncio de vídeo (só fica se for publicação nossa)
-  thumbnailUrl    String?       @map("thumbnail_url") // URL da Meta (expira; o web usa como está)
-  resultType      String?       @map("result_type") // action_type usado como resultado: omni_purchase | lead | omni_app_install | link_click
-  metrics         Json // MetaMetrics (@maquina/contratos), últimos 30 d
-  metrics7d       Json          @map("metrics_7d") // MetaMetrics dos últimos 7 d (com frequency)
-  metricsPrev7d   Json          @map("metrics_prev_7d") // MetaMetrics dos 7 d anteriores (dias 8-14)
-  verdict         MetaAdVerdict @default(LOW_DATA)
-  trend           MetaAdTrend? // §5.2; null = dado insuficiente
-  adCreatedTime   DateTime?     @map("ad_created_time")
-  syncedAt        DateTime      @map("synced_at")
+  id                String        @id @default(cuid())
+  workspaceId       String        @map("workspace_id")
+  connectionId      String        @map("connection_id")
+  adAccountId       String        @map("ad_account_id")
+  metaAdId          String        @map("meta_ad_id")
+  name              String
+  effectiveStatus   String        @map("effective_status") // ACTIVE, PAUSED, CAMPAIGN_PAUSED, ADSET_PAUSED, DISAPPROVED, WITH_ISSUES...
+  status            String        @default("ACTIVE") // campanhas-v1: status configurado do anúncio (o toggle): ACTIVE | PAUSED
+  campaignId        String        @map("campaign_id")
+  campaignName      String        @map("campaign_name")
+  adsetId           String        @map("adset_id")
+  adsetName         String        @map("adset_name")
+  metaCreativeId    String?       @map("meta_creative_id")
+  videoId           String?       @map("video_id") // null = não é anúncio de vídeo (só fica se for publicação nossa)
+  thumbnailUrl      String?       @map("thumbnail_url") // URL da Meta (expira; o web usa como está)
+  resultType        String?       @map("result_type") // action_type usado como resultado: omni_purchase | lead | omni_app_install | link_click
+  metrics           Json // MetaMetrics (@maquina/contratos), últimos 30 d
+  metrics7d         Json          @map("metrics_7d") // MetaMetrics dos últimos 7 d (com frequency)
+  metricsPrev7d     Json          @map("metrics_prev_7d") // MetaMetrics dos 7 d anteriores (dias 8-14)
+  verdict           MetaAdVerdict @default(LOW_DATA)
+  trend             MetaAdTrend? // §5.2; null = dado insuficiente
+  adCreatedTime     DateTime?     @map("ad_created_time")
+  syncedAt          DateTime      @map("synced_at")
+  // meta-oferta-v1 §2 (04/11): link de destino do criativo, reaproveitado entre syncs (criativo da Meta é imutável)
+  destinationUrls   String[]      @default([]) @map("destination_urls") // links http(s) como lidos (já sem encurtador), ≤ 5, cada ≤ 2048
+  destinationSource String?       @map("destination_source") // video_cta | story_link | template | asset_feed | lead_form | messaging | existing_post | none; null = não lido ainda
+  urlTags           String?       @map("url_tags") // creative.url_tags (≤ 1024); só reforço de nome
 
   workspace  Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   connection MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
@@ -1148,37 +1252,65 @@ model MetaAdSnapshot {
   @@map("meta_ad_snapshots")
 }
 
+// meta-oferta-v1 §5: correção manual "este anúncio/campanha é (ou não é) desta oferta". Sobrevive ao sync (chave = ids da Meta).
+enum MetaOfferDecision {
+  BELONGS
+  NOT_BELONGS
+}
+
+model MetaOfferLink {
+  id          String            @id @default(cuid())
+  workspaceId String            @map("workspace_id")
+  adAccountId String            @map("ad_account_id") // vale pra conta, não pra conexão (reconectar não perde)
+  level       MetaObjectLevel // só AD ou CAMPAIGN (ADSET recusado no DTO)
+  objectId    String            @map("object_id") // metaAdId ou campaignId
+  offerId     String            @map("offer_id")
+  decision    MetaOfferDecision
+  createdById String            @map("created_by_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  offer     Offer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("MetaOfferLinkCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([workspaceId, adAccountId, level, objectId, offerId])
+  @@index([workspaceId, adAccountId])
+  @@map("meta_offer_links")
+}
+
 // Uma publicação de um Creative na Meta (D7). Ids gravados a cada etapa do job (retry retoma sem duplicar).
 // Várias por criativo são permitidas (outra conta, republicar), mas só uma PUBLISHING por vez (409 publish_in_progress).
 model MetaPublication {
-  id             String                @id @default(cuid())
-  workspaceId    String                @map("workspace_id")
-  connectionId   String                @map("connection_id")
-  creativeId     String                @map("creative_id")
-  status         MetaPublicationStatus @default(PUBLISHING)
-  adAccountId    String                @map("ad_account_id")
-  pageId         String                @map("page_id")
-  pixelId        String?               @map("pixel_id")
-  settings       Json // MetaPublishSettings (@maquina/contratos): o que o usuário mandou + defaults resolvidos
-  renderFileId   String                @map("render_file_id") // File RENDER_VIDEO enviado (= creative.finalRender.fileId no momento)
-  videoId        String?               @map("video_id") // /advideos
-  metaCreativeId String?               @map("meta_creative_id") // /adcreatives
-  campaignId     String?               @map("campaign_id")
-  adsetId        String?               @map("adset_id")
-  metaAdId       String?               @map("meta_ad_id")
-  previewUrl     String?               @map("preview_url") // /{ad}/previews (iframe src), opcional
-  errorCode      String?               @map("error_code") // MetaAsyncErrorCode
-  failReason     String?               @map("fail_reason") // frase humana (error_user_msg da Meta quando houver)
-  failDetail     String?               @map("fail_detail") // code/subcode/fbtrace_id (debug)
-  failedStage    String?               @map("failed_stage") // etapa do checklist em que parou
-  jobId          String?               @map("job_id")
-  publishedAt    DateTime?             @map("published_at") // anúncio criado (PAUSED)
-  activatedAt    DateTime?             @map("activated_at")
-  createdById    String                @map("created_by_id")
-  createdAt      DateTime              @default(now()) @map("created_at")
-  updatedAt      DateTime              @updatedAt @map("updated_at")
-  templateId     String?               @map("template_id") // meta-templates-v1 §2: publicado com template
-  groupKey       String?               @map("group_key") // meta-templates-v1 §2: publish-batch, mesmo ad set = mesma chave
+  id               String                @id @default(cuid())
+  workspaceId      String                @map("workspace_id")
+  connectionId     String                @map("connection_id")
+  creativeId       String                @map("creative_id")
+  status           MetaPublicationStatus @default(PUBLISHING)
+  adAccountId      String                @map("ad_account_id")
+  pageId           String                @map("page_id")
+  pixelId          String?               @map("pixel_id")
+  settings         Json // MetaPublishSettings (@maquina/contratos): o que o usuário mandou + defaults resolvidos
+  renderFileId     String                @map("render_file_id") // File RENDER_VIDEO enviado (= creative.finalRender.fileId no momento)
+  videoId          String?               @map("video_id") // /advideos
+  metaCreativeId   String?               @map("meta_creative_id") // /adcreatives
+  campaignId       String?               @map("campaign_id")
+  adsetId          String?               @map("adset_id")
+  metaAdId         String?               @map("meta_ad_id")
+  previewUrl       String?               @map("preview_url") // /{ad}/previews (iframe src), opcional
+  errorCode        String?               @map("error_code") // MetaAsyncErrorCode
+  failReason       String?               @map("fail_reason") // frase humana (error_user_msg da Meta quando houver)
+  failDetail       String?               @map("fail_detail") // code/subcode/fbtrace_id (debug)
+  failedStage      String?               @map("failed_stage") // etapa do checklist em que parou
+  jobId            String?               @map("job_id")
+  publishedAt      DateTime?             @map("published_at") // anúncio criado (PAUSED)
+  activatedAt      DateTime?             @map("activated_at")
+  createdById      String                @map("created_by_id")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  templateId       String?               @map("template_id") // meta-templates-v1 §2: publicado com template
+  groupKey         String?               @map("group_key") // meta-templates-v1 §2: publish-batch, mesmo ad set = mesma chave
+  templateSnapshot Json?                 @map("template_snapshot") // meta-templates-v2 §14 (04/11): MetaTemplateSnapshot (template + override do envio); o run/retry leem daqui
 
   template   MetaPublishTemplate? @relation(fields: [templateId], references: [id])
   workspace  Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -1386,6 +1518,7 @@ model VariationBatch {
   creatives   Creative[]
   jobs        Job[]
   costEntries CostEntry[]
+  templateRun TemplateRun?
 
   @@index([championId, createdAt])
   @@index([workspaceId, createdAt])
@@ -1493,4 +1626,526 @@ model Take {
   @@unique([creativeId, generation])
   @@index([workspaceId])
   @@map("takes")
+}
+
+// ───────────────────── templates-creditos-v1 (31/10, docs/contratos/templates-creditos-v1.md) ─────────────────────
+
+enum TemplateTier {
+  EDIT
+  STATIC // aba Edit, mas 2 créditos e travado na amostra
+  AI
+}
+
+enum TemplateStatus {
+  DRAFT // só o admin vê
+  LIVE // cliente vê se tiver vídeo de exemplo
+  HIDDEN // só o admin vê (ex.: beta escondido)
+}
+
+enum CreditPool {
+  CREDITS // saldo pago
+  SAMPLE // usos da amostra grátis
+}
+
+enum CreditEntryKind {
+  GRANT // usos da amostra
+  RESERVE // Gerar (delta −)
+  CHARGE // assentou: cobrado (delta 0, amount = cobrado)
+  REFUND // assentou: devolvido (delta +)
+  MANUAL // admin credita/debita
+}
+
+enum TemplateRunStatus {
+  DRAFT // lote criado, nada reservado
+  RESERVED // Gerar reservou; peças rodando (ou Retry reservou de novo)
+  SETTLED // tudo assentado: cobrado e devolvido
+}
+
+// Catálogo da galeria. internalKey = "FRAME:<id>" | tipo AUTO | tipo de IA | "PACK"
+model Template {
+  id                 String         @id @default(cuid())
+  slug               String         @unique
+  internalKey        String         @unique @map("internal_key")
+  autoType           String?        @map("auto_type") // texto: os tipos de IA (F3) ainda não estão no enum
+  frameId            String?        @map("frame_id")
+  pack               Boolean        @default(false)
+  tier               TemplateTier
+  credits            Int? // null = sem preço (não pode ir pra LIVE); no pack = teto
+  outputs            Int            @default(1)
+  category           String
+  nameEn             String         @map("name_en")
+  namePt             String         @map("name_pt")
+  descEn             String         @map("desc_en")
+  descPt             String         @map("desc_pt")
+  outEn              String         @map("out_en")
+  outPt              String         @map("out_pt")
+  needs              String[]       @default([])
+  order              Int            @default(0)
+  status             TemplateStatus @default(DRAFT)
+  beta               Boolean        @default(false)
+  exampleKey         String?        @map("example_key") // templates/<slug>/example-<uuid>.mp4
+  posterKey          String?        @map("poster_key")
+  exampleDurationSec Decimal?       @map("example_duration_sec") @db.Decimal(8, 3)
+  pendingExampleKey  String?        @map("pending_example_key") // PUT pré-assinado emitido, ainda sem complete
+  uses               Int            @default(0)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  runs TemplateRun[]
+
+  @@index([status, order])
+  @@map("templates")
+}
+
+// 1 por lote nascido de template. Linhas (RunLine[]) congeladas no Gerar.
+model TemplateRun {
+  id          String            @id @default(cuid())
+  workspaceId String            @map("workspace_id")
+  batchId     String            @unique @map("batch_id")
+  templateId  String            @map("template_id")
+  accountId   String?           @map("account_id") // quem paga (null = workspace sem OWNER)
+  pool        CreditPool? // null = INTERNAL (ilimitado, sem lançamento)
+  status      TemplateRunStatus @default(DRAFT)
+  cap         Int? // pack: 10
+  lines       Json              @default("[]")
+  held        Int               @default(0)
+  charged     Int               @default(0)
+  refunded    Int               @default(0)
+  attempt     Int               @default(0)
+  createdById String            @map("created_by_id")
+  reservedAt  DateTime?         @map("reserved_at")
+  settledAt   DateTime?         @map("settled_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  batch     VariationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  template  Template       @relation(fields: [templateId], references: [id])
+  account   User?          @relation("TemplateRunAccount", fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy User           @relation("TemplateRunCreatedBy", fields: [createdById], references: [id])
+  entries   CreditEntry[]
+
+  @@index([workspaceId, createdAt])
+  @@index([status])
+  @@map("template_runs")
+}
+
+// Livro-razão append-only (nunca UPDATE/DELETE). balanceAfter = saldo do pool depois deste lançamento.
+model CreditEntry {
+  id             String          @id @default(cuid())
+  userId         String          @map("user_id")
+  pool           CreditPool
+  kind           CreditEntryKind
+  delta          Int
+  amount         Int
+  balanceAfter   Int             @map("balance_after")
+  idempotencyKey String          @unique @map("idempotency_key")
+  templateRunId  String?         @map("template_run_id")
+  workspaceId    String?         @map("workspace_id")
+  byId           String?         @map("by_id")
+  note           String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  user        User         @relation("CreditEntryAccount", fields: [userId], references: [id], onDelete: Cascade)
+  by          User?        @relation("CreditEntryBy", fields: [byId], references: [id], onDelete: SetNull)
+  templateRun TemplateRun? @relation(fields: [templateRunId], references: [id], onDelete: SetNull)
+  workspace   Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([templateRunId])
+  @@map("credit_entries")
+}
+
+// tour-v2 §6 (04/11): eventos de produto do tour e das dicas (POST /events, em lote, fogo-e-esquece). Só grava; leitura por SQL.
+model ProductEvent {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  role        String // papel do membro no momento do evento
+  name        String // TourEventName (@maquina/contratos)
+  props       Json     @default("{}") // o resto do evento como o web mandou (≤ 2 KB)
+  at          DateTime // hora do cliente (cai pra hora do servidor se ausente/inválida)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, name, at])
+  @@map("product_events")
+}
+
+// ───────────────── ads-research-v1: Ad Radar (docs/contratos/ads-research-v1.md, "Construção 04/11") ─────────────────
+// Fontes (Página + país) e anúncios são PÚBLICOS e GLOBAIS (dedupe por ad_archive_id); seguir, descobrir, remover, salvar e
+// a memória de candidatos/termos são POR WORKSPACE. Mídia global fora de File (chaves research/<adArchiveId>/…).
+// Fila própria (research_syncs / competitor_discoveries com status + not_before), não usa jobs: a coleta semanal não tem dono.
+
+enum AdSourceStatus {
+  ACTIVE
+  PAUSED // nenhum workspace segue (ACTIVE): não sincroniza
+}
+
+enum ResearchTrigger {
+  INITIAL // importação ao seguir
+  SCHEDULED // semanal
+  MANUAL // "Atualizar agora"
+  MEDIA // URL do vídeo venceu e alguém quer usar/carregar
+  DISCOVERY // sonda da descoberta (D2 domínio, D3 termo)
+}
+
+enum ResearchSyncStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  SUSPECT // < 30 % dos ativos da última válida: não funde
+  FAILED
+}
+
+enum ResearchScrapeKind {
+  PAGE // view_all_page_id
+  KEYWORD // D2 (domínio, keyword_unordered) e D3 (termo, keyword_exact_phrase)
+}
+
+enum LibraryAdFormat {
+  VIDEO
+  IMAGE
+  CAROUSEL
+  DCO
+  DPA
+  OTHER
+}
+
+enum CompetitorStatus {
+  ACTIVE
+  DISMISSED // removido pelo cliente: bloqueio permanente (Página e domínio)
+  RETIRED // 30 dias sem anúncio ativo ou 3 coletas AD_NOT_FOUND seguidas
+}
+
+enum CompetitorOrigin {
+  DISCOVERED
+  MANUAL // só equipe (R10)
+}
+
+// Construção 04/11 (decisão 1): nicho vizinho conta, mas atrás dos diretos
+enum CompetitorRelation {
+  DIRECT // mesmo produto pro mesmo público
+  ADJACENT // nicho vizinho (mesmo público, produto diferente)
+}
+
+enum DismissReason {
+  not_competitor
+  not_relevant
+  own_brand
+  other
+}
+
+enum DiscoveryTrigger {
+  ONBOARDING
+  BRAIN_CHANGED
+  MANUAL
+}
+
+enum DiscoveryStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  EMPTY
+  FAILED
+}
+
+enum CandidateOrigin {
+  LLM // marca proposta pelo D1 e confirmada no D2
+  KEYWORD // Página achada na varredura de termo (D3)
+  BOTH
+  MEMORY // aprovado de descoberta anterior que voltou como reserva, sem custo (§C.4)
+}
+
+enum CandidateStatus {
+  FOLLOWED
+  RESERVE
+  REJECTED_NICHE // juiz: none, score < MIN_SCORE, descartável ou golpe
+  NOT_FOUND // marca sem Página no país
+  TOO_FEW_ADS
+  BLOCKED // removida antes pelo cliente (Página ou domínio)
+}
+
+enum ResearchTermKind {
+  PROMISE
+  PRODUCT
+  PAIN
+}
+
+enum ResearchTermOrigin {
+  NEW // gerado pelo D1 nesta descoberta
+  REUSED // memória: termo que já rendeu aprovado (2 no "Procurar de novo")
+}
+
+enum ResearchTermOutcome {
+  SEARCHED // buscado e útil
+  EMPTY // 0–1 Página: trocado
+  DIFFUSE // ≥ 8 Páginas e ≥ 80 % com 1 anúncio: trocado
+  UNUSED // reserva não usado
+}
+
+model AdSource {
+  id                  String         @id @default(cuid())
+  pageId              String         @map("page_id")
+  countryCode         String         @map("country_code") // ISO-2
+  displayName         String         @map("display_name")
+  avatarKey           String?        @map("avatar_key") // research/pages/<pageId>/avatar.jpg
+  likeCount           Int?           @map("like_count")
+  status              AdSourceStatus @default(ACTIVE)
+  lastSyncAt          DateTime?      @map("last_sync_at")
+  lastValidSyncAt     DateTime?      @map("last_valid_sync_at")
+  nextSyncAt          DateTime?      @map("next_sync_at")
+  lastActiveCount     Int            @default(0) @map("last_active_count") // base da trava de 30 % e do limite adaptativo
+  consecutiveFailures Int            @default(0) @map("consecutive_failures")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  ads         AdSourceAd[]
+  syncs       ResearchSync[]
+  competitors Competitor[]
+  candidates  CompetitorCandidate[]
+
+  @@unique([pageId, countryCode])
+  @@index([status, nextSyncAt])
+  @@map("ad_sources")
+}
+
+model LibraryAd {
+  id             String          @id @default(cuid())
+  adArchiveId    String          @unique @map("ad_archive_id")
+  pageId         String?         @map("page_id")
+  pageName       String          @map("page_name")
+  format         LibraryAdFormat
+  hasVideo       Boolean         @map("has_video") // DCO/CAROUSEL com vídeo em card conta
+  primaryText    String?         @map("primary_text")
+  headline       String?
+  ctaText        String?         @map("cta_text")
+  linkUrl        String?         @map("link_url")
+  linkHost       String?         @map("link_host")
+  cards          Json? // [{ headline, body, linkUrl, mediaKind, posterUrl, videoUrl }]
+  platforms      String[]        @default([]) // FACEBOOK | INSTAGRAM | MESSENGER | AUDIENCE_NETWORK | THREADS | WHATSAPP
+  startDate      DateTime?       @map("start_date") @db.Date
+  endDate        DateTime?       @map("end_date") @db.Date
+  isActive       Boolean         @map("is_active")
+  stoppedAt      DateTime?       @map("stopped_at") @db.Date
+  collationCount Int?            @map("collation_count") // null em 17 % (R0); "versões" na UI
+  euReach        Int?            @map("eu_reach")
+  lowImpressions Boolean         @default(false) @map("low_impressions")
+  language       String? // ISO 639-1 detectado do texto
+  posterKey      String?         @map("poster_key") // copiado na coleta
+  videoKey       String?         @map("video_key") // só ao salvar/usar
+  videoSourceUrl String?         @map("video_source_url") // fbcdn
+  mediaExpiresAt DateTime?       @map("media_expires_at") // `oe` hex → epoch
+  width          Int?
+  height         Int?
+  durationSec    Decimal?        @map("duration_sec") @db.Decimal(8, 3)
+  firstSeenAt    DateTime        @default(now()) @map("first_seen_at")
+  lastSeenAt     DateTime        @default(now()) @map("last_seen_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  sources    AdSourceAd[]
+  saves      SavedAd[]
+  champions  Champion[]
+  mediaSyncs ResearchSync[] @relation("ResearchSyncTargetAd")
+
+  @@index([pageId])
+  @@index([isActive, startDate])
+  @@index([lastSeenAt]) // retenção de 90 dias
+  @@map("library_ads")
+}
+
+model AdSourceAd {
+  sourceId    String   @map("source_id")
+  adId        String   @map("ad_id")
+  firstSeenAt DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at")
+
+  source AdSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  ad     LibraryAd @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, adId])
+  @@index([adId])
+  @@map("ad_source_ads")
+}
+
+model CompetitorDiscovery {
+  id              String           @id @default(cuid())
+  workspaceId     String           @map("workspace_id")
+  trigger         DiscoveryTrigger
+  status          DiscoveryStatus  @default(QUEUED)
+  stage           String? // DiscoveryStage do contrato: propose | confirm | scan | judge | import
+  inputHash       String           @map("input_hash") // impressão digital do Brain usado
+  countryCode     String?          @map("country_code")
+  countryReason   String?          @map("country_reason")
+  keywords        String[]         @default([]) // termos efetivamente buscados (detalhe em research_terms)
+  candidatesFound Int              @default(0) @map("candidates_found")
+  followed        Int              @default(0)
+  reserved        Int              @default(0)
+  costUsd         Decimal          @default(0) @map("cost_usd") @db.Decimal(12, 4) // custo real (Claude + sondas)
+  notBefore       DateTime?        @map("not_before") // debounce de 24 h, fila do teto global/mensal
+  errorCode       String?          @map("error_code")
+  failReason      String?          @map("fail_reason")
+  requestedById   String?          @map("requested_by_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  startedAt       DateTime?        @map("started_at")
+  finishedAt      DateTime?        @map("finished_at")
+
+  workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  candidates  CompetitorCandidate[]
+  terms       ResearchTerm[]
+  competitors Competitor[]
+  syncs       ResearchSync[]
+  costEntries CostEntry[]
+
+  @@index([workspaceId, createdAt])
+  @@index([status, notBefore])
+  @@map("competitor_discoveries")
+}
+
+// Memória entre descobertas (Construção 04/11): candidatos NÃO são apagados a cada descoberta. Aprovados (FOLLOWED/RESERVE) ficam;
+// rejeitados/NOT_FOUND com mais de 180 dias saem na retenção. A reserva vigente = RESERVE da última descoberta concluída (D5 copia
+// os aprovados antigos ainda ativos como origin MEMORY).
+model CompetitorCandidate {
+  id                String              @id @default(cuid())
+  discoveryId       String              @map("discovery_id")
+  workspaceId       String              @map("workspace_id")
+  sourceId          String?             @map("source_id") // null se não achou Página
+  termId            String?             @map("term_id") // termo que achou a Página (KEYWORD/BOTH)
+  brandName         String?             @map("brand_name")
+  domain            String?
+  pageId            String?             @map("page_id")
+  pageName          String?             @map("page_name")
+  origin            CandidateOrigin
+  status            CandidateStatus
+  relation          CompetitorRelation? // null = não aprovado pelo juiz
+  rank              Int? // ordem do D5 (diretos primeiro)
+  activeAdsSeen     Int                 @default(0) @map("active_ads_seen")
+  oldestDays        Int?                @map("oldest_days")
+  nicheScore        Int?                @map("niche_score")
+  suspectDisposable Boolean             @default(false) @map("suspect_disposable")
+  reason            String? // 1 linha do juiz, PT-BR
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  discovery CompetitorDiscovery @relation(fields: [discoveryId], references: [id], onDelete: Cascade)
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source    AdSource?           @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  term      ResearchTerm?       @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, rank])
+  @@index([workspaceId, pageId])
+  @@index([discoveryId])
+  @@map("competitor_candidates")
+}
+
+// Memória de termos: o "Procurar de novo" reaproveita 2 termos com approved_count > 0 (+ 2 novos do D1).
+model ResearchTerm {
+  id            String              @id @default(cuid())
+  workspaceId   String              @map("workspace_id")
+  discoveryId   String              @map("discovery_id")
+  term          String // 2–3 palavras, idioma do mercado
+  kind          ResearchTermKind
+  origin        ResearchTermOrigin  @default(NEW)
+  outcome       ResearchTermOutcome
+  pagesFound    Int                 @default(0) @map("pages_found")
+  pagesMultiAd  Int                 @default(0) @map("pages_multi_ad") // Páginas com ≥ 2 anúncios na amostra
+  approvedCount Int                 @default(0) @map("approved_count") // aprovados pelo juiz vindos deste termo
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  workspace  Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  discovery  CompetitorDiscovery   @relation(fields: [discoveryId], references: [id], onDelete: Cascade)
+  candidates CompetitorCandidate[]
+
+  @@index([workspaceId, approvedCount])
+  @@index([discoveryId])
+  @@map("research_terms")
+}
+
+model Competitor {
+  id            String             @id @default(cuid())
+  workspaceId   String             @map("workspace_id")
+  sourceId      String             @map("source_id")
+  name          String
+  origin        CompetitorOrigin
+  relation      CompetitorRelation @default(DIRECT) // MANUAL = DIRECT
+  nicheScore    Int?               @map("niche_score")
+  discoveryId   String?            @map("discovery_id")
+  reason        String? // "por que este" (juiz), no card do concorrente
+  status        CompetitorStatus   @default(ACTIVE)
+  domain        String? // bloqueio por domínio também
+  dismissedAt   DateTime?          @map("dismissed_at")
+  dismissedById String?            @map("dismissed_by_id")
+  dismissReason DismissReason?     @map("dismiss_reason")
+  retiredAt     DateTime?          @map("retired_at")
+  createdById   String?            @map("created_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source    AdSource             @relation(fields: [sourceId], references: [id])
+  discovery CompetitorDiscovery? @relation(fields: [discoveryId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, sourceId])
+  @@index([workspaceId, status])
+  @@index([sourceId, status])
+  @@map("competitors")
+}
+
+model ResearchSync {
+  id                     String             @id @default(cuid())
+  sourceId               String?            @map("source_id") // null na sonda por termo/domínio (não vira fonte)
+  kind                   ResearchScrapeKind
+  query                  String // pageId (PAGE) ou termo/domínio (KEYWORD)
+  countryCode            String             @map("country_code")
+  trigger                ResearchTrigger
+  status                 ResearchSyncStatus @default(QUEUED)
+  requestedByWorkspaceId String?            @map("requested_by_workspace_id")
+  requestedById          String?            @map("requested_by_id")
+  discoveryId            String?            @map("discovery_id")
+  targetAdId             String?            @map("target_ad_id") // MEDIA: o anúncio que pediu o vídeo (media.status = refreshing)
+  apifyRunId             String?            @unique @map("apify_run_id")
+  requestedLimit         Int                @map("requested_limit")
+  attempts               Int                @default(0) // 402 concurrent-runs-limit-exceeded = tenta de novo
+  itemsRaw               Int                @default(0) @map("items_raw")
+  itemsError             Int                @default(0) @map("items_error")
+  adsActive              Int                @default(0) @map("ads_active")
+  adsNew                 Int                @default(0) @map("ads_new")
+  adsStopped             Int                @default(0) @map("ads_stopped")
+  costUsd                Decimal            @default(0) @map("cost_usd") @db.Decimal(12, 4) // usageTotalUsd real (teto global)
+  notBefore              DateTime?          @map("not_before") // fila do teto global (dia seguinte)
+  errorCode              String?            @map("error_code")
+  failReason             String?            @map("fail_reason")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  startedAt              DateTime?          @map("started_at")
+  finishedAt             DateTime?          @map("finished_at")
+
+  source      AdSource?            @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  discovery   CompetitorDiscovery? @relation(fields: [discoveryId], references: [id], onDelete: SetNull)
+  targetAd    LibraryAd?           @relation("ResearchSyncTargetAd", fields: [targetAdId], references: [id], onDelete: SetNull)
+  costEntries CostEntry[]
+
+  @@index([sourceId, createdAt])
+  @@index([status, notBefore])
+  @@index([discoveryId])
+  @@index([targetAdId, status])
+  @@index([createdAt]) // soma do teto global diário
+  @@map("research_syncs")
+}
+
+model SavedAd {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  adId        String   @map("ad_id")
+  savedById   String   @map("saved_by_id")
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ad        LibraryAd @relation(fields: [adId], references: [id], onDelete: Cascade)
+  savedBy   User      @relation("SavedAdBy", fields: [savedById], references: [id])
+
+  @@unique([workspaceId, adId])
+  @@index([workspaceId, createdAt])
+  @@map("saved_ads")
 }

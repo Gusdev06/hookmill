@@ -29,7 +29,7 @@ export class MetaCampanhasController {
 
   @Get('campaigns/:campaignId')
   detail(@Auth() auth: AuthContext, @Param('campaignId') id: string, @Query() q: MetaCampaignDetailQueryDto) {
-    return this.campanhas.detail(auth, id, q.period ?? '30d');
+    return this.campanhas.detail(auth, id, q.period ?? '30d', q.offerId);
   }
 
   @Get('changes')

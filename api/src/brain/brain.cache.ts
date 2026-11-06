@@ -5,8 +5,9 @@ import { BRAIN_CACHE_TTL_SEC } from './brain.montagem';
 export const BRAIN_FRESH_MIN_MS = 10_000;
 
 /**
- * brain-3d-v1 §1.3: cache em memória no processo, TTL 60 s, sem invalidação ativa (uma instância na VPS).
- * Chaves começam por `<workspaceId>|` (o `fresh` derruba as do workspace). Expira na leitura; varre ao passar de 500.
+ * brain-3d-v1 §1.3: cache em memória no processo, TTL 60 s (uma instância na VPS).
+ * Chaves começam por `<workspaceId>|` (o `fresh` e o `invalidate` derrubam as do workspace). Expira na leitura; varre ao passar de 500.
+ * brain-preenchido-v1 §0.5: kit, ofertas e PATCH /workspace chamam `invalidate` depois de gravar.
  */
 @Injectable()
 export class BrainCache {
@@ -46,6 +47,11 @@ export class BrainCache {
     this.lastFresh.set(workspaceId, t);
     for (const k of [...this.entries.keys()]) if (k.startsWith(`${workspaceId}|`)) this.entries.delete(k);
     return true;
+  }
+
+  /** brain-preenchido-v1: derruba o cache do workspace na escrita (sem o limite de 10 s do `fresh`, que não é tocado). */
+  invalidate(workspaceId: string): void {
+    for (const k of [...this.entries.keys()]) if (k.startsWith(`${workspaceId}|`)) this.entries.delete(k);
   }
 
   clear(): void {

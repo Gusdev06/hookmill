@@ -1,0 +1,278 @@
+{
+ "quadros": 632,
+ "quadros_com_legenda": 632,
+ "t_resolver": 1.3,
+ "t_inpaint": 240.9,
+ "t_compor": 1020.9,
+ "t_total": 1743.6,
+ "borrao_visivel_medio_%": {
+  "A": 29.7,
+  "C": 17.8,
+  "V": 17.2,
+  "N": 6.6
+ },
+ "borrao_visivel_p95_%": {
+  "A": 66.6,
+  "C": 61.4,
+  "V": 59.1,
+  "N": 65.4
+ },
+ "trechos": [
+  {
+   "ini": 0,
+   "fim": 3,
+   "texto": "CADA DÍA",
+   "herda": 1,
+   "iou": 0.75,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 3,
+   "fim": 19,
+   "texto": "CADA DÍA",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 19,
+   "fim": 55,
+   "texto": "28 MILES",
+   "herda": null,
+   "iou": 0.24,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 55,
+   "fim": 74,
+   "texto": "DE PERSONAS",
+   "herda": null,
+   "iou": 0.65,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 74,
+   "fim": 98,
+   "texto": "LLENAN EL TEMPLO",
+   "herda": null,
+   "iou": 0.7,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 98,
+   "fim": 128,
+   "texto": "DE SAN HIPÓLITO",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 128,
+   "fim": 143,
+   "texto": "EN LA CIUDAD",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 143,
+   "fim": 174,
+   "texto": "DE MÉXICO VAN",
+   "herda": null,
+   "iou": 0.82,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 174,
+   "fim": 197,
+   "texto": "POR SAN JUDAS",
+   "herda": null,
+   "iou": 0.74,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 197,
+   "fim": 228,
+   "texto": "TADEO EL SANTO",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 228,
+   "fim": 247,
+   "texto": "DE LAS CAUSAS",
+   "herda": null,
+   "iou": 0.79,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 247,
+   "fim": 265,
+   "texto": "DIFÍCILES",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 265,
+   "fim": 294,
+   "texto": "Y DESESPERADAS",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 294,
+   "fim": 305,
+   "texto": "Y SI",
+   "herda": null,
+   "iou": 0.79,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 305,
+   "fim": 327,
+   "texto": "ALGUIEN TE DIJO",
+   "herda": null,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 327,
+   "fim": 344,
+   "texto": "QUE TU AMOR",
+   "herda": null,
+   "iou": 0.79,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 344,
+   "fim": 357,
+   "texto": "YA ES UNA",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 357,
+   "fim": 367,
+   "texto": "CAUSA",
+   "herda": null,
+   "iou": 0.85,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 367,
+   "fim": 389,
+   "texto": "PERDIDA",
+   "herda": null,
+   "iou": 0.85,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 389,
+   "fim": 405,
+   "texto": "A LO MEJOR",
+   "herda": null,
+   "iou": 0.77,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 405,
+   "fim": 409,
+   "texto": "LE TOCA",
+   "herda": 21,
+   "iou": 0.84,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 409,
+   "fim": 421,
+   "texto": "LE TOCA",
+   "herda": null,
+   "iou": 0.84,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 421,
+   "fim": 450,
+   "texto": "A ESA PERSONA",
+   "herda": null,
+   "iou": 0.72,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 450,
+   "fim": 480,
+   "texto": "DECIDIRLO HAY",
+   "herda": null,
+   "iou": 0.82,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 480,
+   "fim": 507,
+   "texto": "SIETE ORACIONES",
+   "herda": null,
+   "iou": 0.79,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 507,
+   "fim": 524,
+   "texto": "SAGRADAS",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 524,
+   "fim": 543,
+   "texto": "DEL AMOR",
+   "herda": null,
+   "iou": 0.82,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 543,
+   "fim": 560,
+   "texto": "HAZ EL TEST",
+   "herda": null,
+   "iou": 0.85,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 560,
+   "fim": 581,
+   "texto": "DE UN MINUTO",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 581,
+   "fim": 602,
+   "texto": "Y DESCUBRE",
+   "herda": null,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 602,
+   "fim": 616,
+   "texto": "CUÁL ES LA",
+   "herda": null,
+   "iou": 0.77,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 616,
+   "fim": 632,
+   "texto": "TUYA",
+   "herda": null,
+   "iou": 0.86,
+   "pos_por_palavra": false
+  }
+ ]
+}

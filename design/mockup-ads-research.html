@@ -1,0 +1,548 @@
+<title>HookMill Ad Radar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: prototype bar on top, the product inside a device frame (desktop or phone 390). Single light look = the HookMill product (ink sidebar, lime only for the screen's main action). Same tokens as mockup-templates / mockup-tour-v2. */
+:root {
+  --bg: #eeeeea; --card: #fdfdfb; --card-2: #f3f4f0; --field: #ffffff;
+  --line: #dcddd7; --line-soft: #e4e5e0; --line-strong: #cfd1cb;
+  --fg: #15171a; --fg-2: #3b4047; --fg-3: #5a6068;
+  --brand: #c8f03c; --brand-hover: #bde52f; --brand-ink: #3e5200; --brand-soft: #f0f8d2; --brand-edge: #a9cc2a;
+  --ink: #16181b; --ink-2: #202328; --ink-3: #2a2e33; --ink-line: #2e3238; --ink-fg: #f2f3ee; --ink-fg-2: #c5cad0; --ink-fg-3: #9aa1a9;
+  --ok-bg: #e2f3e8; --ok: #0b6b43; --ok-dot: #1c9a5e;
+  --warn-bg: #fbf0d3; --warn: #7a5000; --warn-edge: #e9c76b;
+  --bad-bg: #fbe7dd; --bad: #a8360c; --bad-edge: #e4b9a6;
+  --info-bg: #e6ebfc; --info: #2b4bc8; --info-edge: #c3cef6;
+  --th-sky: #8fb3c9; --th-sand: #d8c3a0; --th-sage: #9fb89a; --th-dusk: #6f6a8f; --th-clay: #c08a6a; --th-rose: #c99aa4; --th-slate: #7d8a96; --th-white: #ffffff;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r-chip: 8px; --r-ctl: 10px; --r-btn: 12px; --r-card: 16px; --r-panel: 18px;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+html, body { background: var(--bg); color: var(--fg) }
+body { font-family: var(--display); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 40px }
+button, input, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px }
+h1, h2, h3 { margin: 0; text-wrap: balance }
+h1 { font-size: 26px; line-height: 1.1; font-weight: 800; font-stretch: 125%; letter-spacing: -0.015em }
+h2 { font-size: 16px; font-weight: 700 }
+h3 { font-size: 14px; font-weight: 700 }
+p { margin: 0 }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3) }
+.num { font-variant-numeric: tabular-nums }
+.muted { color: var(--fg-3) }
+.small { font-size: 12px }
+
+/* prototype bar */
+.proto { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--warn-bg); border-bottom: 1px solid var(--warn-edge); font-size: 12px; color: var(--warn) }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 31; background: var(--warn-bg) }
+.proto b { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase }
+.proto label { display: inline-flex; gap: 6px; align-items: center }
+.proto select { border: 1px solid var(--warn-edge); background: var(--card); border-radius: var(--r-chip); padding: 4px 8px; font-size: 12px; color: var(--fg) }
+.intro { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; padding-block: 18px 12px; max-width: 1440px; margin-inline: auto }
+.intro h1 { font-size: 22px }
+.intro p { color: var(--fg-2); max-width: 78ch }
+
+.stage { max-width: 1440px; margin-inline: auto }
+.stage.phone { display: flex; justify-content: center }
+
+/* device */
+.device { position: relative; height: 860px; border: 1px solid var(--line-strong); border-radius: 22px; overflow: hidden; background: color-mix(in oklab, var(--bg) 88%, var(--fg)); box-shadow: 0 10px 40px rgba(21,23,26,.12) }
+.device.desk { display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 10px; padding: 10px }
+.device.ph { width: 100%; max-width: 390px; display: flex; flex-direction: column; border-radius: 30px; background: var(--bg) }
+.scroll { position: relative; min-width: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin }
+.desk .scroll { background: var(--bg); border: 1px solid var(--line); border-radius: 18px }
+.ph .scroll { flex: 1 }
+.view { padding: 22px 24px 60px; display: flex; flex-direction: column; gap: 16px }
+.ph .view { padding: 16px 16px 80px; gap: 14px }
+
+/* sidebar / topbar */
+.side { background: var(--ink); color: var(--ink-fg-2); padding: 16px 12px; border-radius: 18px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0 }
+.logo { font-weight: 800; font-stretch: 112%; font-size: 16px; color: var(--ink-fg); padding: 2px 8px 12px; display: flex; gap: 8px; align-items: center }
+.logo i { width: 18px; height: 18px; border-radius: 5px; background: var(--brand); border: 1px solid var(--brand-edge) }
+.ws { margin: 0 2px 6px; padding: 8px 10px; border: 1px solid var(--ink-line); background: var(--ink-2); border-radius: var(--r-btn); font-size: 13px; color: var(--ink-fg); display: grid; gap: 1px }
+.ws small { font-size: 11px; color: #8bd7a9; display: flex; gap: 6px; align-items: center }
+.ws small i { width: 7px; height: 7px; border-radius: 50%; background: currentColor }
+.grp { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-fg-3); padding: 12px 10px 4px }
+.nav { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--r-chip); border: 0; background: none; text-align: left; color: var(--ink-fg-2); min-height: 36px; width: 100%; font-weight: 500 }
+.nav:hover { background: var(--ink-2) }
+.nav.on { background: var(--ink-3); color: var(--ink-fg); font-weight: 700 }
+.nav.on .ic { background: var(--brand) }
+.nav .ic { width: 7px; height: 7px; border-radius: 2px; background: var(--ink-fg-3) }
+.soon { margin-left: auto; font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 4px; border: 1px dashed var(--ink-fg-3); color: var(--ink-fg-3) }
+.nbadge { margin-left: auto; font-family: var(--mono); font-size: 10px; padding: 0 6px; border-radius: 99px; background: var(--ink-3); color: var(--ink-fg-2); border: 1px solid var(--ink-line) }
+.foot { margin-top: auto; display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--ink-line) }
+.meter { border: 1px solid var(--ink-line); border-radius: var(--r-ctl); padding: 10px; display: grid; gap: 6px; font-size: 12px }
+.meter .top { display: flex; justify-content: space-between; align-items: baseline }
+.meter b { color: var(--ink-fg); font-size: 18px; font-weight: 800; font-stretch: 112% }
+.meter button { background: none; border: 1px solid var(--ink-line); color: var(--ink-fg); border-radius: var(--r-chip); padding: 5px 8px; font-size: 12px }
+.topbar { background: var(--ink); color: var(--ink-fg); height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px; flex: none }
+.topbar .ws { flex: 1; margin: 0; padding: 5px 10px; min-width: 0 }
+.cpill { font-family: var(--mono); font-size: 11px; border: 1px solid var(--ink-line); border-radius: 99px; padding: 4px 9px; color: var(--ink-fg); white-space: nowrap; background: var(--ink-2) }
+.menu { width: 40px; height: 40px; border-radius: var(--r-ctl); border: 1px solid var(--ink-line); background: none; color: var(--ink-fg); display: grid; place-items: center }
+.navsheet { position: absolute; inset: 56px 0 auto; background: var(--ink); z-index: 40; padding: 8px 12px 16px; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid var(--ink-line) }
+
+/* controls */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 14px; border-radius: var(--r-btn); border: 1px solid var(--line-strong); background: var(--card); font-weight: 600; font-size: 13px; color: var(--fg); white-space: nowrap }
+.btn:hover { background: var(--card-2) }
+.btn.lime { background: var(--brand); border-color: var(--brand-edge) }
+.btn.lime:hover { background: var(--brand-hover) }
+.btn.ghost { border-color: transparent; background: none; color: var(--fg-2) }
+.btn.ink { background: var(--fg); border-color: var(--fg); color: var(--card) }
+.btn.ink:hover { background: var(--fg-2) }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.btn.sm { min-height: 34px; padding: 6px 10px; font-size: 12px; border-radius: var(--r-ctl) }
+.btn.block { width: 100% }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--card-2); color: var(--fg-2); white-space: nowrap }
+.pill.ok { background: var(--ok-bg); border-color: transparent; color: var(--ok) }
+.pill.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn) }
+.pill.bad { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad) }
+.pill.info { background: var(--info-bg); border-color: var(--info-edge); color: var(--info) }
+.pill.lime { background: var(--brand-soft); border-color: var(--brand-edge); color: var(--brand-ink) }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 16px; display: flex; flex-direction: column; gap: 10px }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.between { justify-content: space-between }
+.ink-box { background: var(--ink); color: var(--ink-fg); border-radius: var(--r-card); padding: 16px; display: grid; gap: 12px }
+.ink-box p, .ink-box li { color: var(--ink-fg-2); font-size: 13px }
+.ink-box .eyebrow { color: var(--ink-fg-3) }
+.ink-box ul { margin: 0; padding-left: 18px; display: grid; gap: 6px }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; background: var(--card) }
+.seg button { border: 0; background: none; padding: 0 12px; min-height: 36px; font-size: 13px; font-weight: 600; color: var(--fg-2) }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--card) }
+.sel { border: 1px solid var(--line-strong); background: var(--card); border-radius: var(--r-ctl); padding: 0 10px; min-height: 38px; font-size: 13px; color: var(--fg) }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none }
+.tabs button { border: 0; background: none; padding: 10px 12px; font-weight: 600; color: var(--fg-3); border-bottom: 2px solid transparent; white-space: nowrap; min-height: 44px }
+.tabs button[aria-selected="true"] { color: var(--fg); border-color: var(--fg) }
+.input { display: flex; gap: 8px; align-items: center; border: 1px solid var(--line-strong); background: var(--field); border-radius: var(--r-ctl); padding: 0 6px 0 12px; min-height: 44px }
+.input input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; font-size: 13px }
+.alert { border-radius: var(--r-ctl); padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; font-size: 13px; border: 1px solid }
+.alert.bad { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad) }
+.alert.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn) }
+.alert.info { background: var(--info-bg); border-color: var(--info-edge); color: var(--info) }
+.alert > div { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px }
+.alert b { color: var(--fg) }
+.prog { height: 6px; border-radius: 4px; background: var(--line-soft); overflow: hidden } .prog i { display: block; height: 100%; background: var(--info); transition: width .4s }
+
+/* setup */
+.layout2 { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start }
+.ph .layout2 { grid-template-columns: minmax(0, 1fr) }
+.sug { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); background: var(--card); border-radius: var(--r-ctl) }
+.sug.on { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg) }
+.sug small { color: var(--fg-3); font-size: 12px; display: block }
+.av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; color: var(--th-white); flex: none }
+.av.s { width: 22px; height: 22px; font-size: 10px }
+.tog { min-width: 84px }
+
+/* competitor strip */
+.strip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px }
+.comp { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 1px solid var(--line); background: var(--card); border-radius: 99px; font-size: 13px; min-height: 40px; position: relative }
+.comp[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg) }
+.comp small { font-family: var(--mono); font-size: 11px; color: var(--fg-3) }
+.comp.err small { color: var(--bad) }
+.comp.add { border-style: dashed; color: var(--fg-2); padding: 6px 14px }
+.beamwrap { position: relative; border-radius: 99px; padding: 1.5px; overflow: hidden; flex: none; background: var(--line) }
+.beamwrap::before { content: ""; position: absolute; inset: -150%; background: conic-gradient(from 0deg, transparent 0 70%, var(--info) 82%, transparent 92%); animation: beam 2.4s linear infinite }
+.beamwrap .comp { border: 0 }
+@keyframes beam { to { transform: rotate(360deg) } }
+
+/* feed */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.filters .sp { flex: 1 }
+.feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px }
+.ph .feed { grid-template-columns: 1fr 1fr; gap: 10px }
+.ad { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 7px; display: flex; flex-direction: column; gap: 8px; min-width: 0; text-align: left }
+.ad:hover { border-color: var(--line-strong) }
+.media { position: relative; aspect-ratio: 4/5; border-radius: 10px; overflow: hidden; max-width: 100%; border: 0; padding: 0; width: 100%; display: block; background: var(--th-sky) }
+.media .cap { position: absolute; left: 9%; right: 9%; top: 12%; background: var(--th-white); color: var(--fg); font-weight: 800; font-size: 11px; padding: 4px 6px; border-radius: 4px; text-align: center; line-height: 1.15 }
+.media .fig { position: absolute; left: 26%; right: 26%; bottom: 0; height: 54%; border-radius: 40% 40% 0 0; background: rgba(21,23,26,.26) }
+.media .prod { position: absolute; left: 34%; right: 34%; bottom: 14%; height: 30%; border-radius: 8px; background: rgba(253,253,251,.55) }
+.media .tag { position: absolute; right: 6px; top: 6px; font-family: var(--mono); font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: rgba(22,24,27,.72); color: var(--ink-fg) }
+.media .win { position: absolute; left: 6px; top: 6px; font-family: var(--mono); font-size: 9.5px; padding: 1px 6px; border-radius: 4px; background: var(--brand); color: var(--fg); font-weight: 600; border: 1px solid var(--brand-edge) }
+.media .off { position: absolute; left: 6px; top: 6px; font-family: var(--mono); font-size: 9.5px; padding: 1px 6px; border-radius: 4px; background: rgba(22,24,27,.72); color: var(--ink-fg-2) }
+.media .play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(22,24,27,.6); display: grid; place-items: center; opacity: 0; transition: opacity .15s }
+.media .play::after { content: ""; border-left: 12px solid var(--ink-fg); border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 3px }
+.media .scrub { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(22,24,27,.35) }
+.media .scrub i { display: block; height: 100%; width: 0; background: var(--th-white) }
+.ad:hover .media .play { opacity: 1 }
+.ad.playing .media .play { opacity: 0 }
+.ad.playing .media .scrub i { animation: scrub 6s linear infinite }
+@keyframes scrub { to { width: 100% } }
+.ad .info { display: grid; gap: 5px; padding: 0 3px 2px; min-width: 0 }
+.ad .who { display: flex; gap: 6px; align-items: center; min-width: 0; font-size: 12.5px; font-weight: 700 }
+.ad .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ad .run { font-family: var(--mono); font-size: 11px; color: var(--fg-2); margin-left: auto; white-space: nowrap; font-weight: 400 }
+.ad .copy { font-size: 12px; color: var(--fg-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.9em }
+.ad .facts { display: flex; flex-wrap: wrap; gap: 4px }
+.ad .acts { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 6px; padding: 0 3px 3px; margin-top: auto } /* 04/11 (Gusta): actions pinned to the card's foot, aligned across a row */
+.ad .info { flex: 1 1 auto }
+.ad .acts .btn { padding-inline: 8px }
+.savebtn { width: 34px; min-height: 34px; border-radius: var(--r-ctl); border: 1px solid var(--line-strong); background: var(--card); display: grid; place-items: center; padding: 0 }
+.savebtn svg { width: 15px; height: 15px; fill: none; stroke: var(--fg-2); stroke-width: 1.8 }
+.savebtn[aria-pressed="true"] { background: var(--fg); border-color: var(--fg) }
+.savebtn[aria-pressed="true"] svg { fill: var(--card); stroke: var(--card) }
+.skel { border-radius: var(--r-card); border: 1px solid var(--line); background: var(--card); padding: 7px; display: grid; gap: 8px }
+.skel i { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--line-soft), var(--card-2), var(--line-soft)); background-size: 200% 100%; animation: sh 1.4s infinite }
+@keyframes sh { to { background-position: -200% 0 } }
+.empty { border: 1.5px dashed var(--line-strong); border-radius: var(--r-card); padding: 32px 18px; display: grid; justify-items: center; gap: 8px; text-align: center; color: var(--fg-2); background: var(--card) }
+.empty h2 { color: var(--fg) }
+.empty p { max-width: 52ch }
+
+/* sync panel */
+.sync { display: grid; gap: 10px }
+.syncrow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: 13px }
+.syncrow .prog { grid-column: 2 / -1 }
+
+/* detail sheet */
+.scrim { position: absolute; inset: 0; background: rgba(22,24,27,.45); z-index: 50; display: flex; justify-content: flex-end }
+.sheet { background: var(--card); width: min(860px, 100%); height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 360px; box-shadow: -18px 0 50px rgba(21,23,26,.22); animation: inr .2s ease-out }
+@keyframes inr { from { transform: translateX(30px); opacity: 0 } }
+.player { background: var(--ink); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: 14px; gap: 10px; min-height: 0 }
+.player .bar { display: flex; justify-content: space-between; align-items: center; color: var(--ink-fg-2); font-size: 12px }
+.player .bar button { background: none; border: 1px solid var(--ink-line); color: var(--ink-fg); border-radius: var(--r-ctl); min-height: 36px; padding: 0 12px }
+.screen { display: grid; place-items: center; min-height: 0 }
+.screen .media { height: 100%; max-height: 640px; width: auto; aspect-ratio: 9/16 }
+.screen .media .cap { font-size: 15px; padding: 6px 8px }
+.controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; color: var(--ink-fg-2); font-family: var(--mono); font-size: 11px }
+.controls button { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--ink-fg); display: grid; place-items: center }
+.controls button::after { content: ""; border-left: 11px solid var(--ink); border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 3px }
+.controls .tl { height: 4px; border-radius: 3px; background: var(--ink-3); overflow: hidden } .controls .tl i { display: block; height: 100%; width: 34%; background: var(--ink-fg) }
+.dinfo { overflow-y: auto; padding: 18px; display: grid; gap: 14px; align-content: start }
+.dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 13px }
+.dl dt { color: var(--fg-3) } .dl dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere }
+.why { border: 1px solid var(--brand-edge); background: var(--brand-soft); border-radius: var(--r-ctl); padding: 10px 12px; font-size: 12.5px; color: var(--brand-ink); display: grid; gap: 3px }
+.why b { color: var(--fg) }
+.vers { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px }
+.vers .v { flex: none; width: 64px; display: grid; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--fg-3); text-align: center }
+.vers .v .media { border-radius: 6px } .vers .v .media .cap { font-size: 6px; padding: 2px }
+.vers .v.on .media { outline: 2px solid var(--fg); outline-offset: 1px }
+.fulltext { font-size: 13px; color: var(--fg-2); white-space: pre-line; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 12px; background: var(--card-2) }
+.dacts { position: sticky; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 12px 18px; display: grid; gap: 8px }
+.extlink { color: var(--info); font-size: 13px; text-decoration: underline; text-underline-offset: 2px }
+.ph .scrim { display: block }
+.ph .sheet { width: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; overflow-y: auto; animation: none }
+.ph .player { height: 520px }
+.ph .dinfo { overflow: visible }
+
+/* modal + bottom sheet */
+.mscrim { position: absolute; inset: 0; background: rgba(22,24,27,.45); z-index: 55; display: grid; place-items: center; padding: 16px }
+.ph .mscrim { place-items: end center; padding: 8px }
+.modal { background: var(--card); border-radius: var(--r-panel); width: min(560px, 100%); padding: 20px; display: grid; gap: 14px; box-shadow: 0 18px 50px rgba(21,23,26,.28); max-height: 100%; overflow-y: auto }
+.modal .acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding-top: 6px; border-top: 1px solid var(--line) }
+.ph .modal .acts .btn { flex: 1 1 100% }
+.fgrid { display: grid; gap: 12px }
+.fgrid label { display: grid; gap: 6px; font-size: 12px; color: var(--fg-3) }
+.toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 70; background: var(--ink); color: var(--ink-fg); border-radius: var(--r-btn); padding: 10px 14px; font-size: 13px; box-shadow: 0 10px 30px rgba(21,23,26,.3); white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis }
+
+/* templates handoff */
+.pinned { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border: 1px solid var(--brand-edge); background: var(--brand-soft); border-radius: var(--r-ctl); padding: 10px 12px; font-size: 13px }
+.pinned .media { width: 40px; aspect-ratio: 9/16; border-radius: 5px }
+.pinned .media .cap, .pinned .media .tag, .pinned .media .win { display: none }
+.pinned > div { display: grid; gap: 4px; flex: 1 1 220px; min-width: 0 }
+.tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px }
+.ph .tgrid { grid-template-columns: 1fr 1fr; gap: 10px }
+.tcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 7px; display: grid; gap: 7px; min-width: 0 }
+.tcard .media { aspect-ratio: 9/16 }
+.tcard b { font-size: 13px }
+.note { font-size: 12.5px; color: var(--fg-2); border-left: 2px solid var(--line-strong); padding-left: 10px }
+
+@media (prefers-reduced-motion: reduce) { .beamwrap::before, .skel i, .ad.playing .media .scrub i, .sheet { animation: none } }
+</style>
+
+<div class="proto" role="region" aria-label="Prototype controls">
+  <b>Prototype</b>
+  <label for="p-view">View <select id="p-view"><option value="desk">Desktop 1440</option><option value="ph">Phone 390</option></select></label>
+  <label for="p-state">State <select id="p-state">
+    <option value="first">1 · First time (no competitors)</option>
+    <option value="syncing">2 · First sync running</option>
+    <option value="ready" selected>3 · Feed ready</option>
+    <option value="loading">Loading (skeleton)</option>
+    <option value="error">Error · Ad Library didn't answer</option>
+    <option value="noads">Competitor with no ads</option>
+    <option value="limit">Limit reached (10 of 10)</option>
+    <option value="nomatch">Filters match nothing</option>
+  </select></label>
+</div>
+
+<div class="intro">
+  <h1>Ad Radar</h1>
+  <p>Competitor ads from Meta's Ad Library, sorted by how long they've been running. Click an ad to open it, then "Use as champion" to make variations with Templates. Change the state in the yellow bar. Brands and ads here are examples.</p>
+</div>
+
+<div class="stage" id="stage"><div class="device desk" id="device"></div></div>
+
+<script>
+const NAME = "Mooncloth";
+const COMPS = [
+  { id: "nf", name: "Nightfold", handle: "@nightfold", c: "--th-dusk", active: 38, total: 61 },
+  { id: "lu", name: "Lull & Co", handle: "@lullandco", c: "--th-clay", active: 24, total: 40 },
+  { id: "sw", name: "Softwake", handle: "@softwake.sleep", c: "--th-sage", active: 17, total: 29 },
+  { id: "dw", name: "Duskwear", handle: "@duskwear", c: "--th-slate", active: 0, total: 12 },
+];
+const SUGG = [
+  { id: "nf", name: "Nightfold", why: "Named on your site's comparison page", ads: "≈ 40 active ads" },
+  { id: "lu", name: "Lull & Co", why: "Same category and price range in your Brain", ads: "≈ 25 active ads" },
+  { id: "sw", name: "Softwake", why: "Shows up in your audience's interests (Meta)", ads: "≈ 15 active ads" },
+  { id: "hl", name: "Hush Linen", why: "Same category in your Brain", ads: "≈ 8 active ads" },
+  { id: "dw", name: "Duskwear", why: "Mentioned in 3 customer reviews you uploaded", ads: "No recent ads seen" },
+];
+const ADS = [
+  { id: 1, comp: "nf", days: 214, vers: 9, fmt: "video", dur: "0:41", cap: "I stopped waking up at 3am", copy: "I tried everything for 3am wake-ups. Then I swapped my sheets.\nNightfold's cooling bamboo set drops your skin temp by 2°F while you sleep.\n\n100-night trial. Free returns.", head: "Sleep cooler tonight", cta: "Shop now", dom: "nightfold.com", plat: ["FB", "IG"], ctry: "US", lang: "EN", c: "--th-dusk", start: "Apr 4, 2026", on: true },
+  { id: 2, comp: "lu", days: 131, vers: 6, fmt: "video", dur: "0:28", cap: "POV: your partner steals the blanket", copy: "Two sides, two temperatures. The Lull dual-weight duvet ends the blanket war.", head: "Dual-weight duvet", cta: "Learn more", dom: "lullandco.com", plat: ["FB", "IG", "AN"], ctry: "US", lang: "EN", c: "--th-clay", start: "Jun 26, 2026", on: true },
+  { id: 3, comp: "nf", days: 96, vers: 4, fmt: "image", cap: "Rated 4.8 by 12,000 sleepers", copy: "12,000 five-star reviews can't all be wrong. Meet the set everyone's switching to.", head: "The internet's favorite sheets", cta: "Shop now", dom: "nightfold.com", plat: ["FB", "IG"], ctry: "US", lang: "EN", c: "--th-sand", start: "Jul 31, 2026", on: true },
+  { id: 4, comp: "sw", days: 63, vers: 2, fmt: "video", dur: "0:19", cap: "The 10-second bedtime trick", copy: "A dermatologist told me to do this before bed. My skin and my sleep both changed.", head: "Silk pillowcase, 22 momme", cta: "Shop now", dom: "softwake.co", plat: ["IG"], ctry: "US", lang: "EN", c: "--th-sage", start: "Sep 2, 2026", on: true },
+  { id: 5, comp: "lu", days: 41, vers: 7, fmt: "video", dur: "0:33", cap: "Hotel sheets, without the hotel", copy: "We asked 5-star hotels where their sheets come from. Then we made them for half the price.", head: "Hotel-grade percale", cta: "Shop now", dom: "lullandco.com", plat: ["FB", "IG"], ctry: "US", lang: "EN", c: "--th-rose", start: "Sep 24, 2026", on: true },
+  { id: 6, comp: "sw", days: 22, vers: 1, fmt: "image", cap: "30% off ends Sunday", copy: "Our biggest sale of the fall. 30% off every silk set until Sunday at midnight.", head: "Fall sale", cta: "Shop now", dom: "softwake.co", plat: ["FB"], ctry: "US", lang: "EN", c: "--th-sky", start: "Oct 13, 2026", on: true },
+  { id: 7, comp: "nf", days: 9, vers: 3, fmt: "video", dur: "0:24", cap: "What 3 nights in bamboo did to my skin", copy: "Day 1 vs day 3. No filter, no makeup.", head: "Try it 100 nights", cta: "Shop now", dom: "nightfold.com", plat: ["FB", "IG"], ctry: "US", lang: "EN", c: "--th-slate", start: "Oct 26, 2026", on: true },
+  { id: 8, comp: "lu", days: 5, vers: 1, fmt: "video", dur: "0:15", cap: "Unboxing the softest duvet", copy: "It arrives vacuum packed and fluffs up in an hour.", head: "Dual-weight duvet", cta: "Shop now", dom: "lullandco.com", plat: ["IG"], ctry: "US", lang: "EN", c: "--th-sand", start: "Oct 30, 2026", on: true },
+  { id: 9, comp: "nf", days: 58, vers: 2, fmt: "image", cap: "Goodbye night sweats", copy: "Night sweats? It might be your sheets.", head: "Cooling bamboo", cta: "Shop now", dom: "nightfold.com", plat: ["FB"], ctry: "US", lang: "EN", c: "--th-sky", start: "Aug 1, 2026", ended: "Sep 28, 2026", on: false },
+];
+const compBy = (id) => COMPS.find((c) => c.id === id);
+const likely = (a) => a.on && (a.days >= 30 || a.vers >= 5);
+
+const S = { view: "desk", state: "ready", screen: "feed", tab: "all", comp: null, status: "active", fmt: "all", age: "any", sort: "longest", detail: null, ver: 0, saved: new Set([3]), playing: null, modal: null, nav: false, picked: new Set(["nf", "lu", "sw"]), pasteErr: false, toast: "", read: 0 };
+const phone = () => S.view === "ph";
+const esc = (s) => String(s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
+const av = (c, s = "") => `<span class="av ${s}" style="background:var(${c.c})" aria-hidden="true">${c.name[0]}</span>`;
+const media = (a, extra = "") => `<span class="media" style="background:var(${a.c})">${a.fmt === "video" ? '<span class="fig"></span>' : '<span class="prod"></span>'}<span class="cap">${esc(a.cap)}</span><span class="tag">${a.fmt === "video" ? "VIDEO " + a.dur : "IMAGE"}</span>${likely(a) ? '<span class="win">Likely winner</span>' : !a.on ? '<span class="off">Inactive</span>' : ""}${a.fmt === "video" ? '<span class="play"></span><span class="scrub"><i></i></span>' : ""}${extra}</span>`;
+const bookmark = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
+
+/* ---------- screens ---------- */
+function header(right = "") {
+  return `<div class="row between" style="align-items:flex-end"><div style="display:grid;gap:4px"><span class="eyebrow">Make ads</span><h1>Ad Radar</h1><p class="muted" style="max-width:62ch">What your competitors are running on Facebook and Instagram right now. The longer an ad runs, the more likely it pays for itself.</p></div>${right}</div>`;
+}
+
+function scrFirst() {
+  const n = S.picked.size;
+  const sugg = SUGG.map((s) => {
+    const on = S.picked.has(s.id);
+    const c = compBy(s.id) || { name: s.name, c: "--th-rose" };
+    return `<div class="sug ${on ? "on" : ""}">${av(c)}<div style="min-width:0"><b>${esc(s.name)}</b><small>${esc(s.why)}</small><small class="num">${esc(s.ads)}</small></div><button class="btn sm tog ${on ? "ink" : ""}" data-a="pick" data-id="${s.id}" aria-pressed="${on}">${on ? "Added" : "Add"}</button></div>`;
+  }).join("");
+  const summary = `<div class="ink-box"><span class="eyebrow">Your research</span>
+      <div class="row between"><span>Competitors</span><b class="num">${n} of 10</b></div>
+      <ul><li>Country: <b style="color:var(--ink-fg)">United States</b>, from your Brain. <button class="btn ghost sm" style="color:var(--ink-fg);min-height:28px;padding:0 4px;text-decoration:underline">Change</button></li>
+      <li>Included in your plan. Research uses no credits; Templates do.</li>
+      <li>First sync takes a few minutes per competitor. You can leave; we'll keep going.</li>
+      <li>After that we check every competitor once a day.</li></ul>
+      <button class="btn lime block" data-a="start" ${n === 0 ? "disabled" : ""}>Start research · ${n} competitor${n === 1 ? "" : "s"}</button></div>`;
+  return `<div class="view">${header()}
+    <div class="layout2"><div style="display:grid;gap:14px;min-width:0">
+      <div class="card"><div class="row between"><h2>Suggested from your Brain</h2><span class="pill">from site + reviews</span></div>${sugg}</div>
+      <div class="card"><h2>Add one we missed</h2><p class="muted small">Paste a Facebook page link, an Instagram @ or a link from the Meta Ad Library.</p>
+        <div class="input"><input id="paste" placeholder="facebook.com/nightfold or @nightfold" value="${S.pasteErr ? "facebook.com/hushlinen-official" : ""}"><button class="btn sm" data-a="paste">Add</button></div>
+        ${S.pasteErr ? `<div class="alert bad"><div><b>We couldn't find a Facebook page at that link.</b><span>Open the brand's page on Facebook and copy the address from the browser, or paste their Ad Library link.</span></div></div>` : `<p class="muted small">Try a wrong link: <button class="btn ghost sm" data-a="pasteerr" style="text-decoration:underline;padding:0 4px;min-height:24px">show the error</button></p>`}
+      </div></div>${summary}</div></div>`;
+}
+
+function compStrip() {
+  const limit = S.state === "limit";
+  const list = limit ? [...COMPS, ...["Hush Linen", "Pillowy", "Restwell", "Calmbed", "Slumberly", "Noctua"].map((n, i) => ({ id: "x" + i, name: n, c: ["--th-rose", "--th-sky", "--th-sand", "--th-sage", "--th-clay", "--th-dusk"][i], active: 3 + i * 4 }))] : COMPS;
+  const chips = list.map((c, i) => {
+    const pressed = S.comp === c.id;
+    const syncing = S.state === "syncing" && i > 0;
+    const err = S.state === "error" && c.id === "sw";
+    const sub = err ? "didn't answer" : syncing ? (i === 1 ? "reading 18 of ~40" : "waiting") : c.active === 0 ? "0 active" : `${c.active} active`;
+    const chip = `<button class="comp ${err ? "err" : ""}" data-a="comp" data-id="${c.id}" aria-pressed="${pressed}">${av(c, "s")}<span>${esc(c.name)}</span><small class="num">${sub}</small></button>`;
+    return syncing && i === 1 ? `<span class="beamwrap">${chip}</span>` : chip;
+  }).join("");
+  return `<div class="strip" role="group" aria-label="Competitors"><button class="comp" data-a="comp" data-id="" aria-pressed="${S.comp === null}"><span>All competitors</span></button>${chips}<button class="comp add" data-a="add">+ Add competitor <small class="num">${limit ? 10 : 4} of 10</small></button></div>`;
+}
+
+function filtered() {
+  let a = ADS.filter((x) => (S.comp ? x.comp === S.comp : true));
+  if (S.tab === "saved") a = a.filter((x) => S.saved.has(x.id));
+  if (S.status === "active") a = a.filter((x) => x.on);
+  if (S.status === "inactive") a = a.filter((x) => !x.on);
+  if (S.fmt !== "all") a = a.filter((x) => x.fmt === S.fmt);
+  if (S.age !== "any") a = a.filter((x) => x.days >= +S.age);
+  if (S.state === "nomatch") a = [];
+  if (S.state === "syncing") a = a.filter((x) => x.comp === "nf");
+  if (S.state === "error") a = a.filter((x) => x.comp !== "sw");
+  const sorters = { longest: (x, y) => y.days - x.days, newest: (x, y) => x.days - y.days, versions: (x, y) => y.vers - x.vers };
+  return a.sort(sorters[S.sort]);
+}
+
+function filtersBar() {
+  const segs = (k, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="f" data-k="${k}" data-v="${v}" aria-pressed="${S[k] === v}">${l}</button>`).join("")}</div>`;
+  const sortSel = `<select class="sel" id="f-sort" data-a="sort" aria-label="Sort"><option value="longest" ${S.sort === "longest" ? "selected" : ""}>Running longest</option><option value="newest" ${S.sort === "newest" ? "selected" : ""}>Newest first</option><option value="versions" ${S.sort === "versions" ? "selected" : ""}>Most versions</option></select>`;
+  const nActive = [S.status !== "active", S.fmt !== "all", S.age !== "any"].filter(Boolean).length;
+  if (phone()) return `<div class="filters"><button class="btn sm" data-a="fsheet">Filters${nActive ? ` · ${nActive}` : ""}</button><span class="sp"></span>${sortSel}</div>`;
+  return `<div class="filters">${segs("status", [["active", "Active"], ["all", "All"], ["inactive", "Inactive"]])}${segs("fmt", [["all", "All formats"], ["video", "Video"], ["image", "Image"]])}
+    <select class="sel" id="f-age" data-a="age" aria-label="Running for"><option value="any">Running · any time</option><option value="7" ${S.age === "7" ? "selected" : ""}>7+ days</option><option value="30" ${S.age === "30" ? "selected" : ""}>30+ days</option><option value="90" ${S.age === "90" ? "selected" : ""}>90+ days</option></select>
+    <select class="sel" id="f-ctry" aria-label="Country"><option>United States</option><option>Brazil</option><option>All countries</option></select>
+    <select class="sel" id="f-lang" aria-label="Language"><option>Any language</option><option>English</option><option>Portuguese</option></select>
+    <span class="sp"></span>${sortSel}</div>`;
+}
+
+function adCard(a) {
+  const c = compBy(a.comp), saved = S.saved.has(a.id);
+  return `<article class="ad ${S.playing === a.id ? "playing" : ""}" data-id="${a.id}">
+    <button class="media-btn" data-a="open" data-id="${a.id}" style="border:0;padding:0;background:none" aria-label="Open ad from ${esc(c.name)}">${media(a)}</button>
+    <div class="info"><div class="who">${av(c, "s")}<span>${esc(c.name)}</span><span class="run num">${a.on ? a.days + " d" : "ended"}</span></div>
+      <p class="copy">${esc(a.copy.split("\n")[0])}</p>
+      <div class="facts"><span class="pill">${a.plat.join(" · ")}</span>${phone() ? "" : `<span class="pill">${a.ctry}</span>`}${a.vers > 1 ? `<span class="pill num">${a.vers} versions</span>` : ""}</div></div>
+    <div class="acts"><button class="btn ink sm" data-a="use" data-id="${a.id}">${phone() ? "Use" : "Use as champion"}</button><button class="savebtn" data-a="save" data-id="${a.id}" aria-pressed="${saved}" aria-label="${saved ? "Saved" : "Save"}">${bookmark}</button></div>
+  </article>`;
+}
+
+function scrFeed() {
+  const st = S.state;
+  let top = "";
+  if (st === "syncing") top = `<div class="card sync" role="status"><div class="row between"><h2>First sync · 1 of 3 competitors done</h2><span class="pill info">you can leave this page</span></div>
+      <div class="syncrow"><span class="pill ok" style="padding:0 5px">✓</span><span>Nightfold · 38 active ads, 61 total</span><span class="muted small num">done</span></div>
+      <div class="syncrow"><span class="pill info" style="padding:0 5px">2</span><span>Lull & Co · reading ads</span><span class="muted small num">18 of ~40</span><div class="prog"><i style="width:45%"></i></div></div>
+      <div class="syncrow"><span class="pill" style="padding:0 5px">3</span><span>Softwake · waiting</span><span class="muted small num">next</span></div>
+      <p class="muted small">Ads show up below as each competitor finishes. Videos are saved on our side, so they keep playing after the competitor turns them off.</p></div>`;
+  if (st === "error") top = `<div class="alert bad" role="alert"><div><b>Meta's Ad Library didn't answer for Softwake.</b><span>Last good sync was yesterday at 06:10. We'll try again in 15 minutes; the other competitors are up to date.</span></div><button class="btn sm" data-a="toast" data-m="Retrying Softwake…">Retry now</button></div>`;
+  if (st === "limit") top = `<div class="alert warn"><div><b>You're following 10 of 10 competitors.</b><span>Remove one to add another. Agency plans follow up to 10 per client.</span></div><button class="btn sm" data-a="add">Manage competitors</button></div>`;
+
+  const ads = filtered();
+  const nWin = ads.filter(likely).length;
+  let body;
+  if (st === "loading") body = `<div class="feed" aria-busy="true">${Array.from({ length: phone() ? 4 : 10 }, () => `<div class="skel"><i style="aspect-ratio:4/5"></i><i style="height:12px;width:70%"></i><i style="height:28px"></i></div>`).join("")}</div>`;
+  else if (st === "noads" || (S.comp === "dw")) {
+    body = `<div class="empty"><span class="av" style="background:var(--th-slate)">D</span><h2>Duskwear has no active ads in the United States</h2><p>Their last ad stopped on Sep 12, 2026. We check every day and they'll show up here when they start again. You can still see their 12 past ads.</p><div class="row" style="justify-content:center"><button class="btn sm" data-a="f" data-k="status" data-v="inactive">Show 12 past ads</button><button class="btn sm" data-a="toast" data-m="Checking Duskwear in all countries…">Check other countries</button><button class="btn ghost sm" data-a="toast" data-m="Duskwear removed">Stop following</button></div></div>`;
+  } else if (!ads.length) {
+    body = S.tab === "saved" ? `<div class="empty"><h2>Nothing saved yet</h2><p>Tap the bookmark on any ad to keep it here. Saved ads also show up in Templates, in the step where you pick the ad.</p></div>`
+      : `<div class="empty"><h2>No ads match these filters</h2><p>Try "Any time" or "All formats". Competitors with few ads rarely have something running 90+ days.</p><button class="btn sm" data-a="clear">Clear filters</button></div>`;
+  } else {
+    body = `<div class="feed">${ads.map(adCard).join("")}${st === "syncing" ? Array.from({ length: phone() ? 2 : 4 }, () => `<div class="skel"><i style="aspect-ratio:4/5"></i><i style="height:12px;width:70%"></i><i style="height:28px"></i></div>`).join("") : ""}</div>`;
+  }
+  const count = st === "loading" ? "Loading ads…" : `<span class="num">${ads.length} ads · ${nWin} likely winners</span>`;
+  const right = phone() ? "" : `<span class="muted small">Updated 2 h ago · next check 06:00</span>`;
+  return `<div class="view">${header(right)}${top}${compStrip()}
+    <div class="tabs" role="tablist"><button role="tab" data-a="tab" data-v="all" aria-selected="${S.tab === "all"}">All ads</button><button role="tab" data-a="tab" data-v="saved" aria-selected="${S.tab === "saved"}">Saved <span class="num">(${S.saved.size})</span></button></div>
+    ${filtersBar()}
+    <div class="row between small muted">${count}<span>“Likely winner” = active 30+ days or 5+ versions</span></div>
+    ${body}</div>`;
+}
+
+function scrHandoff() {
+  const a = ADS.find((x) => x.id === S.handoff), c = compBy(a.comp);
+  const done = S.read >= 4;
+  const steps = ["Saved the video", "Transcribing 0:41", "Finding hook, body and offer", "Checking face and captions"];
+  const TPL = [["Breaking news", "--th-red", "fits"], ["Split screen", "--th-sky", "fits"], ["New headline", "--th-sand", "fits"], ["Meme POV", "--th-sage", "fits"], ["Chat DM", "--th-dusk", "fits"], ["New face", "--th-clay", "face"]];
+  return `<div class="view"><div style="display:grid;gap:4px"><span class="eyebrow">Make ads</span><h1>Templates</h1></div>
+    <div class="pinned">${media(a)}<div><b>Champion · ${esc(c.name)} · “${esc(a.cap)}”</b>
+      <span class="small">${done ? "Read. Every card below says if it fits this ad." : `Reading this ad · ${steps[Math.min(S.read, 3)]} · about 1 min, free. You can pick templates now.`}</span>
+      ${done ? "" : `<div class="prog"><i style="width:${(S.read + 1) * 22}%"></i></div>`}</div>
+      <button class="btn sm" data-a="back">Change ad</button></div>
+    <p class="note">From a competitor ad we keep the structure: the hook, the pacing, the format. Your offer, product, voice and claims come from your Brain. Their logo, product shots and claims don't come along.</p>
+    <div class="tgrid">${TPL.map(([n, col, fit]) => `<div class="tcard"><span class="media" style="background:var(${col})"><span class="fig"></span><span class="tag">EXAMPLE</span></span><div class="row between" style="gap:6px"><b>${n}</b><span class="pill">${n === "New face" ? "8 cr" : "1 cr"}</span></div>${done ? (fit === "fits" ? '<span class="pill ok">Fits</span>' : '<span class="pill warn">Needs a face</span>') : '<span class="pill">Checking fit…</span>'}</div>`).join("")}</div></div>`;
+}
+
+function detailHtml() {
+  const a = ADS.find((x) => x.id === S.detail); if (!a) return "";
+  const c = compBy(a.comp), saved = S.saved.has(a.id);
+  const vers = Array.from({ length: Math.min(a.vers, 6) }, (_, i) => `<button class="v ${S.ver === i ? "on" : ""}" data-a="ver" data-v="${i}" style="border:0;background:none;padding:0" aria-label="Version ${i + 1}">${media({ ...a, cap: i === 0 ? a.cap : ["Cooler sheets, deeper sleep", "Why I wake up at 3am", "My sleep doctor said this", "100 nights, free returns", "Hot sleeper? Read this"][i - 1] || a.cap, days: 0, vers: 0, fmt: "image" })}<span>v${i + 1}</span></button>`).join("");
+  return `<div class="scrim" data-a="close-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="d-h">
+    <div class="player"><div class="bar"><span>${av(c, "s")} ${esc(c.name)}</span><button data-a="close">Close</button></div>
+      <div class="screen">${media({ ...a, days: 0, vers: 0 })}</div>
+      ${a.fmt === "video" ? `<div class="controls"><button aria-label="Play"></button><span class="tl"><i></i></span><span class="num">0:14 / ${a.dur}</span></div>` : `<div class="controls" style="grid-template-columns:1fr"><span>Image · 1080 × 1350</span></div>`}</div>
+    <div class="dinfo">
+      <div style="display:grid;gap:6px"><div class="row" style="gap:6px">${a.on ? '<span class="pill ok">Active</span>' : '<span class="pill">Inactive</span>'}${likely(a) ? '<span class="pill lime">Likely winner</span>' : ""}<span class="pill">${a.fmt === "video" ? "Video " + a.dur : "Image"}</span></div>
+        <h2 id="d-h">${esc(a.head)}</h2></div>
+      ${likely(a) ? `<div class="why"><b>Why "likely winner"</b><span>Running ${a.days} days with ${a.vers} versions live. Meta doesn't show competitors' spend; brands rarely keep a losing ad on for a month.</span></div>` : ""}
+      <dl class="dl"><dt>Started</dt><dd class="num">${a.start}</dd><dt>${a.on ? "Running" : "Ran"}</dt><dd class="num">${a.on ? a.days + " days" : a.start + " – " + a.ended}</dd><dt>Platforms</dt><dd>${a.plat.map((p) => ({ FB: "Facebook", IG: "Instagram", AN: "Audience Network" }[p])).join(", ")}</dd><dt>Country</dt><dd>United States</dd><dt>Language</dt><dd>English</dd><dt>Button</dt><dd>${a.cta}</dd><dt>Goes to</dt><dd>${a.dom}</dd></dl>
+      ${a.vers > 1 ? `<div style="display:grid;gap:6px"><span class="eyebrow">${a.vers} versions running · same ad, different text</span><div class="vers">${vers}</div></div>` : ""}
+      <div style="display:grid;gap:6px"><div class="row between"><span class="eyebrow">Ad text</span><button class="btn ghost sm" data-a="toast" data-m="Text copied">Copy</button></div><p class="fulltext">${esc(a.copy)}</p></div>
+      <a class="extlink" href="https://www.facebook.com/ads/library/" target="_blank" rel="noopener">Open in Meta Ad Library ↗</a>
+      <span class="muted small">Library ID 1187 4420 9931 · last checked 2 h ago</span>
+      <div class="dacts"><button class="btn lime block" data-a="use" data-id="${a.id}">Use as champion</button><button class="btn block" data-a="save" data-id="${a.id}" aria-pressed="${saved}">${saved ? "Saved" : "Save"}</button></div>
+    </div></div></div>`;
+}
+
+function modalHtml() {
+  if (S.modal === "add") {
+    const full = S.state === "limit";
+    return `<div class="mscrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-h"><div class="row between"><h2 id="m-h">Add a competitor</h2><span class="pill num">${full ? "10" : "4"} of 10</span></div>
+      ${full ? `<div class="alert warn"><div><b>You've reached 10 competitors.</b><span>Remove one below to make room. Their saved ads stay in Saved.</span></div></div>
+        ${COMPS.map((c) => `<div class="sug">${av(c)}<div><b>${c.name}</b><small>${c.active} active ads</small></div><button class="btn sm" data-a="toast" data-m="${c.name} removed">Remove</button></div>`).join("")}`
+      : `<div class="input"><input id="m-paste" placeholder="Facebook page, @ or Ad Library link"><button class="btn sm" data-a="toast" data-m="Hush Linen added · first sync started">Add</button></div>
+        <span class="eyebrow">Suggested from your Brain</span>
+        <div class="sug">${av({ name: "Hush Linen", c: "--th-rose" })}<div><b>Hush Linen</b><small>Same category in your Brain · ≈ 8 active ads</small></div><button class="btn sm" data-a="toast" data-m="Hush Linen added · first sync started">Add</button></div>`}
+      <div class="acts"><button class="btn" data-a="mclose">Done</button></div></div></div>`;
+  }
+  if (S.modal === "fsheet") {
+    const segs = (k, opts) => `<div class="seg" role="group" style="display:flex">${opts.map(([v, l]) => `<button style="flex:1" data-a="f" data-k="${k}" data-v="${v}" aria-pressed="${S[k] === v}">${l}</button>`).join("")}</div>`;
+    return `<div class="mscrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="fs-h"><h2 id="fs-h">Filters</h2>
+      <div class="fgrid"><label>Status ${segs("status", [["active", "Active"], ["all", "All"], ["inactive", "Inactive"]])}</label>
+      <label>Format ${segs("fmt", [["all", "All"], ["video", "Video"], ["image", "Image"]])}</label>
+      <label>Running for ${segs("age", [["any", "Any"], ["7", "7+ d"], ["30", "30+ d"], ["90", "90+ d"]])}</label>
+      <label for="fs-c">Country <select class="sel" id="fs-c"><option>United States</option><option>Brazil</option></select></label>
+      <label for="fs-l">Language <select class="sel" id="fs-l"><option>Any language</option><option>English</option></select></label></div>
+      <div class="acts"><button class="btn ghost" data-a="clear">Clear</button><button class="btn ink" data-a="mclose">Show ${filtered().length} ads</button></div></div></div>`;
+  }
+  return "";
+}
+
+/* ---------- shell ---------- */
+function navItems() {
+  const it = (k, l, extra = "") => `<button class="nav ${k === (S.screen === "handoff" ? "templates" : "radar") ? "on" : ""}" data-a="nav" data-s="${k}"><span class="ic"></span>${l}${extra}</button>`;
+  return `<div class="grp">Workspace</div>${it("home", "Home")}${it("campaigns", "Campaigns")}${it("eddy", "Eddy", '<span class="soon">Soon</span>')}${it("brain", "Brain")}
+    <div class="grp">Make ads</div>${it("radar", "Ad Radar", S.state === "syncing" ? '<span class="nbadge">syncing</span>' : "")}${it("templates", "Templates")}${it("concepts", "New concepts")}${it("review", "Review")}${it("library", "Library")}`;
+}
+function render() {
+  const d = document.getElementById("device"), st = document.getElementById("stage");
+  d.className = "device " + S.view; st.className = "stage" + (phone() ? " phone" : "");
+  const scr = S.state === "first" && S.screen === "feed" ? scrFirst() : S.screen === "handoff" ? scrHandoff() : scrFeed();
+  const ws = `<div class="ws"><b>${NAME}</b><small><i></i>Meta synced 4 min ago</small></div>`;
+  if (phone()) {
+    d.innerHTML = `<div class="topbar"><span class="logo" style="padding:0"><i></i></span>${ws}<span class="cpill">38 cr</span><button class="menu" data-a="navsheet" aria-label="Menu">≡</button></div>
+      ${S.nav ? `<div class="navsheet">${navItems()}</div>` : ""}<div class="scroll" id="scroll">${scr}</div>`;
+  } else {
+    d.innerHTML = `<nav class="side"><div class="logo"><i></i>HookMill</div>${ws}${navItems()}<div class="foot"><div class="meter"><div class="top"><span>Balance</span><b class="num">38</b></div><button>Get credits</button></div></div></nav><div class="scroll" id="scroll">${scr}</div>`;
+  }
+  if (S.detail) d.insertAdjacentHTML("beforeend", detailHtml());
+  if (S.modal) d.insertAdjacentHTML("beforeend", modalHtml());
+  if (S.toast) d.insertAdjacentHTML("beforeend", `<div class="toast" role="status">${esc(S.toast)}</div>`);
+}
+let tt, rt;
+function toast(m) { S.toast = m; render(); clearTimeout(tt); tt = setTimeout(() => { S.toast = ""; render() }, 2200) }
+function startRead() { clearInterval(rt); S.read = 0; rt = setInterval(() => { S.read++; render(); if (S.read >= 4) clearInterval(rt) }, 1300) }
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-a]"); if (!el) return;
+  const a = el.dataset.a, id = +el.dataset.id;
+  if (a === "close-bg" && e.target !== el) return;
+  switch (a) {
+    case "pick": S.picked.has(el.dataset.id) ? S.picked.delete(el.dataset.id) : S.picked.add(el.dataset.id); break;
+    case "pasteerr": S.pasteErr = true; break;
+    case "paste": S.pasteErr = true; break;
+    case "start": S.state = "syncing"; document.getElementById("p-state").value = "syncing"; break;
+    case "comp": S.comp = el.dataset.id || null; break;
+    case "tab": S.tab = el.dataset.v; break;
+    case "f": S[el.dataset.k] = el.dataset.v; break;
+    case "clear": S.status = "all"; S.fmt = "all"; S.age = "any"; S.comp = null; if (S.state === "nomatch") { S.state = "ready"; document.getElementById("p-state").value = "ready" } S.modal = null; break;
+    case "open": if (phone() || S.playing === id) { S.detail = id; S.ver = 0; S.playing = null } else { S.detail = id; S.ver = 0 } break;
+    case "close": case "close-bg": S.detail = null; break;
+    case "ver": S.ver = +el.dataset.v; break;
+    case "save": S.saved.has(id) ? S.saved.delete(id) : S.saved.add(id); toast(S.saved.has(id) ? "Saved · also in Templates › Saved ads" : "Removed from Saved"); return;
+    case "use": S.detail = null; S.handoff = id; S.screen = "handoff"; startRead(); break;
+    case "back": S.screen = "feed"; clearInterval(rt); break;
+    case "add": S.modal = "add"; break;
+    case "fsheet": S.modal = "fsheet"; break;
+    case "mclose": S.modal = null; break;
+    case "navsheet": S.nav = !S.nav; break;
+    case "nav": S.nav = false; if (el.dataset.s === "radar") { S.screen = "feed" } else { toast("Only Ad Radar is in this mockup"); return } break;
+    case "toast": S.modal = null; toast(el.dataset.m); return;
+    default: return;
+  }
+  render();
+});
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.id === "p-view") { S.view = t.value; S.nav = false }
+  else if (t.id === "p-state") { S.state = t.value; S.screen = "feed"; S.detail = null; S.modal = null; S.comp = t.value === "noads" ? "dw" : null; S.tab = "all"; S.status = "active"; S.fmt = "all"; S.age = "any" }
+  else if (t.dataset.a === "sort") S.sort = t.value;
+  else if (t.dataset.a === "age") S.age = t.value;
+  else return;
+  render();
+});
+/* hover preview: plays muted on desktop */
+document.addEventListener("mouseover", (e) => { if (phone()) return; const c = e.target.closest(".ad"); const id = c ? +c.dataset.id : null; const ad = ADS.find((x) => x.id === id); const next = ad && ad.fmt === "video" ? id : null; if (next !== S.playing) { S.playing = next; document.querySelectorAll(".ad").forEach((n) => n.classList.toggle("playing", +n.dataset.id === next)) } });
+render();
+</script>

@@ -1,0 +1,9 @@
+{
+  "previousPid": 5043,
+  "pid": 50251,
+  "configStatusWithoutAuth": 401,
+  "mode": "previous-stable-build-plus-semantic-module",
+  "logPath": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes/.cache/semantic-runtime/api.log",
+  "displaced": "/Users/gustagoat/Documents/AIS-OS/projects/maquina-anuncios/testes/.cache/semantic-runtime/unpromoted-dist-1793779907782",
+  "at": "2026-11-04T08:11:48.309Z"
+}

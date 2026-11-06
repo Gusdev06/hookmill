@@ -1,0 +1,28 @@
+{
+  "statuses": [
+    500,
+    200,
+    500,
+    500
+  ],
+  "errors": [
+    {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    },
+    null,
+    {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    },
+    {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong.",
+      "statusCode": 500
+    }
+  ],
+  "before": 5,
+  "after": 7
+}

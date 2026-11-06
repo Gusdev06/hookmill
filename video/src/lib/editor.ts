@@ -4,11 +4,14 @@
 //   apagadas, correção de palavra, camadas com posição/tempo/texto/estilo). Doc nulo/vazio = props de hoje, sem `layers`.
 // - validarDoc(doc, fonte) -> { field, rule }[] (regras do §5.4) · normalizarDoc(doc, fonte[, settings]) -> doc | null.
 // Tipos do EditDoc/ScratchSource: espelho do contrato até o @maquina/contratos exportar `editor.ts` (F0).
+// Editor universal F-U1 (04/11): as funções aceitam o doc v1 OU o v3 (`AnyEditDoc`, editor-universal-v1 §13): o v3 do
+// criativo do zero só usa clips/layers/captionWords (trim sempre null). O resto do v3 mora em ./editor/.
 import { CTA_SEC, FPS, GANCHO_SEC, type VideoFormat } from './formatos';
 import { FONT_CATALOG, type FontId } from './remix';
 import type { CriativoProps, LayerStyle, LayerTransform, Palavra, ResolvedLayer, TemplateId } from './schema';
 import { templatePorId } from './templates';
 import { framesDasCenas } from './tempo';
+import type { AnyEditDoc, EditDocV3 } from './editor/tipos';
 
 export type { LayerStyle, LayerTransform, ResolvedLayer } from './schema';
 
@@ -188,7 +191,7 @@ export const corteDaCena = (durationSec: number, clip: Pick<EditClip, 'inSec' | 
   return { inSec, outSec, inteiro: inSec === 0 && outSec === durationSec };
 };
 
-const docVazio = (doc: EditDoc | null | undefined): boolean =>
+const docVazio = (doc: AnyEditDoc | null | undefined): boolean =>
   !doc || ((doc.clips?.length ?? 0) === 0 && (doc.layers?.length ?? 0) === 0 && (doc.captionWords?.length ?? 0) === 0 && !doc.trim);
 
 // ---- Camadas: doc -> ResolvedLayer ---------------------------------------------------------------------------------
@@ -242,7 +245,7 @@ const resolverCamadas = (props: CriativoProps, layers: EditDocLayer[], fps: numb
  * Mantido pra página de teste do web; o caminho oficial é `resolverProps`. Cortes e correções de palavra precisam da
  * fonte (sceneId/attempt), por isso ficam só no resolverProps.
  */
-export const aplicarDoc = (props: CriativoProps, doc: EditDoc | null | undefined, fps: number = FPS): CriativoProps => {
+export const aplicarDoc = (props: CriativoProps, doc: AnyEditDoc | null | undefined, fps: number = FPS): CriativoProps => {
   if (docVazio(doc)) return props;
   const layers = resolverCamadas(props, doc!.layers ?? [], fps);
   return layers ? { ...props, layers } : props;
@@ -348,7 +351,7 @@ const emendarFatias = (pedacos: Pedaco[]): CriativoProps['scenes'] => {
  * API pro RenderInput (+ renderId/fps). Doc nulo ou vazio = exatamente as props de hoje (sem `layers`, cenas como vieram).
  * Tolerante: nunca lança por causa do doc (o que é inválido vira padrão); lança só com template desconhecido.
  */
-export const resolverProps = (fonte: ScratchSource, settings: EditSettingsLike, doc: EditDoc | null | undefined): CriativoProps => {
+export const resolverProps = (fonte: ScratchSource, settings: EditSettingsLike, doc: AnyEditDoc | null | undefined): CriativoProps => {
   if (settings.templateId !== 'clean' && settings.templateId !== 'bold' && settings.templateId !== 'headline') {
     throw new Error(`resolverProps: template ${settings.templateId} não é do criativo do zero (remix-keep usa resolverRemix)`);
   }
@@ -380,7 +383,7 @@ export const resolverProps = (fonte: ScratchSource, settings: EditSettingsLike, 
 const tamanhoEmBytes = (v: unknown) => new TextEncoder().encode(JSON.stringify(v) ?? '').length;
 
 /** Regras semânticas do §5.4 (a forma e as faixas numéricas ficam no DTO). Lista vazia = doc aceito. */
-export const validarDoc = (doc: EditDoc | null | undefined, fonte: ScratchSource): EditDocError[] => {
+export const validarDoc = (doc: AnyEditDoc | null | undefined, fonte: ScratchSource): EditDocError[] => {
   if (!doc) return [];
   const erros: EditDocError[] = [];
   const err = (field: string, rule: EditDocRule) => erros.push({ field, rule });
@@ -458,7 +461,10 @@ const igualJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringi
  * `clips` que só repete a ordem original inteira e ativa vira []. Doc que sobra vazio = null (= render de hoje).
  * `settings` (opcional, extensão do §7.2): com ele, `style`/`transform`/`timing`/`text` iguais ao padrão do template também saem.
  */
-export const normalizarDoc = (doc: EditDoc | null | undefined, fonte: ScratchSource, settings?: EditSettingsLike): EditDoc | null => {
+export function normalizarDoc(doc: EditDoc | null | undefined, fonte: ScratchSource, settings?: EditSettingsLike): EditDoc | null;
+export function normalizarDoc(doc: EditDocV3 | null | undefined, fonte: ScratchSource, settings?: EditSettingsLike): EditDocV3 | null;
+export function normalizarDoc(doc: AnyEditDoc | null | undefined, fonte: ScratchSource, settings?: EditSettingsLike): AnyEditDoc | null;
+export function normalizarDoc(doc: AnyEditDoc | null | undefined, fonte: ScratchSource, settings?: EditSettingsLike): AnyEditDoc | null {
   if (!doc) return null;
   const fps = fonte.fps || FPS;
   const ordemOriginal = [...fonte.scenes].sort((a, b) => a.index - b.index);
@@ -548,5 +554,6 @@ export const normalizarDoc = (doc: EditDoc | null | undefined, fonte: ScratchSou
   const captionWords = [...porChave.values()];
 
   if (!clips.length && !layers.length && !captionWords.length) return null;
-  return { version: 1, clips, trim: null, layers, captionWords };
-};
+  // v3 entra e sai v3 (F-U2: o PUT do criativo do zero passa a gravar v3); v1 continua v1
+  return doc.version === 3 ? { version: 3, clips, trim: null, layers, captionWords } : { version: 1, clips, trim: null, layers, captionWords };
+}

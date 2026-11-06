@@ -111,7 +111,7 @@ export class MetaImportService {
       await this.jobs.stage(jobId, 'fetching_video', STAGE_PROGRESS.fetching_video);
       let source: { sourceUrl: string };
       try {
-        source = await this.meta.videoSource(metaAuthOf(conn, this.config), ad.videoId, { adAccountId: conn.adAccountId, pageId: conn.pageId });
+        source = await this.meta.videoSource(metaAuthOf(conn, this.config), ad.videoId, { adAccountId: ad.adAccountId, pageId: conn.pageId, metaAdId: c.metaAdId });
       } catch (e) {
         if (isMetaError(e)) {
           this.log.warn(`vídeo ${ad.videoId} do anúncio ${c.metaAdId} indisponível: ${e.failDetail ?? e.code}`);

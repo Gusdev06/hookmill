@@ -1,0 +1,25 @@
+HM
+Q
+QA Alfa
+Unlimited
+Settings
+›
+Meta
+›
+Publish templates
+Publish templates
+Mock Store (USD) (act_mock_1)
+Import from a campaign
+New template
+
+Set once how HookMill creates campaigns, ad sets and ads in your account. Every "Send to Meta" uses the default template unless you pick another one.
+
+Hunt Sales
+Default
+Edit
+Campaign "Hunt — {offer}" · Sales · CBO $40.00/day · Purchase · US 18–65 · Advantage+ audience · auto placements · 4–8 ads
+Hunt UI imported
+Imported
+Edit
+Campaign "HookMill — {offer}" · Sales · CBO $50.00/day · Purchase · 7 days · US, CA 25–54 · EN · audiences +1 −1 · 3 manual placements · 4–8 ads
+Template “Hunt UI imported” saved

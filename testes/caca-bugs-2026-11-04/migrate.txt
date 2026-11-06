@@ -1,0 +1,45 @@
+Environment variables loaded from .env
+Prisma schema loaded from api/prisma/schema.prisma
+Datasource "db": PostgreSQL database "maquina_e2e_test", schema "public" at "localhost:5433"
+
+33 migrations found in prisma/migrations
+
+Applying migration `20261028000100_result_type`
+Applying migration `20261028000200_iterate_templates`
+Applying migration `20261028000300_iterate_preferences`
+Applying migration `20261029000100_target_cpa`
+Applying migration `20261029000200_amostra_e_meta_templates`
+Applying migration `20261031000100_kit_marca`
+Applying migration `20261031000200_templates_creditos`
+Applying migration `20261031000300_onboarding_confirmed`
+Applying migration `20261101000100_templates_cold_open_endcard`
+Applying migration `20261104000100_templates_selection`
+Applying migration `20261104000200_meta_publication_template_snapshot`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261028000100_result_type/
+    └─ migration.sql
+  └─ 20261028000200_iterate_templates/
+    └─ migration.sql
+  └─ 20261028000300_iterate_preferences/
+    └─ migration.sql
+  └─ 20261029000100_target_cpa/
+    └─ migration.sql
+  └─ 20261029000200_amostra_e_meta_templates/
+    └─ migration.sql
+  └─ 20261031000100_kit_marca/
+    └─ migration.sql
+  └─ 20261031000200_templates_creditos/
+    └─ migration.sql
+  └─ 20261031000300_onboarding_confirmed/
+    └─ migration.sql
+  └─ 20261101000100_templates_cold_open_endcard/
+    └─ migration.sql
+  └─ 20261104000100_templates_selection/
+    └─ migration.sql
+  └─ 20261104000200_meta_publication_template_snapshot/
+    └─ migration.sql
+      
+All migrations have been successfully applied.

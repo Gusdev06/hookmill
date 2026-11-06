@@ -1,7 +1,7 @@
 // Contrato do módulo render (maquina-video). docs/contratos/estrutura.md §2.2 + feature-2-variar-campeao.md §13.6.
 // Só o maquina-arquiteto muda o contrato; o backend importa os tipos daqui.
 import type { AutoVariationType, EndcardVariant, Rect, TextStyle } from '@maquina/contratos';
-import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, ResolvedLayer, TemplateProps } from '@maquina/video';
+import type { CaptionsAuto, FaixaNaSaida, MolduraProps, ProtectedBand, RemixKeepProps, ResolvedLayer, TemplateProps } from '@maquina/video';
 
 /** Criativo do zero (templates clean/bold/headline). `kind` opcional: ausente = scratch (compatível com o v1). */
 export interface ScratchRenderInput {
@@ -34,6 +34,11 @@ export interface RemixKeepRenderInput {
   language?: string;
   /** 26/10: faixa da legenda queimada no vídeo renderizado (px da saída, tempo da peça), pra checagem por visão */
   outputProtectedBands?: FaixaNaSaida[];
+  /** editor universal F-U2 (RemixKeepProps): rosto principal na grade, pro auto reframe numa caixa nova; a composição ignora */
+  faceHint?: Rect;
+  /** editor universal F-U2 (RemixKeepProps.edicao): `inFrame` = quadro do campeão que vira o 0 (a peça final corta áudio e base);
+   *  com `pintura`, a saída é o render inteiro (o vídeo saiu do lugar, não dá pra compor por máscara sobre o campeão) */
+  edicao?: RemixKeepProps['edicao'];
   /** §13.15.4 (B) ENGINE_VOICE: áudio = campeão com cada span [start, end) trocado pela voz do arquivo `url` (do instante 0
    *  dele, cortada no tamanho do span), crossfade de `fadeMs` (10) nas bordas, AAC 192 kbps. Ausente = -c:a copy. */
   audioSplice?: { spans: { startFrame: number; endFrame: number; url: string }[]; fadeMs: number };
@@ -98,7 +103,9 @@ export type FrameRenderInput = { kind: 'frame'; renderId: string; templateId: 'f
 /** iterate-v2-quiz-templates-ia F1.4 (28/10): template grátis (composição `Template` do @maquina/video), montado pelo
  *  `buildTemplateInput` (./template.ts). Corpo = TemplateProps do video: `templateId` 'chat-dm' | 'person-motion', só 9:16,
  *  marca (monograma, nunca logo), paleta, safeArea, SFX do bundle, duração calculada e os `checkpoints` da checagem por visão.
- *  `chat-dm` não baixa mídia nenhuma; `person-motion` usa a URL assinada do campeão (rosto e voz dele). */
+ *  `chat-dm` não baixa mídia nenhuma; `person-motion` usa a URL assinada do campeão (rosto e voz dele).
+ *  templates-lista-v1 §3.1 (04/11): + `versus`/`value-stack` com `format` 9:16/4:5/1:1 e `props: ListOverlayProps` (espelho
+ *  automático: o tipo vem do `templateSchema` do video; vídeo inteiro do campeão com áudio, URL assinada). */
 export type TemplateRenderInput = { kind: 'template'; renderId: string } & TemplateProps;
 
 export type RenderInput = ScratchRenderInput | RemixKeepRenderInput | AutoEditRenderInput | FrameRenderInput | TemplateRenderInput;

@@ -50,7 +50,17 @@
     "render_failed": "Render falhou",
     "render_ready": "Pronto pra revisar",
     "approved": "Aprovado",
-    "draft": "Rascunho"
+    "draft": "Rascunho",
+    "scenes_generating_short": "Gerando cenas",
+    "scenes_failed_short": "Algumas cenas falharam",
+    "rendering_short": "Renderizando",
+    "batch_analyzing": "Lendo o anúncio",
+    "batch_planning": "Planejando variações",
+    "batch_plan_ready": "Plano pronto",
+    "batch_failed": "Precisa de ajuste",
+    "batch_generating": "Gerando peças",
+    "batch_pieces_ready": "{n, plural, one {# peça pronta} other {# peças prontas}}",
+    "batch_done": "Concluído"
   },
   "home": {
     "title": "Home",
@@ -156,7 +166,109 @@
       "allIn": "Está tudo dentro.",
       "fill": "Preencher no Cérebro"
     },
-    "seeAllWaiting": "Ver todos ({count})"
+    "seeAllWaiting": "Ver todos ({count})",
+    "hello": {
+      "morning": "Bom dia, {name}",
+      "afternoon": "Boa tarde, {name}",
+      "evening": "Boa noite, {name}",
+      "plain": "Olá, {name}"
+    },
+    "resultNoun": {
+      "PURCHASE": "compra",
+      "LEAD": "lead",
+      "MESSAGE": "mensagem",
+      "APPOINTMENT": "agendamento",
+      "SIGNUP": "cadastro",
+      "SUBSCRIPTION": "assinatura",
+      "APP_INSTALL": "instalação",
+      "OTHER": "resultado"
+    },
+    "goal": {
+      "label": "Meta · custo por {result}",
+      "none": "Sem faixa alvo",
+      "inTarget": "Na meta · 30 dias",
+      "under": "Abaixo da meta · 30 dias",
+      "over": "{amount} acima",
+      "noResults": "Sem resultados em 30 dias",
+      "reading": "Lendo…",
+      "noMeta": "O número real aparece aqui quando a Meta estiver conectada.",
+      "noTarget": "Defina a faixa alvo em Marca pra ver este número contra ela.",
+      "spendCap": "Gasto {spend} de {cap} de teto",
+      "spend": "Gasto {spend} em 30 dias",
+      "roas": "ROAS {roas}x",
+      "meter": "Custo por {result} da conta {cpa} contra a faixa alvo de {min} a {max}",
+      "lastData": "Último dado em {date}",
+      "otherCurrency": "A meta está em {target}; a conta reporta em {account}."
+    },
+    "viewBrand": "Ver marca",
+    "brainFull": "Cérebro {pct}% completo",
+    "next": {
+      "title": "Próximos passos",
+      "more": "{count, plural, one {Mostrar mais # passo} other {Mostrar mais # passos}}",
+      "less": "Mostrar menos",
+      "empty": "Nada esperando você. Comece algo novo pela barra lateral.",
+      "iterateT": "Itere seu vencedor",
+      "iterateOfferT": "Melhor anúncio de {offer}",
+      "iterateIn": "{name} está dentro da meta, com CPA de {cpa}.",
+      "iterateBest": "{name} é seu melhor anúncio, com CPA de {cpa}.",
+      "iterateCta": "Iterar este anúncio",
+      "uploadT": "Comece por um anúncio que vende",
+      "uploadB": "Envie um anúncio de vídeo vencedor e receba variações dele.",
+      "uploadCta": "Enviar um anúncio vencedor",
+      "connectT": "Conectar a Meta",
+      "connectB": "Pro Cérebro ler seus anúncios e marcar o vencedor.",
+      "connectCta": "Conectar",
+      "chooseT": "Escolher a conta de anúncios",
+      "chooseB": "A Meta está conectada. Escolha a conta de anúncios e a Página.",
+      "chooseCta": "Escolher",
+      "reconnectT": "Reconectar a Meta",
+      "reconnectB": "A Meta parou de responder {ago}. Os números aqui são de então.",
+      "reconnectB0": "A Meta parou de responder. Reconecte pra voltar a ler seus anúncios.",
+      "reconnectCta": "Reconectar",
+      "readingT": "Lendo seus anúncios",
+      "readingB": "Pode sair, continua sozinho. {done} de {total} anúncios.",
+      "readingB0": "Pode sair, continua sozinho.",
+      "brainT": "Completar o Cérebro",
+      "brainB": "{count, plural, one {Falta # item} other {Faltam # itens}}: {items}.",
+      "brainOneT": "Adicionar {item}",
+      "brainOneB": "A última lacuna do Cérebro. Os roteiros ficam mais certeiros com isso.",
+      "fill": "Preencher"
+    },
+    "eddy": {
+      "label": "Pergunte ao Eddy",
+      "placeholder": "Peça ao Eddy pra transformar este briefing em conceitos de anúncio…",
+      "soon": "Em breve",
+      "note": "O Eddy vai receber pedidos assim aqui. Até lá, Próximos passos mostra o que fazer."
+    },
+    "strip": {
+      "title": "Recentes",
+      "all": "Todos os criativos",
+      "empty": "Nada feito ainda. Lotes e conceitos aparecem aqui com a etapa, ao vivo.",
+      "failed": "Não deu pra carregar os criativos recentes"
+    },
+    "conn": {
+      "title": "Conexões",
+      "meta": "Meta",
+      "notConnected": "Não conectada",
+      "on": "Ativa",
+      "attention": "Precisa de atenção",
+      "choose": "Escolher conta",
+      "connect": "Conectar",
+      "synced": "sincronizada {ago}",
+      "off": "Indisponível neste servidor",
+      "loading": "Verificando…"
+    },
+    "stage": {
+      "open": "Abrir Cérebro",
+      "winner": "Vencedor · CPA {cpa}",
+      "winnerNoCpa": "Vencedor",
+      "waiting": "Esperando você",
+      "waitingWith": "Esperando você · {what}",
+      "nogl": "A visão 3D não está disponível neste navegador. O que está vivo no mapa:",
+      "nothing": "Nada vivo no mapa agora.",
+      "close": "Fechar",
+      "label": "Cérebro de {name}. Use Abrir Cérebro para a lista."
+    }
   },
   "offers": {
     "title": "Ofertas",
@@ -224,6 +336,25 @@
     "markWinner": "Marcar como vencedor",
     "unmarkWinner": "Tirar marca de vencedor",
     "noWinners": "Nenhum vencedor neste filtro ainda.",
+    "uploadedTitle": "Seus anúncios",
+    "uploadedSub": "Vídeos que você subiu e anúncios lidos da Meta. Escolha um pra fazer variações com um template.",
+    "creativesTitle": "Criativos aprovados",
+    "noneInFilter": "Nada neste filtro ainda.",
+    "srcUpload": "Enviado",
+    "srcMeta": "Da Meta",
+    "srcAdLibrary": "Ad Library",
+    "stReading": "Lendo…",
+    "stFailed": "Não deu pra ler",
+    "useInTemplate": "Usar num template",
+    "delete": {
+      "label": "Apagar",
+      "action": "Apagar {name}",
+      "title": "Apagar “{name}”?",
+      "bodyChampion": "Ele sai da Biblioteca e da escolha de anúncio. As variações já feitas a partir dele continuam.",
+      "bodyCreative": "Ele sai da Biblioteca. Anúncios já enviados pra Meta não são afetados.",
+      "confirm": "Apagar",
+      "done": "“{name}” apagado"
+    },
     "emptyTitle": "Nenhum criativo aprovado ainda",
     "emptyBody": "Um criativo chega aqui quando você dá o OK final. Marque os vencedores e os próximos roteiros daquela oferta são escritos com eles em mente.",
     "errorTitle": "Não deu pra carregar a biblioteca",
@@ -292,7 +423,8 @@
       "cancel": "Cancelar",
       "confirm": "Trocar",
       "changed": "Modo da conta: {mode}"
-    }
+    },
+    "capSaved": "Teto mensal salvo"
   },
   "login": {
     "title": "Entrar",
@@ -674,7 +806,17 @@
     "BROLL_UNAVAILABLE": "O clipe de b-roll não está mais disponível. Refazer pega o próximo.",
     "CLEAN_VERSION_MISMATCH": "Não é o mesmo vídeo sem legenda.",
     "CAPTION_COVERED": "Algo tampou a legenda do vídeo. Refazer tenta outro layout.",
-    "CAPTION_PROTECTED": "Este formato tamparia a legenda do vídeo. Deixe de fora."
+    "CAPTION_PROTECTED": "Este formato tamparia a legenda do vídeo. Deixe de fora.",
+    "CAPTION_FORCE_RETIRED": "Essa opção não existe mais. Recarregue a página pra ver suas escolhas.",
+    "HEADLINE_PENDING": "A headline deste vídeo ainda não pode ser reescrita.",
+    "INSUFFICIENT_CREDITS": "Créditos insuficientes pra isso.",
+    "CREDITS_CHANGED": "O custo mudou. Confira e tente de novo.",
+    "TEMPLATE_UNAVAILABLE": "Este template não está disponível agora.",
+    "TEMPLATE_DOESNT_FIT": "Este template não encaixa neste anúncio.",
+    "TEMPLATE_UNPRICED": "Defina um preço antes de deixar no ar.",
+    "TEMPLATE_SELECTION_INVALID": "Confira a seleção: alguns templates não rodam juntos.",
+    "TEXT_INVALID": "Este texto não segue as regras do template.",
+    "EDIT_NOT_SUPPORTED": "Os textos deste template ainda não podem ser editados."
   },
   "template": {
     "clean": "Limpo",
@@ -694,7 +836,7 @@
     "sub": "Você foi convidado como {role} com {email}.",
     "name": "Seu nome",
     "password": "Senha",
-    "passwordHint": "Pelo menos 10 caracteres.",
+    "passwordHint": "Pelo menos 6 caracteres.",
     "submit": "Entrar no espaço",
     "submitting": "Entrando…",
     "invalidTitle": "Esse convite não vale mais",
@@ -1540,7 +1682,11 @@
       "review": "Revisar",
       "library": "Biblioteca",
       "clients": "Todos os clientes",
-      "settings": "Configurações"
+      "settings": "Configurações",
+      "templates": "Templates",
+      "admin": "Admin · Templates",
+      "aiVariations": "Variações com IA",
+      "radar": "Radar de anúncios"
     },
     "groupWorkspace": "Workspace",
     "groupMakeAds": "Fazer anúncios",
@@ -1624,7 +1770,8 @@
   "flow": {
     "names": {
       "iterate": "Iterar um vencedor",
-      "concepts": "Conceitos novos"
+      "concepts": "Conceitos novos",
+      "templates": "Templates"
     },
     "phases": {
       "plan": "Planejar",
@@ -1645,7 +1792,9 @@
       "breakdown": "Diagnóstico",
       "plan": "Plano",
       "analyze": "Analisar",
-      "download": "Baixar"
+      "download": "Baixar",
+      "template": "Template",
+      "ad": "Anúncio"
     },
     "aria": "Passos de {name}",
     "stepOf": "Passo {n} de {total}",
@@ -1797,6 +1946,7 @@
       "readAgain": "Ler o site de novo",
       "readHint": "A leitura leva uns 20 segundos. Ela só preenche campos vazios da oferta, nunca o que você digitou.",
       "saving": "Salvando o que achamos na oferta…",
+      "readingSite": "Lendo o seu site…",
       "readDone": "Site lido. Você confere o que achamos nos passos 3 e 4.",
       "readEmpty": "Site lido, mas sem nada novo pra oferta. Preencha no passo 3.",
       "readFailed": "Não conseguimos ler esse site",
@@ -1805,8 +1955,8 @@
       "name": "Nome do negócio",
       "industry": "Segmento",
       "industryPh": "ex.: Clínica odontológica",
-      "market": "Mercado principal",
-      "marketPh": "ex.: Brasil",
+      "market": "Em qual país você vende?",
+      "marketPh": "País, ex.: Brasil",
       "language": "Idioma do espaço",
       "resultLegend": "O que conta como resultado?",
       "resultHint": "Os anúncios na Meta otimizam por isso e é o que contamos como resultado. A leitura do site já marca um; troque se estiver errado.",
@@ -1895,7 +2045,8 @@
       "soonVoice": "<b>Voz</b>: controles de tom e uma frase com a cara da marca.",
       "soonWords": "<b>Palavras</b> que usamos e que nunca usamos.",
       "soonBrand": "<b>Kit da marca</b>: logo, cores, fontes e a pasta de vídeos.",
-      "continue": "Continuar: metas e limites"
+      "continue": "Continuar: metas e limites",
+      "brandKitOptional": "Opcional. Estáticos e cartões finais usam isso."
     },
     "goals": {
       "title": "Metas e limites",
@@ -1943,7 +2094,7 @@
       "item": {
         "businessType": "o que conta como resultado",
         "industry": "segmento",
-        "market": "mercado",
+        "market": "onde vende",
         "offer": "uma oferta",
         "what": "o que é",
         "promise": "promessa",
@@ -1992,7 +2143,7 @@
     "name": "Seu nome",
     "email": "E-mail de trabalho",
     "password": "Senha",
-    "passwordHint": "Pelo menos 10 caracteres.",
+    "passwordHint": "Pelo menos 6 caracteres.",
     "agencyName": "Nome da agência",
     "optional": "(opcional)",
     "agencyPlaceholder": "Sua agência ou primeiro cliente",
@@ -2005,172 +2156,535 @@
       "emailTaken": "Já existe uma conta com este e-mail.",
       "name": "Digite seu nome (até 120 caracteres).",
       "email": "Digite um e-mail válido.",
-      "password": "Use de 10 a 200 caracteres.",
-      "passwordShort": "Use pelo menos 10 caracteres.",
+      "password": "Use de 6 a 200 caracteres.",
+      "passwordShort": "Use pelo menos 6 caracteres.",
       "agencyName": "Use até 80 caracteres, ou deixe vazio.",
       "rateLimited": "Muitas tentativas. Tente de novo em {sec} s.",
       "closed": "O cadastro está fechado no momento."
     }
   },
   "landing": {
-    "metaTitle": "HookMill · Anúncios em vídeo pra qualquer oferta",
-    "metaDescription": "Faça variações de um anúncio vencedor com rostos e ganchos novos, ou vá da oferta até um MP4 aprovado. Feito pra agências com vários clientes.",
+    "metaTitle": "HookMill · Seus próximos anúncios, feitos a partir do que já vende",
+    "metaDescription": "Suba um anúncio que está funcionando. O HookMill lê por que ele funciona e transforma num lote de ganchos, cortes e formatos novos, prontos pra publicar no Meta. Teste com o seu anúncio, grátis.",
     "nav": {
       "logIn": "Entrar",
       "createAccount": "Criar conta",
       "home": "Início do HookMill",
-      "skip": "Pular para o conteúdo"
+      "skip": "Pular para o conteúdo",
+      "tryFree": "Teste grátis",
+      "main": "Principal",
+      "account": "Conta",
+      "product": "Produto",
+      "agencies": "Para agências",
+      "results": "Resultados",
+      "pricing": "Preços"
     },
     "hero": {
-      "eyebrow": "Mesa de anúncios em vídeo pra agências",
-      "titleA": "Anúncios em vídeo pra qualquer oferta,",
-      "titleB": "feitos a partir dos que já vendem.",
-      "sub": "Suba um anúncio vencedor e receba rostos e ganchos novos num lote só. Ou comece pela oferta e vá do roteiro até um MP4 aprovado. Cada cliente tem um Cérebro, então todo roteiro parte do que você já sabe.",
-      "ctaPrimary": "Criar conta",
-      "ctaSecondary": "Entrar",
-      "note": "Em português e inglês. Funciona no celular."
+      "eyebrow": "Anúncios em vídeo pra qualquer oferta",
+      "titleA": "Seus próximos anúncios,",
+      "titleB": "feitos a partir",
+      "titleMark": "do que já vende.",
+      "sub": "Suba um anúncio que está funcionando. O HookMill lê por que ele funciona e transforma num lote de ganchos, cortes e formatos novos, prontos pra publicar no Meta.",
+      "cta": "Teste com o seu anúncio, grátis",
+      "agencies": "Para agências",
+      "note": "<b>4 variações grátis</b> a partir do seu anúncio. Pague quando quiser mais."
     },
-    "panel": {
-      "label": "Este lote",
+    "collage": {
+      "label": "O que o HookMill mostra (exemplo)",
+      "winner": "Seu vencedor",
+      "read": "Lido",
+      "winnerMeta": "0:20 · fala · talking head",
+      "why": "Por que funciona",
       "example": "Exemplo",
-      "winner": "Vencedor",
-      "winnerNote": "Quebrado em gancho, corpo e CTA",
-      "control": "Controle",
-      "controlNote": "Gancho original, mesmo rosto",
-      "newFace": "Rosto novo",
-      "newHook": "Gancho novo",
-      "ready": "Pronto",
-      "generating": "Gerando",
-      "waiting": "Esperando você",
-      "foot": "Cada um vai pra Revisão. Os aprovados entram na Biblioteca com este nome."
-    },
-    "paths": {
-      "eyebrow": "Como funciona",
-      "title": "Dois caminhos. Os dois terminam num arquivo que você aprovou.",
-      "iterate": {
-        "tag": "Caminho 1",
-        "title": "Variar um vencedor",
-        "sub": "Você já tem um anúncio que vende. Mantenha o que funciona e mude uma coisa por vez.",
-        "steps": [
-          {
-            "t": "Suba o vencedor",
-            "d": "O MP4 do anúncio que está funcionando."
-          },
-          {
-            "t": "Diagnóstico",
-            "d": "Gancho, corpo, CTA e por que segura a atenção, lidos do vídeo."
-          },
-          {
-            "t": "Plano do lote",
-            "d": "Escolha rostos novos, ganchos novos ou os dois. Um controle com o gancho original vem junto."
-          },
-          {
-            "t": "Estimativa",
-            "d": "Quanto o lote custa, antes de rodar qualquer coisa."
-          },
-          {
-            "t": "Geração",
-            "d": "Todas as variações de uma vez. Você vê a etapa real de cada uma."
-          },
-          {
-            "t": "Revisão",
-            "d": "Aprove, refaça ou descarte cada uma e baixe."
-          }
-        ]
-      },
-      "scratch": {
-        "tag": "Caminho 2",
-        "title": "Conceitos novos",
-        "sub": "Ainda sem vencedor, ou oferta nova. Comece pelo briefing e monte o anúncio passo a passo.",
-        "steps": [
-          {
-            "t": "Oferta",
-            "d": "Cole o link da página de vendas ou preencha o briefing à mão."
-          },
-          {
-            "t": "Roteiros",
-            "d": "Escritos a partir do Cérebro do cliente. Edite qualquer linha."
-          },
-          {
-            "t": "Rosto",
-            "d": "Escolha quem fala ou gere opções novas."
-          },
-          {
-            "t": "Motor",
-            "d": "Cenas com áudio nativo, ou avatar com voz e lipsync. O custo aparece aqui."
-          },
-          {
-            "t": "Geração",
-            "d": "Cena por cena, com progresso que dá pra sair e voltar."
-          },
-          {
-            "t": "Edição",
-            "d": "Template, legenda, texto do gancho e CTA, ou o editor de vídeo completo."
-          },
-          {
-            "t": "Revisão",
-            "d": "OK final e download do MP4."
-          }
-        ]
+      "hook": "Gancho",
+      "proof": "Prova",
+      "cta": "CTA",
+      "whyHook": "Abre no meio da conversa: \"Okay, I have to show you this.\"",
+      "whyProof": "Um número dito sem rodeio: \"I saved 400 bucks\" em três semanas.",
+      "whyCta": "\"Links right below\": uma frase, bem no fim.",
+      "plan": "Plano de variações",
+      "planCount": "<n>4</n> de 4",
+      "free": "Grátis",
+      "withAi": "Com IA · plano pago",
+      "newFaces": "rostos novos",
+      "publish": "Modelo de publicação",
+      "default": "Padrão",
+      "budget": "Orçamento",
+      "budgetV": "CBO · menor custo",
+      "adsets": "Conjuntos",
+      "adsetsV": "4 a 8 anúncios cada",
+      "status": "Status",
+      "statusV": "Pausado no Meta",
+      "adsetsLabel": "Anúncios aprovados divididos em conjuntos de 8 e 4",
+      "ads8": "8 anúncios",
+      "ads4": "4 anúncios",
+      "next": "próximo",
+      "reading": "Lendo",
+      "statusDraft": "Rascunho",
+      "pause": "Pausar animação",
+      "play": "Tocar animação",
+      "playPreview": "Tocar prévia",
+      "rail": {
+        "r0": "Lido",
+        "r1": "Lote",
+        "r2": "Modelo",
+        "r3": "Pausado",
+        "c0": "Lendo o seu vencedor…",
+        "c0b": "<b>Gancho, prova e CTA</b> encontrados",
+        "c1": "<b><n>4</n> de 4</b> variações, grátis",
+        "c2": "<b>Conjuntos de 8 e 4</b>, orçamento definido",
+        "c3": "<b>Pausado no Meta</b> até você ligar"
       }
     },
-    "bento": {
-      "eyebrow": "O que tem dentro",
-      "title": "As partes que poupam uma semana por cliente.",
+    "facts": {
+      "label": "O que você recebe",
+      "items": [
+        {
+          "t": "Meta Ads",
+          "d": "Conecte sua conta de anúncios. Publique e leia os resultados."
+        },
+        {
+          "t": "9:16 · 4:5 · 1:1",
+          "d": "Todo anúncio aprovado, nos posicionamentos que o Meta pede."
+        },
+        {
+          "t": "Legenda mantida",
+          "d": "Se o seu anúncio tem legenda, nada do que a gente põe cobre ela."
+        },
+        {
+          "t": "Inglês e português",
+          "d": "Os anúncios saem no idioma da sua oferta. Funciona no celular."
+        }
+      ]
+    },
+    "vision": {
+      "eyebrow": "Como a gente vê",
+      "title": "O olho é seu. A produção é do HookMill.",
+      "lede": "Você sabe qual anúncio vende e por quê. Transformar um vencedor em doze testes levava uma semana de editor. Agora leva um lote.",
+      "label": "Quem faz o quê",
+      "you": "Você",
+      "hm": "HookMill",
+      "youItems": [
+        "Escolhe o vencedor",
+        "Diz pra que é o lote",
+        "Aprova ou descarta cada anúncio",
+        "Liga a campanha"
+      ],
+      "hmItems": [
+        "Lê o anúncio e a sua marca",
+        "Planeja as variações e diz por quê",
+        "Renderiza, legenda, formata",
+        "Publica pausado no Meta"
+      ]
+    },
+    "examples": {
+      "eyebrow": "Exemplos reais",
+      "title": "Um anúncio que funciona. Todos os templates.",
+      "lede": "Cada vídeo abaixo foi feito pelo HookMill a partir do mesmo anúncio de 20 segundos à esquerda. Sem gravar de novo, sem editor: escolha os templates e aperte Gerar.",
+      "label": "Exemplos de templates",
+      "champion": "O anúncio campeão (original)",
+      "items": [
+        {
+          "slug": "breaking-news",
+          "name": "Notícia urgente"
+        },
+        {
+          "slug": "meme-pov",
+          "name": "Meme POV"
+        },
+        {
+          "slug": "post-card",
+          "name": "Post card"
+        },
+        {
+          "slug": "question-box",
+          "name": "Caixa de pergunta"
+        },
+        {
+          "slug": "top-5",
+          "name": "Top 5"
+        },
+        {
+          "slug": "live",
+          "name": "Live"
+        },
+        {
+          "slug": "call",
+          "name": "Chamada"
+        },
+        {
+          "slug": "cinema",
+          "name": "Cinema"
+        },
+        {
+          "slug": "story",
+          "name": "Story"
+        },
+        {
+          "slug": "read-the-caption",
+          "name": "Leia a legenda"
+        },
+        {
+          "slug": "pov-testimonial",
+          "name": "Depoimento POV"
+        },
+        {
+          "slug": "direct-offer",
+          "name": "Oferta direta"
+        },
+        {
+          "slug": "split-screen",
+          "name": "Tela dividida"
+        },
+        {
+          "slug": "split-torn",
+          "name": "Tela rasgada"
+        },
+        {
+          "slug": "meet-dialog",
+          "name": "Diálogo em chamada"
+        },
+        {
+          "slug": "gossip-page",
+          "name": "Página de fofoca"
+        },
+        {
+          "slug": "gossip-white",
+          "name": "Fofoca branca"
+        },
+        {
+          "slug": "gossip-pink",
+          "name": "Fofoca rosa"
+        },
+        {
+          "slug": "new-headline",
+          "name": "Headline nova"
+        },
+        {
+          "slug": "native-search",
+          "name": "Busca nativa"
+        },
+        {
+          "slug": "chat-dm",
+          "name": "Chat DM"
+        },
+        {
+          "slug": "person-motion",
+          "name": "Pessoa + motion"
+        }
+      ]
+    },
+    "numbers": {
+      "eyebrow": "Em números",
+      "title": "O que um anúncio te rende.",
+      "items": [
+        {
+          "d": "variações do seu próprio anúncio na amostra grátis, cada uma com prévia pra assistir."
+        },
+        {
+          "d": "variações num lote só, no plano pago, sem gastar um centavo com geração de IA."
+        }
+      ],
+      "multiplyLabel": "Um vencedor no meio, doze variações em volta (exemplo)",
+      "champion": "Vencedor",
+      "formatsLabel": "Formatos de variação",
+      "formats": [
+        "Headline",
+        "Moldura",
+        "Chat DM",
+        "Person motion",
+        "Rosto novo",
+        "Persona",
+        "Remix",
+        "9:16",
+        "4:5",
+        "1:1"
+      ]
+    },
+    "flow": {
+      "eyebrow": "O ciclo inteiro",
+      "title": "Uma mesa só, do anúncio que funciona ao próximo que vai funcionar.",
+      "stages": [
+        {
+          "t": "Cérebro da marca",
+          "d": "Cole o seu site. O HookMill lê o negócio, a oferta, quem compra e as provas que você tem, e guarda tudo como o Cérebro de onde todo roteiro parte.",
+          "feats": [
+            "Lido do seu site",
+            "Oferta, público, prova",
+            "Suas próprias instruções"
+          ]
+        },
+        {
+          "t": "Raio-x do anúncio",
+          "d": "Suba o anúncio que está vendendo. O HookMill marca o gancho, a prova e a chamada na linha do tempo e escreve por que cada um prende a atenção.",
+          "feats": [
+            "Gancho, prova, CTA",
+            "Lido do vídeo",
+            "Legenda queimada achada"
+          ]
+        },
+        {
+          "t": "Variações",
+          "d": "Diga pra que é o lote. Variações de template reaproveitam o seu próprio vídeo e são grátis. Variações com IA trazem rostos e formatos novos no plano pago. Cada uma vem com o motivo.",
+          "feats": [
+            "Templates grátis",
+            "Variações com IA",
+            "Sua legenda mantida"
+          ]
+        },
+        {
+          "t": "Conceitos novos",
+          "d": "Ainda sem vencedor, ou oferta nova. Vá passo a passo do briefing ao vídeo aprovado e veja a etapa real enquanto renderiza. Pode sair e voltar.",
+          "feats": [
+            "Roteiros do Cérebro",
+            "Escolha quem fala",
+            "Custo antes de rodar"
+          ]
+        },
+        {
+          "t": "Revisão e formatos",
+          "d": "Aprove, refaça ou descarte cada anúncio. Os aprovados saem em todos os tamanhos de posicionamento e com um nome que a sua conta de anúncios reconhece depois.",
+          "feats": [
+            "9:16, 4:5, 1:1",
+            "Nomes de arquivo padrão",
+            "Baixe em zip"
+          ]
+        },
+        {
+          "t": "Publicar no Meta",
+          "d": "Salve uma vez como você publica: orçamento, conjuntos, público, texto. Ou importe de uma campanha que já está rodando. Todo lote aprovado entra pausado, dividido em conjuntos.",
+          "feats": [
+            "CBO, 4–8 anúncios por conjunto",
+            "Importe uma campanha",
+            "Entra pausado"
+          ]
+        },
+        {
+          "t": "Resultados",
+          "d": "Com o Meta conectado, cada anúncio mostra o CPA contra a faixa que você definiu. Os que ficam abaixo são seus próximos vencedores, a um clique de um lote novo.",
+          "feats": [
+            "CPA vs. sua faixa alvo",
+            "Vencedores marcados",
+            "De volta à etapa 02"
+          ]
+        }
+      ],
+      "example": "Exemplo",
       "brain": {
-        "title": "Um Cérebro pra cada cliente",
-        "body": "Negócio, oferta, público, provas e suas instruções num lugar só. Todo roteiro sai dele. Marque os anúncios que vencem e os roteiros novos da mesma oferta aprendem com eles.",
+        "title": "Cérebro · Mooncloth",
+        "read": "Lido",
+        "filled": "Preenchido",
+        "partial": "Parcial",
         "rows": [
-          "Negócio e oferta",
-          "Público",
-          "Provas",
-          "Instruções",
-          "Metas"
-        ],
-        "ok": "Completo",
-        "partial": "Parcial"
-      },
-      "names": {
-        "title": "Arquivos com nome pronto pra conta de anúncios",
-        "body": "Todo MP4 aprovado ganha um nome padrão, pra casar o resultado com o criativo depois.",
-        "parts": [
-          "Cliente",
-          "Caminho",
-          "Data",
-          "Roteiro",
-          "Rosto",
-          "Formato"
+          {
+            "t": "Negócio e oferta",
+            "s": "do site",
+            "ok": true
+          },
+          {
+            "t": "Público",
+            "s": "do site",
+            "ok": true
+          },
+          {
+            "t": "Prova",
+            "s": "2 achadas, adicione mais",
+            "ok": false
+          },
+          {
+            "t": "Metas",
+            "s": "CPA alvo US$ 18–24",
+            "ok": true
+          }
         ]
       },
-      "wait": {
-        "title": "Espera que dá pra ler",
-        "body": "A etapa real, quantos já ficaram prontos e o que falta. Feche a aba e volte; continua rodando.",
+      "breakdown": {
+        "hook": "GANCHO",
+        "proof": "PROVA",
+        "cta": "CTA",
+        "reasons": [
+          {
+            "t": "Gancho",
+            "d": "Uma pergunta que a compradora se faz à noite. Dita nos 2 primeiros segundos, antes de qualquer produto.",
+            "at": "0:00–0:03"
+          },
+          {
+            "t": "Prova",
+            "d": "A própria nota de sono dela na tela. Número real, sem promessa.",
+            "at": "0:09"
+          },
+          {
+            "t": "CTA",
+            "d": "Uma oferta, dita uma vez e mostrada uma vez: teste de 30 noites.",
+            "at": "0:26"
+          }
+        ]
+      },
+      "variations": {
+        "templates": "Templates",
+        "free": "Grátis",
+        "ai": "Com IA",
+        "paid": "Plano pago",
+        "tpl": [
+          {
+            "c": "HEADLINE-01…03",
+            "d": "Gancho novo em texto sobre a mesma abertura"
+          },
+          {
+            "c": "CUT-01",
+            "d": "Edição mais curta, prova mais cedo"
+          },
+          {
+            "c": "CHAT-DM",
+            "d": "A objeção como DM, respondida pela marca"
+          },
+          {
+            "c": "PERSON-MOTION",
+            "d": "Quem fala, com motion sobre as palavras"
+          }
+        ],
+        "aiItems": [
+          {
+            "c": "AVATAR-FACE ×3",
+            "d": "Mesmo roteiro e voz, rostos novos"
+          },
+          {
+            "c": "AVATAR-PERSONA ×3",
+            "d": "Uma pessoa nova pra cada comprador do Cérebro"
+          },
+          {
+            "c": "REMIX-DISCOVERY",
+            "d": "Roteiro novo, 1 vídeo e 2 ganchos"
+          }
+        ],
+        "note": "Legenda queimada achada na parte de baixo do quadro. Nenhum template vai cobrir ela."
+      },
+      "concepts": {
+        "steps": [
+          "Oferta",
+          "Roteiros",
+          "Rosto",
+          "Motor",
+          "Gerar",
+          "Editar",
+          "Revisar"
+        ],
         "status": "Gerando · 2 de 5 cenas prontas",
-        "step": "Cena 3 · gerando a voz"
+        "detail": "Cena 3 · gerando a voz · pode fechar esta aba"
       },
-      "editor": {
-        "title": "Editor de verdade quando o template não basta",
-        "body": "Corte clipes, ajuste a legenda palavra por palavra, troque o card final. O export volta pra mesma revisão."
+      "formats": {
+        "label": "Nome do arquivo: cliente, caminho, data, roteiro, rosto, formato"
       },
-      "cost": {
-        "title": "Custo antes de rodar",
-        "body": "Cada criativo mostra a estimativa. Defina um teto mensal por cliente; passou dele, nada é gerado.",
-        "estimate": "Estimativa",
-        "approve": "Aprovar e gerar",
-        "cap": "Teto mensal"
+      "meta": {
+        "title": "Modelo padrão",
+        "default": "Padrão",
+        "campaign": "Campanha",
+        "campaignV": "Testes HookMill · CBO · menor custo",
+        "adset": "Conjunto",
+        "adsetV": "4 a 8 anúncios · EUA · 25–54 · Advantage+",
+        "ad": "Anúncio",
+        "adV": "Texto da oferta · Comprar agora",
+        "imported": "Importado",
+        "importedV": "de \"Sleep · Prospecting · Sep\"",
+        "goesIn": "12 anúncios aprovados entram como",
+        "set1": "Conjunto 1 · 8",
+        "set2": "Conjunto 2 · 4"
+      },
+      "results": {
+        "title": "CPA alvo US$ 18–24",
+        "ad": "Anúncio",
+        "spend": "Gasto",
+        "cpa": "CPA",
+        "vs": "vs. alvo",
+        "winner": "Vencedor",
+        "inRange": "Na faixa",
+        "edge": "No limite",
+        "above": "Acima"
       }
+    },
+    "fn": {
+      "eyebrow": "Por trás de cada lote",
+      "title": "Oito trabalhos que o seu editor fazia na mão.",
+      "items": [
+        {
+          "t": "Leitor de marca",
+          "d": "Transforma o seu site em oferta, público e prova.",
+          "io": "site → Cérebro"
+        },
+        {
+          "t": "Analista de anúncio",
+          "d": "Acha o gancho, a prova e o CTA, e por que seguram.",
+          "io": "vídeo → raio-x"
+        },
+        {
+          "t": "Planejador do lote",
+          "d": "Escolhe as variações que servem ao que você pediu.",
+          "io": "raio-x + respostas → plano"
+        },
+        {
+          "t": "Roteirista",
+          "d": "Escreve ganchos e roteiros a partir do Cérebro, no idioma da oferta.",
+          "io": "Cérebro → roteiros"
+        },
+        {
+          "t": "Guarda da legenda",
+          "d": "Confere cada quadro pra nada cobrir a sua legenda.",
+          "io": "render → conferido"
+        },
+        {
+          "t": "Editor",
+          "d": "Corta, legenda palavra a palavra, ajusta a cada posicionamento.",
+          "io": "plano → MP4s"
+        },
+        {
+          "t": "Gestor de tráfego",
+          "d": "Preenche os conjuntos pelo seu modelo e publica pausado.",
+          "io": "aprovados → Meta"
+        },
+        {
+          "t": "Leitor de desempenho",
+          "d": "Põe o CPA do lado da sua meta e marca os vencedores.",
+          "io": "Meta → vencedores"
+        }
+      ]
+    },
+    "ask": {
+      "eyebrow": "Você decide, ele executa",
+      "title": "Responda uma pergunta. Receba o lote.",
+      "lede": "Nada de prompt pra escrever. Diga pra que é o lote e o HookMill escolhe as variações, diz por quê e renderiza. Mudar a resposta é grátis e na hora.",
+      "label": "Teste a pergunta (exemplo)",
+      "q": "Pra que é este lote?",
+      "group": "Objetivo do lote",
+      "example": "Exemplo",
+      "opts": {
+        "stretch": {
+          "t": "Esticar o vencedor",
+          "d": "Mesmo anúncio, mais ganchos e cortes."
+        },
+        "new": {
+          "t": "Alcançar gente nova",
+          "d": "Formatos diferentes pra mesma oferta."
+        },
+        "both": {
+          "t": "Os dois",
+          "d": "Uma mistura, escolhida pra você."
+        }
+      },
+      "picks": "O HookMill escolhe",
+      "foot": "Amostra grátis: 4 destas, com prévia.",
+      "cta": "Teste com o seu anúncio, grátis"
     },
     "agency": {
-      "eyebrow": "Feito pra agências",
-      "title": "Todos os clientes num lugar só, e eles aprovam os próprios anúncios.",
+      "eyebrow": "Para agências",
+      "title": "Todos os clientes numa mesa só. Eles aprovam os próprios anúncios.",
       "points": [
         {
           "t": "Um espaço por cliente",
-          "d": "Cérebro, Biblioteca e teto de gasto próprios. Troque de cliente pela barra lateral."
+          "d": "Cérebro, biblioteca, conta do Meta e teto de gasto próprios."
         },
         {
           "t": "O que espera você",
-          "d": "A página Clientes mostra quais anúncios e lotes precisam de decisão."
+          "d": "Veja quais lotes e anúncios precisam de decisão, em todos os clientes."
         },
         {
           "t": "Seu time, com papéis",
@@ -2178,52 +2692,51 @@
         },
         {
           "t": "O cliente aprova",
-          "d": "Convide o cliente pra aprovar ou recusar anúncios. Ele não gasta nem muda configurações."
+          "d": "O cliente aprova ou recusa anúncios. Ele não gasta nem muda configurações."
         }
       ],
+      "cta": "Fale com a gente sobre acesso de agência",
       "list": {
         "title": "Clientes",
         "example": "Exemplo",
         "live": "No ar",
         "setup": "Configurando",
-        "waiting": "{n} esperando você",
-        "step": "Onboarding · passo {n} de 6",
+        "waiting": "{n} anúncios esperando você",
+        "step": "Configuração · passo {n} de 6",
         "clientRole": "Cliente · aprova anúncios"
       }
     },
-    "soon": {
-      "eyebrow": "Em breve",
-      "title": "Ainda não está pronto. A gente avisa.",
-      "sub": "No app isso também aparece como Em breve. Nada aqui é contado, cobrado ou fingido.",
-      "badge": "Em breve",
-      "items": [
-        {
-          "t": "Enviar pra Meta",
-          "d": "Subir os anúncios aprovados na conta e ler os resultados todo dia. Depende da conexão com a Meta."
-        },
-        {
-          "t": "Campanhas",
-          "d": "Os resultados da Meta de cada cliente por campanha e anúncio, casados com os nomes dos arquivos."
-        },
-        {
-          "t": "Eddy",
-          "d": "Lê os resultados e diz o que fazer em seguida, em propostas que você aprova."
-        },
-        {
-          "t": "Layout novo e copy nova",
-          "d": "Mais dois tipos de variação: o mesmo material num layout novo, e roteiros novos na mesma edição."
-        }
-      ]
+    "testimonials": {
+      "eyebrow": "O que dizem",
+      "title": "De quem usa no dia a dia.",
+      "items": []
+    },
+    "cases": {
+      "eyebrow": "Resultados",
+      "title": "O que um lote fez pela conta.",
+      "items": []
     },
     "final": {
       "title": "Traga o anúncio que está funcionando.",
-      "sub": "Crie a conta, configure o primeiro cliente e faça o primeiro lote ou o primeiro conceito.",
-      "cta": "Criar conta",
+      "sub": "Suba ele e veja 4 variações com prévia, grátis. Libere quando gostar do que viu.",
+      "cta": "Teste com o seu anúncio, grátis",
       "secondary": "Já tenho conta"
     },
     "footer": {
-      "tagline": "Anúncios em vídeo pra qualquer oferta.",
+      "tagline": "Anúncios em vídeo pra qualquer oferta, feitos a partir dos que já vendem.",
       "language": "Idioma",
+      "product": "Produto",
+      "iterate": "Variar um vencedor",
+      "concepts": "Conceitos novos",
+      "brain": "Cérebro da marca",
+      "publish": "Publicar no Meta",
+      "agencies": "Para agências",
+      "compare": "Comparar",
+      "compareItems": [],
+      "cases": "Cases",
+      "allCases": "Todos os cases",
+      "company": "Empresa",
+      "pricing": "Preços",
       "rights": "© 2026 HookMill"
     }
   },
@@ -2329,7 +2842,9 @@
         "FRAME": "Moldura",
         "HEADLINE": "Headline nova",
         "CHAT_DM": "Chat · conversa no Direct",
-        "PERSON_MOTION": "Pessoa + motion"
+        "PERSON_MOTION": "Pessoa + motion",
+        "LIST_OVERLAY": "Lista · por cima do vídeo",
+        "AI_VIDEO": "Vídeo com IA"
       },
       "thisBatch": "Este lote",
       "pieces": "{n, plural, one {peça} other {peças}}",
@@ -2465,6 +2980,7 @@
         "FRAME_TEXT_OVERFLOW": "O texto da moldura não coube no tamanho mínimo.",
         "BROLL_UNAVAILABLE": "O segundo clipe não está mais disponível. Refazer pega o próximo.",
         "HEADLINE_TOO_LONG": "A headline nova não coube na caixa da original. Deixe de fora.",
+        "HEADLINE_PENDING": "A headline deste vídeo ainda não pode ser reescrita. Deixe de fora.",
         "HEADLINE_NO_ROOM": "Não há espaço livre pra headline neste vídeo. Deixe de fora.",
         "HEADLINE_OVER_FACE": "A headline cobriria o rosto. Deixe de fora.",
         "HEADLINE_LOW_CONFIDENCE": "Não conseguimos ler o estilo da headline original. Deixe de fora.",
@@ -2574,6 +3090,9 @@
       "iterateAgain": "Iterar de novo",
       "pickOffer": "Escolha a oferta primeiro.",
       "seeAll": "Ver os {n} anúncios ativos",
+      "seeAllAds": "Ver todos os anúncios da conta ({n})",
+      "loadMore": "Carregar mais",
+      "showLess": "Mostrar menos",
       "rule": "Vencedor = gasto ≥ US$ {spend}, ≥ {results} resultados, custo por resultado na mediana da conta ou abaixo.",
       "noAds": "Ainda não há anúncios em vídeo com resultado nesta conta.",
       "openRunning": "Abrir — em andamento"
@@ -3016,7 +3535,9 @@
         "OUTCOME_SALES": "Vendas",
         "OUTCOME_LEADS": "Leads",
         "OUTCOME_APP_PROMOTION": "Promoção de app",
-        "OUTCOME_TRAFFIC": "Tráfego"
+        "OUTCOME_TRAFFIC": "Tráfego",
+        "OUTCOME_AWARENESS": "Reconhecimento",
+        "OUTCOME_ENGAGEMENT": "Engajamento"
       },
       "objectiveReason": {
         "business_type": "Pelo tipo de negócio definido na configuração.",
@@ -3166,27 +3687,32 @@
     "counter": "Tour · {n} de {total}",
     "back": "Voltar",
     "next": "Avançar",
-    "finish": "Concluir",
+    "skip": "Pular tour",
+    "finish": "Escolher templates",
+    "finishClient": "Pronto",
     "replay": "Refazer o tour",
+    "tipsReset": "Mostrar as dicas de novo",
+    "tipsResetDone": "As dicas vão aparecer de novo",
     "brain": {
-      "title": "Estamos montando o Cérebro de {name}",
-      "body": "Tudo da configuração já está dentro: negócio, oferta, público, metas. Todo anúncio começa aqui. Quanto mais ele sabe, melhores os anúncios; o que falta leva 5 minutos."
+      "title": "Este é o Cérebro de {name}",
+      "body": "O que lemos do seu site e do setup: kit da marca, cores, oferta, dores e provas. Todo anúncio começa daqui. {missing, plural, =0 {Não falta nada.} one {Falta 1 item; preencha quando puder.} other {Faltam # itens; preencha quando puder.}}",
+      "bodyLoading": "O que lemos do seu site e do setup: kit da marca, cores, oferta, dores e provas. Todo anúncio começa daqui."
     },
-    "iterate": {
-      "title": "Este anúncio já está funcionando",
-      "body": "Da sua conta Meta: o anúncio marcado aqui tem o menor custo por resultado, abaixo da mediana da conta. A vitória mais rápida é fazer mais versões dele. Isso é o Iterar um vencedor."
+    "templates": {
+      "title": "Faça anúncios com templates",
+      "body": "Marque um ou mais templates. Eles rodam num lote só, no anúncio que você escolher, e os créditos somam. Cada card diz se serve antes de você gastar.",
+      "bodyWinner": "O seu vencedor, {ad}, já está fixado: cada card diz se serve pra ele. Marque um ou mais templates; eles rodam num lote só e os créditos somam.",
+      "bodySample": "Você tem {left} usos grátis. Marque até {left} templates de Edição e receba seu primeiro lote: o gancho volta nítido, o resto borrado até você escolher um plano."
     },
-    "concepts": {
-      "title": "Ou comece do zero",
-      "body": "Novos conceitos escreve roteiros a partir do Cérebro, escolhe um rosto, gera as cenas e edita o vídeo. Uns 12 minutos, em segundo plano; você é chamado quando precisa."
+    "credits": {
+      "title": "Seus créditos",
+      "body": "Template de Edição custa 1, Estático 2. O crédito é reservado no Gerar e devolvido se a peça falhar.",
+      "titleSample": "Seus usos grátis",
+      "bodySample": "Restam {left} de {total}. Quando quiser baixar ou enviar pra Meta, compre créditos aqui."
     },
-    "eddy": {
-      "title": "O Eddy vai ler as suas campanhas",
-      "body": "Em breve você pergunta ao Eddy o que está cansando, o que escalar e o que iterar, pelos mesmos números da Home. Ainda não está no ar; aparece na barra lateral quando estiver."
-    },
-    "home": {
-      "title": "A Home é o seu placar",
-      "body": "Gasto, custo por compra, ROAS e os anúncios rodando, da Meta. Os melhores anúncios pra iterar e o que estiver esperando você. É isso. Vá fazer um anúncio."
+    "review": {
+      "title": "Suas aprovações chegam aqui",
+      "body": "Os anúncios que o time fez pra {name} esperam o seu OK aqui. Dá pra assistir, aprovar ou pedir ajuste."
     }
   },
   "brain": {
@@ -3259,7 +3785,7 @@
         "meta_ads": "Anúncios Meta"
       },
       "ghost": {
-        "business": "Vem do setup, passo 1",
+        "business": "Vem do setup, passo 1, ou do kit da marca",
         "offers": "Vem do setup, passo 3",
         "audience": "Vem do setup, passo 4",
         "goals": "Vem do setup, passo 5",
@@ -3295,7 +3821,30 @@
         "made_from": "feito de",
         "published_as": "publicado como",
         "uses_hook": "usa o gancho",
-        "iterated_from": "iterado de"
+        "iterated_from": "iterado de",
+        "in_batch": "no lote",
+        "has_brand": "marca",
+        "has_color": "cor",
+        "has_field": "detalhe",
+        "has_pain": "dor",
+        "has_proof": "prova",
+        "read_from": "lido de"
+      },
+      "kind": {
+        "brand_asset": {
+          "LOGO": "Logo",
+          "FILE": "Arquivo da marca {n}",
+          "DEMO_VIDEO": "Vídeo demo {n}"
+        }
+      },
+      "eyebrow": {
+        "brand_asset": "Kit da marca",
+        "brand_color": "Cor da marca",
+        "offer_field": "Detalhe da oferta",
+        "pain": "Dor",
+        "proof_item": "Prova",
+        "source": "Fonte",
+        "website": "Site"
       },
       "list": {
         "connections": "{count, plural, one {# conexão} other {# conexões}}",
@@ -3324,7 +3873,7 @@
         "field": {
           "businessType": "Tipo de resultado",
           "industry": "Setor",
-          "market": "Mercado",
+          "market": "Em qual país você vende?",
           "websiteUrl": "Site",
           "spendCapUsd": "Teto mensal",
           "defaultResult": "Resultado",
@@ -3337,11 +3886,32 @@
           "audience": "Pra quem é",
           "pains": "Dores",
           "proof": "Prova",
-          "notes": "Voz e o que evitar"
+          "notes": "Voz e o que evitar",
+          "item": "Texto",
+          "position": "{index} de {of}",
+          "offerName": "Oferta",
+          "logo": "Logo",
+          "files": "Arquivos da marca",
+          "demoVideos": "Vídeos de demonstração",
+          "readFrom": "Lido de",
+          "fieldSource": "Da sua página",
+          "imagesRead": "Imagens lidas",
+          "hex": "Cor",
+          "label": "Nome",
+          "mimeType": "Formato",
+          "sizeBytes": "Tamanho",
+          "durationSec": "Duração",
+          "colors": "Cores do logo",
+          "createdAt": "Adicionado em",
+          "url": "Endereço",
+          "roles": "Lido como",
+          "chars": "Texto lido",
+          "readAt": "Lido em",
+          "offers": "Usado por"
         },
         "creatives": "Criativos",
         "winners": "Vencedores",
-        "fromSetup": "Do setup · passo {step} de 6",
+        "fromSetup": "Do setup · passo {step}",
         "editSetup": "Editar no setup",
         "angle": "Ângulo",
         "scripts": "Roteiros",
@@ -3374,7 +3944,10 @@
         "connections": "Conexões",
         "more": "e mais {count}",
         "knowsT": "O que o Cérebro sabe",
-        "knowsBody": "As mesmas 5 seções do setup. Preencha o que falta e cada roteiro novo sai mais certeiro."
+        "knowsBody": "As mesmas 5 seções do setup. Preencha o que falta e cada roteiro novo sai mais certeiro.",
+        "openFile": "Abrir arquivo",
+        "openBrand": "Abrir o kit da marca",
+        "openPage": "Abrir página"
       }
     }
   },
@@ -3718,6 +4291,8 @@
   "captions": {
     "blockedTitle": "{n, plural, one {# formato ficou de fora: o vídeo tem legenda queimada} other {# formatos ficaram de fora: o vídeo tem legenda queimada}}",
     "blockedBody": "Esses layouts não têm espaço seguro fora da legenda original e do rosto. As variações compatíveis já estão no plano.",
+    "headlinePending": "A headline deste vídeo ainda não pode ser reescrita",
+    "headlinePendingBody": "Os outros formatos do plano não mudam.",
     "needsClean": "Este formato precisa do vídeo sem legenda",
     "frameNamed": "Moldura · {name}",
     "afterSend": "Salvo. Os próximos lotes deste vídeo usam a versão sem legenda, então esses formatos podem entrar.",
@@ -3751,14 +4326,311 @@
     "launched": "Esse lote já foi lançado; gere um lote novo com a versão sem legenda.",
     "newBatch": "Novo lote",
     "anotherBatch": "Gerar outro lote com este campeão",
-    "force": "Gerar mesmo assim",
-    "unforce": "Desfazer",
-    "forcedTag": "Cobre a legenda",
-    "blockedOr": "Ou gere mesmo assim: o layout novo vai cobrir a legenda original.",
     "show": "Mostrar",
     "hide": "Esconder"
   },
   "metaTemplates": {
+    "editor": {
+      "crumbAria": "Caminho",
+      "crumbSend": "Publicar na Meta",
+      "crumbSettings": "Configurações",
+      "crumbTemplates": "Templates",
+      "titleNew": "Novo template de campanha",
+      "titleEdit": "Editar template de campanha",
+      "titleView": "Template de campanha",
+      "namePlaceholder": "Dê um nome ao template",
+      "nameAria": "Nome do template",
+      "firstName": "Testes · CBO 4–8 · US",
+      "newName": "Novo template",
+      "campaignNameDefault": "testes HookMill",
+      "copyOf": "Cópia de {name}",
+      "defaultFor": "Padrão de {account}",
+      "import": "Importar de uma campanha",
+      "close": "Fechar",
+      "structure": "Estrutura da campanha",
+      "structureEyebrow": "Estrutura",
+      "levelsAria": "Níveis",
+      "node": {
+        "campaign": "Campanha",
+        "adset": "Conjunto",
+        "ad": "Anúncio"
+      },
+      "newCampaign": "Nova campanha",
+      "adsetTitle": "{min}–{max} anúncios cada",
+      "adsetTitleMany": "{sets} conjuntos · {min}–{max} anúncios cada",
+      "adTitle": "Um por vídeo aprovado",
+      "errorsAria": "{n, plural, one {# erro} other {# erros}}",
+      "planEyebrow": "Com {n, plural, one {# anúncio aprovado} other {# anúncios aprovados}}",
+      "planCampaign": "1 campanha",
+      "planReused": "reaproveitada",
+      "planNew": "nova",
+      "planAdset": "Conjunto {i}",
+      "planAds": "{n, plural, one {# anúncio} other {# anúncios}}",
+      "planAdsBelow": "{n, plural, one {# anúncio} other {# anúncios}} · abaixo de {min}",
+      "paused": "Tudo sobe pausado.",
+      "planAria": "Plano do lote",
+      "planInline": "Com {n, plural, one {# anúncio aprovado} other {# anúncios aprovados}}:",
+      "planChip": "Conjunto {i} · {n}",
+      "planChipShort": "Conjunto {i} · {n} (abaixo de {min})",
+      "importLead": "Já tem uma campanha que funciona?",
+      "importSettings": "Importar as configurações dela",
+      "introTitle": "Defina como seus anúncios sobem na Meta.",
+      "introBody": "Os mesmos passos do Gerenciador. O HookMill salva como template de {account} e usa em toda publicação. Só falta o orçamento.",
+      "introImport": "Importar de uma campanha existente",
+      "copiedTitle": "Copiado de “{name}”. Confira antes de salvar.",
+      "notCopied": "Não copiado: {list}.",
+      "adjusted": "Ajustado: {list}.",
+      "expiredTitle": "A conexão com a Meta expirou.",
+      "expiredBody": "Dá pra ver o template, mas salvar precisa da conexão ativa (os pixels e a Página vêm dela). Suas mudanças ficam aqui enquanto você reconecta.",
+      "reconnect": "Reconectar Meta",
+      "offTitle": "A Meta não está configurada neste servidor",
+      "offBody": "Templates de campanha precisam da conexão com a Meta.",
+      "loadFailed": "Não deu pra abrir o template",
+      "notFoundTitle": "Template não encontrado",
+      "notFoundBody": "Pode ter sido arquivado, ou é de outra conta de anúncios.",
+      "adApplies": "vale pra todo vídeo aprovado do lote",
+      "back": "Voltar",
+      "next": "Avançar",
+      "save": "Salvar template",
+      "saving": "Salvando…",
+      "archive": "Arquivar",
+      "archived": "“{name}” arquivado",
+      "archiveBusy": "Ainda há uma publicação rodando com este template. Tente quando ela terminar.",
+      "footErrors": "{n, plural, one {# campo precisa de atenção} other {# campos precisam de atenção}}",
+      "footDefault": "Vira o padrão de {account}",
+      "footSaves": "Salva em {account}",
+      "footReadOnly": "Só leitura",
+      "saved": "Template “{name}” salvo",
+      "savedSelected": "Template “{name}” salvo e selecionado pra esta publicação",
+      "discardTitle": "Descartar as mudanças deste template?",
+      "discardBody": "O que você mudou aqui ainda não foi salvo.",
+      "discard": "Descartar",
+      "keep": "Continuar editando",
+      "soon": "Em breve",
+      "optional": "opcional",
+      "vars": "Variáveis:",
+      "loading": "Carregando…",
+      "retry": "Tentar de novo",
+      "noMatch": "Nada encontrado.",
+      "remove": "Remover {name}",
+      "sec": {
+        "campaignName": "Nome da campanha",
+        "special": "Categorias especiais de anúncio",
+        "details": "Detalhes da campanha",
+        "budget": "Orçamento",
+        "ab": "Teste A/B",
+        "adsetName": "Nome do conjunto",
+        "conversion": "Conversão",
+        "performance": "Meta de desempenho",
+        "budgetSchedule": "Orçamento e programação",
+        "schedule": "Programação",
+        "audience": "Público",
+        "placements": "Posicionamentos",
+        "perAdset": "Anúncios por conjunto",
+        "adName": "Nome do anúncio",
+        "identity": "Identidade",
+        "setup": "Configuração do anúncio",
+        "creative": "Criativo do anúncio",
+        "destination": "Destino",
+        "tracking": "Rastreamento"
+      },
+      "campaignName": "Nome da campanha",
+      "publishInto": "Publicar em",
+      "reuse": "Uma campanha pra toda publicação",
+      "reuseBody": "O HookMill cria na primeira vez e adiciona conjuntos novos nela. Bom pra testes.",
+      "newEach": "Uma campanha nova a cada lote",
+      "newEachBody": "Cada publicação cria a própria campanha.",
+      "lockedNew": "Orçamento total com orçamento de campanha Advantage+ precisa de uma campanha nova a cada publicação: reaproveitar dividiria um orçamento já gasto.",
+      "specialLead": "Anúncios de crédito, emprego, moradia, temas sociais ou serviços financeiros precisam declarar isso. A Meta limita a segmentação deles.",
+      "specialSummary": "Declarar categorias, se for o caso",
+      "buyingType": "Tipo de compra",
+      "auction": "Leilão",
+      "reservationSoon": "Reserva em breve",
+      "objective": "Objetivo da campanha",
+      "objDesc": {
+        "OUTCOME_AWARENESS": "Mostrar os anúncios a quem tem mais chance de lembrar deles.",
+        "OUTCOME_TRAFFIC": "Levar pessoas ao seu site.",
+        "OUTCOME_ENGAGEMENT": "Mais visualizações do vídeo ou interações.",
+        "OUTCOME_LEADS": "Captar leads pro seu negócio.",
+        "OUTCOME_APP_PROMOTION": "Achar pessoas pra instalar seu app.",
+        "OUTCOME_SALES": "Achar pessoas com chance de comprar."
+      },
+      "cbo": "Orçamento de campanha Advantage+",
+      "cboOn": "Ligado (CBO): a Meta distribui um orçamento entre os conjuntos.",
+      "cboOff": "Desligado (ABO): cada conjunto tem o próprio orçamento. Você define no conjunto.",
+      "budgetType": "Orçamento",
+      "daily": "Orçamento diário",
+      "lifetime": "Orçamento total",
+      "dailyBudget": "Orçamento diário",
+      "dailyPerAdset": "Orçamento diário por conjunto",
+      "lifetimeBudget": "Orçamento total",
+      "lifetimePerAdset": "Orçamento total por conjunto",
+      "minHint": "Mínimo da Meta nesta conta: {min} por dia.",
+      "minUnknown": "Na moeda da conta. A Meta confere o mínimo dela quando você salva.",
+      "lifetimeHint": "Gasto ao longo da programação, então precisa de um fim (Conjunto › Programação).",
+      "lifetimeMinHint": "Pelo menos {min} em {days, plural, one {# dia} other {# dias}} ({daily} por dia).",
+      "useMin": "Usar {min}",
+      "bidCampaign": "Estratégia de lance da campanha",
+      "bid": "Estratégia de lance",
+      "bidLabel": {
+        "LOWEST_COST": "Maior volume",
+        "COST_CAP": "Meta de custo por resultado",
+        "BID_CAP": "Limite de lance"
+      },
+      "bidHint": {
+        "LOWEST_COST": "O máximo de resultados pro seu orçamento.",
+        "COST_CAP": "Mantém o custo médio por resultado perto de uma meta.",
+        "BID_CAP": "O máximo que você dá em cada leilão."
+      },
+      "cpa": "Sua meta no Brain: <b>{range} por resultado.</b> Use pra escolher o orçamento e a meta de custo.",
+      "abSoon": "Testar esta campanha contra outra",
+      "abNote": "teste dividido da Meta",
+      "adsetName": "Nome do conjunto",
+      "conversionLocation": "Local da conversão",
+      "website": "Site",
+      "appSoon": "App, mensagens em breve",
+      "performanceGoal": "Meta de desempenho",
+      "goalByPixel": "definida pelo pixel",
+      "goalConv": "Maximizar o número de conversões",
+      "goalClicks": "Maximizar o número de cliques no link",
+      "goalHint": "Pra que a Meta otimiza este conjunto.",
+      "goal": {
+        "REACH": "Maximizar o alcance dos anúncios",
+        "IMPRESSIONS": "Maximizar o número de impressões",
+        "AD_RECALL_LIFT": "Maximizar o reconhecimento do anúncio",
+        "THRUPLAY": "Maximizar ThruPlays",
+        "TWO_SECOND_CONTINUOUS_VIDEO_VIEWS": "Maximizar reproduções contínuas de 2 segundos",
+        "POST_ENGAGEMENT": "Maximizar o engajamento com a publicação"
+      },
+      "pixel": "Pixel",
+      "noPixel": "Sem pixel (otimiza pra cliques no link)",
+      "event": "Evento de conversão",
+      "linkClicks": "Cliques no link",
+      "switchTraffic": "Trocar o objetivo pra Tráfego",
+      "loadingPixels": "Carregando pixels…",
+      "tzNote": "Horários em {tz} (conta de anúncios).",
+      "start": "Início",
+      "startPublish": "Ao publicar",
+      "startAt": "Numa data",
+      "end": "Fim",
+      "endNone": "Sem data de término",
+      "endAfter": "Depois de N dias",
+      "endAt": "Numa data",
+      "days": "dias depois do início",
+      "afterHint": "Termina {n, plural, one {# dia} other {# dias}} depois de começar, toda vez que o template é usado.",
+      "locations": "Localizações",
+      "locationsHint": "Códigos de país, separados por vírgula. Até 10.",
+      "age": "Idade",
+      "ageHint": "De 18 a 65. 65 quer dizer 65+.",
+      "ageMin": "Idade mínima",
+      "ageMax": "Idade máxima",
+      "to": "a",
+      "gender": "Gênero",
+      "advantage": "Público Advantage+",
+      "advantageBody": "Deixa a Meta ir além destas configurações quando achar resultados melhores.",
+      "audiences": "Públicos personalizados",
+      "include": "Incluir",
+      "exclude": "Excluir",
+      "addInclude": "Adicionar público a incluir",
+      "addExclude": "Adicionar público a excluir",
+      "audiencesSuggestion": "Com o público Advantage+ ligado, a Meta trata os públicos incluídos como sugestão. As exclusões continuam valendo.",
+      "notUsable": "Não utilizável",
+      "notUsableWarn": "A Meta pode não entregar para: {list}.",
+      "size": "{lo}–{hi} pessoas",
+      "audiencesTruncated": "Mostrando os 500 mais recentes.",
+      "audiencesEmpty": "Nenhum público personalizado nesta conta.",
+      "searchAudiences": "Buscar públicos",
+      "detailedSoon": "Segmentação detalhada",
+      "languages": "Idiomas",
+      "languagesHint": "Vazio = todos os idiomas.",
+      "addLanguage": "Adicionar idioma",
+      "searchLanguages": "Buscar idiomas",
+      "advPlacements": "Posicionamentos Advantage+",
+      "advPlacementsBody": "Recomendado. A Meta mostra os anúncios onde devem ter melhor desempenho.",
+      "manual": "Posicionamentos manuais",
+      "manualBody": "Escolha onde os anúncios podem aparecer.",
+      "perAdsetLead": "Um lote enche um conjunto até o máximo e aí abre o próximo. Padrão do Tordan: CBO com 4 a 8 anúncios por conjunto.",
+      "atLeast": "Pelo menos",
+      "atMost": "No máximo",
+      "adName": "Nome do anúncio",
+      "facebookPage": "Página do Facebook",
+      "fromConnection": "da sua conexão com a Meta",
+      "instagram": "Conta do Instagram",
+      "usePage": "Usar a Página do Facebook ({page})",
+      "loadingIg": "Carregando contas do Instagram…",
+      "igHint": "Não está aqui? Adicione a conta do Instagram a esta conta de anúncios no Gerenciador de Negócios.",
+      "format": "Formato",
+      "singleVideo": "Vídeo único",
+      "onePerVideo": "um anúncio por vídeo aprovado",
+      "carouselSoon": "Formatos Carrossel e Flexível",
+      "primaryText": "Texto principal",
+      "primaryPlaceholder": "Deixe vazio e o HookMill escreve a partir do roteiro de cada anúncio.",
+      "primaryHint": "O mesmo texto em todo anúncio do lote. Vazio = escrito por anúncio.",
+      "headline": "Título",
+      "headlinePh": "Do anúncio",
+      "description": "Descrição",
+      "descriptionPh": "Da oferta",
+      "cta": "Chamada pra ação",
+      "websiteUrl": "URL do site",
+      "urlParams": "Parâmetros de URL",
+      "urlParamsHint": "Somados à URL do site, sem o “?”.",
+      "websiteEvents": "Eventos do site",
+      "fromAdset": "do conjunto",
+      "noPixelShort": "Sem pixel",
+      "preview": "Prévia · feed do Facebook",
+      "previewIg": "Prévia · feed",
+      "previewAria": "Prévia do anúncio",
+      "sponsored": "Patrocinado",
+      "autoText": "O HookMill escreve isto a partir do roteiro de cada anúncio.",
+      "headlineFallback": "Título do anúncio",
+      "previewNote": "Cada anúncio usa o próprio vídeo aprovado.",
+      "previewNoteCode": "Mostra {code}. Cada anúncio usa o próprio vídeo.",
+      "sum": {
+        "perDay": "{amount}/dia",
+        "total": "{amount} no total",
+        "budgetMissing": "falta o orçamento",
+        "days": "{n, plural, one {# dia} other {# dias}}",
+        "audiences": "públicos {list}",
+        "noLink": "sem link"
+      },
+      "emptyTitle": "Ainda não há template de campanha",
+      "emptyBody": "Na primeira publicação você define a estrutura que o HookMill usa na Meta: campanha, conjunto e anúncio, como no Gerenciador. Leva cerca de um minuto e é uma vez só.",
+      "editBtn": "Editar",
+      "newBtn": "Novo template",
+      "sendFieldTitle": "Uma configuração deste template não serve pra publicação de hoje",
+      "sendFieldBody": "Geralmente uma data que já passou. Corrija no template e publique de novo.",
+      "err": {
+        "name": "Dê um nome ao template (até 60 caracteres).",
+        "pattern": "De 1 a 120 caracteres.",
+        "budget": "Digite um orçamento diário.",
+        "budgetBelow": "Abaixo do mínimo da Meta nesta conta: {min} por dia.",
+        "lifetime": "Digite um orçamento total.",
+        "lifetimeBelow": "Abaixo do mínimo da Meta pra {days} dias: {min}.",
+        "lifetimeCbo": "Orçamento total com orçamento de campanha Advantage+ precisa de uma campanha nova a cada publicação.",
+        "cap": "Digite o valor.",
+        "pixel": "Este objetivo precisa de um pixel pra otimizar conversões.",
+        "pixelNotFor": "Reconhecimento e Engajamento não usam pixel.",
+        "date": "Escolha data e hora.",
+        "inPast": "Esse horário já passou.",
+        "minDuration": "Termine pelo menos 24 horas depois do início.",
+        "days": "Entre 1 e 365 dias.",
+        "endForLifetime": "Orçamento total precisa de um fim.",
+        "countries": "Use códigos de país de 2 letras, até 10 (ex.: BR, US).",
+        "ages": "Idades de 18 a 65, e a primeira não pode passar da segunda.",
+        "tooMany": "Até {max}.",
+        "bothLists": "Um público não pode estar incluído e excluído ao mesmo tempo.",
+        "perAdset": "Entre 1 e 50, e o mínimo não pode passar do máximo.",
+        "placements": "Escolha pelo menos uma plataforma.",
+        "link": "Digite a URL completa do site, começando com https://",
+        "utm": "Até 1.024 caracteres.",
+        "length": "Até {max} caracteres.",
+        "invalid": "Confira este campo.",
+        "notAvailable": "Não está mais nesta conta de anúncios. Escolha outro.",
+        "duplicate": "Aparece duas vezes. Tire o repetido.",
+        "audiencesBad": "Um destes públicos não é válido. Tire e escolha de novo.",
+        "localesBad": "Um destes idiomas não é válido. Tire e escolha de novo."
+      }
+    },
     "title": "Templates de publicação",
     "crumbSettings": "Configurações",
     "lede": "Defina uma vez como o HookMill cria campanhas, conjuntos e anúncios na sua conta. Todo \"Enviar pra Meta\" usa o template padrão, a menos que você escolha outro.",
@@ -3795,7 +4667,9 @@
       "clicks": "Cliques no link",
       "advantage": "Público Advantage+",
       "autoPlacements": "posicionamentos automáticos",
-      "manualPlacements": "{n} posicionamentos manuais"
+      "manualPlacements": "{n} posicionamentos manuais",
+      "until": "até {date}",
+      "from": "a partir de {date}"
     },
     "window": {
       "titleNew": "Novo template de publicação",
@@ -3901,6 +4775,7 @@
         "name": "Dê um nome (até 60 caracteres).",
         "budget": "Digite o orçamento diário: ele é obrigatório.",
         "budgetBelow": "O orçamento diário precisa ser de pelo menos {min}.",
+        "lifetimeBelow": "O orçamento total está abaixo de {min} para {days, plural, one {# dia} other {# dias}}.",
         "cap": "Digite o valor do limite.",
         "pattern": "De 1 a 120 caracteres.",
         "pixel": "Este objetivo precisa de um pixel. Escolha um, ou troque pra Tráfego.",
@@ -3922,8 +4797,8 @@
       "search": "Buscar campanhas",
       "use": "Usar",
       "open": "Abrir {name}",
-      "campaignSub": "{mode} · {adsets} conjuntos · {ads} anúncios",
-      "adsetSub": "{ads} anúncios",
+      "campaignSub": "{mode} · {adsets, plural, one {# conjunto} other {# conjuntos}} · {ads, plural, one {# anúncio} other {# anúncios}}",
+      "adsetSub": "{ads, plural, one {# anúncio} other {# anúncios}}",
       "noMatch": "Nenhuma campanha bate com a busca.",
       "empty": "Nenhuma campanha no último sync.",
       "noAdsets": "Nenhum conjunto nesta campanha.",
@@ -3976,9 +4851,28 @@
         "creating_creative": "Criando o criativo",
         "creating_ad": "Criando o anúncio"
       }
+    },
+    "review": {
+      "reviewSend": "Revisar e enviar",
+      "sendDirect": "Enviar sem revisar",
+      "crumb": "Revisar e enviar",
+      "send": "{n, plural, one {Enviar 1 anúncio} other {Enviar # anúncios}}",
+      "sending": "Enviando…",
+      "saveToo": "Salvar também no template",
+      "saveTooHint": "Desmarcado, as mudanças valem só pra este envio e o “{name}” fica como está.",
+      "foot": "As mudanças aqui valem só pra este envio",
+      "footSave": "Salva no “{name}” e envia",
+      "lead": "Todas as configurações do “{name}” estão aqui. Mude o que quiser pra este envio e envie.",
+      "onlyThisTitle": "Enviar com mudanças que valem só pra este envio ainda não está disponível",
+      "onlyThisBody": "Por enquanto, marque “Salvar também no template” pra enviar com estas mudanças, ou desfaça pra enviar com o template como está.",
+      "undo": "Desfazer mudanças",
+      "sentOne": "Enviado pra Meta. Criado pausado.",
+      "savedSent": "“{name}” salvo e enviado pra Meta.",
+      "noCreatives": "Nenhum anúncio pra enviar. Volte e escolha de novo."
     }
   },
   "sample": {
+    "badgeTemplates": "Amostra grátis · {n, plural, one {# variação} other {# variações}}, sem custo",
     "badge": "Amostra grátis · até {n} variações, sem custo",
     "eyebrowReady": "Amostra grátis · {ready} de {total} prontas",
     "title": "{n, plural, one {Sua variação está pronta. Veja o gancho dela.} other {Suas # variações estão prontas. Veja o gancho de cada uma.}}",
@@ -4029,11 +4923,13 @@
       "subUsed": "Varie cada campeão que você subir, com as variações grátis e, no plano, as com IA.",
       "li1": "Vídeos completos em 9:16, e 4:5 e 1:1 quando pedir",
       "li2": "Baixe num zip ou mande direto pro seu conjunto na Meta",
+      "li3Templates": "Novas variações usando seus créditos",
       "li3": "Variações grátis novas a cada campeão que você subir",
       "cta": "Liberar: fale com a gente",
       "aiTitle": "Com IA",
       "aiTag": "plano pago",
       "aiBody": "Avatar novo no seu roteiro, formatos novos a partir do seu anúncio. Aparece aqui e fica disponível quando você tiver um plano.",
+      "noteTemplates": "A amostra usa 1 uso por template de Edição. Um template pode gerar mais de um vídeo.",
       "note": "Amostra grátis: 1 por conta, até {n} variações, nunca com IA."
     },
     "contact": {
@@ -4066,6 +4962,1580 @@
       },
       "apply": "Salvar plano",
       "done": "{id} agora está em {access}."
+    }
+  },
+  "brandKit": {
+    "title": "Kit da marca",
+    "aside": "Estáticos e cartões finais usam isso",
+    "loadFailed": "Não conseguimos carregar o kit da marca",
+    "removeFailed": "Não conseguimos remover",
+    "emptyClient": "Ainda não tem kit da marca. A equipe adiciona aqui o logo, os arquivos e os vídeos demo.",
+    "choose": "Escolher arquivos",
+    "cancel": "Cancelar",
+    "dismiss": "Fechar",
+    "uploading": "Enviando…",
+    "checking": "Conferindo o arquivo…",
+    "saving": "Salvando…",
+    "progress": "{pct}% · {done} de {total} MB",
+    "count": "{n} de {max}",
+    "label": "Rótulo",
+    "logo": {
+      "title": "Logo",
+      "alt": "Logo da marca",
+      "drop": "Solte seu logo",
+      "hint": "PNG, JPG, WEBP ou SVG · até 5 MB",
+      "none": "Ainda sem logo",
+      "replace": "Trocar",
+      "colors": "Cores do logo",
+      "noColors": "Não deu pra ler as cores deste logo. Vale a cor da marca do passo 1."
+    },
+    "files": {
+      "title": "Arquivos da marca",
+      "empty": "Solte fotos do produto, prints ou o manual da marca",
+      "dropMore": "Solte mais arquivos aqui",
+      "hint": "{types} · até 25 MB cada · até 30 arquivos",
+      "untitled": "Arquivo sem nome",
+      "open": "Abrir {name}",
+      "none": "Ainda sem arquivos da marca."
+    },
+    "videos": {
+      "title": "Vídeos demo do produto",
+      "empty": "Solte uma gravação de tela ou uma demo do produto",
+      "dropMore": "Solte outro vídeo aqui",
+      "hint": "MP4 ou MOV · de 1 s a 10 min · até {mb} MB · até 5 vídeos",
+      "untitled": "Vídeo sem nome",
+      "offer": "Oferta",
+      "allOffers": "Marca toda (todas as ofertas)",
+      "none": "Ainda sem vídeos demo."
+    },
+    "remove": {
+      "action": "Remover",
+      "file": "Remover arquivo",
+      "video": "Remover vídeo",
+      "confirm": "Remover",
+      "body": "Sai do kit da marca. Os criativos já feitos com ele não mudam.",
+      "title": {
+        "LOGO": "Remover o logo?",
+        "FILE": "Remover este arquivo?",
+        "DEMO_VIDEO": "Remover este vídeo?"
+      }
+    },
+    "errors": {
+      "type": "Esse tipo de arquivo não entra aqui. Use {types}.",
+      "size": "O arquivo passa de {mb} MB. Exporte uma versão mais leve.",
+      "short": "O vídeo tem menos de 1 segundo.",
+      "long": "O vídeo passa de 10 minutos. Corte antes de enviar.",
+      "tooSmall": "O vídeo é pequeno demais. Precisa de pelo menos 240 px de cada lado.",
+      "unreadable": "Não conseguimos ler este arquivo. Exporte de novo e envie.",
+      "unreadableVideo": "Não conseguimos ler este vídeo. Exporte de novo em MP4 ou MOV.",
+      "fullFiles": "O kit guarda até {max} arquivos. Remova um pra adicionar outro.",
+      "fullVideos": "O kit guarda até {max} vídeos demo. Remova um pra adicionar outro.",
+      "forbidden": "Seu papel só pode ver o kit da marca."
+    }
+  },
+  "brand": {
+    "eyebrow": "Cérebro · {name}",
+    "title": "Marca",
+    "mapTitle": "Mapa",
+    "lede": "Tudo o que o HookMill sabe sobre {name}. Roteiros, ganchos e estáticos leem daqui.",
+    "mapLede": "O mesmo conhecimento em mapa: cada gancho, roteiro, criativo e anúncio da Meta, só leitura.",
+    "tabs": {
+      "label": "Visões do Cérebro",
+      "brand": "Marca",
+      "map": "Mapa"
+    },
+    "edit": "Editar",
+    "add": "Adicionar",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "saved": "Salvo",
+    "savedNow": "Salvo agora",
+    "saveFailed": "Não deu pra salvar. Tente de novo.",
+    "missing": "Falta",
+    "viewOnly": "Só leitura",
+    "loadFailed": "Não deu pra carregar a marca",
+    "sections": {
+      "business": "Negócio",
+      "offer": "Oferta",
+      "audience": "Público",
+      "kit": "Kit da marca",
+      "meta": "Meta"
+    },
+    "f": {
+      "website": "Site",
+      "websiteHint": "Salvar não relê o site.",
+      "name": "Nome",
+      "code": "Código",
+      "codeSub": "Prefixo nos nomes de arquivo",
+      "codeTaken": "O código {code} já é usado por outro cliente.",
+      "codeInvalid": "De 2 a 4 letras ou números.",
+      "industry": "Setor",
+      "market": "Em qual país você vende?",
+      "language": "Idioma",
+      "languageSub": "Do espaço deste cliente",
+      "color": "Cor da marca",
+      "result": "O que conta como resultado",
+      "resultHint": "Muda o nome dos indicadores na Home.",
+      "resultOther": "Descreva o resultado",
+      "more": "Mais…",
+      "target": "Custo alvo por {result}",
+      "targetHint": "A Home marca a conta dentro ou acima desta faixa.",
+      "min": "Mínimo",
+      "max": "Máximo",
+      "currency": "Moeda",
+      "minMax": "O mínimo tem que ser no máximo igual ao máximo.",
+      "cap": "Teto de gasto mensal",
+      "capValue": "{amount} / mês",
+      "capHint": "US$ por mês",
+      "what": "O que é",
+      "promise": "Promessa",
+      "offerAndPrice": "Oferta e preço",
+      "cta": "Chamada pra ação",
+      "landing": "Página de vendas",
+      "proof": "Provas",
+      "proofPh": "Depoimentos, números, imprensa. Um por linha.",
+      "audience": "Pra quem é",
+      "pains": "Dores",
+      "notes": "Instruções",
+      "notesSub": "O que os roteiros devem ou não fazer",
+      "invalidUrl": "Use o endereço completo, como https://site.com",
+      "required": "Não pode ficar vazio.",
+      "number": "Use um número."
+    },
+    "offers": {
+      "count": "{n, plural, one {# oferta} other {# ofertas}}",
+      "add": "Adicionar oferta",
+      "label": "Oferta",
+      "none": "Nenhuma oferta ainda",
+      "noneBody": "Adicione a oferta que você anuncia. O Público segue a oferta escolhida aqui.",
+      "forOffer": "de {name}"
+    },
+    "meta": {
+      "connected": "Conectada",
+      "notConnected": "Não conectada",
+      "attention": "Precisa de atenção",
+      "off": "A Meta não está configurada neste servidor.",
+      "manage": "Gerenciar em Configurações",
+      "connect": "Conectar em Configurações",
+      "account": "Conta de anúncios",
+      "page": "Página",
+      "templates": "Templates de publicação",
+      "templatesN": "{n, plural, =0 {Nenhum template ainda} one {# template} other {# templates}}",
+      "defaultTpl": "padrão “{name}”",
+      "open": "Abrir",
+      "choose": "Conta de anúncios ainda não escolhida"
+    },
+    "rail": {
+      "full": "Cérebro {pct}% completo",
+      "known": "{done} de {total} itens conhecidos.",
+      "allIn": "Está tudo aqui.",
+      "sections": "Seções",
+      "status": "Estado do Cérebro",
+      "eddyT": "Completar com o Eddy",
+      "eddyB": "Ele pergunta só o que falta.",
+      "soon": "Em breve",
+      "forOffer": "{item} de {offer}",
+      "kitEmpty": "Kit da marca: sem logo ainda",
+      "see": "Ver"
+    },
+    "lang": {
+      "EN": "English",
+      "PT_BR": "Português (Brasil)"
+    }
+  },
+  "eddyOnboarding": {
+    "saveExit": "Salvar e sair",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "add": "Adicionar",
+    "readOnly": "Só admins da agência mudam o setup. Você pode acompanhar.",
+    "exitFailed": "Não deu pra salvar antes de sair. Tente de novo.",
+    "top": {
+      "title": "Configurando {name}",
+      "titleNew": "Configurando seu negócio",
+      "sub": "com o Eddy · uns 5 minutos"
+    },
+    "composer": {
+      "label": "Sua resposta",
+      "send": "Enviar",
+      "site": "Responda o Eddy ou cole um link",
+      "describe": "O que você vende, pra quem e onde",
+      "off": "Responda pelo cartão acima",
+      "note": "Aqui o Eddy só monta o Cérebro. Tudo o que você confirmar dá pra editar depois em Cérebro › Marca.",
+      "tooShort": "Conte um pouco mais: o que você vende, pra quem e onde."
+    },
+    "site": {
+      "hi": "Oi, eu sou o Eddy. Vou montar o seu Cérebro com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.",
+      "hiNamed": "Oi, eu sou o Eddy. Vou montar o Cérebro de {name} com você, pra todo roteiro partir do que você sabe. Uns 5 minutos.",
+      "ask": "<b>Qual é o site?</b> Eu leio e você só corrige o que eu errar.",
+      "label": "Endereço do site",
+      "read": "Ler o site",
+      "noSite": "Sem site? Descreva o negócio",
+      "startFailed": "Não deu pra começar a leitura"
+    },
+    "reading": {
+      "say": "Lendo {what}. Pode ficar ou sair; eu guardo o que achar.",
+      "status": "Lendo {what}…",
+      "saving": "Salvando o que achei…",
+      "done": "Li {what}.",
+      "yourText": "a sua descrição",
+      "failedSay": "Não consegui ler {what}.",
+      "failed": "A leitura não deu certo",
+      "retry": "Ler de novo",
+      "manual": "Preencher na mão"
+    },
+    "business": {
+      "say": "Este é o negócio como eu li. Corrija o que estiver errado direto no cartão.",
+      "title": "O negócio",
+      "from": "de {src}",
+      "name": "Nome",
+      "industry": "Ramo",
+      "market": "Em qual país você vende?",
+      "marketPh": "País, ex.: Brasil",
+      "result": "O que conta como resultado",
+      "more": "Mais…",
+      "save": "Salvar",
+      "missing": "Ainda não achei",
+      "hint": "Edite qualquer linha antes, se precisar.",
+      "needs": "Coloque o nome e escolha o que conta como resultado.",
+      "confirm": "Está certo",
+      "confirmed": "Confirmado"
+    },
+    "offer": {
+      "meLooksRight": "Está certo",
+      "say": "Agora a oferta. Achei um produto principal; dá pra adicionar outros depois.",
+      "sayEmpty": "Não achei a oferta. Preencha o que você vende; a primeira linha salva cria a oferta.",
+      "newTitle": "Sua oferta",
+      "from": "de {src}",
+      "name": "Nome da oferta",
+      "f": {
+        "what": "O que é",
+        "promise": "Promessa",
+        "offerAndPrice": "Oferta e preço",
+        "cta": "Chamada pra ação",
+        "audience": "Pra quem é",
+        "pains": "Dores",
+        "proof": "Provas",
+        "notes": "Instruções pros roteiros"
+      },
+      "missing": "Ainda não achei",
+      "noProof": "Não achei depoimentos nem números no site.",
+      "optional": "Opcional",
+      "needsOffer": "Salve pelo menos uma linha pra criar a oferta.",
+      "proofLater": "Provas podem esperar. Os roteiros ficam melhores com elas.",
+      "confirm": "Está certo",
+      "confirmed": "Confirmado",
+      "confirmedNoProof": "Confirmado · provas ficaram pra depois"
+    },
+    "meta": {
+      "meOffer": "Está certo",
+      "say": "Agora a Meta. Com ela eu leio seus anúncios, acho o que já funciona e começo dele. Só leitura; nada muda nas campanhas sem você.",
+      "off": "A Meta não está disponível neste servidor, então vamos pular.",
+      "continue": "Continuar",
+      "skip": "Pular por agora",
+      "loginDone": "Login do Facebook concluído",
+      "connected": "{account} conectada",
+      "skipped": "Pulado. Conecte quando quiser em Configurações › Conexões.",
+      "notReady": "Não terminou. Escolha a conta de anúncios em Configurações › Conexões."
+    },
+    "goals": {
+      "winnerSay": "Li {n, plural, one {# anúncio} other {# anúncios}} dos últimos 30 dias. O seu melhor:",
+      "noWinner": "Li {n, plural, one {# anúncio} other {# anúncios}} dos últimos 30 dias. Ainda não há um vencedor claro; aviso quando aparecer.",
+      "perResult": "{v} por resultado",
+      "median": "mediana da conta {v}",
+      "days": "{n, plural, one {# dia} other {# dias}} no ar",
+      "winner": "Vencedor",
+      "ask": "<b>Quanto custa um bom resultado pra você?</b>",
+      "suggest": "Pelos seus números, eu diria de {min} a {max}.",
+      "askCap": "E um teto mensal de gasto, pra eu nunca planejar além dele.",
+      "legend": "Custo alvo por resultado e teto mensal",
+      "target": "Alvo ({currency})",
+      "min": "Mínimo",
+      "max": "Máximo",
+      "to": "a",
+      "cap": "Teto / mês (USD)",
+      "capLabel": "Teto mensal de gasto em USD",
+      "hint": "Os dois são opcionais. Mude quando quiser em Configurações.",
+      "fixCpa": "Preencha os dois, com o mínimo até o máximo.",
+      "fixCap": "O teto é um número, 0 ou mais.",
+      "save": "Salvar a meta",
+      "skip": "Pular por agora",
+      "skipped": "Pulado por agora",
+      "doneCpa": "Alvo {min}–{max}",
+      "doneCap": "teto {cap}"
+    },
+    "kit": {
+      "say": "Última coisa: o kit da marca. Adicione o logo, um guia da marca e um vídeo de demonstração do produto, se tiver; os estáticos e os cartões finais usam isso.",
+      "title": "Kit da marca",
+      "aside": "Opcional",
+      "done": "Pronto",
+      "skip": "Pular por agora",
+      "background": "Os envios continuam em segundo plano.",
+      "logo": "Logo",
+      "files": "{count, plural, one {# arquivo} other {# arquivos}}",
+      "videos": "{count, plural, one {# vídeo} other {# vídeos}}",
+      "nothing": "Nada ainda. Adicione em Cérebro › Marca quando quiser."
+    },
+    "done": {
+      "meDone": "Pronto",
+      "meSkip": "Pular por agora",
+      "finishing": "Juntando o Cérebro…",
+      "ready": "<b>O Cérebro de {name} está pronto.</b>",
+      "known": "Sei {n} de {total} coisas.",
+      "missing": "Falta: {items}. Adicione em Cérebro › Marca quando quiser.",
+      "allIn": "Não falta nada.",
+      "startWinner": "{name} é o seu melhor anúncio; vamos começar por ele.",
+      "incomplete": "Ainda falta uma coisa",
+      "failed": "Não deu pra concluir o setup",
+      "retry": "Tentar de novo",
+      "start": "Começar"
+    },
+    "panel": {
+      "eyebrow": "Cérebro de {name}",
+      "aria": "Cérebro sendo montado",
+      "strip": "Cérebro",
+      "close": "Fechar",
+      "known": "{n} de {total} coisas conhecidas",
+      "nothing": "Nada ainda. Comece pelo site.",
+      "waiting": "lido, esperando você",
+      "reading": "lendo…",
+      "foot": "O % conta as 13 coisas que os roteiros leem. Meta e kit da marca alimentam resultados e estáticos; não contam.",
+      "business": "Negócio",
+      "industry": "Ramo",
+      "market": "Em qual país você vende?",
+      "result": "Resultado",
+      "offer": "Oferta",
+      "offerName": "Oferta",
+      "what": "O que é",
+      "promise": "Promessa",
+      "price": "Oferta e preço",
+      "cta": "Chamada pra ação",
+      "audience": "Público",
+      "aud": "Pra quem é",
+      "pains": "Dores",
+      "notes": "Instruções",
+      "proof": "Provas",
+      "goals": "Metas",
+      "cap": "Teto de gasto",
+      "capValue": "US$ {v} / mês",
+      "cpa": "CPA alvo",
+      "meta": "Meta",
+      "account": "Conta de anúncios",
+      "kit": "Kit da marca",
+      "logo": "Logo",
+      "logoSet": "Enviado",
+      "logoFromSite": "Do site",
+      "colors": "Cores",
+      "files": "Arquivos",
+      "demo": "Vídeo demo",
+      "filesCount": "{count, plural, one {# arquivo} other {# arquivos}}",
+      "videosCount": "{count, plural, one {# vídeo} other {# vídeos}}",
+      "eyebrowNew": "Seu Cérebro"
+    }
+  },
+  "adTemplates": {
+    "exampleAria": "Vídeo de exemplo de {name}",
+    "example": "EXEMPLO",
+    "soon": "Em breve",
+    "credits": "{n, plural, one {# crédito} other {# créditos}}",
+    "freeSample": "Amostra grátis",
+    "unlimited": "Ilimitado",
+    "freeLeft": "{n, plural, one {# grátis restante} other {# grátis restantes}}",
+    "getCredits": "Comprar créditos",
+    "eyebrow": "Criar anúncios",
+    "title": "Templates",
+    "lede": "Escolha um formato e a gente aplica num dos seus anúncios. Templates de Edição retrabalham o vídeo que você já tem. Templates com IA criam pessoas e cenas novas.",
+    "search": "Buscar templates",
+    "tierAria": "Tipo",
+    "tabAll": "Todos",
+    "tabEdit": "Edição",
+    "tabAi": "Com IA",
+    "catAria": "Categoria",
+    "everything": "Tudo",
+    "cat": {
+      "frames": "Molduras",
+      "headline": "Headline e ganchos",
+      "cuts": "Cortes",
+      "chat": "Chat DM e motion",
+      "static": "Estático",
+      "avatar": "Troca de avatar",
+      "persona": "Persona",
+      "remix": "Remix de formato",
+      "pack": "Pack"
+    },
+    "loadError": "Não conseguimos carregar os templates.",
+    "tryAgain": "Tentar de novo",
+    "emptyTitle": "Nenhum template ainda",
+    "emptyBody": "O catálogo abre assim que os primeiros vídeos de exemplo entrarem.",
+    "noMatch": "Nenhum template com \"{q}\"",
+    "noMatchHint": "Tente \"chat\", \"headline\" ou \"notícia\".",
+    "clearSearch": "Limpar busca",
+    "editSub": "retrabalha o vídeo que você tem · 1 crédito cada",
+    "aiSub": "escolha o formato, selecione seu campeão e gere o vídeo",
+    "freeUses": "Usos grátis",
+    "teamAccount": "Conta da equipe",
+    "balance": "Saldo",
+    "pinned": "Mostrando quais templates encaixam no anúncio que você escolheu. Usar template pula o passo do anúncio.",
+    "pinnedUnread": "A gente ainda não leu este anúncio, então o encaixe aparece depois do primeiro uso (cerca de 1 min, grátis).",
+    "pinnedClear": "Escolher o anúncio depois",
+    "offerLabel": "De qual oferta é este anúncio?",
+    "offerHelp": "Os textos saem do Cérebro dessa oferta. Escolha e aperte o botão de novo.",
+    "beta": "Beta",
+    "usedN": "{out} · usado {n}×",
+    "paidPlan": "Plano pago",
+    "readOnly": "Clientes não criam variações.",
+    "useTemplate": "Usar template",
+    "sample": {
+      "banner": "Amostra grátis · {left} de {total} restantes",
+      "bannerBody": "Teste qualquer template de Edição no seu próprio anúncio. Você vê os 3 primeiros segundos; desbloqueie pra ter o vídeo inteiro."
+    },
+    "pack": {
+      "pill": "Pack · até {n} vídeos",
+      "li1": "Desmarque o template que não quiser",
+      "li2": "Templates com IA aparecem como sugestão, nunca marcados",
+      "li3": "1 crédito por template, nunca mais que {cap} no pack",
+      "li3Sample": "Amostra grátis: 1 uso por template",
+      "use": "Usar o pack",
+      "capLine": "até {cap} créditos",
+      "eyebrow": "Deixa o HookMill escolher · plano pronto",
+      "title": "{n, plural, one {# template encaixa} other {# templates encaixam}} em \"{ad}\"",
+      "lede": "Na ordem de quanto cada um encaixa no seu anúncio. Desmarque o que não quiser; o total atualiza.",
+      "capped": "preço de pack, teto de {cap}"
+    },
+    "detail": {
+      "aiTemplate": "Template com IA",
+      "editTemplate": "Template de Edição",
+      "youGet": "Você recebe",
+      "getOnly": "{out}, só 9:16",
+      "getAll": "{out}, 9:16; 4:5 e 1:1 sem custo extra",
+      "cost": "Custo",
+      "costAi": "cobre roteiro, rostos, geração e refações. Preparar é grátis; você paga quando aprova.",
+      "costEdit": "se falhar, o crédito volta",
+      "time": "Tempo",
+      "timeAi": "Cerca de 15 min. Pode sair.",
+      "timeEdit": "Cerca de 2 min depois que o anúncio é lido",
+      "language": "Idioma",
+      "languageValue": "O mesmo do seu anúncio",
+      "needs": "Seu anúncio precisa de",
+      "anyAd": "Funciona com qualquer anúncio em vídeo.",
+      "exampleNote": "Vídeo de exemplo. O seu usa seu anúncio, seu Cérebro e seu idioma.",
+      "use": "Usar este template"
+    },
+    "fit": {
+      "ok": "Encaixa",
+      "unknown": "Ainda não lido · ~1 min",
+      "doesntFit": "Não encaixa neste anúncio",
+      "reason": {
+        "burned_captions": "Tem legenda queimada",
+        "no_face": "Precisa de rosto",
+        "no_speech": "Precisa de fala",
+        "short_video": "Vídeo curto demais",
+        "no_proof": "Precisa de prova no Cérebro",
+        "no_price": "Precisa de preço no Cérebro",
+        "no_data": "Precisa de 3 pontos no Cérebro",
+        "no_page": "Precisa da página do produto",
+        "has_end_card": "Já tem cartão final",
+        "no_written_hook": "Precisa de gancho escrito",
+        "no_audience": "Precisa de público no Cérebro",
+        "no_promise": "Precisa de promessa ou prova",
+        "not_read": "Ainda não lido · ~1 min",
+        "coming_soon": "Em breve",
+        "not_planned": "Não entrou no plano",
+        "headline_pending": "Headline ainda não pode ser reescrita"
+      }
+    },
+    "needs": {
+      "face": "Um rosto no vídeo",
+      "speech": "Fala no vídeo",
+      "min_25s": "Vídeo de 25 s ou mais",
+      "min_15s": "Fala de 15 s ou mais",
+      "clean_face": "Rosto sem legenda queimada em cima",
+      "proof": "Uma prova no Cérebro",
+      "price": "Oferta ou preço no Cérebro",
+      "brain_points": "3 ou mais pontos no Cérebro",
+      "audience": "Público no Cérebro",
+      "promise_or_proof": "Uma promessa ou prova"
+    },
+    "ad": {
+      "title": "Em qual anúncio a gente aplica?",
+      "lede": "Escolha um vencedor da Meta, suba um vídeo ou reaproveite algo da Biblioteca. Anúncio que já lemos começa na hora.",
+      "backToTemplates": "Voltar pra Templates",
+      "sourceAria": "Origem",
+      "tabMeta": "Vencedores da Meta",
+      "tabUpload": "Subir vídeo",
+      "tabLibrary": "Biblioteca",
+      "active": "Ativo",
+      "paused": "Pausado",
+      "spent": "{v} gastos",
+      "lowData": "dados insuficientes",
+      "cpa": "CPA {v}",
+      "retry": "Tentar de novo",
+      "noMetaTitle": "Nenhum anúncio em vídeo nesta conta ainda",
+      "noMetaBody": "Suba um vídeo, ou volte depois da próxima sincronização.",
+      "winner": "Vencedor",
+      "libEmptyTitle": "Nada na sua Biblioteca ainda",
+      "libEmptyBody": "As peças que você aprova caem aqui e podem virar um template novo.",
+      "seeMeta": "Ver vencedores da Meta",
+      "uploaded": "Enviado agora",
+      "drop": "Solte um vídeo aqui",
+      "limits": "MP4 ou MOV, até {min} min, {mb} MB. Vertical funciona melhor.",
+      "choose": "Escolher arquivo",
+      "cleanHint": "Tem uma versão sem legenda queimada? Suba essa. Mais templates encaixam nela.",
+      "adsAria": "Anúncios",
+      "alreadyRead": "Já lido",
+      "readFirst": "a gente lê antes, ~1 min, sem custo",
+      "hintPick": "Escolha o anúncio em que o template vai rodar",
+      "back": "Voltar",
+      "continue": "Continuar",
+      "generateAi": "Gerar vídeo com IA"
+    },
+    "run": {
+      "noteTeam": "Conta da equipe · nenhum crédito usado.",
+      "noteSample": "Amostra grátis · {held, plural, one {# uso reservado} other {# usos reservados}}. Usos de templates que falharem são devolvidos.",
+      "noteSampleSettled": "Amostra grátis · {charged} usado(s), {refunded} devolvido(s).",
+      "noteRefunded": "{charged} cobrado(s) · {refunded} de volta pra você (uma peça falhou).",
+      "noteCharged": "{charged} cobrado(s). 4:5 e 1:1 não custam a mais.",
+      "noteHeld": "{held} reservado(s). Cobrado quando o vídeo fica pronto; volta pra você se falhar."
+    },
+    "reading": {
+      "eyebrow": "Lendo seu anúncio",
+      "eyebrowEta": "Lendo seu anúncio · faltam cerca de {s} s",
+      "lede": "A gente lê cada anúncio uma vez. Depois disso, todo template nele começa na hora.",
+      "step": {
+        "downloaded": "Baixando o vídeo",
+        "transcribing": "Transcrevendo a fala",
+        "blocks": "Achando gancho, corpo e chamada",
+        "brain": "Checando rosto, legenda e seu Cérebro",
+        "fits": "Checando se {name} encaixa e escrevendo os textos"
+      },
+      "canLeave": "Pode sair desta página. O template fica escolhido e o plano aparece quando você voltar.",
+      "yourTemplate": "Seu template",
+      "free": "Ler o anúncio é grátis. Nada é cobrado até você apertar Gerar.",
+      "hint": "A leitura leva cerca de 1 min",
+      "browse": "Ver templates"
+    },
+    "plan": {
+      "planChanged": "O plano mudou. Confira e aperte Gerar de novo.",
+      "planEmptied": "O plano mudou e nada encaixa mais. Nada foi cobrado.",
+      "generate": "Gerar",
+      "generateSample": "Gerar amostra grátis",
+      "generateN": "Gerar · {cost}",
+      "summary": "Resumo",
+      "template": "Template",
+      "ad": "Anúncio",
+      "youGet": "Você recebe",
+      "videosN": "{n, plural, one {# vídeo} other {# vídeos}}",
+      "cost": "Custo",
+      "free": "Grátis",
+      "teamCost": "Sem cobrança",
+      "freeSample": "Amostra grátis",
+      "sampleAfter": "{left} de {total} restantes depois deste",
+      "sampleNote": "Você vê os 3 primeiros segundos. Desbloqueie pra baixar o vídeo inteiro.",
+      "teamNote": "Conta da equipe: nenhum crédito é usado. O custo real continua contando em Configurações › Gasto.",
+      "balance": "Saldo",
+      "notEnough": "insuficiente",
+      "refundAi": "Cobre roteiro, rostos, geração e refações. Se uma peça falhar de vez, a parte dela volta.",
+      "refundEdit": "Se falhar, o crédito volta. As versões 4:5 e 1:1 não custam a mais.",
+      "needMoreSample": "{n, plural, one {Falta # uso grátis} other {Faltam # usos grátis}}",
+      "reduceSample": "Selecione menos templates para caber nos seus usos grátis. Seu plano e a leitura ficam salvos.",
+      "needMore": "{n, plural, one {Faltam # crédito} other {Faltam # créditos}}",
+      "saved": "Seu plano e a leitura do anúncio ficam salvos.",
+      "changedTitle": "O custo mudou: agora {to}",
+      "changedBody": "Era {from} quando o plano carregou. Confira o resumo e aperte Gerar de novo.",
+      "shortTitle": "Créditos insuficientes: precisa de {need}",
+      "shortBody": "Seu saldo é {balance}. O plano fica salvo enquanto você compra mais.",
+      "hardTitle": "Este template não encaixa neste anúncio: {reason}",
+      "hardBody": "{name} não roda neste anúncio. Escolha outro anúncio ou outro template; nada foi cobrado.",
+      "pendingTitle": "A headline deste vídeo ainda não pode ser reescrita",
+      "pendingBody": "{name} não está disponível para este anúncio por enquanto. Nada foi cobrado. Escolha outro template ou outro anúncio.",
+      "otherAd": "Escolher outro anúncio",
+      "otherTemplate": "Escolher outro template",
+      "softTitle": "Seu anúncio tem legenda queimada onde este template entra.",
+      "softBody": "{name} precisa desse espaço, e a gente nunca põe nada por cima da legenda. Suba a versão sem legenda e encaixa, ou escolha outro template.",
+      "softPartialTitle": "Seu anúncio tem legenda queimada, então parte deste plano fica de fora.",
+      "softPartialBody": "A gente nunca põe nada por cima da legenda, então essas peças ficam de fora sem cobrança. Suba a versão sem legenda pra incluir, ou escolha outro template.",
+      "replan": "Planejar de novo com a versão limpa",
+      "uploadClean": "Subir a versão sem legenda",
+      "eyebrow": "Plano · nada cobrado ainda",
+      "title": "{name} em \"{ad}\"",
+      "whatComesOut": "O que sai · escrito a partir do seu anúncio",
+      "noPieces": "Nada encaixa ainda. Use as opções acima ou escolha outro template.",
+      "editsFree": "Editar aqui é grátis. Cada palavra vem do seu anúncio ou do seu Cérebro; a gente nunca inventa número nem depoimento.",
+      "hintSample": "1 uso grátis",
+      "hintTeam": "Conta da equipe · nenhum crédito usado",
+      "hintBalance": "saldo {n}",
+      "back": "Voltar",
+      "videoN": "Vídeo {n}",
+      "label": {
+        "headline": "Headline",
+        "title": "Título",
+        "subtitle": "Subtítulo",
+        "question": "Pergunta",
+        "answer": "Resposta",
+        "caption": "Legenda",
+        "handle": "@",
+        "cta": "Chamada",
+        "primaryText": "Texto principal",
+        "pov": "Linha do POV",
+        "body": "Texto",
+        "name": "Nome",
+        "kicker": "Chamada de topo",
+        "topic": "Tema",
+        "headline_lead": "Manchete",
+        "headline_highlight": "Destaque da manchete",
+        "dek": "Texto de apoio"
+      },
+      "rule": {
+        "maxChars": "Longo demais pra este template.",
+        "required": "Este texto não pode ficar vazio.",
+        "invented": "Use só o que está no anúncio ou no Cérebro."
+      },
+      "from": "de: {source}",
+      "saving": "Salvando…",
+      "savedText": "Salvo"
+    },
+    "admin": {
+      "eyebrow": "Admin · só a equipe do HookMill vê",
+      "title": "Catálogo de templates",
+      "lede": "Suba o vídeo de exemplo de cada template. Template sem exemplo fica escondido do cliente.",
+      "teamOnly": "Só a equipe do HookMill vê esta página",
+      "teamOnlyBody": "Precisa de uma conta da equipe que seja dona do workspace ativo.",
+      "retry": "Tentar de novo",
+      "col": {
+        "example": "Exemplo",
+        "template": "Template",
+        "type": "Tipo interno",
+        "tier": "Tipo",
+        "credits": "Créditos",
+        "uses": "Usos",
+        "status": "Status"
+      },
+      "foot": "Vídeo de exemplo: MP4 9:16, até 60 s e 60 MB, toca mudo no card e com som no detalhe. Usos = vezes gerado em todos os workspaces.",
+      "saved": "{name} salvo",
+      "noExample": "Sem exemplo ainda",
+      "tierStatic": "Estático",
+      "tierEdit": "Edição",
+      "creditsFor": "Créditos de {name}",
+      "statusFor": "Status de {name}",
+      "status": {
+        "LIVE": "No ar",
+        "DRAFT": "Rascunho",
+        "HIDDEN": "Escondido"
+      },
+      "needsExample": "Falta exemplo",
+      "unavailable": "Ainda não roda",
+      "beta": "Beta",
+      "uploaded": "Exemplo de {name} no ar",
+      "onlyMp4": "Só arquivos MP4.",
+      "tooBig": "Até 60 MB.",
+      "uploading": "Enviando {p}%",
+      "replace": "Trocar vídeo",
+      "upload": "Subir vídeo"
+    },
+    "grant": {
+      "title": "Creditar uma conta",
+      "teamOnly": "Só a equipe",
+      "body": "Ainda sem checkout: quando alguém te pagar, adicione os créditos aqui. Número negativo tira créditos (nunca abaixo de zero).",
+      "who": "E-mail ou id da conta",
+      "whoPlaceholder": "nome@empresa.com",
+      "credits": "Créditos",
+      "note": "Observação",
+      "notePlaceholder": "Pago por Pix em 01/11",
+      "submit": "Adicionar créditos",
+      "done": "{n} créditos adicionados. Saldo agora {balance}.",
+      "last": "{who}: {n} créditos · saldo {balance}",
+      "hint": "Apertar duas vezes nunca credita duas vezes."
+    },
+    "meter": {
+      "credits": "Créditos",
+      "team": "Equipe · ilimitado",
+      "freeUses": "Usos grátis restantes",
+      "get": "Comprar créditos"
+    },
+    "selection": {
+      "select": "Selecionar {name}",
+      "add": "Adicionar à seleção",
+      "remove": "Tirar da seleção",
+      "selectedN": "{n, plural, one {# selecionado} other {# selecionados}}",
+      "usesOf": "{n} de {left} usos",
+      "balanceIs": "Seu saldo é {n}",
+      "clear": "Limpar",
+      "continue": "Continuar",
+      "barAria": "Sua seleção",
+      "maxVideos": "Máximo de {n} vídeos por lote",
+      "maxTemplates": "Máximo de {n} templates por lote",
+      "maxFrames": "Máximo de {n} molduras por lote",
+      "usesLeft": "Você tem {n, plural, one {# uso} other {# usos}}",
+      "name": "Sua seleção",
+      "templatesN": "{n, plural, one {# template} other {# templates}}",
+      "edit": "Editar seleção",
+      "someDontFit": "{n} de {total} não cabem",
+      "doesntFitOne": "{name} não cabe neste anúncio: {reason}",
+      "doesntFitMany": "{names} não cabem neste anúncio",
+      "removeOne": "Tirar {name} e continuar",
+      "removeMany": "Tirar {n} e continuar",
+      "hintPick": "Escolha o anúncio em que estes templates rodam",
+      "stepFits": "Vendo quais templates cabem e escrevendo os textos",
+      "planEyebrow": "Sua seleção · plano pronto",
+      "planTitle": "{n, plural, one {# template} other {# templates}} em \"{ad}\"",
+      "planLede": "Uma linha por template que você marcou. Desmarque o que não quiser; o total se atualiza.",
+      "leftOut": "Ficou de fora · sem cobrança",
+      "invalid": {
+        "not_found": "Alguns templates que você marcou não estão mais disponíveis. Confira a seleção.",
+        "pack": "O pack não entra numa seleção. Use ele sozinho.",
+        "ai_tier": "Templates de IA ainda não entram numa seleção.",
+        "too_many_videos": "Máximo de {n} vídeos por lote. Desmarque um template.",
+        "too_many_frames": "Máximo de {n} molduras por lote. Desmarque uma moldura."
+      }
+    },
+    "aiProduction": {
+      "templates": "Templates",
+      "description": "Seu anúncio está sendo transformado neste formato.",
+      "reading": "Lendo seu campeão",
+      "writing": "Adaptando a mensagem",
+      "presenters": "Criando os apresentadores",
+      "video": "Gerando o vídeo",
+      "render": "Finalizando a edição e as legendas",
+      "background": "Você pode sair desta página. O vídeo aparecerá aqui e na biblioteca quando estiver pronto.",
+      "ready": "Seu vídeo está pronto.",
+      "failed": "Não conseguimos finalizar este vídeo.",
+      "review": "Assista ao vídeo e revise a mensagem antes de publicar.",
+      "download": "Baixar MP4",
+      "library": "Abrir biblioteca",
+      "another": "Gerar outro vídeo",
+      "failedHelp": "Nenhum vídeo foi entregue. Os créditos reservados são devolvidos quando a geração falha.",
+      "retry": "Tentar gerar novamente"
+    }
+  },
+  "credits": {
+    "eyebrow": "Créditos",
+    "title": "Comprar créditos",
+    "lede": "Templates de Edição custam 1 crédito. Templates com IA custam mais porque criam pessoas e cenas novas, e o preço cobre o trabalho todo, refações incluídas. Créditos não expiram.",
+    "loadError": "Não conseguimos carregar seu saldo.",
+    "retry": "Tentar de novo",
+    "balance": "Saldo",
+    "held": "Reservado em vídeos rodando",
+    "plan": "Plano",
+    "access": {
+      "SAMPLE": "Amostra grátis",
+      "PAID": "Pago",
+      "INTERNAL": "Equipe HookMill"
+    },
+    "noCheckout": "O checkout ainda não está aberto no app.",
+    "noCheckoutBody": "Fale com a gente e adicionamos os créditos na sua conta na mão, normalmente no mesmo dia.",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copyFallback": "Selecione o endereço pra copiar",
+    "openMail": "Abrir e-mail",
+    "mailSubject": "Créditos HookMill",
+    "mailBody": "Oi! Quero comprar créditos. O id da minha conta: {id}",
+    "idLine": "Mande o id da sua conta junto: {id}",
+    "packs": {
+      "starter": {
+        "name": "Starter",
+        "body": "cerca de 50 vídeos de edição"
+      },
+      "studio": {
+        "name": "Studio",
+        "body": "cerca de 150 vídeos de edição, ou 18 trocas de rosto"
+      },
+      "agency": {
+        "name": "Agência",
+        "body": "pra vários workspaces de cliente"
+      }
+    },
+    "packCredits": "{n} créditos",
+    "packCustom": "Sob medida",
+    "priceTbd": "Preço a definir",
+    "what": {
+      "reserve": "{name} · reservado",
+      "charge": "{name} · cobrado {n}",
+      "refund": "{name} · devolvido",
+      "sampleGrant": "Usos da amostra grátis",
+      "grant": "Créditos adicionados",
+      "manualNote": "Adicionado pelo HookMill · {note}",
+      "manual": "Adicionado pelo HookMill (manual)"
+    },
+    "history": "Histórico · esta conta",
+    "historyEmpty": "Nenhuma movimentação de crédito ainda.",
+    "col": {
+      "date": "Data",
+      "what": "O quê",
+      "credits": "Créditos",
+      "balance": "Saldo"
+    },
+    "samplePool": "amostra",
+    "more": "Carregar mais",
+    "uses": "Usos de template",
+    "runTeam": "equipe",
+    "runSelection": "{name} · {n, plural, one {# template} other {# templates}}",
+    "runSettled": "−{charged} · +{refunded}",
+    "runHeld": "{held} reservado(s)",
+    "settings": {
+      "title": "Créditos",
+      "open": "Comprar e histórico",
+      "balance": "Saldo",
+      "held": "Reservado",
+      "catalog": "Catálogo de templates",
+      "catalogLink": "Admin · Templates"
+    }
+  },
+  "metaOffer": {
+    "selectorLabel": "Oferta",
+    "selectorHelp": "Separamos os anúncios da Meta por esta oferta.",
+    "allOffers": "Todas as ofertas",
+    "sectionUnknown": "Sem certeza",
+    "sectionOther": "Outros produtos",
+    "notSure": "Sem certeza",
+    "otherHint": "Esses anúncios levam pra outro produto. Se algum for de {offer}, marque.",
+    "showAllOther": "Mostrar todos ({n})",
+    "emptyThis": "Nenhum anúncio ligado a {offer} ainda.",
+    "emptyOther": "Nenhum anúncio de outros produtos.",
+    "tabsAria": "Anúncios por oferta",
+    "noOffer": "Sem oferta",
+    "menu": {
+      "trigger": "Oferta de {name}",
+      "title": "De qual oferta ele é?",
+      "notThis": "Não é de {offer}",
+      "this": "É de {offer}",
+      "another": "É de outra oferta…",
+      "campaignThis": "Todos os anúncios desta campanha são de {offer}",
+      "campaignNotThis": "Esta campanha não é de {offer}",
+      "undo": "Desfazer minha correção"
+    },
+    "toast": {
+      "movedOther": "{n, plural, one {# anúncio foi} other {# anúncios foram}} pra Outros produtos.",
+      "movedThis": "{n, plural, one {# anúncio foi} other {# anúncios foram}} pra {offer}.",
+      "saved": "Salvo. A gente lembra disso nos próximos syncs.",
+      "undone": "Voltou pro automático."
+    },
+    "confirm": {
+      "title": "Esse anúncio parece ser de {other}",
+      "anotherProduct": "outro produto",
+      "body": "Usar pra {offer} mesmo assim? A gente vai lembrar que esse anúncio é de {offer}.",
+      "use": "Usar mesmo assim",
+      "pick": "Escolher outro"
+    },
+    "warn": {
+      "noLinkTitle": "Não conseguimos ver pra onde esses anúncios levam (posts, cadastros ou mensagens).",
+      "noLinkBody": "Marque os que são de {offer}.",
+      "pending": "Ainda lendo {n, plural, one {# link} other {# links}} de anúncio; o próximo sync termina.",
+      "noUrlTitle": "Adicione o link de {offer} pra acharmos os anúncios dela",
+      "noUrlCta": "Editar oferta"
+    },
+    "match": {
+      "manual": "Você marcou este anúncio",
+      "manual_campaign": "Você marcou a campanha dele",
+      "hookmill": "Publicado pelo HookMill",
+      "champion": "Já usado como vencedor",
+      "link": "Mesmo link da oferta",
+      "name": "O nome bate com a oferta",
+      "sibling": "Mesmo conjunto de anúncios desta oferta",
+      "domain": "Mesmo site da oferta",
+      "none": "Sem correspondência"
+    },
+    "none": {
+      "foreign_link": "Leva pra um site que não é de nenhuma oferta sua",
+      "no_link": "Não conseguimos ver pra onde ele leva",
+      "link_pending": "Link ainda não lido",
+      "ambiguous": "Bate com mais de uma oferta",
+      "offer_has_no_url": "A oferta ainda não tem link",
+      "excluded": "Você marcou que não é desta oferta"
+    },
+    "mix": "{this} {offer} · {unknown} sem certeza · {other} de outros"
+  },
+  "tip": {
+    "eyebrow": "Dica",
+    "gotIt": "Entendi",
+    "adSource": {
+      "title": "Escolha o anúncio pra remixar",
+      "body": "Um vencedor da sua conta Meta, um vídeo que você sobe ou um da Biblioteca. O melhor começo é um anúncio que já vende.",
+      "titleNoMeta": "Ainda sem Meta? Suba um vídeo",
+      "bodyNoMeta": "Qualquer anúncio que já rodou serve, seu ou de referência. Dá pra conectar a Meta depois em Configurações."
+    },
+    "plan": {
+      "title": "Confira o plano e clique em Gerar",
+      "body": "Todo texto é editável e mudar não custa nada. O crédito só é reservado no Gerar. Leva alguns minutos; pode sair e voltar."
+    },
+    "result": {
+      "titleSample": "Seu lote grátis está pronto",
+      "bodySample": "Os 3 primeiros segundos estão nítidos, o resto borrado. Escolha um plano e essas mesmas peças destravam na hora, sem render novo.",
+      "actionSample": "Ver planos",
+      "title": "Seu lote está pronto",
+      "body": "Assista cada peça, depois baixe ou marque as que quiser e clique em Enviar pra Meta.",
+      "bodyNoMeta": "Assista cada peça e baixe. Conecte a Meta pra enviar os anúncios direto daqui.",
+      "actionNoMeta": "Conectar Meta"
+    },
+    "send": {
+      "title": "Revise antes de ir ao ar",
+      "body": "Revisar e enviar abre o template de campanha completo. O que você mudar vale só pra este envio; o template fica intacto. Enviar sem revisar usa o template como está salvo."
+    },
+    "library": {
+      "title": "Seus anúncios e peças aprovadas",
+      "body": "Em cima, os anúncios que você subiu ou que lemos da Meta: escolha um pra fazer mais com um template. Embaixo, toda peça que você aprovou."
+    }
+  },
+  "skeleton": {
+    "library": "Carregando sua biblioteca",
+    "next": "Carregando próximos passos",
+    "recent": "Carregando trabalhos recentes",
+    "templates": "Carregando templates",
+    "ads": "Carregando seus anúncios",
+    "creatives": "Carregando criativos",
+    "brain": "Carregando o Cérebro",
+    "iterate": "Carregando seus anúncios",
+    "credits": "Carregando créditos",
+    "settings": "Carregando configurações",
+    "connections": "Carregando conexões",
+    "brandKit": "Carregando o brand kit",
+    "brand": "Carregando a marca",
+    "history": "Carregando histórico"
+  },
+  "radar": {
+    "eyebrow": "Criar anúncios",
+    "title": "Radar de anúncios",
+    "lede": "O que os seus concorrentes estão rodando agora no Facebook e no Instagram. Quanto mais tempo um anúncio fica no ar, mais chance ele tem de se pagar.",
+    "updated": "Atualizado {ago} · próxima checagem {when}",
+    "discovery": {
+      "title": "Procurando seus concorrentes",
+      "leave": "pode sair desta página",
+      "body": "A gente lê o seu Cérebro, procura quem anuncia o seu tipo de produto na Biblioteca de Anúncios da Meta {country} e fica com os mais fortes. Uns 2 minutos, sem gastar crédito.",
+      "again": "Procurando de novo concorrentes {country}. Quem você segue fica; os novos vão pra reserva.",
+      "stage": {
+        "propose": "Lendo o seu Cérebro",
+        "confirm": "Conferindo marcas na Biblioteca de Anúncios",
+        "scan": "Buscando anúncios do seu nicho",
+        "judge": "Vendo quem vende pro seu público",
+        "import": "Trazendo os anúncios deles"
+      },
+      "done": "feito",
+      "now": "agora",
+      "next": "a seguir",
+      "queued": "Começando…",
+      "emptyTitle": "Não achamos anunciantes ativos do seu nicho {country}",
+      "emptyBody": "A Biblioteca de Anúncios da Meta não tem nenhuma marca anunciando o mesmo produto pro mesmo público agora. A gente procura de novo quando o seu Cérebro mudar, ou você pode procurar de novo.",
+      "failedTitle": "A busca por concorrentes não terminou",
+      "failedBody": "A Biblioteca de Anúncios da Meta não respondeu. Nada foi cobrado. Tente de novo em alguns minutos.",
+      "openBrain": "Abrir o Cérebro"
+    },
+    "picked": {
+      "title": "Escolhemos {n, plural, one {# concorrente} other {# concorrentes}} pra você",
+      "body": "Concorrentes diretos vêm primeiro; nicho vizinho só ocupa vaga quando faltam diretos. Tire o que não for seu concorrente e o próximo da reserva entra no lugar.",
+      "gotIt": "Entendi",
+      "why": "Por que este"
+    },
+    "adjacent": "Nicho vizinho",
+    "bar": {
+      "aria": "Concorrentes",
+      "all": "Todos os concorrentes",
+      "active": "{n} ativos",
+      "atLeast": "≥ {n} ativos",
+      "syncing": "Sincronizando…",
+      "failed": "não respondeu",
+      "more": "Mais",
+      "removed": "Removidos ({n})",
+      "searchAgain": "Procurar de novo",
+      "searchAgainAt": "Procurar de novo · {date}",
+      "estimate": "≈ US$ {usd} por busca (só equipe)",
+      "spots": "{n} de {max} vagas"
+    },
+    "comp": {
+      "country": "Ativo {country}",
+      "winners": "{n, plural, one {# provável vencedor} other {# prováveis vencedores}}",
+      "lastSync": "Última checagem {ago}",
+      "importing": "Trazendo os anúncios. A contagem mostra pelo menos o que já vimos.",
+      "refresh": "Atualizar agora",
+      "refreshAt": "Atualizar de novo {when}",
+      "remove": "Remover",
+      "openLib": "Abrir na Biblioteca de Anúncios",
+      "capPaused": "Checagem semanal pausada: o orçamento de pesquisa do mês acabou."
+    },
+    "dismiss": {
+      "title": "Remover {name}?",
+      "body": "Ele sai do feed e não volta numa busca nova.",
+      "reserveYes": "O próximo da reserva entra no lugar.",
+      "reserveNo": "Não tem ninguém na reserva, então a vaga fica aberta até a próxima busca.",
+      "savedStay": "Os anúncios dele que você salvou continuam em Salvos.",
+      "reasonLabel": "Por quê?",
+      "reason": {
+        "not_competitor": "Não é concorrente",
+        "not_relevant": "Não é relevante pra mim",
+        "own_brand": "É a minha própria marca",
+        "other": "Outro motivo"
+      },
+      "confirm": "Remover",
+      "cancel": "Cancelar",
+      "done": "{name} removido",
+      "replaced": "{name} removido · {next} entrou no lugar",
+      "undo": "Desfazer"
+    },
+    "removed": {
+      "title": "Concorrentes removidos",
+      "body": "Eles não voltam em buscas novas. Desfazer traz um de volta se houver vaga.",
+      "empty": "Nada removido.",
+      "undo": "Desfazer",
+      "line": "Removido em {date} · {reason}",
+      "restored": "{name} voltou",
+      "limit": "As {max} vagas estão ocupadas. Remova alguém antes pra trazer {name} de volta."
+    },
+    "tabs": {
+      "aria": "Anúncios",
+      "all": "Todos os anúncios",
+      "saved": "Salvos ({n})"
+    },
+    "filters": {
+      "status": "Status",
+      "format": "Formato",
+      "running": "No ar há",
+      "language": "Idioma",
+      "sort": "Ordenar",
+      "active": "Ativos",
+      "all": "Todos",
+      "inactive": "Inativos",
+      "allFormats": "Todos os formatos",
+      "video": "Vídeo",
+      "image": "Imagem",
+      "anyTime": "No ar · qualquer tempo",
+      "any": "Qualquer",
+      "d7": "7+ dias",
+      "d30": "30+ dias",
+      "d90": "90+ dias",
+      "d7s": "7+ d",
+      "d30s": "30+ d",
+      "d90s": "90+ d",
+      "anyLanguage": "Qualquer idioma",
+      "en": "Inglês",
+      "pt": "Português",
+      "es": "Espanhol",
+      "longest": "No ar há mais tempo",
+      "newest": "Mais novos",
+      "versions": "Mais versões",
+      "button": "Filtros",
+      "buttonN": "Filtros · {n}",
+      "sheetTitle": "Filtros",
+      "show": "Ver anúncios",
+      "clear": "Limpar"
+    },
+    "summary": "{total, plural, one {# anúncio} other {# anúncios}} · {winners, plural, one {# provável vencedor} other {# prováveis vencedores}}",
+    "loadingAds": "Carregando anúncios…",
+    "rule": "“Provável vencedor” = ativo há {days}+ dias ou com {versions}+ versões",
+    "loadMore": "Carregar mais",
+    "card": {
+      "use": "Usar como campeão",
+      "useShort": "Usar",
+      "save": "Salvar",
+      "saved": "Salvo",
+      "days": "{n} d",
+      "ended": "parou",
+      "versions": "{n} versões",
+      "noVideo": "Este anúncio não tem vídeo pra usar",
+      "open": "Abrir anúncio de {name}",
+      "unavailable": "Vídeo indisponível",
+      "winner": "Provável vencedor",
+      "inactive": "Inativo",
+      "readOnly": "Só a agência usa anúncios"
+    },
+    "format": {
+      "VIDEO": "Vídeo",
+      "IMAGE": "Imagem",
+      "CAROUSEL": "Carrossel",
+      "DCO": "Dinâmico",
+      "DPA": "Catálogo",
+      "OTHER": "Outro"
+    },
+    "platform": {
+      "FACEBOOK": "Facebook",
+      "INSTAGRAM": "Instagram",
+      "MESSENGER": "Messenger",
+      "AUDIENCE_NETWORK": "Audience Network",
+      "THREADS": "Threads",
+      "WHATSAPP": "WhatsApp"
+    },
+    "platformShort": {
+      "FACEBOOK": "FB",
+      "INSTAGRAM": "IG",
+      "MESSENGER": "MS",
+      "AUDIENCE_NETWORK": "AN",
+      "THREADS": "TH",
+      "WHATSAPP": "WA"
+    },
+    "why": {
+      "title": "Por que “provável vencedor”",
+      "both": "No ar há {days} dias com {versions} versões rodando. A Meta não mostra o gasto do concorrente; marca raramente deixa anúncio que perde dinheiro no ar por um mês.",
+      "days": "No ar há {days} dias. A Meta não mostra o gasto do concorrente; marca raramente deixa anúncio que perde dinheiro no ar por um mês.",
+      "versions": "{versions} versões deste anúncio estão no ar. Marca faz mais versões do que está funcionando."
+    },
+    "detail": {
+      "close": "Fechar",
+      "active": "Ativo",
+      "started": "Começou",
+      "running": "No ar há",
+      "ran": "Rodou",
+      "runningDays": "{n, plural, one {# dia} other {# dias}}",
+      "platforms": "Plataformas",
+      "country": "País",
+      "language": "Idioma",
+      "button": "Botão",
+      "goesTo": "Leva pra",
+      "versionsLine": "{n} versões rodando · mesmo anúncio, texto diferente",
+      "cards": "Cards deste anúncio",
+      "adText": "Texto do anúncio",
+      "copy": "Copiar",
+      "copied": "Texto copiado",
+      "openLib": "Abrir na Biblioteca de Anúncios ↗",
+      "libId": "ID na biblioteca {id} · checado {ago}",
+      "loadVideo": "Carregar vídeo",
+      "loadingVideo": "Buscando o vídeo na Meta, uns 30 segundos. Pode fechar.",
+      "expired": "O link da Meta pra este vídeo venceu. Carregue de novo pra ver ou usar.",
+      "image": "Imagem",
+      "usedIn": "Usado em {n, plural, one {# lote} other {# lotes}}",
+      "notFound": "Este anúncio não está mais no seu radar.",
+      "player": "Vídeo do anúncio"
+    },
+    "empty": {
+      "nomatchTitle": "Nenhum anúncio com esses filtros",
+      "nomatchBody": "Tente “Qualquer tempo” ou “Todos os formatos”. Concorrente com poucos anúncios raramente tem algo no ar há 90+ dias.",
+      "clear": "Limpar filtros",
+      "savedTitle": "Nada salvo ainda",
+      "savedBody": "Toque no marcador de qualquer anúncio pra guardar aqui. Os salvos também aparecem em Templates, no passo de escolher o anúncio.",
+      "noAdsTitle": "{name} não tem anúncio ativo {country}",
+      "noAdsBody": "A gente checa toda semana, e eles aparecem aqui quando voltarem a anunciar.",
+      "showPast": "Ver anúncios antigos",
+      "importing": "Trazendo os anúncios de {name}… aparecem aqui em instantes."
+    },
+    "error": {
+      "ads": "Não conseguimos carregar os anúncios",
+      "compFail": "A Biblioteca de Anúncios da Meta não respondeu sobre {name}.",
+      "compFailBody": "A última checagem boa foi {ago}. A gente tenta de novo logo; os outros concorrentes estão em dia.",
+      "retry": "Tentar agora"
+    },
+    "cap": {
+      "title": "O orçamento de pesquisa do mês acabou",
+      "body": "Buscas novas e atualizações ficam pausadas até o mês que vem. Os anúncios que você já tem continuam aqui."
+    },
+    "quota": {
+      "title": "A Biblioteca de Anúncios da Meta está no limite",
+      "body": "Buscas novas e atualizações voltam em {date}. Tudo o que já está aqui continua funcionando."
+    },
+    "off": {
+      "title": "O Radar de anúncios chega em breve",
+      "body": "Em breve você vê aqui os anúncios dos seus concorrentes, ordenados por quanto tempo estão no ar."
+    },
+    "readOnly": "Você pode ver os anúncios. A agência escolhe quais usar.",
+    "toast": {
+      "saved": "Salvo · também em Templates › Anúncios salvos",
+      "unsaved": "Tirado dos Salvos",
+      "refreshing": "Checando {name} de novo…",
+      "searching": "Procurando concorrentes…",
+      "rateLimited": "Você pode fazer isso de novo {when}.",
+      "cap": "O orçamento de pesquisa do mês acabou.",
+      "busy": "Já tem uma busca rodando."
+    },
+    "champion": {
+      "note": "Do anúncio do concorrente a gente mantém a estrutura: gancho, ritmo e formato. Oferta, produto, voz e claims vêm do seu Cérebro. Logo, imagens de produto e claims deles não vêm junto.",
+      "pinned": "Campeão · {name} · “{headline}”",
+      "reading": "A gente lê este anúncio no primeiro uso · uns 1 min, grátis. Já pode escolher os templates.",
+      "read": "Lido. Cada card abaixo diz se combina com este anúncio.",
+      "change": "Trocar anúncio"
+    },
+    "r1": {
+      "title": "Este vídeo é de um concorrente",
+      "body": "Templates de Edição colocam a filmagem do próprio concorrente no seu anúncio. Se ele denunciar, a Meta pode derrubar o seu anúncio e marcar a sua conta de anúncios. Mais seguro: manter só a estrutura com um template de IA, ou gravar a sua versão.",
+      "ack": "Entendi, usar este vídeo",
+      "cancel": "Voltar"
+    },
+    "adStep": {
+      "tab": "Anúncios salvos",
+      "emptyTitle": "Nenhum anúncio salvo ainda",
+      "emptyBody": "Salve anúncios de concorrentes no Radar de anúncios e eles aparecem aqui.",
+      "open": "Abrir o Radar de anúncios",
+      "line": "{days, plural, one {# dia no ar} other {# dias no ar}}",
+      "ended": "Parou"
+    }
+  },
+  "editorU": {
+    "canvas": {
+      "aria": "Canvas"
+    },
+    "play": "Reproduzir",
+    "pause": "Pausar",
+    "mute": "Sem som",
+    "soundOn": "Ligar o som",
+    "timeAria": "Tempo",
+    "off": "Desligado",
+    "on": "Ligado",
+    "tplName": {
+      "headline": "Headline"
+    },
+    "top": {
+      "batch": "Lote",
+      "library": "Biblioteca",
+      "undo": "Desfazer",
+      "redo": "Refazer",
+      "resetAll": "Desfazer tudo",
+      "download": "Baixar",
+      "downloadPending": "Exporte suas edições antes",
+      "export": "Exportar",
+      "exportTip": "Renderiza de novo esta peça com suas edições. Sem geração nova, sem crédito.",
+      "exportBlocked": "Resolva os avisos vermelhos pra exportar",
+      "exportConfirm": "Confirme o número pra exportar",
+      "exportNothing": "Nada pra exportar ainda",
+      "exportReadOnly": "Esta peça é só leitura"
+    },
+    "save": {
+      "saving": "Salvando…",
+      "error": "Não salvou · tentando de novo",
+      "invalid": "Não salvo",
+      "unsaved": "Mudanças não salvas",
+      "saved": "Salvo · rev {rev}",
+      "notExported": "Salvo · rev {rev} · não exportado",
+      "exported": "Exportado · rev {rev}"
+    },
+    "banner": {
+      "clientTitle": "Você pode ver esta peça.",
+      "clientBody": "Só o time edita e exporta.",
+      "readOnlyTitle": "Esta peça está publicada.",
+      "readOnlyBody": "Ela abre só pra leitura, pra versão que está nos seus anúncios não mudar.",
+      "openLibrary": "Abrir na Biblioteca",
+      "conflictTitle": "{name} salvou esta peça antes.",
+      "conflictBody": "Sua última mudança não foi salva. Carregue a versão salva pra continuar; não há mescla.",
+      "loadTheirs": "Carregar a versão de {name}",
+      "copyMine": "Copiar meus textos antes",
+      "exportingTitle": "Exportando {name}",
+      "exportingBody": "renderizando de novo com suas edições. Sem geração nova. Pode sair; continua sozinho.",
+      "blockedTitle": "Exportação bloqueada.",
+      "blockedBody": "Um aviso vermelho ou um número sem confirmação apareceu no servidor. Resolva e exporte de novo.",
+      "exportErrorTitle": "A exportação não começou.",
+      "doneTitle": "Exportado.",
+      "doneBody": "A peça ganhou o selo “Editado” e o código termina em -ED. 4:5 e 1:1 são refeitos quando você pedir (grátis).",
+      "download916": "Baixar 9:16",
+      "backBatch": "Voltar ao lote",
+      "invalidTitle": "Esta mudança não pode ser salva.",
+      "invalidBody": "Ela quebra uma regra deste template. Desfaça ou mude de novo."
+    },
+    "stage": {
+      "saving": "Edições salvas",
+      "rendering": "Renderizando {format}",
+      "caption_check": "Checagem da legenda",
+      "text_check": "Checagem do texto"
+    },
+    "fail": {
+      "caption": "A checagem da legenda falhou depois do render.",
+      "text": "A checagem do texto falhou depois do render.",
+      "render": "O render falhou.",
+      "at": "Em {at}.",
+      "kept": "A peça não foi substituída; a versão anterior continua.",
+      "jump": "Ir pra {at}",
+      "retry": "Checar de novo"
+    },
+    "cover": {
+      "title": "Abrindo o editor",
+      "body": "Carregando uma cópia leve do seu vídeo pra o arrasto ficar suave. A exportação usa o arquivo em qualidade total.",
+      "piece": "Peça e camadas carregadas",
+      "proxy": "Preparando a cópia 540p da prévia · cerca de {s} s",
+      "fonts": "Fontes"
+    },
+    "guides": {
+      "aria": "Guias",
+      "off": "Sem guias",
+      "on": "Rosto · legenda · zona",
+      "show": "Mostrar guias",
+      "appUi": "interface do app",
+      "face": "rosto",
+      "band": "legenda queimada (protegida)"
+    },
+    "pill": {
+      "face": "Rosto livre",
+      "caption": "Legenda queimada livre",
+      "text": "Texto cabe",
+      "numbers": "Números batem com a fala e o Brain",
+      "contrast": "Contraste",
+      "noPicture": "Sem imagem sua: as regras de rosto e legenda não valem"
+    },
+    "issue": {
+      "caption_covered": "{layer} cobre a legenda queimada",
+      "face_covered": "{layer} cobre o rosto",
+      "caption_cut": "A legenda queimada ficou cortada",
+      "face_cut": "O rosto ficou cortado pelo quadro do vídeo",
+      "text_overflow": "{layer}: o texto não cabe na caixa",
+      "too_long": "{layer}: {chars} / {max} caracteres",
+      "invented_number": "“{n}” não está na fala nem no Brain",
+      "low_contrast": "{layer}: pouco contraste entre texto e fundo",
+      "item_out_of_range": "{layer}: fora do corte, escondido",
+      "no_client_image": "Sem imagem sua"
+    },
+    "fix": {
+      "caption_covered": "Tire de cima da área vermelha, ou ligue as guias pra ver.",
+      "face_covered": "Deixe pelo menos 90% do rosto livre.",
+      "caption_cut": "Afaste o zoom ou use o Reenquadrar automático.",
+      "face_cut": "Afaste o zoom ou use o Reenquadrar automático.",
+      "text_overflow": "Aumente a caixa ou encurte o texto.",
+      "too_long": "Encurte o texto.",
+      "low_contrast": "Escolha uma cor de texto ou de fundo com mais contraste."
+    },
+    "number": {
+      "memo": "“{n}” não está no que foi dito nem no Brain. Número tem que vir do vídeo ou do Brain. A exportação espera você confirmar.",
+      "keep": "É verdade, manter",
+      "undo": "Desfazer esta edição"
+    },
+    "layers": {
+      "title": "Camadas",
+      "hint": "Clique numa camada ou no canvas. As setas movem a camada selecionada (Shift = 10 px). Clique duas vezes no seu vídeo pra reenquadrar.",
+      "locked": "travada",
+      "hidden": "escondida"
+    },
+    "timeline": {
+      "title": "Linha do tempo",
+      "hint": "Clique numa faixa pra ir até lá. Linhas com tempo vêm num próximo passo.",
+      "hintTrim": "Clique numa faixa pra ir até lá. Arraste as pontas da barra do seu vídeo pra aparar. A parte hachurada fica de fora.",
+      "trimStart": "Arraste pra aparar o início",
+      "trimEnd": "Arraste pra aparar o fim",
+      "cutAway": "Aparado: fora do vídeo",
+      "yourVideo": "seu vídeo"
+    },
+    "panel": {
+      "aria": "Painel",
+      "template": "Template",
+      "layer": "Camada",
+      "none": "nenhuma"
+    },
+    "group": {
+      "appearance": "Aparência",
+      "position": "Posição",
+      "format": "Formato",
+      "content": "Conteúdo",
+      "guides": "Guias",
+      "broll": "B-roll"
+    },
+    "control": {
+      "brandColor": "Cor da marca",
+      "brand": "Cor da marca",
+      "look": "Visual",
+      "place": "Posição da lista",
+      "theme": "Tema do chat",
+      "bubble": "Seu balão",
+      "captions": "Legenda em cima",
+      "strip": "Faixa",
+      "ratio": "Divisão",
+      "swap": "Seu vídeo embaixo",
+      "columns": "Colunas"
+    },
+    "tpl": {
+      "positionHint": "Ajuste fino de qualquer camada arrastando, ou na aba Camada.",
+      "formatHint": "Trocar o formato refaz o layout. Texto, cores e fontes ficam. 4:5 e 1:1 são grátis.",
+      "fromWorkspace": "do workspace",
+      "templateDefault": "padrão do template",
+      "schema": "Como este painel foi montado: os controles que este template declara",
+      "later": "Este controle vem num próximo passo."
+    },
+    "content": {
+      "lines": "{n, plural, one {# linha} other {# linhas}}",
+      "sub": "Toda linha é editável. Cada uma guarda de onde veio.",
+      "subTimed": "Toda linha é editável. O tempo é onde ela aparece no vídeo; clique pra ir até lá. Cada uma guarda de onde veio.",
+      "at": "Em",
+      "line": "Linha",
+      "from": "Origem",
+      "whole": "inteiro",
+      "hidden": "escondida",
+      "item": "Item {n}",
+      "none": "Este template não tem texto pra editar."
+    },
+    "prov": {
+      "transcript": "Transcrição",
+      "brain": "Brain",
+      "brainField": "Brain › {field}",
+      "both": "Transcrição + Brain",
+      "bothField": "Transcrição + Brain › {field}",
+      "template": "Rótulo do template",
+      "generic": "Genérico",
+      "youEdited": "Você editou",
+      "was": "era “{text}”"
+    },
+    "brainField": {
+      "what": "O que é",
+      "audience": "Público",
+      "pains": "Dores",
+      "promise": "Promessa",
+      "proof": "Prova",
+      "offerAndPrice": "Oferta e preço",
+      "cta": "Chamada",
+      "notes": "Notas",
+      "page": "Página",
+      "name": "Nome"
+    },
+    "exportReason": {
+      "nothing_to_export": "Nada mudou desde a última exportação.",
+      "export_running": "Já tem uma exportação desta peça rodando.",
+      "render_running": "Esta peça está renderizando. Tente de novo quando terminar.",
+      "read_only": "Esta peça é só leitura.",
+      "not_saved": "Sua última edição ainda não salvou. Espere o “Salvo” e exporte de novo."
+    },
+    "reframe": {
+      "cta": "Reenquadrar",
+      "tag": "Reenquadrando",
+      "hint": "Arraste pra mover · role ou use o canto pra dar zoom · Esc pra sair",
+      "done": "Pronto",
+      "onCanvas": "Reenquadrar no quadro",
+      "subOff": "clique duas vezes no vídeo",
+      "subOn": "reenquadrando no quadro",
+      "subPhone": "use os controles",
+      "fitLabel": "Na caixa",
+      "fill": "Preencher (corta)",
+      "fit": "Caber",
+      "zoom": "Zoom",
+      "panX": "Esq./dir.",
+      "panY": "Cima/baixo",
+      "auto": "Reenquadrar automático",
+      "autoOn": "Automático ligado: rosto e legenda queimada ficam à vista.",
+      "autoOff": "Ajustado por você. O automático traz de volta o rosto e a legenda queimada."
+    },
+    "trim": {
+      "title": "Aparar",
+      "sub": "início e fim do seu vídeo",
+      "start": "início",
+      "end": "fim",
+      "startHere": "Começar aqui",
+      "endHere": "Terminar aqui",
+      "whole": "Usar o vídeo inteiro",
+      "kept": "Mantém de {from} a {to}",
+      "output": "Saída de {s} s. Linhas fora do corte ficam escondidas, não apagadas."
+    },
+    "lyr": {
+      "noneTitle": "Nenhuma camada selecionada",
+      "noneBody": "Clique em qualquer coisa no canvas ou escolha na lista. Toda camada deste template pode ser selecionada: texto, caixas e seu vídeo.",
+      "burnedBody": "Ela faz parte dos pixels do seu vídeo, então não dá pra mover nem editar aqui. O editor protege ela: nada pode cobrir.",
+      "burnedHow": "Pra mudar essas palavras, suba a versão do seu vídeo sem legenda e ligue a nossa legenda.",
+      "hide": "Esconder",
+      "show": "Mostrar",
+      "reset": "Restaurar",
+      "text": "Texto",
+      "accentHint": "*asteriscos* destacam palavras",
+      "lines": "Linhas",
+      "linesBody": "Os itens ficam em Template › Conteúdo, cada um com a origem.",
+      "openContent": "Abrir Conteúdo",
+      "style": "Estilo",
+      "font": "Fonte",
+      "size": "Tamanho",
+      "sizeUnit": "px a 1080 de largura",
+      "color": "Cor do texto",
+      "accentColor": "Cor de destaque",
+      "align": "Alinhamento",
+      "left": "Esquerda",
+      "center": "Centro",
+      "right": "Direita",
+      "caps": "Maiúsculas",
+      "asTyped": "Como digitado",
+      "allCaps": "TUDO MAIÚSCULO",
+      "fill": "Cor do fundo",
+      "framing": "Enquadramento",
+      "brollNext": "Trocar o segundo vídeo vem num próximo passo.",
+      "position": "Posição e tamanho",
+      "positionPhone": "no celular, use os campos",
+      "positionDesk": "ou arraste no canvas",
+      "pos": {
+        "top": "Topo",
+        "mid": "Meio",
+        "bot": "Embaixo",
+        "cx": "Centralizar"
+      },
+      "uniformHint": "Este template escala o conteúdo da caixa por igual: largura e altura mudam juntas.",
+      "fixed": "Esta camada fica onde o template pôs.",
+      "videoFixed": "Esta camada ocupa o canvas inteiro neste template.",
+      "videoFixedReframe": "Esta camada ocupa o canvas inteiro neste template. Dá pra reenquadrar mesmo assim.",
+      "when": "Quando aparece",
+      "jumpStart": "Ir pro começo dela"
+    },
+    "hist": {
+      "reframe": "Reenquadrar seu vídeo",
+      "autoReframe": "Reenquadrar automático",
+      "trim": "Aparar seu vídeo",
+      "move": "Mover {layer}",
+      "resize": "Redimensionar {layer}",
+      "opt": "Mudar {name}",
+      "text": "Editar {layer}",
+      "confirm": "Confirmar número",
+      "style": "{name} de {layer}",
+      "field": "{name} de {layer}",
+      "hide": "Esconder {layer}",
+      "show": "Mostrar {layer}",
+      "reset": "Restaurar {layer}",
+      "resetAll": "Desfazer tudo"
+    },
+    "toast": {
+      "undone": "Desfeito: {what}",
+      "redone": "Refeito: {what}",
+      "copied": "{n, plural, one {# texto copiado} other {# textos copiados}}",
+      "copyFailed": "Não deu pra copiar"
+    },
+    "field": {
+      "question": "Pergunta",
+      "pageName": "Nome da página",
+      "headline": "Headline",
+      "headline_lead": "Headline · abertura",
+      "headline_highlight": "Headline · destaque",
+      "dek": "Linha fina",
+      "cta": "Chamada",
+      "topic": "Assunto",
+      "pov": "POV",
+      "subtitle": "Subtítulo",
+      "title": "Título",
+      "slideTitle": "Título do slide",
+      "slideSteps": "Passos do slide",
+      "names": "Nomes",
+      "items": "Itens",
+      "copy": "Texto do post",
+      "promise": "Promessa",
+      "price_from": "Preço · de",
+      "price_to": "Preço · por",
+      "support": "Linha de apoio",
+      "primaryText": "Texto principal"
+    },
+    "layer": {
+      "video": "Seu vídeo",
+      "video2": "Segundo vídeo",
+      "brand": "Nome da marca",
+      "burned": "Legenda queimada",
+      "headline": "Headline",
+      "headlineBox": "Faixa da headline",
+      "box": "Caixa · {name}"
+    },
+    "boxName": {
+      "card": "cartão",
+      "panel": "painel",
+      "band": "faixa",
+      "plate": "placa"
+    },
+    "gate": {
+      "back": "Voltar",
+      "retry": "Tentar de novo",
+      "notEditableTitle": "Esta peça ainda não abre no editor",
+      "retiredTitle": "Esta peça não pode ser editada",
+      "notReadyTitle": "Esta peça ainda não está pronta pra editar",
+      "lockedTitle": "Desbloqueie pra editar",
+      "errorTitle": "Não deu pra abrir o editor",
+      "reason": {
+        "auto_type_not_editable": "Molduras e headline já abrem no editor. Este tipo de peça vem num próximo passo.",
+        "piece_not_ready": "O 9:16 ainda está renderizando. Tente de novo quando ficar pronto.",
+        "source_unavailable": "O vídeo original desta peça não está disponível.",
+        "sample_locked": "O editor abre quando a conta for desbloqueada.",
+        "remix_editor_not_enabled": "Esta variação abre no editor num próximo passo.",
+        "headline_plate_retired": "Esta peça antiga não abre mais no editor. Você ainda pode baixar."
+      }
+    },
+    "card": {
+      "download": "Baixar",
+      "edit": "Editar",
+      "pending": "Edições não exportadas",
+      "exporting": "Exportando edições…",
+      "exportFailed": "A exportação falhou",
+      "reason": {
+        "auto_type_not_editable": "Este tipo de peça ainda não abre no editor",
+        "piece_not_ready": "Disponível quando o 9:16 ficar pronto",
+        "sample_locked": "Desbloqueie a conta pra editar",
+        "remix_editor_not_enabled": "Vem num próximo passo",
+        "headline_plate_retired": "Esta peça antiga não abre mais no editor"
+      }
     }
   }
 }

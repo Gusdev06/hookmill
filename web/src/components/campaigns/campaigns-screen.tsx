@@ -3,12 +3,15 @@
 import { useDeferredValue, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useFormatter, useNow, useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
-import type { MetaCampaignAdRow, MetaCampaignsTotals, MetaPeriod, MetaStatusCounts, MetaSyncState, MetaWriteResult } from "@/lib/api/types"
+import type { MetaCampaignAdRow, MetaCampaignsTotals, MetaOfferCounts, MetaOfferFit, MetaPeriod, MetaStatusCounts, MetaSyncState, MetaWriteResult } from "@/lib/api/types"
+import { useActiveOffer } from "@/lib/active-offer"
+import type { OfferRef } from "@/components/meta/offer-fit-menu"
+import { OfferNotices, OfferPicker } from "@/components/meta/offer-sections"
 import { Alert, AlertActions, AlertBody, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -53,6 +56,7 @@ const RUNNING: MetaSyncState["state"][] = ["first_sync", "syncing"]
 
 function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
   const t = useTranslations("campaigns")
+  const tOffer = useTranslations("metaOffer")
   const errorMessage = useErrorMessage()
   const qc = useQueryClient()
   const params = useSearchParams()
@@ -93,6 +97,23 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
     })
   const [drill, setDrill] = useState<Drill>({ c: null, a: null })
 
+  // ── offer (meta-oferta-v1 §8): the active offer by default; "All offers" = no offerId (local to this screen, not stored)
+  const offersQ = useQuery({ queryKey: ["offers"], queryFn: () => api.offers.list(), staleTime: 60_000 })
+  const offerList: OfferRef[] = offersQ.data?.data.map((o) => ({ id: o.id, name: o.name })) ?? []
+  const activeOffer = useActiveOffer(session.workspace.id, offersQ.data ? offerList : undefined)
+  const [allOffers, setAllOffers] = useState(false)
+  const offer = allOffers ? null : activeOffer.offer
+  // tab: picked, or automatic (this; unknown when this = 0, decided once per offer + view from the counts)
+  const [scope, setScope] = useState<MetaOfferFit | null>(null)
+  const [autoUnknown, setAutoUnknown] = useState<string | null>(null)
+  const scopeKey = offer ? `${offer.id}:${view}` : ""
+  const offerScope: MetaOfferFit | undefined = !offer ? undefined : (scope ?? (autoUnknown === scopeKey ? "unknown" : "this"))
+  const pickOffer = (id: string | null) => {
+    setScope(null)
+    setAllOffers(!id)
+    if (id) activeOffer.setOfferId(id)
+  }
+
   // ── connection
   const c = conn.data ?? null
   const expired = c?.status === "TOKEN_INVALID"
@@ -103,7 +124,7 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
 
   // ── data
   // both modes page with nextCursor (the API caps `limit` at 100, default 30) and "Load more"
-  const listQ = { period, status, origin, q: dq || undefined, sort, dir, limit: PAGE }
+  const listQ = { period, status, origin, q: dq || undefined, sort, dir, limit: PAGE, offerId: offer?.id, offerScope }
   const list = useInfiniteQuery({
     queryKey: mk.campaigns(listQ),
     queryFn: ({ pageParam, signal }) => api.meta.campaigns({ ...listQ, cursor: pageParam }, { signal }),
@@ -114,7 +135,7 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
     refetchInterval: (query) => (RUNNING.includes(query.state.data?.pages[0]?.meta.sync.state as MetaSyncState["state"]) ? 5_000 : false),
   })
   // the server sorts (sort + dir); ads have no budget, so "budget" falls back to spend
-  const adsQ = { format: "all" as const, period, status, origin, q: dq || undefined, sort: sort === "budget" ? ("spend" as const) : sort, dir, limit: PAGE }
+  const adsQ = { format: "all" as const, period, status, origin, q: dq || undefined, sort: sort === "budget" ? ("spend" as const) : sort, dir, limit: PAGE, offerId: offer?.id, offerScope }
   const ads = useInfiniteQuery({
     queryKey: mk.ads(adsQ),
     queryFn: ({ pageParam, signal }) => api.meta.ads({ ...adsQ, cursor: pageParam }, { signal }),
@@ -130,6 +151,10 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
   const sync: MetaSyncState | null = view === "tree" ? (listMeta?.sync ?? null) : (adsMeta?.summary.sync ?? null)
   const currency = (view === "tree" ? listMeta?.currency : adsMeta?.summary.currency) ?? c?.adAccount?.currency ?? null
   const counts: MetaStatusCounts | undefined = view === "tree" ? listMeta?.counts : adsMeta?.counts
+  const offerMeta = (view === "tree" ? listMeta?.offer : adsMeta?.offer) ?? undefined
+  const offerCounts: MetaOfferCounts | undefined = offer && offerMeta?.offerId === offer.id ? offerMeta.counts : undefined
+  // "storing information from previous renders": the first answer of this offer + view decides the automatic tab
+  if (offer && scope === null && offerCounts && autoUnknown !== scopeKey && offerCounts.this === 0 && offerCounts.unknown > 0) setAutoUnknown(scopeKey)
   const campaigns = list.data?.pages.flatMap((p) => p.data) ?? []
   const adNodes = (ads.data?.pages.flatMap((p) => p.data) ?? []).map((row) => ({ level: "ad", row: row as MetaCampaignAdRow, campaign: null, adset: null }) as Extract<Node, { level: "ad" }>)
   const more = active.hasNextPage ? (
@@ -214,6 +239,7 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
   const lockedReason = unusable ? t("err.unusableTitle") : expired ? t("err.tokenTitle") : null
   const ctx: TableCtx = {
     canWrite, isClient, lockedReason, period, filters, currency, resultKey: rk, flash,
+    offer, offers: offerList, canFixOffer: !isClient,
     onToggle: (n) => setDlg({ kind: "toggle", n }),
     onBudget: (n) => setDlg({ kind: "budget", n }),
     onHistory: (n) => setHist({ level: n.level, id: nodeId(n), name: n.row.name }),
@@ -233,6 +259,14 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
   const notConnected = !conn.isPending && (!usable || (active.isError && isApiError(active.error) && (active.error.code === "META_NOT_CONNECTED" || active.error.code === "META_SELECTION_MISSING")))
   const anyFilter = status !== "all" || origin !== "all" || !!dq
   const rowsCount = view === "tree" ? campaigns.length : adNodes.length
+  const offerTotal = offerCounts ? offerCounts.this + offerCounts.unknown + offerCounts.other : 0
+  const offerBar = offerList.length ? (
+    <OfferBar offers={offerList} offer={offer} onOffer={pickOffer} scope={offerScope ?? "this"} onScope={setScope} counts={offerCounts} />
+  ) : null
+  // an empty tab of the offer (no other filter): say it plainly instead of "No match · Clear"
+  const emptyTab = offer && !anyFilter && offerTotal > 0 ? (
+    <div className="p-[18px] text-[13px] text-fg-3">{offerScope === "other" ? tOffer("emptyOther") : tOffer("emptyThis", { offer: offer.name })}</div>
+  ) : null
   const toolbar = (
     <ToolbarView
       view={view} setView={(v) => { setView(v); setDrill({ c: null, a: null }) }}
@@ -245,6 +279,7 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
     body = (
       <>
         {/* QA layout 29/10 (3rd round): same toolbar while loading, so the list doesn't jump when it arrives */}
+        {offerBar}
         {toolbar}
         <TableSkeleton />
         <CardsSkeleton />
@@ -276,14 +311,16 @@ function Campaigns({ conn }: { conn: ReturnType<typeof useMetaConnection> }) {
         <CardsSkeleton />
       </>
     )
-  } else if (!rowsCount && !anyFilter && view === "tree") {
+  } else if (!rowsCount && !anyFilter && view === "tree" && !offerTotal) {
     body = <NoCampaigns account={account} canSend={!isClient} />
   } else {
     body = (
       <>
+        {offerBar}
+        {offer ? <OfferNotices offer={offer} meta={offerMeta} /> : null}
         {toolbar}
-        <TreeTable mode={view} campaigns={campaigns} ads={adNodes} totals={totals} ctx={ctx} sort={sort} dir={dir} onSort={onSort} open={open} toggle={toggleOpen} empty={noMatch} />
-        <PhoneList mode={view} campaigns={campaigns} ads={adNodes} totals={totals} ctx={ctx} sort={sort} dir={dir} drill={drill} setDrill={setDrill} empty={<div className="rounded-[14px] border border-line bg-card">{noMatch}</div>} />
+        <TreeTable mode={view} campaigns={campaigns} ads={adNodes} totals={totals} ctx={ctx} sort={sort} dir={dir} onSort={onSort} open={open} toggle={toggleOpen} empty={emptyTab ?? noMatch} />
+        <PhoneList mode={view} campaigns={campaigns} ads={adNodes} totals={totals} ctx={ctx} sort={sort} dir={dir} drill={drill} setDrill={setDrill} empty={<div className="rounded-[14px] border border-line bg-card">{emptyTab ?? noMatch}</div>} />
         {view === "tree" && drill.c ? null : more}
       </>
     )
@@ -516,6 +553,40 @@ function Banners({ sync, expired, unusable, truncated, member, onSync, syncing, 
         </Alert>
       ) : null}
     </>
+  )
+}
+
+/** meta-oferta-v1 §8: offer selector ("All offers" = no offerId) + the 3 tabs with the counts of `meta.offer.counts` */
+function OfferBar({
+  offers, offer, onOffer, scope, onScope, counts,
+}: {
+  offers: OfferRef[]; offer: OfferRef | null; onOffer: (id: string | null) => void
+  scope: MetaOfferFit; onScope: (s: MetaOfferFit) => void; counts: MetaOfferCounts | undefined
+}) {
+  const t = useTranslations("metaOffer")
+  const n = (v: number | undefined) => (v === undefined ? null : <span className="font-mono text-[11px] text-fg-3 tabular-nums">{v}</span>)
+  return (
+    <div className="flex flex-wrap items-end gap-x-3 gap-y-2.5">
+      <OfferPicker id="camp-offer" offers={offers} value={offer?.id ?? null} onChange={onOffer} allLabel={t("allOffers")} help={false} className="w-[260px] max-tablet:w-full" />
+      {offer ? (
+        <div className="min-w-0 max-w-full overflow-x-auto max-tablet:w-full">
+          <ToggleGroup type="single" value={scope} onValueChange={(v) => v && onScope(v as MetaOfferFit)} aria-label={t("tabsAria")} className="flex-none">
+            <ToggleGroupItem value="this" className="max-w-[220px] gap-1.5">
+              <span className="min-w-0 truncate">{offer.name}</span>
+              {n(counts?.this)}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="unknown" className="gap-1.5">
+              {t("sectionUnknown")}
+              {n(counts?.unknown)}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="other" className="gap-1.5">
+              {t("sectionOther")}
+              {n(counts?.other)}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

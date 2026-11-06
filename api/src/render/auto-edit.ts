@@ -4,7 +4,7 @@
  * teardown, editMap, medidas, Brain) e chama ao tirar o render da fila. Mesmo ctx + mesmo formato = mesmo input.
  */
 import type { AutoVariationType, EditMap, EndcardVariant, Rect, TranscriptWord } from '@maquina/contratos';
-import { FORMATOS, SAFE_AREA, centroDoRosto, contentBoxDe, corDeDestaque, corEscura, decidirLegendaAutoEdit, faixasProtegidasDe, faixasProtegidasNaSaidaAutoEdit, mapearCaixa, reframeFor, reframeNaCaixa, unionBand, type AutoEditProps } from '@maquina/video';
+import { FORMATOS, SAFE_AREA, centroDoRosto, contentBoxDe, corDeDestaque, corEscura, decidirLegendaAutoEdit, faixasProtegidasDe, faixasProtegidasNaSaidaAutoEdit, mapearCaixa, reframeFor, reframeNaCaixa, unionBand, type AutoEditProps, type BrandLogo } from '@maquina/video';
 import { CaptionProtectedError, legendaNoEstiloDaOriginal, type OpcoesDeBuild } from './frame';
 import { snapSpans, snapSpansEmOrdem, writtenHookLayer, type Span } from '../medicao/auto-edit';
 import type { AutoEditParams, AutoEditRenderInput } from './contrato';
@@ -45,6 +45,8 @@ export interface AutoEditContext {
   palette: string[];
   /** workspace.name */
   brandName: string;
+  /** kit-marca-v1 §5: logo do kit, já em URL assinada (`resolverLogoDaMarca`). Ausente/null = iniciais. */
+  brandLogo?: BrandLogo | null;
   /** SPLIT-LP: captura da página (análise) ou foto do produto (D4), URL assinada */
   page: { imageUrl: string; kind: 'page' | 'product_photo' } | null;
 }
@@ -213,7 +215,7 @@ export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat,
     kind: 'auto-edit', renderId: ctx.renderId, templateId: 'auto-edit',
     format, language: ctx.language, source: ctx.source, reframe,
     timeline: timeline.map((t) => ({ startSec: t.startSec, endSec: Math.min(t.endSec, dur) })),
-    joinFadeMs: 40, safeArea: safe, palette: ctx.palette, brandName: ctx.brandName,
+    joinFadeMs: 40, safeArea: safe, palette: ctx.palette, brandName: ctx.brandName, ...(ctx.brandLogo && { brandLogo: ctx.brandLogo }),
     type: ctx.type, params, ...(contentBox && { contentBox }),
   };
   // legenda-protegida-v1 (26/10): CUT, NATIVE_SEARCH e REVIEW nunca tampam nem cortam a legenda queimada do campeão.

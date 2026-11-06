@@ -1,12 +1,16 @@
 import type {
-  BusinessType, CreateClientBody, ResultType, CreateInviteBody, TargetCpa, OnboardingStep, Role, UpdateMemberBody, UpdateWorkspaceBody,
+  BusinessType, CreateClientBody, ResultType, CreateInviteBody, TargetCpa, OnboardingConfirmItem, OnboardingStep, Role, UpdateMemberBody, UpdateWorkspaceBody,
+  ProductEventInput, ProductEventsBody, SeeTipBody, TipKey, TourEventName,
 } from '@maquina/contratos';
 import {
-  IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested,
+  ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength,
+  ValidateIf, ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { SHORT_CODE_RE } from '../cliente';
 import { RESULT_OTHER_MAX, RESULT_TYPES } from '../resultado';
+import { ONBOARDING_CONFIRM_ITEMS } from '../onboarding';
+import { EVENTS_MAX_PER_REQUEST, TIP_KEYS, TOUR_EVENT_NAMES } from '../tour';
 
 const BUSINESS_TYPES: BusinessType[] = ['ONLINE_STORE', 'LOCAL_BUSINESS', 'APP'];
 const URL_OPTS = { protocols: ['http', 'https'], require_protocol: true };
@@ -21,8 +25,9 @@ export class TargetCpaDto implements TargetCpa {
 }
 
 export class UpdateWorkspaceDto implements UpdateWorkspaceBody {
-  @IsOptional() @IsString() @MinLength(1) @MaxLength(120) name?: string;
-  @IsOptional() @IsIn(['EN', 'PT_BR']) uiLocale?: 'EN' | 'PT_BR';
+  @Present() @Transform(({ value }: { value: unknown }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @MinLength(1) @MaxLength(120) name?: string;
+  @Present() @IsIn(['EN', 'PT_BR']) uiLocale?: 'EN' | 'PT_BR';
   /** null = sem teto */
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(1_000_000)
   monthlySpendCapUsd?: number | null;
@@ -44,6 +49,8 @@ export class UpdateWorkspaceDto implements UpdateWorkspaceBody {
   @Present() @IsInt() @Min(1) @Max(6) onboardingStep?: OnboardingStep;
   /** true grava pausedAt; false limpa */
   @Present() @IsBoolean() paused?: boolean;
+  /** lacunas-home-eddy-v1 §1: cartão confirmado no onboarding com o Eddy (idempotente) */
+  @Present() @IsIn(ONBOARDING_CONFIRM_ITEMS) confirm?: OnboardingConfirmItem;
 }
 
 export class CreateClientDto implements CreateClientBody {
@@ -73,4 +80,26 @@ export class UpdateMemberDto implements UpdateMemberBody {
 
 export class SpendQueryDto {
   @IsOptional() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) month?: string;
+}
+
+// ───────── tour-v2 (docs/contratos/tour-v2.md) ─────────
+
+export class SeeTipDto implements SeeTipBody {
+  @IsIn(TIP_KEYS) tip: TipKey;
+}
+
+export class TourQueryDto {
+  /** `2` = paradas v2; ausente = legado (até o web trocar) */
+  @IsOptional() @IsIn(['1', '2']) v?: '1' | '2';
+}
+
+export class ProductEventDto implements ProductEventInput {
+  @IsIn(TOUR_EVENT_NAMES) name: TourEventName;
+  @IsOptional() @IsString() @MaxLength(40) at?: string;
+  @IsOptional() @IsObject() props?: Record<string, unknown>;
+}
+
+export class ProductEventsDto implements ProductEventsBody {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(EVENTS_MAX_PER_REQUEST) @ValidateNested({ each: true }) @Type(() => ProductEventDto)
+  events: ProductEventDto[];
 }

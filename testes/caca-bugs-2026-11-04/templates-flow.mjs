@@ -1,0 +1,6 @@
+import {api,browserPage,shot,save,pool,expect,q} from './harness.mjs';
+await q("update users set ui_locale='EN' where id='qa_user_dono_a'");
+let offers=await api('GET','/offers');if(!offers.data?.length){const r=await api('POST','/offers',{name:'Hunt sleep 🧪',language:'en',what:'A mattress for better sleep',promise:'Comfort through the night',offerAndPrice:'$500, 30-day trial',proof:'Verified customer reviews. Tested for durability.',cta:'Shop now',audience:'Adults who want better sleep',pains:'Poor sleep; back pain; heat at night'});expect(r.status,JSON.stringify(r)).toBe(201)}
+const {browser,page,errors}=await browserPage();try{
+ await page.goto('/templates');await page.getByRole('checkbox',{name:'Select Breaking news',exact:true}).click();await expect(page.getByRole('checkbox',{name:'Select Breaking news',exact:true})).toBeChecked();await page.getByRole('checkbox',{name:'Select Meme POV',exact:true}).click();await expect(page.getByRole('checkbox',{name:'Select Meme POV',exact:true})).toBeChecked();await shot(page,'r1-templates-selected');await page.getByRole('button',{name:'Continue',exact:true}).click();await page.waitForURL('**/templates/selection?*');await shot(page,'r1-template-ad');console.log(await page.locator('body').innerText());save('templates-url',page.url());
+}finally{save('templates-errors',errors);await browser.close();await pool.end()}

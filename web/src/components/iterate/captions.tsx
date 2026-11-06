@@ -16,7 +16,6 @@ import { ik, useIterateConfig } from "@/hooks/use-iterate"
 import { iterateHref } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 import { FrameIcon, Tag, useTypeName } from "./parts"
-import { UnlockDialog, useSampleLocked } from "./sample"
 
 /*
  * legenda-protegida-v1 (APROVADO 26/10), frontend line of §6:
@@ -24,9 +23,15 @@ import { UnlockDialog, useSampleLocked } from "./sample"
  *    "This format needs the video without captions" + "Send the version without captions";
  *  - the clean version: POST /champions/:id/clean-version { uploadId } (422 CLEAN_VERSION_MISMATCH { reason });
  *  - "Captions redone in the original style" on a piece with `captionNote: 'replaced'`.
+ * troca-texto-queimado-v1 §15.3 (F1a): nothing covers the captions anymore, so "Generate anyway", "Undo" and the "Covers the
+ * captions" badge are gone. Old data may still carry `captionBlocked[].forced` and `captionOverride`: both are ignored.
  */
 
 type Limits = Pick<ChampionConfig, "mimeTypes" | "maxBytes">
+
+/** `insight.headlineBlocked`: why HEADLINE isn't in the plan. Not in AutoInsight yet (the API marks it TRANSITION). */
+export const headlineBlockedOf = (batch: IterateBatch) =>
+  (batch.insight as { headlineBlocked?: { reason: string; mode: string } | null } | null | undefined)?.headlineBlocked ?? null
 
 /** Error line of the clean version (mismatch by reason, else the generic translation). */
 function useCleanError() {
@@ -145,10 +150,6 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
   const cfg = useIterateConfig()
   const [sent, setSent] = useState(false)
   const [open, setOpen] = useState(false)
-  // 29/10 (Gusta, live test): the sample launches by itself, so "Generate anyway" must work after launch; locked sample = unlock
-  const locked = useSampleLocked(batch)
-  const [askUnlock, setAskUnlock] = useState(false)
-  const canForce = batch.status === "PLAN_READY" || batch.status === "LAUNCHED"
   const list = batch.insight?.captionBlocked ?? []
   if (!list.length) return null
   const body = (
@@ -160,12 +161,7 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
               {x.template ? <FrameIcon id={x.template} /> : null}
               {x.template ? t("frameNamed", { name: tf(x.template) }) : typeName(x.type)}
             </span>
-            {x.forced ? (
-              <Tag tone="warn">{t("forcedTag")}</Tag>
-            ) : (
-              <span className="text-fg-3">{t("needsClean")}</span>
-            )}
-            {canForce ? <ForceButton batch={batch} item={x} locked={locked} onLocked={() => setAskUnlock(true)} /> : null}
+            <span className="text-fg-3">{t("needsClean")}</span>
           </li>
         ))}
       </ul>
@@ -174,7 +170,6 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
       ) : (
         <CleanVersionUpload championId={batch.source.championId} limits={cfg.data} onDone={() => setSent(true)} />
       )}
-      <UnlockDialog open={askUnlock} onOpenChange={setAskUnlock} />
     </>
   )
   if (collapsed)
@@ -195,10 +190,7 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
         </div>
         {open ? (
           <div id="cap-blocked-list" className="flex flex-col gap-2.5">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[13px] text-fg-2">{t("blockedBody")}</span>
-              {canForce ? <span className="text-[13px] text-fg-2">{t("blockedOr")}</span> : null}
-            </div>
+            <span className="text-[13px] text-fg-2">{t("blockedBody")}</span>
             {body}
           </div>
         ) : null}
@@ -209,7 +201,6 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
       <div className="flex flex-col gap-0.5">
         <b id="cap-blocked-h" className="text-sm">{t("blockedTitle", { n: list.length })}</b>
         <span className="text-[13px] text-fg-2">{t("blockedBody")}</span>
-        {canForce ? <span className="text-[13px] text-fg-2">{t("blockedOr")}</span> : null}
       </div>
       {body}
     </section>
@@ -217,36 +208,17 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
 }
 
 /**
- * 29/10 (Gusta, live test; legenda-protegida-v1 §8): besides sending the clean version, a blocked format can be generated
- * anyway, covering the original captions on purpose (badge "Covers the captions", no CAPTION_COVERED check). Only PLAN_READY.
+ * troca-texto-queimado-v1 §15.4 (F1a): the champion has a written headline and it can't be replaced yet, so HEADLINE isn't in the
+ * plan. A quiet line (nothing waits on the person, the other formats are already there), with no date.
  */
-function ForceButton({ batch, item, locked, onLocked }: {
-  batch: IterateBatch; item: NonNullable<NonNullable<IterateBatch["insight"]>["captionBlocked"]>[number]; locked: boolean; onLocked: () => void
-}) {
+export function HeadlinePending({ batch, className }: { batch: IterateBatch; className?: string }) {
   const t = useTranslations("captions")
-  const qc = useQueryClient()
-  const errorMessage = useErrorMessage()
-  const body = { type: item.type, template: item.template }
-  const m = useMutation({
-    mutationFn: () => (item.forced ? api.iterate.unforceCaption(batch.id, body) : api.iterate.forceCaption(batch.id, body)),
-    onSuccess: (b) => qc.setQueryData(ik.batch(b.id), b),
-    onError: (e) => (isApiError(e) && e.code === "PAYMENT_REQUIRED" ? onLocked() : toast(errorMessage(e))),
-  })
-  // launched: the forced piece is a normal piece already (Remove / out of the zip), so there's no undo here
-  if (item.forced && batch.status === "LAUNCHED") return null
-  if (locked) {
-    return (
-      <Button size="sm" variant="outline" className="ml-auto" onClick={onLocked}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-        {t("force")}
-      </Button>
-    )
-  }
+  if (headlineBlockedOf(batch)?.reason !== "headline_pending") return null
   return (
-    <Button size="sm" variant={item.forced ? "ghost" : "outline"} className="ml-auto" disabled={m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
-      {m.isPending ? <span className="spin-ring size-3.5 border-current" aria-hidden="true" /> : null}
-      {item.forced ? t("unforce") : t("force")}
-    </Button>
+    <div role="status" className={cn("flex flex-col gap-0.5 rounded-md border border-line-soft bg-card-2 px-3 py-2.5 text-[13px]", className)}>
+      <b className="font-semibold">{t("headlinePending")}</b>
+      <span className="text-fg-2">{t("headlinePendingBody")}</span>
+    </div>
   )
 }
 
@@ -335,7 +307,6 @@ export function CleanVersionStatus({ batch }: { batch: IterateBatch }) {
 /** "Captions redone in the original style" (captionNote 'replaced'). */
 export function CaptionNote({ p, className }: { p: IteratePiece; className?: string }) {
   const t = useTranslations("captions")
-  if (p.captionOverride) return <Tag tone="warn" className={className}>{t("forcedTag")}</Tag>
   if (p.captionNote !== "replaced") return null
   return (
     <Tag tone="info" className={className}>

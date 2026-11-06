@@ -1,0 +1,97 @@
+{
+  "step": 6,
+  "url": "http://localhost:3311/signup",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nEN\nPT\nCrie sua conta\n\nEm seguida você configura o seu negócio ou o primeiro cliente. Uns 10 minutos, e dá pra parar e voltar depois.\n\nSeu nome\nE-mail de trabalho\nSenha\nCriando conta…\n\nJá tem conta? Entrar",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM",
+      "label": "HookMill",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "name",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "email",
+      "type": "email",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "INPUT",
+      "role": null,
+      "text": "",
+      "label": null,
+      "id": "password",
+      "type": "password",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Criando conta…",
+      "label": null,
+      "id": "",
+      "type": "submit",
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    },
+    {
+      "tag": "A",
+      "role": null,
+      "text": "Entrar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/login"
+    }
+  ]
+}

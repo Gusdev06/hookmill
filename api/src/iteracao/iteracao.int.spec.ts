@@ -7,6 +7,9 @@ process.env.INTEGRACOES_MODE = 'mock';
 process.env.RENDER_IMPL = 'fake';
 process.env.BOOT_RECOVERY = 'off';
 process.env.UPLOAD_MODE = 'proxy';
+// QA 01/11: este spec cobre o catálogo do Iterate sem os templates grátis (CHAT_DM/PERSON_MOTION); o api/.env local tem
+// ITERATE_TEMPLATES=on, que muda os tipos e a estimativa (0,408). Os templates têm o próprio iteracao-templates.int.spec.
+process.env.ITERATE_TEMPLATES = 'off';
 const PORT = 3197;
 process.env.PUBLIC_API_URL = `http://127.0.0.1:${PORT}`;
 

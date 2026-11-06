@@ -415,6 +415,8 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     const row = await prisma.metaPublication.findUniqueOrThrow({ where: { id: failed.data.publication.id } });
     expect(row.failedStage).toBe('creating_creative');
     expect(row.failDetail).toContain('1815');
+    // tour-v2 §6: publicação que falhou não é "1º envio"
+    expect((await prisma.workspace.findUniqueOrThrow({ where: { id: w1 } })).firstSendAt).toBeNull();
   });
 
   it('retry retoma dos ids gravados sem duplicar (vídeo e campanha não sobem de novo) → PAUSED com snapshot zerado', async () => {
@@ -431,6 +433,8 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
     const done = await until(() => call('GET', `/creatives/${creativeId}/meta`, users.member.token), (x) => x.data?.publication?.status !== 'PUBLISHING');
     expect(done.data.publication).toMatchObject({ status: 'PAUSED', errorCode: null, action: null, adsManagerUrl: '#', ids: { videoId: before.videoId, campaignId: before.campaignId, adsetId: before.adsetId, creativeId: expect.any(String), adId: expect.any(String) } });
     expect(done.data.publication.publishedAt).toEqual(expect.any(String));
+    // tour-v2 §6: 1º anúncio criado na Meta = firstSendAt (= publishedAt)
+    expect((await prisma.workspace.findUniqueOrThrow({ where: { id: w1 } })).firstSendAt?.toISOString()).toBe(done.data.publication.publishedAt);
     expect(upload).not.toHaveBeenCalled();
     expect(campaign).not.toHaveBeenCalled();
     expect(adset).not.toHaveBeenCalled();
@@ -544,7 +548,7 @@ describe(isLocal ? 'Meta v1 (integração local)' : 'Meta v1 [pulado: DATABASE_U
       expect(services.data.find((s: any) => s.provider === 'META')).toEqual({ provider: 'META', connected: false, keyMasked: null });
       const ws = await call('GET', '/workspace', users.owner.token);
       expect(ws.data.onboarding.steps.find((s: any) => s.key === 'meta').enabled).toBe(false);
-      expect(ws.data.onboarding.steps.filter((s: any) => s.enabled)).toHaveLength(5);
+      expect(ws.data.onboarding.steps.filter((s: any) => s.enabled)).toHaveLength(4); // QA 01/11: goals oculto desde 31/10 (onboarding.ts)
     } finally {
       delete (config as any).metaMode;
     }

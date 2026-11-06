@@ -4,7 +4,8 @@
 // colado); 429 → RATE_LIMITED; o resto → PAGE_UNREADABLE. Muro de login (§7) → PAGE_UNREADABLE { reason: 'login_wall' }.
 // `fetchHtmlPage` devolve o que achou mesmo com pouco texto (a cascata decide o próximo passo); `fetchPage` é o leitor
 // completo de UMA página: HTTP e, se vier vazia/SPA, render headless (render-pagina.ts) — é o que as subpáginas usam.
-import { themeColorOf } from './cor-marca';
+import { cssAccentColorsOf, themeColorOf } from './cor-marca';
+import { logoOf, type LogoPick } from './logo-marca';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import type { PageImage, PageRole, ReadMode } from '../contrato';
@@ -49,6 +50,12 @@ export interface PageText {
   themeColor?: string | null;
   /** resultado-v1 (A2): cor de destaque dos CTAs no DOM renderizado (render-pagina.ts) */
   ctaColor?: string | null;
+  /** lacunas-home-eddy-v1 §2: grupos de cor dos CTAs (mais pesado primeiro; [0] = ctaColor), só quando renderizou */
+  ctaColors?: string[];
+  /** lacunas-home-eddy-v1 §2: logo do HTML (cabeçalho → ícones → og:image) */
+  logo?: LogoPick | null;
+  /** lacunas-home-eddy-v1 §2: cores de destaque em variáveis CSS com nome de marca */
+  cssColors?: string[];
 }
 
 /** O que a camada (a) viu além do texto: a cascata usa pra decidir render (§1 b) e imagens (§3.1). */
@@ -145,6 +152,8 @@ export async function fetchHtmlPage(rawUrl: string, opts: FetchPageOptions = {})
     anchors,
     canonical: plain ? null : canonicalOf(body, url),
     themeColor: plain ? null : themeColorOf(body),
+    logo: plain ? null : logoOf(body, url.toString()),
+    cssColors: plain ? [] : cssAccentColorsOf(body),
     pages: [main],
     readMode: 'http',
     spa: !plain && looksLikeSpa(body),
@@ -174,7 +183,7 @@ export async function fetchPage(rawUrl: string, opts: FetchPageOptions = {}): Pr
 const SPA_TEXT_CHARS = 800;
 
 /** A leitura renderizada vira a página (texto, título, links do DOM); o HTML puro só complementa. */
-export function mergeRendered(http: HttpPage, r: { url: string; title: string | null; description: string | null; text: string; links: RenderedLink[]; ctaColor?: string | null }): PageText {
+export function mergeRendered(http: HttpPage, r: { url: string; title: string | null; description: string | null; text: string; links: RenderedLink[]; ctaColor?: string | null; ctaColors?: string[] }): PageText {
   const url = parseUrl(r.url).toString();
   const truncated = r.text.length > MAX_PAGE_CHARS;
   const text = truncated ? r.text.slice(0, MAX_PAGE_CHARS) : r.text;
@@ -183,7 +192,8 @@ export function mergeRendered(http: HttpPage, r: { url: string; title: string | 
     url, title: r.title ?? http.title, description: r.description ?? http.description, text, truncated,
     links: [...new Set([...r.links.map((l) => l.href), ...(http.links ?? [])])],
     anchors, canonical: http.canonical, internalLinks: r.links, rendered: true,
-    themeColor: http.themeColor ?? null, ctaColor: r.ctaColor ?? null,
+    themeColor: http.themeColor ?? null, ctaColor: r.ctaColor ?? null, ctaColors: r.ctaColors ?? [],
+    logo: http.logo ?? null, cssColors: http.cssColors ?? [],
     pages: [{ url, role: 'main', title: r.title ?? http.title, text, truncated, via: 'rendered', images: [] }],
     readMode: 'rendered',
   };

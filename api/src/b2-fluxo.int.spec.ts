@@ -89,12 +89,12 @@ describe(isLocal ? 'B2 fluxo (integração local)' : 'B2 fluxo [pulado: DATABASE
     expect(fim2.data.status).toBe('SUCCEEDED');
     expect(fim2.data.output.fieldSources.name).toBe('page');
     // briefing-leitura-v2 §4.2/§4.3: texto colado = readMode pasted, 6 etapas todas feitas, readMeta pronto pro POST /offers
-    expect(fim2.data.checklist.map((c: any) => c.key)).toEqual(['fetching_page', 'rendering_page', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language']);
+    expect(fim2.data.checklist.map((c: any) => c.key)).toEqual(['fetching_page', 'rendering_page', 'walking_quiz', 'reading_subpages', 'reading_images', 'extracting', 'detecting_language']);
     expect(fim2.data.checklist.every((c: any) => c.done)).toBe(true);
     expect(fim2.data.output).toMatchObject({ readMode: 'pasted', imagesRead: [], fieldOrigins: {}, relatedUrls: [], costUsd: expect.any(Number) });
     expect(fim2.data.output.pages.every((p: any) => p.role === 'main')).toBe(true); // texto colado: no máximo a "principal" sem URL, nunca subpágina
     expect(fim2.data.output.readMeta).toMatchObject({ readMode: 'pasted', readAt: expect.any(String) });
-    expect(fim.data.checklist).toHaveLength(6);
+    expect(fim.data.checklist).toHaveLength(7); // QA 01/11: + walking_quiz (caminhante de quiz, já no HEAD)
   });
 
   it('briefing-leitura-v2 D5: POST /offers grava readMeta, GET devolve, PATCH readMeta null limpa; base64 em imagem = 400', async () => {

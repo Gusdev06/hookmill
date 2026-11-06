@@ -19,7 +19,7 @@ import type { Browser, HTTPRequest, Page } from 'puppeteer-core';
 import { acharNavegador } from '../../common/util/navegador';
 import { IntegracaoError } from '../erros';
 import { isPrivateIp } from './pagina';
-import { pickCtaColor } from './cor-marca';
+import { pickCtaColor, pickCtaColors } from './cor-marca';
 
 export interface RenderedLink { href: string; text: string; cta?: boolean }
 /** `<img>` da página com tamanho natural (candidata da camada d). */
@@ -44,6 +44,8 @@ export interface RenderedPage {
   passwordVisible: boolean;
   /** resultado-v1: cor de destaque dos CTAs (`#RRGGBB`, computed style); null = nenhum CTA com cor */
   ctaColor?: string | null;
+  /** lacunas-home-eddy-v1 §2: grupos de cor dos CTAs, mais pesado primeiro ([0] = ctaColor) */
+  ctaColors?: string[];
   /** telas 390×844 @2x já redimensionadas (lado maior ≤ 1 568), JPEG base64 — só com `screens > 0` */
   screens?: RenderedShot[];
   /** print da página inteira (só com `screenshot: true`) */
@@ -307,6 +309,7 @@ export async function readDom(s: PageSession, opts: { maxChars?: number } = {}):
     video: { firstScreen: info.video.firstScreen, poster: abs(info.video.poster), ogImage: abs(info.video.ogImage) },
     passwordVisible: info.passwordVisible,
     ctaColor: pickCtaColor(info.ctaColors ?? []),
+    ctaColors: pickCtaColors(info.ctaColors ?? []),
   };
 }
 

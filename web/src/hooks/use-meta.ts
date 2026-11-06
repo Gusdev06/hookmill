@@ -14,7 +14,8 @@ export const mk = {
   summary: (period: MetaPeriod) => ["meta", "summary", period] as const,
   ads: (q: object) => ["meta", "ads", q] as const,
   campaigns: (q: object) => ["meta", "campaigns", q] as const,
-  campaign: (id: string, period: MetaPeriod) => ["meta", "campaign", id, period] as const,
+  /** meta-oferta-v1 §4.1: + the active offer (the detail comes with `offer.fit` and grouped) */
+  campaign: (id: string, period: MetaPeriod, offerId?: string | null) => ["meta", "campaign", id, period, offerId ?? ""] as const,
   changes: (scope: { level?: string; objectId?: string }) => ["meta", "changes", scope] as const,
 }
 

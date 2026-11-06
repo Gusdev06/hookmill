@@ -9,6 +9,7 @@
 import type { Rect } from '@maquina/contratos';
 import type { RgbFrame } from './celulas';
 
+const abs = Math.abs; // laço por pixel: sem ler o global `Math` a cada pixel (lento no Jest, F3 01/11)
 const px = (f: RgbFrame, x: number, y: number, c: number) => f.data[(y * f.w + x) * 3 + c];
 
 /** Diferença por pixel atravessando a borda entre a-1 e a (vão de 3: pega transição de 2 px), mínimo entre amostras. */
@@ -18,7 +19,7 @@ function crossDiff(frames: RgbFrame[], axis: 'x' | 'y', at: number, along: numbe
     const n = axis === 'x' ? f.w : f.h;
     const a = Math.max(0, at - 2), b = Math.min(n - 1, at + 1);
     let t = 0;
-    for (let c = 0; c < 3; c++) t += axis === 'x' ? Math.abs(px(f, b, along, c) - px(f, a, along, c)) : Math.abs(px(f, along, b, c) - px(f, along, a, c));
+    for (let c = 0; c < 3; c++) t += axis === 'x' ? abs(px(f, b, along, c) - px(f, a, along, c)) : abs(px(f, along, b, c) - px(f, along, a, c));
     mn = Math.min(mn, t / 3);
   }
   return mn;

@@ -58,6 +58,8 @@ import { snapToSilence } from '../claude/validacao-campeao';
 import { IntegracaoError } from '../erros';
 import type { CostStore } from '../portas';
 import { hookTextSlot, spokenHookOf } from '../claude/edicao';
+import { FakeCompetitorAi, type FakeCompetitorAiOptions } from './fake-concorrentes';
+import type { JudgeCompetitorsInput, JudgeCompetitorsResult, ProposeCompetitorsInput, ProposeCompetitorsResult } from '../contrato';
 import { seedOf, unit } from './midia';
 import { mockAutoPlan } from './fake-auto-plan';
 import type { CheckStaticTextInput, CheckStaticTextResult, StaticTextCheckPort } from '../contrato';
@@ -79,6 +81,8 @@ export interface FakeClaudeOptions {
   model: string;
   /** Pausa entre etapas/pedaços do streaming. Padrão 150 ms; testes usam 0. */
   stepMs?: number;
+  /** ads-research-v1: D1/D4 fake (custo por chamada, espera do mock-slow); stepMs vem do de cima se não vier */
+  research?: FakeCompetitorAiOptions;
 }
 
 type Lang = 'en' | 'pt' | 'es';
@@ -163,10 +167,21 @@ function fill(tpl: string, vars: Record<string, string>): string {
 }
 
 export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, CaptionCheckPort {
+  private readonly competitors: FakeCompetitorAi;
   constructor(
     private readonly costs: CostStore,
     private readonly opts: FakeClaudeOptions,
-  ) {}
+  ) {
+    this.competitors = new FakeCompetitorAi({ stepMs: opts.stepMs, ...opts.research });
+  }
+
+  // ads-research-v1 (Ad Radar), C.8: determinístico pelo industry (fake-concorrentes.ts); não grava custo (o backend grava)
+  proposeCompetitors(i: ProposeCompetitorsInput): Promise<ProposeCompetitorsResult> {
+    return this.competitors.proposeCompetitors(i);
+  }
+  judgeCompetitors(i: JudgeCompetitorsInput): Promise<JudgeCompetitorsResult> {
+    return this.competitors.judgeCompetitors(i);
+  }
 
   async extractOffer(
     input: { url?: string; pageText?: string; workspaceId: string; jobId: string },
@@ -231,7 +246,10 @@ export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, Ca
       resultType,
     } as const;
     const brandColor = input.url && !input.url.includes('mock-nocolor') ? { hex: '#E4572E', source: 'cta' as const } : null;
-    return { ...brief, costUsd: 0, ...this.readSources(input, brief, vision), business, brandColor };
+    // lacunas-home-eddy-v1 §2: logo e 2ª cor fixos no mock (sem cor = sem nada, como a leitura real)
+    const logo = brandColor && input.url ? { url: new URL('/apple-touch-icon.png', input.url).toString(), source: 'icon' as const } : null;
+    const secondaryColor = brandColor ? { hex: '#1D3557', source: 'theme_color' as const } : null;
+    return { ...brief, costUsd: 0, ...this.readSources(input, brief, vision), business, brandColor, logo, secondaryColor };
   }
 
   /** ExtractSources do mock (§4.1): texto colado = pasted; url = http; mock-vision = principal + checkout + 2 imagens. */

@@ -119,6 +119,7 @@ describe(isLocal ? 'API (integração local)' : 'API (integração local) [pulad
     expect(body.checklist).toEqual([
       { key: 'fetching_page', done: true },
       { key: 'rendering_page', done: true },
+      { key: 'walking_quiz', done: true }, // QA 01/11: etapa do caminhante de quiz (briefing-leitura), já no HEAD
       { key: 'reading_subpages', done: true },
       { key: 'reading_images', done: true },
       { key: 'extracting', done: false },

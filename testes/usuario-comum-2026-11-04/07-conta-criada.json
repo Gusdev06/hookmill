@@ -1,0 +1,87 @@
+{
+  "step": 7,
+  "url": "http://localhost:3311/start",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": "HM\nHookMill\nEN\nPT\nSair\nBEM-VINDO, MARINA\nComo você vai usar o HookMill?\n\nIsso define o seu espaço de trabalho. Dá pra trocar depois em Configurações.\n\nAgência\nEu rodo anúncios pra clientes.\nUm espaço por cliente, com Cérebro, anúncios e conta Meta próprios\nUma página Clientes pra trocar entre eles e ver o que espera você\nConvide clientes pra aprovar anúncios sem gastar\nSó eu\nEu rodo os meus próprios anúncios.\nUm espaço: o seu negócio\nSem seletor de cliente nem lista; a barra lateral fica curta\nTroque pra Agência depois e mantenha tudo\nEscolha uma opção pra continuar.\nContinuar",
+  "controls": [
+    {
+      "tag": "A",
+      "role": null,
+      "text": "HM\nHookMill",
+      "label": "Início",
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "href": "/"
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "EN",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "PT",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Sair",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Agência\nEu rodo anúncios pra clientes.\nUm espaço por cliente, com Cérebro, anúncios e cont",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": "radio",
+      "text": "Só eu\nEu rodo os meus próprios anúncios.\nUm espaço: o seu negócio\nSem seletor de cliente n",
+      "label": null,
+      "id": "",
+      "type": "button",
+      "placeholder": null,
+      "disabled": false,
+      "href": null
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Continuar",
+      "label": null,
+      "id": "",
+      "type": null,
+      "placeholder": null,
+      "disabled": true,
+      "href": null
+    }
+  ]
+}

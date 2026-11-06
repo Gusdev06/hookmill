@@ -1,0 +1,9 @@
+HM
+Q
+QA Alfa
+Ilimitado
+O editor abre quando as cenas estiverem prontas
+
+Ele precisa de todas as cenas geradas, e fecha depois do OK final.
+
+Voltar

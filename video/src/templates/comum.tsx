@@ -5,6 +5,8 @@
 import React from 'react';
 import { Audio, Easing, Sequence, interpolate, spring } from 'remotion';
 import { resolverSrc } from '../componentes/midia';
+import { LogoMarca } from '../componentes/LogoMarca';
+import type { BrandLogo } from '../lib/logo';
 import { FRAME_FONTS, textoVisivel, type FittedText, type FrameFontKey } from '../lib/molduras';
 import { contraste } from '../lib/cores';
 import { formatarNumero, TEMPLATE_FPS, type ProofStat, type TemplateIconId, type TemplateProps } from '../lib/templatesFormato';
@@ -154,10 +156,14 @@ export const BotaoCTA: React.FC<{ t: number; emSec: number; fit: FittedText; cor
   );
 };
 
-/** Avatar da marca desenhado (monograma das iniciais), nunca logo. */
-export const Monograma: React.FC<{ tam: number; iniciais: string; cores: Cores }> = ({ tam, iniciais, cores }) => (
-  <div style={{ width: tam, height: tam, borderRadius: '50%', background: 'linear-gradient(140deg, #2A2140 0%, #0E0B16 100%)', border: `3px solid ${cores.acento}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...fonte('montserrat-900'), fontSize: tam * (iniciais.length > 1 ? 0.38 : 0.48), color: cores.acento }}>{iniciais}</div>
-);
+/** Avatar da marca: o logo do kit (kit-marca-v1 §5) numa placa redonda com o contorno da marca; sem logo (ou se a
+ *  imagem falhar), o monograma das iniciais. */
+export const Monograma: React.FC<{ tam: number; iniciais: string; cores: Cores; logo?: BrandLogo | null }> = ({ tam, iniciais, cores, logo }) => {
+  const mono = (
+    <div style={{ width: tam, height: tam, borderRadius: '50%', background: 'linear-gradient(140deg, #2A2140 0%, #0E0B16 100%)', border: `3px solid ${cores.acento}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...fonte('montserrat-900'), fontSize: tam * (iniciais.length > 1 ? 0.38 : 0.48), color: cores.acento }}>{iniciais}</div>
+  );
+  return logo ? <LogoMarca logo={logo} tam={tam} borda={`${Math.max(3, Math.round(tam * 0.03))}px solid ${cores.acento}`} reserva={mono} /> : mono;
+};
 
 /** Fundo de marca em movimento (preto + brilho lento na cor da marca). */
 export const FundoMarca: React.FC<{ t: number; cores: Cores }> = ({ t, cores }) => (

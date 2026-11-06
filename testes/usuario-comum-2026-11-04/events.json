@@ -1,0 +1,1008 @@
+[
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:09.654Z",
+    "action": {
+      "op": "goto",
+      "url": "/",
+      "nameTag": "entrada"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:24.853Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Teste grátis",
+      "nameTag": "cadastro"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:30.440Z",
+    "action": {
+      "op": "fill",
+      "label": "Seu nome",
+      "value": "Marina Costa"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:30.796Z",
+    "action": {
+      "op": "fill",
+      "label": "E-mail de trabalho",
+      "value": "ux-marina-20261104-1304@teste.local"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:31.106Z",
+    "action": {
+      "op": "fill",
+      "label": "Senha",
+      "value": "UsuarioTeste123!"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:31.454Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Criar conta",
+      "nameTag": "tipo-de-conta"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:40.276Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "conta-criada"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:46.646Z",
+    "action": {
+      "op": "click",
+      "role": "radio",
+      "name": "Só eu",
+      "exact": false
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:47.010Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Continuar",
+      "nameTag": "eddy-primeiro-passo"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/auth/me",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:03:47.097Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:03:55.514Z",
+    "action": {
+      "op": "wait",
+      "ms": 1200,
+      "nameTag": "eddy-site"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:09.219Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Sem site? Descreva o negócio",
+      "nameTag": "descricao-negocio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:20.018Z",
+    "action": {
+      "op": "fill",
+      "label": "Sua resposta",
+      "value": "A SonoLeve vende colchões online para adultos no Brasil que acordam com dor nas costas. Colchão casal por R$ 1.299, teste de 30 noites e entrega em todo o Brasil. Temos avaliações de clientes. Quero gerar novas versões do vídeo de anúncio que já uso no Instagram."
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:20.360Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Enviar",
+      "nameTag": "leitura-do-negocio"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/offers/extract",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:04:20.455Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:20.752Z",
+    "action": {
+      "op": "wait",
+      "ms": 3500,
+      "nameTag": "negocio-lido"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/offers",
+    "method": "POST",
+    "status": 201,
+    "at": "2026-11-04T05:04:22.099Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:04:22.129Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:40.058Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Editar · Nome",
+      "nameTag": "editar-nome"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:45.238Z",
+    "action": {
+      "op": "fill",
+      "selector": "input[id=\"_r_9_\"]",
+      "value": "SonoLeve"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:45.526Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Salvar"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:04:45.570Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:45.841Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Está certo",
+      "nameTag": "oferta"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:04:45.886Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:04:45.902Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:04:46.164Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "revisao-oferta"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:05:09.237Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Está certo",
+      "nameTag": "conectar-meta"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:05:09.420Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:05:09.556Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:05:09.791Z",
+    "action": {
+      "op": "wait",
+      "ms": 600,
+      "nameTag": "opcoes-meta"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:05:17.566Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Pular por agora",
+      "nameTag": "metas-sem-meta"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:05:17.619Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:05:17.640Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:05:17.892Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "metas"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:05:27.559Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Pular por agora",
+      "nameTag": "kit-opcional"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:05:27.625Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:05:27.913Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "kit-marca"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:07:30.272Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Pular por agora",
+      "nameTag": "kit-pulado"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:07:30.650Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "onboarding-final"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:08:08.082Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Pular por agora",
+      "nameTag": "retomar-kit"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:08:08.428Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "fim-eddy"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:08:38.887Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Pular por agora",
+      "nameTag": "kit-reteste"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:08:38.974Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:08:39.023Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace/onboarding/complete",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:08:39.036Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:08:39.244Z",
+    "action": {
+      "op": "wait",
+      "ms": 900,
+      "nameTag": "conclusao-eddy"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:08:47.752Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Ir pra Home",
+      "nameTag": "home"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:08:48.146Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "tour-inicio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:00.720Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "tour-cerebro"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:02.047Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Avançar",
+      "nameTag": "tour-2"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:02.421Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "tour-2-pronto"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:13.796Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Avançar",
+      "nameTag": "tour-3"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:14.134Z",
+    "action": {
+      "op": "wait",
+      "ms": 600,
+      "nameTag": "tour-3-pronto"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:27.099Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Avançar",
+      "nameTag": "tour-4"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:27.444Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "tour-4-pronto"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:32.147Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Concluir",
+      "nameTag": "tour-concluido"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/workspace/tour/complete",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:09:32.192Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:32.498Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "home-pronta"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:37.520Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Enviar um anúncio vencedor",
+      "nameTag": "enviar-anuncio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:37.902Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "entrada-variacoes"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:53.936Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Usar o pack",
+      "nameTag": "pack"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:09:54.346Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "pack-anuncio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:08.261Z",
+    "action": {
+      "op": "upload",
+      "selector": "input[type=file]",
+      "path": "testes/fixtures/campeoes/fala-split-20s.mp4",
+      "nameTag": "subir-video"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/uploads",
+    "method": "POST",
+    "status": 201,
+    "at": "2026-11-04T05:10:08.295Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/uploads/cmw1nr4wy000322hsu2b2wx9i/content",
+    "method": "PUT",
+    "status": 200,
+    "at": "2026-11-04T05:10:08.330Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/uploads/cmw1nr4wy000322hsu2b2wx9i/complete",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:10:08.367Z"
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/ad-templates/fits",
+    "method": "POST",
+    "status": 200,
+    "at": "2026-11-04T05:10:08.374Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:08.574Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "video-enviado"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:14.480Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Continuar",
+      "nameTag": "ler-anuncio"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/ad-templates/let-hookmill-pick/use",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:10:14.700Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:14.912Z",
+    "action": {
+      "op": "wait",
+      "ms": 1500,
+      "nameTag": "plano-carregando"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:24.764Z",
+    "action": {
+      "op": "wait",
+      "ms": 8000,
+      "nameTag": "plano-pronto"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:56.098Z",
+    "action": {
+      "op": "click",
+      "selector": "[id=\"line-FRAME:news\"]",
+      "nameTag": "reduzir-pack-1"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/items/cmw1nrerf001o22hsmzrc40wa",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:10:56.159Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:56.421Z",
+    "action": {
+      "op": "click",
+      "selector": "[id=\"line-FRAME:question_box\"]",
+      "nameTag": "reduzir-pack-2"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/items/cmw1nrerf001p22hs0amk4h49",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:10:56.478Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:56.758Z",
+    "action": {
+      "op": "click",
+      "selector": "[id=\"line-FRAME:pov_testimonial\"]",
+      "nameTag": "reduzir-pack-3"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/items/cmw1nrerf001q22hskgw25tky",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:10:56.823Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:57.086Z",
+    "action": {
+      "op": "click",
+      "selector": "[id=\"line-FRAME:meme\"]",
+      "nameTag": "reduzir-pack-4"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/items/cmw1nrerf001r22hs7jy6ol0p",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:10:57.150Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:57.414Z",
+    "action": {
+      "op": "click",
+      "selector": "[id=\"line-FRAME:read_caption\"]",
+      "nameTag": "reduzir-pack-5"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/items/cmw1nrerf001s22hssj7o82mo",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:10:57.470Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:10:57.734Z",
+    "action": {
+      "op": "click",
+      "selector": "[id=\"line-FRAME:cinema\"]",
+      "nameTag": "reduzir-pack-6"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/items/cmw1nrerf001t22hsutxwy9zg",
+    "method": "PATCH",
+    "status": 200,
+    "at": "2026-11-04T05:10:57.778Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:11:07.438Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Gerar",
+      "nameTag": "gerar-variacoes"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:11:19.482Z",
+    "action": {
+      "op": "wait",
+      "ms": 1500,
+      "nameTag": "geracao"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:11:21.281Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Gerar amostra grátis",
+      "nameTag": "gerar-amostra"
+    }
+  },
+  {
+    "type": "mutation",
+    "url": "http://localhost:3201/api/v1/iterate/cmw1nr9ss000922hspx7jo4i4/start",
+    "method": "POST",
+    "status": 202,
+    "at": "2026-11-04T05:11:21.351Z"
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:11:21.623Z",
+    "action": {
+      "op": "wait",
+      "ms": 3000,
+      "nameTag": "amostra-geracao"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:11:40.693Z",
+    "action": {
+      "op": "reload",
+      "nameTag": "recarregar-geracao"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:11:42.935Z",
+    "action": {
+      "op": "wait",
+      "ms": 1000,
+      "nameTag": "geracao-retomada"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:12:03.926Z",
+    "action": {
+      "op": "viewport",
+      "value": {
+        "width": 390,
+        "height": 844
+      },
+      "nameTag": "mobile-geracao"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:12:10.771Z",
+    "action": {
+      "op": "wait",
+      "ms": 5000,
+      "nameTag": "variacoes-prontas"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:12:44.895Z",
+    "action": {
+      "op": "wait",
+      "ms": 3000,
+      "nameTag": "geracao-completa"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:02.386Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Continuar pro download",
+      "nameTag": "abrir-resultados"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:14.844Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "resultados-mobile"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:24.031Z",
+    "action": {
+      "op": "click",
+      "selector": "button[aria-label=\"Reproduzir\"] >> nth=0",
+      "nameTag": "reproduzir-previa"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:30.410Z",
+    "action": {
+      "op": "wait",
+      "ms": 4000,
+      "nameTag": "previa-bloqueio"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:37.587Z",
+    "action": {
+      "op": "click",
+      "selector": "button:has-text(\"Liberar: fale com a gente\") >> nth=1",
+      "nameTag": "liberar-amostra"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:55.013Z",
+    "action": {
+      "op": "viewport",
+      "value": {
+        "width": 1440,
+        "height": 900
+      },
+      "nameTag": "resultados-desktop"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:13:58.612Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Conta",
+      "nameTag": "menu-conta"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:14:18.866Z",
+    "action": {
+      "op": "click",
+      "role": "menuitem",
+      "name": "Sair",
+      "nameTag": "logout"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:14:49.927Z",
+    "action": {
+      "op": "wait",
+      "ms": 500,
+      "nameTag": "login-retorno"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:07.703Z",
+    "action": {
+      "op": "fill",
+      "label": "E-mail",
+      "value": "ux-marina-20261104-1304@teste.local",
+      "nameTag": "email-retorno"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:08.930Z",
+    "action": {
+      "op": "fill",
+      "label": "Senha",
+      "value": "UsuarioTeste123!",
+      "nameTag": "senha-retorno"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:09.435Z",
+    "action": {
+      "op": "click",
+      "role": "button",
+      "name": "Entrar",
+      "nameTag": "login"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:10.872Z",
+    "action": {
+      "op": "wait",
+      "ms": 800,
+      "nameTag": "home-retorno"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:22.927Z",
+    "action": {
+      "op": "wait",
+      "ms": 1200,
+      "nameTag": "login-confirmado"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:47.504Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Biblioteca",
+      "nameTag": "biblioteca-retorno"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:15:48.064Z",
+    "action": {
+      "op": "wait",
+      "ms": 700,
+      "nameTag": "biblioteca-salva"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:16:19.988Z",
+    "action": {
+      "op": "wait",
+      "ms": 1500,
+      "nameTag": "biblioteca-carregada"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:16:22.396Z",
+    "action": {
+      "op": "click",
+      "role": "link",
+      "name": "Usar num template",
+      "nameTag": "reusar-video"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:16:22.955Z",
+    "action": {
+      "op": "wait",
+      "ms": 600,
+      "nameTag": "catalogo-com-video"
+    }
+  },
+  {
+    "type": "action",
+    "at": "2026-11-04T05:17:15.754Z",
+    "action": {
+      "op": "stop"
+    }
+  }
+]

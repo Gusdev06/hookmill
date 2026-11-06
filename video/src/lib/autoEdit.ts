@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { FORMATOS, FPS, type VideoFormat } from './formatos';
 import { rectSchema } from './remix';
 import { captionsAutoSchema, outputProtectedBandSchema, protectedBandSchema } from './captionsSchema';
+import { brandLogoSchema } from './logo';
 
 // Template `auto-edit` (variacao-auto-v1 §7.2): a peça da variação automática. Uma coisa muda por tipo; o resto é o
 // campeão recortado pelo `timeline`, reenquadrado pro formato. Props = AutoEditRenderInput sem renderId/kind/templateId.
@@ -66,6 +67,8 @@ export const autoEditSchema = z.object({
   safeArea: z.object({ top: z.number().min(0), bottom: z.number().min(0) }),
   palette: z.array(z.string()),
   brandName: z.string(),
+  /** kit-marca-v1 §5: logo do kit (avatar do STORY, topo do ENDCARD); ausente/null = inicial / sem logo */
+  brandLogo: brandLogoSchema.nullable().optional(),
   type: z.enum(AUTO_TYPES),
   params: paramsSchema,
   /** legenda automática (headline-e-legenda-v1 §2, campeão sem legenda queimada): terço de baixo, acima da UI do formato */

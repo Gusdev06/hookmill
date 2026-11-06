@@ -207,9 +207,15 @@ describe(isLocal ? 'Meta templates v1 (integração local)' : 'Meta templates v1
       adset: { pixelId: 'pix_mock', pixelEvent: 'PURCHASE', countries: ['US', 'CA'], ageMin: 25, ageMax: 54, genders: 'FEMALE', advantageAudience: false, adsPerAdset: { min: 4, max: 8 }, placements: { platforms: ['facebook', 'instagram'], positions: ['facebook_feed', 'instagram_stream', 'instagram_story'] } },
       ad: { primaryText: null, callToAction: 'SHOP_NOW', link: 'https://example.com/sheets', urlTags: 'utm_source=facebook&utm_medium=paid' },
     });
+    // meta-templates-v2 §7: público, exclusão, idioma e agendamento agora copiam; cidade e interesse continuam unsupported
     const fields = r.data.unsupported.map((u: any) => u.field);
-    expect(fields).toEqual(expect.arrayContaining(['adset.targeting.custom_audiences', 'adset.targeting.excluded_custom_audiences', 'adset.schedule']));
-    expect(r.data.unsupported.find((u: any) => u.field === 'adset.targeting.custom_audiences').value).toBe('Buyers 180d');
+    expect(fields).toEqual(expect.arrayContaining(['adset.targeting.geo_locations.cities', 'adset.targeting.flexible_spec']));
+    expect(fields).not.toEqual(expect.arrayContaining(['adset.targeting.custom_audiences']));
+    expect(r.data.template.adset).toMatchObject({
+      customAudiences: [{ id: 'ca_mock_lal_1' }], excludedCustomAudiences: [{ id: 'ca_mock_buyers' }], locales: [{ key: 6, name: 'English (US)' }],
+      schedule: { start: null, end: { kind: 'AFTER_DAYS', days: 7 } },
+    });
+    expect(r.data.adjusted.map((u: any) => u.field)).toEqual(['adset.schedule']);
 
     const ad = await call('POST', '/meta/templates/import', users.member.token, { level: 'ad', id: 'mock_ad_4' });
     expect(ad.data.template).toMatchObject({ importedFrom: { level: 'ad', id: 'mock_ad_4' }, campaign: { budgetMode: 'ABO', dailyBudgetMinor: 2000 }, adset: { genders: 'ALL', placements: 'AUTO' } });
@@ -221,6 +227,126 @@ describe(isLocal ? 'Meta templates v1 (integração local)' : 'Meta templates v1
     expect(gone.status).toBe(404);
     expect(gone.error.code).toBe('META_OBJECT_GONE');
     expect((await call('POST', '/meta/templates/import', users.member.token, { level: 'folder', id: 'x' })).status).toBe(400);
+  });
+
+  it('v2 §4: listas da conta (MEMBER sim, CLIENT 403) e minDailyBudgetMinor na conexão', async () => {
+    const ig = await call('GET', '/meta/instagram-accounts', users.member.token);
+    expect(ig.status).toBe(200);
+    expect(ig.data.pageLookup).toBe('ok');
+    expect(ig.data.accounts.map((a: any) => a.id)).toEqual(expect.arrayContaining(['ig_mock_1', 'ig_mock_page']));
+    const au = await call('GET', '/meta/custom-audiences', users.member.token);
+    expect(au.status).toBe(200);
+    expect(au.data.truncated).toBe(false);
+    expect(au.data.audiences.map((a: any) => a.id)).toEqual(expect.arrayContaining(['ca_mock_buyers', 'ca_mock_small']));
+    const lo = await call('GET', '/meta/locales', users.member.token);
+    expect(lo.status).toBe(200);
+    expect(lo.data.locales).toEqual(expect.arrayContaining([{ key: 6, name: 'English (US)' }]));
+    for (const path of ['/meta/instagram-accounts', '/meta/custom-audiences', '/meta/locales']) expect((await call('GET', path, users.client.token)).status).toBe(403);
+    const conn = await call('GET', '/meta/connection', users.client.token);
+    expect(conn.data.adAccount.minDailyBudgetMinor).toBe(500);
+  });
+
+  it('v2 §3/§7: import lifetime e awareness; salvar com campos novos; notAvailable; mínimo do total; PATCH revalida o mesclado (só nome não)', async () => {
+    const life = await call('POST', '/meta/templates/import', users.member.token, { level: 'campaign', id: 'mock_cmp_life' });
+    expect(life.data.template.campaign).toMatchObject({ budgetMode: 'CBO', budgetType: 'LIFETIME', lifetimeBudgetMinor: 30000, dailyBudgetMinor: 0, destination: 'NEW_CAMPAIGN' });
+    const aw = await call('POST', '/meta/templates/import', users.member.token, { level: 'campaign', id: 'mock_cmp_awareness' });
+    expect(aw.data.template).toMatchObject({ campaign: { objective: 'OUTCOME_AWARENESS' }, adset: { optimizationGoal: 'REACH', pixelId: null }, ad: { instagramAccount: { id: 'ig_mock_1', username: 'hookmill.demo' } } });
+
+    const v2 = body({
+      name: 'v2 lifetime', campaign: { destination: 'NEW_CAMPAIGN', objective: 'OUTCOME_AWARENESS', budgetType: 'LIFETIME', dailyBudgetMinor: 0, lifetimeBudgetMinor: 3500 },
+      adset: { pixelId: null, pixelEvent: null, optimizationGoal: null, schedule: { start: null, end: { kind: 'AFTER_DAYS', days: 7 } }, locales: [{ key: 6, name: 'English (US)' }], customAudiences: [{ id: 'ca_mock_lal_1', name: 'LAL' }], excludedCustomAudiences: [{ id: 'ca_mock_buyers', name: 'Buyers' }] },
+      ad: { callToAction: 'LEARN_MORE', instagramAccount: { id: 'ig_mock_1', username: 'hookmill.demo' } },
+    });
+    const low = await call('POST', '/meta/templates', users.member.token, { ...v2, campaign: { ...v2.campaign, lifetimeBudgetMinor: 3000 } });
+    expect(low.status).toBe(422);
+    expect(low.error).toMatchObject({ code: 'META_BUDGET_TOO_LOW', details: { minimumMinor: 3500, budgetType: 'LIFETIME', days: 7 } });
+    const gone = await call('POST', '/meta/templates', users.member.token, { ...v2, ad: { ...v2.ad, instagramAccount: { id: 'ig_mock_gone', username: 'x' } } });
+    expect(gone.status).toBe(400);
+    expect(gone.error.details.fields).toEqual([{ field: 'ad.instagramAccount', rule: 'notAvailable' }]);
+    const reuse = await call('POST', '/meta/templates', users.member.token, { ...v2, campaign: { ...v2.campaign, destination: 'REUSE_CAMPAIGN' } });
+    expect(reuse.error.details.fields).toEqual([{ field: 'campaign.destination', rule: 'lifetimeCboNeedsNewCampaign' }]);
+    const past = await call('POST', '/meta/templates', users.member.token, { ...v2, adset: { ...v2.adset, schedule: { start: '2020-01-01T10:00', end: { kind: 'AFTER_DAYS', days: 7 } } } });
+    expect(past.error.details.fields).toEqual([{ field: 'adset.schedule.start', rule: 'inPast' }]);
+    const ok = await call('POST', '/meta/templates', users.member.token, v2);
+    expect(ok.status).toBe(201);
+    expect(ok.data.adset.schedule).toEqual({ start: null, end: { kind: 'AFTER_DAYS', days: 7 } });
+    // mudou o ig gravado direto no banco pra um que sumiu: PATCH só de nome/padrão passa, PATCH de outra seção revalida
+    // o template mesclado inteiro (B2 do QA, 03/11), publicar barra
+    await prisma.metaPublishTemplate.update({ where: { id: ok.data.id }, data: { ad: { ...ok.data.ad, instagramAccount: { id: 'ig_mock_gone', username: 'x' } } } });
+    expect((await call('PATCH', `/meta/templates/${ok.data.id}`, users.member.token, { name: 'v2 renamed' })).status).toBe(200);
+    expect((await call('PATCH', `/meta/templates/${ok.data.id}`, users.member.token, { name: 'v2 renamed', isDefault: false })).status).toBe(200);
+    const camp = await call('PATCH', `/meta/templates/${ok.data.id}`, users.member.token, { campaign: { ...v2.campaign, lifetimeBudgetMinor: 4000 } });
+    expect(camp.status).toBe(400);
+    expect(camp.error.details.fields).toEqual([{ field: 'ad.instagramAccount', rule: 'notAvailable' }]);
+    const pub = await call('POST', `/creatives/${await mkCreative(101)}/meta/publish`, users.member.token, { templateId: ok.data.id });
+    expect(pub.status).toBe(400);
+    expect(pub.error.details).toMatchObject({ fields: [{ field: 'ad.instagramAccount', rule: 'notAvailable' }], templateId: ok.data.id });
+    // fim AT vencido gravado + PATCH que troca o total: relógio do mesclado barra (antes passava e pulava o mínimo)
+    await prisma.metaPublishTemplate.update({
+      where: { id: ok.data.id },
+      data: { ad: ok.data.ad, adset: { ...ok.data.adset, schedule: { start: null, end: { kind: 'AT', at: '2020-01-01T10:00' } } } },
+    });
+    const late = await call('PATCH', `/meta/templates/${ok.data.id}`, users.member.token, { campaign: { ...v2.campaign, lifetimeBudgetMinor: 100 } });
+    expect(late.status).toBe(400);
+    expect(late.error.details.fields).toEqual([{ field: 'adset.schedule.end', rule: 'inPast' }]);
+    expect((await call('PATCH', `/meta/templates/${ok.data.id}`, users.member.token, { name: 'v2 vencido' })).status).toBe(200);
+    await prisma.metaPublishTemplate.update({ where: { id: ok.data.id }, data: { archivedAt: new Date(), isDefault: false } });
+  });
+
+  it('v2 F4 (B1 do QA, 03/11): com a conexão TOKEN_INVALID a lista abre (leitura do banco); salvar, renomear e importar dão 422', async () => {
+    const t = await call('POST', '/meta/templates', users.member.token, body({ name: 'F4 expirado' }));
+    expect(t.status).toBe(201);
+    await prisma.metaConnection.update({ where: { workspaceId: w1 }, data: { status: 'TOKEN_INVALID' } });
+    try {
+      for (const who of ['member', 'client'] as Who[]) {
+        const l = await call('GET', '/meta/templates', users[who].token);
+        expect(l.status).toBe(200);
+        expect(l.data.map((x: { id: string }) => x.id)).toContain(t.data.id);
+      }
+      for (const r of [
+        await call('PATCH', `/meta/templates/${t.data.id}`, users.member.token, { name: 'x' }),
+        await call('POST', '/meta/templates', users.member.token, body({ name: 'F4 novo' })),
+        await call('POST', '/meta/templates/import', users.member.token, { level: 'campaign', id: 'mock_cmp_life' }),
+      ]) {
+        expect(r.status).toBe(422);
+        expect(r.error.code).toBe('META_TOKEN_INVALID');
+      }
+    } finally {
+      await prisma.metaConnection.update({ where: { workspaceId: w1 }, data: { status: 'ACTIVE' } });
+    }
+    await prisma.metaPublishTemplate.update({ where: { id: t.data.id }, data: { archivedAt: new Date(), isDefault: false } });
+  });
+
+  it('v2 §6: publicar com LIFETIME + AFTER_DAYS grava os resolvidos nos settings; fim AT a menos de 24 h barra com templateId', async () => {
+    const v2 = body({
+      name: 'v2 pub', campaign: { destination: 'NEW_CAMPAIGN', budgetType: 'LIFETIME', dailyBudgetMinor: 0, lifetimeBudgetMinor: 5000 },
+      adset: { schedule: { start: null, end: { kind: 'AFTER_DAYS', days: 3 } }, locales: [{ key: 6, name: 'English (US)' }] },
+    });
+    const t = await call('POST', '/meta/templates', users.member.token, v2);
+    expect(t.status).toBe(201);
+    const cid = await mkCreative(102);
+    fake.sent.campaigns.length = 0;
+    fake.sent.adsets.length = 0;
+    const before = Date.now();
+    const r = await call('POST', `/creatives/${cid}/meta/publish`, users.member.token, { templateId: t.data.id });
+    expect(r.status).toBe(202);
+    expect(r.data.settings).toMatchObject({ budgetType: 'LIFETIME', lifetimeBudgetMinor: 5000, dailyBudgetMinor: 0, startTime: null, locales: [6] });
+    const end = Date.parse(r.data.settings.endTime);
+    expect(end - before).toBeGreaterThanOrEqual(3 * 86_400_000 - 1000);
+    expect(end - before).toBeLessThan(3 * 86_400_000 + 60_000);
+    await settled([r.data.id]);
+    // a estrutura leva os resolvidos até a porta: total na campanha (CBO), end_time e idioma no conjunto
+    expect(fake.sent.campaigns[0]).toMatchObject({ lifetime_budget: 5000 });
+    expect(fake.sent.campaigns[0]).not.toHaveProperty('daily_budget');
+    expect(fake.sent.adsets[0]).toMatchObject({ end_time: expect.any(String), targeting: expect.objectContaining({ locales: [6] }) });
+    expect(fake.sent.adsets[0]).not.toHaveProperty('start_time');
+    // fim AT gravado direto no banco a menos de 24 h: 400 no envio com templateId
+    const soon = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 16);
+    await prisma.metaPublishTemplate.update({ where: { id: t.data.id }, data: { adset: { ...t.data.adset, schedule: { start: null, end: { kind: 'AT', at: soon } } } } });
+    const bad = await call('POST', `/creatives/${cid}/meta/publish`, users.member.token, { templateId: t.data.id });
+    expect(bad.status).toBe(400);
+    expect(bad.error.details).toMatchObject({ fields: [{ field: 'adset.schedule.end', rule: 'minDuration24h' }], templateId: t.data.id });
+    await prisma.metaPublishTemplate.update({ where: { id: t.data.id }, data: { archivedAt: new Date(), isDefault: false } });
   });
 
   it('publicar 1 com template: settings resolvidos (texto herdado da oferta, sem o template dentro), CBO na campanha, REUSE grava o id', async () => {

@@ -3,7 +3,7 @@
 import { useDeferredValue, useState, type ReactNode } from "react"
 import { useFormatter, useTranslations } from "next-intl"
 import { Icon } from "@/components/icon"
-import { CatDot, Tag } from "@/components/brain/brain-drawer"
+import { CatDot, Tag, useBrainLabel } from "@/components/brain/brain-drawer"
 import { CAT_COLOR, CATS, rank, searchText, type BrainIndex, type Cat, type GNode } from "@/lib/brain-graph"
 import { cn } from "@/lib/utils"
 
@@ -31,6 +31,8 @@ export function BrainList({
   trailing?: ReactNode
 }) {
   const t = useTranslations("brain.g")
+  const tr = useTranslations("offers.role")
+  const label = useBrainLabel()
   const fmt = useFormatter()
   const dq = useDeferredValue(query.trim().toLowerCase())
   const [expanded, setExpanded] = useState<Set<Cat>>(new Set())
@@ -40,6 +42,10 @@ export function BrainList({
     if (m.kind === "meta_ad") return `${money(m.spend30d, m.currency)} · CPA ${money(m.cpa, m.currency)}`
     if (m.kind === "creative") return [t(`status.${m.status}`), m.engine ? t(`engine.${m.engine}`) : null].filter(Boolean).join(" · ")
     if (m.kind === "hook" && m.angle) return m.angle
+    // brain-preenchido-v1: a page read as "quiz step", the website, an asset's offer/format
+    if (m.kind === "source") return [m.isWebsite ? t("eyebrow.website") : null, ...m.roles.map((r) => (tr.has(r) ? tr(r) : r))].filter(Boolean).join(" · ") || m.host
+    if (m.kind === "brand_asset") return n.summary ?? t("eyebrow.brand_asset")
+    if (m.kind === "brand_color") return t("eyebrow.brand_color")
     return n.summary ?? t("list.connections", { count: n.deg })
   }
   return (
@@ -81,6 +87,8 @@ export function BrainList({
                   const m = n.meta
                   const thumb = m.kind === "creative" || m.kind === "meta_ad" ? m.thumbnailUrl : null
                   const media = m.kind === "creative" || m.kind === "meta_ad"
+                  // brand kit (brain-preenchido-v1 §6): the original file, so lazy and only here and in the drawer
+                  const asset = m.kind === "brand_asset" ? m : null
                   return (
                     <button
                       key={n.id}
@@ -93,9 +101,22 @@ export function BrainList({
                           className={cn("w-6 flex-none rounded bg-cover bg-center", m.kind === "meta_ad" && !m.isVideo ? "aspect-square" : "aspect-[9/16]")}
                           style={{ backgroundColor: "#1E2550", backgroundImage: thumb ? `url("${thumb}")` : undefined }}
                         />
+                      ) : asset ? (
+                        <span className="flex size-6 flex-none items-center justify-center overflow-hidden rounded border border-line-soft bg-card-2 font-mono text-[8px] font-bold text-fg-3">
+                          {asset.thumbnailUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={asset.thumbnailUrl} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+                          ) : asset.assetKind === "DEMO_VIDEO" ? (
+                            <Icon name="play" className="size-3" />
+                          ) : (
+                            "PDF"
+                          )}
+                        </span>
+                      ) : m.kind === "brand_color" ? (
+                        <i aria-hidden="true" className="inline-block size-6 flex-none rounded-full border border-white/15" style={{ background: m.hex }} />
                       ) : null}
                       <span className="flex min-w-0 flex-1 flex-col">
-                        <b className="truncate font-semibold">{n.label}</b>
+                        <b className="truncate font-semibold">{label(n)}</b>
                         <small className="truncate text-xs text-fg-3">{sub(n)}</small>
                       </span>
                       {n.winner ? <Tag tone="win">{t("winner")}</Tag> : null}

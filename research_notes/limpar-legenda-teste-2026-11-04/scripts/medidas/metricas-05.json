@@ -1,0 +1,382 @@
+{
+ "quadros": 900,
+ "quadros_com_legenda": 876,
+ "t_resolver": 1.4,
+ "t_inpaint": 1026.1,
+ "t_compor": 1009.0,
+ "t_total": 3663.9,
+ "borrao_visivel_medio_%": {
+  "A": 23.1,
+  "C": 14.2,
+  "V": 15.7,
+  "N": 2.3
+ },
+ "borrao_visivel_p95_%": {
+  "A": 36.9,
+  "C": 29.9,
+  "V": 26.2,
+  "N": 22.5
+ },
+ "trechos": [
+  {
+   "ini": 3,
+   "fim": 11,
+   "texto": "HAZLO",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 11,
+   "fim": 41,
+   "texto": "UNA SOLA NOCHE",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 49,
+   "fim": 69,
+   "texto": "SI NO SIENTES",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 69,
+   "fim": 93,
+   "texto": "ABSOLUTAMENTE",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 93,
+   "fim": 121,
+   "texto": "NADA DÉJALO",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 121,
+   "fim": 147,
+   "texto": "Y BLOQUEAME",
+   "herda": null,
+   "iou": 0.79,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 147,
+   "fim": 170,
+   "texto": "ASÍ DE SEGURA",
+   "herda": null,
+   "iou": 0.85,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 170,
+   "fim": 187,
+   "texto": "ESTOY",
+   "herda": null,
+   "iou": 0.86,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 192,
+   "fim": 198,
+   "texto": "FE TE",
+   "herda": null,
+   "iou": 0.55,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 198,
+   "fim": 220,
+   "texto": "TE LA PIDEN",
+   "herda": null,
+   "iou": 0.79,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 220,
+   "fim": 254,
+   "texto": "EN TODOS LADOS",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 254,
+   "fim": 274,
+   "texto": "CREE",
+   "herda": null,
+   "iou": 0.66,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 274,
+   "fim": 331,
+   "texto": "ESPERANZA CONFÍA",
+   "herda": null,
+   "iou": 0.78,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 331,
+   "fim": 351,
+   "texto": "YO NO",
+   "herda": null,
+   "iou": 0.82,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 351,
+   "fim": 374,
+   "texto": "YO PREFIERO QUE",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 374,
+   "fim": 391,
+   "texto": "DUDES",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 391,
+   "fim": 415,
+   "texto": "PORQUE LA MUJER",
+   "herda": null,
+   "iou": 0.82,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 415,
+   "fim": 434,
+   "texto": "QUE DUDA",
+   "herda": null,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 434,
+   "fim": 448,
+   "texto": "ES LA QUE",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 448,
+   "fim": 457,
+   "texto": "SIGUE",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 457,
+   "fim": 464,
+   "texto": "LAS",
+   "herda": null,
+   "iou": 0.76,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 464,
+   "fim": 488,
+   "texto": "INSTRUCCIONES",
+   "herda": null,
+   "iou": 0.78,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 488,
+   "fim": 498,
+   "texto": "AL PIE",
+   "herda": null,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 498,
+   "fim": 514,
+   "texto": "DE LA LETRA",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 514,
+   "fim": 515,
+   "texto": "DE LA LETRA",
+   "herda": 26,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 515,
+   "fim": 518,
+   "texto": "DE LA LETRA",
+   "herda": 26,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 518,
+   "fim": 519,
+   "texto": "PARA PODER DECIR",
+   "herda": 31,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 519,
+   "fim": 522,
+   "texto": "PARA PODER DECIR",
+   "herda": 31,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 522,
+   "fim": 556,
+   "texto": "PARA PODER DECIR",
+   "herda": null,
+   "iou": 0.84,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 556,
+   "fim": 576,
+   "texto": "TE LO DIJE",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 576,
+   "fim": 604,
+   "texto": "QUE NO SERVÍA",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 604,
+   "fim": 623,
+   "texto": "Y ESA ES",
+   "herda": null,
+   "iou": 0.85,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 623,
+   "fim": 634,
+   "texto": "JUSTO",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 634,
+   "fim": 654,
+   "texto": "LA QUE MEJOR",
+   "herda": null,
+   "iou": 0.8,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 654,
+   "fim": 696,
+   "texto": "LO HACE ADEMÁS",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 702,
+   "fim": 732,
+   "texto": "ESTO NO DEPENDE",
+   "herda": null,
+   "iou": 0.76,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 732,
+   "fim": 759,
+   "texto": "DE QUE CREAS",
+   "herda": null,
+   "iou": 0.85,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 759,
+   "fim": 779,
+   "texto": "EL LODO QUE",
+   "herda": null,
+   "iou": 0.75,
+   "pos_por_palavra": true
+  },
+  {
+   "ini": 779,
+   "fim": 787,
+   "texto": "SE",
+   "herda": null,
+   "iou": 0.89,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 787,
+   "fim": 805,
+   "texto": "METIÓ ENTRE",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 805,
+   "fim": 847,
+   "texto": "USTEDES NO SABE",
+   "herda": null,
+   "iou": 0.81,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 847,
+   "fim": 871,
+   "texto": "SI TÚ TIENES",
+   "herda": null,
+   "iou": 0.83,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 871,
+   "fim": 881,
+   "texto": "FE",
+   "herda": null,
+   "iou": 0.92,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 882,
+   "fim": 883,
+   "texto": "O NO",
+   "herda": 50,
+   "iou": 0.52,
+   "pos_por_palavra": false
+  },
+  {
+   "ini": 884,
+   "fim": 900,
+   "texto": "O NO",
+   "herda": null,
+   "iou": 0.52,
+   "pos_por_palavra": false
+  }
+ ]
+}

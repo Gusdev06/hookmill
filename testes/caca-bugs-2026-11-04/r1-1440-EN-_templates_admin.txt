@@ -1,0 +1,342 @@
+HM
+HookMill
+Q
+QA Alfa
+Meta · synced 19 seconds ago
+WORKSPACE
+Home
+Campaigns
+Eddy
+SOON
+Brain
+MAKE ADS
+Templates
+New concepts
+Review
+Library
+Team · unlimited
+∞
+Get credits
+Admin · Templates
+Settings
+Q
+QA Dono Alfa
+Owner
+EN
+PT
+ADMIN · VISIBLE TO HOOKMILL STAFF ONLY
+Template catalog
+
+Upload the example video for each template. A template without an example stays hidden from customers.
+
+Credit an account
+Team only
+
+No checkout yet: when someone pays you, add their credits here. A negative number takes credits back (never below zero).
+
+E-mail or account id
+Credits
+Note
+Add credits
+Pressing twice never credits twice.
+EXAMPLE	TEMPLATE	TYPE INSIDE	TIER	CREDITS	USES	STATUS	
+
+	
+Breaking news
+breaking-news
+	FRAME:news	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Meme POV
+meme-pov
+	FRAME:meme	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Post card
+post-card
+	FRAME:post_card	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Question box
+question-box
+	FRAME:question_box	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Top 5
+top-5
+	FRAME:ranking	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Live
+live
+	FRAME:live	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Call
+call
+	FRAME:call	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Cinema
+cinema
+	FRAME:cinema	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Story
+story
+	FRAME:story	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Read the caption
+read-the-caption
+	FRAME:read_caption	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+POV testimonial
+pov-testimonial
+	FRAME:pov_testimonial	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Direct offer
+direct-offer
+	FRAME:direct_offer	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Split screen
+split-screen
+	FRAME:split_stack	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Split torn
+split-torn
+	FRAME:split_torn	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Meet dialog
+meet-dialog
+	FRAME:call_dialog	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Gossip page
+gossip-page
+	FRAME:gossip_page	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Gossip white
+gossip-white
+	FRAME:gossip_white	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Gossip pink
+gossip-pink
+	FRAME:gossip_pink	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+New headline
+new-headline
+	HEADLINE	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Native search
+native-search
+	NATIVE_SEARCH	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Short cuts
+short-cuts
+	CUT	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Review
+review
+	REVIEW	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Cold open
+cold-open
+	COLD_OPEN	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Offer end card
+offer-end-card
+	ENDCARD	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Chat DM
+chat-dm
+	CHAT_DM	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Person + motion
+person-motion
+	PERSON_MOTION	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+	
+Static ad
+static-ad
+	STATIC	Static		0	
+Live
+Needs example
+	
+Upload video
+
+	
+New face
+new-face
+	AVATAR_FACE	AI		0	
+Draft
+Not running yet
+	
+Upload video
+
+	
+New persona
+new-persona
+	AVATAR_PERSONA	AI		0	
+Draft
+Not running yet
+	
+Upload video
+
+	
+Found it by accident
+found-it-by-accident
+	REMIX_DISCOVERY	AI		0	
+Draft
+Not running yet
+	
+Upload video
+
+	
+Podcast clip
+podcast-clip
+	REMIX_PODCAST	AI		0	
+Hidden
+Not running yet
+Beta
+	
+Upload video
+
+	
+Cinematic remix
+cinematic-remix
+	REMIX_KLING	AI		0	
+Draft
+Not running yet
+	
+Upload video
+
+	
+Let HookMill pick
+let-hookmill-pick
+	PACK	Edit		0	
+Live
+Needs example
+	
+Upload video
+
+Example video: MP4 9:16, up to 60 s and 60 MB, plays muted in the card and with sound in the detail. Uses = times generated across all workspaces.

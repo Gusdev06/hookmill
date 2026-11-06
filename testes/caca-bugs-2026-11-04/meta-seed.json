@@ -1,0 +1,57 @@
+{
+  "ids": [
+    "huntcreat1",
+    "huntcreat2",
+    "huntcreat3",
+    "huntcreat4",
+    "huntcreat5",
+    "huntcreat6"
+  ],
+  "template": {
+    "id": "cmw1my9qu005d226qx5ucol96",
+    "adAccountId": "act_mock_1",
+    "name": "Hunt Sales",
+    "isDefault": true,
+    "source": "MANUAL",
+    "importedFrom": null,
+    "campaign": {
+      "objective": "OUTCOME_SALES",
+      "budgetMode": "CBO",
+      "bidStrategy": "LOWEST_COST",
+      "destination": "REUSE_CAMPAIGN",
+      "namePattern": "Hunt — {offer}",
+      "bidAmountMinor": null,
+      "dailyBudgetMinor": 2000,
+      "specialAdCategories": []
+    },
+    "adset": {
+      "ageMax": 65,
+      "ageMin": 18,
+      "genders": "ALL",
+      "pixelId": "pix_mock",
+      "countries": [
+        "US"
+      ],
+      "pixelEvent": "PURCHASE",
+      "placements": "AUTO",
+      "adsPerAdset": {
+        "max": 8,
+        "min": 4
+      },
+      "namePattern": "{offer} — {date} — {n}",
+      "advantageAudience": true
+    },
+    "ad": {
+      "link": "https://example.com/",
+      "urlTags": null,
+      "headline": "Sleep well",
+      "description": null,
+      "namePattern": "{code}",
+      "primaryText": "Hunt original",
+      "callToAction": "SHOP_NOW"
+    },
+    "reuseCampaignId": null,
+    "createdAt": "2026-11-04T04:47:41.526Z",
+    "updatedAt": "2026-11-04T04:47:41.526Z"
+  }
+}

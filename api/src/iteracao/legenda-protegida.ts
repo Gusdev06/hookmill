@@ -130,8 +130,8 @@ const codeOf = (e: unknown) => (e as { code?: string } | null)?.code;
 
 /**
  * Roda o builder do item (9:16 = o formato do Gerar; HEADLINE = o do campeão, decidido no builder). Só CAPTION_PROTECTED
- * (e, no HEADLINE, o NO_ROOM que some sem as camadas de legenda) conta como bloqueio: os outros erros (texto que não
- * coube, rosto, etc.) são de outras regras.
+ * (e, no HEADLINE `add`, o NO_ROOM que some sem as camadas de legenda) conta como bloqueio: os outros erros (texto que não
+ * coube, rosto, HEADLINE_PENDING etc.) são de outras regras.
  */
 function decide(s: CaptionGuardSource, item: CaptionGuardItem): CaptionBlockReason | null {
   const ctx = ctxDe(s, item.type, item.params, s.editMap);

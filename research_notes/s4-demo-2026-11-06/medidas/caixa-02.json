@@ -1,0 +1,79 @@
+{
+"video": "02",
+"W": 716,
+"H": 1278,
+"N": 198,
+"mat": "bt709",
+"box": [
+0,
+0,
+716,
+246
+],
+"cor_texto": "#f6fcff",
+"placa_uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAeCAIAAADINCUsAAAEeElEQVR42t1ZW7bbNgyc4dFP99SNdfOcfhAEAb4sJ21PE19dJ7YkihgAgwEu//jzLxxfHP8VfsEXfeua7Vk+AeXVmr8kELPN/HTd8/sCEW0nZ2P4FgsB0Fs4//dAfPqeByykDS78TYDIV/AeF9ov9wYO3felf9W063XkbQ2uWOjDinc4LpZKby7nB5h5v2Kc5m41khsW1byPx3nho/O2cOiLeNH2BgKgjrhk0kumcsGDGywGEBESQQSh6Krnq2j9NtLDkxT8oOhDzeyukc7ceZ+7qOBIBk6E0E+RES5J9iR30fOfkJnDrwXZHBHyMOEm6VeXB4tpGIQ4mKHyUwMs24M4Y8F/VkwoAaHMHNzewP5LCeSRVSY+nIHw4OA4G99j0jvueo6q9aeBCAhoW6qPwsaQsJxec4UrLohsEfOkZ0eGoX2URBKyaHxOheYnqCGlRgdjYz53uBAURAJi+wExUMk8MtnPqWRkIHal1eNC0pkv3sCR7d85X3LSjGfbhrWnDa8YIjIcWmpnDoVu9niI8+VEIu2ZFhNEi4/nrl1O4iAxgKQjUl4+FM1MN2xLrRqTwhJFzQo5RiF3OkfQySKUlADEzJytjlimAPq+jgwU/E0XitEqaebPCRhXGpLXk7YCRZBUtLNZZdYyKwgwpMm2FJOSelaC32LRXQ0ZF2hr7f32G32a1Q6COpvavSQIFFSgtM9seLBwdv0qNTbyXOpg/JDWkh2eBAtzfBLYnwSuaEuacQYJSKgADYlqCdNjZV8tPsn3gMrzQ5pBmRN0t3CdKXErtG4ibXixRUT/h5LELs5I7pHlB0688oXnXZTRisrJwuOdq3n+Rq+7NJcDLSIoFFSpDL10sNtY8vu5Fk/FJAaDgpi6A8FbZSJia3jTfBZb6jUQACpUILmcayW4iZMVkZ2QzVt63o4HPCiEFZ1TG8u1q+bn+QZnRKRUaQ0ONa/Yi1GY4JgvJ2tbb/Z5SmNE5kXD1KQmuoB1Vgs35KqPyxanOsPTsNKCwLGotaKUEpaiFZlvpnLPG8qX/PBCaqmiS06E1HUUll5xBKnm7o1RFDnm6pVMFATVWhlaNGJIkHXKc5sG6eGZU6LDNV6jxF0YgkweJQcQ5DR66XW6wZ33TmvljRfNF0x1plYBFQILSSYR/jYq8vwiErBCbjgEAwhdQNAwg2O4wvmdE1gSRHYR6yuMMmBIQbVxp0Y0oVahVFaChaWJsQzErt/VzJ77uOiRKeMH1bGXAxJppNJshkY4OAoZlLjX2NwHma0eL6wtJCQ1oRirfauztahUwhRZZ5xD6Ae2bcr/4frnlKSfRkhI2/HUhL96j2BHIUl1RFpPgfZN2KVSaqXdUoDYZU3fYbXTI4LhZZYgxDHXOLMFOx8SAJ7ChdL9ikCYkbnWMjNl+KAG9G2Z/SyUTxLY28845lyVmB8AK6xXYa61HFKlrSk7nKs56zv2euQd4TNzXtLGSsPzyKUvVGIYH5iXPArCMG6Z92dCja1qR7kPoiZ2kz9Lh6nxkh49O1qI/Q0QhuejHfYFCQAAAABJRU5ErkJggg==",
+"placa_bytes": 1626,
+"placa_px": [
+89,
+30
+],
+"linhas_medidas": [
+[
+24,
+73
+],
+[
+93,
+151
+],
+[
+160,
+218
+]
+],
+"fonte": [
+{
+"fonte": "montserrat-700",
+"cos": 0.778,
+"sz": 61.19945602901179,
+"pitch": 66.5,
+"base": 72.0,
+"cxs": [
+348.5,
+349.0,
+354.5
+],
+"tr": 0.0
+},
+{
+"fonte": "montserrat-500",
+"cos": 0.756,
+"sz": 63.55607476635514,
+"pitch": 67.0,
+"base": 72.0,
+"cxs": [
+348.5,
+354.0,
+351.0
+],
+"tr": -0.01
+},
+{
+"fonte": "montserrat-600",
+"cos": 0.75,
+"sz": 61.47337006427915,
+"pitch": 66.5,
+"base": 72.0,
+"cxs": [
+347.0,
+350.0,
+353.5
+],
+"tr": 0.005
+}
+],
+"sombra": null,
+"dil": 9,
+"seg": 3.7,
+"desvio_p99": 18.0
+}
