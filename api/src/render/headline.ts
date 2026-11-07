@@ -135,7 +135,7 @@ export function buildHeadlineInput(spec: HeadlineSpec, ctx: AutoEditContext, opt
     copia = true;
   } else {
     // add: faixa na cor da marca no topo da área segura (H3)
-    const fmt = Math.abs(W / H - 9 / 16) < 0.02 ? 'VERTICAL_9_16' : Math.abs(W / H - 4 / 5) < 0.02 ? 'PORTRAIT_4_5' : 'SQUARE_1_1';
+    const fmt = Math.abs(W / H - 9 / 16) < 0.02 ? 'VERTICAL_9_16' : Math.abs(W / H - 4 / 5) < 0.02 || Math.abs(W / H - 3 / 4) < 0.02 ? 'PORTRAIT_4_5' : 'SQUARE_1_1';
     const u = W / 1080;
     const safe = { top: SAFE_AREA[fmt].top * u, bottom: SAFE_AREA[fmt].bottom * u };
     const cor = spec.brandColor ?? ctx.palette[0] ?? '#111111';

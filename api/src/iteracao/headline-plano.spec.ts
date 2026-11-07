@@ -22,6 +22,8 @@ describe('headlineInfoOf (§1.1, §1.4)', () => {
   });
   it('aspecto: 9:16 / 4:5 / 1:1 com 3 % de folga', () => {
     expect([formatoDoCampeao(720, 1280), formatoDoCampeao(1080, 1350), formatoDoCampeao(1000, 1010), formatoDoCampeao(1920, 1080)]).toEqual(['VERTICAL_9_16', 'PORTRAIT_4_5', 'SQUARE_1_1', null]);
+    // Q1-B2 (07/11): 3:4 (06 da S4, 720×960) conta como 4:5; 2:3 continua fora
+    expect([formatoDoCampeao(720, 960), formatoDoCampeao(1080, 1440), formatoDoCampeao(720, 1080)]).toEqual(['PORTRAIT_4_5', 'PORTRAIT_4_5', null]);
   });
 });
 

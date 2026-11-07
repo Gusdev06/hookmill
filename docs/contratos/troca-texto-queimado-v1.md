@@ -1064,3 +1064,5 @@ rewriteHeadlineFit(i: { workspaceId: string; batchId: string; language: string; 
 3. Bugs B1–B8 do QA do F1a: corrigir. B9 fica com o arquiteto.
 4. **Fonte da caixa: a régua decide (06/11, "sigo recomendações").** Vendo `research_notes/v2-2026-11-06/fontes-caixa-aprovada-x-regua.png`, o Gusta aceitou que a régua no Chrome escolha a fonte pelo `look` medido, em vez de fixar Montserrat/Albert Sans. Nos 3 casos da S4 ela escolhe TikTok Sans (02: corr 0,894 × 0,645; 06: 0,763 × 0,629; 05: empate 0,772 × 0,767). Substitui o item 2 acima no que diz respeito à fonte; o item 2 continua valendo como aprovação visual da caixa.
 5. **Sem mais campeões soltos (06/11):** o Gusta não tem outros campeões com headline solta além do da S4. O limite de E (0,15) segue **provisório**, calibrado com 1 solto real + 1 sintético de 60 s na G1, e revisto no lote real da Q1.
+
+**3:4 conta como 4:5** (07/11, Q1-B2, decisão do Gusta): campeão 3:4 (ex.: 06 da S4, 720×960) recebe HEADLINE como `PORTRAIT_4_5`. A peça sai no tamanho do campeão; no feed do Meta o corte pra 4:5 é aceito. Outros aspectos (16:9, 2:3…) seguem `headline_aspect`.

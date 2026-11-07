@@ -49,12 +49,13 @@ export function camadaAlvo(m: EditMap, plateImpl: PlateImplMode = 'off'): EditLa
 
 export const HEADLINE_MAX_ADD = 60;
 
-/** 9:16 / 4:5 / 1:1 até 3 % de folga; outro aspecto (16:9…) = null (sem HEADLINE: não há formato pra ele). */
+/** 9:16 / 4:5 / 1:1 até 3 % de folga; 3:4 conta como 4:5 (decisão do Gusta 07/11, Q1-B2: a peça sai no tamanho do
+ *  campeão e o feed do Meta corta pra 4:5); outro aspecto (16:9…) = null (sem HEADLINE: não há formato pra ele). */
 export function formatoDoCampeao(width: number, height: number): VideoFormat | null {
   if (!width || !height) return null;
   const r = width / height;
   const perto = (v: number) => Math.abs(r - v) / v <= 0.03;
-  return perto(9 / 16) ? 'VERTICAL_9_16' : perto(4 / 5) ? 'PORTRAIT_4_5' : perto(1) ? 'SQUARE_1_1' : null;
+  return perto(9 / 16) ? 'VERTICAL_9_16' : perto(4 / 5) || perto(3 / 4) ? 'PORTRAIT_4_5' : perto(1) ? 'SQUARE_1_1' : null;
 }
 
 /** Nº de linhas da original: quebras explícitas, senão pela altura da caixa ÷ altura da linha. */
