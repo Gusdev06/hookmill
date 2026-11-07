@@ -1,0 +1,54 @@
+[
+ {
+  "nome": "s4-02",
+  "kind": "box",
+  "campeao": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c02.mp4",
+  "peca": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/pecas/s4-02.mp4",
+  "placa": null,
+  "startFrame": 0,
+  "endFrame": 198,
+  "mascara": [
+   {
+    "h": 246,
+    "w": 716,
+    "x": 0,
+    "y": 0
+   }
+  ],
+  "linhas": [
+   "Si hoy no te escribe",
+   "ni te busca, *es porque",
+   "nunca fue para ti..*"
+  ],
+  "fonte": "tiktok-sans-600",
+  "tamanho": 62.08,
+  "render_s": null,
+  "pico_rss_MB": null
+ },
+ {
+  "nome": "s4-06",
+  "kind": "box",
+  "campeao": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c06.mp4",
+  "peca": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/pecas/s4-06.mp4",
+  "placa": null,
+  "startFrame": 0,
+  "endFrame": 335,
+  "mascara": [
+   {
+    "h": 130,
+    "w": 481,
+    "x": 0,
+    "y": 529
+   }
+  ],
+  "linhas": [
+   "Él ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te escribe, dime mentirosa"
+  ],
+  "fonte": "tiktok-sans-500",
+  "tamanho": 31.4,
+  "render_s": null,
+  "pico_rss_MB": null
+ }
+]

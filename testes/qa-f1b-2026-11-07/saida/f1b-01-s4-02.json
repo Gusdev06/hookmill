@@ -1,0 +1,254 @@
+{
+ "plano_s": 15.646,
+ "fitAntes": {
+  "level": "hard",
+  "reason": "headline_pending"
+ },
+ "fitDepois": {
+  "level": "ok",
+  "reason": null
+ },
+ "insight": null,
+ "headlines": [
+  {
+   "code": "HEADLINE-1",
+   "headline": {
+    "mode": "replace",
+    "original": "Si en 2 minutos no te busca, es porque nunca fue para ti..",
+    "text": "Paying every month for apps they forgot about",
+    "highlight": "forgot about",
+    "copy": "box",
+    "fontTier": "same",
+    "fitStep": "same",
+    "fit": {
+     "box": {
+      "h": 246,
+      "w": 716,
+      "x": 0,
+      "y": 0
+     },
+     "kind": "box",
+     "align": "center",
+     "chinY": 779,
+     "emoji": null,
+     "canvas": {
+      "width": 716,
+      "height": 1278
+     },
+     "fontId": "tiktok-sans-600",
+     "sizePx": 66.04,
+     "centerX": 349,
+     "caseStyle": "sentence",
+     "erasedRects": [],
+     "linePitchPx": 67,
+     "bottomLimitY": null,
+     "sideMarginPx": 16,
+     "originalLines": [
+      {
+       "chars": 21,
+       "widthPx": 665
+      },
+      {
+       "chars": 16,
+       "widthPx": 541
+      },
+      {
+       "chars": 19,
+       "widthPx": 564
+      }
+     ],
+     "firstBaselineY": 72.5,
+     "letterSpacingEm": 0
+    }
+   }
+  },
+  {
+   "code": "HEADLINE-2",
+   "headline": {
+    "mode": "replace",
+    "original": "Si en 2 minutos no te busca, es porque nunca fue para ti..",
+    "text": "Find money you forgot you were spending",
+    "highlight": "were spending",
+    "copy": "box",
+    "fontTier": "same",
+    "fitStep": "same",
+    "fit": {
+     "box": {
+      "h": 246,
+      "w": 716,
+      "x": 0,
+      "y": 0
+     },
+     "kind": "box",
+     "align": "center",
+     "chinY": 779,
+     "emoji": null,
+     "canvas": {
+      "width": 716,
+      "height": 1278
+     },
+     "fontId": "tiktok-sans-600",
+     "sizePx": 66.04,
+     "centerX": 349,
+     "caseStyle": "sentence",
+     "erasedRects": [],
+     "linePitchPx": 67,
+     "bottomLimitY": null,
+     "sideMarginPx": 16,
+     "originalLines": [
+      {
+       "chars": 21,
+       "widthPx": 665
+      },
+      {
+       "chars": 16,
+       "widthPx": 541
+      },
+      {
+       "chars": 19,
+       "widthPx": 564
+      }
+     ],
+     "firstBaselineY": 72.5,
+     "letterSpacingEm": 0
+    }
+   }
+  },
+  {
+   "code": "HEADLINE-3",
+   "headline": {
+    "mode": "replace",
+    "original": "Si en 2 minutos no te busca, es porque nunca fue para ti..",
+    "text": "I tried three budgeting apps and gave up on all of them",
+    "highlight": "of them",
+    "copy": "box",
+    "fontTier": "same",
+    "fitStep": "shrink",
+    "fit": {
+     "box": {
+      "h": 246,
+      "w": 716,
+      "x": 0,
+      "y": 0
+     },
+     "kind": "box",
+     "align": "center",
+     "chinY": 779,
+     "emoji": null,
+     "canvas": {
+      "width": 716,
+      "height": 1278
+     },
+     "fontId": "tiktok-sans-600",
+     "sizePx": 66.04,
+     "centerX": 349,
+     "caseStyle": "sentence",
+     "erasedRects": [],
+     "linePitchPx": 67,
+     "bottomLimitY": null,
+     "sideMarginPx": 16,
+     "originalLines": [
+      {
+       "chars": 21,
+       "widthPx": 665
+      },
+      {
+       "chars": 16,
+       "widthPx": 541
+      },
+      {
+       "chars": 19,
+       "widthPx": 564
+      }
+     ],
+     "firstBaselineY": 72.5,
+     "letterSpacingEm": 0
+    }
+   }
+  }
+ ],
+ "look": {
+  "kind": "box",
+  "intervalo": [
+   0,
+   198
+  ],
+  "font": {
+   "corr": 0.8937,
+   "tier": "same",
+   "fontId": "tiktok-sans-600",
+   "stemErr": 0.0126,
+   "widthErr": 0.0074,
+   "measuredIn": "chrome-linux"
+  },
+  "verdict": {
+   "ok": true,
+   "gates": {
+    "halo_p99": 8.3,
+    "dilatacao": 9,
+    "font_corr": 0.8937,
+    "rosto_frac": 1,
+    "placa_bytes": 1666,
+    "temporal_p99": 17,
+    "folga_legenda": 11,
+    "transicao_max": 0,
+    "caixa_area_rel": 1.19,
+    "sombra_err_com": 4.6,
+    "sombra_err_sem": 4.77,
+    "font_candidatas": 10,
+    "caixa_quadro_rel": 0.192,
+    "caixa_chapada_p90": 12.7
+   },
+   "reason": null
+  },
+  "lines": [
+   "Si en 2 minutos no te",
+   "busca, es porque",
+   "nunca fue para ti.."
+  ],
+  "sizePx": 66.04
+ },
+ "placas": [],
+ "checklist": [
+  {
+   "key": "decode",
+   "status": "done"
+  },
+  {
+   "key": "transcribe",
+   "status": "done"
+  },
+  {
+   "key": "cuts",
+   "status": "done"
+  },
+  {
+   "key": "edit_map",
+   "status": "done"
+  },
+  {
+   "key": "blocks",
+   "status": "done"
+  },
+  {
+   "key": "audience",
+   "status": "done"
+  },
+  {
+   "key": "offer",
+   "status": "done"
+  },
+  {
+   "key": "proof",
+   "status": "done"
+  },
+  {
+   "key": "page",
+   "status": "done"
+  },
+  {
+   "key": "planning",
+   "status": "done"
+  }
+ ]
+}

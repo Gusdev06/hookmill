@@ -1,0 +1,11 @@
+{
+ "ms": 21505,
+ "pedacos": 4,
+ "pico_MB": 228,
+ "quadros": 564,
+ "mascara_px": 13496,
+ "pedaco_max_s": 19.938,
+ "quadros_placa": 564,
+ "fantasma_pior_corr": 0.0326,
+ "fantasma_pior_media": 0.46
+}

@@ -1,0 +1,41 @@
+{
+ "fit": {
+  "level": "hard",
+  "reason": "headline_pending"
+ },
+ "piecesNoGet": [
+  "CHAT_DM",
+  "REVIEW",
+  "STATIC",
+  "STATIC",
+  "FRAME",
+  "FRAME",
+  "FRAME",
+  "FRAME",
+  "FRAME"
+ ],
+ "start": 202,
+ "headlinesNoGerar": 0,
+ "template": {
+  "pecas": 0,
+  "start": 400,
+  "erro": {
+   "code": "VALIDATION_ERROR",
+   "message": "Invalid request.",
+   "statusCode": 400,
+   "details": {
+    "fields": [
+     {
+      "field": "expectedPieces",
+      "rule": "min"
+     }
+    ]
+   }
+  }
+ },
+ "saldo": [
+  100,
+  100
+ ],
+ "livro": []
+}

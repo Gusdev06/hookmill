@@ -1,0 +1,89 @@
+{
+ "galeria": {
+  "lookAntes": null,
+  "primeira": {
+   "level": "hard",
+   "reason": "headline_pending"
+  },
+  "fitFinal": {
+   "level": "ok",
+   "reason": null
+  },
+  "s": 6.12,
+  "lotes": 0,
+  "look": {
+   "kind": "loose",
+   "verdict": {
+    "ok": true,
+    "gates": {
+     "px_letra": 2773,
+     "font_corr": 0.8191,
+     "luz_letra": 254,
+     "rosto_frac": 0,
+     "emoji_ocupa": 0.797,
+     "temporal_p99": 133.7,
+     "emoji_lobulos": 2,
+     "emoji_solidez": 0.834,
+     "folga_legenda": 7,
+     "transicao_max": 0,
+     "caixa_area_rel": 1.27,
+     "sombra_err_com": 1.59,
+     "sombra_err_sem": 1.77,
+     "font_candidatas": 7,
+     "caixa_quadro_rel": 0.044,
+     "caixa_chapada_p90": 12.7,
+     "distancia_legenda": 10
+    },
+    "reason": null
+   },
+   "font": "arimo-600"
+  }
+ },
+ "use": {
+  "lookAntes": null,
+  "primeira": {
+   "status": 422,
+   "erro": {
+    "code": "TEMPLATE_DOESNT_FIT",
+    "message": "This template does not fit this ad.",
+    "statusCode": 422,
+    "details": {
+     "reason": "headline_pending"
+    }
+   }
+  },
+  "fitFinal": {
+   "level": "ok",
+   "reason": null
+  },
+  "s": 9.269,
+  "lotes": 0,
+  "look": {
+   "kind": "loose",
+   "verdict": {
+    "ok": true,
+    "gates": {
+     "px_letra": 2773,
+     "font_corr": 0.8191,
+     "luz_letra": 254,
+     "rosto_frac": 0,
+     "emoji_ocupa": 0.797,
+     "temporal_p99": 133.7,
+     "emoji_lobulos": 2,
+     "emoji_solidez": 0.834,
+     "folga_legenda": 7,
+     "transicao_max": 0,
+     "caixa_area_rel": 1.27,
+     "sombra_err_com": 1.59,
+     "sombra_err_sem": 1.77,
+     "font_candidatas": 7,
+     "caixa_quadro_rel": 0.044,
+     "caixa_chapada_p90": 12.7,
+     "distancia_legenda": 10
+    },
+    "reason": null
+   },
+   "font": "arimo-600"
+  }
+ }
+}

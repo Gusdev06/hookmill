@@ -14,7 +14,7 @@
   },
   "kind": "box",
   "align": "center",
-  "chinY": null,
+  "chinY": 779,
   "emoji": null,
   "canvas": {
    "width": 716,
@@ -91,7 +91,7 @@
    "halo_p99": 8.3,
    "dilatacao": 9,
    "font_corr": 0.8937,
-   "rosto_frac": 0,
+   "rosto_frac": 1,
    "placa_bytes": 1666,
    "temporal_p99": 17,
    "folga_legenda": 11,

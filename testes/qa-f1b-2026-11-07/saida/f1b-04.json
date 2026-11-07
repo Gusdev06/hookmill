@@ -1,0 +1,84 @@
+{
+ "pending": {
+  "quote": 1,
+  "saldo": [
+   100,
+   100
+  ],
+  "livro": [
+   {
+    "kind": "RESERVE",
+    "delta": -1,
+    "amount": 1,
+    "template_run_id": "cmw65vsqn00clqf9o55a0zn6a"
+   },
+   {
+    "kind": "REFUND",
+    "delta": 1,
+    "amount": 1,
+    "template_run_id": "cmw65vsqn00clqf9o55a0zn6a"
+   }
+  ],
+  "pieces": [
+   {
+    "status": "failed",
+    "errorCode": "HEADLINE_PENDING",
+    "retryHint": "leave_out",
+    "failReason": "This video's headline can't be rewritten yet. Leave it out."
+   },
+   {
+    "status": "failed",
+    "errorCode": "HEADLINE_PENDING",
+    "retryHint": "leave_out",
+    "failReason": "This video's headline can't be rewritten yet. Leave it out."
+   },
+   {
+    "status": "failed",
+    "errorCode": "HEADLINE_PENDING",
+    "retryHint": "leave_out",
+    "failReason": "This video's headline can't be rewritten yet. Leave it out."
+   }
+  ]
+ },
+ "no_fit": {
+  "quote": 1,
+  "saldo": [
+   100,
+   100
+  ],
+  "livro": [
+   {
+    "kind": "RESERVE",
+    "delta": -1,
+    "amount": 1,
+    "template_run_id": "cmw65wapo00e9qf9oldof63ec"
+   },
+   {
+    "kind": "REFUND",
+    "delta": 1,
+    "amount": 1,
+    "template_run_id": "cmw65wapo00e9qf9oldof63ec"
+   }
+  ],
+  "pieces": [
+   {
+    "status": "failed",
+    "errorCode": "HEADLINE_NO_FIT",
+    "retryHint": "leave_out",
+    "failReason": "The new headline can't match the size of the original. Leave it out."
+   },
+   {
+    "status": "failed",
+    "errorCode": "HEADLINE_NO_FIT",
+    "retryHint": "leave_out",
+    "failReason": "The new headline can't match the size of the original. Leave it out."
+   },
+   {
+    "status": "failed",
+    "errorCode": "HEADLINE_NO_FIT",
+    "retryHint": "leave_out",
+    "failReason": "The new headline can't match the size of the original. Leave it out."
+   }
+  ]
+ }
+}

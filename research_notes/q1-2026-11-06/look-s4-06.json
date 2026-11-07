@@ -1,0 +1,115 @@
+{
+ "box": {
+  "h": 130,
+  "w": 481,
+  "x": 0,
+  "y": 529
+ },
+ "fit": {
+  "box": {
+   "h": 130,
+   "w": 481,
+   "x": 0,
+   "y": 529
+  },
+  "kind": "box",
+  "align": "center",
+  "chinY": 500,
+  "emoji": null,
+  "canvas": {
+   "width": 720,
+   "height": 960
+  },
+  "fontId": "tiktok-sans-500",
+  "sizePx": 33.76,
+  "centerX": 234.5,
+  "caseStyle": "sentence",
+  "erasedRects": [],
+  "linePitchPx": 34,
+  "bottomLimitY": 679,
+  "sideMarginPx": 13,
+  "originalLines": [
+   {
+    "chars": 23,
+    "widthPx": 364
+   },
+   {
+    "chars": 27,
+    "widthPx": 436
+   },
+   {
+    "chars": 27,
+    "widthPx": 452
+   }
+  ],
+  "firstBaselineY": 571.5,
+  "letterSpacingEm": 0
+ },
+ "font": {
+  "corr": 0.7627,
+  "tier": "same",
+  "fontId": "tiktok-sans-500",
+  "stemErr": 0.0727,
+  "widthErr": 0.0275,
+  "measuredIn": "chrome-linux"
+ },
+ "kind": "box",
+ "text": {
+  "align": "center",
+  "color": "#fffff7",
+  "lines": [
+   "Él ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te busca, dime mentirosa"
+  ],
+  "shadow": null,
+  "sizePx": 33.76,
+  "stemPx": 2.93,
+  "stroke": null,
+  "textBox": {
+   "h": 98,
+   "w": 452,
+   "x": 13,
+   "y": 542
+  },
+  "caseStyle": "sentence",
+  "linePitchPx": 34,
+  "firstBaselineY": 571.5,
+  "letterSpacingEm": 0
+ },
+ "emoji": null,
+ "plate": {
+  "color": "#4f0708",
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAQCAIAAADF8ItoAAABOElEQVRIx7WWC27EIAxE90WW9na9/22mSiDlZwiglF1FED4ej+0h/Hy/n9jg81qT9/L5fPz9YSTQ1T/KKb0Fmm1fRyjihHkT7JOZoeZac/7I3WA3ZmmjedzIP10btkS98SaFNVbygfW3K1h8u7Ga9WrS1xgR6aYKK+RTrmE55bwdthJ0njC57rKWsBO8Hf+QALdCreSsHjgif2Mrpdt6rVVRGSzzOHUDwDG0QkdIN2VwT4cqsvXIdIcGTemB5jV/FnF42DzLA41S/4RC88X+pcu18zwIc3ikRM3IIQUQDZI/iUf3I37cUGDXFMUxKYm3q3XA4KD3rNBcbyr5FUVA4kjRKWWR8siRkrCmaFkDMSGp+hqXlDq55d5FJMySK/d+2YTOMSwVFuqI+58LTeUwlbVzDJ3y6ZrmF9oBbKJscRYwAAAAAElFTkSuQmCC",
+  "temporalP99": 9.3,
+  "translucent": false
+ },
+ "layerId": "headline-1",
+ "verdict": {
+  "ok": true,
+  "gates": {
+   "halo_p99": 6.1,
+   "dilatacao": 9,
+   "font_corr": 0.7627,
+   "rosto_frac": 0,
+   "placa_bytes": 514,
+   "temporal_p99": 9.3,
+   "folga_legenda": 11,
+   "transicao_max": 0,
+   "caixa_area_rel": 1.14,
+   "sombra_err_com": 2.25,
+   "sombra_err_sem": 2.25,
+   "font_candidatas": 8,
+   "caixa_quadro_rel": 0.09,
+   "caixa_chapada_p90": 2.3,
+   "distancia_legenda": 31
+  },
+  "reason": null
+ },
+ "version": 2,
+ "emphasis": null,
+ "endFrame": 335,
+ "plateRef": null,
+ "radiusPx": 0,
+ "startFrame": 0
+}

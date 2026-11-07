@@ -1,0 +1,307 @@
+{
+ "plano_s": 32.58,
+ "fitAntes": {
+  "level": "hard",
+  "reason": "headline_pending"
+ },
+ "fitDepois": {
+  "level": "ok",
+  "reason": null
+ },
+ "insight": null,
+ "headlines": [
+  {
+   "code": "HEADLINE-1",
+   "headline": {
+    "mode": "replace",
+    "original": "How to view your man’s recent following on IG 👀",
+    "text": "Paying every month for apps they forgot about",
+    "highlight": null,
+    "copy": "loose",
+    "fontTier": "close",
+    "fitStep": "rewrap",
+    "fit": {
+     "box": null,
+     "kind": "loose",
+     "align": "center",
+     "chinY": 499,
+     "emoji": {
+      "side": "end",
+      "gapPx": 8,
+      "widthPx": 27,
+      "lineIndex": 1
+     },
+     "canvas": {
+      "width": 464,
+      "height": 832
+     },
+     "fontId": "arimo-600",
+     "sizePx": 26.87,
+     "centerX": 233.25,
+     "caseStyle": "sentence",
+     "erasedRects": [
+      {
+       "h": 24,
+       "w": 293,
+       "x": 87,
+       "y": 538
+      },
+      {
+       "h": 25,
+       "w": 269,
+       "x": 82,
+       "y": 571
+      }
+     ],
+     "linePitchPx": 33.5,
+     "bottomLimitY": 603,
+     "sideMarginPx": 23,
+     "originalLines": [
+      {
+       "chars": 22,
+       "widthPx": 293
+      },
+      {
+       "chars": 22,
+       "widthPx": 269
+      }
+     ],
+     "firstBaselineY": 557,
+     "letterSpacingEm": 0
+    }
+   }
+  },
+  {
+   "code": "HEADLINE-2",
+   "headline": {
+    "mode": "replace",
+    "original": "How to view your man’s recent following on IG 👀",
+    "text": "Find money you forgot you were spending",
+    "highlight": null,
+    "copy": "loose",
+    "fontTier": "close",
+    "fitStep": "same",
+    "fit": {
+     "box": null,
+     "kind": "loose",
+     "align": "center",
+     "chinY": 499,
+     "emoji": {
+      "side": "end",
+      "gapPx": 8,
+      "widthPx": 27,
+      "lineIndex": 1
+     },
+     "canvas": {
+      "width": 464,
+      "height": 832
+     },
+     "fontId": "arimo-600",
+     "sizePx": 26.87,
+     "centerX": 233.25,
+     "caseStyle": "sentence",
+     "erasedRects": [
+      {
+       "h": 24,
+       "w": 293,
+       "x": 87,
+       "y": 538
+      },
+      {
+       "h": 25,
+       "w": 269,
+       "x": 82,
+       "y": 571
+      }
+     ],
+     "linePitchPx": 33.5,
+     "bottomLimitY": 603,
+     "sideMarginPx": 23,
+     "originalLines": [
+      {
+       "chars": 22,
+       "widthPx": 293
+      },
+      {
+       "chars": 22,
+       "widthPx": 269
+      }
+     ],
+     "firstBaselineY": 557,
+     "letterSpacingEm": 0
+    }
+   }
+  },
+  {
+   "code": "HEADLINE-3",
+   "headline": {
+    "mode": "replace",
+    "original": "How to view your man’s recent following on IG 👀",
+    "text": "I tried three budgeting apps and gave up on all of them",
+    "highlight": null,
+    "copy": "loose",
+    "fontTier": "close",
+    "fitStep": "rewrap",
+    "fit": {
+     "box": null,
+     "kind": "loose",
+     "align": "center",
+     "chinY": 499,
+     "emoji": {
+      "side": "end",
+      "gapPx": 8,
+      "widthPx": 27,
+      "lineIndex": 1
+     },
+     "canvas": {
+      "width": 464,
+      "height": 832
+     },
+     "fontId": "arimo-600",
+     "sizePx": 26.87,
+     "centerX": 233.25,
+     "caseStyle": "sentence",
+     "erasedRects": [
+      {
+       "h": 24,
+       "w": 293,
+       "x": 87,
+       "y": 538
+      },
+      {
+       "h": 25,
+       "w": 269,
+       "x": 82,
+       "y": 571
+      }
+     ],
+     "linePitchPx": 33.5,
+     "bottomLimitY": 603,
+     "sideMarginPx": 23,
+     "originalLines": [
+      {
+       "chars": 22,
+       "widthPx": 293
+      },
+      {
+       "chars": 22,
+       "widthPx": 269
+      }
+     ],
+     "firstBaselineY": 557,
+     "letterSpacingEm": 0
+    }
+   }
+  }
+ ],
+ "look": {
+  "kind": "loose",
+  "intervalo": [
+   0,
+   161
+  ],
+  "font": {
+   "corr": 0.8191,
+   "tier": "close",
+   "fontId": "arimo-600",
+   "stemErr": 0.1074,
+   "widthErr": 0.0074,
+   "measuredIn": "chrome-linux"
+  },
+  "verdict": {
+   "ok": true,
+   "gates": {
+    "px_letra": 2773,
+    "font_corr": 0.8191,
+    "luz_letra": 254,
+    "rosto_frac": 0,
+    "emoji_ocupa": 0.797,
+    "temporal_p99": 133.7,
+    "emoji_lobulos": 2,
+    "emoji_solidez": 0.834,
+    "folga_legenda": 7,
+    "transicao_max": 0,
+    "caixa_area_rel": 1.27,
+    "sombra_err_com": 1.59,
+    "sombra_err_sem": 1.77,
+    "font_candidatas": 7,
+    "caixa_quadro_rel": 0.044,
+    "caixa_chapada_p90": 12.7,
+    "distancia_legenda": 10
+   },
+   "reason": null
+  },
+  "lines": [
+   "How to view your man’s",
+   "recent following on IG"
+  ],
+  "sizePx": 26.87
+ },
+ "placas": [
+  {
+   "status": "READY",
+   "reason": null,
+   "version": 1,
+   "layer_key": "headline-1",
+   "metrics": {
+    "ms": 21505,
+    "pedacos": 4,
+    "pico_MB": 228,
+    "quadros": 564,
+    "mascara_px": 13496,
+    "pedaco_max_s": 19.938,
+    "quadros_placa": 564,
+    "fantasma_pior_corr": 0.0326,
+    "fantasma_pior_media": 0.46
+   },
+   "file_id": "cmw64ilol006xqfim45orloro",
+   "cost_usd": "0.000000"
+  }
+ ],
+ "checklist": [
+  {
+   "key": "decode",
+   "status": "done"
+  },
+  {
+   "key": "transcribe",
+   "status": "done"
+  },
+  {
+   "key": "cuts",
+   "status": "done"
+  },
+  {
+   "key": "edit_map",
+   "status": "done"
+  },
+  {
+   "key": "blocks",
+   "status": "done"
+  },
+  {
+   "key": "audience",
+   "status": "done"
+  },
+  {
+   "key": "offer",
+   "status": "done"
+  },
+  {
+   "key": "proof",
+   "status": "done"
+  },
+  {
+   "key": "page",
+   "status": "done"
+  },
+  {
+   "key": "preparing_plate",
+   "status": "done"
+  },
+  {
+   "key": "planning",
+   "status": "done"
+  }
+ ]
+}

@@ -6,9 +6,15 @@
   "height": 1278,
   "frameCount": 290
  },
+ "faceHint": {
+  "h": 574.5313179310346,
+  "w": 420.095964137931,
+  "x": 150.1654455172414,
+  "y": 213.4797517241379
+ },
  "language": "en",
  "overlays": [],
- "renderId": "cmw57wl8d00menv40n68y0ivd",
+ "renderId": "cmw64gwgf0022qfxwq9y8ubqz",
  "templateId": "remix-keep",
  "textLayers": [
   {
@@ -68,7 +74,7 @@
    "startFrame": 0
   }
  ],
- "baseVideoUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/a372ab95-0c9b-46f6-a16f-88d18779d064.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261106%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261106T165733Z&X-Amz-Expires=21600&X-Amz-Signature=defc0dd652965198425811664484314300b5b9c945573a77d356d42d413890ed&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "baseVideoUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/20a5a830-7698-4ca4-ba34-cd5f9e8c3860.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261107%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261107T080909Z&X-Amz-Expires=21600&X-Amz-Signature=781f3efe8efa0c06631bb3c98ccfc586fb2fb1880ec25aad8dbe78bfd0044f31&X-Amz-SignedHeaders=host&x-id=GetObject",
  "captionCheck": {
   "frames": [
    {
@@ -117,7 +123,7 @@
   "status": "ok",
   "attempt": 1
  },
- "audioPassthroughUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/a372ab95-0c9b-46f6-a16f-88d18779d064.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261106%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261106T165733Z&X-Amz-Expires=21600&X-Amz-Signature=defc0dd652965198425811664484314300b5b9c945573a77d356d42d413890ed&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "audioPassthroughUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/20a5a830-7698-4ca4-ba34-cd5f9e8c3860.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261107%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261107T080909Z&X-Amz-Expires=21600&X-Amz-Signature=781f3efe8efa0c06631bb3c98ccfc586fb2fb1880ec25aad8dbe78bfd0044f31&X-Amz-SignedHeaders=host&x-id=GetObject",
  "outputProtectedBands": [
   {
    "h": 232,

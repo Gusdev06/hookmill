@@ -1,0 +1,84 @@
+[
+ {
+  "nome": "s4-02",
+  "kind": "box",
+  "fonte": "tiktok-sans-600",
+  "tamanho": 62.08,
+  "linhas": [
+   "Si hoy no te escribe",
+   "ni te busca, *es porque",
+   "nunca fue para ti..*"
+  ],
+  "quadros": [
+   290,
+   290
+  ],
+  "intervalo": [
+   0,
+   198
+  ],
+  "psnr_fora_mascara_trecho": 47.68,
+  "pior_quadro_trecho": 46.19,
+  "dif_media_trecho": 0.575,
+  "psnr_fora_do_trecho": 48.1,
+  "pior_quadro_fora": 46.19,
+  "audio_s": [
+   9.622,
+   9.622
+  ],
+  "audio_pacotes": [
+   228,
+   228
+  ],
+  "audio_md5_igual": true,
+  "audio_bytes": [
+   1827312,
+   1827312
+  ],
+  "a8_mediana_peca_menos_placa": null,
+  "render_s": null,
+  "pico_rss_MB": null,
+  "passa": true
+ },
+ {
+  "nome": "s4-06",
+  "kind": "box",
+  "fonte": "tiktok-sans-500",
+  "tamanho": 31.4,
+  "linhas": [
+   "Él ya está con otra? Te",
+   "propongo algo. Si en 7 días",
+   "no te escribe, dime mentirosa"
+  ],
+  "quadros": [
+   428,
+   428
+  ],
+  "intervalo": [
+   0,
+   335
+  ],
+  "psnr_fora_mascara_trecho": 48.21,
+  "pior_quadro_trecho": 46.78,
+  "dif_media_trecho": 0.533,
+  "psnr_fora_do_trecho": 54.17,
+  "pior_quadro_fora": 51.82,
+  "audio_s": [
+   14.235011,
+   14.235011
+  ],
+  "audio_pacotes": [
+   309,
+   309
+  ],
+  "audio_md5_igual": true,
+  "audio_bytes": [
+   2490864,
+   2490864
+  ],
+  "a8_mediana_peca_menos_placa": null,
+  "render_s": null,
+  "pico_rss_MB": null,
+  "passa": true
+ }
+]

@@ -26,8 +26,9 @@ export function notaQ1(nome: string, dados: unknown): void {
 /** Upload do vídeo real + POST /champions (análise em mock) → READY; espera a medida de depois da análise acabar. */
 export async function campeaoReal(caso: Caso, ws: 'A' | 'B' = 'A'): Promise<{ championId: string; offerId: string; baseMap: any }> {
   const persona = ws === 'A' ? 'donoA' : 'donoB';
-  // 05: o "$50" da headline original não está no Brain do mock; sem isto o texto da S4 cai em invented_number (bug Q1-B3)
-  const o = await oferta(ws, { language: LINGUA[caso], ...(caso === 's4-05' ? { proof: 'If he doesn\'t call you within two minutes, I\'ll pay you $50' } : {}) });
+  // 05: o "$50" da headline original não estava no Brain do mock e caía em invented_number (Q1-B3, corrigido no a7a03a9).
+  // O contorno (o "$50" no proof) só volta com Q1_CONTORNO_50=1; por padrão o teste prova a correção sem ele.
+  const o = await oferta(ws, { language: LINGUA[caso], ...(caso === 's4-05' && process.env.Q1_CONTORNO_50 === '1' ? { proof: 'If he doesn\'t call you within two minutes, I\'ll pay you $50' } : {}) });
   const s = await subirArquivo(persona, resolve(S4, VIDEO[caso]));
   expect(s.complete?.status, JSON.stringify(s.complete?.body)).toBe(200);
   const c = await call('POST', '/champions', { body: { offerId: o.id, uploadId: s.uploadId, rights: 'OWN' }, token: await tokenOf(persona) });
@@ -54,7 +55,7 @@ export async function camadaS4(championId: string, caso: Caso, baseMap: any, o: 
     text: c.layer.text, wordsPerPage: null, source: 'vision',
   };
   const { headlineLook: _l, ...resto } = baseMap;
-  // semRosto: contorno do QA para o bug do over_face na caixa (02), só para conseguir renderizar a caixa aprovada
+  // semRosto: contorno antigo do QA para o over_face na caixa (02, Q1-B1, corrigido no a7a03a9); só com Q1_SEM_ROSTO=1
   const mapa = { ...resto, layers: [layer], protectedBands: c.bandas ?? [], ...(o.semRosto ? { faceTrack: [] } : {}) };
   await q(`update teardowns set edit_map = $2::jsonb where champion_id = $1`, [championId, JSON.stringify(mapa)]);
   await q(`delete from champion_plates where champion_id = $1`, [championId]);
@@ -67,3 +68,6 @@ export const novoLote = async (championId: string, persona: 'donoA' | 'donoB' = 
 export const fitHeadline = async (championId: string, persona: 'donoA' | 'donoB' = 'donoA') =>
   expectOk(await as(persona).post('/ad-templates/fits', { slug: HEADLINE, sources: [{ championId }] })).items[0].fit;
 export const texto = (batchId: string, itemId: string, value: string) => as('donoA').patch(`/iterate/${batchId}/items/${itemId}/texts`, { texts: [{ path: 'text', value }] });
+
+/** Q1-B1 corrigido: o 02 roda com o rosto real; o contorno antigo (faceTrack vazio) só com Q1_SEM_ROSTO=1. */
+export const SEM_ROSTO_02 = process.env.Q1_SEM_ROSTO === '1';

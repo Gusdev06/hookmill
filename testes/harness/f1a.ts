@@ -84,7 +84,8 @@ export async function tela(page: Page, info: TestInfo, nome: string): Promise<st
 export async function idioma(ctx: BrowserContext, lang: Lang, baseURL: string): Promise<void> {
   await ctx.addCookies([{ name: 'NEXT_LOCALE', value: lang, url: baseURL }]);
   // o nome/descrição do template vêm do ui_locale do usuário (o seletor EN/PT grava os dois)
-  await q(`update users set ui_locale = $1 where id = 'qa_user_dono_a'`, [lang === 'pt-BR' ? 'PT_BR' : 'EN']);
+  // QA F1b 07/11: os dois donos (o F1B-UI-02 abre a galeria logado como dono B; só o A ficava em PT)
+  await q(`update users set ui_locale = $1 where id in ('qa_user_dono_a', 'qa_user_dono_b')`, [lang === 'pt-BR' ? 'PT_BR' : 'EN']);
 }
 /** Texto da tela + title/aria sem nada aposentado. */
 export async function semAposentado(page: Page, onde: string): Promise<void> {

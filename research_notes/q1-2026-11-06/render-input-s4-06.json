@@ -1,0 +1,133 @@
+{
+ "kind": "remix-keep",
+ "canvas": {
+  "fps": 30,
+  "width": 720,
+  "height": 960,
+  "frameCount": 428
+ },
+ "faceHint": {
+  "h": 391.392,
+  "w": 268.632,
+  "x": 230.616,
+  "y": 109.056
+ },
+ "language": "en",
+ "overlays": [],
+ "renderId": "cmw64jk4w004fqfxw6ysxo2a8",
+ "templateId": "remix-keep",
+ "textLayers": [
+  {
+   "id": "headline-nova",
+   "box": {
+    "h": 104,
+    "w": 447,
+    "x": 11,
+    "y": 543
+   },
+   "style": {
+    "align": "center",
+    "color": "#fffff7",
+    "fontId": "tiktok-sans-500",
+    "shadow": false,
+    "emphasis": null,
+    "uppercase": false,
+    "fontSizePx": 31.4,
+    "lineHeight": 1.007109004739337,
+    "strokeColor": null,
+    "shadowDetail": null,
+    "strokeWidthPx": 0,
+    "highlightColor": null,
+    "letterSpacingEm": 0
+   },
+   "content": {
+    "kind": "static",
+    "text": "Él ya está con otra? Te\npropongo algo. Si en 7 días\nno te escribe, dime mentirosa",
+    "lines": [
+     "Él ya está con otra? Te",
+     "propongo algo. Si en 7 días",
+     "no te escribe, dime mentirosa"
+    ],
+    "layout": {
+     "anchorX": 234.5,
+     "linePitchPx": 31.62322274881517,
+     "firstBaselineY": 573.88
+    }
+   },
+   "endFrame": 335,
+   "background": {
+    "box": {
+     "h": 130,
+     "w": 481,
+     "x": 0,
+     "y": 529
+    },
+    "kind": "solid",
+    "color": "#4f0708",
+    "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAQCAIAAADF8ItoAAABOElEQVRIx7WWC27EIAxE90WW9na9/22mSiDlZwiglF1FED4ej+0h/Hy/n9jg81qT9/L5fPz9YSTQ1T/KKb0Fmm1fRyjihHkT7JOZoeZac/7I3WA3ZmmjedzIP10btkS98SaFNVbygfW3K1h8u7Ga9WrS1xgR6aYKK+RTrmE55bwdthJ0njC57rKWsBO8Hf+QALdCreSsHjgif2Mrpdt6rVVRGSzzOHUDwDG0QkdIN2VwT4cqsvXIdIcGTemB5jV/FnF42DzLA41S/4RC88X+pcu18zwIc3ikRM3IIQUQDZI/iUf3I37cUGDXFMUxKYm3q3XA4KD3rNBcbyr5FUVA4kjRKWWR8siRkrCmaFkDMSGp+hqXlDq55d5FJMySK/d+2YTOMSwVFuqI+58LTeUwlbVzDJ3y6ZrmF9oBbKJscRYwAAAAAElFTkSuQmCC"
+   },
+   "startFrame": 0
+  }
+ ],
+ "baseVideoUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/adba0391-d19a-4fd3-97c7-77692b39fc9b.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261107%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261107T081113Z&X-Amz-Expires=21600&X-Amz-Signature=6ced96e4df7d9840e053731e45d56323e7d65beb323cdded38ea1138cbe24b8b&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "captionCheck": {
+  "frames": [
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 1.4,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 3.69,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 5.99,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 8.28,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 10.58,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 12.87,
+    "reason": null,
+    "problem": null
+   }
+  ],
+  "status": "ok",
+  "attempt": 1
+ },
+ "audioPassthroughUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/adba0391-d19a-4fd3-97c7-77692b39fc9b.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261107%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261107T081113Z&X-Amz-Expires=21600&X-Amz-Signature=6ced96e4df7d9840e053731e45d56323e7d65beb323cdded38ea1138cbe24b8b&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "outputProtectedBands": [
+  {
+   "h": 186,
+   "w": 588,
+   "x": 66,
+   "y": 652,
+   "kind": "original",
+   "endSec": 14.26666666666667,
+   "startSec": 0
+  }
+ ]
+}

@@ -10,7 +10,7 @@ import { q } from '../../harness/db.ts';
 import { esperarJobsQuietos } from '../../harness/f2.ts';
 import { ateLote } from '../../harness/iterate.ts';
 import { comCreditos, livro, prepararWs, saldo } from '../../harness/f1a.ts';
-import { HEADLINE, SAIDA, camadaS4, campeaoReal, fitHeadline, lookDe, notaQ1, novoLote, placasDe, planejado, texto, type Caso } from '../../harness/f1b.ts';
+import { HEADLINE, SAIDA, SEM_ROSTO_02, camadaS4, campeaoReal, fitHeadline, lookDe, notaQ1, novoLote, placasDe, planejado, texto, type Caso } from '../../harness/f1b.ts';
 
 test.describe.configure({ timeout: 2_400_000 });
 test.beforeEach(async () => { await prepararWs(); await comCreditos(100); });
@@ -98,7 +98,7 @@ test.describe('PLATE_IMPL=local, workspace interno', () => {
       if (st > 0) expect.soft(r.status, `solto ${nome}: ${JSON.stringify(r.body?.error)}`).toBe(st);
       if (regra) expect.soft(JSON.stringify(r.body?.error?.details), `solto ${nome}`).toContain(regra);
     }
-    const c02 = await medido('s4-02', { semRosto: true }); // 02 real = over_face (bug Q1-B1); sem rosto para medir a escada da caixa
+    const c02 = await medido('s4-02', { semRosto: SEM_ROSTO_02 }); // Q1-B1 corrigido: rosto real (rosto_frac só medida na caixa)
     const pc = headlines(c02.lote)[0];
     expect(pc, 'HEADLINE no lote do 02').toBeTruthy();
     for (const [nome, t] of [
@@ -117,10 +117,10 @@ test.describe('PLATE_IMPL=local, workspace interno', () => {
     expect.soft((out['02/longa-demais'] as any).status, 'caixa longa demais: 422').toBe(422);
   });
 
-  test('F1B-03 lote de template HEADLINE no solto e no 02: crédito por peça, render real local, peça baixada', async () => {
+  test('F1B-03 lote de template HEADLINE no solto, 05, 02 e 06 (Q1-B2, 3:4 como 4:5): crédito por peça, render real local, peça baixada', async () => {
     const pecas: unknown[] = [];
-    for (const [caso, novo] of [['s4-solto', 'Tired of scrolling his endless following list?'], ['s4-05', "If he doesn't text you back within an hour, I’ll pay you $50"], ['s4-02', 'Si en 7 días no vuelve a escribirte, nunca fue para ti..']] as const) {
-      const m = await medido(caso, { semRosto: caso === 's4-02' });
+    for (const [caso, novo] of [['s4-solto', 'Tired of scrolling his endless following list?'], ['s4-05', "If he doesn't text you back within an hour, I’ll pay you $50"], ['s4-02', 'Si en 7 días no vuelve a escribirte, nunca fue para ti..'], ['s4-06', 'Él ya está con otra? Te propongo algo. Si en 7 días no te escribe, dime mentirosa']] as const) {
+      const m = await medido(caso, { semRosto: caso === 's4-02' && SEM_ROSTO_02 });
       const antes = (await saldo()).balance;
       const b = await planejado('donoA', expectOk(await as('donoA').post(`/ad-templates/${HEADLINE}/use`, { championId: m.championId }), 202).id);
       expect(b.status).toBe('PLAN_READY');
@@ -227,6 +227,30 @@ test.describe('PLATE_IMPL=local, workspace interno', () => {
     expect.soft(rb.status).toBe(200);
     expect.soft(out.a.headline).toContain('asked');
     expect.soft(out.b.incluidas, 'beta: pedido ignorado, o lote não vira 1 peça').toBeGreaterThanOrEqual(4);
+  });
+
+  test('F1B-08 Q1-B5: campeão antigo (sem medida) medido em segundo plano pela galeria e pelo use do template', async () => {
+    const out: Record<string, unknown> = {};
+    for (const via of ['galeria', 'use'] as const) {
+      const c = await campeaoReal('s4-solto');
+      await camadaS4(c.championId, 's4-solto', c.baseMap); // tira a medida: campeão "antigo"
+      const lookAntes = await lookDe(c.championId);
+      const t0 = Date.now();
+      let primeira: unknown;
+      if (via === 'galeria') primeira = await fitHeadline(c.championId);
+      else { const r = await as('donoA').post(`/ad-templates/${HEADLINE}/use`, { championId: c.championId }); primeira = { status: r.status, erro: r.body?.error }; }
+      let fit = await fitHeadline(c.championId);
+      // a 2ª leitura da galeria não pode pedir outra medida enquanto a 1ª está em voo; espera o resultado sem lote normal nenhum
+      while (fit.level !== 'ok' && Date.now() - t0 < 300_000) { await new Promise((r) => setTimeout(r, 3000)); fit = await fitHeadline(c.championId); }
+      const lotes = await q(`select count(*)::int n from variation_batches where champion_id = $1`, [c.championId]);
+      const look = await lookDe(c.championId);
+      out[via] = { lookAntes: lookAntes ?? null, primeira, fitFinal: fit, s: (Date.now() - t0) / 1000, lotes: lotes[0].n, look: look && { kind: look.kind, verdict: look.verdict, font: look.font?.fontId } };
+      expect.soft(lookAntes, `${via}: começa sem medida`).toBeUndefined();
+      expect.soft(fit, `${via}: medido sem lote normal`).toEqual({ level: 'ok', reason: null });
+      expect.soft(look?.kind, `${via}: look gravado`).toBe('loose');
+      if (via === 'galeria') expect.soft(lotes[0].n, 'galeria: nenhum lote criado').toBe(0);
+    }
+    notaQ1('f1b-08-b5', out);
   });
 
   test('F1B-07 ida (fica para a fase off): lote planejado com HEADLINE copiada, guardado para a volta', async () => {

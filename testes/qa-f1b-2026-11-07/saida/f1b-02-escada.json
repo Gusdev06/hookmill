@@ -1,0 +1,118 @@
+{
+ "solto/mesmas": {
+  "status": 200,
+  "fitStep": "same"
+ },
+ "solto/aprovada": {
+  "status": 200,
+  "fitStep": "same"
+ },
+ "solto/quase-curta": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_too_short",
+    "detail": "exposure 0.30 > 0.15 (part of the old text area stays uncovered)"
+   }
+  ],
+  "fitStep": "same"
+ },
+ "solto/curta": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_too_short",
+    "detail": "exposure 0.59 > 0.15 (part of the old text area stays uncovered)"
+   }
+  ],
+  "fitStep": "same"
+ },
+ "solto/1-linha": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_too_short",
+    "detail": "exposure 0.58 > 0.15 (part of the old text area stays uncovered)"
+   }
+  ],
+  "fitStep": "same"
+ },
+ "solto/longa2": {
+  "status": 200,
+  "fitStep": "rewrap"
+ },
+ "solto/longa": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_over_chin",
+    "detail": "chin gap 4.75 px (the text reaches the face)"
+   }
+  ],
+  "fitStep": "rewrap"
+ },
+ "solto/longa-demais": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_too_long",
+    "detail": "does not fit 3 lines at 90 % of the original size"
+   }
+  ],
+  "fitStep": "rewrap"
+ },
+ "02/mesmas": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_same_as_original",
+    "detail": "write a new headline, not the original"
+   }
+  ],
+  "fitStep": "same"
+ },
+ "02/novo": {
+  "status": 200,
+  "fitStep": "same"
+ },
+ "02/curta": {
+  "status": 200,
+  "fitStep": "same"
+ },
+ "02/longa": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_too_long",
+    "detail": "does not fit 4 lines at 90 % of the original size"
+   }
+  ],
+  "fitStep": "same"
+ },
+ "02/longa-demais": {
+  "status": 422,
+  "code": "TEXT_INVALID",
+  "violations": [
+   {
+    "path": "text",
+    "rule": "headline_too_long",
+    "detail": "does not fit 4 lines at 90 % of the original size"
+   }
+  ],
+  "fitStep": "same"
+ }
+}

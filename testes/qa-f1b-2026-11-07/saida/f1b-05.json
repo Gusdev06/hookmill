@@ -1,0 +1,63 @@
+{
+ "fit": {
+  "level": "hard",
+  "reason": "headline_pending"
+ },
+ "insight": {
+  "mode": "replace",
+  "reason": "headline_pending"
+ },
+ "headlines": 0,
+ "placas": [],
+ "checklist": [
+  {
+   "key": "decode",
+   "status": "done"
+  },
+  {
+   "key": "transcribe",
+   "status": "done"
+  },
+  {
+   "key": "cuts",
+   "status": "done"
+  },
+  {
+   "key": "edit_map",
+   "status": "done"
+  },
+  {
+   "key": "blocks",
+   "status": "done"
+  },
+  {
+   "key": "audience",
+   "status": "done"
+  },
+  {
+   "key": "offer",
+   "status": "done"
+  },
+  {
+   "key": "proof",
+   "status": "done"
+  },
+  {
+   "key": "page",
+   "status": "done"
+  },
+  {
+   "key": "planning",
+   "status": "done"
+  }
+ ],
+ "custoTroca": [
+  {
+   "n": 0
+  }
+ ],
+ "bLeA": 404,
+ "bLeLoteA": 404,
+ "bEditaTextoA": 404,
+ "aLeB": 404
+}

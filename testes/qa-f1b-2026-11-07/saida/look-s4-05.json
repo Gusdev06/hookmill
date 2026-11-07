@@ -1,0 +1,119 @@
+{
+ "box": {
+  "h": 220,
+  "w": 628,
+  "x": 0,
+  "y": 586
+ },
+ "fit": {
+  "box": {
+   "h": 220,
+   "w": 628,
+   "x": 0,
+   "y": 586
+  },
+  "kind": "box",
+  "align": "center",
+  "chinY": 482,
+  "emoji": null,
+  "canvas": {
+   "width": 720,
+   "height": 1280
+  },
+  "fontId": "tiktok-sans-500",
+  "sizePx": 60.07,
+  "centerX": 313.5,
+  "caseStyle": "sentence",
+  "erasedRects": [],
+  "linePitchPx": 60,
+  "bottomLimitY": null,
+  "sideMarginPx": 24,
+  "originalLines": [
+   {
+    "chars": 22,
+    "widthPx": 580
+   },
+   {
+    "chars": 19,
+    "widthPx": 548
+   },
+   {
+    "chars": 16,
+    "widthPx": 431
+   }
+  ],
+  "firstBaselineY": 654,
+  "letterSpacingEm": 0
+ },
+ "font": {
+  "corr": 0.7721,
+  "tier": "same",
+  "fontId": "tiktok-sans-500",
+  "stemErr": 0.0684,
+  "widthErr": 0.0116,
+  "measuredIn": "chrome-linux"
+ },
+ "kind": "box",
+ "text": {
+  "align": "center",
+  "color": "#fffefa",
+  "lines": [
+   "If he doesn't call you",
+   "within two minutes,",
+   "I’ll pay you $50"
+  ],
+  "shadow": {
+   "dx": 4,
+   "dy": 3,
+   "color": "rgba(0,0,0,1)",
+   "blurPx": 8
+  },
+  "sizePx": 60.07,
+  "stemPx": 5.06,
+  "stroke": null,
+  "textBox": {
+   "h": 173,
+   "w": 580,
+   "x": 24,
+   "y": 611
+  },
+  "caseStyle": "sentence",
+  "linePitchPx": 60,
+  "firstBaselineY": 654,
+  "letterSpacingEm": 0
+ },
+ "emoji": null,
+ "plate": {
+  "color": "#970101",
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE4AAAAbCAIAAABdiy4OAAABpUlEQVRYw8VY146DQAxkkP//8T735jhQqIsbXrKKlILX9rg7+MHIQTmnhxgeHDQYeg890qnpOE7PMb8cOJdf+D7O2PUbKtnx4ocSKzksZjwow7IASKBl8xsaUK+Y3eJVY37lTO7CqhWWNzHMg0xWvANmk04z8v6Bi52bwz1ThuPPexeOJGTMMLJmp3aXDxNs5sGg06qPgC21wsHaCHocH8HZMDZWqM0WUVzBpG35QC26o7kI6iISNdGElqO8oVFYx6QiS2g5FnOq1miftsf4VnNAN+J6qHzSGehFCAUnnzW70dSbXrTo5+sTSG7FPCBULuoTmtn0un9qz0YpRnN0vg+P3YdDIXBNsmhVYLqsDF/Jtbkw7Fjkepp0H1IeD0UTnt9LDCfWjDGFE+V4EvLQv9nAScPSnrEHhqjVcQ5glE5nqM0HHLZzfMAzkqsNgF9cQ52BxISWormNPVVml8xR7ohNF9+/XdM9Om+q8G42VpuEq95m1jlz+TFDA7El7oXxu8JXAcUgCVHe/yfbjs1twf7/LtrX6fWqlyUiC5BCjJS7qeCczh8GG4ry6c1YlwAAAABJRU5ErkJggg==",
+  "temporalP99": 6.7,
+  "translucent": false
+ },
+ "layerId": "headline-1",
+ "verdict": {
+  "ok": true,
+  "gates": {
+   "halo_p99": 5.5,
+   "dilatacao": 17,
+   "font_corr": 0.7721,
+   "rosto_frac": 0,
+   "placa_bytes": 662,
+   "temporal_p99": 6.7,
+   "folga_legenda": 11,
+   "transicao_max": 0,
+   "caixa_area_rel": 1.36,
+   "sombra_err_com": 5.82,
+   "sombra_err_sem": 11.64,
+   "font_candidatas": 9,
+   "caixa_quadro_rel": 0.15,
+   "caixa_chapada_p90": 6
+  },
+  "reason": null
+ },
+ "version": 2,
+ "emphasis": null,
+ "endFrame": 191,
+ "plateRef": null,
+ "radiusPx": 0,
+ "startFrame": 0
+}

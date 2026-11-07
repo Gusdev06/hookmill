@@ -1,0 +1,254 @@
+{
+ "plano_s": 12.432,
+ "fitAntes": {
+  "level": "hard",
+  "reason": "headline_pending"
+ },
+ "fitDepois": {
+  "level": "ok",
+  "reason": null
+ },
+ "insight": null,
+ "headlines": [
+  {
+   "code": "HEADLINE-1",
+   "headline": {
+    "mode": "replace",
+    "original": "If he doesn't call you within two minutes, I’ll pay you $50",
+    "text": "Paying every month for apps they forgot about",
+    "highlight": null,
+    "copy": "box",
+    "fontTier": "same",
+    "fitStep": "same",
+    "fit": {
+     "box": {
+      "h": 220,
+      "w": 628,
+      "x": 0,
+      "y": 586
+     },
+     "kind": "box",
+     "align": "center",
+     "chinY": 482,
+     "emoji": null,
+     "canvas": {
+      "width": 720,
+      "height": 1280
+     },
+     "fontId": "tiktok-sans-500",
+     "sizePx": 60.07,
+     "centerX": 313.5,
+     "caseStyle": "sentence",
+     "erasedRects": [],
+     "linePitchPx": 60,
+     "bottomLimitY": null,
+     "sideMarginPx": 24,
+     "originalLines": [
+      {
+       "chars": 22,
+       "widthPx": 580
+      },
+      {
+       "chars": 19,
+       "widthPx": 548
+      },
+      {
+       "chars": 16,
+       "widthPx": 431
+      }
+     ],
+     "firstBaselineY": 654,
+     "letterSpacingEm": 0
+    }
+   }
+  },
+  {
+   "code": "HEADLINE-2",
+   "headline": {
+    "mode": "replace",
+    "original": "If he doesn't call you within two minutes, I’ll pay you $50",
+    "text": "Find money you forgot you were spending",
+    "highlight": null,
+    "copy": "box",
+    "fontTier": "same",
+    "fitStep": "same",
+    "fit": {
+     "box": {
+      "h": 220,
+      "w": 628,
+      "x": 0,
+      "y": 586
+     },
+     "kind": "box",
+     "align": "center",
+     "chinY": 482,
+     "emoji": null,
+     "canvas": {
+      "width": 720,
+      "height": 1280
+     },
+     "fontId": "tiktok-sans-500",
+     "sizePx": 60.07,
+     "centerX": 313.5,
+     "caseStyle": "sentence",
+     "erasedRects": [],
+     "linePitchPx": 60,
+     "bottomLimitY": null,
+     "sideMarginPx": 24,
+     "originalLines": [
+      {
+       "chars": 22,
+       "widthPx": 580
+      },
+      {
+       "chars": 19,
+       "widthPx": 548
+      },
+      {
+       "chars": 16,
+       "widthPx": 431
+      }
+     ],
+     "firstBaselineY": 654,
+     "letterSpacingEm": 0
+    }
+   }
+  },
+  {
+   "code": "HEADLINE-3",
+   "headline": {
+    "mode": "replace",
+    "original": "If he doesn't call you within two minutes, I’ll pay you $50",
+    "text": "I tried three budgeting apps and gave up on all of them",
+    "highlight": null,
+    "copy": "box",
+    "fontTier": "same",
+    "fitStep": "shrink",
+    "fit": {
+     "box": {
+      "h": 220,
+      "w": 628,
+      "x": 0,
+      "y": 586
+     },
+     "kind": "box",
+     "align": "center",
+     "chinY": 482,
+     "emoji": null,
+     "canvas": {
+      "width": 720,
+      "height": 1280
+     },
+     "fontId": "tiktok-sans-500",
+     "sizePx": 60.07,
+     "centerX": 313.5,
+     "caseStyle": "sentence",
+     "erasedRects": [],
+     "linePitchPx": 60,
+     "bottomLimitY": null,
+     "sideMarginPx": 24,
+     "originalLines": [
+      {
+       "chars": 22,
+       "widthPx": 580
+      },
+      {
+       "chars": 19,
+       "widthPx": 548
+      },
+      {
+       "chars": 16,
+       "widthPx": 431
+      }
+     ],
+     "firstBaselineY": 654,
+     "letterSpacingEm": 0
+    }
+   }
+  }
+ ],
+ "look": {
+  "kind": "box",
+  "intervalo": [
+   0,
+   191
+  ],
+  "font": {
+   "corr": 0.7721,
+   "tier": "same",
+   "fontId": "tiktok-sans-500",
+   "stemErr": 0.0684,
+   "widthErr": 0.0116,
+   "measuredIn": "chrome-linux"
+  },
+  "verdict": {
+   "ok": true,
+   "gates": {
+    "halo_p99": 5.5,
+    "dilatacao": 17,
+    "font_corr": 0.7721,
+    "rosto_frac": 0,
+    "placa_bytes": 662,
+    "temporal_p99": 6.7,
+    "folga_legenda": 11,
+    "transicao_max": 0,
+    "caixa_area_rel": 1.36,
+    "sombra_err_com": 5.82,
+    "sombra_err_sem": 11.64,
+    "font_candidatas": 9,
+    "caixa_quadro_rel": 0.15,
+    "caixa_chapada_p90": 6
+   },
+   "reason": null
+  },
+  "lines": [
+   "If he doesn't call you",
+   "within two minutes,",
+   "I’ll pay you $50"
+  ],
+  "sizePx": 60.07
+ },
+ "placas": [],
+ "checklist": [
+  {
+   "key": "decode",
+   "status": "done"
+  },
+  {
+   "key": "transcribe",
+   "status": "done"
+  },
+  {
+   "key": "cuts",
+   "status": "done"
+  },
+  {
+   "key": "edit_map",
+   "status": "done"
+  },
+  {
+   "key": "blocks",
+   "status": "done"
+  },
+  {
+   "key": "audience",
+   "status": "done"
+  },
+  {
+   "key": "offer",
+   "status": "done"
+  },
+  {
+   "key": "proof",
+   "status": "done"
+  },
+  {
+   "key": "page",
+   "status": "done"
+  },
+  {
+   "key": "planning",
+   "status": "done"
+  }
+ ]
+}

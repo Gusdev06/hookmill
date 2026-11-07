@@ -1,0 +1,18 @@
+{
+ "a": {
+  "status": 200,
+  "incluidas": 6,
+  "headline": [
+   "asked",
+   "asked",
+   "asked"
+  ],
+  "naoSel": 10
+ },
+ "b": {
+  "status": 200,
+  "antes": 12,
+  "incluidas": 12,
+  "naoSel": []
+ }
+}
