@@ -1,0 +1,138 @@
+{
+ "kind": "remix-keep",
+ "canvas": {
+  "fps": 30,
+  "width": 720,
+  "height": 1280,
+  "frameCount": 284
+ },
+ "faceHint": {
+  "h": 332.6704125984252,
+  "w": 241.4137322834646,
+  "x": 236.5630866141732,
+  "y": 150.7779149606299
+ },
+ "language": "en",
+ "overlays": [],
+ "renderId": "cmw57m60y00e7nv40a3r3po9m",
+ "templateId": "remix-keep",
+ "textLayers": [
+  {
+   "id": "headline-nova",
+   "box": {
+    "h": 227,
+    "w": 632,
+    "x": 0,
+    "y": 584
+   },
+   "style": {
+    "align": "center",
+    "color": "#fffefa",
+    "fontId": "tiktok-sans-500",
+    "shadow": true,
+    "emphasis": null,
+    "uppercase": false,
+    "fontSizePx": 60.07,
+    "lineHeight": 0.9988346928583319,
+    "strokeColor": null,
+    "shadowDetail": {
+     "dx": 4,
+     "dy": 3,
+     "color": "rgba(0,0,0,1)",
+     "blurPx": 8
+    },
+    "strokeWidthPx": 0,
+    "highlightColor": null,
+    "letterSpacingEm": 0
+   },
+   "content": {
+    "kind": "static",
+    "text": "If he doesn't text\nyou back within an\nhour, I’ll pay you $50",
+    "lines": [
+     "If he doesn't text",
+     "you back within an",
+     "hour, I’ll pay you $50"
+    ],
+    "layout": {
+     "anchorX": 313.5,
+     "linePitchPx": 60,
+     "firstBaselineY": 654
+    }
+   },
+   "endFrame": 191,
+   "background": {
+    "box": {
+     "h": 220,
+     "w": 628,
+     "x": 0,
+     "y": 586
+    },
+    "kind": "solid",
+    "color": "#970101",
+    "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE4AAAAbCAIAAABdiy4OAAABpUlEQVRYw8VY146DQAxkkP//8T735jhQqIsbXrKKlILX9rg7+MHIQTmnhxgeHDQYeg890qnpOE7PMb8cOJdf+D7O2PUbKtnx4ocSKzksZjwow7IASKBl8xsaUK+Y3eJVY37lTO7CqhWWNzHMg0xWvANmk04z8v6Bi52bwz1ThuPPexeOJGTMMLJmp3aXDxNs5sGg06qPgC21wsHaCHocH8HZMDZWqM0WUVzBpG35QC26o7kI6iISNdGElqO8oVFYx6QiS2g5FnOq1miftsf4VnNAN+J6qHzSGehFCAUnnzW70dSbXrTo5+sTSG7FPCBULuoTmtn0un9qz0YpRnN0vg+P3YdDIXBNsmhVYLqsDF/Jtbkw7Fjkepp0H1IeD0UTnt9LDCfWjDGFE+V4EvLQv9nAScPSnrEHhqjVcQ5glE5nqM0HHLZzfMAzkqsNgF9cQ52BxISWormNPVVml8xR7ohNF9+/XdM9Om+q8G42VpuEq95m1jlz+TFDA7El7oXxu8JXAcUgCVHe/yfbjs1twf7/LtrX6fWqlyUiC5BCjJS7qeCczh8GG4ry6c1YlwAAAABJRU5ErkJggg=="
+   },
+   "startFrame": 0
+  }
+ ],
+ "baseVideoUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/7c92f1ff-a68d-482d-88f4-38655a93b5d6.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261106%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261106T164927Z&X-Amz-Expires=21600&X-Amz-Signature=ef6cd3ed28f7aca3f9d2c61a093295536f0a0dd8554808a6ee983ff26e287fb0&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "captionCheck": {
+  "frames": [
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 1,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 2.49,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 3.99,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 5.48,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 6.98,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 8.47,
+    "reason": null,
+    "problem": null
+   }
+  ],
+  "status": "ok",
+  "attempt": 1
+ },
+ "audioPassthroughUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/7c92f1ff-a68d-482d-88f4-38655a93b5d6.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261106%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261106T164927Z&X-Amz-Expires=21600&X-Amz-Signature=ef6cd3ed28f7aca3f9d2c61a093295536f0a0dd8554808a6ee983ff26e287fb0&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "outputProtectedBands": [
+  {
+   "h": 222,
+   "w": 628,
+   "x": 46,
+   "y": 999,
+   "kind": "original",
+   "endSec": 9.466666666666667,
+   "startSec": 0
+  }
+ ]
+}

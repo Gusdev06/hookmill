@@ -612,6 +612,7 @@ Na aprovada, a legenda começa 14 px abaixo da máscara no pior quadro (p50 18),
 | Fonte | §14.1.2, com a régua da §15.7 | não `far` | `font_far` → `headline_font_far` |
 | Emoji | §15.7.2 | recorte serve | `emoji_unsupported` → `headline_low_confidence` |
 | Placa, solto, depois de gerar | mesmas medidas da legenda, §15.6.1 | calibrar na S4 | `plate_rejected`, peça sai do plano |
+**O portão do rosto não vale para a caixa** (07/11, Q1-B1): só o solto apaga por inpaint; a caixa é placa medida e o vulto atrás dela é aceito (§16.4). Na caixa, `rosto_frac` fica só como medida. *(video; o arquiteto confere.)*
 Só um vídeo testado no solto: **os valores são iniciais e o olho do Gusta aprova.**
 
 #### 15.5.6 Texto

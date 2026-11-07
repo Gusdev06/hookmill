@@ -1,0 +1,85 @@
+[
+ {
+  "nome": "s4-solto",
+  "kind": "loose",
+  "campeao": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/original.mp4",
+  "peca": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/pecas/s4-solto.mp4",
+  "placa": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/placas/s4-solto.mp4",
+  "startFrame": 0,
+  "endFrame": 161,
+  "mascara": [
+   {
+    "h": 66,
+    "w": 319,
+    "x": 74,
+    "y": 533
+   },
+   {
+    "x": 70,
+    "y": 526,
+    "w": 330,
+    "h": 82
+   }
+  ],
+  "linhas": [
+   "Tired of scrolling his",
+   "endless following list?"
+  ],
+  "fonte": "arimo-600",
+  "tamanho": 26.87,
+  "render_s": null,
+  "pico_rss_MB": null
+ },
+ {
+  "nome": "s4-05",
+  "kind": "box",
+  "campeao": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c05.mp4",
+  "peca": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/pecas/s4-05.mp4",
+  "placa": null,
+  "startFrame": 0,
+  "endFrame": 191,
+  "mascara": [
+   {
+    "h": 220,
+    "w": 628,
+    "x": 0,
+    "y": 586
+   }
+  ],
+  "linhas": [
+   "If he doesn't text",
+   "you back within an",
+   "hour, I’ll pay you $50"
+  ],
+  "fonte": "tiktok-sans-500",
+  "tamanho": 60.07,
+  "render_s": null,
+  "pico_rss_MB": null
+ },
+ {
+  "nome": "s4-02",
+  "kind": "box",
+  "campeao": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/s4-demo-2026-11-06/origem/c02.mp4",
+  "peca": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/pecas/s4-02.mp4",
+  "placa": null,
+  "startFrame": 0,
+  "endFrame": 198,
+  "mascara": [
+   {
+    "h": 246,
+    "w": 716,
+    "x": 0,
+    "y": 0
+   }
+  ],
+  "linhas": [
+   "Si hoy no te escribe",
+   "ni te busca, *es porque",
+   "nunca fue para ti..*"
+  ],
+  "fonte": "tiktok-sans-600",
+  "tamanho": 62.08,
+  "render_s": null,
+  "pico_rss_MB": null
+ }
+]

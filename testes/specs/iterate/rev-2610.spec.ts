@@ -299,7 +299,9 @@ test('R26-10 HEADLINE real (remix-keep local): mesmo nº de frames, áudio md5 =
   test.setTimeout(1_800_000);
   const { baixar, qaVideo, gravarJson } = await import('../../harness/keep-edit.ts');
   const o = await oferta('A');
-  const b = await lotePronto('donoA', FALA20, o.id);
+  // F1a/F1b: o FALA20 em mock tem headline em caixa = headline_pending com a troca desligada; o render real fica no `add`
+  // ([mock:headline-none]). A cópia (`box`/`loose`) tem prova própria em specs/qa-f1b-api (F1B-03) e no conferir do Q1.
+  const b = await loteDoCampeao(await campeaoComNotas(o.id, '[mock:headline-none]'));
   expect(b.status).toBe('PLAN_READY');
   expectOk(await as('donoA').post(`/iterate/${b.id}/start`, { expectedPieces: b.pieces.length, ...custo(b) }), 202);
   const fim = await ateLote('donoA', b.id, assentou, { timeoutMs: 1_500_000 });
@@ -316,7 +318,7 @@ test('R26-10 HEADLINE real (remix-keep local): mesmo nº de frames, áudio md5 =
     const excluir = gravarJson(`r26-10-${p.code}-excluir.json`, outras.map((l) => ({ startFrame: l.startFrame, endFrame: l.endFrame, box: uniao(l.box, l.background?.box) })));
     const f = p.files.find((x: any) => x.format === '9x16');
     const peca = await baixar('donoA', f.url, `r26-10-${p.code}.mp4`);
-    const r = qaVideo(['peca', '--campeao', FALA20, '--peca', peca, '--trilha', trilha, '--excluir', excluir]);
+    const r = qaVideo(['peca', '--campeao', PODCAST, '--peca', peca, '--trilha', trilha, '--excluir', excluir]);
     test.info().annotations.push({ type: p.code, description: JSON.stringify({ grade: r.grade, audioIgual: r.audioIgual, foraPsnrMin: r.foraPsnrMin, foraP5: r.foraPsnrP5, abaixo40: r.foraFramesAbaixoDe40, iguaisDentro: r.dentroFramesIguaisTotal, camadas: input.textLayers.length }) });
     expect(r.grade, `${p.code}: mesmo tamanho/fps/nº de frames`).toBe(true);
     expect(r.audioIgual, `${p.code}: áudio md5 = campeão`).toBe(true);

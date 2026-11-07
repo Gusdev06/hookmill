@@ -54,8 +54,10 @@ export interface Geometria {
   gates: Record<string, number>;
 }
 
-/** §15.5.4-5 e §16.2 A6: legenda perto, rosto na máscara, queixo e limite de baixo. */
-export function geometria(m: EditMap, md: MedidaHeadline): Geometria {
+/** §15.5.4-5 e §16.2 A6: legenda perto, rosto na máscara, queixo e limite de baixo. O portão do rosto (§15.5.5) só
+ *  reprova o solto, que apaga por inpaint (TELEA deixa polígono em pele); a caixa é placa medida, e o vulto atrás da
+ *  faixa translúcida é aceito (§16.4, 02 da S4). Na caixa `rosto_frac` fica só como medida. */
+export function geometria(m: EditMap, md: MedidaHeadline, kind: 'box' | 'loose' | undefined = md.kind): Geometria {
   const W = md.canvas.width;
   const a = md.startFrame ?? 0, b = md.endFrame ?? 0;
   const linhas = md.linhasMedidas ?? [];
@@ -90,7 +92,7 @@ export function geometria(m: EditMap, md: MedidaHeadline): Geometria {
   }
   const fr = b > a ? cruza / (b - a) : 0;
   gates.rosto_frac = Math.round(fr * 1000) / 1000;
-  if (!reason && fr > 0.1) reason = 'over_face';
+  if (!reason && fr > 0.1 && kind !== 'box') reason = 'over_face';
   fundos.sort((x, y) => x - y);
   const chinY = fundos.length ? Math.round(fundos[Math.min(fundos.length - 1, Math.floor(0.95 * (fundos.length - 1)))]) : null;
   return { area, textBox, chinY, bottomLimitY, reason, gates };
@@ -118,7 +120,7 @@ export function montarLook(o: {
   const { layer, m, md, regua } = o;
   const W = md.canvas?.width ?? m.width, H = md.canvas?.height ?? m.height;
   const kind = md.kind ?? (layer.background.kind === 'none' ? 'loose' : 'box');
-  const geo = md.linhasMedidas ? geometria(m, md) : null;
+  const geo = md.linhasMedidas ? geometria(m, md, kind) : null;
   const cand = regua?.escolhida ? md.candidatas?.find((c) => c.fontId === regua.escolhida) ?? null : null;
   const med = regua?.escolhida ? regua.medidas.find((x) => x.fontId === regua.escolhida) ?? null : null;
   const lay = cand?.layout ?? md.candidatas?.[0]?.layout ?? null;

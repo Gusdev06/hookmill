@@ -312,8 +312,12 @@ export class PlanoAutoService {
     return { fits, picked, first: fits[slugs[0]] ?? { level: 'hard', reason: 'no_data' } };
   }
 
-  /** templates-creditos-v1: contexto das regras do campeão (fit na galeria e validação dos textos editados). */
-  async ctxForChampion(championId: string, language?: string | null): Promise<PlanCtx | null> {
+  /**
+   * templates-creditos-v1: contexto das regras do campeão (fit na galeria e validação dos textos editados).
+   * `medir` (QA F1b Q1-B5, galeria e `use`): headline ainda sem medida = dispara a medida em segundo plano; o contexto
+   * devolvido segue `headline_pending`.
+   */
+  async ctxForChampion(championId: string, language?: string | null, o: { medir?: boolean } = {}): Promise<PlanCtx | null> {
     const c = await this.prisma.champion.findUnique({
       where: { id: championId },
       include: { teardown: true, videoFile: { select: { width: true, height: true } }, offer: true, workspace: { include: { brandAssets: BRAND_LOGO_INCLUDE } } },
@@ -322,7 +326,9 @@ export class PlanoAutoService {
     const { offer, workspace, ...champion } = c;
     const b = { offer, workspace, champion, language: language ?? c.language ?? offer.language } as unknown as PlanBatch;
     const troca = await this.placas.trocaDoCampeao(c.workspaceId, c.id, editMapOf(c.teardown.editMap));
-    return this.guardedCtx(b, true, troca);
+    const ctx = this.guardedCtx(b, true, troca);
+    if (o.medir && ctx.headline?.needsMeasure) this.placas.medirEmSegundoPlano(c.workspaceId, c.id);
+    return ctx;
   }
 
   /** Contexto das regras com a guarda da legenda (o mesmo do plano). */

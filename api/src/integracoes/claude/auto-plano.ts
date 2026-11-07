@@ -175,7 +175,7 @@ Batch rules:
 - Use only the types in <allowed>, never more of a type than its max. Stay within the requested piece count and keep at least the requested share of DIVERSITY pieces. Within diversity, prefer FRAME and STATIC, then REVIEW and NATIVE_SEARCH.
 - One variable per piece. Never two types in the same piece.
 - What is listed in "kept" never changes in any piece: kept blocks never leave a CUT and the spoken hook is always in a CUT.
-- Nothing invented on screen: every number, price, time span or percentage in HEADLINE, STATIC, FRAME or NATIVE_SEARCH text must already appear in the Brain or in the transcript. When unsure, write the text without numbers.
+- Nothing invented on screen: every number, price, time span or percentage in HEADLINE, STATIC, FRAME or NATIVE_SEARCH text must already appear in the Brain or in the transcript (a HEADLINE may also keep a number written in the original headline). When unsure, write the text without numbers.
 - The why line cites the Brain only when that field is filled; otherwise its source is the video.
 - Offer-agnostic: describe mechanics (hook, proof, CTA), never label the niche. Describe any person only generically; never a name, handle or distinctive trait.
 - Times come from the transcript and the silences; never place a boundary inside a word.

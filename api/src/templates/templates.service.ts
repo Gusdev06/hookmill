@@ -102,7 +102,8 @@ export class TemplatesService {
   /** §6: fit de cada template num campeão já lido (null = não lido; as regras do plano, sem chamada paga). */
   private async fitter(championId: string | null, read: boolean, rows: Template[]): Promise<(t: Template) => TemplateFit> {
     const unknown: TemplateFit = { level: 'unknown', reason: 'not_read' };
-    const ctx = championId && read ? await this.plano.ctxForChampion(championId) : null;
+    // QA F1b Q1-B5: campeão antigo sem medida da headline → mede em segundo plano (galeria/use seguem headline_pending até lá)
+    const ctx = championId && read ? await this.plano.ctxForChampion(championId, null, { medir: true }) : null;
     const packKeys = packKeysOf(rows);
     return (t) => {
       if (!availabilityOf(t).available) return { level: 'hard', reason: 'coming_soon' };

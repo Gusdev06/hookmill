@@ -19,6 +19,8 @@ export interface TrocaLiberacao { impl: PlateImplMode; workspaceIds: string[] }
 
 /** §16.5: espera da placa dentro do AUTO_PLAN. Passou = `headline_pending` neste lote; o job segue e serve ao próximo. */
 const ESPERA_PADRAO_SEC = 180;
+/** QA F1b Q1-B5: medida pedida pela galeria que falhou não é pedida de novo pela galeria antes disso (o lote mede igual). */
+const GALERIA_APOS_FALHA_MS = 5 * 60_000;
 /** Linha QUEUED/RUNNING sem mexer há mais que isso = processo morreu no meio: a trava é retomada. */
 const TRAVA_VENCIDA_MS = 15 * 60_000;
 
@@ -31,6 +33,10 @@ export class PlacasService {
   pollMs = 1000;
   /** Medidas em voo por campeão (processo): a de depois da análise e a do AUTO_PLAN não medem 2 vezes. */
   private readonly emVoo = new Map<string, Promise<EditMap | null>>();
+  /** QA F1b Q1-B5: medidas em segundo plano já agendadas pela galeria (antes de entrar em `emVoo`). */
+  private readonly agendadas = new Set<string>();
+  /** Última falha da medida por campeão (ms), pra galeria não repetir medida que falha a cada leitura. */
+  private readonly falhaEm = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -84,12 +90,25 @@ export class PlacasService {
   }
 
   /** Depois da análise (decisão 06/11): mede em segundo plano, sem segurar o job; serve à galeria de templates. */
-  medirDepoisDaAnalise(championId: string): void {
-    void this.jobs.detach(null, `medida da headline do campeão ${championId}`, async () => {
+  medirDepoisDaAnalise(championId: string): Promise<void> {
+    return this.jobs.detach(null, `medida da headline do campeão ${championId}`, async () => {
       const c = await this.prisma.champion.findUnique({ where: { id: championId }, select: { workspaceId: true, teardown: { select: { editMap: true } } } });
       if (!c || this.implPara(c.workspaceId) === 'off') return;
       await this.medirSeFalta({ workspaceId: c.workspaceId, championId, editMap: editMapOf(c.teardown?.editMap) });
     });
+  }
+
+  /**
+   * QA F1b Q1-B5: campeão antigo (sem medida) visto na galeria ou no `use` de template. Dispara a medida em segundo plano e
+   * volta na hora (a resposta segue `headline_pending`; a próxima leitura já vê o resultado). Não agenda de novo se já há
+   * medida agendada/em voo, nem logo depois de uma falha. Troca desligada pro workspace = nada.
+   */
+  medirEmSegundoPlano(workspaceId: string, championId: string): void {
+    if (this.implPara(workspaceId) === 'off' || this.agendadas.has(championId) || this.emVoo.has(championId)) return;
+    const f = this.falhaEm.get(championId);
+    if (f !== undefined && Date.now() - f < GALERIA_APOS_FALHA_MS) return;
+    this.agendadas.add(championId);
+    void this.medirDepoisDaAnalise(championId).finally(() => this.agendadas.delete(championId));
   }
 
   private async medir(i: { workspaceId: string; championId: string; batchId?: string | null; jobId?: string | null; editMap: EditMap | null }): Promise<EditMap | null> {
@@ -108,8 +127,10 @@ export class PlacasService {
       this.log.log(`campeão ${i.championId}: headline medida em ${r.ms} ms (${look ? `${look.kind}, ${look.verdict.ok ? 'ok' : look.verdict.reason}` : 'sem headline'})`);
     } catch (e) {
       this.log.warn(`campeão ${i.championId}: medida da headline falhou (${(e as Error).message}); fica headline_pending`);
+      this.falhaEm.set(i.championId, Date.now());
       return m;
     }
+    this.falhaEm.delete(i.championId);
     const novo = { ...m, headlineLook: look } as EditMap;
     // grava só o campo, por cima do editMap ATUAL (outra escrita no meio não se perde)
     await this.prisma.$transaction(async (tx) => {

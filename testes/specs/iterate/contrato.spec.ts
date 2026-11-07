@@ -133,7 +133,9 @@ test('IT-03 upload → análise sozinha → PLAN_READY com as regras (Brain chei
   conferePlano(b);
   expect(b.insight.flags).toMatchObject({ brainEmpty: false, shortVideo: false, pageCaptured: true });
   const tipos = new Set(b.pieces.map((p: any) => p.type));
-  for (const t of ['HEADLINE', 'REVIEW', 'STATIC', 'NATIVE_SEARCH', 'FRAME']) expect(tipos.has(t), `${t} no plano com Brain cheio`).toBe(true);
+  for (const t of ['REVIEW', 'STATIC', 'NATIVE_SEARCH', 'FRAME']) expect(tipos.has(t), `${t} no plano com Brain cheio`).toBe(true);
+  // F1a/F1b (troca-texto-queimado-v1 §15.4, §16.5): HEADLINE `replace` só com a troca ligada no workspace; desligada = headline_pending
+  expect(tipos.has('HEADLINE'), `HEADLINE no plano só sem bloqueio (${JSON.stringify(b.insight.headlineBlocked)})`).toBe(!b.insight.headlineBlocked);
   // CUT: o mock propõe e o reparo tira (cut_too_long) — bug devolvido à ia/backend; registrado, não bloqueia o caso
   test.info().annotations.push({ type: 'plano', description: b.pieces.map((p: any) => p.code).join(', ') });
   expect(b.insight.why.some((w: any) => w.refSource === 'brain' && w.brainField), 'porquê cita o Brain').toBe(true);
@@ -191,7 +193,9 @@ test('IT-06 PT: oferta em português → códigos PT (CORTE-15S, GANCHO-TEXTO-2,
   expect(b.status).toBe('PLAN_READY');
   expect(b.codeLanguage).toBe('PT');
   const codes = b.pieces.map((p: any) => p.code);
-  expect(codes).toEqual(expect.arrayContaining(['HEADLINE-1', 'ESTATICO-F1', 'NATIVO-BUSCA']));
+  expect(codes).toEqual(expect.arrayContaining(['ESTATICO-F1', 'NATIVO-BUSCA']));
+  // F1a/F1b: HEADLINE-1 só quando a headline não está bloqueada (troca desligada = headline_pending)
+  if (!b.insight.headlineBlocked) expect(codes).toContain('HEADLINE-1');
   expect(codes.some((c: string) => c.startsWith('MOLDURA-')), 'moldura com código PT').toBe(true);
   expect(codes.join(' ')).not.toMatch(/\bCUT-|HOOK-TEXT|STATIC-F|\bFRAME-/);
 });
@@ -345,7 +349,8 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   // In zip: CLIENT pode; peça left_out/não-ready = 409; body inválido 400
   expectErro(await as('donoA').patch(`/iterate/pieces/${review.id}`, { inZip: true }), 409, 'INVALID_STATE');
   expectErro(await as('donoA').patch(`/iterate/pieces/${pronta.id}`, { inZip: 'sim' }), 400, 'VALIDATION_ERROR');
-  const fora = fim2.pieces.find((p: any) => p.status === 'ready' && p.type === 'HEADLINE');
+  // F1a/F1b: a peça tirada do zip era a 1ª HEADLINE; com a troca desligada não há HEADLINE `replace`, então é a 1ª pronta que não é a do leave-out
+  const fora = fim2.pieces.find((p: any) => p.status === 'ready' && p.type === 'HEADLINE') ?? fim2.pieces.find((p: any) => p.status === 'ready' && p.id !== review.id);
   expect(expectOk(await as('clienteA').patch(`/iterate/pieces/${fora.id}`, { inZip: false })).inZip).toBe(false);
 
   // arquivos da peça: nomes CLIENTE_MMDD_CODIGO_FMT.ext
@@ -369,7 +374,7 @@ test('IT-08 gerar ponta a ponta: PLAN_CHANGED, CLIENT barrado, só 9:16 na ordem
   expect([200, 202], JSON.stringify(z1.body)).toContain(z1.status);
   const pronto = await ateLote('clienteA', b.id, (x) => x.zip.status === 'ready' || x.zip.status === 'failed', { oQue: 'zip' });
   expect(pronto.zip.status).toBe('ready');
-  const nZip = n - 2; // REVIEW fora (left_out), HEADLINE fora (In zip)
+  const nZip = n - 2; // REVIEW fora (left_out), 1 pronta fora (In zip)
   expect(pronto.zip).toMatchObject({ pieces: nZip, files: nZip, folders: { stretch: '1-stretch-its-life', newAudience: '2-new-audience' } });
   expect(pronto.zip.fileName).toMatch(new RegExp(`^QA_${launched_at}_[A-Z0-9-]{1,24}_variations\\.zip$`));
   const z2 = await as('donoA').post(`/iterate/${b.id}/zip`, {});

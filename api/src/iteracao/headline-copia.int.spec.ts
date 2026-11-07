@@ -362,6 +362,49 @@ describe(isLocal ? 'F1b B1: headline copiada do criativo (integração local, po
       placas.cfg.impl = 'local';
     }
   });
+  it('QA F1b Q1-B5: campeão antigo (sem medida) — galeria e use disparam a medida em segundo plano, 1 vez; depois ok', async () => {
+    const placas = app.get(PlacasService) as unknown as { cfg: { impl: string } };
+    const h = await prisma.template.findFirstOrThrow({ where: { internalKey: 'HEADLINE', pack: false } });
+    const semMedida = (id: string) => prisma.teardown.findUniqueOrThrow({ where: { championId: id } }).then((t) => (t.editMap as { headlineLook?: unknown }).headlineLook);
+    // 2 campeões "antigos": analisados com o motor desligado (sem medida)
+    placas.cfg.impl = 'off';
+    let a = '';
+    let b = '';
+    try {
+      porta.usar({});
+      a = await campeaoSoAnalisado();
+      b = await campeaoSoAnalisado();
+      await new Promise((r) => setTimeout(r, 500));
+      // desligado: galeria e use não medem (nada muda)
+      porta.chamadas = [];
+      expect(await fitDaHeadline(a)).toEqual({ level: 'hard', reason: 'headline_pending' });
+      const off = await call('POST', `/ad-templates/${h.slug}/use`, { championId: b });
+      expect([off.status, off.error?.code, off.error?.details?.reason]).toEqual([422, 'TEMPLATE_DOESNT_FIT', 'headline_pending']);
+      await new Promise((r) => setTimeout(r, 500));
+      expect(porta.chamadas).toEqual([]);
+      expect(await semMedida(a)).toBeUndefined();
+    } finally {
+      placas.cfg.impl = 'local';
+    }
+    // ligado, galeria: responde headline_pending na hora e mede 1 vez (leituras repetidas não duplicam)
+    porta.chamadas = [];
+    const [f1, f2] = await Promise.all([fitDaHeadline(a), fitDaHeadline(a)]);
+    expect([f1, f2]).toEqual([{ level: 'hard', reason: 'headline_pending' }, { level: 'hard', reason: 'headline_pending' }]);
+    await until(() => semMedida(a), (l) => l !== undefined, 30_000);
+    expect(await fitDaHeadline(a)).toEqual({ level: 'ok', reason: null });
+    expect(porta.chamadas).toEqual([{ op: 'medir', championId: a }]);
+    // ligado, use: 422 headline_pending, dispara a medida; depois a galeria vê ok e o use passa
+    porta.chamadas = [];
+    const u1 = await call('POST', `/ad-templates/${h.slug}/use`, { championId: b });
+    expect([u1.status, u1.error?.details?.reason]).toEqual([422, 'headline_pending']);
+    await until(() => semMedida(b), (l) => l !== undefined, 30_000);
+    expect(porta.chamadas).toEqual([{ op: 'medir', championId: b }]);
+    expect(await fitDaHeadline(b)).toEqual({ level: 'ok', reason: null });
+    const u2 = await call('POST', `/ad-templates/${h.slug}/use`, { championId: b });
+    expect([u2.status, u2.error]).toEqual([202, undefined]);
+    await planned(u2.data.id);
+    expect(porta.chamadas).toEqual([{ op: 'medir', championId: b }]); // o lote não mede de novo
+  });
   const startOf = (b: { id: string; pieces: unknown[]; cost: { generateEstimateUsd: number | null }; template: { quote: number } | null }) =>
     call('POST', `/iterate/${b.id}/start`, { expectedPieces: (b.pieces as unknown[]).length, expectedCostUsd: b.cost.generateEstimateUsd ?? 0, ...(b.template && { expectedCredits: b.template.quote }) });
   const terminou = (id: string) => until(() => call('GET', `/iterate/${id}`), (r) => (r.data?.pieces ?? []).length > 0 && (r.data.pieces as Piece[]).every((p) => ['ready', 'failed', 'left_out'].includes(p.status)));

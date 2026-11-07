@@ -1,0 +1,124 @@
+[
+ {
+  "nome": "s4-solto",
+  "kind": "loose",
+  "fonte": "arimo-600",
+  "tamanho": 26.87,
+  "linhas": [
+   "Tired of scrolling his",
+   "endless following list?"
+  ],
+  "quadros": [
+   564,
+   564
+  ],
+  "intervalo": [
+   0,
+   161
+  ],
+  "psnr_fora_mascara_trecho": 43.03,
+  "pior_quadro_trecho": 41.55,
+  "dif_media_trecho": 1.134,
+  "psnr_fora_do_trecho": 43.33,
+  "pior_quadro_fora": 40.95,
+  "audio_s": [
+   18.76102,
+   18.760998
+  ],
+  "audio_pacotes": [
+   811,
+   811
+  ],
+  "audio_md5_igual": true,
+  "audio_bytes": [
+   3313408,
+   3313408
+  ],
+  "a8_mediana_peca_menos_placa": 1.0,
+  "render_s": null,
+  "pico_rss_MB": null,
+  "passa": true
+ },
+ {
+  "nome": "s4-05",
+  "kind": "box",
+  "fonte": "tiktok-sans-500",
+  "tamanho": 60.07,
+  "linhas": [
+   "If he doesn't text",
+   "you back within an",
+   "hour, I’ll pay you $50"
+  ],
+  "quadros": [
+   284,
+   284
+  ],
+  "intervalo": [
+   0,
+   191
+  ],
+  "psnr_fora_mascara_trecho": 46.07,
+  "pior_quadro_trecho": 44.02,
+  "dif_media_trecho": 0.782,
+  "psnr_fora_do_trecho": 45.4,
+  "pior_quadro_fora": 43.41,
+  "audio_s": [
+   9.406009,
+   9.406009
+  ],
+  "audio_pacotes": [
+   205,
+   205
+  ],
+  "audio_md5_igual": true,
+  "audio_bytes": [
+   1638896,
+   1638896
+  ],
+  "a8_mediana_peca_menos_placa": null,
+  "render_s": null,
+  "pico_rss_MB": null,
+  "passa": true
+ },
+ {
+  "nome": "s4-02",
+  "kind": "box",
+  "fonte": "tiktok-sans-600",
+  "tamanho": 62.08,
+  "linhas": [
+   "Si hoy no te escribe",
+   "ni te busca, *es porque",
+   "nunca fue para ti..*"
+  ],
+  "quadros": [
+   290,
+   290
+  ],
+  "intervalo": [
+   0,
+   198
+  ],
+  "psnr_fora_mascara_trecho": 47.68,
+  "pior_quadro_trecho": 46.19,
+  "dif_media_trecho": 0.575,
+  "psnr_fora_do_trecho": 48.1,
+  "pior_quadro_fora": 46.19,
+  "audio_s": [
+   9.622,
+   9.622
+  ],
+  "audio_pacotes": [
+   228,
+   228
+  ],
+  "audio_md5_igual": true,
+  "audio_bytes": [
+   1827312,
+   1827312
+  ],
+  "a8_mediana_peca_menos_placa": null,
+  "render_s": null,
+  "pico_rss_MB": null,
+  "passa": true
+ }
+]

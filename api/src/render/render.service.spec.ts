@@ -5,7 +5,8 @@ import { RenderError, type ScratchRenderInput as RenderInput, type RenderProgres
 import { FilaLimitada } from './fila';
 import { frameDoErro, limitarProgresso, mapearProgresso } from './progresso';
 import { RemotionRenderService, type RemotionPort } from './remotion-render.service';
-import { renderConfig } from './render.module';
+import { maxFramesConcurrency, renderConfig } from './render.module';
+import { Logger } from '@nestjs/common';
 
 const entrada = (over: Partial<RenderInput> = {}): RenderInput => ({
   renderId: 'r1',
@@ -152,6 +153,20 @@ describe('peças do render', () => {
   it('renderConfig lê o .env com padrões', () => {
     expect(renderConfig(() => undefined)).toEqual({ concurrency: 1, tmpDir: '/tmp/maquina-render', bundleDir: null, framesConcurrency: 1, browserExecutable: null, ffmpeg: 'ffmpeg', ffprobe: 'ffprobe' });
     expect(renderConfig((k) => ({ RENDER_CONCURRENCY: '2', REMOTION_BUNDLE_DIR: '../video/dist/bundle' } as Record<string, string>)[k]).concurrency).toBe(2);
+  });
+
+  it('Q1-B4: RENDER_FRAMES_CONCURRENCY acima dos núcleos vira o máximo da máquina, com aviso, em vez de falhar', () => {
+    const env = (v: string) => (k: string) => (k === 'RENDER_FRAMES_CONCURRENCY' ? v : undefined);
+    const aviso = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    expect(renderConfig(env('8'), () => 3).framesConcurrency).toBe(3);
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining('RENDER_FRAMES_CONCURRENCY=8'));
+    aviso.mockClear();
+    expect(renderConfig(env('2'), () => 3).framesConcurrency).toBe(2);
+    expect(aviso).not.toHaveBeenCalled();
+    aviso.mockRestore();
+    // o teto padrão é o mesmo do Remotion: o valor efetivo passa no resolveConcurrency dele
+    const { RenderInternals } = require('@remotion/renderer') as typeof import('@remotion/renderer');
+    expect(maxFramesConcurrency()).toBe(RenderInternals.getMaxConcurrency());
   });
 });
 

@@ -62,7 +62,8 @@ async function fluxoCompleto(page: Page, info: any, lang: 'en' | 'pt') {
   await expect(gerar).toHaveText(new RegExp(`${plano.pieces.length}`));
   for (const p of plano.pieces) await expect(page.getByText(p.code, { exact: true }).first(), `código ${p.code} na tela`).toBeVisible();
   // códigos no idioma da OFERTA
-  if (lang === 'pt') expect(plano.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(['HEADLINE-1', 'ESTATICO-F1']));
+  // F1a/F1b: HEADLINE-1 só sem headlineBlocked (troca desligada = headline_pending)
+  if (lang === 'pt') expect(plano.pieces.map((p: any) => p.code)).toEqual(expect.arrayContaining(plano.insight?.headlineBlocked ? ['ESTATICO-F1'] : ['HEADLINE-1', 'ESTATICO-F1']));
   await gerar.click();
   // 1 falha não para as outras; alerta com o código; Retry
   const alerta = page.getByText(t.failed);
@@ -91,7 +92,8 @@ async function fluxoCompleto(page: Page, info: any, lang: 'en' | 'pt') {
   await tela(page, info, `${tag}-07-preview`);
   await page.getByRole('button', { name: t.close }).first().click();
   // In zip: tira 1 peça (a 1ª HEADLINE; HOOK_TEXT saiu do catálogo em 25/10)
-  const hook = final.pieces.find((p: any) => p.type === 'HEADLINE');
+  // F1a/F1b: sem HEADLINE `replace` com a troca desligada, tira a 1ª peça pronta de vídeo
+  const hook = final.pieces.find((p: any) => p.type === 'HEADLINE') ?? final.pieces.find((p: any) => p.status === 'ready' && p.type !== 'STATIC');
   const caixa = page.locator(`[aria-label="${t.preview(hook.code)}"]`).locator('xpath=ancestor::*[.//button[@role="checkbox"]][1]').getByRole('checkbox');
   await caixa.click();
   await expect.poll(async () => (await as('adminA').get(`/iterate/${batchId}`)).data.pieces.find((p: any) => p.id === hook.id).inZip, { timeout: 15_000 }).toBe(false);
@@ -184,7 +186,8 @@ test('IU-04 CLIENT: abre o lote; o que a tela oferece pra gerar/refazer, e In zi
   await page.goto(`/iterate/${b.id}?view=download`);
   await expect(page.getByRole('button', { name: L.en.zip })).toBeVisible(LONGO);
   await tela(page, info, 'iter-15-cliente-download');
-  const hook = (await as('donoA').get(`/iterate/${b.id}`)).data.pieces.find((p: any) => p.type === 'HEADLINE');
+  const pcs = (await as('donoA').get(`/iterate/${b.id}`)).data.pieces;
+  const hook = pcs.find((p: any) => p.type === 'HEADLINE') ?? pcs.find((p: any) => p.status === 'ready' && p.type !== 'STATIC'); // F1a/F1b: sem HEADLINE replace
   await page.locator(`[aria-label="Preview ${hook.code}"]`).locator('xpath=ancestor::*[.//button[@role="checkbox"]][1]').getByRole('checkbox').click();
   await expect.poll(async () => (await as('donoA').get(`/iterate/${b.id}`)).data.pieces.find((p: any) => p.id === hook.id).inZip, { timeout: 15_000 }).toBe(false);
   const [dl] = await Promise.all([page.waitForEvent('download', LONGO), page.getByRole('button', { name: L.en.zip }).click()]);

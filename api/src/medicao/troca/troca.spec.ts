@@ -80,6 +80,34 @@ describe('troca de texto: partes puras', () => {
     expect(geometria(mapa([camada({})], { faceTrack: [{ ...face, role: 'other_person' }] }), medidaSolto()).reason).toBeNull();
   });
 
+  it('Q1-B1: caixa sobre o rosto (02 da S4) é oferecida; o portão do rosto só vale para o solto (§15.5.5, §16.4)', () => {
+    // faceTrack medido de verdade em research_notes/s4-demo-2026-11-06/origem/c02.mp4 (FfmpegMediaAnalysisService.faceTrack, 07/11)
+    const faceTrack = [
+      { startFrame: 0, endFrame: 198, region: { x: 0, y: 225, w: 716, h: 1053 }, fullFrame: false, facesMax: 1, minScore: 0.913,
+        faceInRegion: [{ atFrame: 0, box: { x: 0.207, y: -0.0068, w: 0.5833, h: 0.5329 } }] },
+      { startFrame: 198, endFrame: 290, region: { x: 0, y: 0, w: 716, h: 1278 }, fullFrame: true, facesMax: 1, minScore: 0.929,
+        faceInRegion: [{ atFrame: 200, box: { x: 0.2156, y: 0.1597, w: 0.5941, h: 0.4721 } }] },
+    ];
+    // medida da caixa do 02 (look-s4-02.json da Q1 + linhas de medidas/caixa-02.json da S4)
+    const md02: MedidaHeadline = {
+      ok: true, reason: null, kind: 'box', canvas: { width: 716, height: 1278 }, fps: 30, quadros: 290, startFrame: 0, endFrame: 198,
+      gates: { temporal_p99: 17, halo_p99: 8.3 }, box: { x: 0, y: 0, w: 716, h: 246 }, radiusPx: 0,
+      plate: { color: '#000000', image: 'data:image/png;base64,AA', temporalP99: 17, translucent: true }, dilatacao: 9, sombra: null, stemPx: 0,
+      color: '#f6fcff', lines: ['Si en 2 minutos no te', 'busca, es porque', 'nunca fue para ti..'],
+      linhasMedidas: [[24, 73, 16, 680, 665], [93, 151, 78, 618, 541], [160, 218, 67, 630, 564]], align: 'center', caseStyle: 'sentence', emphasis: null,
+      emoji: null, sideMarginPx: 36, erasedRects: [], candidatas: [], ref: { modo: 'box' },
+    };
+    const leg = { x: 60, y: 900, w: 600, h: 120, startSec: 0, endSec: 9.67 };
+    const m = mapa([camada({ background: { kind: 'solid', color: '#000000', box: { x: 0, y: 0, w: 716, h: 246 } } })],
+      { width: 716, height: 1278, frameCount: 290, faceTrack, protectedBands: [leg] });
+    const caixa = geometria(m, md02);
+    expect(caixa.gates.rosto_frac).toBe(1); // o rosto cruza a faixa o intervalo todo, como no QA
+    expect(caixa.reason).toBeNull();
+    expect(montarLook({ layer: m.layers[0], m, md: md02, regua: null, measuredIn: 'chrome-linux' }).verdict).toMatchObject({ ok: true, reason: null });
+    // a mesma geometria apagada por inpaint (solto) continua barrada
+    expect(geometria(m, { ...md02, kind: 'loose', box: null }).reason).toBe('over_face');
+  });
+
   it('montarLook: solto aprovado vira HeadlineLook v2 com fit, emoji e plateRef', () => {
     const m = mapa([camada({})]);
     const look = montarLook({ layer: m.layers[0], m, md: medidaSolto(), measuredIn: 'chrome-linux',

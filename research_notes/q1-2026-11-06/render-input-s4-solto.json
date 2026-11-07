@@ -1,0 +1,138 @@
+{
+ "kind": "remix-keep",
+ "canvas": {
+  "fps": 30,
+  "width": 464,
+  "height": 832,
+  "frameCount": 564
+ },
+ "faceHint": {
+  "h": 273.1045896694215,
+  "w": 184.363305785124,
+  "x": 170.7941818181818,
+  "y": 222.9193933884297
+ },
+ "language": "en",
+ "overlays": [],
+ "renderId": "cmw57iwhf00btnv40trpgjgqi",
+ "templateId": "remix-keep",
+ "textLayers": [
+  {
+   "id": "headline-nova",
+   "box": {
+    "h": 66,
+    "w": 319,
+    "x": 74,
+    "y": 533
+   },
+   "style": {
+    "align": "center",
+    "color": "#fffffc",
+    "fontId": "arimo-600",
+    "shadow": false,
+    "emphasis": null,
+    "uppercase": false,
+    "fontSizePx": 26.87,
+    "lineHeight": 1.246743580200968,
+    "strokeColor": null,
+    "shadowDetail": null,
+    "strokeWidthPx": 0,
+    "highlightColor": null,
+    "letterSpacingEm": 0
+   },
+   "content": {
+    "kind": "static",
+    "text": "Tired of scrolling his\nendless following list?",
+    "emoji": {
+     "h": 25,
+     "w": 31,
+     "side": "end",
+     "gapPx": 8,
+     "image": "data:image/png;base64,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",
+     "lineIndex": 1,
+     "inkWidthPx": 27,
+     "marginLeftPx": 2,
+     "topFromBaseline": -22.5
+    },
+    "lines": [
+     "Tired of scrolling his",
+     "endless following list?"
+    ],
+    "layout": {
+     "anchorX": 233.25,
+     "linePitchPx": 33.5,
+     "firstBaselineY": 557
+    }
+   },
+   "endFrame": 161,
+   "background": {
+    "box": null,
+    "kind": "none",
+    "color": null
+   },
+   "startFrame": 0
+  }
+ ],
+ "baseVideoUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_plate/591178ed-b14b-4971-af91-46cd87cc19c9.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261106%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261106T164655Z&X-Amz-Expires=21600&X-Amz-Signature=6830e3c113eea0fe26139932fe5b105f0eeef13694d3d9907fdad93c442d1ec1&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "captionCheck": {
+  "frames": [
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 1.78,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 4.83,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 7.88,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 10.93,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 13.98,
+    "reason": null,
+    "problem": null
+   },
+   {
+    "ok": true,
+    "seen": "mock caption",
+    "atSec": 17.02,
+    "reason": null,
+    "problem": null
+   }
+  ],
+  "status": "ok",
+  "attempt": 1
+ },
+ "placaComoBase": true,
+ "audioPassthroughUrl": "https://grbwshqevyahuukfdpfx.storage.supabase.co/storage/v1/s3/hookmill-dev/ws/cmw56lm5i0001nvkzr0h0c03q/champion_video/87062112-19f4-47c3-83a0-c14345a57b6a.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ec15e6daa9842c22d0d8854d19bbbe81%2F20261106%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261106T164655Z&X-Amz-Expires=21600&X-Amz-Signature=f66ba3a233a5193ddddb54bd00e7ecc148594011b061894bf0c04ce8ac221a5e&X-Amz-SignedHeaders=host&x-id=GetObject",
+ "outputProtectedBands": [
+  {
+   "h": 146,
+   "w": 308,
+   "x": 81,
+   "y": 577,
+   "kind": "original",
+   "endSec": 18.8,
+   "startSec": 0
+  }
+ ]
+}

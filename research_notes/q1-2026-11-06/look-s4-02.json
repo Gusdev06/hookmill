@@ -1,0 +1,120 @@
+{
+ "box": {
+  "h": 246,
+  "w": 716,
+  "x": 0,
+  "y": 0
+ },
+ "fit": {
+  "box": {
+   "h": 246,
+   "w": 716,
+   "x": 0,
+   "y": 0
+  },
+  "kind": "box",
+  "align": "center",
+  "chinY": null,
+  "emoji": null,
+  "canvas": {
+   "width": 716,
+   "height": 1278
+  },
+  "fontId": "tiktok-sans-600",
+  "sizePx": 66.04,
+  "centerX": 349,
+  "caseStyle": "sentence",
+  "erasedRects": [],
+  "linePitchPx": 67,
+  "bottomLimitY": 889,
+  "sideMarginPx": 16,
+  "originalLines": [
+   {
+    "chars": 21,
+    "widthPx": 665
+   },
+   {
+    "chars": 16,
+    "widthPx": 541
+   },
+   {
+    "chars": 19,
+    "widthPx": 564
+   }
+  ],
+  "firstBaselineY": 72.5,
+  "letterSpacingEm": 0
+ },
+ "font": {
+  "corr": 0.8937,
+  "tier": "same",
+  "fontId": "tiktok-sans-600",
+  "stemErr": 0.0126,
+  "widthErr": 0.0074,
+  "measuredIn": "chrome-linux"
+ },
+ "kind": "box",
+ "text": {
+  "align": "center",
+  "color": "#f6fcff",
+  "lines": [
+   "Si en 2 minutos no te",
+   "busca, es porque",
+   "nunca fue para ti.."
+  ],
+  "shadow": null,
+  "sizePx": 66.04,
+  "stemPx": 6.64,
+  "stroke": null,
+  "textBox": {
+   "h": 194,
+   "w": 665,
+   "x": 16,
+   "y": 24
+  },
+  "caseStyle": "sentence",
+  "linePitchPx": 67,
+  "firstBaselineY": 72.5,
+  "letterSpacingEm": 0
+ },
+ "emoji": null,
+ "plate": {
+  "color": "#093b7b",
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAeCAIAAADINCUsAAAEl0lEQVRYw92ZaXbcOAyEWXr8M3eai+XyquECggA3qe0kb5JOp21tbOIjUABh/PPvj7B9of/K8Ae+oFPnaM90FML1asw/EsRoM57ui38vCGs7MBqDtyyKV73F+b8H8XQeGxbkggv+EhD+Dpz9guvh3uDgeV78paYd7wNOY2BmwYcRzzgOlpJvbscDZpzv6JexGg3AQkU5ziOqLjwu3hIHP/AXLh8oq8YtFy96zlRMPLBg0UFYJMx2I60UP8oj30gp5pto1oF2DTmqO3s4Y7X6WHkFejBgEIR2KaPouDIFChaZQfwtYqb4OZH1HkF1EyyCfl5yYzGEgfGDEZVe6rBkDiU44uCPP7OYoANBrxxYPoD2P61bALaqMujhCEKdA/2q/bRBr9wZt1Xrt0EYAlym6m1hIyQkpudYwcwlWLWwcdKiw2Ooh2la+STFG+Mu0XxDGlxoNBgL87HiglAY5Bmg/iuOQrjwH5SiC6dLGR7EKrWqX+RpxkPe5Wf2rxafVNG0V+uEuZYNzRjZfoeDU+70rtDM7l+iejmISP1O8Yn8mW+I59plVxw4BSC5JaXpg9ZM98Ay1bIqaZBAYbWCysjETtMIqFiYlGJAjMpZ84hESj6MXxLEYr1+8CAxnEua8diB0UqD1HxSRyhekUXE2FmtEmvhK4gAEybLVFwwtKgM+JRFW+rMgPKxsPb8+Ek+xWqFwKam8mzx+XCFu7Qb2CiknxfGpZ9LjUV5XoSzwPhSrUV5axBMyvFUYD8VuIQMKcYJkjL33HG5BQck64R9tngq3w2V+JUQ6bbQguDxGSyUiE9bEg6Kmw6rR7Qf2c2JVpwBWJPFgyYe9ULjzpbRtJWTuMe7pcb+zKMTWTC1HKgekQAk5yCvXi9t7BaV/LyvhV0ysc5AU0ydQeCUmRDs1vBU84lvseXAUFwjcSC1nKspuBYnM5FVIeunFN+2B9QpGGY6u20s5l01nvsbGImQLtMKDtZVkRdsYRK28bKztu7Nnrs0ImSaNKSa5CAXQXZWkzb4rB8OUxzyDHbNSnECZXHfd7iuywwFSTKfdOXiG8kn9a2JVEKFh5gwoasUpr1id1KOuzfYokiZs2WyEg8hc4DZohVGPUqw6XYs9v2M2GuKXXD2V09xB4UA3IoCHQQwtF5anq64/dwhW3nRRVkLuDxz3yziEVKNUXDgTXNvFSOLVWzlugvI0EHwAIHdDPTmCsZPDLAKBbQiVkfoaUBIJT+o2snuTQXGdSP5R6Jx1WLMg1jtdzmq59ovmmdS9CFlMfajYxI29hdFR9spCAUPxc7Vbu5Nmc3mL7irS5Rc4uOTkmfvi9ddxrqM4mxc36htrfwj5j+nuPqpuwS5bE8N/Nn2CPIubstGpO4pQj1jZkkXWm62eZ5EK2vaDG+53D04aJotMND7Gnu1QNPDcjlemCRd7zCCaZVrTjNDhHdpCG1aYn/yYWonAW37aduccyWm73T6DrJXgc+16KVKHZPyVq3GWN+h5SPdEcZR81xtTNc8t1r6oko07QNZJfUC04yb+v1eUO1WtVFujahB3ajfxU3XeAqPFh3Vxf4DEIbnowzDtDsAAAAASUVORK5CYII=",
+  "temporalP99": 17,
+  "translucent": true
+ },
+ "layerId": "headline-1",
+ "verdict": {
+  "ok": true,
+  "gates": {
+   "halo_p99": 8.3,
+   "dilatacao": 9,
+   "font_corr": 0.8937,
+   "rosto_frac": 0,
+   "placa_bytes": 1666,
+   "temporal_p99": 17,
+   "folga_legenda": 11,
+   "transicao_max": 0,
+   "caixa_area_rel": 1.19,
+   "sombra_err_com": 4.6,
+   "sombra_err_sem": 4.77,
+   "font_candidatas": 10,
+   "caixa_quadro_rel": 0.192,
+   "caixa_chapada_p90": 12.7,
+   "distancia_legenda": 654
+  },
+  "reason": null
+ },
+ "version": 2,
+ "emphasis": {
+  "kind": "underline",
+  "color": "#f6fcff",
+  "offsetPx": 13.5,
+  "thicknessPx": 5
+ },
+ "endFrame": 198,
+ "plateRef": null,
+ "radiusPx": 0,
+ "startFrame": 0
+}

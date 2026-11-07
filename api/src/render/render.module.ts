@@ -12,16 +12,32 @@ export const RENDER_SERVICE = Symbol('RENDER_SERVICE');
 /** render-lambda-v1 §6.1: os adaptadores da RenderPort (fake/local/lambda), escolhidos por env e kind. Tipo: RenderPorts. */
 export const RENDER_PORTS = Symbol('RENDER_PORTS');
 
-export function renderConfig(get: (k: string) => string | undefined): RenderConfig {
+/** Núcleos que o Remotion aceita em `concurrency`: o mesmo cálculo do getCpuCount dele (menor entre
+ *  os.availableParallelism e `nproc`). Acima disso o renderMedia lança "Maximum for --concurrency is N" (Q1-B4). */
+export function maxFramesConcurrency(): number {
+  const { availableParallelism, cpus } = require('node:os') as typeof import('node:os');
+  const node = typeof availableParallelism === 'function' ? availableParallelism() : cpus().length;
+  try {
+    const nproc = parseInt(String(require('node:child_process').execSync('nproc', { stdio: 'pipe' })).trim(), 10);
+    return Math.max(1, Number.isInteger(nproc) && nproc > 0 ? Math.min(nproc, node) : node);
+  } catch {
+    return Math.max(1, node);
+  }
+}
+
+export function renderConfig(get: (k: string) => string | undefined, maxCpus: () => number = maxFramesConcurrency): RenderConfig {
   const int = (k: string, d: number) => {
     const n = Number(get(k));
     return Number.isInteger(n) && n > 0 ? n : d;
   };
+  const pedido = int('RENDER_FRAMES_CONCURRENCY', 1);
+  const teto = pedido > 1 ? maxCpus() : pedido;
+  if (pedido > teto) new Logger('RenderConfig').warn(`RENDER_FRAMES_CONCURRENCY=${pedido} acima do máximo desta máquina (${teto} núcleos): usando ${teto}`);
   return {
     concurrency: int('RENDER_CONCURRENCY', 1),
     tmpDir: get('RENDER_TMP_DIR') || '/tmp/maquina-render',
     bundleDir: get('REMOTION_BUNDLE_DIR') || null,
-    framesConcurrency: int('RENDER_FRAMES_CONCURRENCY', 1),
+    framesConcurrency: Math.min(pedido, teto),
     browserExecutable: get('REMOTION_BROWSER_EXECUTABLE') || null,
     ffmpeg: get('FFMPEG_PATH') || 'ffmpeg',
     ffprobe: get('FFPROBE_PATH') || 'ffprobe',

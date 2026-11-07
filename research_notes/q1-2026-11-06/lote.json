@@ -1,0 +1,112 @@
+[
+ {
+  "caso": "s4-02",
+  "cid": "cmw57vbsq00kknv40tfaswo8f",
+  "batch": "cmw57wi8g00m2nv4096wmzsrl",
+  "status": "ready",
+  "errorCode": null,
+  "peca": "/data/cerebros/gusta/projects/maquina-anuncios/research_notes/q1-2026-11-06/pecas/s4-02.mp4",
+  "render": {
+   "id": "cmw57wl8d00menv40n68y0ivd",
+   "impl": "lambda",
+   "cost_usd": "0.0040",
+   "duration_sec": "9.667",
+   "s": 79.551
+  },
+  "placa": null,
+  "custos": [
+   {
+    "kind": "TRANSCRIBE",
+    "provider": "WAVESPEED",
+    "model": "wavespeed-ai/openai-whisper-with-video",
+    "unit": "second",
+    "units": "10.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:56:41.300Z"
+   },
+   {
+    "kind": "LLM",
+    "provider": "ANTHROPIC",
+    "model": "claude-opus-5-5",
+    "unit": "ktoken_out",
+    "units": "0.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:56:51.220Z"
+   },
+   {
+    "kind": "LLM",
+    "provider": "ANTHROPIC",
+    "model": "claude-opus-5-5",
+    "unit": "ktoken_out",
+    "units": "0.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:56:51.706Z"
+   },
+   {
+    "kind": "RENDER",
+    "provider": "AWS_LAMBDA",
+    "model": "hookmill-legenda:medir_headline",
+    "unit": "call",
+    "units": "1.0000",
+    "amount_usd": "0.0005",
+    "created_at": "2026-11-06T16:57:07.074Z"
+   },
+   {
+    "kind": "RENDER",
+    "provider": "AWS_LAMBDA",
+    "model": "hookmill-legenda:medir_headline",
+    "unit": "call",
+    "units": "1.0000",
+    "amount_usd": "0.0007",
+    "created_at": "2026-11-06T16:57:27.170Z"
+   },
+   {
+    "kind": "LLM",
+    "provider": "ANTHROPIC",
+    "model": "claude-opus-5-5",
+    "unit": "ktoken_out",
+    "units": "0.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:57:27.572Z"
+   },
+   {
+    "kind": "LLM",
+    "provider": "ANTHROPIC",
+    "model": "claude-opus-5-5",
+    "unit": "ktoken_out",
+    "units": "0.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:57:27.751Z"
+   },
+   {
+    "kind": "LLM",
+    "provider": "ANTHROPIC",
+    "model": "claude-opus-5-5",
+    "unit": "ktoken_out",
+    "units": "0.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:57:30.151Z"
+   },
+   {
+    "kind": "LLM",
+    "provider": "ANTHROPIC",
+    "model": "claude-opus-5-5",
+    "unit": "ktoken_out",
+    "units": "0.0000",
+    "amount_usd": "0.0000",
+    "created_at": "2026-11-06T16:58:53.128Z"
+   },
+   {
+    "kind": "RENDER",
+    "provider": "AWS_LAMBDA",
+    "model": "remotion-render-4-0-533-mem3008mb-disk4096mb-300sec",
+    "unit": "render",
+    "units": "1.0000",
+    "amount_usd": "0.0040",
+    "created_at": "2026-11-06T16:58:53.315Z"
+   }
+  ],
+  "s": 140.935,
+  "texto": "Si hoy no te escribe ni te busca, es porque nunca fue para ti.."
+ }
+]

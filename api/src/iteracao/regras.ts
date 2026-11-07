@@ -1074,7 +1074,8 @@ export function frameContentViolations(p: AutoFrameDraft, i: number, ctx: PlanCt
 
 /**
  * headline-e-legenda-v1 §1.1: o modo é o do campeão; texto ≤ limite (replace = original × 1,2, mín. 20, máx. 90; add = 60);
- * destaque só se a original tem e é trecho do texto; "nada inventado" (número/afirmação só do Brain ou da fala); diferente
+ * destaque só se a original tem e é trecho do texto; "nada inventado" (número/afirmação só do Brain ou da fala; número
+ * também da própria headline original, QA F1b Q1-B3); diferente
  * da original (comparação normalizada). As do lote diferentes entre si = `duplicateKey`.
  */
 export function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE' }>, i: number, ctx: PlanCtx): Violation[] {
@@ -1094,8 +1095,10 @@ export function headlineViolations(p: Extract<AutoParamsDraft, { type: 'HEADLINE
     else if (!text.includes(p.highlight.trim())) v('headline_highlight', 'highlight must be a stretch of the text');
   }
   if (h.original && normalizeText(text) === normalizeText(h.original)) v('headline_same_as_original', 'write a new headline, not the original');
-  const n = inventedNumbers(text, ctx);
-  if (n.length) v('invented_number', `"${text}" has ${n.join(', ')}, not in the Brain nor the transcript`);
+  // QA F1b Q1-B3: a headline original do campeão é fonte válida; número escrito nela pode voltar no texto novo
+  const daOriginal = new Set(h.original ? numbersIn(h.original) : []);
+  const n = inventedNumbers(text, ctx).filter((x) => !daOriginal.has(x));
+  if (n.length) v('invented_number', `"${text}" has ${n.join(', ')}, not in the Brain, the transcript nor the original headline`);
   const cl = inventedClaims(text, ctx);
   if (cl.length) v('invented_claim', `"${text}" claims "${cl.join('", "')}" with nothing in the Brain or the transcript to back it`);
   for (const [path, src] of Object.entries(p.sources ?? {})) {

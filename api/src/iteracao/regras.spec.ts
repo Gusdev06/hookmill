@@ -4,7 +4,7 @@ import { regrasDeMidiaFallback } from './portas';
 import {
   AXIS_OF, FRAME_CODE, hasQuotableProof, type AllowedType, type PlanCtx, allowedFor, allowedFrameIds, allowedFrames, codeFor, codeLanguageOf, endcardVariants,
   finalizePlan, inventedClaims, inventedNumbers, minDiversity, normalizeText, pricesIn, repairPlan, rulesFor, staticCopyLength, swapsFor,
-  validatePlan, buildInsight, fallbackWhy,
+  validatePlan, buildInsight, fallbackWhy, headlineViolations, numbersIn,
 } from './regras';
 
 /** rev. 23/10 §14.3: conceito visual do STATIC (em inglês, sem marca, sem texto entre aspas). */
@@ -733,6 +733,19 @@ describe('HEADLINE (headline-e-legenda-v1)', () => {
     expect(run([hd('Sleep in 10 minutes', { highlight: '10 hours' })], c)).toEqual(['2:headline_highlight']);
     expect(run([hd('Sleep in 10 minutes', { mode: 'add' })], c)).toEqual(['2:headline_mode']);
     expect(run([hd('Sleep in 10 minutes', { highlight: '10 minutes' })], ctx({ headline: H({ hasHighlight: false }) }))).toEqual(['2:headline_highlight']);
+  });
+  it('QA F1b Q1-B3 (05): número da própria headline original vale como fonte; número novo segue inventado', () => {
+    // fala sem número (a fixture tem "w50", que já valeria como fonte do 50)
+    const semNum = words.map((w) => ({ ...w, word: 'w' }));
+    const c = ctx({ words: semNum, headline: H({ original: 'If this app doesn’t help you sleep, I’ll pay you $50', maxChars: 90, hasHighlight: false }) });
+    expect(numbersIn('I’ll pay you $50')).toEqual(['50']);
+    expect(run([hd('Can’t sleep tonight? I’ll pay you $50')], c)).toEqual([]);
+    expect(run([hd('Can’t sleep tonight? I’ll pay you $80')], c)).toEqual(['2:invented_number']);
+    const d = headlineViolations({ type: 'HEADLINE', mode: 'replace', text: 'Sleep tonight or get $50 and 75 nights', highlight: null, sources: {} } as never, 0, c);
+    expect(d.map((x) => x.rule)).toEqual(['invented_number']);
+    expect(d[0].detail).toContain('" has 75, not in');
+    // sem a original (add) o $50 volta a ser inventado
+    expect(headlineViolations({ type: 'HEADLINE', mode: 'add', text: 'I’ll pay you $50', highlight: null, sources: {} } as never, 0, ctx({ words: semNum, headline: H({ mode: 'add', original: null }) })).map((x) => x.rule)).toEqual(['invented_number']);
   });
   it('reparo tira CUT antes de HEADLINE; finalize grava modo, idioma, original e o aspecto', () => {
     const c = ctx({ headline: H() });
