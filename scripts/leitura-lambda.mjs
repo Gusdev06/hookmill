@@ -110,8 +110,12 @@ async function build() {
   // camada: tar determinístico (root:root, sem metadados do macOS)
   const tarPath = path.join(DIR, 'camada.tar');
   rmSync(tarPath, { force: true });
-  sh('tar', ['--uid', '0', '--gid', '0', '--uname', 'root', '--gname', 'root', '--no-mac-metadata', '--no-xattrs', '--no-acls', '--format', 'pax',
-    '-cf', tarPath, '-C', ctx, 'var/task', 'opt/bin'], { env: { ...process.env, COPYFILE_DISABLE: '1' } });
+  // GNU tar (Linux/VPS) não tem --uid/--no-mac-metadata: mesmo resultado com --owner/--group numéricos
+  const gnuTar = process.platform === 'linux';
+  const donoTar = gnuTar
+    ? ['--owner=0', '--group=0', '--numeric-owner', '--no-xattrs', '--no-acls', '--format', 'pax']
+    : ['--uid', '0', '--gid', '0', '--uname', 'root', '--gname', 'root', '--no-mac-metadata', '--no-xattrs', '--no-acls', '--format', 'pax'];
+  sh('tar', [...donoTar, '-cf', tarPath, '-C', ctx, 'var/task', 'opt/bin'], { env: { ...process.env, COPYFILE_DISABLE: '1' } });
   const tarBuf = readFileSync(tarPath);
   const gz = gzipSync(tarBuf, { level: 6 });
   writeFileSync(path.join(DIR, 'camada.tar.gz'), gz);
