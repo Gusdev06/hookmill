@@ -11,6 +11,7 @@ import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoteirosService } from '../roteiros/roteiros.service';
 import { RostosService } from '../rostos/rostos.service';
+import { aiPreviewsOf } from '../templates-ai/contract';
 
 /**
  * Retomada depois de reinício da API (modelo-de-dados.md):
@@ -48,7 +49,9 @@ export class RecuperacaoService implements OnApplicationBootstrap {
   async recover(opts: { workspaceId?: string } = {}): Promise<{ jobs: number; renders: number; tasks: number; scenes: number; faces: number }> {
     const ws = opts.workspaceId ? { workspaceId: opts.workspaceId } : {};
     // 1. jobs
-    const jobs = await this.prisma.job.findMany({ where: { ...ws, status: { in: ['QUEUED', 'RUNNING'] } } });
+    // templates-ia-previas-v1 §3.3: job do planejador das prévias ainda QUEUED = nenhuma chamada feita; fica QUEUED e o sweep do
+    // TemplatesAiService dispara. Só o RUNNING (resultado desconhecido) vira INTERRUPTED.
+    const jobs = (await this.prisma.job.findMany({ where: { ...ws, status: { in: ['QUEUED', 'RUNNING'] } } })).filter((j) => !(j.status === 'QUEUED' && isPreviewPlanJob(j)));
     for (const j of jobs) {
       if (j.type === 'OFFER_EXTRACT' || !j.creativeId) {
         await this.jobs.finish(j.id, { status: 'FAILED', errorCode: 'INTERRUPTED', failReason: failReasonFor('INTERRUPTED') });
@@ -117,6 +120,8 @@ export class RecuperacaoService implements OnApplicationBootstrap {
     });
     for (const f of pendingFaces) {
       if (await this.prisma.providerTask.count({ where: { faceId: f.id, status: 'SUBMITTED' } })) continue;
+      // templates-ia-previas-v1 §3.3: rosto de prévia ainda QUEUED não foi submetido; o sweep das prévias reivindica e submete
+      if (f.status === 'QUEUED' && !f.creativeId && f.castingId && (await this.isPreviewCasting(f.castingId))) continue;
       await this.rostos.failFace(f.id, 'INTERRUPTED');
       if (f.creativeId) await this.rostos.settleBatch(f.creativeId, f.batch);
       faces++;
@@ -127,4 +132,15 @@ export class RecuperacaoService implements OnApplicationBootstrap {
     if (Object.values(r).some(Boolean)) this.log.log(`retomada: ${JSON.stringify(r)}`);
     return r;
   }
+
+  private async isPreviewCasting(castingId: string): Promise<boolean> {
+    const c = await this.prisma.variationCasting.findUnique({ where: { id: castingId }, select: { batch: { select: { settings: true } } } });
+    return !!c?.batch && !!aiPreviewsOf(c.batch.settings);
+  }
+}
+
+/** Job AUTO_PLAN das prévias (inicial, novo ângulo ou retry): input.kind ai_previews | ai_preview_regen | ai_preview_retry. */
+function isPreviewPlanJob(j: { type: string; input: unknown }): boolean {
+  const kind = (j.input as { kind?: unknown } | null)?.kind;
+  return j.type === 'AUTO_PLAN' && typeof kind === 'string' && kind.startsWith('ai_preview');
 }

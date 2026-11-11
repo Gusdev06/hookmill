@@ -10,15 +10,15 @@ import { CreditosService } from '../creditos/creditos.service';
 import { CustosService } from '../custos/custos.service';
 import { GeracaoService } from '../geracao/geracao.service';
 import { GENERATION_SERVICE, type GenerationService } from '../integracoes';
-import { FACE_MODEL, speechSeconds, SCENE_MODELS } from '../integracoes/catalogo/precos';
+import { speechSeconds } from '../integracoes/catalogo/precos';
 import { SEMANTIC_PLANNER, type SemanticPlannerPort } from '../integracoes/claude/semantic-planner';
 import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { semanticContext } from '../variacao-ia/contexto';
-import { aiSettings, producibleVariation, type AiAuthorization, type TemplateAiRunner } from './contract';
+import { aiPreviewsOf, aiSettings, producibleVariation, type AiAuthorization, type TemplateAiRunner } from './contract';
+import { AiPreviewsService, MEDIA_BUDGET } from './previews.service';
 
 const json = (v: unknown) => v as Prisma.InputJsonValue;
-const MEDIA_BUDGET = 90 * SCENE_MODELS.find((m) => m.id === 'pruna-lipsync')!.usdPerSecond + 2 * FACE_MODEL.usdPerImage + 0.2;
 const INSTRUCTIONS = 'Produce a finished short ad ready for automatic production. Preserve the original audience, angle and offer. All three options must use the requested format. 3 to 6 spoken turns, each at least 5 words, at most 120 spoken words total. No placeholders, no visual proof assets, no fictional personal experience or testimonial, no celebrity likeness. Use only supplied offer facts. If proof is unavailable omit that claim and use a grounded mechanism or objection. Requirements must be empty only when no evidence or asset is missing. Speakers are fictional presenters, not customers or experts. For F04 one presenter asks and answers one useful objection. F09 is one podcast presenter. F10 is a real question/answer dialogue, starting with the host and alternating host/presenter. Visuals describe a realistic, consistent studio set and presenter shot, no inserts that require unavailable product footage.';
 type Production = { variation: SemanticVariation; actors: { speaker: string; faceId: string; voiceId: string }[]; generation: number };
 
@@ -36,7 +36,11 @@ export class TemplatesAiService implements TemplateAiRunner {
     private readonly generation: GeracaoService,
     @Inject(SEMANTIC_PLANNER) private readonly planner: SemanticPlannerPort,
     @Inject(GENERATION_SERVICE) private readonly gen: GenerationService,
-  ) {}
+    private readonly previews: AiPreviewsService,
+  ) {
+    // templates-ia-previas-v1: a prévia aprovada entra na mesma produção por item do fluxo de 04/11
+    this.previews.production = (itemId) => this.advanceProduction(itemId);
+  }
 
   available(): boolean {
     if (this.cfg.get('AI_TEMPLATES_ENABLED') === 'off') return false;
@@ -46,6 +50,7 @@ export class TemplatesAiService implements TemplateAiRunner {
   /** Executa na mesma transação do lote + TemplateRun: nenhuma chamada paga aqui. */
   async initialize(tx: Prisma.TransactionClient, batchId: string, auth: AuthContext, a: AiAuthorization) {
     if (!this.available()) throw new AppException('PROVIDER_UNAVAILABLE');
+    if (a.previews) return this.previews.initialize(tx, batchId, auth, a); // §5.1: sem item, sem criativo, sem reserva
     const b = await tx.variationBatch.findUniqueOrThrow({ where: { id: batchId }, include: { champion: { include: { offer: true, teardown: true } }, templateRun: { include: { template: true } } } });
     if (b.workspaceId !== auth.workspaceId) throw new AppException('NOT_FOUND');
     const offer = b.champion.offer;
@@ -64,10 +69,14 @@ export class TemplatesAiService implements TemplateAiRunner {
       variationCode: item.code, state: 'SCRIPTS_WRITING', createdById: auth.userId, engine: 'LIPSYNC', engineModel: 'pruna-lipsync', estimatedCostUsd: estimate,
       adName: `AI_${a.format}_${item.id.slice(-8)}`,
     } });
-    await this.credits.reserveOnStart(tx, b, auth, a.expectedCredits);
+    await this.credits.reserveOnStart(tx, b, auth, a.expectedCredits ?? 0);
   }
 
   async run(jobId: string, batchId: string) {
+    const job = await this.db.job.findUnique({ where: { id: jobId }, select: { input: true } });
+    const itemId = (job?.input as { itemId?: string } | null)?.itemId;
+    const head = await this.db.variationBatch.findUnique({ where: { id: batchId }, select: { settings: true } });
+    if (aiPreviewsOf(head?.settings)) return itemId ? this.previews.runOne(jobId, batchId, itemId) : this.previews.run(jobId, batchId);
     try {
       const b = await this.db.variationBatch.findUniqueOrThrow({ where: { id: batchId }, include: { champion: { include: { offer: true, teardown: true } }, items: { include: { creative: true } } } });
       const a = aiSettings(b.settings)!;
@@ -107,20 +116,47 @@ export class TemplatesAiService implements TemplateAiRunner {
     }
   }
 
-  /** Persistência + CAS em cada submissão. Nenhum passo depende do navegador aberto. */
   async advance(batchId: string) {
-    const item = await this.db.variationItem.findFirst({ where: { batchId, autoType: 'AI_VIDEO' }, include: { creative: true, batch: true } });
+    const head = await this.db.variationBatch.findUnique({ where: { id: batchId }, select: { settings: true } });
+    if (aiPreviewsOf(head?.settings)) {
+      // templates-ia-previas-v1 §3.3: por item. Prévias (planejador/imagens) e, nas aprovadas, a produção do vídeo.
+      await this.previews.advanceBatch(batchId);
+      for (const id of await this.previews.approvedInProduction(batchId)) await this.advanceProduction(id).catch((e) => this.log.warn(`${id}: ${(e as Error).message}`));
+      return;
+    }
+    const item = await this.db.variationItem.findFirst({ where: { batchId, autoType: 'AI_VIDEO' }, select: { id: true } });
+    if (item) await this.advanceProduction(item.id);
+  }
+
+  /** Produção do vídeo de 1 item (fluxo de 04/11 ou prévia aprovada). Persistência + CAS em cada submissão. */
+  async advanceProduction(itemId: string): Promise<void> {
+    const item = await this.db.variationItem.findUnique({ where: { id: itemId }, include: { creative: true, batch: true } });
     if (!item?.creative || item.creative.archivedAt) return;
+    const batchId = item.batchId;
     const c = item.creative;
-    if (item.batch.status === 'ANALYSIS_FAILED' || ['SCRIPTS_FAILED', 'FACES_FAILED', 'SCENES_FAILED'].includes(c.state)) return this.fail(batchId, 'AI video generation failed. Your credits will be returned.');
+    const preview = !!item.previewStatus;
+    if (item.batch.status === 'ANALYSIS_FAILED' || ['SCRIPTS_FAILED', 'FACES_FAILED', 'SCENES_FAILED'].includes(c.state)) return this.failItem(itemId, 'AI video generation failed. Your credits will be returned.');
+    if (c.state === 'SCRIPTS_WRITING' && preview) {
+      // retry de peça de prévia aprovada: nada a replanejar (roteiro, rostos e vozes fixados na prévia); cenas de novo
+      await this.db.$transaction(async (tx) => {
+        const last = await tx.scene.findFirst({ where: { creativeId: c.id }, orderBy: { generation: 'desc' } });
+        const payload = item.payload as { production?: Production; params?: { production?: Production } };
+        const production = payload.production ?? payload.params?.production;
+        if (!production) throw new Error(`prévia ${itemId} aprovada sem produção`);
+        await tx.variationItem.update({ where: { id: itemId }, data: { status: 'READY', payload: json({ ...payload, production: { ...production, generation: (last?.generation ?? 0) + 1 } }) } });
+        await this.sm.transition({ tx, creativeId: c.id, event: 'AI_PLAN_DONE', from: 'SCRIPTS_WRITING', to: 'FACES_GENERATING' });
+      }, { timeout: 30000 });
+      return this.advanceProduction(itemId);
+    }
     if (c.state === 'SCRIPTS_WRITING') {
       const job = await this.db.job.findFirst({ where: { variationBatchId: batchId, type: 'AUTO_PLAN' }, orderBy: { createdAt: 'desc' } });
-      if (job?.status === 'FAILED') return this.fail(batchId, 'AI preparation was interrupted. Please generate again.');
+      if (job?.status === 'FAILED') return this.failItem(itemId, 'AI preparation was interrupted. Please generate again.');
       // Pedido aceito antes de um reinício, mas sem qualquer chamada paga iniciada.
       if (job?.status === 'QUEUED') void this.jobs.detach(job.id, 'template IA', () => this.run(job.id, batchId));
       return;
     }
-    const production = (item.payload as unknown as { params: { production?: Production } }).params?.production;
+    const payload = item.payload as unknown as { production?: Production; params?: { production?: Production } };
+    const production = payload.production ?? payload.params?.production;
     if (!production) return;
     if (c.state === 'FACES_GENERATING') {
       for (const actor of production.actors) {
@@ -131,9 +167,9 @@ export class TemplatesAiService implements TemplateAiRunner {
         catch { await this.db.face.update({ where: { id: face.id }, data: { status: 'FAILED', errorCode: 'PROVIDER_ERROR' } }); }
       }
       const faces = await this.db.face.findMany({ where: { id: { in: production.actors.map((a) => a.faceId) } } });
-      if (faces.some((f) => f.status === 'FAILED')) return this.fail(batchId, 'Could not generate the presenters. Your credits will be returned.');
+      if (faces.some((f) => f.status === 'FAILED')) return this.failItem(itemId, 'Could not generate the presenters. Your credits will be returned.');
       if (faces.length !== production.actors.length || faces.some((f) => f.status !== 'READY')) {
-        if (Date.now() - c.stateChangedAt.getTime() > 20 * 60_000) return this.fail(batchId, 'Presenter generation timed out.');
+        if (Date.now() - c.stateChangedAt.getTime() > 20 * 60_000) return this.failItem(itemId, 'Presenter generation timed out.');
         return;
       }
       await this.db.$transaction(async (tx) => {
@@ -163,12 +199,20 @@ export class TemplatesAiService implements TemplateAiRunner {
   }
 
   private async fail(batchId: string, reason: string) {
-    const item = await this.db.variationItem.findFirst({ where: { batchId, autoType: 'AI_VIDEO' }, include: { creative: true } });
+    const item = await this.db.variationItem.findFirst({ where: { batchId, autoType: 'AI_VIDEO' }, select: { id: true } });
+    if (item) await this.failItem(item.id, reason);
+  }
+
+  /** Falha de 1 peça (§3.3): só ela vai a RENDER_FAILED; o estorno sai pela linha dela no assentamento. */
+  private async failItem(itemId: string, reason: string) {
+    const item = await this.db.variationItem.findUnique({ where: { id: itemId }, include: { creative: true } });
+    const batchId = item?.batchId;
     if (!item?.creative || ['APPROVED', 'RENDER_READY', 'RENDERING'].includes(item.creative.state)) return;
     await this.db.$transaction(async (tx) => {
       if (item.creative!.state !== 'RENDER_FAILED') await this.sm.transition({ tx, creativeId: item.creative!.id, event: 'AI_PRODUCTION_FAILED', from: item.creative!.state, to: 'RENDER_FAILED' });
       await tx.variationItem.update({ where: { id: item.id }, data: { status: 'FAILED', errorCode: 'PROVIDER_ERROR', failReason: reason } });
-      await tx.variationBatch.update({ where: { id: batchId }, data: { status: 'LAUNCHED', errorCode: null, failReason: null, launchedAt: new Date() } });
+      // fluxo de 04/11: o lote vira LAUNCHED pra assentar; prévias: o lote já está LAUNCHED desde a 1ª aprovação
+      if (!item.previewStatus) await tx.variationBatch.update({ where: { id: batchId! }, data: { status: 'LAUNCHED', errorCode: null, failReason: null, launchedAt: new Date() } });
     }, { timeout: 30000 });
     await this.credits.settleAll(item.workspaceId);
   }
@@ -186,8 +230,10 @@ export class TemplatesAiService implements TemplateAiRunner {
       await tx.scene.updateMany({ where: { creativeId: item.creative!.id }, data: { stale: true } });
       await tx.render.updateMany({ where: { creativeId: item.creative!.id }, data: { stale: true } });
       await tx.variationItem.update({ where: { id: item.id }, data: { status: 'WRITING', leftOutAt: null, errorCode: null, failReason: null } });
+      if (item.previewStatus) return null; // prévia aprovada: roteiro/rostos/vozes já fixados, sem planejador (advanceProduction refaz as cenas)
       return tx.job.create({ data: { workspaceId: auth.workspaceId, createdById: auth.userId, type: 'AUTO_PLAN', status: 'QUEUED', variationBatchId: item.batchId, championId: item.batch.championId, offerId: item.batch.offerId, input: { batchId: item.batchId } } });
     }, { timeout: 30000 });
+    if (!job) { void this.jobs.detach(null, 'retry de prévia aprovada', () => this.advanceProduction(item.id)); return; }
     void this.jobs.detach(job.id, 'retry template IA', () => this.run(job.id, item.batchId));
   }
 
@@ -197,7 +243,8 @@ export class TemplatesAiService implements TemplateAiRunner {
     this.sweeping = true;
     try {
       const items = await this.db.variationItem.findMany({ where: { autoType: 'AI_VIDEO', creative: { archivedAt: null, state: { in: ['SCRIPTS_WRITING', 'SCRIPTS_FAILED', 'FACES_GENERATING', 'FACES_FAILED', 'SCENES_GENERATING', 'SCENES_FAILED'] } } }, select: { batchId: true }, take: 50 });
-      for (const i of items) await this.advance(i.batchId).catch((e) => this.log.warn(`${i.batchId}: ${(e as Error).message}`));
+      for (const batchId of new Set(items.map((i) => i.batchId))) await this.advance(batchId).catch((e) => this.log.warn(`${batchId}: ${(e as Error).message}`));
+      await this.previews.sweep(); // templates-ia-previas-v1: prévias PLANNED/IMAGING e lotes PLANNING
     } finally { this.sweeping = false; }
   }
 }

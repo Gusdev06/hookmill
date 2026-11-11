@@ -7,7 +7,7 @@ export type ProviderTaskStatus = 'SUBMITTED' | 'COMPLETED' | 'FAILED' | 'CANCELL
 export type CostKind = 'LLM' | 'IMAGE' | 'VIDEO' | 'TTS' | 'LIPSYNC' | 'TRANSCRIBE' | 'SCRAPE';
 export type CostUnit = 'second' | 'image' | 'character' | 'ktoken_in' | 'ktoken_out' | 'call';
 /** Provedor de uma task assíncrona (enum Provider do Prisma, sem o ANTHROPIC, que é síncrono). */
-export type TaskProvider = 'WAVESPEED' | 'HIGGSFIELD';
+export type TaskProvider = 'WAVESPEED' | 'HIGGSFIELD' | 'KIE';
 
 export interface ProviderTaskRecord {
   id: string;

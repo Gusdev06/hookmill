@@ -5,7 +5,7 @@ import type { IterateAnswers } from '@maquina/contratos';
 import { TEMPLATE_TYPES, templatesLigados } from './templates-plano';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { aiSettings, TEMPLATE_AI_RUNNER, type AiAuthorization, type TemplateAiRunner } from '../templates-ai/contract';
+import { aiPreviewsOf, aiSettings, aiSettingsKey, TEMPLATE_AI_RUNNER, type AiAuthorization, type TemplateAiRunner } from '../templates-ai/contract';
 import { Interval } from '@nestjs/schedule';
 import type { IterateBatch, IterateConfig, IterateRunningRef, LibraryItem } from '@maquina/contratos';
 import { Prisma, type Champion } from '@prisma/client';
@@ -136,7 +136,7 @@ export class IteracaoService {
       const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
       if (!hit.count) throw new AppException('NOT_FOUND');
       const b = await tx.variationBatch.findUniqueOrThrow({ where: { id } });
-      if (b.status !== 'PLAN_READY') throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'] });
+      if (b.status !== 'PLAN_READY' || aiPreviewsOf(b.settings)) throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'] }); // prévias: só approve
       const item = await tx.variationItem.findFirst({ where: { id: itemId, batchId: id, kind: 'AUTO_EDIT' } });
       if (!item) throw new AppException('NOT_FOUND');
       if (item.selection === 'goal_cut') throw new AppException('ITEM_NOT_SELECTABLE');
@@ -199,10 +199,13 @@ export class IteracaoService {
 
   async create(auth: AuthContext, dto: CreateIterateDto, template?: TemplateBatchSpec): Promise<IterateBatch> {
     const ai = template?.aiGeneration;
+    // templates-ia-previas-v1 §5.1: lote de prévias guarda a chave em settings.aiPreviews (conflito = reason 'request_conflict')
+    const aiKey = ai ? aiSettingsKey(ai) : null;
+    const aiConflict = () => new AppException('INVALID_STATE', ai?.previews ? { state: 'PLANNING', allowed: [], reason: 'request_conflict' } : { reason: 'idempotency_conflict' });
     if (ai) {
-      const existing = await this.prisma.variationBatch.findFirst({ where: { workspaceId: auth.workspaceId, settings: { path: ['aiGeneration', 'requestId'], equals: ai.requestId } } });
+      const existing = await this.prisma.variationBatch.findFirst({ where: { workspaceId: auth.workspaceId, settings: { path: [aiKey!, 'requestId'], equals: ai.requestId } } });
       if (existing) {
-        if (aiSettings(existing.settings)?.fingerprint !== ai.fingerprint) throw new AppException('INVALID_STATE', { reason: 'idempotency_conflict' });
+        if (aiSettings(existing.settings)?.fingerprint !== ai.fingerprint) throw aiConflict();
         return this.get(auth, existing.id);
       }
     }
@@ -238,9 +241,9 @@ export class IteracaoService {
     const r = await this.prisma.$transaction(async (tx) => {
       if (ai) {
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`ai-template:${auth.workspaceId}:${ai.requestId}`}, 0))::text`;
-        const existing = await tx.variationBatch.findFirst({ where: { workspaceId: auth.workspaceId, settings: { path: ['aiGeneration', 'requestId'], equals: ai.requestId } } });
+        const existing = await tx.variationBatch.findFirst({ where: { workspaceId: auth.workspaceId, settings: { path: [aiKey!, 'requestId'], equals: ai.requestId } } });
         if (existing) {
-          if (aiSettings(existing.settings)?.fingerprint !== ai.fingerprint) throw new AppException('INVALID_STATE', { reason: 'idempotency_conflict' });
+          if (aiSettings(existing.settings)?.fingerprint !== ai.fingerprint) throw aiConflict();
           return { batchId: existing.id, jobId: null, championId: existing.championId, duplicate: true };
         }
       }
@@ -254,7 +257,7 @@ export class IteracaoService {
           workspaceId: auth.workspaceId, championId: champion.id, offerId: champion.offerId, mode: 'AUTO',
           status: src.mode === 'reuse' ? BATCH_ENTRY.AUTO_REUSE : BATCH_ENTRY.AUTO_ANALYZE,
           language: champion.language ?? src.offerLanguage, requests: [],
-          settings: { quizEnabled: !template, ...(sample && { sample: true }), ...(cleanFile ? { cleanFileId: cleanFile.id } : {}), ...(template && { template: template.settings }), ...(ai && { aiGeneration: ai }) } as unknown as Prisma.InputJsonValue,
+          settings: { quizEnabled: !template, ...(sample && { sample: true }), ...(cleanFile ? { cleanFileId: cleanFile.id } : {}), ...(template && { template: template.settings }), ...(ai && { [aiKey!]: ai }) } as unknown as Prisma.InputJsonValue,
           estimatedCostUsd: estimate, createdById: auth.userId,
         },
       });
@@ -337,9 +340,13 @@ export class IteracaoService {
     await this.championSm.transition({ tx, championId: c.id, event: 'ANALYZE_AGAIN', from: c.status, to: 'ANALYZING', data: { errorCode: null, failReason: null } });
   }
 
-  private newPlanJob(tx: Prisma.TransactionClient, batchId: string, c: Pick<Champion, 'id' | 'workspaceId' | 'offerId'>, userId: string) {
+  private async newPlanJob(tx: Prisma.TransactionClient, batchId: string, c: Pick<Champion, 'id' | 'workspaceId' | 'offerId'>, userId: string) {
+    // templates-ia-previas-v1 §5.7: o planejador inicial das prévias leva `kind: 'ai_previews'` (a retomada o reconhece por ele
+    // e o deixa QUEUED pro sweep). Vale pros 3 caminhos: /use com campeão lido, campeão que termina a leitura e retry do lote.
+    const b = await tx.variationBatch.findUnique({ where: { id: batchId }, select: { settings: true } });
+    const input = aiPreviewsOf(b?.settings) ? { batchId, kind: 'ai_previews' } : { batchId };
     return tx.job.create({
-      data: { workspaceId: c.workspaceId, type: 'AUTO_PLAN', status: 'QUEUED', input: { batchId }, variationBatchId: batchId, championId: c.id, offerId: c.offerId, createdById: userId },
+      data: { workspaceId: c.workspaceId, type: 'AUTO_PLAN', status: 'QUEUED', input, variationBatchId: batchId, championId: c.id, offerId: c.offerId, createdById: userId },
     });
   }
 
@@ -454,7 +461,7 @@ export class IteracaoService {
   async replan(auth: AuthContext, id: string): Promise<IterateBatch> {
     const r = await this.locks.run(`batch:${id}`, async () => {
       const b = await this.load(auth.workspaceId, id);
-      if (b.status !== 'PLAN_READY') {
+      if (b.status !== 'PLAN_READY' || aiPreviewsOf(b.settings)) {
         throw new AppException('INVALID_STATE', { state: b.status, allowed: ['PLAN_READY'], ...(b.status === 'LAUNCHED' && { reason: 'launched' }) });
       }
       const c = await this.prisma.champion.findUniqueOrThrow({ where: { id: b.championId } });
@@ -603,6 +610,8 @@ export class IteracaoService {
       const hit = await tx.variationBatch.updateMany({ where: { id, workspaceId: auth.workspaceId, mode: 'AUTO', champion: { archivedAt: null } }, data: { updatedAt: new Date() } });
       if (!hit.count) throw new AppException('NOT_FOUND');
       const b = await tx.variationBatch.findUniqueOrThrow({ where: { id } });
+      // templates-ia-previas-v1 §5.3: lote de prévias não tem Generate; o vídeo nasce no approve
+      if (aiPreviewsOf(b.settings)) throw new AppException('INVALID_STATE', { state: b.status, allowed: [], reason: 'change_not_available' });
       assertBatchCan(b.status, 'AUTO_START');
       await this.retireFromPlan(tx, auth.workspaceId, b.id);
       const count = await tx.variationItem.count({ where: { batchId: id, kind: 'AUTO_EDIT', included: true } });
@@ -684,7 +693,9 @@ export class IteracaoService {
    */
   async recover(workspaceId?: string): Promise<number> {
     const ws = workspaceId ? { workspaceId } : {};
-    const planning = await this.prisma.variationBatch.findMany({ where: { ...ws, mode: 'AUTO', status: 'PLANNING' }, select: { id: true } });
+    // templates-ia-previas-v1 §3.3: lote de prévias PLANNING não vira ANALYSIS_FAILED (as imagens seguem pelos provider_tasks;
+    // o planejador inicial interrompido vira PLAN_FAILED pelo sweep do TemplatesAiService)
+    const planning = (await this.prisma.variationBatch.findMany({ where: { ...ws, mode: 'AUTO', status: 'PLANNING' }, select: { id: true, settings: true } })).filter((b) => !aiPreviewsOf(b.settings));
     for (const b of planning) await this.plano.fail(b.id, null, new AutoPlanError('INTERRUPTED', 'planning'));
     const analyzing = await this.prisma.variationBatch.findMany({ where: { ...ws, mode: 'AUTO', status: 'ANALYZING' }, select: { championId: true } });
     for (const championId of new Set(analyzing.map((b) => b.championId))) await this.advanceFromChampion(championId);

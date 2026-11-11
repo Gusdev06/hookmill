@@ -52,6 +52,24 @@ describe('créditos do lote de template (templates-creditos-v1 §4)', () => {
     expect(retryNeed({ cap: 10, held: 0, charged: 10, lines: pack }, 'KX')).toBe(0);
   });
 
+  it('linhas mistas (templates-ia-previas §7): só as held são avaliadas; as já assentadas ficam como estão', () => {
+    // 1ª aprovação: 2 vídeos x 5 = 10, 1 pronto e 1 falho → cobrou 5, devolveu 5. 2ª aprovação: 1 vídeo x 5 = 5 held.
+    const first = line('AI_VIDEO:F10#0', 10, ['a', 'b'], { tier: 'AI', state: 'charged', delivered: 5 });
+    const second = line('AI_VIDEO:F10#1', 5, ['c'], { tier: 'AI' });
+    const run = { cap: null, held: 5, charged: 5, lines: [first, second] };
+    // a peça 'b' da 1ª está rodando de novo (retry grátis?) não importa: a linha já assentada não é reavaliada
+    expect(settle(run, st({ a: 'ready', b: 'queued', c: 'rendering' }))).toBeNull(); // a held ainda roda
+    const ok = settle(run, st({ a: 'ready', b: 'failed', c: 'ready' }))!;
+    expect(ok).toMatchObject({ charge: 5, refund: 0, target: 10 });
+    expect(ok.lines[0]).toEqual(first); // intacta (state/delivered gravados)
+    expect(ok.lines[1]).toMatchObject({ state: 'charged', delivered: 5 });
+    // a 2ª falhou: devolve só a reserva dela; a 1ª continua cobrada
+    expect(settle(run, st({ a: 'failed', b: 'failed', c: 'failed' }))).toMatchObject({ charge: 0, refund: 5, target: 5 });
+    // 1ª linha estornada antes (refunded, delivered 0) + 2ª entrega = cobra só a 2ª
+    const r2 = settle({ cap: null, held: 5, charged: 0, lines: [{ ...first, state: 'refunded', delivered: 0 }, second] }, st({ c: 'ready' }))!;
+    expect(r2).toMatchObject({ charge: 5, refund: 0 });
+  });
+
   it('chaves de idempotência estáveis por run e tentativa', () => {
     expect(ledgerKey.reserve('r1', 1)).toBe('run:r1:reserve:1');
     expect(ledgerKey.refund('r1', 2)).toBe('run:r1:refund:2');

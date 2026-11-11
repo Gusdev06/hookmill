@@ -40,6 +40,8 @@ interface MTemplate {
   slug: string; key: string; tier: "EDIT" | "STATIC" | "AI"; category: TemplateCard["category"]; credits: number | null; outputs: number
   en: [string, string, string]; pt: [string, string, string]; needs: string[]; status: TemplateStatus; beta?: boolean; available: boolean
   example: boolean; uses: number; spec: Spec[]; pack?: boolean; order: number
+  /** templates-ia-previas-v1: AI_VIDEO templates (FAQ, podcast solo/duo) run in the background (previews come from the real API) */
+  auto?: boolean
 }
 const T = (
   slug: string, key: string, category: MTemplate["category"], en: [string, string, string], ptx: [string, string, string], spec: Spec[], extra: Partial<MTemplate> = {}
@@ -64,6 +66,10 @@ const SEED: MTemplate[] = [
   T("static-ad", "STATIC", "static", ["Static ad", "A new image ad made from your Brain, using your ad as reference. 9:16, 4:5 and 1:1.", "1 image"], ["Anúncio estático", "Uma imagem nova feita do seu Cérebro, com seu anúncio de referência. 9:16, 4:5 e 1:1.", "1 imagem"], [{ type: "STATIC" }], { tier: "STATIC", credits: 2, uses: 19 }),
   T("new-face", "AVATAR_FACE", "avatar", ["New face", "Same video, same voice, same edit. Only the face changes, three times.", "3 videos"], ["Rosto novo", "Mesmo vídeo, mesma voz, mesma edição. Só o rosto muda, três vezes.", "3 vídeos"], [], { tier: "AI", credits: 8, uses: 21, needs: ["face", "speech"], status: "DRAFT", available: false }),
   T("podcast-clip", "REMIX_PODCAST", "remix", ["Podcast clip", "A host asks, a guest answers. Opens after our quality test.", "1 video + 2 hooks"], ["Corte de podcast", "Um apresentador pergunta, um convidado responde. Abre depois do nosso teste de qualidade.", "1 vídeo + 2 ganchos"], [], { tier: "AI", credits: null, uses: 0, status: "HIDDEN", beta: true, available: false }),
+  // templates-ia-previas-v1 (07/11): the 3 With AI formats with 4 free previews (slugs of the 04/11 migration; video price not set yet)
+  T("ai-faq", "AI_VIDEO:F04", "remix", ["FAQ", "A presenter answers the questions buyers ask before they buy, built from your winner.", "1 to 4 videos · 9:16"], ["FAQ", "Uma apresentadora responde as perguntas que o comprador faz antes de comprar, a partir do seu campeão.", "1 a 4 vídeos · 9:16"], [], { tier: "AI", credits: null, outputs: 4, uses: 0, auto: true }),
+  T("podcast-solo", "AI_VIDEO:F09", "remix", ["Podcast · solo", "One host at a mic tells your winner's story as a podcast clip.", "1 to 4 videos · 9:16"], ["Podcast · solo", "Um apresentador no microfone conta a história do seu campeão como trecho de podcast.", "1 a 4 vídeos · 9:16"], [], { tier: "AI", credits: null, outputs: 4, uses: 0, auto: true }),
+  T("podcast-conversation", "AI_VIDEO:F10", "remix", ["Podcast · duo", "A host asks, a guest answers. Two faces, two voices, cuts between them.", "1 to 4 videos · 9:16"], ["Podcast · dupla", "Um apresentador pergunta, um convidado responde. Dois rostos, duas vozes, cortes entre eles.", "1 a 4 vídeos · 9:16"], [], { tier: "AI", credits: null, outputs: 4, uses: 0, auto: true }),
   T("let-hookmill-pick", "PACK", "pack", ["Let HookMill pick", "We read your ad and pick the Edit templates that fit it best. You see the list and the total before anything runs.", "up to 12 videos"], ["Deixa o HookMill escolher", "A gente lê seu anúncio e escolhe os templates de Edição que mais encaixam. Você vê a lista e o total antes de rodar.", "até 12 vídeos"], [], { credits: 10, pack: true, uses: 44 }),
 ]
 SEED.forEach((t, i) => (t.order = i))
@@ -103,6 +109,8 @@ function fresh(): MState {
   }
 }
 let S: MState = load()
+// templates-ia-previas-v1: a catalog saved before the With AI templates existed gets them (same order as the seed)
+for (const t of SEED) if (!S.catalog.some((x) => x.slug === t.slug)) S.catalog.push({ ...t })
 function save() {
   if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(S))
 }
@@ -155,7 +163,7 @@ function card(t: MTemplate, fit: TemplateFit | null): TemplateCard {
     slug: t.slug, name: nameOf(t), description: pt() ? t.pt[1] : t.en[1], out: pt() ? t.pt[2] : t.en[2], tier: t.tier, tab: t.tier === "AI" ? "ai" : "edit",
     category: t.category, credits: t.credits, outputs: t.outputs, pack: !!t.pack, beta: !!t.beta, needs: t.needs,
     example: t.example ? { id: `f_tpl_${t.slug}`, url: "/mock/render.mp4", mimeType: "video/mp4", width: 360, height: 640, durationSec: 27 } : null,
-    poster: poster(t), uses: t.uses, available: t.available, sampleOk: t.tier === "EDIT", fit,
+    poster: poster(t), uses: t.uses, available: t.available, sampleOk: t.tier === "EDIT", fit, ...(t.auto ? { autoGenerate: true, aiFormat: t.key.slice(-3) as TemplateCard["aiFormat"] } : {}),
   }
 }
 

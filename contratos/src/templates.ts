@@ -57,6 +57,8 @@ export interface TemplateCard {
   available: boolean;
   /** O Gerar autoriza o fluxo completo em background, sem Plan intermediário. */
   autoGenerate?: boolean;
+  /** templates-ia-previas-v1 (07/11): formato do template With AI (só AI_VIDEO). A tela não mapeia mais por slug */
+  aiFormat?: import('./templates-ai').AiFormat;
   /** amostra: true = Edit (gasta 1 uso); false = "Paid plan" */
   sampleOk: boolean;
   /** só com a fonte na query (championId/metaAdId/creativeId/uploadId); null sem fonte */
@@ -146,6 +148,8 @@ export interface TemplateFitsResponse {
 export interface UseTemplateBody extends TemplateSourceRef {
   offerId?: string; cleanUploadId?: string;
   generation?: { requestId: string; expectedCredits: number };
+  /** templates-ia-previas-v1 §5.1: com `AI_PREVIEWS=on` o template AI_VIDEO exige `previews` e recusa `generation` */
+  previews?: { requestId: string };
 }
 /** templates-multi-v1 (04/11): `POST /ad-templates/use`. Exatamente 1 fonte; `slugs` 2..maxTemplates, distintos, na ordem da galeria. */
 export interface UseTemplatesBody extends UseTemplateBody { slugs: string[] }

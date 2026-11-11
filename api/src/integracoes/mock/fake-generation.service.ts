@@ -115,7 +115,7 @@ export class FakeGenerationService implements GenerationService {
     private readonly opts: FakeGenerationOptions,
   ) {}
 
-  async submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect }): Promise<Submitted> {
+  async submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect; framing?: { gaze?: 'lens' | 'camera_left' | 'camera_right'; setting?: 'generic' | 'described' } }): Promise<Submitted> {
     return this.submit({ workspaceId: i.workspaceId, provider: FACE_MODEL.provider, kind: 'FACE_IMAGE', model: FACE_MODEL.providerModel, faceId: i.faceId, input: { ...i } });
   }
 

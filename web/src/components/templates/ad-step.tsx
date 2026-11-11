@@ -33,6 +33,8 @@ import { TourTip } from "@/components/tour/tip"
 import { useCompetitorAdGuard } from "@/components/research/competitor-ad-warning"
 import { useResearchAds } from "@/hooks/use-research"
 import { AdStill, FitPill, Pill, PricePill, isSelectable, useCreditLabel, useFitText, useUseTemplate } from "./parts"
+import { AiSteps } from "./ai-parts"
+import { aiFormatOf } from "@/lib/ai-previews"
 
 /*
  * /templates/:slug (mockup-templates screen 3, "Which ad do we use?"): Meta winners · Upload · Library. Each row says if the
@@ -96,6 +98,7 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
   const router = useRouter()
   const multi = slugs.length > 1
   const slug = slugs[0]
+  const tai = useTranslations("adTemplates.ai")
   const card = useQuery({ queryKey: ["ad-templates", "card", slug], queryFn: ({ signal }) => api.adTemplates.get(slug, {}, { signal }), staleTime: 60_000, enabled: !multi })
   // the selection's cards come from the gallery list (already cached when coming from /templates)
   const list = useTemplateList(null, { enabled: multi })
@@ -122,6 +125,8 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
     [multi, slugs, list.data, card.data]
   )
   const tpl = multi ? (list.data ? cards[0] : undefined) : card.data
+  // templates-ia-previas-v1: FAQ / Podcast solo / Podcast duo draw 4 free previews first (`TemplateCard.aiFormat` from the API)
+  const aiFmt = multi ? null : aiFormatOf(card.data)
   const names = useMemo(() => new Map(cards.map((c) => [c.slug, c.name])), [cards])
   const loadError = multi ? list.error : card.error
   // R1 (ads-research-v1 §6.1): a saved competitor ad going into a template that reuses its footage asks first
@@ -130,7 +135,7 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
     const footage = !!r.source.researchAdId && cards.filter((c) => which.includes(c.slug)).some((c) => c.tier !== "AI")
     r1.guard(footage, () => {
       setTriedKey(r.key)
-      use.mutate({ slugs: which, source: r.source, offerId: offerId ?? undefined, ...(tpl?.autoGenerate && { expectedCredits: tpl.credits ?? 0 }) })
+      use.mutate({ slugs: which, source: r.source, offerId: offerId ?? undefined, ...(aiFmt ? { previews: true } : tpl?.autoGenerate && { expectedCredits: tpl.credits ?? 0 }) })
     })
   }
   const removeAndGo = (r: Row, out: string[]) => {
@@ -141,14 +146,24 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
     go(r, rest)
   }
 
-  const head = multi ? <SelectionHead cards={cards} credits={list.data?.credits} slugs={slugs} /> : (
+  const head = multi ? <SelectionHead cards={cards} credits={list.data?.credits} slugs={slugs} /> : aiFmt ? (
+    <div className="flex flex-col gap-1.5">
+      <span className="eyebrow">{tpl ? tpl.name : "…"}</span>
+      <h1>{tai("winner.title")}</h1>
+      <p className="m-0 max-w-[680px] text-fg-2">{tai("winner.lede")}</p>
+    </div>
+  ) : (
     <div className="flex flex-col gap-1.5">
       <span className="eyebrow">{tpl ? `${tpl.name} · ${tpl.pack ? t("pack.capLine", { cap: tpl.credits ?? 10 }) : tpl.autoGenerate && tpl.credits == null ? t("unlimited") : label(tpl.credits)}` : "…"}</span>
       <h1>{ta("title")}</h1>
       <p className="m-0 max-w-[680px] text-fg-2">{ta("lede")}</p>
     </div>
   )
-  const flow = <FlowBar flow="templates" current="ad" client={session.workspace.name} hrefs={{ template: galleryHref }} exitHref="/templates" />
+  const flow = aiFmt ? (
+    <AiSteps current={1} hrefs={{ 0: `${templatesHref()}?tab=ai` }} />
+  ) : (
+    <FlowBar flow="templates" current="ad" client={session.workspace.name} hrefs={{ template: galleryHref }} exitHref="/templates" />
+  )
 
   if (loadError) {
     return (
@@ -183,7 +198,8 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
       ) : null}
       {/* tour-v2 §4: the tabs + the list are the adSource tip's anchor. Without Meta the "Upload a video" copy only when the
           Upload tab is the one open (02/11: an account with an ad already read opens on the Library) */}
-      <div id="t-ad-source" className="flex flex-col gap-5">
+      <div className={cn(aiFmt && "grid items-start gap-5 desktop:grid-cols-[minmax(0,1fr)_300px]")}>
+      <div id="t-ad-source" className="flex min-w-0 flex-col gap-5">
         <Segmented
           label={ta("sourceAria")}
           value={current}
@@ -207,6 +223,8 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
           <LibraryRows slugs={slugs} selected={selected} onSelect={setSelected} onGoMeta={() => setTab("meta")} />
         )}
       </div>
+      {aiFmt ? <WhatNext /> : null}
+      </div>
       <TourTip
         tip="adSource"
         when={!conn.isPending}
@@ -224,7 +242,8 @@ export function TemplateAdStep({ slugs }: { slugs: string[] }) {
         blocked={!!use.state.offers && !offerId}
         hintOverride={use.state.offers && !offerId ? t("offerLabel") : null}
         misfit={selected && triedKey === selected.key ? use.state.misfit : null}
-        backHref={galleryHref}
+        backHref={aiFmt ? `${templatesHref()}?tab=ai` : galleryHref}
+        ai={!!aiFmt}
         onContinue={(r) => go(r, slugs)}
         onRemoveAndContinue={removeAndGo}
       />
@@ -647,13 +666,14 @@ function RowList({
 }
 
 function SelectedBar({
-  row, slugs, names, tpl, busy, blocked, hintOverride, misfit, backHref, onContinue, onRemoveAndContinue,
+  row, slugs, names, tpl, busy, blocked, hintOverride, misfit, backHref, ai, onContinue, onRemoveAndContinue,
 }: {
   row: Row | null; slugs: string[]; names: Map<string, string>; tpl: TemplateCard | undefined; busy: boolean; blocked: boolean; hintOverride: string | null
-  misfit: { slug: string; reason: string }[] | null; backHref: string; onContinue: (r: Row) => void; onRemoveAndContinue: (r: Row, out: string[]) => void
+  misfit: { slug: string; reason: string }[] | null; backHref: string; ai: boolean; onContinue: (r: Row) => void; onRemoveAndContinue: (r: Row, out: string[]) => void
 }) {
   const ta = useTranslations("adTemplates.ad")
   const ts = useTranslations("adTemplates.selection")
+  const tw = useTranslations("adTemplates.ai.winner")
   const fitText = useFitText()
   const { session } = useSession()
   const fits = useFits(slugs, row ? [row.source] : [])
@@ -672,6 +692,10 @@ function SelectedBar({
         ? ts("doesntFitOne", { name: nameOf(bad[0].slug), reason: fitText({ level: "hard", reason: bad[0].reason }) ?? "" })
         : ts("doesntFitMany", { names: bad.map((x) => nameOf(x.slug)).join(", ") })}
     </b>
+  ) : ai && row ? (
+    tw.rich("hint", { format: tpl?.name ?? "…", ad: row.name, b: (c) => <b className="text-fg">{c}</b> })
+  ) : ai ? (
+    tw("hintPick")
   ) : row ? (
     <>
       <b className="text-fg">{row.name}</b> · {f?.read ? ta("alreadyRead") : ta("readFirst")}
@@ -702,11 +726,33 @@ function SelectedBar({
           onClick={() => row && onContinue(row)}
         >
           {busy ? <span className="spin-ring size-4 border-fg" aria-hidden="true" /> : null}
-          {tpl?.autoGenerate ? ta("generateAi") : ta("continue")}
+          {ai ? tw("make") : tpl?.autoGenerate ? ta("generateAi") : ta("continue")}
           <NavIcon name="right" size={16} />
         </Button>
       )}
     </IterActionBar>
+  )
+}
+
+/** templates-ia-previas-v1 (design §2.3): the column beside the winners — 4 free previews · approve 1 to 4 · only approved become videos. */
+function WhatNext() {
+  const t = useTranslations("adTemplates.ai.winner")
+  const items = [[t("s1t"), t("s1b")], [t("s2t"), t("s2b")], [t("s3t"), t("s3b")]]
+  return (
+    <aside className="grid gap-3 rounded-lg border border-line bg-card p-4 desktop:sticky desktop:top-4">
+      <span className="eyebrow">{t("next")}</span>
+      <ol className="m-0 grid list-none gap-3 p-0">
+        {items.map(([title, body], i) => (
+          <li key={title} className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5 text-[13px] text-fg-2">
+            <span aria-hidden="true" className="grid size-[22px] place-items-center rounded-full bg-card-2 font-mono text-[11px] text-fg">{i + 1}</span>
+            <span className="grid gap-0.5">
+              <b className="text-fg">{title}</b>
+              {body}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </aside>
   )
 }
 

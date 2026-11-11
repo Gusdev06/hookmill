@@ -1,6 +1,10 @@
 import { DEFAULT_ANSWERS, selectionInfo, WANT_OF } from './selecao';
 import type { IterateAnswers, IterateWant, VariationSelection } from '@maquina/contratos';
 import { Inject, Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import type { AiPreviewsView } from '@maquina/contratos';
+import { AiPreviewsService } from '../templates-ai/previews.service';
+import { aiPreviewsOf } from '../templates-ai/contract';
 import type { AnalysisStage, AutoInsight, FileRef, IterateAnalysis, IterateBatch, IterateError, IteratePiece, IterateStatus } from '@maquina/contratos';
 import type { Job, Prisma } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
@@ -106,7 +110,14 @@ export class IteracaoViews {
     private readonly zips: ZipService,
     @Inject(CATALOG_SERVICE) private readonly catalog: CatalogService,
     private readonly creditos: CreditosService,
+    private readonly moduleRef: ModuleRef,
   ) {}
+
+  /** templates-ia-previas-v1 §5.2: `IterateBatch.ai`. null = lote que não é de prévias (o serviço mora no TemplatesAiModule). */
+  private async aiView(b: IterateRow): Promise<AiPreviewsView | null> {
+    if (!aiPreviewsOf(b.settings)) return null;
+    return this.moduleRef.get(AiPreviewsService, { strict: false }).view(b.id);
+  }
 
   /** templates-creditos-v1 §7: `IterateBatch.template` (quote, saldo, linhas, fit e textos editáveis). null = lote do quiz. */
   private async templateView(b: IterateRow): Promise<IterateTemplateRun | null> {
@@ -192,6 +203,7 @@ export class IteracaoViews {
       error: this.error(b, cost.analysisUsd),
       sample: isSampleSettings(b.settings), // amostra-gratis-v1 §2
       template: await this.templateView(b), // templates-creditos-v1 §7
+      ai: await this.aiView(b), // templates-ia-previas-v1 §5.2 (as prévias não entram em pieces[]; só as aprovadas, como peças)
       quizEnabled: !!(b.settings as Record<string, unknown> | null)?.quizEnabled,
       answers, selectionInfo: selectionInfo(answers ?? DEFAULT_ANSWERS), notSelected, leftOut,
       pieces,

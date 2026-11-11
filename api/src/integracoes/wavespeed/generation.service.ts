@@ -5,7 +5,7 @@
 import { Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { billedSceneSeconds } from '../catalogo/catalog.service';
-import { FACE_MODEL, STATIC_IMAGE_MODEL, staticImageUsd, SWAP_ENGINES, SWAP_V2V_MODEL, TRANSCRIBE_MODEL, TTS_MODEL, VOICES, findSceneModel, round4, speechSeconds } from '../catalogo/precos';
+import { FACE_MODEL, KIE_TRANSCRIBE_MODEL, STATIC_IMAGE_MODEL, staticImageUsd, SWAP_ENGINES, SWAP_V2V_MODEL, TRANSCRIBE_MODEL, TTS_MODEL, VOICES, findSceneModel, round4, speechSeconds } from '../catalogo/precos';
 import type { FaceAspect, GenerationService, SubmitStaticImageInput, Submitted, TranscriptWord, VideoFormat } from '../contrato';
 import { assertTakeDuration } from '../catalogo/take';
 import { IntegracaoError } from '../erros';
@@ -42,6 +42,8 @@ import {
   type MediaPrompts,
 } from './prompts-midia';
 
+import type { KieJobsClient, KieRecord } from '../kie/jobs';
+
 /** externalId das tasks recusadas na submissão (nunca existiram na WaveSpeed). */
 export const REJECTED_PREFIX = 'rejected_';
 const MOCK_PREFIX = 'mock_';
@@ -59,6 +61,8 @@ export interface WaveSpeedGenOptions {
   forceUpload?: boolean;
   /** Rosto (Soul V2). null/ausente = HF_API_KEY_ID/SECRET vazios → submitFace falha NOT_CONFIGURED (nunca mock). */
   higgsfield?: HiggsfieldClient | null;
+  /** 11/11: transcrição pelo Kie (TRANSCRIBE_PROVIDER=kie + KIE_API_KEY). null/ausente = Whisper da WaveSpeed. */
+  kie?: KieJobsClient | null;
   /** MEDIA_PROMPTS (v1 | v2). Padrão v2 desde 06/10. */
   promptVersion?: MediaPromptVersion;
 }
@@ -72,12 +76,20 @@ interface Outcome {
   lastStatus: string;
   /** só WaveSpeed: a transcrição lê a saída crua */
   ws?: WsPrediction;
+  /** só Kie: a transcrição lê o resultObject */
+  kie?: KieRecord;
 }
 
 const httpUrls = (xs: unknown[]) => xs.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u));
 
 function fromWs(p: WsPrediction): Outcome {
   return { fin: finalStatus(p), outputs: httpUrls(p.outputs), error: p.error, output: { prediction: p.raw }, lastStatus: p.status, ws: p };
+}
+
+function fromKie(r: KieRecord): Outcome {
+  const fin = r.state === 'success' ? { status: 'COMPLETED' as Final, errorCode: null }
+    : r.state === 'fail' ? { status: 'FAILED' as Final, errorCode: 'PROVIDER_ERROR' } : null;
+  return { fin, outputs: [], error: r.failMsg, output: { record: r.raw }, lastStatus: r.state, kie: r };
 }
 
 function fromHf(r: HfRequest): Outcome {
@@ -117,11 +129,11 @@ export class WaveSpeedGenerationService implements GenerationService {
   // ------------------------------------------------------------------ submissões
 
   /** Rosto na Higgsfield Soul V2 (1080p 9:16, 1 imagem). Termina pelo laço rápido do reconciliador (polling). */
-  async submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect }): Promise<Submitted> {
+  async submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect; framing?: { gaze?: 'lens' | 'camera_left' | 'camera_right'; setting?: 'generic' | 'described' } }): Promise<Submitted> {
     const hf = this.opts.higgsfield;
     if (!hf) throw new IntegracaoError('NOT_CONFIGURED', 'GenerationService.submitFace: HF_API_KEY_ID / HF_API_KEY_SECRET is empty in api/.env');
     const aspect = i.aspectRatio ?? FACE_MODEL.aspectRatio; // §13.3: aspecto da região do rosto do campeão
-    const body: HfSoulInput = { prompt: this.prompts.face(i.description, aspect), aspect_ratio: aspect, resolution: FACE_MODEL.resolution, batch_size: 1 };
+    const body: HfSoulInput = { prompt: this.prompts.face(i.description, aspect, i.framing), aspect_ratio: aspect, resolution: FACE_MODEL.resolution, batch_size: 1 };
     const t = { workspaceId: i.workspaceId, faceId: i.faceId };
     const input = { ...i, promptVersion: this.prompts.version, request: body };
     let r: HfRequest;
@@ -227,9 +239,28 @@ export class WaveSpeedGenerationService implements GenerationService {
   /** Cena (v1), campeão (feature 2) ou take (§13.5). Sem `language` = detecção automática do Whisper (`auto`). */
   async submitTranscribe(i: { workspaceId: string; sceneId?: string; championId?: string; takeId?: string; mediaUrl: string; language?: string }): Promise<Submitted> {
     one('submitTranscribe', { sceneId: i.sceneId, championId: i.championId, takeId: i.takeId });
+    if (this.opts.kie) return this.submitTranscribeKie(this.opts.kie, i);
     const body = { video: await this.reachable(i.mediaUrl, 'media'), language: i.language ? whisperLanguage(i.language) : 'auto', task: 'transcribe', enable_timestamps: true };
     const sec = await this.mediaSeconds(i.mediaUrl, i.sceneId ?? null, i.takeId ?? null);
     return this.submit('TRANSCRIBE', TRANSCRIBE_MODEL.providerModel, body, { workspaceId: i.workspaceId, sceneId: i.sceneId, championId: i.championId, takeId: i.takeId, input: { ...i } }, Math.ceil(sec) * TRANSCRIBE_MODEL.usdPerSecond);
+  }
+
+  /** 11/11: Nemotron 3.5 Transcribe no Kie (idioma detectado sozinho; timestamps por palavra). Mesmo fim do Whisper. */
+  private async submitTranscribeKie(kie: KieJobsClient, i: { workspaceId: string; sceneId?: string; championId?: string; takeId?: string; mediaUrl: string; language?: string }): Promise<Submitted> {
+    const audioUrl = await this.reachableKie(kie, i.mediaUrl);
+    const sec = await this.mediaSeconds(i.mediaUrl, i.sceneId ?? null, i.takeId ?? null);
+    const body = { audio_url: audioUrl, timestamps: true };
+    const est = round4(Math.ceil(sec) * KIE_TRANSCRIBE_MODEL.usdPerSecond);
+    const taskId = await kie.createTask(KIE_TRANSCRIBE_MODEL.providerModel, body);
+    const rec = await this.tasks.create({ workspaceId: i.workspaceId, provider: 'KIE', kind: 'TRANSCRIBE', model: KIE_TRANSCRIBE_MODEL.providerModel, externalId: taskId, input: { ...i, request: body }, estimatedUsd: est, sceneId: i.sceneId, championId: i.championId, takeId: i.takeId });
+    return { providerTaskId: rec.id, externalId: rec.externalId, estimatedUsd: est };
+  }
+
+  /** URL que o Kie baixa: a pública (assinada de horas serve); privada/local sobe pro armazenamento do Kie. */
+  private async reachableKie(kie: KieJobsClient, url: string): Promise<string> {
+    if (!this.opts.forceUpload && isPublicUrl(url)) return url;
+    const { bytes, contentType } = await readInput(url, this.opts.fetchImpl ?? fetch);
+    return kie.upload(bytes, filenameFor(url, contentType, 'media'));
   }
 
   async parseWords(providerTaskId: string): Promise<Word[]> {
@@ -305,6 +336,13 @@ export class WaveSpeedGenerationService implements GenerationService {
       }
       return fromHf(await this.opts.higgsfield.status(t.externalId));
     }
+    if (t.provider === 'KIE') {
+      if (!this.opts.kie) {
+        this.log.warn(`reconcile ${t.externalId}: kie task but KIE_API_KEY empty`);
+        return null;
+      }
+      return fromKie(await this.opts.kie.recordInfo(t.externalId));
+    }
     return fromWs(await this.client.result(t.externalId));
   }
 
@@ -374,6 +412,15 @@ export class WaveSpeedGenerationService implements GenerationService {
       output = { words, wordsSource: source, language, prediction: o.ws.raw };
       outputUrls = []; // transcrição não vira arquivo no storage
       if (source === 'none') this.log.warn(`transcribe ${t.externalId}: no text in output`);
+    } else if (status === 'COMPLETED' && t.kind === 'TRANSCRIBE' && o.kie) {
+      const fallbackSec = await this.mediaSeconds(String(t.input.mediaUrl ?? ''), t.sceneId, t.takeId);
+      const src = await this.kieTranscript(o.kie);
+      const { words, source } = extractWords(src ?? o.kie.result?.resultObject ?? null, fallbackSec);
+      const text = words.map((w) => w.word).join(' ');
+      const language = transcriptLanguage({ raw: [src], requested: t.input.language as string | undefined, text });
+      output = { words, wordsSource: source, language, record: o.kie.raw };
+      outputUrls = [];
+      if (source === 'none') this.log.warn(`transcribe ${t.externalId}: no text in output`);
     } else if (status === 'COMPLETED' && !outputUrls.length) {
       status = 'FAILED';
       errorCode = 'PROVIDER_ERROR';
@@ -436,7 +483,7 @@ export class WaveSpeedGenerationService implements GenerationService {
       }
       case 'TRANSCRIBE': {
         const sec = await this.mediaSeconds(String(t.input.mediaUrl ?? ''), t.sceneId, t.takeId);
-        return { kind: 'TRANSCRIBE', units: Math.ceil(sec), unit: 'second', usdPerUnit: TRANSCRIBE_MODEL.usdPerSecond };
+        return { kind: 'TRANSCRIBE', units: Math.ceil(sec), unit: 'second', usdPerUnit: t.provider === 'KIE' ? KIE_TRANSCRIBE_MODEL.usdPerSecond : TRANSCRIBE_MODEL.usdPerSecond };
       }
     }
   }
@@ -452,6 +499,20 @@ export class WaveSpeedGenerationService implements GenerationService {
   }
 
   /** Saída do Whisper: texto/JSON inline, ou URL de um arquivo de texto (baixa até 2 MB). */
+  /** Resultado completo do Nemotron (words com start/end) fica num JSON em resultObject.url (expira em ~14 dias). */
+  private async kieTranscript(r: KieRecord): Promise<unknown> {
+    const obj = (r.result?.resultObject ?? null) as Record<string, unknown> | null;
+    const url = typeof obj?.url === 'string' ? obj.url : null;
+    if (!url) return obj;
+    try {
+      const res = await (this.opts.fetchImpl ?? fetch)(url, { signal: AbortSignal.timeout(20_000) });
+      return JSON.parse((await res.text()).slice(0, 5_000_000));
+    } catch (e) {
+      this.log.warn(`kie transcript download failed: ${(e as Error).message}`);
+      return obj;
+    }
+  }
+
   private async transcriptSource(p: WsPrediction): Promise<unknown> {
     const first = p.outputs[0];
     if (typeof first === 'string' && /^https?:\/\//.test(first)) {

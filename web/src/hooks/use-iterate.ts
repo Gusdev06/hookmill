@@ -18,6 +18,8 @@ export function useIterateConfig() {
  *  Rev. 23/10 (§14.2): also while any on-demand format (4:5 / 1:1) is queued or rendering — the phase stays `download`. */
 export function iterateInterval(b: IterateBatch | undefined) {
   if (!b) return false
+  // templates-ia-previas-v1 §5.2: a With AI previews batch polls every 2 s while previews are drawn or approved videos are made
+  if (b.ai) return b.ai.phase === "planning" || b.ai.phase === "producing" || b.ai.generating > 0 ? 2_000 : false
   if (b.status === "ANALYZING" || b.status === "PLANNING" || b.phase === "generate" || b.zip.status === "building") return 1_500
   if (b.pieces.some((p) => p.render || p.formats?.some((f) => f.state === "queued" || f.state === "rendering"))) return 1_500
   // amostra-gratis-v1 §2/§3: the sample launches by itself from PLAN_READY, and the blurred preview comes a bit after the piece

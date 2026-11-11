@@ -2,6 +2,12 @@
 Data: 2026-10-05 · Dono: maquina-arquiteto · Status: **aprovado pelo Gusta (G0, 05/10)**
 Derivado da spec [`design/wizard-v1-2026-10-05.md`](../../design/wizard-v1-2026-10-05.md) (§8) e do [modelo de dados](modelo-de-dados.md). Eventos em tempo real: [`eventos.md`](eventos.md).
 
+## Mudanças 07/11 (Templates With AI: 4 prévias antes do vídeo; detalhe em [`templates-ia-previas-v1.md`](templates-ia-previas-v1.md)) · **aprovado 07/11, código local no worktree `with-ai-previas`, flag `AI_PREVIEWS`**
+- **Rota que muda:** `POST /ad-templates/:slug/use` (AI_VIDEO, `AI_PREVIEWS=on`): `previews: { requestId }` no lugar de `generation` (recusado); sem crédito; `202 IterateBatch` em `PLANNING`.
+- **Rotas novas:** `POST /iterate/:id/ai-previews/approve` `{ requestId, previewIds 1..4, expectedCredits }` (incremental: aceita `PLANNING`/`PLAN_READY`/`LAUNCHED`) · `POST /iterate/:id/ai-previews/:previewId/regenerate` `{ requestId }` (novo ângulo, só `ready`, teto 3/6) · `POST /iterate/:id/ai-previews/:previewId/retry` `{ requestId }` (só `failed`, máx. 2).
+- **Resposta:** `IterateBatch.ai: AiPreviewsView | null` (`contratos/src/templates-ai.ts`). Prévias fora de `pieces[]` até aprovadas. Polling de 2 s, sem SSE.
+- **Erros:** `REGEN_LIMIT` (429, novo, `{ scope, used, max }`); `INVALID_STATE.reason` ganha `preview_not_ready` e `request_conflict` (+ `previewIds`).
+
 ## Mudanças 06/11 (F1b da troca de texto queimado; **contrato F0b, ainda sem código; `PLATE_IMPL=off` mantém o F1a**)
 Nenhuma rota nova. Nenhum evento novo: status por polling de `GET /iterate/:id`, como hoje.
 | rota | mudança | erros |

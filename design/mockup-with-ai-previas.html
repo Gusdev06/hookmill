@@ -1,0 +1,968 @@
+<title>HookMill · With AI · previews</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* HookMill · Templates › With AI › 4 image previews › approve › videos (decision 07/11).
+   Same skin as the product (web/src/app/globals.css): light main, ink sidebar, lime = the one action per screen, colour only for status.
+   The yellow bar is the prototype control, not product. "Phone 390" renders the app in a 390 px frame (container queries). */
+:root {
+  --bg: #eeeeea; --card: #fdfdfb; --card-2: #f3f4f0; --field: #ffffff;
+  --line: #dcddd7; --line-soft: #e4e5e0; --line-strong: #cfd1cb;
+  --fg: #15171a; --fg-2: #3b4047; --fg-3: #5a6068;
+  --brand: #c8f03c; --brand-hover: #bde52f; --brand-ink: #3e5200; --brand-soft: #f0f8d2; --brand-edge: #a9cc2a;
+  --ink: #16181b; --ink-2: #202328; --ink-3: #2a2e33; --ink-line: #2e3238; --ink-fg: #f2f3ee; --ink-fg-2: #c5cad0; --ink-fg-3: #9aa1a9;
+  --ok-bg: #e2f3e8; --ok: #0b6b43; --ok-dot: #1c9a5e; --ok-edge: #b7dec5;
+  --warn-bg: #fbf0d3; --warn: #7a5000; --warn-edge: #e9c76b;
+  --bad-bg: #fbe7dd; --bad: #a8360c; --bad-edge: #e4b9a6;
+  --info-bg: #e6ebfc; --info: #2b4bc8; --info-edge: #c3cef6;
+  /* drawn placeholder images */
+  --th-sky: #8fb3c9; --th-sand: #d8c3a0; --th-sage: #9fb89a; --th-dusk: #6f6a8f; --th-clay: #c08a6a; --th-wine: #6b3a46; --th-teal: #3f6f6a;
+  --th-skin: #c99b7c; --th-skin-2: #8d5f45; --th-skin-3: #e0b896; --th-hair: #3a2b22; --th-hair-2: #a0683a; --th-shirt: #3b4047; --th-shirt-2: #7a8a5a;
+  --th-mic: #1d1f22; --th-white: #ffffff; --th-yellow: #ffe14d;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r-chip: 8px; --r-ctl: 10px; --r-btn: 12px; --r-card: 16px; --r-panel: 18px;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+html, body { margin: 0; height: 100% }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; display: flex; flex-direction: column }
+button, input, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px }
+h1, h2, h3 { margin: 0; text-wrap: balance }
+h1 { font-size: 30px; line-height: 1.1; font-weight: 800; font-stretch: 125%; letter-spacing: -0.015em }
+h2 { font-size: 17px; font-weight: 700 }
+h3 { font-size: 14px; font-weight: 700 }
+p { margin: 0 }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3) }
+.num { font-variant-numeric: tabular-nums }
+.muted { color: var(--fg-3) }
+.mono { font-family: var(--mono) }
+
+/* prototype bar (outside the product frame) */
+.proto { flex: none; display: flex; gap: 8px 14px; align-items: center; padding: 8px 16px; background: var(--warn-bg); border-bottom: 1px solid var(--warn-edge); font-size: 12px; color: var(--warn); overflow-x: auto; white-space: nowrap }
+.proto b { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase }
+.proto label { display: inline-flex; gap: 6px; align-items: center }
+.proto select { border: 1px solid var(--warn-edge); background: var(--card); border-radius: var(--r-chip); padding: 4px 6px; font-size: 12px; max-width: 220px }
+.seg { display: inline-flex; border: 1px solid var(--warn-edge); border-radius: 8px; overflow: hidden; background: var(--card) }
+.seg button { border: 0; background: none; padding: 4px 9px; font-size: 12px; color: var(--warn) }
+.seg button[aria-pressed="true"] { background: var(--warn); color: var(--warn-bg) }
+
+/* product frame: transform makes position:fixed children (bars, sheets) stick to the frame, so Phone 390 behaves like a phone */
+.stagebox { flex: 1; min-height: 0; display: grid; place-items: stretch }
+.frame { --fh: 100%; position: relative; transform: translateZ(0); container: app / inline-size; overflow: hidden; background: var(--bg); width: 100%; height: 100% }
+.scroller { height: 100%; overflow-y: auto; overflow-x: hidden }
+body.phone .stagebox { place-items: center; background: #d9dad4; padding: 16px }
+body.phone .frame { width: min(390px, 100%); height: min(844px, 100%); border-radius: 28px; border: 1px solid var(--line-strong); box-shadow: 0 20px 50px rgba(22,24,27,.18) }
+
+/* shell */
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100% }
+.side { background: var(--ink); color: var(--ink-fg-2); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: calc(100dvh - 41px); overflow-y: auto }
+body.phone .side { height: auto }
+.logo { font-weight: 800; font-stretch: 112%; font-size: 17px; color: var(--ink-fg); padding: 4px 10px 14px; display: flex; gap: 8px; align-items: center }
+.logo i { width: 18px; height: 18px; border-radius: 5px; background: var(--brand); border: 1px solid var(--brand-edge) }
+.ws { margin: 0 4px 12px; padding: 8px 10px; border: 1px solid var(--ink-line); border-radius: var(--r-ctl); font-size: 13px; color: var(--ink-fg); display: flex; justify-content: space-between }
+.grp { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-fg-3); padding: 14px 10px 6px }
+.nav { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r-chip); border: 0; background: none; text-align: left; color: var(--ink-fg-2); min-height: 36px; width: 100% }
+.nav:hover { background: var(--ink-3) }
+.nav.on { background: var(--ink-3); color: var(--ink-fg); font-weight: 600 }
+.nav .cnt { margin-left: auto; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--info); color: var(--th-white) }
+.side .foot { margin-top: auto; display: grid; gap: 8px; padding-top: 14px }
+.meter { border: 1px solid var(--ink-line); border-radius: var(--r-ctl); padding: 10px; display: grid; gap: 6px; font-size: 12px }
+.meter b { color: var(--ink-fg); font-size: 18px; font-weight: 800; font-stretch: 112% }
+.meter .bar { height: 4px; background: var(--ink-3); border-radius: 4px; overflow: hidden }
+.meter .bar i { display: block; height: 100%; background: var(--ink-fg-2) }
+.topbar { display: none }
+.main { min-width: 0; display: flex; flex-direction: column }
+.view { padding: 24px 24px 140px; display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 1280px }
+
+/* buttons, pills */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 14px; border-radius: var(--r-btn); border: 1px solid var(--line-strong); background: var(--card); font-weight: 600; font-size: 13px; color: var(--fg); white-space: nowrap; text-decoration: none }
+.btn:hover { background: var(--card-2) }
+.btn.lime { background: var(--brand); border-color: var(--brand-edge); color: var(--fg) }
+.btn.lime:hover { background: var(--brand-hover) }
+.btn.ghost { border-color: transparent; background: none; color: var(--fg-2) }
+.btn.ghost:hover { background: var(--card-2) }
+.btn.ink { background: var(--fg); border-color: var(--fg); color: var(--card) }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.btn.sm { min-height: 34px; padding: 6px 10px; font-size: 12px; border-radius: var(--r-ctl) }
+.btn svg { flex: none }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--card-2); color: var(--fg-2); white-space: nowrap }
+.pill.ai { background: var(--ink); border-color: var(--ink); color: var(--ink-fg) }
+.pill.tbd { border-style: dashed; background: transparent; color: var(--fg-3) }
+.pill.ok { background: var(--ok-bg); border-color: transparent; color: var(--ok) }
+.pill.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn) }
+.pill.bad { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad) }
+.pill.info { background: var(--info-bg); border-color: var(--info-edge); color: var(--info) }
+.pill.soon { border-style: dashed }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--fg-3); display: inline-block }
+.dot.prog { background: var(--info); box-shadow: 0 0 0 3px var(--info-bg); animation: pulse 1.6s ease-in-out infinite }
+.dot.okd { background: var(--ok-dot) } .dot.badd { background: var(--bad) }
+
+/* gallery */
+.lhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap }
+.lhead .t { display: grid; gap: 6px; min-width: 0 }
+.lhead .t p { color: var(--fg-2); max-width: 62ch }
+.bal { display: flex; gap: 8px; align-items: center }
+.bal .n { display: grid; text-align: right; font-size: 12px; color: var(--fg-3) }
+.bal .n b { font-size: 20px; font-weight: 800; font-stretch: 112%; color: var(--fg); line-height: 1 }
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.search { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; background: var(--field); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); padding: 0 12px; min-height: 40px; max-width: 420px; color: var(--fg-3) }
+.search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; font-size: 14px; color: var(--fg) }
+.tabs { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; background: var(--card) }
+.tabs button { border: 0; background: none; padding: 8px 14px; font-weight: 600; font-size: 13px; color: var(--fg-2); min-height: 38px }
+.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--card) }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px }
+.chips::-webkit-scrollbar { display: none }
+.chip { border: 1px solid var(--line); background: var(--card); border-radius: 99px; padding: 6px 12px; font-size: 13px; color: var(--fg-2); white-space: nowrap; min-height: 34px }
+.chip[aria-pressed="true"] { border-color: var(--fg); color: var(--fg); font-weight: 600; box-shadow: inset 0 0 0 1px var(--fg) }
+.chip small { font-family: var(--mono); font-size: 10px; color: var(--fg-3); margin-left: 4px }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px }
+.tcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px; display: flex; flex-direction: column; gap: 10px; min-width: 0; text-align: left; cursor: pointer }
+.tcard:hover { border-color: var(--line-strong) }
+.tcard .body { display: grid; gap: 6px; padding: 0 4px 2px; min-width: 0 }
+.tcard .nm { display: flex; justify-content: space-between; gap: 8px; align-items: center }
+.tcard .nm b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.tcard .ds { font-size: 12.5px; color: var(--fg-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 3.9em }
+.tcard .ft { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 4px 4px; margin-top: auto }
+.tcard .ft .u { font-size: 11px; color: var(--fg-3); font-family: var(--mono) }
+.tcard.off { cursor: default }
+.tcard.off .vid { filter: saturate(.25); opacity: .65 }
+.sect { margin-top: 4px }
+.sect .eyebrow b { color: var(--fg) }
+
+/* drawn 9:16 image / video */
+.vid { position: relative; aspect-ratio: 9 / 16; width: 100%; border-radius: 10px; overflow: hidden; background: var(--th-sky); isolation: isolate }
+.vid .ph { position: absolute; top: 7px; left: 7px; z-index: 6; font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em; background: rgba(22, 24, 27, .78); color: var(--ink-fg); padding: 2px 5px; border-radius: 4px }
+.vid .asp { position: absolute; top: 7px; right: 7px; z-index: 6; font-family: var(--mono); font-size: 9px; background: rgba(255, 255, 255, .88); color: var(--fg); padding: 2px 5px; border-radius: 4px }
+.vid .prog { position: absolute; z-index: 6; left: 7px; right: 7px; bottom: 7px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .3); overflow: hidden }
+.vid .prog i { display: block; height: 100%; background: var(--th-white); transform-origin: left; animation: tick 9s linear infinite }
+.sc { position: absolute; inset: 0 }
+.sc .wall { position: absolute; inset: 0 }
+.sc .desk { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: rgba(22, 24, 27, .55) }
+.sc .lamp { position: absolute; width: 40%; aspect-ratio: 1; border-radius: 50%; top: 6%; right: -8%; background: radial-gradient(circle, rgba(255, 225, 77, .45), transparent 65%) }
+.pp { position: absolute; bottom: 0; width: 62%; aspect-ratio: 3 / 4; left: 50%; transform: translateX(-50%) }
+.pp i { position: absolute; display: block }
+.pp .hr { inset: 0 12% 60%; border-radius: 50% 50% 22% 22%; background: var(--th-hair) }
+.pp .h { inset: 8% 18% 36%; border-radius: 48% 48% 44% 44%; background: var(--th-skin) }
+.pp .bd { left: 0; right: 0; bottom: 0; height: 36%; border-radius: 40% 40% 0 0; background: var(--th-shirt) }
+.pp .hp { inset: 4% 12% 52%; border-radius: 50% 50% 0 0; border: 5px solid var(--th-mic); border-bottom: 0 }
+.pp.b .h { background: var(--th-skin-2) } .pp.b .hr { inset: 2% 20% 66%; border-radius: 50% }
+.pp.c .h { background: var(--th-skin-3) } .pp.c .hr { background: var(--th-hair-2); inset: 0 8% 50%; border-radius: 50% 50% 30% 30% }
+.pp.g .bd { background: var(--th-shirt-2) }
+.pp.d .hr { background: #8a8780; inset: 2% 16% 62% } .pp.d .h { background: var(--th-skin-3) }
+.pp.e .hr { background: #1a1410; inset: -2% 6% 48%; border-radius: 50% } .pp.e .h { background: var(--th-skin-2) }
+.pp.w .bd { background: #6b3a46 } .pp.s .bd { background: #2f4a6b }
+/* F10: one image per speaker, side by side (contract §6: no two-shot in v1) */
+.vid.split { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--ink) }
+.vid.split .half { position: relative; overflow: hidden; min-width: 0 }
+.vid.split .half .pp { width: 96% }
+.vid.split .half .mic { left: 44%; width: 13% }
+.vid .who { position: absolute; z-index: 6; top: 26px; font-family: var(--mono); font-size: 8px; letter-spacing: .06em; background: rgba(22, 24, 27, .7); color: var(--ink-fg); padding: 1px 4px; border-radius: 3px }
+.mic { position: absolute; z-index: 4; bottom: 18%; width: 7%; height: 11%; border-radius: 40% 40% 30% 30%; background: var(--th-mic) }
+.mic::after { content: ""; position: absolute; left: 42%; top: 100%; width: 16%; height: 90%; background: var(--th-mic) }
+.qcard { position: absolute; z-index: 4; left: 9%; right: 9%; top: 15%; background: var(--th-white); color: var(--fg); border-radius: 8px; padding: 7px 8px; font-weight: 800; font-size: 10.5px; line-height: 1.15; box-shadow: 0 4px 12px rgba(0, 0, 0, .18) }
+.qcard small { display: block; font-family: var(--mono); font-weight: 500; font-size: 8px; color: var(--fg-3); margin-bottom: 3px; letter-spacing: .06em }
+.ptag { position: absolute; z-index: 4; left: 8px; top: 26px; font-family: var(--mono); font-size: 8px; padding: 2px 5px; border-radius: 3px; background: var(--th-red, #d83a2a); color: var(--th-white) }
+.cap { position: absolute; z-index: 5; left: 7%; right: 7%; bottom: 25%; text-align: center; font-weight: 800; font-size: 11px; color: var(--th-white); text-shadow: 0 1px 3px rgba(0,0,0,.75); line-height: 1.15 }
+.cap em { font-style: normal; background: var(--th-yellow); color: var(--fg); text-shadow: none; padding: 0 3px; border-radius: 2px }
+.big .cap { font-size: clamp(14px, 4.4cqi, 22px) }
+.toon .pp .h { border: 2px solid var(--fg) } .toon .pp .bd { border: 2px solid var(--fg) } .toon .pp .hr { border: 2px solid var(--fg) }
+.notes { position: absolute; z-index: 4; inset: 14% 10% auto; font-size: 22px; color: var(--th-white); letter-spacing: 10px; text-align: center }
+.bars { position: absolute; z-index: 4; left: 12%; right: 12%; top: 22%; display: grid; gap: 6px }
+.bars i { display: block; height: 14px; border-radius: 4px; background: var(--th-white) }
+.bars i:nth-child(2) { width: 72%; background: var(--th-yellow) } .bars i:nth-child(3) { width: 50% }
+
+/* image generation (wait state only): blurred image resolving + scan line */
+.vid.gen .sc, .vid.gen .pp, .vid.gen .mic, .vid.gen .qcard, .vid.gen .cap { filter: blur(12px) saturate(.6) }
+.vid.gen::after { content: ""; position: absolute; inset: 0; z-index: 7; background-image: radial-gradient(rgba(255,255,255,.35) 1px, transparent 1.4px); background-size: 7px 7px; animation: grain 1.2s steps(4) infinite }
+.vid.gen .scan { position: absolute; z-index: 8; left: 0; right: 0; height: 30%; background: linear-gradient(180deg, transparent, rgba(255,255,255,.28), transparent); animation: scan 2.2s ease-in-out infinite }
+.vid.empty-img { background: var(--card-2) }
+.vid.empty-img .sc { background: repeating-linear-gradient(135deg, var(--card-2) 0 10px, var(--line-soft) 10px 20px) }
+
+/* flow bar */
+.flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px }
+.flow span { display: inline-flex; gap: 6px; align-items: center; color: var(--fg-3); padding: 4px 10px 4px 4px; border-radius: 99px; border: 1px solid var(--line) }
+.flow span i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-family: var(--mono); font-size: 10px; background: var(--card-2); color: var(--fg-3) }
+.flow span.done { color: var(--fg-2); background: var(--card) } .flow span.done i { background: var(--fg); color: var(--card) }
+.flow span.cur { color: var(--fg); font-weight: 600; border-color: var(--fg) } .flow span.cur i { background: var(--brand); color: var(--fg) }
+.flow .sep { width: 10px; height: 1px; background: var(--line-strong); border: 0; padding: 0 }
+
+/* champion strip: always visible after step 2 */
+.champ { position: sticky; top: 0; z-index: 12; display: flex; gap: 12px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px 12px 8px 8px; box-shadow: 0 6px 14px -12px rgba(22,24,27,.4) }
+.champ .vid { width: 40px; flex: none; border-radius: 6px }
+.champ .vid .ph, .champ .vid .asp, .champ .vid .prog, .champ .vid .cap { display: none }
+.champ .m { display: grid; gap: 2px; min-width: 0; flex: 1 }
+.champ .m .l1 { display: flex; gap: 8px; align-items: center; min-width: 0 }
+.champ .m b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.champ .m .l2 { font-size: 12px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.champ .m .l2 q { color: var(--fg-2) }
+.champ .arrow { font-family: var(--mono); font-size: 11px; color: var(--fg-3); display: flex; gap: 6px; align-items: center; white-space: nowrap }
+.champ .arrow b { color: var(--fg); font-family: var(--display); font-size: 13px }
+
+/* winner list */
+.list { display: grid; gap: 8px }
+.srcrow { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); text-align: left; width: 100% }
+.srcrow:hover { border-color: var(--line-strong) }
+.srcrow[aria-checked="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg) }
+.srcrow:disabled { cursor: not-allowed; opacity: .7 }
+.srcrow .radio { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center }
+.srcrow[aria-checked="true"] .radio { border-color: var(--fg) }
+.srcrow[aria-checked="true"] .radio::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--fg) }
+.srcrow .vid { border-radius: 6px }
+.srcrow .vid .ph, .srcrow .vid .asp, .srcrow .vid .prog, .srcrow .vid .cap { display: none }
+.srcrow .m { display: grid; gap: 3px; min-width: 0 }
+.srcrow .m b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.srcrow .m span { font-size: 12px; color: var(--fg-3) }
+.srcrow .r { display: grid; gap: 4px; justify-items: end; font-size: 12px }
+.subtabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line) }
+.subtabs button { border: 0; background: none; padding: 9px 12px; font-size: 13px; color: var(--fg-3); border-bottom: 2px solid transparent; margin-bottom: -1px; min-height: 40px }
+.subtabs button[aria-selected="true"] { color: var(--fg); font-weight: 600; border-bottom-color: var(--fg) }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start }
+.howto { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 16px; display: grid; gap: 12px; position: sticky; top: 0 }
+.howto ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; counter-reset: s }
+.howto li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; font-size: 13px; color: var(--fg-2); counter-increment: s }
+.howto li::before { content: counter(s); width: 22px; height: 22px; border-radius: 50%; background: var(--card-2); border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--mono); font-size: 11px; color: var(--fg) }
+.howto li b { color: var(--fg); display: block }
+
+/* previews */
+.phead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap }
+.phead .t { display: grid; gap: 4px }
+.phead .t p { color: var(--fg-2); max-width: 70ch }
+.waitline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--fg-2); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 12px }
+.waitline .bar { flex: 1 1 160px; min-width: 120px }
+.bar { height: 6px; background: var(--card-2); border-radius: 6px; overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--info); border-radius: 6px; transition: width .3s }
+.bar.ok i { background: var(--ok-dot) } .bar.bad i { background: var(--bad) }
+.pgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: stretch }
+.prev { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-width: 0 }
+.prev.on { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg) }
+.prev .imgw { position: relative; min-width: 0 }
+.prev .letter { position: absolute; z-index: 9; left: 8px; bottom: 8px; width: 26px; height: 26px; border-radius: 7px; background: var(--ink); color: var(--ink-fg); display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 12px }
+.prev .zoom { position: absolute; z-index: 9; right: 8px; bottom: 8px; width: 32px; height: 32px; border-radius: 8px; border: 0; background: rgba(22, 24, 27, .7); color: var(--ink-fg); display: grid; place-items: center }
+.prev .txt { display: grid; gap: 8px; align-content: start; padding: 0 4px; min-width: 0 }
+.prev .angle { font-weight: 700; font-size: 14px; line-height: 1.25 }
+.prev .angle small { display: block; font-family: var(--mono); font-weight: 500; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 2px }
+.prev .hook { margin: 0; font-size: 13px; color: var(--fg); border-left: 2px solid var(--brand-edge); padding: 2px 0 2px 8px; font-style: normal; quotes: "“" "”" }
+.prev .hook::before { content: open-quote } .prev .hook::after { content: close-quote }
+.prev .vs { display: grid; gap: 4px; font-size: 12.5px; color: var(--fg-2) }
+.prev .vs .eyebrow { font-size: 10px }
+.prev .vs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px }
+.prev .vs li { line-height: 1.35 }
+.prev .vs li .b { color: var(--fg-3) }
+.prev .vs li .ar { font-family: var(--mono); color: var(--fg-3); font-size: 11px; padding: 0 3px }
+.prev .vs li .a { color: var(--fg); font-weight: 600 }
+.prev .castl { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3) }
+.prev .castl b { font-family: var(--display); font-size: 12px; color: var(--fg-2); font-weight: 600 }
+.regenleft { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3); padding: 0 4px 2px; text-align: right }
+.prev .acts .btn { min-height: 40px; flex: none }
+@container app (max-width: 760px) { .prev .regenleft { grid-column: 1 / -1 } }
+.prev .kept { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3) }
+.prev .acts { display: flex; gap: 6px; align-items: center; padding: 0 2px 2px }
+.approve { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: var(--r-btn); border: 1px solid var(--line-strong); background: var(--card); font-weight: 600; font-size: 13px }
+.approve .bx { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--fg-3); display: grid; place-items: center }
+.approve[aria-checked="true"] { background: var(--fg); border-color: var(--fg); color: var(--card) }
+.approve[aria-checked="true"] .bx { border-color: var(--brand); background: var(--brand) }
+.approve[aria-checked="true"] .bx::after { content: ""; width: 9px; height: 5px; border-left: 2px solid var(--fg); border-bottom: 2px solid var(--fg); transform: rotate(-45deg) translate(1px, -1px) }
+.approve:disabled { opacity: .45; cursor: not-allowed }
+.iconbtn { width: 40px; height: 40px; flex: none; border-radius: var(--r-btn); border: 1px solid var(--line-strong); background: var(--card); display: grid; place-items: center; color: var(--fg-2) }
+.iconbtn:hover { background: var(--card-2) }
+.menu { position: absolute; z-index: 20; right: 8px; bottom: 54px; width: min(260px, calc(100% - 16px)); background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); box-shadow: 0 12px 30px -10px rgba(22, 24, 27, .35); padding: 4px; display: grid }
+.menu button { border: 0; background: none; text-align: left; padding: 9px 10px; border-radius: 8px; display: grid; gap: 1px; font-size: 13px; font-weight: 600 }
+.menu button span { font-weight: 400; font-size: 12px; color: var(--fg-3) }
+.menu button:hover { background: var(--card-2) }
+.prev.wait .txt .sk { height: 11px }
+.stage-line { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--fg-2) }
+.stage-line small { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--fg-3) }
+.prev.fail { border-color: var(--bad-edge) }
+.failbox { display: grid; gap: 8px; align-content: center; justify-items: start; padding: 10px; background: var(--bad-bg); border: 1px solid var(--bad-edge); border-radius: 10px; font-size: 12.5px; color: var(--fg-2) }
+.failbox b { color: var(--bad) }
+.prev.regen .imgw { opacity: .9 }
+.tip { font-size: 12px; color: var(--fg-3) }
+
+/* waiting: beam (only on things that are working) */
+.beam { position: relative }
+.beam::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; background: conic-gradient(from var(--a), transparent 0 70%, var(--brand) 82%, var(--info) 92%, transparent 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); animation: beam 2.4s linear infinite; pointer-events: none; z-index: 8 }
+.sk { display: block; background: linear-gradient(90deg, var(--card-2) 0%, var(--line-soft) 50%, var(--card-2) 100%); background-size: 200% 100%; animation: sk 1.4s linear infinite; border-radius: 6px }
+
+/* progress list (Vercel deploy list) */
+.runs { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden }
+.run { display: grid; grid-template-columns: 52px minmax(0, 1.2fr) minmax(0, 1fr) 90px; gap: 14px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--line-soft) }
+.run:first-child { border-top: 0 }
+.run .vid { border-radius: 6px }
+.run .vid .ph, .run .vid .asp, .run .vid .prog, .run .vid .cap { display: none }
+.run .m { display: grid; gap: 3px; min-width: 0 }
+.run .m b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.run .m span { font-size: 12px; color: var(--fg-3) }
+.run .st { display: grid; gap: 6px; min-width: 0 }
+.run .st .l { display: flex; gap: 8px; align-items: center; font-size: 13px; min-width: 0 }
+.run .st .l span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.run .eta { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--fg-3) }
+.run.fail { background: var(--bad-bg) }
+.run .failrow { grid-column: 2 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--fg-2) }
+.steps { margin: 0; padding: 0; list-style: none; display: flex; gap: 4px; flex-wrap: wrap }
+.steps li { font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--fg-3) }
+.steps li.done { background: var(--ok-bg); border-color: transparent; color: var(--ok) }
+.steps li.run { background: var(--info-bg); border-color: var(--info-edge); color: var(--info) }
+.steps li.bad { background: var(--bad-bg); border-color: var(--bad-edge); color: var(--bad) }
+.note { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--fg-2); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 12px }
+
+/* ready */
+.ready { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start }
+.stage { background: var(--ink); border-radius: var(--r-panel); padding: 18px; display: grid; place-items: center; min-height: 560px; container-type: inline-size }
+.stage .player { width: min(360px, 100%); display: grid; gap: 10px }
+.stage .vid { border-radius: 12px }
+.stage .ctl { display: flex; gap: 10px; align-items: center; color: var(--ink-fg-2); font-family: var(--mono); font-size: 12px }
+.stage .ctl .tl { flex: 1; height: 4px; border-radius: 4px; background: var(--ink-3); overflow: hidden }
+.stage .ctl .tl i { display: block; width: 34%; height: 100%; background: var(--ink-fg) }
+.stage .ctl button { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--ink-fg); display: grid; place-items: center }
+.vtabs { display: flex; gap: 8px; flex-wrap: wrap }
+.vtab { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 10px 6px 6px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); text-align: left; min-width: 0; max-width: 260px }
+.vtab[aria-selected="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg) }
+.vtab .vid { border-radius: 5px } .vtab .vid .ph, .vtab .vid .asp, .vtab .vid .prog, .vtab .vid .cap { display: none }
+.vtab span { display: grid; font-size: 12px; color: var(--fg-3); min-width: 0 }
+.vtab span b { color: var(--fg); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.side-info { display: grid; gap: 14px }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.kv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 12px; font-size: 13px; margin: 0 }
+.kv dt { color: var(--fg-3) } .kv dd { margin: 0; min-width: 0 }
+.leftover { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--line-strong); border-radius: var(--r-card); padding: 12px 14px; font-size: 13px; color: var(--fg-2) }
+.leftover .mini { display: flex; gap: 6px }
+.leftover .mini .vid { width: 30px; border-radius: 4px }
+.leftover .mini .vid .ph, .leftover .mini .vid .asp, .leftover .mini .vid .prog, .leftover .mini .vid .cap { display: none }
+
+/* sheets */
+.scrim { position: fixed; inset: 0; background: rgba(22, 24, 27, .5); z-index: 40; display: grid; place-items: center; padding: 16px }
+.sheet { background: var(--card); border-radius: var(--r-panel); width: min(860px, 100%); max-height: calc(100% - 32px); overflow: auto; display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 22px; padding: 20px; position: relative }
+.sheet.narrow { width: min(520px, 100%); grid-template-columns: minmax(0, 1fr); gap: 16px }
+.sheet .x { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 18px; line-height: 1 }
+.sheet .info { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding-top: 6px }
+.sheet .act { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line) }
+.cost { background: var(--ink); color: var(--ink-fg); border-radius: var(--r-card); padding: 14px 16px; display: grid; gap: 10px }
+.cost .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink-fg-2) }
+.cost .row b { color: var(--ink-fg); font-weight: 600; text-align: right }
+.cost hr { border: 0; border-top: 1px solid var(--ink-line); margin: 0 }
+.cost .total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px }
+.cost .total b { font-size: 24px; font-weight: 800; font-stretch: 112% }
+.cost .tbd { font-family: var(--mono); font-size: 10.5px; border: 1px dashed var(--ink-fg-3); color: var(--ink-fg-2); border-radius: 5px; padding: 1px 6px }
+.cost small { font-size: 12px; color: var(--ink-fg-3) }
+.chosen { display: flex; gap: 8px }
+.chosen .vid { width: 54px; border-radius: 6px }
+.chosen .vid .ph, .chosen .vid .asp, .chosen .vid .prog, .chosen .vid .cap { display: none }
+.banner { border-radius: var(--r-card); padding: 12px 14px; display: grid; gap: 8px; border: 1px solid; font-size: 13px }
+.banner.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn) }
+.banner.warn p { color: var(--fg-2) }
+.lightbox .sheet { width: min(420px, 100%); grid-template-columns: minmax(0, 1fr); background: var(--ink); color: var(--ink-fg) }
+.lightbox .sheet .x { background: var(--ink-2); border-color: var(--ink-line); color: var(--ink-fg) }
+
+/* sticky action bar */
+.abar { position: fixed; bottom: 0; right: 0; left: 232px; z-index: 30; background: var(--card); border-top: 1px solid var(--line); padding: 12px 24px calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center }
+.abar .hint { margin-right: auto; font-size: 13px; color: var(--fg-2); min-width: 0 }
+.abar .hint b { color: var(--fg) }
+.abar .hint .tbd { font-family: var(--mono); font-size: 10.5px; border: 1px dashed var(--line-strong); border-radius: 5px; padding: 1px 6px; color: var(--fg-3); white-space: nowrap }
+.empty { border: 1px dashed var(--line-strong); border-radius: var(--r-card); padding: 36px 16px; text-align: center; display: grid; gap: 8px; justify-items: center; color: var(--fg-2) }
+.toast { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: 92px; background: var(--ink); color: var(--ink-fg); padding: 10px 14px; border-radius: 10px; font-size: 13px; max-width: calc(100% - 32px) }
+
+@property --a { syntax: "<angle>"; initial-value: 0deg; inherits: false }
+@keyframes beam { to { --a: 360deg } }
+@keyframes tick { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+@keyframes sk { to { background-position: -200% 0 } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px transparent } }
+@keyframes scan { 0% { top: -30% } 100% { top: 100% } }
+@keyframes grain { 25% { background-position: 2px 3px } 50% { background-position: -3px 1px } 75% { background-position: 1px -2px } }
+@keyframes spin { to { transform: rotate(360deg) } }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--info); border-top-color: transparent; animation: spin 1s linear infinite; flex: none; display: inline-block }
+
+@container app (max-width: 1100px) {
+  .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .ready { grid-template-columns: minmax(0, 1fr) }
+  .two { grid-template-columns: minmax(0, 1fr) }
+  .howto { position: static }
+}
+/* ── phone (≤ 760 px of app width; the Phone 390 toggle proves it) ── */
+@container app (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr) }
+  .side { position: fixed; z-index: 45; left: 0; top: 0; bottom: 0; width: 260px; height: auto; max-height: none; transform: translateX(-100%); transition: transform .2s }
+  .side.open { transform: none }
+  .topbar { display: flex; position: sticky; top: 0; z-index: 20; height: 56px; align-items: center; gap: 10px; background: var(--ink); color: var(--ink-fg); padding: 0 12px }
+  .topbar .mb { width: 44px; height: 44px; border: 0; background: none; color: var(--ink-fg); font-size: 20px }
+  .topbar .logo { padding: 0; font-size: 16px }
+  .topbar .cr { margin-left: auto; font-family: var(--mono); font-size: 12px; border: 1px solid var(--ink-line); border-radius: 8px; padding: 5px 8px; background: none; color: var(--ink-fg); min-height: 36px }
+  h1 { font-size: 24px }
+  .view { padding: 16px 16px 170px; gap: 14px }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+  .tcard { padding: 6px; gap: 8px }
+  .tcard .ds { -webkit-line-clamp: 2; min-height: 2.6em; font-size: 12px }
+  .tcard .ft .u { display: none }
+  .tcard .ft .btn { flex: 1 }
+  .search { max-width: none }
+  .tools .tabs { width: 100% } .tools .tabs button { flex: 1 }
+  .lhead .bal { display: none }
+  .flow span { padding-right: 8px } .flow span em { display: none } .flow span.cur em { display: inline }
+  .champ { top: 56px; padding: 6px 10px 6px 6px; gap: 10px }
+  .champ .vid { width: 30px }
+  .champ .m .l2 { display: none }
+  .champ .arrow .lbl { display: none }
+  .srcrow { grid-template-columns: 22px 44px minmax(0, 1fr) }
+  .srcrow .r { grid-column: 3; justify-items: start; display: flex; gap: 6px; flex-wrap: wrap }
+  /* previews become a scannable list: image left, words right, approve full width */
+  .pgrid { grid-template-columns: minmax(0, 1fr); gap: 10px }
+  .prev { grid-template-columns: 116px minmax(0, 1fr); grid-template-rows: auto auto; gap: 10px; padding: 8px }
+  .prev .imgw { grid-row: 1; grid-column: 1 }
+  .prev .txt { grid-row: 1; grid-column: 2; padding: 0; gap: 6px }
+  .prev .acts { grid-column: 1 / -1 }
+  .prev .angle { font-size: 13.5px }
+  .prev .hook { font-size: 12.5px }
+  .prev .vs { font-size: 12px }
+  .prev .kept { display: none }
+  .prev .vid .ph { display: none }
+  .prev .letter { width: 22px; height: 22px; font-size: 11px; left: 6px; bottom: 6px }
+  .prev .zoom { width: 28px; height: 28px; right: 6px; bottom: 6px }
+  .menu { bottom: 54px; right: 8px; left: 8px; width: auto }
+  .run { grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px }
+  .run .vid { grid-row: span 2 }
+  .run .st { grid-column: 2 }
+  .run .eta { display: none }
+  .run .failrow { grid-column: 1 / -1 }
+  .stage { min-height: 0; padding: 12px }
+  .stage .player { width: min(300px, 100%) }
+  .vtabs { flex-wrap: nowrap; overflow-x: auto }
+  .vtab { flex: none }
+  .scrim { padding: 8px; align-items: end }
+  .sheet { grid-template-columns: minmax(0, 1fr); padding: 16px; max-height: calc(100% - 16px) }
+  .sheet > .vid { max-width: 200px; margin: 0 auto }
+  .sheet .act { justify-content: stretch } .sheet .act .btn { flex: 1 }
+  .abar { left: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); flex-wrap: wrap; gap: 8px }
+  .abar .hint { flex: 1 1 100%; font-size: 12px; margin: 0 }
+  .abar .btn { flex: 1 }
+  .abar .btn.ghost { flex: 0 1 auto }
+  .toast { bottom: 128px }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition: none !important }
+}
+</style>
+
+<div class="proto" role="region" aria-label="Mockup controls">
+  <b>Mockup</b>
+  <label for="pScreen">Screen <select id="pScreen"></select></label>
+  <label for="pState">State <select id="pState"></select></label>
+  <label for="pFmt">Format <select id="pFmt">
+    <option value="duo">Podcast · duo</option>
+    <option value="solo">Podcast · solo</option>
+    <option value="faq">FAQ</option>
+  </select></label>
+  <span class="seg" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="pt">PT</button></span>
+  <span class="seg" role="group" aria-label="Viewport"><button type="button" data-vp="desk">Desktop</button><button type="button" data-vp="phone">Phone 390</button></span>
+  <span>Images are drawn placeholders. Previews are free (07/11); video price isn't set, so it shows "—".</span>
+</div>
+
+<div class="stagebox">
+  <div class="frame" id="frame">
+    <div class="scroller" id="scroller">
+      <div class="app">
+        <aside class="side" id="side" aria-label="HookMill navigation"></aside>
+        <div class="main">
+          <header class="topbar">
+            <button class="mb" type="button" id="menuBtn" aria-label="Open menu">≡</button>
+            <div class="logo">HookMill</div>
+            <button class="cr" type="button" id="topBal">42 credits</button>
+          </header>
+          <main class="view" id="view"></main>
+        </div>
+      </div>
+    </div>
+    <div id="bar"></div>
+    <div id="layer"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var S = {
+    lang: 'en', phone: false, screen: 'gallery', state: 'normal', fmt: 'duo', tab: 'ai', chip: null,
+    ad: 'a1', subtab: 'meta', sel: { A: true, B: false, C: true, D: false },
+    sheet: null, menu: null, zoom: null, vid: 'A', bal: 42,
+    prev: null, /* per-letter status in generating: 'wait' | 'ready' */
+    regen: {}, swapped: {}, rc: {}, pct: {}, made: ['A', 'C']
+  };
+  function t(en, pt) { return S.lang === 'pt' ? pt : en; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var $ = function (id) { return document.getElementById(id); };
+  var timers = [];
+  function clearTimers() { timers.forEach(function (x) { clearTimeout(x); clearInterval(x); }); timers = []; }
+
+  var SCREENS = [
+    ['gallery', '1 · Templates › With AI', [['normal', 'Ready'], ['loading', 'Loading']]],
+    ['detail', '1b · Template detail', [['normal', 'Ready']]],
+    ['winner', '2 · Pick your winner', [['normal', 'Ready'], ['empty', 'No winners yet']]],
+    ['previews', '3 · 4 previews', [['generating', 'Making previews (live)'], ['ready', 'Ready · pick 1 to 4'], ['failed', 'One preview failed'], ['regen', 'Regenerating one'], ['limit', 'Free regenerations used up'], ['none', 'Nothing approved yet']]],
+    ['confirm', '4 · Confirm cost', [['normal', 'Ready'], ['nocredits', 'Not enough credits']]],
+    ['progress', '5 · Making videos', [['running', 'Running (live)'], ['failed', 'One video failed']]],
+    ['ready', '6 · Watch & download', [['done', 'All ready'], ['partial', 'One still rendering']]]
+  ];
+
+  var FMT = {
+    faq: { name: ['FAQ', 'FAQ'], art: 'faq', desc: ['A presenter answers the questions buyers ask before they buy, built from your winner.', 'Uma apresentadora responde as perguntas que o comprador faz antes de comprar, a partir do seu campeão.'], live: true },
+    solo: { name: ['Podcast · solo', 'Podcast · solo'], art: 'solo', desc: ['One host at a mic tells your winner\'s story as a podcast clip.', 'Um apresentador no microfone conta a história do seu campeão como trecho de podcast.'], live: true },
+    duo: { name: ['Podcast · duo', 'Podcast · dupla'], art: 'duo', desc: ['A host asks, a guest answers. Two faces, two voices, cuts between them.', 'Um apresentador pergunta, um convidado responde. Dois rostos, duas vozes, cortes entre eles.'], live: true },
+    th: { name: ['Talking head', 'Talking head'], art: 'th', desc: ['A new person says your winner to camera, in their own setting.', 'Uma pessoa nova fala o seu campeão pra câmera, no cenário dela.'], live: false },
+    toon: { name: ['Cartoon', 'Cartoon'], art: 'toon', desc: ['Your argument as a short animated cartoon scene.', 'O seu argumento como uma cena curta de desenho animado.'], live: false },
+    music: { name: ['Musical', 'Musical'], art: 'music', desc: ['Your promise as a short jingle with on-screen lyrics.', 'A sua promessa como um jingle curto com a letra na tela.'], live: false },
+    anim: { name: ['Animations', 'Animações'], art: 'anim', desc: ['A motion-graphics explainer built from your winner\'s claims.', 'Um explicativo em motion graphics feito com as afirmações do seu campeão.'], live: false }
+  };
+  var FMT_ORDER = ['faq', 'solo', 'duo', 'th', 'toon', 'music', 'anim'];
+  var FMT_CAT = { faq: 'faq', solo: 'podcast', duo: 'podcast', th: 'th', toon: 'toon', music: 'music', anim: 'anim' };
+  var CAT_NAMES = { podcast: ['Podcast', 'Podcast'], faq: ['FAQ', 'FAQ'], th: ['Talking head', 'Talking head'], toon: ['Cartoon', 'Cartoon'], music: ['Musical', 'Musical'], anim: ['Animations', 'Animações'] };
+
+  var ADS = [
+    { id: 'a1', name: 'Sleep in 7 nights · UGC v3', meta: 'Meta · Active · $1,240 spent · CPA $18.20', hook: 'I tried 11 sleep masks so you don\'t have to.', kind: 'Talking head · 0:32', fit: 'ok', bg: 0 },
+    { id: 'a2', name: '3am wake-ups · talking head', meta: 'Meta · Active · $860 spent · CPA $21.05', hook: 'If you wake up at 3am every night, watch this.', kind: 'Talking head · 0:41', fit: 'ok', bg: 1 },
+    { id: 'a3', name: 'App demo · screen only', meta: 'Meta · Paused · $310 spent · CPA $29.80', hook: '(no speech)', kind: 'Screen recording · 0:24', fit: 'hard', bg: 2 },
+    { id: 'a4', name: 'Founder story · v2', meta: 'Meta · Active · $95 spent · not enough data', hook: 'I built this after 2 years of bad sleep.', kind: 'Talking head · 0:58', fit: 'unread', bg: 3 }
+  ];
+  function ad() { return ADS.filter(function (a) { return a.id === S.ad; })[0] || ADS[0]; }
+
+  /* previews: hook stays in the winner's language (EN offer); angle + "what changes" follow the interface language */
+  /* 07/11 (Gusta): 4 NEW ideas, none faithful to the winner; a DIFFERENT presenter (and voice) in each preview.
+     vs = [before (your ad), after (this preview)], max 3 on screen (contract §4.1 changes[]). */
+  var PREV = {
+    A: { angle: ['The skeptic gets converted', 'O cético que se convence'], hook: 'I told her sleep masks were a scam. Then she showed me her sleep data.',
+      vs: [[['Opens on the result', 'Abre no resultado'], ['Opens on doubt', 'Abre na dúvida']], [['One person, a review', 'Uma pessoa, review'], ['Skeptic host vs. a buyer', 'Apresentador cético vs. quem comprou']]],
+      cast: ['c', 'b g'], voices: ['Maya', 'Daniel'], bg: 0, cap: 'sleep masks were a <em>scam</em>' },
+    B: { angle: ['The 3am wake-up confession', 'A confissão das 3 da manhã'], hook: 'What wakes you up at 3am isn\'t stress. It\'s light.',
+      vs: [[['Opens on a product claim', 'Abre falando do produto'], ['Opens on a pain question', 'Abre numa pergunta de dor']], [['Mask named at 0:02', 'Máscara citada em 0:02'], ['Cause first, mask at 0:15', 'Causa primeiro, máscara em 0:15']]],
+      cast: ['d s', 'e'], voices: ['Arthur', 'Leah'], bg: 1, cap: 'it isn\'t stress. It\'s <em>light</em>' },
+    C: { angle: ['Cheap fix vs. expensive fix', 'Solução barata vs. cara'], hook: 'She spent $400 on supplements. The fix was $29.',
+      vs: [[['No comparison', 'Sem comparação'], ['Against what buyers already tried', 'Contra o que o comprador já tentou']], [['Price at the end', 'Preço no fim'], ['Price at 0:08', 'Preço em 0:08']]],
+      cast: ['e w', ''], voices: ['Grace', 'Tom'], bg: 2, cap: 'The fix was <em>$29</em>' },
+    D: { angle: ['Night 1 to night 7 diary', 'Diário da noite 1 à 7'], hook: 'Night 1 I hated it. Night 4 I didn\'t wake up once.',
+      vs: [[['A review', 'Um review'], ['A 7-night diary', 'Um diário de 7 noites']], [['The speaker carries it', 'Quem fala conduz'], ['Host only reacts; guest tells it', 'Apresentador só reage; convidado conta']]],
+      cast: ['b', 'c s'], voices: ['Marcus', 'Iris'], bg: 3, cap: 'Night 4 I didn\'t <em>wake up</em>' }
+  };
+  var ALT = { angle: ['What the sleep doctor said', 'O que a médica do sono disse'], hook: 'My sleep doctor told me to stop buying pills and fix the light.',
+    vs: [[['Proof from the user', 'Prova vem de quem usou'], ['Proof from a doctor\'s advice', 'Prova vem do conselho da médica']], [['Fast pace', 'Ritmo rápido'], ['Calm, explainer pace', 'Ritmo calmo, explicativo']]],
+    cast: ['d w', 'c'], voices: ['Nora', 'Sam'], bg: 4, cap: 'stop buying <em>pills</em>' };
+  var REGEN_MAX = 3, REGEN_BATCH = 6;
+  var KEPT = ['Kept: offer · $29 · 7-night promise · guarantee', 'Mantido: oferta · $29 · promessa de 7 noites · garantia'];
+  function P(l) { return S.swapped[l] ? ALT : PREV[l]; }
+  function regenUsed() { return ['A', 'B', 'C', 'D'].reduce(function (a, l) { return a + (S.rc[l] || 0); }, 0); }
+  function regenLeft(l) { return Math.max(0, Math.min(REGEN_MAX - (S.rc[l] || 0), REGEN_BATCH - regenUsed())); }
+  function regenOut(l) { return regenLeft(l) <= 0; }
+
+  var BGS = [
+    'linear-gradient(180deg, #2f3a4a, #6f6a8f)',
+    'linear-gradient(180deg, #3f6f6a, #9fb89a)',
+    'linear-gradient(180deg, #6b3a46, #c08a6a)',
+    'linear-gradient(180deg, #8fb3c9, #d8c3a0)',
+    'linear-gradient(180deg, #3b4047, #8fb3c9)'
+  ];
+
+  /* drawn 9:16 key image */
+  function person(cls, hp) { return '<div class="pp ' + (cls || '') + '"><i class="hr"></i><i class="h"></i>' + (hp ? '<i class="hp"></i>' : '') + '<i class="bd"></i></div>'; }
+  function art(kind, o) {
+    o = o || {};
+    var bg = BGS[(o.bg || 0) % BGS.length], h = '', cast = o.cast || ['c', 'b g'];
+    var room = '<div class="sc"><div class="wall" style="background:' + bg + '"></div><div class="lamp"></div>' + (kind === 'duo' || kind === 'solo' ? '<div class="desk"></div>' : '') + '</div>';
+    var room2 = '<div class="sc"><div class="wall" style="background:' + BGS[((o.bg || 0) + 2) % BGS.length] + '"></div><div class="desk"></div></div>';
+    if (kind === 'duo') h = '<div class="half">' + room + person(cast[0], true) + '<i class="mic"></i><span class="who" style="left:6px">HOST</span></div><div class="half">' + room2 + person(cast[1], true) + '<i class="mic"></i><span class="who" style="right:6px">GUEST</span></div>';
+    else if (kind === 'solo') h = room + person(cast[0], true) + '<i class="mic" style="left:46%"></i><span class="ptag">● REC</span>';
+    else if (kind === 'faq') h = room + person(cast[0]) + '<div class="qcard"><small>' + esc(o.qlabel || 'YOU ASKED') + '</small>' + (o.q || 'Does it work if I sleep on my side?') + '</div>';
+    else if (kind === 'th') h = room + person(cast[0] === 'c' ? 'b' : cast[0]);
+    else if (kind === 'toon') h = '<div class="sc toon"><div class="wall" style="background:linear-gradient(180deg,#ffe14d,#f2a7c3)"></div></div><div class="toon"><div class="pp c"><i class="hr"></i><i class="h"></i><i class="bd"></i></div></div>';
+    else if (kind === 'music') h = room + '<div class="notes">♪ ♫ ♪</div><div class="pp"><i class="hr"></i><i class="h"></i><i class="bd"></i></div>';
+    else if (kind === 'anim') h = '<div class="sc"><div class="wall" style="background:linear-gradient(180deg,#16181b,#2a2e33)"></div></div><div class="bars"><i></i><i></i><i></i></div>';
+    else h = room + '<div class="pp"><i class="hr"></i><i class="h"></i><i class="bd"></i></div>';
+    var cap = o.cap ? '<div class="cap">' + o.cap + '</div>' : '';
+    var cls = 'vid' + (kind === 'duo' ? ' split' : '') + (o.gen ? ' gen' : '') + (o.big ? ' big' : '');
+    return '<div class="' + cls + '" aria-hidden="true">' + h + cap +
+      (o.ph ? '<span class="ph">' + esc(o.ph) + '</span>' : '') + '<span class="asp">9:16</span>' +
+      (o.play ? '<span class="prog"><i></i></span>' : '') + (o.gen ? '<span class="scan"></span>' : '') + '</div>';
+  }
+  function fmtArt(f, o) { o = o || {}; o.bg = o.bg != null ? o.bg : 0; return art(FMT[f].art, o); }
+  function prevArt(l, o) {
+    var p = P(l); o = o || {};
+    return art(FMT[S.fmt].art, { bg: p.bg, cast: p.cast, cap: o.nocap ? '' : p.cap, gen: o.gen, ph: o.ph, big: o.big, play: o.play, q: S.fmt === 'faq' ? faqQ(l) : null, qlabel: t('YOU ASKED', 'VOCÊ PERGUNTOU') });
+  }
+  function faqQ(l) { return { A: 'Is this just another sleep mask?', B: 'Why do I wake up at 3am?', C: 'Is it worth $29?', D: 'How fast does it work?' }[l] || 'Is it safe for every night?'; }
+  function fname(f) { return t(FMT[f || S.fmt].name[0], FMT[f || S.fmt].name[1]); }
+
+  var ICON = {
+    regen: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
+    zoom: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5"/></svg>',
+    right: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    dl: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+    play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="#16181b" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>',
+    search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></svg>'
+  };
+
+  // ───────── shell ─────────
+  function side() {
+    var waiting = (S.screen === 'previews' && S.state !== 'generating') ? '<span class="cnt">1</span>' : '';
+    $('side').innerHTML = '<div class="logo"><i></i>HookMill</div><div class="ws"><span>Sleepwell</span><span aria-hidden="true">⌄</span></div>' +
+      '<div class="grp">' + t('Workspace', 'Workspace') + '</div>' +
+      '<button class="nav" type="button">Home' + waiting + '</button><button class="nav" type="button">' + t('Campaigns', 'Campanhas') + '</button><button class="nav" type="button">Brain</button>' +
+      '<div class="grp">' + t('Make ads', 'Criar anúncios') + '</div>' +
+      '<button class="nav on" type="button" data-go="gallery">Templates</button><button class="nav" type="button">' + t('New concepts', 'Novos conceitos') + '</button><button class="nav" type="button">Review</button><button class="nav" type="button">' + t('Library', 'Biblioteca') + '</button>' +
+      '<div class="foot"><div class="meter"><span>' + t('Credits', 'Créditos') + '</span><b class="num">' + S.bal + '</b><div class="bar"><i style="width:' + Math.min(100, S.bal) + '%"></i></div></div>' +
+      '<button class="nav" type="button">' + t('Settings', 'Configurações') + '</button></div>';
+    $('topBal').textContent = S.bal + ' ' + t('credits', 'créditos');
+  }
+
+  function flow(cur) {
+    var steps = [t('Format', 'Formato'), t('Winner', 'Campeão'), t('Previews', 'Prévias'), t('Videos', 'Vídeos')];
+    return '<nav class="flow" aria-label="' + t('Steps', 'Etapas') + '">' + steps.map(function (s, i) {
+      var c = i < cur ? 'done' : i === cur ? 'cur' : '';
+      return (i ? '<i class="sep" aria-hidden="true"></i>' : '') + '<span class="' + c + '"' + (i === cur ? ' aria-current="step"' : '') + '><i>' + (i < cur ? '✓' : i + 1) + '</i><em>' + s + '</em></span>';
+    }).join('') + '</nav>';
+  }
+
+  function champ(change) {
+    var a = ad();
+    return '<section class="champ" aria-label="' + t('Your winner', 'Seu campeão') + '">' + art('th', { bg: a.bg }) +
+      '<div class="m"><div class="l1"><span class="eyebrow">' + t('From your winner', 'Do seu campeão') + '</span><b>' + esc(a.name) + '</b></div>' +
+      '<div class="l2">' + esc(a.kind) + ' · CPA ' + esc(a.meta.split('CPA ')[1] || '—') + ' · ' + t('hook', 'gancho') + ' <q>' + esc(a.hook) + '</q></div></div>' +
+      '<div class="arrow"><span class="lbl">' + t('becomes', 'vira') + '</span> → <b>' + esc(fname()) + '</b></div>' +
+      (change ? '<button class="btn sm ghost" type="button" data-go="winner">' + t('Change', 'Trocar') + '</button>' : '') + '</section>';
+  }
+
+  function bar(html) { $('bar').innerHTML = html ? '<div class="abar" role="region" aria-label="' + t('Actions', 'Ações') + '">' + html + '</div>' : ''; }
+  function tbd() { return '<span class="tbd">' + t('price TBD', 'preço a definir') + '</span>'; }
+
+  // ───────── 1 · gallery ─────────
+  function gallery() {
+    var loading = S.state === 'loading';
+    var tabs = [['all', t('All', 'Todos')], ['edit', t('Edit', 'Edição')], ['ai', t('With AI', 'Com IA')]];
+    var cats = S.tab === 'edit' ? [] : Object.keys(CAT_NAMES);
+    var ais = FMT_ORDER.filter(function (f) { return !S.chip || FMT_CAT[f] === S.chip; });
+    var h = '<div class="lhead"><div class="t"><span class="eyebrow">' + t('Make ads', 'Criar anúncios') + '</span><h1>Templates</h1><p>' +
+      t('Pick a format. Edit templates change the packaging of your ad; With AI makes a new video of your winner in another format.', 'Escolha um formato. Os de edição mudam a embalagem do seu anúncio; os Com IA fazem um vídeo novo do seu campeão em outro formato.') +
+      '</p></div><div class="bal"><div class="n"><span>' + t('Balance', 'Saldo') + '</span><b class="num">' + S.bal + '</b></div><button class="btn sm" type="button">' + t('Get credits', 'Comprar créditos') + '</button></div></div>' +
+      '<div class="tools"><label class="search">' + ICON.search + '<input type="search" placeholder="' + t('Search templates', 'Buscar templates') + '"></label>' +
+      '<div class="tabs" role="group" aria-label="' + t('Template type', 'Tipo de template') + '">' + tabs.map(function (x) { return '<button type="button" data-tab="' + x[0] + '" aria-pressed="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
+    if (cats.length) h += '<div class="chips" role="group" aria-label="' + t('Category', 'Categoria') + '"><button class="chip" type="button" data-chip="" aria-pressed="' + !S.chip + '">' + t('Everything', 'Tudo') + '</button>' +
+      cats.map(function (c) { var n = FMT_ORDER.filter(function (f) { return FMT_CAT[f] === c; }).length; return '<button class="chip" type="button" data-chip="' + c + '" aria-pressed="' + (S.chip === c) + '">' + t(CAT_NAMES[c][0], CAT_NAMES[c][1]) + '<small>' + n + '</small></button>'; }).join('') + '</div>';
+    if (loading) {
+      h += '<div class="grid">' + [0, 1, 2, 3, 4, 5].map(function () { return '<div class="tcard"><span class="sk" style="aspect-ratio:9/16"></span><span class="sk" style="height:14px;width:70%"></span><span class="sk" style="height:12px"></span><span class="sk" style="height:34px"></span></div>'; }).join('') + '</div>';
+      return h;
+    }
+    if (S.tab !== 'ai' && !S.chip) {
+      h += '<section class="sect"><span class="eyebrow"><b>' + t('Edit', 'Edição') + '</b> · ' + t('same video, new packaging', 'mesmo vídeo, embalagem nova') + '</span></section><div class="grid">' +
+        [['Breaking news', 'Your ad inside a news broadcast.'], ['New headline', 'Three new hooks over the first 3 seconds.'], ['Chat DM', 'Your ad as a Direct conversation.'], ['Versus', 'Two columns fill as you talk.']].map(function (e, i) {
+          return '<article class="tcard">' + art('th', { bg: i + 1, ph: 'EXAMPLE', play: true, cap: i === 1 ? 'I tried <em>11</em> masks' : '' }) + '<div class="body"><div class="nm"><b>' + e[0] + '</b><span class="pill">1 cr</span></div><p class="ds">' + e[1] + '</p></div><div class="ft"><span class="u">used 30×</span><button class="btn sm" type="button">' + t('Use template', 'Usar template') + '</button></div></article>';
+        }).join('') + '</div>';
+    }
+    if (S.tab !== 'edit') {
+      h += '<section class="sect"><span class="eyebrow"><b>' + t('With AI', 'Com IA') + '</b> · ' + t('your winner, remade in another format · you approve 4 image previews first', 'o seu campeão refeito em outro formato · você aprova 4 prévias em imagem antes') + '</span></section><div class="grid" id="aigrid">' +
+        ais.map(function (f, i) {
+          var F = FMT[f];
+          return '<article class="tcard' + (F.live ? '' : ' off') + '"' + (F.live ? ' data-open="' + f + '" tabindex="0"' : '') + ' aria-label="' + esc(fname(f)) + '">' + art(F.art, { bg: i, ph: F.live ? 'EXAMPLE' : t('SOON', 'EM BREVE'), play: F.live, cap: F.live ? (f === 'faq' ? '' : 'it isn\'t stress. It\'s <em>light</em>') : '' }) +
+            '<div class="body"><div class="nm"><b>' + esc(fname(f)) + '</b>' + (F.live ? '<span class="pill ai">AI · —</span>' : '<span class="pill soon">' + t('Soon', 'Em breve') + '</span>') + '</div><p class="ds">' + esc(t(F.desc[0], F.desc[1])) + '</p></div>' +
+            '<div class="ft"><span class="u">' + (F.live ? t('4 previews → you pick', '4 prévias → você escolhe') : t('in the works', 'em produção')) + '</span>' +
+            (F.live ? '<button class="btn sm" type="button" data-use="' + f + '">' + t('Use template', 'Usar template') + '</button>' : '<button class="btn sm" type="button" disabled>' + t('Soon', 'Em breve') + '</button>') + '</div></article>';
+        }).join('') + '</div>';
+    }
+    return h;
+  }
+
+  // ───────── 1b · detail ─────────
+  function detailSheet() {
+    var f = S.fmt;
+    return '<div class="scrim" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dt">' +
+      '<button class="x" type="button" data-close="1" aria-label="' + t('Close', 'Fechar') + '">×</button>' + fmtArt(f, { ph: 'EXAMPLE', play: true, cap: f === 'faq' ? '' : 'it isn\'t stress. It\'s <em>light</em>' }) +
+      '<div class="info"><span class="eyebrow">' + t('AI template', 'Template de IA') + '</span><h2 id="dt" style="font-size:26px;font-stretch:112%">' + esc(fname(f)) + '</h2><p class="muted" style="color:var(--fg-2)">' + esc(t(FMT[f].desc[0], FMT[f].desc[1])) + '</p>' +
+      '<dl class="kv"><dt>' + t('How it works', 'Como funciona') + '</dt><dd>' + t('Pick your winner → we draw <b>4 previews</b>, each a different angle → you approve 1 to 4 → only those become videos.', 'Escolha o campeão → desenhamos <b>4 prévias</b>, cada uma um ângulo diferente → você aprova de 1 a 4 → só essas viram vídeo.') + '</dd>' +
+      '<dt>' + t('You get', 'Você recebe') + '</dt><dd>' + t('1 to 4 videos · 9:16 · 25–45 s · captions', '1 a 4 vídeos · 9:16 · 25–45 s · legenda') + '</dd>' +
+      '<dt>' + t('Cost', 'Custo') + '</dt><dd>' + t('Previews: <b>free</b> · each video: <b>—</b> credits', 'Prévias: <b>grátis</b> · cada vídeo: <b>—</b> créditos') + ' <span class="pill tbd">' + t('price TBD', 'preço a definir') + '</span></dd>' +
+      '<dt>' + t('Time', 'Tempo') + '</dt><dd>' + t('Previews ≈ 1 min · videos ≈ 5–8 min, in the background', 'Prévias ≈ 1 min · vídeos ≈ 5–8 min, em segundo plano') + '</dd>' +
+      '<dt>' + t('Language', 'Idioma') + '</dt><dd>' + t('Same as your winner', 'O mesmo do seu campeão') + '</dd></dl>' +
+      '<div class="act"><span class="tip" style="margin-right:auto">' + t('Example made with our own offer.', 'Exemplo feito com uma oferta nossa.') + '</span><button class="btn lime" type="button" data-use="' + f + '">' + t('Use this template', 'Usar este template') + '</button></div></div></div></div>';
+  }
+
+  // ───────── 2 · winner ─────────
+  function winner() {
+    var empty = S.state === 'empty';
+    var h = flow(1) + '<div class="lhead"><div class="t"><span class="eyebrow">' + esc(fname()) + '</span><h1>' + t('Which winner should we remake?', 'Qual campeão vamos refazer?') + '</h1><p>' +
+      t('We keep its offer, price and promise and write 4 new ideas in the new format, each with its own presenter.', 'Mantemos a oferta, o preço e a promessa dele e escrevemos 4 ideias novas no formato novo, cada uma com seu apresentador.') + '</p></div></div>';
+    var list;
+    if (empty) {
+      list = '<div class="empty"><b style="color:var(--fg)">' + t('No winners yet', 'Nenhum campeão ainda') + '</b><span>' + t('Connect Meta to see your best ads here, or upload one that sells.', 'Conecte a Meta pra ver seus melhores anúncios aqui, ou suba um que vende.') + '</span><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn sm" type="button">' + t('Connect Meta', 'Conectar Meta') + '</button><button class="btn sm" type="button">' + t('Upload an ad', 'Subir um anúncio') + '</button></div></div>';
+    } else {
+      list = '<div class="list" role="radiogroup" aria-label="' + t('Your winners', 'Seus campeões') + '">' + ADS.map(function (a) {
+        var fit = a.fit === 'ok' ? '<span class="pill ok">' + t('Fits', 'Serve') + '</span>' : a.fit === 'hard' ? '<span class="pill warn">' + t('Needs speech', 'Precisa de fala') + '</span>' : '<span class="pill info">' + t('Not read yet · ~1 min, free', 'Ainda não lido · ~1 min, grátis') + '</span>';
+        return '<button class="srcrow" type="button" role="radio" data-ad="' + a.id + '" aria-checked="' + (S.ad === a.id) + '"' + (a.fit === 'hard' ? ' disabled' : '') + '><span class="radio"></span>' + art('th', { bg: a.bg }) +
+          '<span class="m"><b>' + esc(a.name) + '</b><span>' + esc(a.meta) + '</span><span>' + esc(a.kind) + '</span></span><span class="r">' + fit + '</span></button>';
+      }).join('') + '</div>';
+    }
+    h += '<div class="two"><div style="display:grid;gap:12px"><div class="subtabs" role="tablist">' +
+      [['meta', t('Meta winners', 'Campeões da Meta')], ['up', 'Upload'], ['lib', t('Library', 'Biblioteca')]].map(function (x) { return '<button type="button" role="tab" data-sub="' + x[0] + '" aria-selected="' + (S.subtab === x[0]) + '">' + x[1] + '</button>'; }).join('') +
+      '</div>' + list + '</div>' +
+      '<aside class="howto"><span class="eyebrow">' + t('What happens next', 'O que vem agora') + '</span><ol>' +
+      '<li><span><b>' + t('4 free previews, ≈ 1 min', '4 prévias grátis, ≈ 1 min') + '</b>' + t('4 new ideas, none a copy of your ad. Each has its own hook, script and presenter.', '4 ideias novas, nenhuma cópia do seu anúncio. Cada uma com gancho, roteiro e apresentador próprios.') + '</span></li>' +
+      '<li><span><b>' + t('You approve 1 to 4', 'Você aprova de 1 a 4') + '</b>' + t('Regenerate the ones you don\'t like, free up to a limit.', 'Refaça as que não gostar, grátis até um limite.') + '</span></li>' +
+      '<li><span><b>' + t('Only approved ones become videos', 'Só as aprovadas viram vídeo') + '</b>' + t('You see the video cost before anything is charged. The rest stay saved: come back and approve them later.', 'Você vê o custo do vídeo antes de qualquer cobrança. As outras ficam salvas: dá pra voltar e aprovar depois.') + '</span></li></ol></aside></div>';
+    bar(empty ? '' : '<span class="hint"><b>' + esc(fname()) + '</b> · ' + t('4 new ideas from', '4 ideias novas a partir de') + ' <b>' + esc(ad().name) + '</b> · ' + t('previews are free', 'prévias grátis') + '</span>' +
+      '<button class="btn ghost" type="button" data-go="gallery">' + t('Back', 'Voltar') + '</button><button class="btn lime" type="button" data-make="1">' + t('Make 4 previews', 'Gerar 4 prévias') + ICON.right + '</button>');
+    return h;
+  }
+
+  // ───────── 3 · previews ─────────
+  function prevCard(l) {
+    var st = S.state, p = P(l);
+    var waiting = (st === 'generating' && S.prev && S.prev[l] !== 'ready') || S.regen[l];
+    var failed = st === 'failed' && l === 'B' && !S.regen[l] && !S.swapped[l];
+    var on = !!S.sel[l] && !waiting && !failed;
+    if (waiting) {
+      var stage = S.regen[l] ? t('New angle · drawing the key frame', 'Novo ângulo · desenhando o quadro-chave') : (S.prev[l] === 'angle' ? t('Writing the angle and hook', 'Escrevendo o ângulo e o gancho') : t('Drawing the key frame', 'Desenhando o quadro-chave'));
+      return '<article class="prev wait beam" aria-busy="true" aria-label="' + t('Preview', 'Prévia') + ' ' + l + '"><div class="imgw">' + prevArt(l, { gen: true, nocap: true, ph: 'PREVIEW' }) + '<span class="letter">' + l + '</span></div>' +
+        '<div class="txt"><div class="stage-line"><span class="spin" aria-hidden="true"></span>' + stage + '<small>' + (S.prev && S.prev[l] === 'angle' ? '1/2' : '2/2') + '</small></div><span class="sk" style="width:80%"></span><span class="sk"></span><span class="sk" style="width:60%"></span></div>' +
+        '<div class="acts"><button class="approve" type="button" disabled role="checkbox" aria-checked="false"><span class="bx"></span>' + t('Approve', 'Aprovar') + '</button></div></article>';
+    }
+    if (failed) {
+      return '<article class="prev fail" aria-label="' + t('Preview', 'Prévia') + ' ' + l + '"><div class="imgw"><div class="vid empty-img"><div class="sc"></div><span class="asp">9:16</span></div><span class="letter">' + l + '</span></div>' +
+        '<div class="txt"><div class="failbox"><b>' + t('This preview didn\'t come out', 'Esta prévia não saiu') + '</b><span>' + t('The image model timed out on the key frame. Nothing was charged for it.', 'O modelo de imagem estourou o tempo no quadro-chave. Nada foi cobrado por ela.') + '</span><button class="btn sm" type="button" data-retry="' + l + '">' + ICON.regen + t('Try again', 'Tentar de novo') + '</button></div></div>' +
+        '<div class="acts"><button class="approve" type="button" disabled role="checkbox" aria-checked="false"><span class="bx"></span>' + t('Approve', 'Aprovar') + '</button></div></article>';
+    }
+    return '<article class="prev' + (on ? ' on' : '') + '" aria-label="' + t('Preview', 'Prévia') + ' ' + l + '"><div class="imgw">' + prevArt(l, { ph: 'PREVIEW · IMAGE' }) + '<span class="letter">' + l + '</span><button class="zoom" type="button" data-zoom="' + l + '" aria-label="' + t('Enlarge preview', 'Ampliar prévia') + ' ' + l + '">' + ICON.zoom + '</button></div>' +
+      '<div class="txt"><div class="angle"><small>' + t('Angle', 'Ângulo') + '</small>' + esc(t(p.angle[0], p.angle[1])) + '</div><q class="hook">' + esc(p.hook) + '</q>' +
+      '<div class="vs"><span class="eyebrow">' + t('vs. your ad', 'vs. o seu anúncio') + '</span><ul>' + p.vs.map(function (v) { return '<li><span class="b">' + esc(t(v[0][0], v[0][1])) + '</span><span class="ar">→</span><span class="a">' + esc(t(v[1][0], v[1][1])) + '</span></li>'; }).join('') + '</ul></div>' +
+      '<span class="castl">' + (S.fmt === 'duo' ? t('Host', 'Host') + ' <b>' + p.voices[0] + '</b> · ' + t('Guest', 'Convidado') + ' <b>' + p.voices[1] + '</b>' : t('Presenter', 'Apresentador') + ' <b>' + p.voices[0] + '</b>') + '</span>' +
+      '<span class="kept">' + esc(t(KEPT[0], KEPT[1])) + '</span></div>' +
+      (madeAlready(l) ? '<div class="acts"><span class="pill ok" style="flex:1;justify-content:center;min-height:40px;font-size:12px">✓ ' + t('Video made · in Library', 'Vídeo feito · na Biblioteca') + '</span></div></article>' : actsHtml(l, on));
+  }
+  function actsHtml(l, on) {
+    return '<div class="acts"><button class="approve" type="button" role="checkbox" aria-checked="' + on + '" data-sel="' + l + '"><span class="bx"></span>' + (on ? t('Approved', 'Aprovada') : t('Approve', 'Aprovar')) + '</button>' +
+      '<button class="btn" type="button" data-regen="' + l + '" title="' + esc(regenHint(l)) + '" aria-label="' + t('New angle for preview', 'Novo ângulo pra prévia') + ' ' + l + '. ' + esc(regenHint(l)) + '"' + (regenOut(l) ? ' disabled' : '') + '>' + ICON.regen + t('New angle', 'Novo ângulo') + '</button></div>' +
+      '<span class="regenleft">' + esc(regenHint(l)) + '</span>' +
+      '</article>';
+  }
+  function regenHint(l) {
+    return regenOut(l) ? t('No free regenerations left', 'Sem refações grátis') :
+      t('Free · ' + regenLeft(l) + ' of ' + REGEN_MAX + ' left · ' + (REGEN_BATCH - regenUsed()) + ' of ' + REGEN_BATCH + ' in this batch', 'Grátis · restam ' + regenLeft(l) + ' de ' + REGEN_MAX + ' · ' + (REGEN_BATCH - regenUsed()) + ' de ' + REGEN_BATCH + ' no lote');
+  }
+  function madeAlready(l) { return !!S.after && S.made.indexOf(l) >= 0; }
+  function approvedList() { return ['A', 'B', 'C', 'D'].filter(function (l) { if (madeAlready(l)) return false; var failed = S.state === 'failed' && l === 'B' && !S.swapped[l]; return S.sel[l] && !S.regen[l] && !failed && !(S.state === 'generating' && S.prev && S.prev[l] !== 'ready'); }); }
+  function previews() {
+    var gen = S.state === 'generating';
+    var readyN = gen && S.prev ? ['A', 'B', 'C', 'D'].filter(function (l) { return S.prev[l] === 'ready'; }).length : 4;
+    var h = flow(2) + champ(false) +
+      '<div class="phead"><div class="t"><h1>' + (gen ? t('Drawing 4 previews', 'Desenhando 4 prévias') : t('Pick the ones worth a video', 'Escolha as que valem um vídeo')) + '</h1><p>' +
+      t('Four new ideas from your winner, in ' + fname() + ', each with its own presenter. The image is the first frame of its video. Previews are free.', 'Quatro ideias novas a partir do seu campeão, em ' + fname() + ', cada uma com seu apresentador. A imagem é o primeiro quadro do vídeo. Prévias são grátis.') + '</p></div>' +
+      (!gen ? '<button class="btn sm ghost" type="button" data-all="1">' + t('Approve all 4', 'Aprovar as 4') + '</button>' : '') + '</div>';
+    if (gen) h += '<div class="waitline" role="status" aria-live="polite"><span class="dot prog"></span><b>' + readyN + ' ' + t('of 4 ready', 'de 4 prontas') + '</b><span class="bar"><i style="width:' + (readyN * 25) + '%"></i></span><span>' + t('≈ ' + Math.max(10, (4 - readyN) * 15) + ' s left · you can leave, they\'ll wait on Home', '≈ ' + Math.max(10, (4 - readyN) * 15) + ' s · pode sair, elas ficam na Home') + '</span></div>';
+    if (S.state === 'limit') h += '<div class="note" role="status"><span class="dot" style="margin-top:6px;background:var(--warn-edge)"></span><span>' + t('You\'ve used the 6 free regenerations in this batch. You can still approve any of these, or start a new batch from the gallery.', 'Você usou as 6 refações grátis deste lote. Ainda dá pra aprovar qualquer uma delas, ou começar um lote novo pela galeria.') + '</span></div>';
+    h += '<div class="pgrid">' + ['A', 'B', 'C', 'D'].map(prevCard).join('') + '</div>';
+    var n = approvedList().length;
+    var hint = n ? '<b>' + n + ' ' + t('of 4 approved', 'de 4 aprovadas') + '</b> · ' + n + ' ' + (n === 1 ? t('video', 'vídeo') : t('videos', 'vídeos')) + ' · — ' + t('credits', 'créditos') + ' ' + tbd() :
+      (gen ? t('You can approve each preview as soon as it\'s ready.', 'Dá pra aprovar cada prévia assim que ela fica pronta.') : '<b>' + t('Approve at least 1 preview', 'Aprove ao menos 1 prévia') + '</b> · ' + t('previews are free; videos are charged only when you confirm', 'prévias são grátis; vídeo só é cobrado quando você confirma'));
+    bar('<span class="hint" aria-live="polite">' + hint + '</span><button class="btn lime" type="button" data-go="confirm"' + (n ? '' : ' disabled') + '>' + (n ? t('Make ' + n + (n === 1 ? ' video' : ' videos'), 'Gerar ' + n + (n === 1 ? ' vídeo' : ' vídeos')) : t('Make videos', 'Gerar vídeos')) + ICON.right + '</button>');
+    return h;
+  }
+
+  // ───────── 4 · confirm ─────────
+  function confirmSheet() {
+    var list = approvedList(); if (!list.length) list = ['A', 'C'];
+    var low = S.state === 'nocredits';
+    var n = list.length, bal = low ? 3 : S.bal;
+    return '<div class="scrim" data-close="1"><div class="sheet narrow" role="dialog" aria-modal="true" aria-labelledby="ct">' +
+      '<button class="x" type="button" data-close="1" aria-label="' + t('Close', 'Fechar') + '">×</button>' +
+      '<div style="display:grid;gap:4px;padding-right:44px"><span class="eyebrow">' + esc(fname()) + ' · ' + t('from', 'de') + ' ' + esc(ad().name) + '</span><h2 id="ct" style="font-size:22px;font-stretch:112%">' + t('Make ' + n + (n === 1 ? ' video' : ' videos') + '?', 'Gerar ' + n + (n === 1 ? ' vídeo' : ' vídeos') + '?') + '</h2></div>' +
+      '<div class="chosen">' + list.map(function (l) { return '<div style="display:grid;gap:4px;justify-items:center;font-family:var(--mono);font-size:11px">' + prevArt(l, { nocap: true }) + l + '</div>'; }).join('') + '</div>' +
+      '<div class="cost"><div class="row"><span>' + n + ' × ' + t('video', 'vídeo') + ' · 9:16 · 25–45 s</span><b>— × ' + n + '</b></div><div class="row"><span>' + t('Previews and regenerations', 'Prévias e refações') + '</span><b>' + t('free', 'grátis') + '</b></div><hr>' +
+      '<div class="total"><span>' + t('Total', 'Total') + ' <span class="tbd">' + t('price TBD', 'preço a definir') + '</span></span><b>— ' + t('credits', 'créditos') + '</b></div>' +
+      '<div class="row"><span>' + t('Balance', 'Saldo') + '</span><b class="num">' + bal + ' → —</b></div>' +
+      '<small>' + t('Reserved now, charged when each video is ready. If one fails, its credits come back.', 'Reservado agora, cobrado quando cada vídeo fica pronto. Se um falhar, os créditos dele voltam.') + '</small></div>' +
+      (low ? '<div class="banner warn" role="alert"><b>' + t('Your balance (3) is lower than this batch', 'Seu saldo (3) é menor que este lote') + '</b><p>' + t('Your previews and approvals are saved. Get credits or approve fewer.', 'Suas prévias e aprovações ficam salvas. Compre créditos ou aprove menos.') + '</p></div>' : '') +
+      '<div class="act"><button class="btn ghost" type="button" data-close="1">' + t('Back to previews', 'Voltar às prévias') + '</button>' +
+      (low ? '<button class="btn lime" type="button">' + t('Get credits', 'Comprar créditos') + '</button>' : '<button class="btn lime" type="button" data-confirm="1">' + t('Confirm · make ' + n, 'Confirmar · gerar ' + n) + '</button>') + '</div></div></div>';
+  }
+
+  // ───────── 5 · progress ─────────
+  var STEPS = { duo: [['Script', 'Roteiro'], ['Faces ×2', 'Rostos ×2'], ['Voices ×2', 'Vozes ×2'], ['Lip-sync 6 turns', 'Lipsync 6 falas'], ['Cuts + captions', 'Cortes + legenda'], ['Render', 'Render']],
+    solo: [['Script', 'Roteiro'], ['Face', 'Rosto'], ['Voice', 'Voz'], ['Lip-sync', 'Lipsync'], ['Captions', 'Legenda'], ['Render', 'Render']],
+    faq: [['Script', 'Roteiro'], ['Face', 'Rosto'], ['Voice', 'Voz'], ['Lip-sync', 'Lipsync'], ['Question cards', 'Cartões'], ['Render', 'Render']] };
+  function stepIdx(pct) { return Math.min(5, Math.floor(pct / 17)); }
+  function progress() {
+    var list = S.made, failed = S.state === 'failed';
+    var h = flow(3) + champ(false) + '<div class="phead"><div class="t"><h1>' + t('Making ' + list.length + ' videos', 'Gerando ' + list.length + ' vídeos') + '</h1><p>' +
+      t('About 5–8 min each, running side by side. You can close this page: they land in your Library and Home tells you when they\'re ready.', 'Uns 5–8 min cada, em paralelo. Pode fechar a página: eles caem na Biblioteca e a Home avisa quando ficarem prontos.') + '</p></div></div>';
+    h += '<div class="runs">' + list.map(function (l, i) {
+      var pct = S.pct[l] != null ? S.pct[l] : (i ? 34 : 58), p = P(l), bad = failed && i === 1, si = bad ? 3 : stepIdx(pct);
+      var steps = STEPS[S.fmt].map(function (s, k) { var c = bad && k === 3 ? 'bad' : k < si ? 'done' : k === si ? 'run' : ''; if (bad && k > 3) c = ''; return '<li class="' + c + '">' + esc(t(s[0], s[1])) + '</li>'; }).join('');
+      var cur = STEPS[S.fmt][si];
+      return '<div class="run' + (bad ? ' fail' : '') + '"' + (pct < 100 && !bad ? ' aria-busy="true"' : '') + '>' + prevArt(l, { nocap: true }) +
+        '<div class="m"><b>' + l + ' · ' + esc(t(p.angle[0], p.angle[1])) + '</b><span>' + esc(p.hook) + '</span></div>' +
+        '<div class="st"><div class="l">' + (bad ? '<span class="dot badd"></span><span>' + t('Failed at lip-sync, turn 4 of 6', 'Falhou no lipsync, fala 4 de 6') + '</span>' : pct >= 100 ? '<span class="dot okd"></span><span>' + t('Ready', 'Pronto') + '</span>' : '<span class="dot prog"></span><span>' + esc(t(cur[0], cur[1])) + ' · ' + pct + '%</span>') + '</div>' +
+        '<div class="bar' + (bad ? ' bad' : pct >= 100 ? ' ok' : '') + '"><i style="width:' + (bad ? 50 : pct) + '%"></i></div><ul class="steps">' + steps + '</ul></div>' +
+        '<div class="eta">' + (bad ? '—' : pct >= 100 ? '0:38' : '≈ ' + Math.max(1, Math.round((100 - pct) / 12)) + ' min') + '</div>' +
+        (bad ? '<div class="failrow">' + t('Finished steps are saved. Its credits came back to your balance.', 'As etapas prontas ficam salvas. Os créditos dele voltaram pro saldo.') + ' <button class="btn sm" type="button" data-rerun="1">' + t('Try again', 'Tentar de novo') + '</button><button class="btn sm ghost" type="button">' + t('Drop this video', 'Desistir deste') + '</button></div>' : '') + '</div>';
+    }).join('') + '</div>';
+    var left = 4 - list.length;
+    if (left > 0) h += '<div class="note"><span class="dot" style="margin-top:6px"></span><span>' + t('The ' + left + ' previews you didn\'t pick stay saved on this batch. Come back and approve them any time.', 'As ' + left + ' prévias que você não escolheu ficam salvas neste lote. Volte e aprove quando quiser.') + '</span></div>';
+    bar('<span class="hint">' + t('Credits reserved · charged as each video is ready', 'Créditos reservados · cobrados conforme cada vídeo fica pronto') + '</span><button class="btn" type="button" data-go="gallery">' + t('Back to Templates', 'Voltar aos Templates') + '</button>');
+    return h;
+  }
+
+  // ───────── 6 · ready ─────────
+  function ready() {
+    var list = S.made, partial = S.state === 'partial';
+    if (list.indexOf(S.vid) < 0) S.vid = list[0];
+    var p = P(S.vid), rendering = partial && S.vid === list[list.length - 1];
+    var others = ['A', 'B', 'C', 'D'].filter(function (l) { return list.indexOf(l) < 0; });
+    var h = flow(4) + champ(false);
+    h += '<div class="vtabs" role="tablist" aria-label="' + t('Your videos', 'Seus vídeos') + '">' + list.map(function (l, i) {
+      var r = partial && i === list.length - 1;
+      return '<button class="vtab" type="button" role="tab" data-vid="' + l + '" aria-selected="' + (S.vid === l) + '">' + prevArt(l, { nocap: true }) + '<span><b>' + l + ' · ' + esc(t(P(l).angle[0], P(l).angle[1])) + '</b>' + (r ? t('Rendering · 82%', 'Renderizando · 82%') : t('Ready · 0:38', 'Pronto · 0:38')) + '</span></button>';
+    }).join('') + '</div>';
+    h += '<div class="ready"><div class="stage">' + (rendering ?
+      '<div class="player beam" style="border-radius:12px">' + prevArt(S.vid, { gen: true, big: true }) + '<div class="ctl" style="justify-content:center">' + t('Rendering · 82% · ≈ 1 min', 'Renderizando · 82% · ≈ 1 min') + '</div></div>' :
+      '<div class="player">' + prevArt(S.vid, { big: true, play: true }) + '<div class="ctl"><button type="button" aria-label="Play">' + ICON.play + '</button><span class="num">0:13</span><span class="tl"><i></i></span><span class="num">0:38</span></div></div>') + '</div>' +
+      '<div class="side-info"><div class="card"><span class="eyebrow">' + S.vid + ' · ' + esc(fname()) + '</span><h2>' + esc(t(p.angle[0], p.angle[1])) + '</h2><q class="hook" style="border-left:2px solid var(--brand-edge);padding-left:8px">' + esc(p.hook) + '</q>' +
+      '<dl class="kv"><dt>' + t('From', 'De') + '</dt><dd>' + esc(ad().name) + '</dd><dt>' + t('File', 'Arquivo') + '</dt><dd class="mono" style="font-size:12px">SW·' + S.fmt.toUpperCase() + '·' + S.vid + '.mp4</dd><dt>' + t('Format', 'Formato') + '</dt><dd>9:16 · 1080×1920 · 0:38</dd></dl>' +
+      '<div style="display:grid;gap:8px"><button class="btn lime" type="button" data-toast="dl"' + (rendering ? ' disabled' : '') + '>' + ICON.dl + t('Download MP4', 'Baixar MP4') + '</button><button class="btn" type="button">' + t('Open in Library', 'Abrir na Biblioteca') + '</button></div></div>' +
+      (others.length ? '<div class="leftover"><div class="mini">' + others.map(function (l) { return prevArt(l, { nocap: true }); }).join('') + '</div><span style="flex:1;min-width:160px">' + t(others.length + ' previews you didn\'t pick are saved.', others.length + ' prévias que você não escolheu estão salvas.') + '</span><button class="btn sm" type="button" data-more="1">' + t('Make them too', 'Gerar essas também') + '</button></div>' : '') +
+      '</div></div>';
+    bar('');
+    return h;
+  }
+
+  // ───────── render ─────────
+  function render() {
+    side();
+    var v = $('view'), layer = '';
+    bar('');
+    var s = S.screen;
+    if (s === 'gallery' || s === 'detail') { v.innerHTML = gallery(); if (s === 'detail') layer = detailSheet(); }
+    else if (s === 'winner') v.innerHTML = winner();
+    else if (s === 'previews' || s === 'confirm') {
+      if (s === 'confirm') { var keep = S.state; S.state = 'ready'; v.innerHTML = previews(); S.state = keep; layer = confirmSheet(); }
+      else v.innerHTML = previews();
+    }
+    else if (s === 'progress') v.innerHTML = progress();
+    else if (s === 'ready') v.innerHTML = ready();
+    if (S.zoom) layer = '<div class="scrim lightbox" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-label="' + t('Preview', 'Prévia') + ' ' + S.zoom + '"><button class="x" type="button" data-close="1" aria-label="' + t('Close', 'Fechar') + '">×</button>' + prevArt(S.zoom, { big: true, ph: 'PREVIEW · IMAGE' }) + '<div style="display:grid;gap:6px"><b>' + S.zoom + ' · ' + esc(t(P(S.zoom).angle[0], P(S.zoom).angle[1])) + '</b><span style="color:var(--ink-fg-2)">“' + esc(P(S.zoom).hook) + '”</span></div></div></div>';
+    $('layer').innerHTML = layer;
+    syncProto();
+  }
+
+  function syncProto() {
+    var ps = $('pScreen'), st = $('pState');
+    ps.innerHTML = SCREENS.map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === S.screen ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('');
+    var states = SCREENS.filter(function (x) { return x[0] === S.screen; })[0][2];
+    st.innerHTML = states.map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === S.state ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('');
+    $('pFmt').value = S.fmt;
+    document.querySelectorAll('[data-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.lang === S.lang)); });
+    document.querySelectorAll('[data-vp]').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.vp === 'phone') === S.phone)); });
+    document.documentElement.lang = S.lang === 'pt' ? 'pt-BR' : 'en';
+  }
+
+  function go(screen, state) {
+    clearTimers();
+    S.screen = screen; S.menu = null; S.zoom = null; if (screen !== 'confirm') S.after = false;
+    var states = SCREENS.filter(function (x) { return x[0] === screen; })[0][2];
+    S.state = state || states[0][0];
+    if (screen === 'previews') setupPreviews();
+    if (screen === 'confirm') { S.prev = null; S.regen = {}; if (!approvedAny()) S.sel = { A: true, B: false, C: true, D: false }; }
+    if (screen === 'progress') setupProgress();
+    if (screen === 'ready') S.pct = {};
+    render();
+    $('scroller').scrollTop = 0;
+  }
+
+  function setupPreviews() {
+    S.regen = {}; S.swapped = {}; S.rc = S.state === 'limit' ? { A: 3, B: 1, D: 2 } : {};
+    if (S.state === 'limit') { S.sel = { A: true, B: false, C: true, D: false }; S.prev = null; return; }
+    if (S.state === 'generating') {
+      S.prev = { A: 'frame', B: 'angle', C: 'frame', D: 'angle' }; S.sel = { A: false, B: false, C: false, D: false };
+      var order = [['A', 1400], ['C', 2600], ['B', 2900], ['D', 4300], ['Bf', 1500], ['Df', 3000]];
+      order.forEach(function (o) {
+        timers.push(setTimeout(function () {
+          if (o[0].length === 2) S.prev[o[0][0]] = S.prev[o[0][0]] === 'ready' ? 'ready' : 'frame'; else S.prev[o[0]] = 'ready';
+          if (['A', 'B', 'C', 'D'].every(function (l) { return S.prev[l] === 'ready'; })) { S.state = 'ready'; toast(t('4 previews ready. Approve the ones worth a video.', '4 prévias prontas. Aprove as que valem um vídeo.')); }
+          render();
+        }, o[1]));
+      });
+    } else {
+      S.prev = null;
+      if (S.state === 'none') { S.sel = { A: false, B: false, C: false, D: false }; }
+      else if (S.state === 'ready' || S.state === 'failed') { if (!approvedAny()) S.sel = { A: true, B: false, C: true, D: false }; }
+      if (S.state === 'regen') { S.sel = { A: true, B: false, C: true, D: false }; S.regen = { D: true }; }
+    }
+  }
+  function approvedAny() { return ['A', 'B', 'C', 'D'].some(function (l) { return S.sel[l]; }); }
+
+  function setupProgress() {
+    S.pct = {};
+    S.made.forEach(function (l, i) { S.pct[l] = i ? 34 : 58; });
+    if (S.state !== 'running') return;
+    timers.push(setInterval(function () {
+      var done = true;
+      S.made.forEach(function (l) { S.pct[l] = Math.min(100, S.pct[l] + 2); if (S.pct[l] < 100) done = false; });
+      if (done) { clearTimers(); toast(t('Your videos are ready.', 'Seus vídeos estão prontos.')); timers.push(setTimeout(function () { go('ready'); }, 900)); }
+      render();
+    }, 450));
+  }
+
+  function toast(msg) {
+    var d = document.createElement('div'); d.className = 'toast'; d.setAttribute('role', 'status'); d.textContent = msg;
+    $('frame').appendChild(d); setTimeout(function () { d.remove(); }, 2600);
+  }
+
+  // ───────── events ─────────
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('button, [data-open], .scrim');
+    if (!el) { if (S.menu) { S.menu = null; render(); } return; }
+    var d = el.dataset;
+    if (el.classList.contains('scrim') && e.target !== el) return;
+    if (d.close) { S.zoom = null; if (S.screen === 'detail') S.screen = 'gallery'; if (S.screen === 'confirm') { S.screen = 'previews'; S.state = 'ready'; } render(); return; }
+    if (d.lang) { S.lang = d.lang; render(); return; }
+    if (d.vp) { S.phone = d.vp === 'phone'; document.body.classList.toggle('phone', S.phone); history.replaceState(null, '', S.phone ? '#phone' : '#'); render(); return; }
+    if (d.tab) { S.tab = d.tab; S.chip = null; render(); return; }
+    if (d.chip !== undefined && el.classList.contains('chip')) { S.chip = d.chip || null; render(); return; }
+    if (d.use) { S.fmt = d.use; go('winner'); return; }
+    if (d.open && !e.target.closest('button')) { S.fmt = d.open; S.screen = 'detail'; S.state = 'normal'; render(); return; }
+    if (d.sub) { S.subtab = d.sub; render(); return; }
+    if (d.ad) { S.ad = d.ad; render(); return; }
+    if (d.make) { go('previews', 'generating'); return; }
+    if (d.sel) { S.sel[d.sel] = !S.sel[d.sel]; if (S.state === 'none' && approvedAny()) S.state = 'ready'; render(); return; }
+    if (d.all) { ['A', 'B', 'C', 'D'].forEach(function (l) { if (!madeAlready(l)) S.sel[l] = true; }); render(); return; }
+    if (d.menu) { S.menu = S.menu === d.menu ? null : d.menu; render(); return; }
+    if (d.regen || d.retry) {
+      var l = d.regen || d.retry, kind = d.kind || 'angle';
+      if (d.regen && regenOut(l)) return;
+      S.menu = null; S.regen[l] = true; S.sel[l] = false; if (d.regen) S.rc[l] = (S.rc[l] || 0) + 1; render();
+      timers.push(setTimeout(function () { delete S.regen[l]; if (kind === 'angle') S.swapped[l] = !S.swapped[l]; if (S.state === 'failed' && l === 'B') S.swapped.B = true; if (S.state === 'regen') S.state = 'ready'; render(); }, 2400));
+      return;
+    }
+    if (d.zoom) { S.zoom = d.zoom; render(); return; }
+    if (d.confirm) { var a = approvedList(); if (!a.length) a = ['A', 'C']; S.made = S.after ? S.made.concat(a).sort() : a; go('progress', 'running'); return; }
+    if (d.vid) { S.vid = d.vid; render(); return; }
+    if (d.more) { var others = ['A', 'B', 'C', 'D'].filter(function (x) { return S.made.indexOf(x) < 0; }); S.sel = { A: false, B: false, C: false, D: false }; others.forEach(function (x) { S.sel[x] = true; }); S.after = true; S.screen = 'previews'; S.state = 'ready'; S.prev = null; S.regen = {}; render(); return; }
+    if (d.toast === 'dl') { toast(t('Downloading SW·' + S.fmt.toUpperCase() + '·' + S.vid + '.mp4', 'Baixando SW·' + S.fmt.toUpperCase() + '·' + S.vid + '.mp4')); return; }
+    if (d.rerun) { toast(t('Trying again from lip-sync. Finished steps are reused.', 'Tentando de novo a partir do lipsync. As etapas prontas são reaproveitadas.')); go('progress', 'running'); return; }
+    if (d.go) {
+      if (d.go === 'confirm') { S.screen = 'confirm'; S.state = 'normal'; render(); return; }
+      if (d.go === 'gallery') S.tab = 'ai';
+      go(d.go); $('side').classList.remove('open'); return;
+    }
+    if (el.id === 'menuBtn') { $('side').classList.toggle('open'); return; }
+    if (S.menu && !el.closest('.menu')) { S.menu = null; render(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { if (S.menu || S.zoom) { S.menu = null; S.zoom = null; render(); } else if (S.screen === 'detail' || S.screen === 'confirm') { S.screen = S.screen === 'detail' ? 'gallery' : 'previews'; S.state = S.screen === 'previews' ? 'ready' : 'normal'; render(); } }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.open) { e.preventDefault(); S.fmt = e.target.dataset.open; S.screen = 'detail'; S.state = 'normal'; render(); }
+  });
+  $('pScreen').addEventListener('change', function (e) { go(e.target.value); });
+  $('pState').addEventListener('change', function (e) {
+    if (S.screen === 'confirm' || S.screen === 'detail') { S.state = e.target.value; render(); return; }
+    go(S.screen, e.target.value);
+  });
+  $('pFmt').addEventListener('change', function (e) { S.fmt = e.target.value; render(); });
+
+  if (location.hash === '#phone') { S.phone = true; document.body.classList.add('phone'); }
+  go('gallery');
+})();
+</script>

@@ -22,6 +22,9 @@ import { UnlockDialog } from "@/components/iterate/sample"
 import { useSession } from "@/components/providers/session-provider"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { useTemplateList } from "@/hooks/use-templates"
+import { AI_CHIPS, AI_SOON, FORMAT_CHIP, aiFormatOf, type AiChip } from "@/lib/ai-previews"
+import { AI_PREVIEWS } from "@/lib/flags"
+import { AiPricePill, Tbd } from "./ai-parts"
 import { FitPill, Pill, PricePill, SELECTION_FALLBACK, TemplateVideo, isSelectable, useCreditLabel, useFitText, useNeedText, useUseTemplate } from "./parts"
 
 /*
@@ -34,8 +37,20 @@ import { FitPill, Pill, PricePill, SELECTION_FALLBACK, TemplateVideo, isSelectab
 /** The checkbox of one card: null = the card can't be checked (pack, AI, Soon, Client). */
 type Sel = { on: boolean; why: string | null; toggle: () => void } | null
 type Tab = "all" | "edit" | "ai"
+/** A category chip, or (templates-ia-previas-v1, design §2.1) a With AI format chip `ai:<chip>`. */
+type ChipKey = TemplateCategory | `ai:${AiChip}`
 const EDIT_CATS: TemplateCategory[] = ["frames", "headline", "cuts", "chat", "static"]
-const AI_CATS: TemplateCategory[] = ["avatar", "persona", "remix"]
+const AI_CATS: ChipKey[] = AI_PREVIEWS ? AI_CHIPS.map((c) => `ai:${c}` as const) : ["avatar", "persona", "remix"]
+/** design §2.1: FAQ · Podcast solo · Podcast duo first, then the other AI cards; the "Soon" formats come after. */
+const AI_ORDER = ["F04", "F09", "F10"]
+const aiRank = (c: TemplateCard) => {
+  const f = aiFormatOf(c)
+  return f ? AI_ORDER.indexOf(f) : 9
+}
+const chipOf = (c: TemplateCard): ChipKey | null => {
+  const f = aiFormatOf(c)
+  return f ? `ai:${FORMAT_CHIP[f]}` : AI_PREVIEWS && c.tier === "AI" ? null : c.category
+}
 
 export function TemplatesGallery() {
   const t = useTranslations("adTemplates")
@@ -44,7 +59,12 @@ export function TemplatesGallery() {
   const source = useMemo(() => sourceFromParams(sp), [sp])
   const q = useTemplateList(source)
   const [tab, setTab] = useState<Tab>(() => sp.get("tab") === "ai" ? "ai" : "all")
-  const [chip, setChip] = useState<TemplateCategory | null>(null)
+  const [chip, setChip] = useState<ChipKey | null>(null)
+  const tai = useTranslations("adTemplates.ai")
+  const soon = useMemo(
+    () => (AI_PREVIEWS ? AI_SOON.map((x) => ({ ...x, name: tai(`chip.${x.key}`), description: tai(`soon.${x.key}`) })) : []),
+    [tai]
+  )
   const [query, setQuery] = useState("")
   const deferred = useDeferredValue(query)
   const [open, setOpen] = useState<TemplateCard | null>(null)
@@ -58,9 +78,13 @@ export function TemplatesGallery() {
   const cats = tab === "all" ? [...EDIT_CATS, ...AI_CATS] : tab === "edit" ? EDIT_CATS : AI_CATS
   const counts = useMemo(() => {
     const m = new Map<string, number>()
-    for (const it of items) m.set(it.category, (m.get(it.category) ?? 0) + 1)
+    for (const it of items) {
+      const k = chipOf(it)
+      if (k) m.set(k, (m.get(k) ?? 0) + 1)
+    }
+    for (const x of soon) m.set(`ai:${x.key}`, (m.get(`ai:${x.key}`) ?? 0) + 1)
     return m
-  }, [items])
+  }, [items, soon])
   const visibleCats = cats.filter((c) => counts.get(c))
   const tl = useTranslations("skeleton")
   const showPack = !!q.data?.pack && !deferred && !chip && tab !== "ai"
@@ -175,7 +199,7 @@ export function TemplatesGallery() {
         </Chip>
         {visibleCats.map((c) => (
           <Chip key={c} pressed={chip === c} onClick={() => setChip(c)}>
-            {t(`cat.${c}`)}
+            {c.startsWith("ai:") ? tai(`chip.${c.slice(3) as AiChip}`) : t(`cat.${c as TemplateCategory}`)}
             <small className="ml-1 font-mono text-[10px] text-fg-3">{counts.get(c)}</small>
           </Chip>
         ))}
@@ -207,11 +231,13 @@ export function TemplatesGallery() {
           const sampling = cards === SAMPLE_TEMPLATE_CARDS
           const list = filterCards(cards, tab, chip, deferred)
           const edit = list.filter((it) => it.tab === "edit")
-          const ai = list.filter((it) => it.tab === "ai")
+          const ai = list.filter((it) => it.tab === "ai").sort((a, b) => aiRank(a) - aiRank(b))
+          const needle = deferred.trim().toLowerCase()
+          const soonList = sampling || tab === "edit" ? [] : soon.filter((x) => (!chip || chip === `ai:${x.key}`) && (!needle || `${x.name} ${x.description}`.toLowerCase().includes(needle)))
           const gridId = sampling ? undefined : "t-templates-grid"
           return !cards.length && !q.data?.pack ? (
         <Empty title={t("emptyTitle")} body={t("emptyBody")} />
-      ) : !list.length && !showPack ? (
+      ) : !list.length && !showPack && !soonList.length ? (
         <Empty title={t("noMatch", { q: deferred })} body={t("noMatchHint")} action={<Button size="sm" onClick={() => setQuery("")}>{t("clearSearch")}</Button>} />
       ) : (
         <div className="flex flex-col gap-[18px]">
@@ -223,10 +249,13 @@ export function TemplatesGallery() {
               ))}
             </Section>
           ) : null}
-          {ai.length ? (
-            <Section id={edit.length || showPack ? undefined : gridId} title={t("tabAi")} sub={t("aiSub")}>
+          {ai.length || soonList.length ? (
+            <Section id={edit.length || showPack ? undefined : gridId} title={t("tabAi")} sub={AI_PREVIEWS ? tai("sub") : t("aiSub")}>
               {ai.map((c) => (
                 <Card key={c.slug} card={c} credits={credits} sel={sampling ? null : selOf(c)} onOpen={() => setOpen(c)} onUse={() => pick(c)} busy={pending === c.slug} disabled={!!pending} />
+              ))}
+              {soonList.map((x) => (
+                <SoonCard key={x.key} name={x.name} description={x.description} tone={x.tone} />
               ))}
             </Section>
           ) : null}
@@ -391,11 +420,11 @@ function Empty({ title, body, action }: { title: string; body: string; action?: 
 }
 
 /** The cards a search, tab and category chip leave (gallery order). */
-function filterCards(items: TemplateCard[], tab: Tab, chip: TemplateCategory | null, query: string) {
+function filterCards(items: TemplateCard[], tab: Tab, chip: ChipKey | null, query: string) {
   const needle = query.trim().toLowerCase()
   return items.filter((it) => {
     if (tab !== "all" && it.tab !== tab) return false
-    if (chip && it.category !== chip) return false
+    if (chip && chipOf(it) !== chip) return false
     if (needle && !`${it.name} ${it.description}`.toLowerCase().includes(needle)) return false
     return true
   })
@@ -404,12 +433,14 @@ function filterCards(items: TemplateCard[], tab: Tab, chip: TemplateCategory | n
 // ───────────── cards ─────────────
 function Card({ card, credits, sel, onOpen, onUse, busy, disabled }: { card: TemplateCard; credits?: CreditsSummary; sel: Sel; onOpen: () => void; onUse: () => void; busy: boolean; disabled: boolean }) {
   const t = useTranslations("adTemplates")
+  const tai = useTranslations("adTemplates.ai")
   const { session } = useSession()
   // O backend informa quais formatos já produzem o vídeo completo em background.
   const off = !card.available || (!card.autoGenerate && (card.beta || card.credits == null || card.tier === "AI"))
   const locked = credits?.access === "SAMPLE" && !card.sampleOk
   const hard = card.fit?.level === "hard"
   const readOnly = session.workspace.role === "CLIENT"
+  const aiFmt = aiFormatOf(card)
   return (
     <article
       className={cn(
@@ -435,13 +466,13 @@ function Card({ card, credits, sel, onOpen, onUse, busy, disabled }: { card: Tem
               {card.name}
             </button>
           )}
-          <PricePill card={card} credits={credits} />
+          {aiFmt ? <AiPricePill credits={card.credits} /> : <PricePill card={card} credits={credits} />}
         </div>
         <p className="m-0 line-clamp-2 min-h-[2.6em] text-xs text-fg-2 tablet:line-clamp-3 tablet:min-h-[3.9em] tablet:text-[12.5px]">{card.description}</p>
         {card.fit ? <FitPill fit={card.fit} className="max-w-full self-start whitespace-normal" /> : null}
       </div>
       <div className="mt-auto flex items-center justify-between gap-2 px-1 pb-1">
-        <span className="hidden font-mono text-[11px] text-fg-3 tabular-nums tablet:inline">{off ? t("beta") : t("usedN", { out: card.out, n: card.uses })}</span>
+        <span className="hidden font-mono text-[11px] text-fg-3 tabular-nums tablet:inline">{off ? t("beta") : aiFmt ? tai("cardFoot") : t("usedN", { out: card.out, n: card.uses })}</span>
         {off ? (
           <Button size="sm" disabled className="flex-1 tablet:flex-none">
             {t("soon")}
@@ -466,6 +497,34 @@ function Card({ card, credits, sel, onOpen, onUse, busy, disabled }: { card: Tem
             {t("useTemplate")}
           </Button>
         )}
+      </div>
+    </article>
+  )
+}
+
+/** templates-ia-previas-v1 (design §2.1): a With AI format in the works — greyed still, dashed "Soon", no detail, no API. */
+function SoonCard({ name, description, tone }: { name: string; description: string; tone: number }) {
+  const t = useTranslations("adTemplates.ai")
+  return (
+    <article aria-label={name} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line bg-card p-1.5 text-left tablet:gap-2.5 tablet:p-2">
+      <div className="relative isolate aspect-[9/16] w-full overflow-hidden rounded-[10px] bg-card-2 opacity-70 saturate-[.3]">
+        {/* eslint-disable-next-line @next/next/no-img-element -- static illustration */}
+        <img src={`/mock/art-${tone}-${tone}.svg`} alt="" className="absolute inset-0 size-full object-cover" />
+        <span className="absolute top-[7px] left-[7px] z-[5] rounded-[4px] bg-ink/60 px-[5px] py-0.5 font-mono text-[9px] tracking-[0.06em] text-ink-fg uppercase">{t("soonBadge")}</span>
+        <span className="absolute top-[7px] right-[7px] z-[5] rounded-[4px] bg-white/90 px-[5px] py-0.5 font-mono text-[9px] text-fg">9:16</span>
+      </div>
+      <div className="flex min-w-0 flex-col gap-1.5 px-1">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <b className="truncate text-sm">{name}</b>
+          <Pill tone="beta">{t("soonBadge")}</Pill>
+        </div>
+        <p className="m-0 line-clamp-2 min-h-[2.6em] text-xs text-fg-2 tablet:line-clamp-3 tablet:min-h-[3.9em] tablet:text-[12.5px]">{description}</p>
+      </div>
+      <div className="mt-auto flex items-center justify-between gap-2 px-1 pb-1">
+        <span className="hidden font-mono text-[11px] text-fg-3 tablet:inline">{t("soonFoot")}</span>
+        <Button size="sm" disabled className="flex-1 tablet:flex-none">
+          {t("soonBadge")}
+        </Button>
       </div>
     </article>
   )
@@ -605,6 +664,8 @@ function DetailDialog({ card, credits, sel, onClose, onUse }: { card: TemplateCa
   const need = useNeedText()
   const { session } = useSession()
   const ai = card?.tier === "AI"
+  const aiFmt = aiFormatOf(card)
+  const tai = useTranslations("adTemplates.ai")
   const nine = card?.autoGenerate || card?.slug === "chat-dm" || card?.slug === "person-motion" || card?.slug === "new-headline"
   const sample = credits?.access === "SAMPLE"
   const locked = sample && !card?.sampleOk
@@ -617,6 +678,23 @@ function DetailDialog({ card, credits, sel, onClose, onUse }: { card: TemplateCa
             <span className="eyebrow">{ai ? t("detail.aiTemplate") : t("detail.editTemplate")}</span>
             <DialogTitle className="m-0 pr-10 text-[26px]">{card.name}</DialogTitle>
             <DialogDescription className="m-0 max-w-[52ch] text-fg-2">{card.description}</DialogDescription>
+            {aiFmt ? (
+              <dl className="m-0 grid grid-cols-[110px_minmax(0,1fr)] gap-x-3 gap-y-2 text-[13px]">
+                <dt className="text-fg-3">{tai("detail.how")}</dt>
+                <dd className="m-0">{tai.rich("detail.howValue", { b: (c) => <b>{c}</b> })}</dd>
+                <dt className="text-fg-3">{t("detail.youGet")}</dt>
+                <dd className="m-0">{tai("detail.youGetValue")}</dd>
+                <dt className="text-fg-3">{t("detail.cost")}</dt>
+                <dd className="m-0">
+                  {tai.rich("detail.costValue", { price: card.credits == null ? "—" : String(card.credits), b: (c) => <b>{c}</b> })}{" "}
+                  {card.credits == null ? <Tbd /> : null}
+                </dd>
+                <dt className="text-fg-3">{t("detail.time")}</dt>
+                <dd className="m-0">{tai("detail.timeValue")}</dd>
+                <dt className="text-fg-3">{t("detail.language")}</dt>
+                <dd className="m-0">{tai("detail.languageValue")}</dd>
+              </dl>
+            ) : (
             <dl className="m-0 grid grid-cols-[110px_minmax(0,1fr)] gap-x-3 gap-y-2 text-[13px]">
               <dt className="text-fg-3">{t("detail.youGet")}</dt>
               <dd className="m-0">{nine ? t("detail.getOnly", { out: card.out.replace(/\s*·\s*9:16/, "") }) : t("detail.getAll", { out: card.out })}</dd>
@@ -629,8 +707,9 @@ function DetailDialog({ card, credits, sel, onClose, onUse }: { card: TemplateCa
               <dt className="text-fg-3">{t("detail.language")}</dt>
               <dd className="m-0">{t("detail.languageValue")}</dd>
             </dl>
+            )}
             {card.fit ? <FitPill fit={card.fit} className="max-w-full self-start whitespace-normal" /> : null}
-            {card.needs.length ? (
+            {aiFmt ? null : card.needs.length ? (
               <div className="grid gap-1.5">
                 <span className="eyebrow">{t("detail.needs")}</span>
                 <ul className="m-0 grid list-none gap-1.5 p-0 text-[13px]">
@@ -646,7 +725,7 @@ function DetailDialog({ card, credits, sel, onClose, onUse }: { card: TemplateCa
               <p className="m-0 text-[13px] text-fg-3">{t("detail.anyAd")}</p>
             )}
             <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-3">
-              <span className="min-w-[200px] flex-1 text-xs text-fg-3">{t("detail.exampleNote")}</span>
+              <span className="min-w-[200px] flex-1 text-xs text-fg-3">{aiFmt ? tai("detail.note") : t("detail.exampleNote")}</span>
               {sel ? (
                 <Button variant="outline" onClick={sel.toggle} disabled={!sel.on && !!sel.why} title={sel.why ?? undefined}>
                   {sel.on ? t("selection.remove") : t("selection.add")}

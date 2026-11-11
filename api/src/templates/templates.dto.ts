@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize, ArrayMinSize, ArrayUnique, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested,
 } from 'class-validator';
+import { AiPreviewsRequestDto } from '../templates-ai/previews.dto';
 import { SELECTION_LIMITS } from './catalogo';
 
 export class TemplateSourceDto implements TemplateSourceRef {
@@ -21,6 +22,8 @@ export class TemplateGenerationDto {
 }
 export class UseTemplateDto extends TemplateSourceDto implements UseTemplateBody {
   @IsOptional() @ValidateNested() @Type(() => TemplateGenerationDto) generation?: TemplateGenerationDto;
+  /** templates-ia-previas-v1 §5.1 (AI_PREVIEWS=on, template AI_VIDEO): só a chave; `generation` passa a ser recusado */
+  @IsOptional() @ValidateNested() @Type(() => AiPreviewsRequestDto) previews?: AiPreviewsRequestDto;
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) offerId?: string;
   @IsOptional() @IsString() @MinLength(1) @MaxLength(64) cleanUploadId?: string;
 }

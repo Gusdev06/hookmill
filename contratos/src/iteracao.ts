@@ -324,6 +324,8 @@ export interface IterateBatch {
   template?: import('./templates').IterateTemplateRun | null;
   /** amostra-gratis-v1 §2: lote da amostra grátis (só tipos grátis, ≤ 4 peças, lança sozinho) */
   sample?: boolean;
+  /** templates-ia-previas-v1 §5.2: lote de prévias With AI (null/ausente = qualquer outro lote, inclusive os IA de 04/11) */
+  ai?: import('./templates-ai').AiPreviewsView | null;
   /** True for batches created with the goals flow; older batches keep their existing plan. */
   quizEnabled?: boolean;
   answers?: IterateAnswers | null;

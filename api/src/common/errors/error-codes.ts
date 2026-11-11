@@ -19,6 +19,7 @@ export const ERROR_HTTP_STATUS = {
   EMAIL_TAKEN: 409,
   LAST_OWNER: 409,
   RATE_LIMITED: 429,
+  REGEN_LIMIT: 429, // templates-ia-previas-v1 §5.4/§5.5 (07/11): teto de novo ângulo/retry da prévia
   PROVIDER_UNAVAILABLE: 503,
   INTERNAL_ERROR: 500,
   // feature 2
@@ -100,6 +101,7 @@ export const DEFAULT_ERROR_MESSAGE: Record<ErrorCode, string> = {
   EMAIL_TAKEN: 'This email is already a member.',
   LAST_OWNER: 'The workspace needs at least one owner.',
   RATE_LIMITED: 'Too many requests. Try again shortly.',
+  REGEN_LIMIT: 'No free regenerations left for this preview.',
   PROVIDER_UNAVAILABLE: 'The provider is unavailable. Try again shortly.',
   INTERNAL_ERROR: 'Something went wrong.',
   AD_LIBRARY_UNAVAILABLE: 'The Ad Library link is unavailable right now. Upload the video instead.',

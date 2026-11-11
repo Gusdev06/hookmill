@@ -181,6 +181,14 @@ export const TRANSCRIBE_MODEL = {
   etaSec: 20,
 };
 
+/** 11/11: transcrição pelo Kie (NVIDIA Nemotron 3.5 Transcribe, timestamps por palavra). Medido 11/11: 0,15 crédito
+ *  (US$ 0,005/crédito) por 29,7 s = US$ 0,0000253/s; arredondado pra cima. TRANSCRIBE_PROVIDER=kie liga. */
+export const KIE_TRANSCRIBE_MODEL = {
+  providerModel: 'nvidia/nemotron-3-5-transcribe',
+  usdPerSecond: 0.00003,
+  etaSec: 10,
+};
+
 /** Fala em voz alta: ~2,6 palavras/s (ritmo de anúncio). Usado pra estimar TTS/lipsync antes de existir áudio. */
 export const WORDS_PER_SECOND = 2.6;
 

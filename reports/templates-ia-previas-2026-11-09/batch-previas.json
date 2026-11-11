@@ -1,0 +1,647 @@
+{
+  "id": "cmw8yudqd0001qfr99ledcf53",
+  "status": "PLAN_READY",
+  "phase": "analyze",
+  "offer": {
+    "id": "cmw8yq88s0005qfhrmldv8etf",
+    "name": "Renda extra com IA",
+    "language": "pt"
+  },
+  "codeLanguage": "PT",
+  "source": {
+    "championId": "cmw8yq88z0007qfhr01rufd5w",
+    "name": "Talking head de partida",
+    "fromLibrary": false,
+    "fromMeta": false,
+    "durationSec": 30,
+    "width": null,
+    "height": null,
+    "ratioLabel": null,
+    "cuts": null,
+    "thumbnail": null,
+    "video": null
+  },
+  "analysis": {
+    "stage": null,
+    "step": 3,
+    "progress": 100,
+    "etaSec": null,
+    "checklist": [
+      {
+        "key": "decode",
+        "status": "done"
+      },
+      {
+        "key": "transcribe",
+        "status": "done"
+      },
+      {
+        "key": "cuts",
+        "status": "done"
+      },
+      {
+        "key": "edit_map",
+        "status": "done"
+      },
+      {
+        "key": "blocks",
+        "status": "done"
+      },
+      {
+        "key": "audience",
+        "status": "done"
+      },
+      {
+        "key": "offer",
+        "status": "done"
+      },
+      {
+        "key": "proof",
+        "status": "done"
+      },
+      {
+        "key": "page",
+        "status": "done"
+      },
+      {
+        "key": "planning",
+        "status": "done"
+      }
+    ]
+  },
+  "insight": null,
+  "error": null,
+  "sample": false,
+  "template": {
+    "runId": "cmw8yudqg0003qfr9s71lujv1",
+    "slug": "podcast-conversation",
+    "name": "Podcast conversation",
+    "pack": false,
+    "tier": "AI",
+    "status": "DRAFT",
+    "cap": null,
+    "lines": [],
+    "quote": 0,
+    "balance": null,
+    "after": null,
+    "enough": true,
+    "pool": null,
+    "held": 0,
+    "charged": 0,
+    "refunded": 0,
+    "selection": null,
+    "autoGenerate": true,
+    "productionStage": "writing",
+    "fit": {
+      "level": "ok",
+      "reason": null
+    },
+    "texts": []
+  },
+  "ai": {
+    "phase": "previews_ready",
+    "format": "F10",
+    "previews": [
+      {
+        "id": "cmw8yw7uq000jqfr99dei5lak",
+        "index": 0,
+        "letter": "A",
+        "status": "ready",
+        "title": "Extra income without quitting your job",
+        "angle": "The guide lets you start a side income with AI while keeping the security of your current job.",
+        "hook": "Dá pra começar uma renda extra sem pedir demissão e sem apostar a estabilidade do seu emprego?",
+        "summary": "A host asks whether you can build extra income without risking your job. The presenter explains the guide is for people who keep their jobs and is a step-by-step PDF.",
+        "beats": [
+          {
+            "speaker": "host",
+            "role": "hook",
+            "text": "Dá pra começar uma renda extra sem pedir demissão e sem apostar a estabilidade do seu emprego?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "Essa é exatamente a proposta. O guia foi feito para adultos que querem uma renda extra sem largar o emprego, e a promessa é começar em um fim de semana."
+          },
+          {
+            "speaker": "host",
+            "role": "objection",
+            "text": "Mas e quem nunca mexeu com inteligência artificial? Isso não trava logo no começo?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "Por isso ele é um guia passo a passo em PDF. Você segue uma etapa de cada vez usando ferramentas de IA, sem precisar adivinhar o caminho."
+          },
+          {
+            "speaker": "host",
+            "role": "cta",
+            "text": "Então, se você quer começar mantendo o emprego, toque no link e pegue o guia hoje."
+          }
+        ],
+        "changes": [
+          {
+            "axis": "angle",
+            "before": "Turn time lost scrolling the feed into extra income with AI in a weekend",
+            "after": "Start extra income with AI while keeping your current job and its stability"
+          },
+          {
+            "axis": "hook",
+            "before": "Opens with 'Para de perder a noite rolando o feed.'",
+            "after": "Opens with a host asking if you can start extra income without quitting or risking stability"
+          },
+          {
+            "axis": "presentation_format",
+            "before": "Single talking head monologue to camera",
+            "after": "Two-person podcast conversation with alternating questions and answers"
+          },
+          {
+            "axis": "messenger",
+            "before": "One presenter speaking alone to camera",
+            "after": "A curious host and an explaining presenter in a podcast studio"
+          },
+          {
+            "axis": "narrative",
+            "before": "Short command followed by a single product statement",
+            "after": "Question, reassurance, beginner objection, step-by-step answer, call to action"
+          }
+        ],
+        "preserved": [
+          "Offer: step-by-step PDF guide for extra income with AI tools",
+          "Price and terms unchanged",
+          "Promise of starting in a weekend",
+          "Original CTA wording"
+        ],
+        "cast": [
+          {
+            "speaker": "host",
+            "name": "Rafael",
+            "gender": "male",
+            "voiceId": "Casual_Guy",
+            "voiceName": "Casual Guy",
+            "image": {
+              "fileId": "cmw8ywnbf001zqfr9vf095pyi",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/7adb86cc-cd58-432b-af5d-1d4aa8c90a43.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=40842401670fe3ae5114f6b2ba8d065bcfecb542259456d5fa30b358e7d73509&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          },
+          {
+            "speaker": "presenter",
+            "name": "Camila",
+            "gender": "female",
+            "voiceId": "Calm_Woman",
+            "voiceName": "Calm Woman",
+            "image": {
+              "fileId": "cmw8ywndi0021qfr9cj70gpat",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/8d47f554-0724-4eb3-88a5-9857a8ef74dd.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=caae24c9a06213133f9abfbb1d1d266acc2e668cefa8f8acd6d5495fa434296b&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          }
+        ],
+        "estimate": {
+          "durationSec": 40,
+          "credits": null
+        },
+        "regenerations": {
+          "used": 0,
+          "max": 3
+        },
+        "retries": {
+          "used": 0,
+          "max": 2
+        },
+        "errorCode": null,
+        "failReason": null,
+        "failStage": null,
+        "failureCode": null,
+        "action": null,
+        "approvedAt": null,
+        "pieceId": null
+      },
+      {
+        "id": "cmw8yw7v1000tqfr9t6gjsamy",
+        "index": 1,
+        "letter": "B",
+        "status": "ready",
+        "title": "A clear order instead of AI overload",
+        "angle": "The guide replaces scattered, confusing AI information with a clear order of steps to follow.",
+        "hook": "Por que tanta gente trava antes mesmo de começar uma renda extra com inteligência artificial?",
+        "summary": "The host asks why people freeze before starting with AI. The presenter explains that the step-by-step guide gives a sequence and a weekend goal.",
+        "beats": [
+          {
+            "speaker": "host",
+            "role": "hook",
+            "text": "Por que tanta gente trava antes mesmo de começar uma renda extra com inteligência artificial?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "Porque tem informação demais e nenhuma ordem. O guia é passo a passo, então você sabe o que vem primeiro e o que vem depois."
+          },
+          {
+            "speaker": "host",
+            "role": "objection",
+            "text": "Certo, mas organizar tudo isso não leva meses de estudo?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "A promessa é outra: começar uma renda extra com IA em um fim de semana, seguindo o PDF etapa por etapa."
+          },
+          {
+            "speaker": "host",
+            "role": "cta",
+            "text": "Se você cansou de informação solta, toque no link e pegue o guia hoje."
+          }
+        ],
+        "changes": [
+          {
+            "axis": "angle",
+            "before": "Turn time lost scrolling the feed into extra income with AI in a weekend",
+            "after": "A clear, ordered path that ends the confusion of too much scattered AI information"
+          },
+          {
+            "axis": "hook",
+            "before": "Opens with 'Para de perder a noite rolando o feed.'",
+            "after": "Opens with a host asking why people freeze before even starting with AI"
+          },
+          {
+            "axis": "presentation_format",
+            "before": "Single talking head monologue to camera",
+            "after": "Two-person podcast conversation"
+          },
+          {
+            "axis": "messenger",
+            "before": "One presenter speaking alone to camera",
+            "after": "A host and presenter in a minimalist bright studio"
+          },
+          {
+            "axis": "pain",
+            "before": "Wasting evenings scrolling the feed",
+            "after": "Paralysis from too much information with no order"
+          }
+        ],
+        "preserved": [
+          "Offer: step-by-step PDF guide for extra income with AI tools",
+          "Weekend promise",
+          "Audience of adults keeping their jobs",
+          "Original CTA wording"
+        ],
+        "cast": [
+          {
+            "speaker": "host",
+            "name": "Juliana",
+            "gender": "female",
+            "voiceId": "Wise_Woman",
+            "voiceName": "Wise Woman",
+            "image": {
+              "fileId": "cmw8yxtsq0029qfr9msov6puh",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/678d8e20-a586-4365-9347-7a910a278570.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=5a116ea36f81f27341fbbeacc83978b8330c039b30e5d2659100d462f8e9282f&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          },
+          {
+            "speaker": "presenter",
+            "name": "Bruno",
+            "gender": "male",
+            "voiceId": "Deep_Voice_Man",
+            "voiceName": "Deep Voice Man",
+            "image": {
+              "fileId": "cmw8yxiat0025qfr9ivna1x2u",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/c7d47bcf-511b-4a2c-997a-7cc8c0d6ffe8.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=f028675b44b1e5c319b84386363d5060ea03dba88e6640c191bff42c4966bc2a&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          }
+        ],
+        "estimate": {
+          "durationSec": 32.7,
+          "credits": null
+        },
+        "regenerations": {
+          "used": 0,
+          "max": 3
+        },
+        "retries": {
+          "used": 0,
+          "max": 2
+        },
+        "errorCode": null,
+        "failReason": null,
+        "failStage": null,
+        "failureCode": null,
+        "action": null,
+        "approvedAt": null,
+        "pieceId": null
+      },
+      {
+        "id": "cmw8yw7va0013qfr9xpwzw5wb",
+        "index": 2,
+        "letter": "C",
+        "status": "ready",
+        "title": "A small, contained cost to test the idea",
+        "angle": "For R$ 97 you get a complete step-by-step guide, a contained way to try extra income with AI.",
+        "hook": "Quanto custa testar uma ideia de renda extra com IA sem gastar uma fortuna?",
+        "summary": "The host asks how much it costs to try an AI side income without spending a fortune. The presenter states the R$ 97 price and what the PDF delivers.",
+        "beats": [
+          {
+            "speaker": "host",
+            "role": "hook",
+            "text": "Quanto custa testar uma ideia de renda extra com IA sem gastar uma fortuna?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "Esse guia custa R$ 97. É um PDF passo a passo para começar uma renda extra usando ferramentas de IA."
+          },
+          {
+            "speaker": "host",
+            "role": "objection",
+            "text": "E na prática, o que eu consigo fazer com esse valor?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "Você segue as etapas no seu ritmo, e a promessa do guia é começar essa renda extra com IA em um fim de semana."
+          },
+          {
+            "speaker": "host",
+            "role": "cta",
+            "text": "Pra testar sem compromisso grande, toque no link e pegue o guia hoje."
+          }
+        ],
+        "changes": [
+          {
+            "axis": "angle",
+            "before": "Turn time lost scrolling the feed into extra income with AI in a weekend",
+            "after": "A small, contained R$ 97 cost to test a side income idea with AI"
+          },
+          {
+            "axis": "hook",
+            "before": "Opens with 'Para de perder a noite rolando o feed.'",
+            "after": "Opens with a host asking what it costs to test a side income idea without spending a fortune"
+          },
+          {
+            "axis": "objection",
+            "before": "Addresses starting from zero",
+            "after": "Addresses fear of spending too much on an unproven idea"
+          },
+          {
+            "axis": "presentation_format",
+            "before": "Single talking head monologue to camera",
+            "after": "Two-person podcast conversation"
+          },
+          {
+            "axis": "messenger",
+            "before": "One presenter speaking alone to camera",
+            "after": "A host and presenter in an industrial brick studio"
+          }
+        ],
+        "preserved": [
+          "Price R$ 97 exactly as supplied",
+          "Step-by-step PDF format",
+          "Weekend promise",
+          "Original CTA wording"
+        ],
+        "cast": [
+          {
+            "speaker": "host",
+            "name": "Thiago",
+            "gender": "male",
+            "voiceId": "Patient_Man",
+            "voiceName": "Patient Man",
+            "image": {
+              "fileId": "cmw8yz437002hqfr94jk09yfg",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/9fb12455-1a25-4572-9c73-e1343c15cff0.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=e386dadd604c5caf8d13f3418ed1221035e72d39dcde10cd13413d58df06288e&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          },
+          {
+            "speaker": "presenter",
+            "name": "Patrícia",
+            "gender": "female",
+            "voiceId": "Lively_Girl",
+            "voiceName": "Lively Girl",
+            "image": {
+              "fileId": "cmw8yywc7002dqfr98slaj5ze",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/2ffd30d6-f6e8-4a6c-a2c6-b565ed41b01f.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=f8868d7af59cedd10ea1f63f874743a768e879b516192350fadd92db0b47c823&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          }
+        ],
+        "estimate": {
+          "durationSec": 31.5,
+          "credits": null
+        },
+        "regenerations": {
+          "used": 0,
+          "max": 3
+        },
+        "retries": {
+          "used": 0,
+          "max": 2
+        },
+        "errorCode": null,
+        "failReason": null,
+        "failStage": null,
+        "failureCode": null,
+        "action": null,
+        "approvedAt": null,
+        "pieceId": null
+      },
+      {
+        "id": "cmw8yw7vx001dqfr9yzqh7as2",
+        "index": 3,
+        "letter": "D",
+        "status": "ready",
+        "title": "Trade 'someday' for one weekend",
+        "angle": "The guide turns endless 'someday I'll start' into a defined weekend project with a clear deadline.",
+        "hook": "Quantas vezes você já disse 'um dia eu começo uma renda extra' e esse dia nunca chegou?",
+        "summary": "The host challenges the habit of postponing a side income. The presenter frames the weekend promise as a deadline and the step-by-step PDF as the plan.",
+        "beats": [
+          {
+            "speaker": "host",
+            "role": "hook",
+            "text": "Quantas vezes você já disse 'um dia eu começo uma renda extra' e esse dia nunca chegou?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "O guia troca o 'um dia' por um prazo. A promessa é começar uma renda extra com IA em um fim de semana."
+          },
+          {
+            "speaker": "host",
+            "role": "objection",
+            "text": "Um fim de semana não é pouco pra quem trabalha a semana inteira?"
+          },
+          {
+            "speaker": "presenter",
+            "role": "mechanism",
+            "text": "Por isso é passo a passo. Você não inventa o caminho, só segue as etapas do PDF no sábado e no domingo."
+          },
+          {
+            "speaker": "host",
+            "role": "cta",
+            "text": "Que tal fazer desse o seu fim de semana? Toque no link e pegue o guia hoje."
+          }
+        ],
+        "changes": [
+          {
+            "axis": "angle",
+            "before": "Turn time lost scrolling the feed into extra income with AI in a weekend",
+            "after": "Replace endless postponing with a defined weekend deadline to start"
+          },
+          {
+            "axis": "hook",
+            "before": "Opens with 'Para de perder a noite rolando o feed.'",
+            "after": "Opens with a host asking how many times you've said 'someday I'll start'"
+          },
+          {
+            "axis": "pain",
+            "before": "Wasting evenings scrolling the feed",
+            "after": "Chronic procrastination on starting a side income"
+          },
+          {
+            "axis": "presentation_format",
+            "before": "Single talking head monologue to camera",
+            "after": "Two-person podcast conversation"
+          },
+          {
+            "axis": "messenger",
+            "before": "One presenter speaking alone to camera",
+            "after": "A host and presenter in a plant-filled green studio"
+          }
+        ],
+        "preserved": [
+          "Weekend promise",
+          "Step-by-step PDF format",
+          "Audience of adults keeping their jobs",
+          "Original CTA wording"
+        ],
+        "cast": [
+          {
+            "speaker": "host",
+            "name": "Larissa",
+            "gender": "female",
+            "voiceId": "Inspirational_girl",
+            "voiceName": "Inspirational Girl",
+            "image": {
+              "fileId": "cmw8z06io002nqfr9b3falrrf",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/fee54a0e-08ba-495c-a4ea-1125de0083a9.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=062e3e51e53979ebe5f364e584e58c4d22244b25293f18940f655a299a7b4b03&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          },
+          {
+            "speaker": "presenter",
+            "name": "Marcos",
+            "gender": "male",
+            "voiceId": "Determined_Man",
+            "voiceName": "Determined Man",
+            "image": {
+              "fileId": "cmw8z06m7002pqfr9f57d7egn",
+              "url": "http://localhost:9000/maquina-anuncios/ws/cmw8yq88e0001qfhry18ofz9u/face_image/3ac16816-fc6e-4781-bd94-6bb95e3f3e9c.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261109T075931Z&X-Amz-Expires=21600&X-Amz-Signature=be6240b0357a3a0a3b00ca6018e042213b60011ebcf67c8faff2985d11a7a7d6&X-Amz-SignedHeaders=host&x-id=GetObject",
+              "width": 1152,
+              "height": 2048
+            },
+            "status": "ready"
+          }
+        ],
+        "estimate": {
+          "durationSec": 35.4,
+          "credits": null
+        },
+        "regenerations": {
+          "used": 0,
+          "max": 3
+        },
+        "retries": {
+          "used": 0,
+          "max": 2
+        },
+        "errorCode": null,
+        "failReason": null,
+        "failStage": null,
+        "failureCode": null,
+        "action": null,
+        "approvedAt": null,
+        "pieceId": null
+      }
+    ],
+    "generating": 0,
+    "approvable": 4,
+    "prices": {
+      "videoEach": null
+    },
+    "approvals": [],
+    "limits": {
+      "regenPerPreview": 3,
+      "regenPerBatch": 6,
+      "regenUsed": 0,
+      "retryPerPreview": 2
+    },
+    "errorCode": null,
+    "failReason": null,
+    "failureCode": null
+  },
+  "quizEnabled": false,
+  "answers": null,
+  "selectionInfo": {
+    "goal": "both",
+    "goalReasonKey": "auto_default",
+    "stretchMax": 4
+  },
+  "notSelected": [],
+  "leftOut": [],
+  "pieces": [],
+  "summary": {
+    "pieces": 0,
+    "stretch": 0,
+    "newAudience": 0,
+    "files": 0,
+    "ready": 0,
+    "failed": 0,
+    "leftOut": 0,
+    "renderEtaSec": null,
+    "videoCreditsUsd": 0
+  },
+  "cost": {
+    "analysisEstimateUsd": 0.4351,
+    "analysisUsd": 0.2016,
+    "generateEstimateUsd": 0,
+    "imagesUsd": 0.048,
+    "renderUsd": 0,
+    "totalUsd": 0.2496
+  },
+  "zip": {
+    "status": "none",
+    "fileName": null,
+    "url": null,
+    "sizeBytes": null,
+    "pieces": 0,
+    "files": 0,
+    "folders": {
+      "stretch": "1-esticar-a-vida",
+      "newAudience": "2-publico-novo"
+    }
+  },
+  "downloadedAt": null,
+  "createdBy": {
+    "id": "cmw8yq8890000qfhrg6vhcqpv",
+    "name": "T1 prévias",
+    "initials": "TP"
+  },
+  "createdAt": "2026-11-09T07:54:58.693Z",
+  "launchedAt": null
+}

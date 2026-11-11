@@ -32,6 +32,7 @@ import { ik, useIterate, useIterateConfig } from "@/hooks/use-iterate"
 import { tk, useCredits, useTemplateList } from "@/hooks/use-templates"
 import { ME_KEY } from "@/hooks/use-me"
 import { TourTip } from "@/components/tour/tip"
+import { AiPreviewsRun } from "./ai-previews"
 import { FitPill, GetCreditsLink, Pill, TemplateStill, TemplateVideo, useCreditLabel, useFitText } from "./parts"
 
 /*
@@ -62,6 +63,8 @@ export function TemplateRunScreen({ id }: { id: string }) {
   if (q.isError && !b) return <BatchError error={q.error} onRetry={() => q.refetch()} />
   const batch = b!
   const tpl = batch.template!
+  // templates-ia-previas-v1: a With AI batch with previews (4 images → approve → videos); the 04/11 batches keep AiProduction
+  if (batch.ai) return <AiPreviewsRun batch={batch} tpl={tpl} />
   if (tpl.autoGenerate) return <AiProduction batch={batch} tpl={tpl} />
   if (batch.status === "ANALYSIS_FAILED")
     return (

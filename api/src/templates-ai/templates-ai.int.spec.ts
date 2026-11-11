@@ -5,6 +5,7 @@ process.env.META_CRON = 'off';
 process.env.BOOT_RECOVERY = 'off';
 process.env.RENDER_IMPL = process.env.AI_TEMPLATE_TEST_RENDER === 'local' ? 'local' : 'fake';
 process.env.AI_TEMPLATES_ENABLED = 'on';
+process.env.AI_PREVIEWS = 'off'; // fluxo de 04/11 (rollback); as prévias têm o spec próprio (templates-ai-previews.int.spec.ts)
 process.env.PUBLIC_API_URL = 'http://127.0.0.1:3289';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -21,6 +22,7 @@ import { SEMANTIC_PLANNER } from '../integracoes/claude/semantic-planner';
 import { MockSemanticPlanner } from '../integracoes/mock/semantic-planner';
 import { TemplatesAiService } from './templates-ai.service';
 import { RecuperacaoService } from '../recuperacao/recuperacao.service';
+import { bancoDeTesteAtivo } from '../common/testing/ambiente-teste';
 
 jest.setTimeout(180000);
 describe('Templates IA: HTTP → plano interno → vozes/rostos → MP4, sem gasto externo', () => {
@@ -50,7 +52,7 @@ describe('Templates IA: HTTP → plano interno → vozes/rostos → MP4, sem gas
     throw new Error(`pipeline timeout: ${JSON.stringify(await call('GET', `/iterate/${id}`, who.token))}`);
   };
   beforeAll(async () => {
-    expect((await db.$queryRaw<{ name: string }[]>`SELECT current_database() as name`)[0].name).toBe('maquina_test');
+    expect((await db.$queryRaw<{ name: string }[]>`SELECT current_database() as name`)[0].name).toBe(bancoDeTesteAtivo());
     saved = await db.template.findUniqueOrThrow({ where: { slug: 'podcast-conversation' }, select: { id: true, credits: true, status: true, uses: true } });
     await db.template.update({ where: { id: saved.id }, data: { credits: 5, status: 'LIVE' } });
     const mod = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(SEMANTIC_PLANNER).useValue(planner).compile();
@@ -90,7 +92,7 @@ describe('Templates IA: HTTP → plano interno → vozes/rostos → MP4, sem gas
     expect(team.data.items.filter((x: { autoGenerate: boolean }) => x.autoGenerate)).toHaveLength(3);
     const customer = await call('GET', '/ad-templates', paid.token);
     expect(customer.data.items.filter((x: { autoGenerate: boolean }) => x.autoGenerate)).toHaveLength(1);
-    expect(customer.data.items.find((x: { slug: string }) => x.slug === 'podcast-conversation')).toMatchObject({ available: true, outputs: 1 });
+    expect(customer.data.items.find((x: { slug: string }) => x.slug === 'podcast-conversation')).toMatchObject({ available: true, outputs: 4 }); // templates-ia-previas §8: outputs = 4 prévias
   });
 
   it('bloqueia origem alheia, cliente readonly, preço alterado e clique sem autorização antes de cobrar', async () => {
