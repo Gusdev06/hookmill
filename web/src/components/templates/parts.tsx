@@ -186,7 +186,11 @@ export type UseState = {
   /** templates-multi-v1: 422 TEMPLATE_DOESNT_FIT `items` (the checked ones that don't fit an ad already read) */
   misfit: { slug: string; reason: TemplateFitReason }[] | null
 }
-export type UseVars = { slugs: string[]; source: TemplateSourceRef; offerId?: string; cleanUploadId?: string; expectedCredits?: number }
+export type UseVars = {
+  slugs: string[]; source: TemplateSourceRef; offerId?: string; cleanUploadId?: string; expectedCredits?: number
+  /** templates-ia-previas-v1 §5.1: a With AI template with previews sends `previews { requestId }` (free, no expectedCredits) */
+  previews?: boolean
+}
 
 /**
  * POST /ad-templates/:slug/use (1 slug) or /ad-templates/use (2+, templates-multi-v1) → the batch → /templates/run/:id. Nothing
@@ -204,15 +208,18 @@ export function useUseTemplate({ onInvalid }: { onInvalid?: (d: TemplateSelectio
   const [state, setState] = useState<UseState>({ unlock: false, offers: null, misfit: null })
   const requestIds = useRef(new Map<string, string>())
   const m = useMutation({
-    mutationFn: ({ slugs, source, offerId, cleanUploadId, expectedCredits }: UseVars) => {
-      const key = JSON.stringify([slugs, source, offerId, cleanUploadId, expectedCredits])
-      let generation: { requestId: string; expectedCredits: number } | undefined
-      if (expectedCredits !== undefined) {
-        const requestId = requestIds.current.get(key) ?? crypto.randomUUID()
-        requestIds.current.set(key, requestId)
-        generation = { requestId, expectedCredits }
+    mutationFn: ({ slugs, source, offerId, cleanUploadId, expectedCredits, previews }: UseVars) => {
+      const key = JSON.stringify([slugs, source, offerId, cleanUploadId, expectedCredits, previews])
+      const requestId = () => {
+        const id = requestIds.current.get(key) ?? crypto.randomUUID()
+        requestIds.current.set(key, id)
+        return id
       }
-      const b = { ...source, ...(offerId ? { offerId } : {}), ...(cleanUploadId ? { cleanUploadId } : {}), ...(generation && { generation }) }
+      const generation = !previews && expectedCredits !== undefined ? { requestId: requestId(), expectedCredits } : undefined
+      const b = {
+        ...source, ...(offerId ? { offerId } : {}), ...(cleanUploadId ? { cleanUploadId } : {}), ...(generation && { generation }),
+        ...(previews && { previews: { requestId: requestId() } }),
+      }
       return slugs.length === 1 ? api.adTemplates.use(slugs[0], b) : api.adTemplates.useMany({ ...b, slugs })
     },
     onMutate: () => setState((s) => ({ ...s, misfit: null })),

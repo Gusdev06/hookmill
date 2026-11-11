@@ -1,0 +1,152 @@
+[
+ {
+  "slug": "live",
+  "exampleKey": "templates/live/example-5974cc92-096a-4853-9c4f-e3791a7b1f01.mp4",
+  "posterKey": "templates/live/example-5974cc92-096a-4853-9c4f-e3791a7b1f01-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "cinema",
+  "exampleKey": "templates/cinema/example-899faede-3f03-46bb-a852-eb4e3f856aa3.mp4",
+  "posterKey": "templates/cinema/example-899faede-3f03-46bb-a852-eb4e3f856aa3-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "story",
+  "exampleKey": "templates/story/example-01e6efab-cfdd-4abb-8344-ea93e233a425.mp4",
+  "posterKey": "templates/story/example-01e6efab-cfdd-4abb-8344-ea93e233a425-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "pov-testimonial",
+  "exampleKey": "templates/pov-testimonial/example-3e368f3c-9744-4648-95da-2e50a9183572.mp4",
+  "posterKey": "templates/pov-testimonial/example-3e368f3c-9744-4648-95da-2e50a9183572-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "read-the-caption",
+  "exampleKey": "templates/read-the-caption/example-369a2f8a-f9f2-4922-b48f-a0b78e3b8b24.mp4",
+  "posterKey": "templates/read-the-caption/example-369a2f8a-f9f2-4922-b48f-a0b78e3b8b24-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "direct-offer",
+  "exampleKey": "templates/direct-offer/example-eac8158d-6ec5-4e3b-959b-05d8f94429ae.mp4",
+  "posterKey": "templates/direct-offer/example-eac8158d-6ec5-4e3b-959b-05d8f94429ae-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "split-torn",
+  "exampleKey": "templates/split-torn/example-8ec1f698-4157-4758-8b2c-c912a8b11fc4.mp4",
+  "posterKey": "templates/split-torn/example-8ec1f698-4157-4758-8b2c-c912a8b11fc4-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "meet-dialog",
+  "exampleKey": "templates/meet-dialog/example-633e2b14-8db7-44fd-a7ef-b7d43a1c727d.mp4",
+  "posterKey": "templates/meet-dialog/example-633e2b14-8db7-44fd-a7ef-b7d43a1c727d-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "gossip-page",
+  "exampleKey": "templates/gossip-page/example-f40b1988-10bb-48d9-88ff-b4d1195db96e.mp4",
+  "posterKey": "templates/gossip-page/example-f40b1988-10bb-48d9-88ff-b4d1195db96e-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "call",
+  "exampleKey": "templates/call/example-4ca16f8b-c78a-4e88-84e3-f74d9153c89b.mp4",
+  "posterKey": "templates/call/example-4ca16f8b-c78a-4e88-84e3-f74d9153c89b-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "top-5",
+  "exampleKey": "templates/top-5/example-9ea74ecc-5662-43ea-ac60-4c80f088e484.mp4",
+  "posterKey": "templates/top-5/example-9ea74ecc-5662-43ea-ac60-4c80f088e484-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "cold-open",
+  "exampleKey": "templates/cold-open/example-671ef8fc-921a-4a15-8bcc-0751038e20ec.mp4",
+  "posterKey": "templates/cold-open/example-671ef8fc-921a-4a15-8bcc-0751038e20ec-poster.jpg",
+  "exampleDurationSec": "24.32"
+ },
+ {
+  "slug": "person-motion",
+  "exampleKey": "templates/person-motion/example-c7c0730f-0aad-4b2a-8bf3-fa9d3f4d30f6.mp4",
+  "posterKey": "templates/person-motion/example-c7c0730f-0aad-4b2a-8bf3-fa9d3f4d30f6-poster.jpg",
+  "exampleDurationSec": "23.083"
+ },
+ {
+  "slug": "question-box",
+  "exampleKey": "templates/question-box/example-da49d1b8-f4ed-4ee4-98b5-ed012a36100b.mp4",
+  "posterKey": "templates/question-box/example-da49d1b8-f4ed-4ee4-98b5-ed012a36100b-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "breaking-news",
+  "exampleKey": "templates/breaking-news/example-1ed8c37e-33ef-4da5-a4bf-ffa120adf06a.mp4",
+  "posterKey": "templates/breaking-news/example-1ed8c37e-33ef-4da5-a4bf-ffa120adf06a-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "split-screen",
+  "exampleKey": "templates/split-screen/example-4d66810c-cf76-49c2-a767-732177754f02.mp4",
+  "posterKey": "templates/split-screen/example-4d66810c-cf76-49c2-a767-732177754f02-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "native-search",
+  "exampleKey": "templates/native-search/example-94d0ce68-a627-41b6-b3c5-5143297b28f6.mp4",
+  "posterKey": "templates/native-search/example-94d0ce68-a627-41b6-b3c5-5143297b28f6-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "chat-dm",
+  "exampleKey": "templates/chat-dm/example-c260c496-d746-461e-bea1-bf253bed47c7.mp4",
+  "posterKey": "templates/chat-dm/example-c260c496-d746-461e-bea1-bf253bed47c7-poster.jpg",
+  "exampleDurationSec": "30.507"
+ },
+ {
+  "slug": "new-headline",
+  "exampleKey": "templates/new-headline/example-57d74cd7-86cd-443d-9d4b-6184da97ae05.mp4",
+  "posterKey": "templates/new-headline/example-57d74cd7-86cd-443d-9d4b-6184da97ae05-poster.jpg",
+  "exampleDurationSec": "19.691"
+ },
+ {
+  "slug": "review",
+  "exampleKey": "templates/review/example-aaae0e2b-21ac-420c-85ae-31fd98581384.mp4",
+  "posterKey": "templates/review/example-aaae0e2b-21ac-420c-85ae-31fd98581384-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "offer-end-card",
+  "exampleKey": "templates/offer-end-card/example-15dd25e6-f5a2-4d4b-ab6e-e08f85213d01.mp4",
+  "posterKey": "templates/offer-end-card/example-15dd25e6-f5a2-4d4b-ab6e-e08f85213d01-poster.jpg",
+  "exampleDurationSec": "21.718"
+ },
+ {
+  "slug": "gossip-white",
+  "exampleKey": "templates/gossip-white/example-7d892d45-ab60-4358-b843-a2a628de4974.mp4",
+  "posterKey": "templates/gossip-white/example-7d892d45-ab60-4358-b843-a2a628de4974-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "gossip-pink",
+  "exampleKey": "templates/gossip-pink/example-15162086-b004-4f31-abc4-9fdb7b47a931.mp4",
+  "posterKey": "templates/gossip-pink/example-15162086-b004-4f31-abc4-9fdb7b47a931-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "meme-pov",
+  "exampleKey": "templates/meme-pov/example-a1fdab32-7289-45f8-81ef-b070eb08f206.mp4",
+  "posterKey": "templates/meme-pov/example-a1fdab32-7289-45f8-81ef-b070eb08f206-poster.jpg",
+  "exampleDurationSec": "19.712"
+ },
+ {
+  "slug": "post-card",
+  "exampleKey": "templates/post-card/example-7b43b5a2-01d3-49ab-830a-af5fd9cded12.mp4",
+  "posterKey": "templates/post-card/example-7b43b5a2-01d3-49ab-830a-af5fd9cded12-poster.jpg",
+  "exampleDurationSec": "19.712"
+ }
+]

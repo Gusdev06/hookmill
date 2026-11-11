@@ -422,7 +422,8 @@ export interface Submitted { providerTaskId: string; externalId: string; estimat
 /** rev. 23/10: `extends StaticImagePort` ligado na R-I (submitStaticImage). */
 export interface GenerationService extends StaticImagePort {
   /** §13.3: aspectRatio = o da região do rosto (CatalogService.faceAspectFor). Ausente = 9:16 (v1). */
-  submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect }): Promise<Submitted>;
+  /** templates-ia-previas §6: `framing` = olhar (F10: olhares opostos) e cenário vindo da descrição do cast. */
+  submitFace(i: { workspaceId: string; faceId: string; description: string; language: string; aspectRatio?: FaceAspect; framing?: { gaze?: 'lens' | 'camera_left' | 'camera_right'; setting?: 'generic' | 'described' } }): Promise<Submitted>;
   /** §13.15: cena SWAP_VIDEO passa `windowIndex` (grava provider_tasks.window_index) e `sound` (false = (A), mudo, sem
    *  fala no prompt; true = (B), fala com `voiceDescriptor` fixo do item). `aspectRatio` só no Seedance (Kling segue a
    *  imagem); `resolution` só no Seedance ('480p'|'720p'; Kling sai 1080p). Sem `windowIndex` = cena v1 (sound true).

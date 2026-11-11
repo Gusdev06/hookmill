@@ -150,14 +150,29 @@ export const IDENTITY_LOCK_V2 = 'The same person from the image, the only person
 /** Braços em positivo (regra f): pose descrita, sem citar o que não pode aparecer. */
 const ARMS_V2 = 'Both arms rest down along the body, below the bottom edge of the frame.';
 
-export function facePromptV2(description: string, aspect?: string): string {
+/** templates-ia-previas §6: a `description` do cast já traz pessoa + cenário (setting 'described'); F10 pede olhares
+ *  opostos entre host e convidado (gaze camera_left/right). Sem opções = prompt idêntico ao de antes. */
+export interface FaceFraming {
+  gaze?: 'lens' | 'camera_left' | 'camera_right';
+  setting?: 'generic' | 'described';
+}
+const GAZE: Record<NonNullable<FaceFraming['gaze']>, string> = {
+  lens: 'shoulders square to the camera, looking straight into the lens',
+  camera_left: 'shoulders turned a few degrees toward camera left, eyes on a conversation partner just off frame to the left, the whole face still visible',
+  camera_right: 'shoulders turned a few degrees toward camera right, eyes on a conversation partner just off frame to the right, the whole face still visible',
+};
+
+export function facePromptV2(description: string, aspect?: string, framing: FaceFraming = {}): string {
   const desc = scrubSlop(description.replace(/\s+/g, ' ')).replace(/\.$/, '');
+  const setting = framing.setting === 'described'
+    ? 'the setting from the description softly out of focus behind them'
+    : 'a believable everyday setting softly out of focus behind them';
   return [
     `${photoKind(aspect)} SOLO SHOT of exactly one person: ${desc}.`,
-    'Framed from the chest up, the face centered in the frame, shoulders square to the camera, looking straight into the lens with relaxed eyebrows and a slight closed-mouth smile.',
+    `Framed from the chest up, the face centered in the frame, ${GAZE[framing.gaze ?? 'lens']} with relaxed eyebrows and a slight closed-mouth smile.`,
     ARMS_V2,
     'Flattering realism: fine, even, matte skin texture with a healthy, rested complexion, clear bright eyes, neatly groomed hair; the person looks their best on an ordinary good day.',
-    `Lit by ${DEFAULT_LIGHT}. Sharp focus on the face; a believable everyday setting softly out of focus behind them.`,
+    `Lit by ${DEFAULT_LIGHT}. Sharp focus on the face; ${setting}.`,
     ...bodyMarksV2(desc),
     'Clean photo: clothing without letters or logos, nothing written anywhere in the image, no borders.',
   ].join(' ');
@@ -243,7 +258,7 @@ export function lipsyncPromptV2(visualPrompt: string): string {
 
 export interface MediaPrompts {
   version: MediaPromptVersion;
-  face: (description: string, aspect?: string) => string;
+  face: (description: string, aspect?: string, framing?: FaceFraming) => string;
   scene: (i: { visualPrompt: string; speech: string; language: string }) => string;
   lipsync: (visualPrompt: string) => string;
 }

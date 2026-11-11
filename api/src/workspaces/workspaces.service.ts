@@ -340,7 +340,8 @@ export class WorkspacesService {
   }
 
   services() {
-    const anthropic = this.config.optional('ANTHROPIC_API_KEY');
+    // 11/11: CLAUDE_PROVIDER=kie → a linha ANTHROPIC mostra a chave do Kie (o LLM inteiro passa por lá)
+    const anthropic = (this.config.optional('CLAUDE_PROVIDER') ?? '').trim().toLowerCase() === 'kie' ? this.config.optional('KIE_API_KEY') : this.config.optional('ANTHROPIC_API_KEY');
     const wavespeed = this.config.optional('WAVESPEED_API_KEY');
     const hfId = this.config.optional('HF_API_KEY_ID');
     const hfOk = !!(hfId && this.config.optional('HF_API_KEY_SECRET'));

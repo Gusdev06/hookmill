@@ -1,4 +1,4 @@
-import type { SemanticPlan } from '@maquina/contratos';
+import type { PlanOneRequest, PlanPreviewsRequest, SemanticPlan, SemanticPlanV2 } from '@maquina/contratos';
 import type { CostStore } from '../portas';
 import { IntegracaoError } from '../erros';
 import type { ClaudeCall, ClaudeTransport } from './transporte';
@@ -6,6 +6,7 @@ import { priceOf, recordLlmCost } from './custo';
 import { AXES, FORMATS, KNOWLEDGE } from '../../variacao-ia/catalogo';
 import type { SemanticContext } from '../../variacao-ia/contexto';
 import { validateSemanticPlan } from '../../variacao-ia/plano';
+import { oneCall, previewsCall, validateSemanticPlanV2, type SemanticContextV2 } from './semantic-v2';
 
 const string = { type: 'string' };
 const list = (items: unknown) => ({ type: 'array', items });
@@ -49,15 +50,43 @@ export interface SemanticPlannerPort {
   readonly configured: boolean;
   estimate(ctx: SemanticContext): number;
   plan(ctx: SemanticContext, billing: { workspaceId: string; championId: string; jobId: string }): Promise<SemanticPlan>;
+  // ── semantic-v2 (templates-ia-previas §4.2). Custo real em cost_entries (LLM, por chamada); estimativas em US$ para o assertWithinCap.
+  /** Planejador inicial: `count` (5) candidatas na ordem do modelo; o backend guarda as 4 primeiras produzíveis. */
+  planPreviews(ctx: SemanticContextV2, req: PlanPreviewsRequest, billing: SemanticBillingV2): Promise<SemanticPlanV2>;
+  /** Novo ângulo / retry de planejamento: 1 candidata distinta das `exclude` (vivas do lote), com apresentador novo. */
+  planOne(ctx: SemanticContextV2, req: PlanOneRequest, billing: SemanticBillingV2): Promise<SemanticPlanV2>;
+  estimatePreviews(ctx: SemanticContextV2, req: PlanPreviewsRequest): number;
+  estimateOne(ctx: SemanticContextV2, req: PlanOneRequest): number;
 }
+export interface SemanticBillingV2 { workspaceId: string; championId: string; jobId: string; variationBatchId: string }
 export const SEMANTIC_PLANNER = Symbol('SEMANTIC_PLANNER');
 
 export class LiveSemanticPlanner implements SemanticPlannerPort {
   readonly mode = 'live' as const;
   readonly configured: boolean;
   constructor(private readonly transport: ClaudeTransport | null, private readonly costs: CostStore, private readonly model: string) { this.configured = !!transport; }
-  estimate(ctx: SemanticContext): number {
-    const call = semanticCall(ctx), price = priceOf(this.model);
+  estimate(ctx: SemanticContext): number { return this.estimateCall(semanticCall(ctx)); }
+  estimatePreviews(ctx: SemanticContextV2, req: PlanPreviewsRequest): number { return this.estimateCall(previewsCall(ctx, req)); }
+  estimateOne(ctx: SemanticContextV2, req: PlanOneRequest): number { return this.estimateCall(oneCall(ctx, req)); }
+  planPreviews(ctx: SemanticContextV2, req: PlanPreviewsRequest, billing: SemanticBillingV2): Promise<SemanticPlanV2> { return this.runV2(previewsCall(ctx, req), ctx, req, billing); }
+  planOne(ctx: SemanticContextV2, req: PlanOneRequest, billing: SemanticBillingV2): Promise<SemanticPlanV2> { return this.runV2(oneCall(ctx, req), ctx, req, billing); }
+
+  /** 1 chamada, sem retry (nunca repetir chamada paga); o custo é gravado antes de qualquer validação. */
+  private async runV2(call: ClaudeCall, ctx: SemanticContextV2, req: { format: PlanPreviewsRequest['format']; uiLocale: string }, billing: SemanticBillingV2): Promise<SemanticPlanV2> {
+    if (!this.transport) throw new IntegracaoError('NOT_CONFIGURED');
+    const response = await this.transport.run(call);
+    const cost = await recordLlmCost(this.costs, { ...billing, model: this.model }, response.usage);
+    if (response.stopReason === 'refusal') throw new IntegracaoError('SAFETY_BLOCK');
+    if (response.stopReason !== 'end_turn') throw new IntegracaoError('PROVIDER_ERROR', `semantic-v2 incomplete response (${response.stopReason})`);
+    let raw: unknown;
+    try { raw = JSON.parse(response.text); } catch { throw new IntegracaoError('PROVIDER_ERROR', 'semantic-v2 invalid JSON'); }
+    const { rejected, ...plan } = validateSemanticPlanV2(raw, ctx, req, 'live', cost);
+    void rejected;
+    return plan;
+  }
+
+  private estimateCall(call: ClaudeCall): number {
+    const price = priceOf(this.model);
     // Um token por byte de UTF-8 é uma estimativa conservadora. Inclui schema e escrita de cache (1,25x).
     const bytes = Buffer.byteLength(JSON.stringify(call), 'utf8');
     return Math.ceil((bytes * price.input * 1.25 + call.maxTokens * price.output) / 1e6 * 1e4) / 1e4;

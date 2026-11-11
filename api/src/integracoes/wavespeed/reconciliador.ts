@@ -16,6 +16,8 @@ export const RECONCILE = {
   pollingOnly: { everyMs: 15_000, minAgeMs: 10_000 },
   timeoutMs: 30 * 60_000,
   higgsfield: { everyMs: 5_000, minAgeMs: 5_000, timeoutMs: 10 * 60_000 },
+  // 11/11: transcrição no Kie (~5 s pra 30 s de áudio): polling 4 s, TIMEOUT 10 min
+  kie: { everyMs: 4_000, minAgeMs: 3_000, timeoutMs: 10 * 60_000 },
   staticImage: { everyMs: 30_000, minAgeMs: STATIC_IMAGE_MODEL.pollAfterMs, timeoutMs: STATIC_IMAGE_MODEL.timeoutMs },
 };
 
@@ -36,12 +38,14 @@ export class Reconciliador {
 
   get schedule(): { everyMs: number; minAgeMs: number } {
     if (this.lane === 'HIGGSFIELD') return { everyMs: RECONCILE.higgsfield.everyMs, minAgeMs: RECONCILE.higgsfield.minAgeMs };
+    if (this.lane === 'KIE') return { everyMs: RECONCILE.kie.everyMs, minAgeMs: RECONCILE.kie.minAgeMs };
     if (this.lane === 'STATIC_IMAGE') return { everyMs: RECONCILE.staticImage.everyMs, minAgeMs: RECONCILE.staticImage.minAgeMs };
     return this.webhooksOn ? RECONCILE.withWebhooks : RECONCILE.pollingOnly;
   }
 
   private get timeoutMs() {
     if (this.lane === 'HIGGSFIELD') return RECONCILE.higgsfield.timeoutMs;
+    if (this.lane === 'KIE') return RECONCILE.kie.timeoutMs;
     if (this.lane === 'STATIC_IMAGE') return RECONCILE.staticImage.timeoutMs;
     return RECONCILE.timeoutMs;
   }

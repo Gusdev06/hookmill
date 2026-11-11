@@ -56,13 +56,16 @@ export function deliveredOf(line: Pick<RunLine, 'tier' | 'credits'>, statuses: r
 export interface Settlement { target: number; charge: number; refund: number; lines: RunLine[] }
 
 /**
- * §4.3 assentar: null enquanto alguma peça não terminou. alvo = min(teto, Σ entregue); cobrar = alvo − já cobrado
- * (nunca negativo, nunca mais que o reservado); devolver = reservado − cobrar.
+ * §4.3 assentar: null enquanto alguma peça de linha `held` não terminou. alvo = min(teto, Σ entregue); cobrar = alvo − já
+ * cobrado (nunca negativo, nunca mais que o reservado); devolver = reservado − cobrar.
+ * templates-ia-previas-v1 §7 (07/11): linhas mistas. Só as `held` são (re)avaliadas; as já assentadas (`charged`/`refunded`,
+ * de uma aprovação anterior) ficam como estão e entram no alvo pelo `delivered` gravado. Sem linha já assentada = igual a antes.
  */
 export function settle(run: { cap: number | null; held: number; charged: number; lines: readonly RunLine[] }, statusOf: (itemId: string) => PieceStatus): Settlement | null {
-  const per = run.lines.map((l) => l.itemIds.map(statusOf));
+  const per = run.lines.map((l) => (l.state === 'held' ? l.itemIds.map(statusOf) : []));
   if (per.some((ss) => ss.some((s) => !isTerminal(s)))) return null;
   const lines = run.lines.map((l, k) => {
+    if (l.state !== 'held') return { ...l };
     const delivered = deliveredOf(l, per[k]);
     return { ...l, delivered, state: (delivered > 0 ? 'charged' : 'refunded') as LineState };
   });

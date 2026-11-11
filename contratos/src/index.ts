@@ -260,12 +260,18 @@ export type ApiErrorCode =
   // templates-multi-v1 (04/11)
   | 'TEMPLATE_SELECTION_INVALID'
   // editor-universal-v1 §7.1 (F-U1, 04/11): export com aviso que bloqueia (details: EditBlockedDetails)
-  | 'EDIT_BLOCKED';
+  | 'EDIT_BLOCKED'
+  // templates-ia-previas-v1 §5.4/§5.5 (07/11): teto de "Novo ângulo"/retry da prévia (429)
+  | 'REGEN_LIMIT';
 export interface ErrorDetails {
   /** rule: livre nos DTOs; no PUT /editor também os `EditDocRule` (editor-v1 §5.4). */
   VALIDATION_ERROR: { fields: { field: string; rule: EditDocRule | (string & {}) }[] };
   /** `state`/`allowed` são do recurso da rota (criativo, campeão ou lote). `reason` (feature 2): 'variation_locked' | 'change_not_available'. */
-  INVALID_STATE: { state: string; allowed: string[]; reason?: 'variation_locked' | 'change_not_available' | 'regenerate_take' | 'regenerate_swap_scene' | 'onboarding_completed';
+  INVALID_STATE: { state: string; allowed: string[]; reason?: 'variation_locked' | 'change_not_available' | 'regenerate_take' | 'regenerate_swap_scene' | 'onboarding_completed'
+      /** templates-ia-previas-v1 §5 */
+      | 'preview_not_ready' | 'request_conflict';
+    /** templates-ia-previas-v1 §5.3: as prévias que não estavam `ready` (reason 'preview_not_ready') */
+    previewIds?: string[];
     /** só com reason 'regenerate_take' (§13.5): a fatia é de um take; refazer = o take inteiro, com confirm + expectedCostUsd */
     takeId?: string; estimateUsd?: number };
   CONFIRM_DOWNSTREAM_RESET: { scenesLost: number; rendersLost: number; spentUsd: number };
@@ -275,6 +281,7 @@ export interface ErrorDetails {
   PAYMENT_REQUIRED: PaymentRequiredDetails; // amostra-gratis-v1 §4 (402)
   INSUFFICIENT_CREDITS: InsufficientCreditsDetails; // templates-creditos-v1 §9 (402)
   CREDITS_CHANGED: { credits: number };
+  REGEN_LIMIT: RegenLimitDetails; // templates-ia-previas-v1 (07/11, 429)
   TEMPLATE_UNAVAILABLE: TemplateUnavailableDetails;
   TEMPLATE_DOESNT_FIT: TemplateDoesntFitDetails;
   TEMPLATE_SELECTION_INVALID: TemplateSelectionInvalidDetails; // templates-multi-v1 (04/11)
@@ -856,6 +863,9 @@ import type { InsufficientCreditsDetails, TemplateDoesntFitDetails, TemplateSele
 // ads-research-v1 (04/11, PROPOSTA): Meta Ads Research (anúncios da Ad Library dos concorrentes)
 export * from './research';
 export type * from './variacao-ia';
+// templates-ia-previas-v1 (07/11)
+export * from './templates-ai';
+import type { RegenLimitDetails } from './templates-ai';
 // troca-texto-queimado-v1 §16 (F0b, 06/11): headline copiada do criativo
 export type * from './troca-texto';
 import type { HeadlineLook } from './troca-texto';

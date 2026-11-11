@@ -1,7 +1,7 @@
 // templates-creditos-v1 §3/§6/§7 (31/10): galeria (com fit por anúncio já lido), "usar template" (o lote AUTO com o tipo
 // travado, sem quiz) e o admin do catálogo (preço, status, vídeo de exemplo no storage).
 import { Injectable, Logger } from '@nestjs/common';
-import { AI_KEYS } from '../templates-ai/contract';
+import { AI_KEYS, aiPreviewsOn } from '../templates-ai/contract';
 import { TemplatesAiService } from '../templates-ai/templates-ai.service';
 import type {
   AdminTemplate, FileRef, TemplateCard, TemplateExampleUpload, TemplateFit, TemplateFitsResponse, TemplateList, TemplateSourceRef, UpdateTemplateBody,
@@ -74,7 +74,7 @@ export class TemplatesService {
       tier: t.tier, tab: tabOf(t.tier), category: asCategory(t.category), credits: t.credits, outputs: t.outputs, pack: t.pack, beta: t.beta,
       needs: t.needs, example: await this.media(t.exampleKey, 'video/mp4'), poster: await this.media(t.posterKey, 'image/jpeg'), uses: t.uses,
       available: availabilityOf(t).available && (t.autoType !== 'AI_VIDEO' || this.ai.available()), sampleOk: sampleOk(t.tier), fit,
-      ...(t.autoType === 'AI_VIDEO' && { autoGenerate: true }),
+      ...(t.autoType === 'AI_VIDEO' && { autoGenerate: true, ...(AI_KEYS[t.internalKey] && { aiFormat: AI_KEYS[t.internalKey] as 'F04' | 'F09' | 'F10' }) }),
     };
   }
 
@@ -188,11 +188,23 @@ export class TemplatesService {
       const format = AI_KEYS[t.internalKey];
       if (!format || !this.ai.available()) throw new AppException('TEMPLATE_UNAVAILABLE', { reason: 'disabled' });
       if (sample || (t.credits == null && payer.pool != null)) throw new AppException('PAYMENT_REQUIRED');
+      const settings = { slug: t.slug, pack: false, keys: [t.internalKey], fit: { level: 'ok' as const, reason: null } };
+      if (aiPreviewsOn()) {
+        // templates-ia-previas-v1 §5.1: `previews` no lugar de `generation` (prévias grátis, sem reserva no /use)
+        if (body.generation) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'generation', rule: 'notAllowed' }] });
+        if (!body.previews) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'previews', rule: 'required' }] });
+        const { previews, ...source } = body;
+        const fingerprint = JSON.stringify([t.id, ...SOURCE_KEYS.map((k) => body[k] ?? null), body.offerId ?? null, body.cleanUploadId ?? null]);
+        return this.iteracao.create(auth, source, {
+          templateId: t.id, settings, cap: null, sample: false, aiGeneration: { requestId: previews.requestId, format, fingerprint, previews: true },
+        });
+      }
+      if (body.previews) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'previews', rule: 'notAllowed' }] });
       if (!body.generation) throw new AppException('VALIDATION_ERROR', { fields: [{ field: 'generation', rule: 'required' }] });
-      const { generation, ...source } = body;
+      const { generation, previews: _previews, ...source } = body;
       const fingerprint = JSON.stringify([t.id, ...SOURCE_KEYS.map((k) => body[k] ?? null), body.offerId ?? null, body.cleanUploadId ?? null, generation.expectedCredits]);
       return this.iteracao.create(auth, source, {
-        templateId: t.id, settings: { slug: t.slug, pack: false, keys: [t.internalKey], fit: { level: 'ok', reason: null } }, cap: null, sample: false,
+        templateId: t.id, settings, cap: null, sample: false,
         aiGeneration: { ...generation, format, fingerprint },
       });
     }

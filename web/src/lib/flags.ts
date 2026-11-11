@@ -11,3 +11,10 @@ export const ONBOARDING_EDDY = process.env.NEXT_PUBLIC_ONBOARDING_EDDY === "on"
  * the API's TEMPLATES flag must be on where this ships, or SAMPLE accounts get 402 on the gallery). /iterate stays reachable.
  */
 export const TEMPLATES = process.env.NEXT_PUBLIC_TEMPLATES !== "off"
+
+/**
+ * AI_PREVIEWS (07/11, templates-ia-previas-v1, approved): With AI templates (FAQ, Podcast solo, Podcast duo) draw 4 free image
+ * previews before any video; the person approves 1 to 4. On unless the env says "off" (rollback with the API's AI_PREVIEWS=off:
+ * the 04/11 flow, one video straight from the Ad step).
+ */
+export const AI_PREVIEWS = process.env.NEXT_PUBLIC_AI_PREVIEWS !== "off"

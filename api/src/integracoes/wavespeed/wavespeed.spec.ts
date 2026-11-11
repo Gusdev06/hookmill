@@ -7,6 +7,7 @@ import { REJECTED_PREFIX, WaveSpeedGenerationService } from './generation.servic
 import { extractWords, finalStatus } from './normalizar';
 import { facePrompt, lipsyncPrompt, scenePrompt, whisperLanguage, minimaxLanguage } from './prompts-midia';
 import { RECONCILE, Reconciliador } from './reconciliador';
+import { KieJobsClient } from '../kie/jobs';
 
 type Call = { url: string; init?: RequestInit };
 
@@ -127,7 +128,7 @@ describe('prompts de mídia (armadilhas do Pruna)', () => {
 });
 
 describe('WaveSpeedGenerationService', () => {
-  function setup(opts: { submit?: (c: Call) => Response; result?: (c: Call) => Response; probe?: number | null; now?: number; forceUpload?: boolean } = {}) {
+  function setup(opts: { submit?: (c: Call) => Response; result?: (c: Call) => Response; probe?: number | null; now?: number; forceUpload?: boolean; kie?: (c: Call) => Response } = {}) {
     const tasks = new MemoryTaskStore();
     const costs = new MemoryCostStore();
     const events: ProviderTaskFinishedEvent[] = [];
@@ -135,6 +136,7 @@ describe('WaveSpeedGenerationService', () => {
     let n = 0;
     let up = 0;
     const { f, calls } = fakeFetch((c) => {
+      if (opts.kie && /kie\.ai|redpandaai|aiquickdraw/.test(c.url)) return opts.kie(c);
       // upload de mídia: POST /media/uploads → instrução de PUT; PUT → 200; GET no S3 local → bytes
       if (c.url.endsWith('/media/uploads')) {
         const k = ++up;
@@ -154,6 +156,7 @@ describe('WaveSpeedGenerationService', () => {
       now: () => clock.now,
       lookupRetryMs: 0,
       forceUpload: opts.forceUpload,
+      kie: opts.kie ? new KieJobsClient({ apiKey: 'kk', fetchImpl: f }) : null,
     });
     return { svc, tasks, costs, events, calls, clock };
   }
@@ -269,6 +272,44 @@ describe('WaveSpeedGenerationService', () => {
     expect(await svc.parseWords(s.providerTaskId)).toEqual([{ word: 'Para', startSec: 0, endSec: 0.4 }, { word: 'tudo', startSec: 0.4, endSec: 1 }]);
     expect(events[0].outputUrls).toEqual([]); // nada pro storage baixar
     expect(costs.entries[0]).toMatchObject({ kind: 'TRANSCRIBE', units: 9, amountUsd: 0.018 });
+  });
+
+  it('transcrição pelo Kie (11/11): Nemotron com timestamps, laço KIE fecha, palavras do JSON, custo do Kie, provider KIE', async () => {
+    let state = 'generating';
+    const nemotron = { duration: 8.4, words: [{ word: 'Para', start: 0, end: 0.4, speaker: '0' }, { word: 'tudo', start: 0.4, end: 1, speaker: '0' }], diarization: [{ speaker: '0', start: 0, end: 1 }] };
+    const { svc, costs, events, calls, tasks, clock } = setup({
+      probe: 8.5,
+      kie: (c) => {
+        if (c.url.endsWith('/api/v1/jobs/createTask')) return json(200, { code: 200, msg: 'success', data: { taskId: 'k1', recordId: 'k1' } });
+        if (c.url.includes('/api/v1/jobs/recordInfo')) return json(200, { code: 200, msg: 'success', data: { taskId: 'k1', state, resultJson: state === 'success' ? JSON.stringify({ resultObject: { text: 'Para tudo', duration: 8.4, url: 'https://tempfile.aiquickdraw.com/r/k1.json' } }) : '' } });
+        if (c.url === 'https://tempfile.aiquickdraw.com/r/k1.json') return new Response(JSON.stringify(nemotron));
+        return json(404, {});
+      },
+    });
+    const s = await svc.submitTranscribe({ workspaceId: 'w', championId: 'c1', mediaUrl: 'https://cdn.x/clip.mp4' });
+    const create = calls.find((c) => c.url.endsWith('/createTask'))!;
+    expect(JSON.parse(String(create.init!.body))).toEqual({ model: 'nvidia/nemotron-3-5-transcribe', input: { audio_url: 'https://cdn.x/clip.mp4', timestamps: true } });
+    expect((create.init!.headers as Record<string, string>).authorization).toBe('Bearer kk');
+    expect(calls.some((c) => c.url.includes('wavespeed'))).toBe(false);
+    expect(tasks.tasks.get(s.providerTaskId)).toMatchObject({ provider: 'KIE', kind: 'TRANSCRIBE', externalId: 'k1' });
+    clock.now += 10_000;
+    expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(0); // ainda gerando
+    state = 'success';
+    expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(1);
+    expect(await svc.parseWords(s.providerTaskId)).toEqual([{ word: 'Para', startSec: 0, endSec: 0.4 }, { word: 'tudo', startSec: 0.4, endSec: 1 }]);
+    expect(events[0]).toMatchObject({ kind: 'TRANSCRIBE', status: 'COMPLETED', championId: 'c1', outputUrls: [] });
+    expect(costs.entries[0]).toMatchObject({ provider: 'KIE', kind: 'TRANSCRIBE', units: 9, amountUsd: 0.0003 });
+  });
+
+  it('transcrição pelo Kie: state fail fecha FAILED sem custo', async () => {
+    const { svc, costs, events, clock } = setup({
+      kie: (c) => c.url.endsWith('/createTask') ? json(200, { code: 200, data: { taskId: 'k2' } }) : json(200, { code: 200, data: { taskId: 'k2', state: 'fail', failMsg: 'audio unreadable', failCode: '500' } }),
+    });
+    await svc.submitTranscribe({ workspaceId: 'w', sceneId: 's1', mediaUrl: 'https://cdn.x/clip.mp4' });
+    clock.now += 10_000;
+    expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(1);
+    expect(events[0]).toMatchObject({ status: 'FAILED', errorCode: 'PROVIDER_ERROR' });
+    expect(costs.entries).toHaveLength(0);
   });
 
   it('TTS: custo por caractere; sem ffprobe o lipsync usa a fala da cena', async () => {

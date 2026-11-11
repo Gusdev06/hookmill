@@ -316,6 +316,50 @@ export class CreditosService {
     await tx.template.updateMany({ where: { id: { in: [...new Set([run.templateId, ...lines.map((l) => l.templateId)])] } }, data: { uses: { increment: 1 } } });
   }
 
+  // ───────── aprovação incremental das prévias (templates-ia-previas-v1 §7) ─────────
+
+  /** Roda `fn` sob o lock do run (o mesmo do settleRun/beforeRetry). Lote sem TemplateRun = sem lock de run. */
+  async withRunLock<T>(batchId: string, fn: () => Promise<T>): Promise<T> {
+    const run = await this.prisma.templateRun.findUnique({ where: { batchId }, select: { id: true } });
+    return run ? this.locks.run(`template-run:${run.id}`, fn) : fn();
+  }
+
+  /**
+   * Irmão do reserveOnStart, 1 vez por aprovação (DENTRO da transação do approve). Aceita run DRAFT/RESERVED/SETTLED;
+   * acrescenta a linha `<internalKey>#<approvalIndex>` (held) com as peças aprovadas; quote = Template.credits × N
+   * (≠ expectedCredits = 409 CREDITS_CHANGED); com pagador, RESERVE `run:<id>:reserve:<attempt+1>`. `uses + 1` só na 1ª.
+   * A linha guarda o total (credits × N), como as linhas de IA de hoje (deliveredOf = parte das prontas).
+   */
+  async reserveOnApprove(tx: Prisma.TransactionClient, batchId: string, auth: AuthContext, o: { itemIds: string[]; expectedCredits: number; approvalIndex: number }): Promise<{ credits: number; attempt: number }> {
+    const run = await tx.templateRun.findUnique({ where: { batchId }, include: { template: true } });
+    if (!run) throw new AppException('INVALID_STATE', { state: 'NO_TEMPLATE_RUN', allowed: ['DRAFT', 'RESERVED', 'SETTLED'] });
+    if (!['DRAFT', 'RESERVED', 'SETTLED'].includes(run.status)) throw new AppException('INVALID_STATE', { state: run.status, allowed: ['DRAFT', 'RESERVED', 'SETTLED'] });
+    const payer = await this.payerOf(run.workspaceId, tx);
+    if (payer.pool === 'SAMPLE' || (run.template.credits == null && payer.pool != null)) throw new AppException('PAYMENT_REQUIRED');
+    const each = run.template.credits ?? 0;
+    const quote = each * o.itemIds.length;
+    if (quote !== o.expectedCredits) throw new AppException('CREDITS_CHANGED', { credits: quote });
+    const attempt = run.attempt + 1;
+    if (payer.pool && quote > 0) {
+      if (!payer.accountId) throw new AppException('INSUFFICIENT_CREDITS', { need: quote, balance: 0, pool: payer.pool });
+      await this.post(tx, { userId: payer.accountId, pool: payer.pool, kind: 'RESERVE', delta: -quote, amount: quote, key: ledgerKey.reserve(run.id, attempt), runId: run.id, workspaceId: run.workspaceId, byId: auth.userId, note: `approve#${o.approvalIndex}` });
+    }
+    const lines = [...((run.lines ?? []) as unknown as RunLine[]), {
+      key: `${run.template.internalKey}#${o.approvalIndex}`, templateId: run.templateId, slug: run.template.slug, tier: run.template.tier,
+      credits: quote, itemIds: o.itemIds, state: 'held' as const, delivered: null,
+    }];
+    const hit = await tx.templateRun.updateMany({
+      where: { id: run.id, attempt: run.attempt },
+      data: {
+        status: 'RESERVED', lines: lines as unknown as Prisma.InputJsonValue, held: { increment: quote }, attempt, pool: payer.pool, accountId: payer.accountId,
+        settledAt: null, ...(!run.reservedAt && { reservedAt: new Date() }),
+      },
+    });
+    if (hit.count !== 1) throw new AppException('INVALID_STATE', { state: run.status, allowed: ['DRAFT', 'RESERVED', 'SETTLED'], reason: 'request_conflict' });
+    if (run.status === 'DRAFT') await tx.template.update({ where: { id: run.templateId }, data: { uses: { increment: 1 } } });
+    return { credits: quote, attempt };
+  }
+
   // ───────── assentar (§4.3) ─────────
 
   @Interval('template-runs-settle', SETTLE_EVERY_MS)

@@ -375,6 +375,17 @@ export const api = {
     /** templates-creditos-v1 §7: edit the texts of a template piece in PLAN_READY (free). 409 INVALID_STATE; 422 TEXT_INVALID
      *  `{ violations }` / EDIT_NOT_SUPPORTED. `itemId` = the piece id. */
     updateTexts: (id: string, itemId: string, b: T.UpdateItemTextsBody) => data(patch<T.IterateBatch>(`/iterate/${seg(id)}/items/${seg(itemId)}/texts`, b)),
+    /** templates-ia-previas-v1 §5.3–§5.5: the 4 image previews of a With AI batch (status by polling GET /iterate/:id, `ai`). */
+    aiPreviews: {
+      /** 202 IterateBatch (LAUNCHED, `pieceId` on the approved ones). 409 INVALID_STATE `preview_not_ready`/`request_conflict` `{ previewIds }`,
+       *  409 CREDITS_CHANGED `{ credits }`, 402 INSUFFICIENT_CREDITS / PAYMENT_REQUIRED, 409 SPEND_CAP_EXCEEDED, 422 OFFER_INCOMPLETE. */
+      approve: (id: string, b: T.ApproveAiPreviewsBody) => data(post<T.IterateBatch>(`/iterate/${seg(id)}/ai-previews/approve`, b)),
+      /** "New angle": 202 AiPreview (`planned`). 429 REGEN_LIMIT `{ scope: 'preview' | 'batch', used, max }`, 409 INVALID_STATE, 409 SPEND_CAP_EXCEEDED. */
+      regenerate: (id: string, previewId: string, b: T.RegenerateAiPreviewBody) =>
+        data(post<T.AiPreview>(`/iterate/${seg(id)}/ai-previews/${seg(previewId)}/regenerate`, b)),
+      /** "Try again" on a failed preview (outside the regeneration limit): 202 AiPreview. 429 REGEN_LIMIT `{ scope: 'retry' }`, 409 INVALID_STATE. */
+      retry: (id: string, previewId: string, b: T.RetryAiPreviewBody) => data(post<T.AiPreview>(`/iterate/${seg(id)}/ai-previews/${seg(previewId)}/retry`, b)),
+    },
   },
 
   // ───── templates-creditos-v1 §7: the template gallery (`/ad-templates`; `/templates` is the wizard's Remotion registry)

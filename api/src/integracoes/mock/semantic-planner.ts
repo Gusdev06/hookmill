@@ -1,8 +1,10 @@
-import type { SemanticAxis, SemanticBeat } from '@maquina/contratos';
+import type { PlanOneRequest, PlanPreviewsRequest, SemanticAxis, SemanticBeat } from '@maquina/contratos';
 import { FORMATS } from '../../variacao-ia/catalogo';
 import type { SemanticContext } from '../../variacao-ia/contexto';
 import { validateSemanticPlan } from '../../variacao-ia/plano';
-import type { SemanticPlannerPort } from '../claude/semantic-planner';
+import type { SemanticBillingV2, SemanticPlannerPort } from '../claude/semantic-planner';
+import type { SemanticContextV2 } from '../claude/semantic-v2';
+import { mockPlanOne, mockPlanPreviews } from './semantic-v2-mock';
 
 /** Fixture de desenvolvimento, explicitamente identificada na resposta e na UI. Não se passa por escrita de IA. */
 export function semanticMockDraft(ctx: SemanticContext) {
@@ -44,4 +46,9 @@ export class MockSemanticPlanner implements SemanticPlannerPort {
   readonly configured = true;
   estimate() { return 0; }
   async plan(ctx: SemanticContext) { return validateSemanticPlan(semanticMockDraft(ctx), ctx, 'mock', 0); }
+  // semantic-v2: fake determinístico com gatilhos [mock:plan-*] (mock/semantic-v2-mock.ts). Custo 0, nada em cost_entries.
+  estimatePreviews() { return 0; }
+  estimateOne() { return 0; }
+  async planPreviews(ctx: SemanticContextV2, req: PlanPreviewsRequest, _billing?: SemanticBillingV2) { return mockPlanPreviews(ctx, req); }
+  async planOne(ctx: SemanticContextV2, req: PlanOneRequest, _billing?: SemanticBillingV2) { return mockPlanOne(ctx, req); }
 }

@@ -1,0 +1,19 @@
+{
+  "userId": "cmw8yq8890000qfhrg6vhcqpv",
+  "ws": "cmw8yq88e0001qfhry18ofz9u",
+  "offerId": "cmw8yq88s0005qfhrmldv8etf",
+  "championId": "cmw8yq88z0007qfhr01rufd5w",
+  "batchId": "cmw8yudqd0001qfr99ledcf53",
+  "t0": 1794210898593,
+  "planReadySec": 273,
+  "approvals": [
+    {
+      "previewId": "cmw8yw7uq000jqfr99dei5lak",
+      "at": 1794211264737
+    },
+    {
+      "previewId": "cmw8yw7vx001dqfr9yzqh7as2",
+      "at": 1794211661838
+    }
+  ]
+}

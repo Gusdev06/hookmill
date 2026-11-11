@@ -1,7 +1,7 @@
 {
   "mode": "mock",
   "paidProviderSpend": 0,
-  "batchId": "cmw27xvk1001422z0cknxxxtt",
+  "batchId": "cmwcekkrl001c22fw5v6m7zx6",
   "sceneCount": 4,
   "voices": [
     "Casual_Guy",
@@ -9,7 +9,7 @@
     "Casual_Guy",
     "Calm_Woman"
   ],
-  "bytes": 6844282,
+  "bytes": 19853,
   "renderInput": {
     "fps": 30,
     "format": "VERTICAL_9_16",
@@ -47,7 +47,7 @@
             "startSec": 1.917
           }
         ],
-        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/2a843113-56aa-4265-9e92-83860d74bd62.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=3daab02ae433f46b5e1d3897d04a05af87f9aeb61dc18520993c4366f244a37c&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmwcekkod000122fwoq9xx0qb/scene_clip/c42783d5-6919-4b5d-8aef-06e6a923dcbc.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261111%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261111T173848Z&X-Amz-Expires=21600&X-Amz-Signature=7d0343a943ef5a4dc6262236d027faeebea2b32f4a6b317dd6c056a9182c7aed&X-Amz-SignedHeaders=host&x-id=GetObject",
         "durationSec": 2.5
       },
       {
@@ -98,7 +98,7 @@
             "startSec": 3.111
           }
         ],
-        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/2ed6e43e-b593-4823-bf9c-87513baaa7bc.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=1b75f206445d33b43f6087e398beed75286600f0a4c9c5cd27d151303c59b0a8&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmwcekkod000122fwoq9xx0qb/scene_clip/91e2f28b-9bc3-4d30-ac4b-70a663e0c157.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261111%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261111T173848Z&X-Amz-Expires=21600&X-Amz-Signature=078c399652049e0b7b22fb4652f377f27ec02805afac7271ebdd9e082713b80e&X-Amz-SignedHeaders=host&x-id=GetObject",
         "durationSec": 3.709
       },
       {
@@ -134,7 +134,7 @@
             "startSec": 1.917
           }
         ],
-        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/338ae51a-e1a4-48f9-afdb-9bd897f018cb.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=ad44f2ada195e8f337b5a7570b50e3fafc6e99755f705748c696f1688d693a05&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmwcekkod000122fwoq9xx0qb/scene_clip/f192eadd-fc4d-4a06-ad01-dd245ebf3108.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261111%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261111T173848Z&X-Amz-Expires=21600&X-Amz-Signature=002c0ecff7d16f2cf50f5aaf768fbeede8791ffa76c7ba19799006d0008a8c38&X-Amz-SignedHeaders=host&x-id=GetObject",
         "durationSec": 2.5
       },
       {
@@ -175,7 +175,7 @@
             "startSec": 2.314
           }
         ],
-        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmw27xvi5000122z0cxpgvcxl/scene_clip/eff314f5-b5a3-4179-83ef-5286592283f5.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261104%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261104T143532Z&X-Amz-Expires=21600&X-Amz-Signature=3bd0389a0f6d02982fa871e8511733e43ccbfb6f1d622b0a00e19dce1df27b7f&X-Amz-SignedHeaders=host&x-id=GetObject",
+        "clipUrl": "http://localhost:9000/maquina-anuncios-test/ws/cmwcekkod000122fwoq9xx0qb/scene_clip/1679bf5a-f371-4cb7-80bc-c040db77701d.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=maquina%2F20261111%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261111T173848Z&X-Amz-Expires=21600&X-Amz-Signature=cc5204706b0e040fb1f1b3c43647aa7edca8e4a719a2bc8e3609eadc0a87357b&X-Amz-SignedHeaders=host&x-id=GetObject",
         "durationSec": 2.917
       }
     ],
@@ -183,7 +183,7 @@
     "endCard": true,
     "headline": null,
     "language": "en",
-    "renderId": "cmw27y92p004822z0fmvnsk98",
+    "renderId": "cmwcekw7m004g22fwleidt387",
     "templateId": "clean",
     "captionStyle": "word",
     "captionPosition": "bottom"

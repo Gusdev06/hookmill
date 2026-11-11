@@ -17,9 +17,10 @@ import { MockMediaController } from './mock/mock-media.controller';
 import { mockVoiceSampleUrl } from './mock/midia';
 import { ADS_RESEARCH_SERVICE, type CostStore, type ProviderTaskStore } from './portas';
 import { PrismaCostStore, PrismaTaskStore } from './store/prisma.store';
-import Anthropic from '@anthropic-ai/sdk';
 import { ClaudeLiveService } from './claude/claude.service';
-import { SdkClaudeTransport, type SdkTransportOptions } from './claude/transporte';
+import { type SdkTransportOptions } from './claude/transporte';
+import { buildLlmTransport, llmKeyName } from './claude/transporte-kie';
+import { KieJobsClient } from './kie/jobs';
 import { makePageRenderer, renderPage } from './claude/render-pagina';
 import { makeFunnelWalker } from './claude/caminhante';
 import { ffmpegRunner } from './claude/checagem-texto';
@@ -103,13 +104,15 @@ function webhooksOn(cfg: ConfigService): boolean {
 function buildClaude(costs: CostStore, cfg: ConfigService, mode: IntegracoesMode): ClaudeService {
   const model = cfg.get<string>('ANTHROPIC_MODEL') || 'claude-opus-5-5';
   if (mode === 'mock') return new FakeClaudeService(costs, { model });
-  const apiKey = cfg.get<string>('ANTHROPIC_API_KEY');
-  if (!apiKey) return notConfigured<ClaudeService>('ClaudeService', 'ANTHROPIC_API_KEY', ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption', 'proposeCompetitors', 'judgeCompetitors', 'rewriteHeadlineFit']);
-  const transport = new SdkClaudeTransport(new Anthropic({ apiKey, maxRetries: 2 }), {
+  // 11/11: CLAUDE_PROVIDER=kie → todo LLM pelo Kie (texto no Claude, imagem no GPT do Kie); senão Anthropic direto
+  const get = (k: string) => cfg.get<string>(k);
+  const transport = buildLlmTransport(get, {
     model,
     effort: effortOf(cfg.get<string>('ANTHROPIC_EFFORT')),
     fallbacks: (cfg.get<string>('ANTHROPIC_FALLBACKS') ?? 'on').toLowerCase() !== 'off',
+    maxRetries: 2,
   });
+  if (!transport) return notConfigured<ClaudeService>('ClaudeService', llmKeyName(get), ['extractOffer', 'generateScripts', 'suggestFaceDescription', 'analyzeChampion', 'planVariations', 'describeEdit', 'planAutoBatch', 'checkStaticText', 'checkCaption', 'proposeCompetitors', 'judgeCompetitors', 'rewriteHeadlineFit']);
   // leitura v2 (22/10): página JS (quiz, SPA) → chrome-headless-shell do Remotion (custo zero); subpáginas com render
   // curto; imagens com visão na mesma chamada. Sem binário, a cascata segue como antes (só HTTP).
   const browser = { browserExecutable: cfg.get<string>('REMOTION_BROWSER_EXECUTABLE') || null };
@@ -186,6 +189,8 @@ export class IntegracoesModule {
           return new WaveSpeedGenerationService(new WaveSpeedClient({ apiKey }), tasks, costs, bus, {
             // rosto = Higgsfield Soul V2; sem as duas chaves, submitFace falha NOT_CONFIGURED (nunca mock)
             higgsfield: hfId && hfSecret ? new HiggsfieldClient({ keyId: hfId, keySecret: hfSecret }) : null,
+            // 11/11: TRANSCRIBE_PROVIDER=kie → transcrição no Nemotron do Kie (~80x mais barata que o Whisper da WaveSpeed)
+            kie: (cfg.get<string>('TRANSCRIBE_PROVIDER') ?? '').trim().toLowerCase() === 'kie' && cfg.get<string>('KIE_API_KEY') ? new KieJobsClient({ apiKey: cfg.get<string>('KIE_API_KEY')! }) : null,
             // prompts de mídia: V2 é o padrão (06/10); MEDIA_PROMPTS=v1 volta pra V1
             promptVersion: mediaPromptVersion(cfg.get<string>('MEDIA_PROMPTS')),
             webhookUrl: webhooksOn(cfg) ? `${publicApiUrl(cfg).replace(/\/$/, '')}/api/v1/${WAVESPEED_WEBHOOK_ROUTE}` : null,
@@ -249,6 +254,7 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly log = new Logger('Integracoes');
   private reconciler: Reconciliador | null = null;
   private faceReconciler: Reconciliador | null = null;
+  private kieReconciler: Reconciliador | null = null;
   /** §14.3.5: imagem do STATIC consultada a partir de 2 min (só com webhook ligado; sem webhook o laço de 15 s cobre) */
   private staticReconciler: Reconciliador | null = null;
   constructor(
@@ -272,6 +278,9 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
       this.reconciler.start();
       this.faceReconciler = new Reconciliador(this.live, on, 'HIGGSFIELD');
       this.faceReconciler.start();
+      // 11/11: tasks do Kie (transcrição) — polling rápido próprio, com ou sem webhook da WaveSpeed
+      this.kieReconciler = new Reconciliador(this.live, on, 'KIE');
+      this.kieReconciler.start();
       if (on) {
         this.staticReconciler = new Reconciliador(this.live, on, 'STATIC_IMAGE');
         this.staticReconciler.start();
@@ -284,6 +293,7 @@ class IntegracoesLifecycle implements OnApplicationBootstrap, OnModuleDestroy {
     if (this.gen instanceof FakeGenerationService) this.gen.dispose();
     this.reconciler?.stop();
     this.faceReconciler?.stop();
+    this.kieReconciler?.stop();
     this.staticReconciler?.stop();
   }
 }
