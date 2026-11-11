@@ -7,8 +7,9 @@ import type { TrocaTextoPort } from './porta';
 import { ProvaPuppeteer, pastaDeFontes, type ProvaChrome } from './prova';
 
 export * from './porta';
+export * from './legenda';
 export type { MedidaHeadline, ResultadoRegua, EventoTroca, RespostaTroca, ExecutorTroca } from './evento';
-export { FakeTrocaTexto, lookFake, type FakeTrocaOpcoes } from './fake';
+export { FakeTrocaTexto, lookFake, trackFake, type FakeTrocaOpcoes } from './fake';
 export { TrocaTextoOrquestrada, ErroTroca, FANTASMA_MAX } from './orquestra';
 export { escolherAlvo, geometria, centroUnico, montarLook, planejarPedacos, parametrosDaPlaca, rostosMain, folgaLegenda } from './look';
 export { ProvaPuppeteer, SUAVIZA_PX, type ProvaChrome, type PedidoProva } from './prova';

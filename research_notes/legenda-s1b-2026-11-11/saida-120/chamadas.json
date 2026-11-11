@@ -1,0 +1,14 @@
+[
+ {
+  "caso": "120",
+  "op": "detectar",
+  "billedMs": 127161,
+  "memMb": 3008,
+  "custoUsd": 0.00622580307618125,
+  "paredeMs": 130814,
+  "ok_op": true,
+  "frio": true,
+  "pico_MB": 284,
+  "total_s": 125.98
+ }
+]

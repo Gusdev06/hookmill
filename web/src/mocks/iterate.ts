@@ -460,12 +460,13 @@ function insightOf(b: MIter, status: IterateStatus): AutoInsight | null {
     : [L("Hook words", "Palavras do gancho"), L("The creator", "O criador"), L("The demonstration", "A demonstração"), L("Spoken CTA", "CTA falado")]
   // headline-e-legenda §2.1: the champion has no burned-in captions → every video piece gets them ([mock:captions-burned] = it has)
   // legenda-protegida §2.3: burned captions + no clean version = these templates/types aren't offered ([mock:captions-burned] or ?mockcaptions=burned)
-  const burned = burnedOf(b) && !b.cleanUploadId
+  // F2 (?mockcaptions=swap): the captions are redone, so nothing is left out; swapblocked: left out with the reason of the gate
+  const burned = burnedOf(b) && !b.cleanUploadId && !captionsSwapOf(b)
   const captionsAuto = !burnedOf(b) || !!b.cleanUploadId
   const captionBlocked = burned
     ? [
-        { type: "FRAME" as const, template: "cinema" as const, reason: "burned_captions" as const, ...(legacyFlag() && { forced: true }) },
-        { type: "FRAME" as const, template: "question_box" as const, reason: "burned_captions" as const },
+        { type: "FRAME" as const, template: "cinema" as const, reason: "burned_captions" as const, ...(captionsFlag() === "swapblocked" && { swapReason: "no_outline" }), ...(legacyFlag() && { forced: true }) },
+        { type: "FRAME" as const, template: "question_box" as const, reason: "burned_captions" as const, ...(captionsFlag() === "swapblocked" && { swapReason: "too_long" }) },
       ]
     : []
   // F1b (?mockheadline): copied = offered (no block); a blocked reason replaces the F1a `headline_pending`
@@ -491,7 +492,7 @@ function analysisOf(b: MIter, status: IterateStatus, now: number): IterateBatch[
  * `preparing_plate` item of `stage: 'planning'`. Here it takes the first half of the planning step.
  */
 function withPlate(b: MIter, now: number, list: IterateBatch["analysis"]["checklist"]): IterateBatch["analysis"]["checklist"] {
-  if (!headlineNeedsPlate() || noHeadlineOf(b)) return list
+  if (!((headlineNeedsPlate() && !noHeadlineOf(b)) || (captionsSwapOf(b) && !b.cleanUploadId))) return list
   const plan = list[list.length - 1]
   const firstHalf = ((now - b.t0) % STEP_MS) < STEP_MS / 2
   const plate = plan.status === "running" ? (firstHalf ? "running" : "done") : plan.status === "failed" ? "done" : plan.status
@@ -586,7 +587,7 @@ function iterViewRaw(b: MIter, now: number): IterateBatch {
         ? { template: p.frame, second: p.frame === "split_stack" ? { kind: "broll_track" as const, provenance: null, track: TRACK(p.sec) } : null, canSwapBroll: false }
         : null,
       // legenda-protegida §2.2: the frame cropped the burned captions out and redrew ours in the original style
-      captionNote: p.frame === "meme" && burnedOf(b) && !b.cleanUploadId ? ("replaced" as const) : null,
+      captionNote: captionsSwapOf(b) && !b.cleanUploadId ? (p.frame || p.type === "HEADLINE" ? ("swapped" as const) : null) : p.frame === "meme" && burnedOf(b) && !b.cleanUploadId ? ("replaced" as const) : null,
       headline: p.type === "HEADLINE"
         ? p.variant === "replace" && headlineCopied()
           ? (() => {
@@ -841,9 +842,11 @@ function frameFailOf(notes: string): MIter["frameFail"] {
 /** legenda-protegida (web-mock): ?mockcaptions=burned|covered (sessionStorage mock:captions) or [mock:captions-burned] in the notes */
 const captionsFlag = () => (typeof window === "undefined" ? null : sessionStorage.getItem("mock:captions"))
 const legacyFlag = () => captionsFlag() === "legacy"
+/** troca-texto F2 (?mockcaptions=swap): the burned captions are erased and redone with the same words. */
+export const captionsSwapOf = (b: MIter) => captionsFlag() === "swap" && burnedOf(b)
 const noHeadlineOf = (b: MIter) => notesOf(b.offerId).includes("[mock:headline-none]")
 function burnedOf(b: MIter) {
-  return notesOf(b.offerId).includes("[mock:captions-burned]") || captionsFlag() === "burned" || captionsFlag() === "covered" || legacyFlag()
+  return notesOf(b.offerId).includes("[mock:captions-burned]") || ["burned", "covered", "swap", "swapblocked"].includes(captionsFlag() ?? "") || legacyFlag()
 }
 export function batchOfChampion(championId: string) {
   return it.batches.find((b) => b.championId === championId && !b.archived) ?? null

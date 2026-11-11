@@ -1,0 +1,947 @@
+{
+ "version": 1,
+ "trechos": [
+  {
+   "iniFrame": 0,
+   "fimFrame": 5,
+   "box": {
+    "x": 229,
+    "y": 802,
+    "w": 260,
+    "h": 72
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 5,
+   "fimFrame": 31,
+   "box": {
+    "x": 232,
+    "y": 827,
+    "w": 257,
+    "h": 47
+   },
+   "iou": 0.3259,
+   "texto": "A FORMER FIRST",
+   "herdado": false
+  },
+  {
+   "iniFrame": 31,
+   "fimFrame": 69,
+   "box": {
+    "x": 177,
+    "y": 827,
+    "w": 366,
+    "h": 47
+   },
+   "iou": 0.1228,
+   "texto": "LADY",
+   "herdado": false
+  },
+  {
+   "iniFrame": 69,
+   "fimFrame": 77,
+   "box": {
+    "x": 222,
+    "y": 778,
+    "w": 271,
+    "h": 112
+   },
+   "iou": 0.2556,
+   "texto": "ONCE ADMITTED",
+   "herdado": false
+  },
+  {
+   "iniFrame": 77,
+   "fimFrame": 101,
+   "box": {
+    "x": 220,
+    "y": 779,
+    "w": 273,
+    "h": 96
+   },
+   "iou": 0.2681,
+   "texto": "THERE WERE 10",
+   "herdado": false
+  },
+  {
+   "iniFrame": 101,
+   "fimFrame": 141,
+   "box": {
+    "x": 187,
+    "y": 790,
+    "w": 346,
+    "h": 94
+   },
+   "iou": 0.306,
+   "texto": "YEARS SHE COULDNT",
+   "herdado": false
+  },
+  {
+   "iniFrame": 141,
+   "fimFrame": 170,
+   "box": {
+    "x": 179,
+    "y": 793,
+    "w": 360,
+    "h": 99
+   },
+   "iou": 0.3229,
+   "texto": "STAND HER HUSBAND",
+   "herdado": false
+  },
+  {
+   "iniFrame": 170,
+   "fimFrame": 171,
+   "box": {
+    "x": 179,
+    "y": 782,
+    "w": 360,
+    "h": 124
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 171,
+   "fimFrame": 186,
+   "box": {
+    "x": 225,
+    "y": 789,
+    "w": 230,
+    "h": 93
+   },
+   "iou": 0.2116,
+   "texto": "10 YEARS AND",
+   "herdado": false
+  },
+  {
+   "iniFrame": 186,
+   "fimFrame": 188,
+   "box": {
+    "x": 224,
+    "y": 830,
+    "w": 231,
+    "h": 52
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 188,
+   "fimFrame": 191,
+   "box": {
+    "x": 224,
+    "y": 775,
+    "w": 231,
+    "h": 107
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 191,
+   "fimFrame": 192,
+   "box": {
+    "x": 224,
+    "y": 830,
+    "w": 231,
+    "h": 52
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 192,
+   "fimFrame": 201,
+   "box": {
+    "x": 254,
+    "y": 827,
+    "w": 201,
+    "h": 55
+   },
+   "iou": 0.3307,
+   "texto": "THEYRE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 201,
+   "fimFrame": 218,
+   "box": {
+    "x": 213,
+    "y": 779,
+    "w": 293,
+    "h": 102
+   },
+   "iou": 0.2753,
+   "texto": "STILL MARRIED SO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 218,
+   "fimFrame": 235,
+   "box": {
+    "x": 273,
+    "y": 826,
+    "w": 164,
+    "h": 48
+   },
+   "iou": 0.3321,
+   "texto": "IF HE LEFT",
+   "herdado": false
+  },
+  {
+   "iniFrame": 235,
+   "fimFrame": 242,
+   "box": {
+    "x": 273,
+    "y": 826,
+    "w": 164,
+    "h": 48
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 242,
+   "fimFrame": 264,
+   "box": {
+    "x": 282,
+    "y": 825,
+    "w": 147,
+    "h": 49
+   },
+   "iou": 0.338,
+   "texto": "ITS NOT",
+   "herdado": false
+  },
+  {
+   "iniFrame": 264,
+   "fimFrame": 276,
+   "box": {
+    "x": 303,
+    "y": 825,
+    "w": 103,
+    "h": 50
+   },
+   "iou": 0.3295,
+   "texto": "OVER",
+   "herdado": false
+  },
+  {
+   "iniFrame": 276,
+   "fimFrame": 282,
+   "box": {
+    "x": 303,
+    "y": 825,
+    "w": 103,
+    "h": 60
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 282,
+   "fimFrame": 284,
+   "box": {
+    "x": 303,
+    "y": 826,
+    "w": 103,
+    "h": 48
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 284,
+   "fimFrame": 303,
+   "box": {
+    "x": 241,
+    "y": 825,
+    "w": 230,
+    "h": 49
+   },
+   "iou": 0.3135,
+   "texto": "JUST BECAUSE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 303,
+   "fimFrame": 330,
+   "box": {
+    "x": 220,
+    "y": 786,
+    "w": 276,
+    "h": 88
+   },
+   "iou": 0.2747,
+   "texto": "IT HURTS RIGHT",
+   "herdado": false
+  },
+  {
+   "iniFrame": 330,
+   "fimFrame": 360,
+   "box": {
+    "x": 214,
+    "y": 799,
+    "w": 291,
+    "h": 83
+   },
+   "iou": 0.284,
+   "texto": "NOW EVERY",
+   "herdado": false
+  },
+  {
+   "iniFrame": 360,
+   "fimFrame": 365,
+   "box": {
+    "x": 214,
+    "y": 800,
+    "w": 291,
+    "h": 96
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 365,
+   "fimFrame": 386,
+   "box": {
+    "x": 197,
+    "y": 801,
+    "w": 327,
+    "h": 95
+   },
+   "iou": 0.273,
+   "texto": "COUPLE THAT MADE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 386,
+   "fimFrame": 410,
+   "box": {
+    "x": 214,
+    "y": 826,
+    "w": 253,
+    "h": 48
+   },
+   "iou": 0.3171,
+   "texto": "HAD A MOMENT",
+   "herdado": false
+  },
+  {
+   "iniFrame": 410,
+   "fimFrame": 428,
+   "box": {
+    "x": 204,
+    "y": 814,
+    "w": 311,
+    "h": 102
+   },
+   "iou": 0.2688,
+   "texto": "WHERE SOMEONE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 428,
+   "fimFrame": 462,
+   "box": {
+    "x": 173,
+    "y": 805,
+    "w": 373,
+    "h": 92
+   },
+   "iou": 0.28,
+   "texto": "REFUSED TO GIVE UP",
+   "herdado": false
+  },
+  {
+   "iniFrame": 462,
+   "fimFrame": 467,
+   "box": {
+    "x": 277,
+    "y": 821,
+    "w": 155,
+    "h": 61
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 467,
+   "fimFrame": 480,
+   "box": {
+    "x": 278,
+    "y": 827,
+    "w": 154,
+    "h": 55
+   },
+   "iou": 0.2923,
+   "texto": "FOR A LOT",
+   "herdado": false
+  },
+  {
+   "iniFrame": 480,
+   "fimFrame": 484,
+   "box": {
+    "x": 268,
+    "y": 811,
+    "w": 166,
+    "h": 68
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 484,
+   "fimFrame": 485,
+   "box": {
+    "x": 710,
+    "y": 706,
+    "w": 2,
+    "h": 1
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 485,
+   "fimFrame": 488,
+   "box": {
+    "x": 272,
+    "y": 808,
+    "w": 162,
+    "h": 72
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 488,
+   "fimFrame": 489,
+   "box": {
+    "x": 669,
+    "y": 741,
+    "w": 3,
+    "h": 2
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 489,
+   "fimFrame": 491,
+   "box": {
+    "x": 278,
+    "y": 811,
+    "w": 156,
+    "h": 73
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 491,
+   "fimFrame": 506,
+   "box": {
+    "x": 252,
+    "y": 825,
+    "w": 204,
+    "h": 54
+   },
+   "iou": 0.3224,
+   "texto": "OF WOMEN",
+   "herdado": false
+  },
+  {
+   "iniFrame": 506,
+   "fimFrame": 508,
+   "box": {
+    "x": 154,
+    "y": 783,
+    "w": 411,
+    "h": 149
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 508,
+   "fimFrame": 531,
+   "box": {
+    "x": 154,
+    "y": 827,
+    "w": 411,
+    "h": 84
+   },
+   "iou": 0.3124,
+   "texto": "THAT MOMENT HAPPENS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 531,
+   "fimFrame": 561,
+   "box": {
+    "x": 218,
+    "y": 818,
+    "w": 279,
+    "h": 105
+   },
+   "iou": 0.2136,
+   "texto": "KNEES THERE ARE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 561,
+   "fimFrame": 562,
+   "box": {
+    "x": 210,
+    "y": 811,
+    "w": 299,
+    "h": 92
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 562,
+   "fimFrame": 581,
+   "box": {
+    "x": 210,
+    "y": 789,
+    "w": 299,
+    "h": 86
+   },
+   "iou": 0.2822,
+   "texto": "SACRED PRAYERS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 581,
+   "fimFrame": 616,
+   "box": {
+    "x": 189,
+    "y": 793,
+    "w": 343,
+    "h": 89
+   },
+   "iou": 0.2909,
+   "texto": "FOR LOVE THE 1 MINUTE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 616,
+   "fimFrame": 617,
+   "box": {
+    "x": 288,
+    "y": 810,
+    "w": 115,
+    "h": 72
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 617,
+   "fimFrame": 618,
+   "box": {
+    "x": 307,
+    "y": 827,
+    "w": 96,
+    "h": 58
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 618,
+   "fimFrame": 619,
+   "box": {
+    "x": 287,
+    "y": 810,
+    "w": 116,
+    "h": 75
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 619,
+   "fimFrame": 620,
+   "box": {
+    "x": 307,
+    "y": 827,
+    "w": 96,
+    "h": 57
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 620,
+   "fimFrame": 621,
+   "box": {
+    "x": 289,
+    "y": 809,
+    "w": 114,
+    "h": 74
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 621,
+   "fimFrame": 622,
+   "box": {
+    "x": 384,
+    "y": 1000,
+    "w": 99,
+    "h": 56
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 622,
+   "fimFrame": 743,
+   "box": {
+    "x": 191,
+    "y": 998,
+    "w": 338,
+    "h": 58
+   },
+   "iou": 0.3383,
+   "texto": "BELOW SHOWS YOU",
+   "herdado": false
+  }
+ ],
+ "estilo": {
+  "fontId": "poppins-900",
+  "tamPx": 38,
+  "tracking": -0.08,
+  "espaco": 0.5,
+  "strokePx": 3,
+  "sombra": [
+   0,
+   0
+  ],
+  "corTexto": "#ffffff",
+  "corDestaque": null,
+  "corTraco": "#000000",
+  "caixaDestaque": null,
+  "palavrasPorPagina": 3,
+  "linhas": 1,
+  "baseY": 871,
+  "centroX": 356.5
+ },
+ "atrasoSec": -0.383,
+ "pegada": [
+  {
+   "iniFrame": 0,
+   "fimFrame": 5,
+   "areaPx": 4306
+  },
+  {
+   "iniFrame": 5,
+   "fimFrame": 31,
+   "areaPx": 3712
+  },
+  {
+   "iniFrame": 31,
+   "fimFrame": 69,
+   "areaPx": 4838
+  },
+  {
+   "iniFrame": 69,
+   "fimFrame": 77,
+   "areaPx": 6021
+  },
+  {
+   "iniFrame": 77,
+   "fimFrame": 101,
+   "areaPx": 6020
+  },
+  {
+   "iniFrame": 101,
+   "fimFrame": 141,
+   "areaPx": 6077
+  },
+  {
+   "iniFrame": 141,
+   "fimFrame": 170,
+   "areaPx": 6175
+  },
+  {
+   "iniFrame": 170,
+   "fimFrame": 171,
+   "areaPx": 8797
+  },
+  {
+   "iniFrame": 171,
+   "fimFrame": 186,
+   "areaPx": 4892
+  },
+  {
+   "iniFrame": 186,
+   "fimFrame": 188,
+   "areaPx": 3216
+  },
+  {
+   "iniFrame": 188,
+   "fimFrame": 191,
+   "areaPx": 5288
+  },
+  {
+   "iniFrame": 191,
+   "fimFrame": 192,
+   "areaPx": 3203
+  },
+  {
+   "iniFrame": 192,
+   "fimFrame": 201,
+   "areaPx": 3167
+  },
+  {
+   "iniFrame": 201,
+   "fimFrame": 218,
+   "areaPx": 5991
+  },
+  {
+   "iniFrame": 218,
+   "fimFrame": 235,
+   "areaPx": 2396
+  },
+  {
+   "iniFrame": 235,
+   "fimFrame": 242,
+   "areaPx": 2856
+  },
+  {
+   "iniFrame": 242,
+   "fimFrame": 264,
+   "areaPx": 2936
+  },
+  {
+   "iniFrame": 264,
+   "fimFrame": 276,
+   "areaPx": 1928
+  },
+  {
+   "iniFrame": 276,
+   "fimFrame": 282,
+   "areaPx": 1964
+  },
+  {
+   "iniFrame": 282,
+   "fimFrame": 284,
+   "areaPx": 1686
+  },
+  {
+   "iniFrame": 284,
+   "fimFrame": 303,
+   "areaPx": 3198
+  },
+  {
+   "iniFrame": 303,
+   "fimFrame": 330,
+   "areaPx": 5396
+  },
+  {
+   "iniFrame": 330,
+   "fimFrame": 360,
+   "areaPx": 5294
+  },
+  {
+   "iniFrame": 360,
+   "fimFrame": 365,
+   "areaPx": 6118
+  },
+  {
+   "iniFrame": 365,
+   "fimFrame": 386,
+   "areaPx": 6454
+  },
+  {
+   "iniFrame": 386,
+   "fimFrame": 410,
+   "areaPx": 3690
+  },
+  {
+   "iniFrame": 410,
+   "fimFrame": 428,
+   "areaPx": 6214
+  },
+  {
+   "iniFrame": 428,
+   "fimFrame": 462,
+   "areaPx": 6701
+  },
+  {
+   "iniFrame": 462,
+   "fimFrame": 467,
+   "areaPx": 2550
+  },
+  {
+   "iniFrame": 467,
+   "fimFrame": 480,
+   "areaPx": 2369
+  },
+  {
+   "iniFrame": 480,
+   "fimFrame": 484,
+   "areaPx": 2942
+  },
+  {
+   "iniFrame": 484,
+   "fimFrame": 485,
+   "areaPx": 2
+  },
+  {
+   "iniFrame": 485,
+   "fimFrame": 488,
+   "areaPx": 2893
+  },
+  {
+   "iniFrame": 488,
+   "fimFrame": 489,
+   "areaPx": 5
+  },
+  {
+   "iniFrame": 489,
+   "fimFrame": 491,
+   "areaPx": 3025
+  },
+  {
+   "iniFrame": 491,
+   "fimFrame": 506,
+   "areaPx": 3202
+  },
+  {
+   "iniFrame": 506,
+   "fimFrame": 508,
+   "areaPx": 8604
+  },
+  {
+   "iniFrame": 508,
+   "fimFrame": 531,
+   "areaPx": 6658
+  },
+  {
+   "iniFrame": 531,
+   "fimFrame": 561,
+   "areaPx": 6294
+  },
+  {
+   "iniFrame": 561,
+   "fimFrame": 562,
+   "areaPx": 5131
+  },
+  {
+   "iniFrame": 562,
+   "fimFrame": 581,
+   "areaPx": 5187
+  },
+  {
+   "iniFrame": 581,
+   "fimFrame": 616,
+   "areaPx": 5924
+  },
+  {
+   "iniFrame": 616,
+   "fimFrame": 617,
+   "areaPx": 2523
+  },
+  {
+   "iniFrame": 617,
+   "fimFrame": 618,
+   "areaPx": 1634
+  },
+  {
+   "iniFrame": 618,
+   "fimFrame": 619,
+   "areaPx": 2535
+  },
+  {
+   "iniFrame": 619,
+   "fimFrame": 620,
+   "areaPx": 1651
+  },
+  {
+   "iniFrame": 620,
+   "fimFrame": 621,
+   "areaPx": 2539
+  },
+  {
+   "iniFrame": 621,
+   "fimFrame": 622,
+   "areaPx": 3760
+  },
+  {
+   "iniFrame": 622,
+   "fimFrame": 743,
+   "areaPx": 16649
+  }
+ ],
+ "cortes": [
+  170,
+  192,
+  235,
+  282,
+  360,
+  480,
+  508,
+  562,
+  632
+ ],
+ "artefato": "artefatos/02.npz",
+ "caixa": false,
+ "faixa": [
+  659,
+  1087
+ ],
+ "quadros": 743,
+ "fps": 30,
+ "veredito": {
+  "swap": false,
+  "reason": "animated",
+  "gates": {
+   "duracao_s": 24.766666666666666,
+   "alfabeto_fora": 0,
+   "emoji_legenda": 0,
+   "cobertura": 0.9745,
+   "contorno": 1,
+   "linhas": 1,
+   "animacao": 0.1417,
+   "iou_mediana": 0.2916,
+   "herdados": 0.4694,
+   "estilo_var": 0,
+   "fundo_lap": 28.74,
+   "pessoa_rosto": 1,
+   "pessoa_fala": 0.9004037685060565
+  }
+ }
+}

@@ -1,0 +1,14 @@
+[
+ {
+  "nome": "26",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/26.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/26-words.json",
+  "legendaMaxSec": 130
+ },
+ {
+  "nome": "37",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/37.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/37-words.json",
+  "legendaMaxSec": 130
+ }
+]

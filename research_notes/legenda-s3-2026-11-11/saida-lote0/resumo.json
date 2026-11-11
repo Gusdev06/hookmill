@@ -1,0 +1,326 @@
+{
+ "21": {
+  "detectar": {
+   "s": 137.653,
+   "custoUsd": 0.006691887341681251
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "font_mismatch",
+   "gates": {
+    "duracao_s": 56.9,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.8039,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0.0719,
+    "iou_mediana": 0.4387,
+    "herdados": 0.8665,
+    "estilo_var": 0.0274,
+    "fundo_lap": 15.48,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.8148367952522255
+   }
+  },
+  "estilo": {
+   "fontId": "poppins-900",
+   "tamPx": 55,
+   "tracking": -0.06,
+   "espaco": 1.6,
+   "strokePx": 2,
+   "sombra": [
+    0,
+    2
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": "#fcff00",
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 3,
+   "linhas": 1,
+   "baseY": 1063,
+   "centroX": 357
+  },
+  "trechos": 322,
+  "atrasoSec": -0.22,
+  "caixa": false,
+  "faixa": [
+   0,
+   1280
+  ],
+  "quadros": 1707,
+  "placa": {
+   "status": "FAILED",
+   "reason": "plate_failed",
+   "metrics": {
+    "pedacos": 4
+   },
+   "sizeBytes": null,
+   "costUsd": 0.02052123270785,
+   "ms": 349147,
+   "s": 351.945
+  }
+ },
+ "29": {
+  "detectar": {
+   "s": 66.663,
+   "custoUsd": 0.0032475148279500006
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "animated",
+   "gates": {
+    "duracao_s": 39.43333333333333,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.8449,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0.2911,
+    "iou_mediana": 0.4097,
+    "herdados": 0.6271,
+    "estilo_var": 0.0177,
+    "fundo_lap": 47.6,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.6944723618090453
+   }
+  },
+  "estilo": {
+   "fontId": "gabarito-900",
+   "tamPx": 59,
+   "tracking": -0.08,
+   "espaco": 0.2,
+   "strokePx": 3,
+   "sombra": [
+    4,
+    4
+   ],
+   "corTexto": "#fffefd",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 2,
+   "linhas": 1,
+   "baseY": 809,
+   "centroX": 353
+  },
+  "trechos": 59,
+  "atrasoSec": 0.163,
+  "caixa": false,
+  "faixa": [
+   118,
+   1046
+  ],
+  "quadros": 1183,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1183,
+    "pedaco_max_s": 101.972,
+    "pico_MB": 1472,
+    "quadros_placa": 1183,
+    "conferir_s": 23.531,
+    "janelas": 60,
+    "janelas_ruins_pct": 1,
+    "ruim_gancho_s": 3,
+    "ruim_pct": 1,
+    "lisura_min": 0.14551024933656057,
+    "trem_max": 12.606083644311536,
+    "degrau_max": 15.816411844889323,
+    "letra_p95_pct": 8.65,
+    "fora_buraco_media": 1.0347140333965534,
+    "salto_emenda_db_min": 8.365652455009243,
+    "cor_deslocamento": 0
+   },
+   "sizeBytes": null,
+   "costUsd": 0.02239533749531875,
+   "ms": 127145,
+   "pioresQuadros": [
+    127,
+    217,
+    307,
+    553,
+    793,
+    823
+   ],
+   "s": 130.073
+  }
+ },
+ "00": {
+  "detectar": {
+   "s": 64.713,
+   "custoUsd": 0.0030184383281312505
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "multi_line",
+   "gates": {
+    "duracao_s": 24.033333333333335,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.8979,
+    "contorno": 1,
+    "linhas": 2,
+    "animacao": 0.109,
+    "iou_mediana": 0.3796,
+    "herdados": 0.8438,
+    "estilo_var": 0,
+    "fundo_lap": 33.15,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.855755894590846
+   }
+  },
+  "estilo": {
+   "fontId": "poppins-900",
+   "tamPx": 53,
+   "tracking": 0,
+   "espaco": 1.6,
+   "strokePx": 1,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 3,
+   "linhas": 2,
+   "baseY": 60,
+   "centroX": 317
+  },
+  "trechos": 96,
+  "atrasoSec": -0.367,
+  "caixa": false,
+  "faixa": [
+   0,
+   1280
+  ],
+  "quadros": 721,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 721,
+    "pedaco_max_s": 79.865,
+    "pico_MB": 1116,
+    "quadros_placa": 721,
+    "conferir_s": 24.355,
+    "janelas": 31,
+    "janelas_ruins_pct": 0.7741935483870968,
+    "ruim_gancho_s": 2,
+    "ruim_pct": 0.7741935483870968,
+    "lisura_min": 0.2773417606949806,
+    "trem_max": 8.354941764051079,
+    "degrau_max": 7.714814758300781,
+    "letra_p95_pct": 22.933,
+    "fora_buraco_media": 0.8493845039968974,
+    "salto_emenda_db_min": 8.953590520972647,
+    "cor_deslocamento": 0
+   },
+   "sizeBytes": null,
+   "costUsd": 0.014847465107937503,
+   "ms": 105743,
+   "pioresQuadros": [
+    172,
+    450,
+    459,
+    564,
+    579,
+    639
+   ],
+   "s": 108.555
+  }
+ },
+ "07": {
+  "detectar": {
+   "s": 43.666,
+   "custoUsd": 0.0021210302833187503
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "font_mismatch",
+   "gates": {
+    "duracao_s": 17.566666666666666,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.836,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0,
+    "iou_mediana": 0.7739,
+    "herdados": 0.8016,
+    "estilo_var": 0.0155,
+    "fundo_lap": 22.72,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.8330170777988615
+   }
+  },
+  "estilo": {
+   "fontId": "montserrat-900",
+   "tamPx": 64,
+   "tracking": -0.08,
+   "espaco": 0.2,
+   "strokePx": 2,
+   "sombra": [
+    0,
+    4
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 1,
+   "linhas": 1,
+   "baseY": 955,
+   "centroX": 334.5
+  },
+  "trechos": 126,
+  "atrasoSec": 0.093,
+  "caixa": false,
+  "faixa": [
+   80,
+   1135
+  ],
+  "quadros": 527,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 527,
+    "pedaco_max_s": 52.806,
+    "pico_MB": 1075,
+    "quadros_placa": 527,
+    "conferir_s": 12.637,
+    "janelas": 26,
+    "janelas_ruins_pct": 0.5769230769230769,
+    "ruim_gancho_s": 0.5,
+    "ruim_pct": 0.5769230769230769,
+    "lisura_min": 0.4076104005177816,
+    "trem_max": 16.99188740797876,
+    "degrau_max": 9.40153554280599,
+    "letra_p95_pct": 5.973,
+    "fora_buraco_media": 0.757993491612077,
+    "salto_emenda_db_min": 9.942548350256926,
+    "cor_deslocamento": 0
+   },
+   "sizeBytes": null,
+   "costUsd": 0.010833901872493749,
+   "ms": 66720,
+   "pioresQuadros": [
+    82,
+    299,
+    329,
+    344,
+    397,
+    412
+   ],
+   "s": 69.459
+  }
+ }
+}

@@ -4,7 +4,8 @@ import { z } from 'zod';
  *  da vez (brandColor) e idioma da fala. Usada pela Moldura, pelo AutoEdit e pelo remix-keep (src/lib/legendaAuto.ts).
  *  Arquivo só com zod (sem dependência) pra não criar ciclo entre autoEdit.ts e molduras.ts. */
 export const captionsAutoSchema = z.object({
-  words: z.array(z.object({ word: z.string(), startSec: z.number().min(0), endSec: z.number().min(0) })),
+  /** `pg` (F2, troca de legenda): nº da PÁGINA da legenda original a que a palavra pertence; presente em todas = as páginas são as da original, não as de `paginar` */
+  words: z.array(z.object({ word: z.string(), startSec: z.number().min(0), endSec: z.number().min(0), pg: z.number().int().min(0).optional() })),
   highlightColor: z.string(),
   language: z.string(),
   /** legenda-protegida-v1 §2.2: estilo da legenda ORIGINAL do campeão (a nossa entra no lugar dela). fontId fora do catálogo
@@ -13,6 +14,8 @@ export const captionsAutoSchema = z.object({
     fontId: z.string().nullable(), uppercase: z.boolean(), color: z.string(), highlightColor: z.string().nullable(),
     strokeColor: z.string().nullable(), strokeWidthRel: z.number().min(0), sizeRel: z.number().positive(), shadow: z.boolean(),
     wordsPerPage: z.number().int().positive().nullable(),
+    /** F2: a palavra da vez ganha uma caixa de cor atrás (o `caixaDestaque` medido da original); `radiusRel` = raio ÷ tamanho da letra */
+    highlightBox: z.object({ color: z.string(), radiusRel: z.number().min(0) }).nullable().optional(),
   }).optional(),
 });
 

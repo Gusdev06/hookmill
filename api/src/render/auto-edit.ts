@@ -4,7 +4,7 @@
  * teardown, editMap, medidas, Brain) e chama ao tirar o render da fila. Mesmo ctx + mesmo formato = mesmo input.
  */
 import type { AutoVariationType, EditMap, EndcardVariant, Rect, TranscriptWord } from '@maquina/contratos';
-import { FORMATOS, SAFE_AREA, centroDoRosto, contentBoxDe, corDeDestaque, corEscura, decidirLegendaAutoEdit, faixasProtegidasDe, faixasProtegidasNaSaidaAutoEdit, mapearCaixa, reframeFor, reframeNaCaixa, unionBand, type AutoEditProps, type BrandLogo } from '@maquina/video';
+import { FORMATOS, SAFE_AREA, centroDoRosto, contentBoxDe, corDeDestaque, corEscura, decidirLegendaAutoEdit, faixasProtegidasDe, type SwapLegendaInfo, faixasProtegidasNaSaidaAutoEdit, mapearCaixa, reframeFor, reframeNaCaixa, unionBand, type AutoEditProps, type BrandLogo } from '@maquina/video';
 import { CaptionProtectedError, legendaNoEstiloDaOriginal, type OpcoesDeBuild } from './frame';
 import { snapSpans, snapSpansEmOrdem, writtenHookLayer, type Span } from '../medicao/auto-edit';
 import type { AutoEditParams, AutoEditRenderInput } from './contrato';
@@ -47,6 +47,9 @@ export interface AutoEditContext {
   brandName: string;
   /** kit-marca-v1 §5: logo do kit, já em URL assinada (`resolverLogoDaMarca`). Ausente/null = iniciais. */
   brandLogo?: BrandLogo | null;
+  /** F2 (troca de legenda, §15.6.5): `veredito.swap` + placa CAPTION READY do campeão (URL assinada). Presente = onde o `avoid` bloquearia, `decidirLegenda`
+   *  tenta a troca (placa como vídeo, legenda nossa, `checarResiduo`). Ausente/null = como antes (bloqueia: CAPTION_PROTECTED). */
+  swap?: SwapLegendaInfo | null;
   /** SPLIT-LP: captura da página (análise) ou foto do produto (D4), URL assinada */
   page: { imageUrl: string; kind: 'page' | 'product_photo' } | null;
 }
@@ -224,7 +227,7 @@ export function buildAutoEditInput(ctx: AutoEditContext, format: AutoEditFormat,
     const protectedBands = faixasProtegidasDe(ctx.editMap as never, ctx.source);
     if (protectedBands.length) {
       const { kind: _k, renderId: _r, templateId: _t, ...props } = { ...input, protectedBands };
-      const d = decidirLegendaAutoEdit(props as AutoEditProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, corDeDestaque(ctx.palette, '#000000')) as AutoEditProps['captions'], opts.captionMode === 'replace' ? 'replace' : undefined);
+      const d = decidirLegendaAutoEdit(props as AutoEditProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, corDeDestaque(ctx.palette, '#000000')) as AutoEditProps['captions'], opts.captionMode === 'replace' ? 'replace' : undefined, ctx.swap ?? undefined);
       if (d.mode === 'blocked' && p.type === 'CUT' && opts.captionMode !== 'replace') {
         // A cut adds no overlay. If cropping would lose the caption or the face, keep the entire original frame.
         // The existing scaled-cover renderer fills the unused space with the brand color, never blur.

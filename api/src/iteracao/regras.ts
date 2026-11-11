@@ -6,6 +6,7 @@
 // 25/10 (estatico-montado-e-molduras-v1): STATIC V2 "anúncio montado" (§A3: fonte por bloco, invented_claim, reparo que
 // apaga o bloco opcional) e FRAME (molduras, §B2/§B5: allowedFrames, textos por template, preço literal, máx. 2 distintas).
 // TRANSIÇÃO (§C.0): FRAME ainda fora do AutoVariationType; aqui tudo é escrito contra `AutoVariationType`.
+import type { CaptionSwapInfo } from '../campeoes/legenda-troca';
 import type {
   AutoInsight, AutoVariationType, HeadlineCopyKind, HeadlineFitLook, HeadlineFitStep, BlockFn, BrainField, CodeLanguage, EndcardVariant, FrameTemplateId, FrameTexts, ListTemplateId,
   SwapReason, TranscriptWord, VariationAxis, WhyLine,
@@ -232,6 +233,8 @@ export interface PlanCtx {
   captionsAuto?: boolean;
   /** legenda-protegida-v1 §2.3: o que tamparia a legenda queimada (backend preenche; ausente = nada protegido) */
   caption?: CaptionGuard | null;
+  /** troca-texto-queimado-v1 F2: estado da troca de legenda (captionTrack + placa CAPTION). Ausente = troca desligada/F1b. */
+  captionSwap?: CaptionSwapInfo;
   /** iterate-v2 F1.1: rosto e legenda queimada pros templates grátis; ausente ou `enabled: false` = sem templates */
   templates?: TemplateCtx | null;
   /** templates-creditos-v1 §2: lote de template = contagem própria (1..Σmax), no lugar do piso 4/teto 12 do lote auto */

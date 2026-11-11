@@ -1,0 +1,32 @@
+[
+ {
+  "nome": "00",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/00.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/00-words.json",
+  "legendaMaxSec": 130
+ },
+ {
+  "nome": "07",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/07.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/07-words.json",
+  "legendaMaxSec": 130
+ },
+ {
+  "nome": "21",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/21.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/21-words.json",
+  "legendaMaxSec": 130
+ },
+ {
+  "nome": "29",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/29.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/29-words.json",
+  "legendaMaxSec": 130
+ },
+ {
+  "nome": "60",
+  "video": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/in/60.mp4",
+  "words": "/private/tmp/claude-501/-Users-gustagoat-Documents-AIS-OS-projects-maquina-anuncios/cb30c1a1-76ba-44fe-91c5-1892ae7dd639/scratchpad/f2/s3/60-words.json",
+  "legendaMaxSec": 130
+ }
+]

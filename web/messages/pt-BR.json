@@ -2882,7 +2882,7 @@
         "proof": "prova",
         "page": "página do produto",
         "planning": "peças e regras",
-        "preparing_plate": "apagando a headline antiga"
+        "preparing_plate": "apagando o texto antigo"
       },
       "timeLeft": "Falta",
       "canClose": "Pode fechar esta página. O plano espera você em Início › Esperando por você.",
@@ -4385,6 +4385,24 @@
         "title": "A headline deste vídeo não pode ser reescrita",
         "body": "Ela ficou de fora deste plano."
       }
+    },
+    "swapped": "Legenda refeita, mesmas palavras",
+    "swapWhy": "A legenda não pode ser refeita: {reason}.",
+    "swapReason": {
+      "not_detected": "não deu pra ler a legenda",
+      "no_outline": "a legenda não tem contorno",
+      "font_mismatch": "não há fonte próxima da legenda",
+      "style_unstable": "o estilo da legenda muda ao longo do vídeo",
+      "no_person": "ninguém fala em cena",
+      "busy_background": "o fundo é cheio demais pra apagar",
+      "multi_line": "a legenda tem mais de uma linha",
+      "animated": "a legenda é animada",
+      "script_unsupported": "este alfabeto não é suportado",
+      "caption_emoji": "a legenda tem emoji",
+      "too_long": "o vídeo passa de 60 s",
+      "plate_rejected": "não dá pra apagar a legenda antiga sem marca",
+      "plate_failed": "falhou ao apagar a legenda antiga",
+      "color_shift": "a cor mudaria ao apagar"
     }
   },
   "metaTemplates": {
@@ -5570,7 +5588,7 @@
         "blocks": "Achando gancho, corpo e chamada",
         "brain": "Checando rosto, legenda e seu Cérebro",
         "fits": "Checando se {name} encaixa e escrevendo os textos",
-        "plate": "Apagando a headline antiga"
+        "plate": "Apagando o texto antigo"
       },
       "canLeave": "Pode sair desta página. O template fica escolhido e o plano aparece quando você voltar.",
       "yourTemplate": "Seu template",

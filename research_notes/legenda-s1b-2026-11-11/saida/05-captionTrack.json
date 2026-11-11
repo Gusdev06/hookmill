@@ -1,0 +1,939 @@
+{
+ "version": 1,
+ "trechos": [
+  {
+   "iniFrame": 3,
+   "fimFrame": 11,
+   "box": {
+    "x": 240,
+    "y": 734,
+    "w": 241,
+    "h": 55
+   },
+   "iou": 0.8149,
+   "texto": "HAZLO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 11,
+   "fimFrame": 41,
+   "box": {
+    "x": 48,
+    "y": 734,
+    "w": 625,
+    "h": 55
+   },
+   "iou": 0.7986,
+   "texto": "UNA SOLA NOCHE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 49,
+   "fimFrame": 69,
+   "box": {
+    "x": 116,
+    "y": 734,
+    "w": 488,
+    "h": 55
+   },
+   "iou": 0.8307,
+   "texto": "SI NO SIENTES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 69,
+   "fimFrame": 93,
+   "box": {
+    "x": 43,
+    "y": 734,
+    "w": 634,
+    "h": 55
+   },
+   "iou": 0.7769,
+   "texto": "ABSOLUTAMENTE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 93,
+   "fimFrame": 121,
+   "box": {
+    "x": 110,
+    "y": 725,
+    "w": 500,
+    "h": 70
+   },
+   "iou": 0.4619,
+   "texto": "NADA DÉJALO Y",
+   "herdado": false
+  },
+  {
+   "iniFrame": 121,
+   "fimFrame": 147,
+   "box": {
+    "x": 103,
+    "y": 725,
+    "w": 514,
+    "h": 80
+   },
+   "iou": 0.4817,
+   "texto": "BLOQUEAME ASÍ",
+   "herdado": false
+  },
+  {
+   "iniFrame": 147,
+   "fimFrame": 170,
+   "box": {
+    "x": 93,
+    "y": 725,
+    "w": 534,
+    "h": 70
+   },
+   "iou": 0.4421,
+   "texto": "DE SEGURA ESTOY",
+   "herdado": false
+  },
+  {
+   "iniFrame": 170,
+   "fimFrame": 187,
+   "box": {
+    "x": 241,
+    "y": 734,
+    "w": 239,
+    "h": 65
+   },
+   "iou": 0.408,
+   "texto": "LA FE TE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 192,
+   "fimFrame": 198,
+   "box": {
+    "x": 276,
+    "y": 746,
+    "w": 180,
+    "h": 54
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 198,
+   "fimFrame": 220,
+   "box": {
+    "x": 172,
+    "y": 752,
+    "w": 374,
+    "h": 51
+   },
+   "iou": 0.5255,
+   "texto": "LA PIDEN EN",
+   "herdado": false
+  },
+  {
+   "iniFrame": 220,
+   "fimFrame": 254,
+   "box": {
+    "x": 82,
+    "y": 751,
+    "w": 556,
+    "h": 50
+   },
+   "iou": 0.4093,
+   "texto": "TODOS LADOS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 254,
+   "fimFrame": 274,
+   "box": {
+    "x": 241,
+    "y": 749,
+    "w": 238,
+    "h": 52
+   },
+   "iou": 0.4529,
+   "texto": "CREE TEN",
+   "herdado": false
+  },
+  {
+   "iniFrame": 274,
+   "fimFrame": 331,
+   "box": {
+    "x": 38,
+    "y": 743,
+    "w": 645,
+    "h": 63
+   },
+   "iou": 0.777,
+   "texto": "ESPERANZA CONFÍA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 331,
+   "fimFrame": 351,
+   "box": {
+    "x": 259,
+    "y": 751,
+    "w": 202,
+    "h": 52
+   },
+   "iou": 0.8168,
+   "texto": "YO NO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 351,
+   "fimFrame": 374,
+   "box": {
+    "x": 79,
+    "y": 751,
+    "w": 562,
+    "h": 58
+   },
+   "iou": 0.8086,
+   "texto": "YO PREFIERO QUE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 374,
+   "fimFrame": 391,
+   "box": {
+    "x": 256,
+    "y": 751,
+    "w": 209,
+    "h": 55
+   },
+   "iou": 0.8381,
+   "texto": "DUDES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 391,
+   "fimFrame": 415,
+   "box": {
+    "x": 88,
+    "y": 841,
+    "w": 594,
+    "h": 57
+   },
+   "iou": 0.8228,
+   "texto": "PORQUE LA MUJER",
+   "herdado": false
+  },
+  {
+   "iniFrame": 415,
+   "fimFrame": 434,
+   "box": {
+    "x": 198,
+    "y": 815,
+    "w": 324,
+    "h": 58
+   },
+   "iou": 0.8302,
+   "texto": "QUE DUDA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 434,
+   "fimFrame": 448,
+   "box": {
+    "x": 202,
+    "y": 790,
+    "w": 316,
+    "h": 58
+   },
+   "iou": 0.7755,
+   "texto": "ES LA QUE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 448,
+   "fimFrame": 457,
+   "box": {
+    "x": 266,
+    "y": 790,
+    "w": 188,
+    "h": 49
+   },
+   "iou": 0.8489,
+   "texto": "SIGUE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 457,
+   "fimFrame": 464,
+   "box": {
+    "x": 298,
+    "y": 815,
+    "w": 123,
+    "h": 49
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 464,
+   "fimFrame": 488,
+   "box": {
+    "x": 100,
+    "y": 820,
+    "w": 520,
+    "h": 50
+   },
+   "iou": 0.8002,
+   "texto": "INSTRUCCIONES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 488,
+   "fimFrame": 498,
+   "box": {
+    "x": 303,
+    "y": 844,
+    "w": 192,
+    "h": 49
+   },
+   "iou": 0.8217,
+   "texto": "AL PIE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 498,
+   "fimFrame": 514,
+   "box": {
+    "x": 164,
+    "y": 824,
+    "w": 393,
+    "h": 49
+   },
+   "iou": 0.7829,
+   "texto": "DE LA LETRA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 514,
+   "fimFrame": 515,
+   "box": {
+    "x": 109,
+    "y": 814,
+    "w": 463,
+    "h": 108
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 515,
+   "fimFrame": 516,
+   "box": {
+    "x": 154,
+    "y": 814,
+    "w": 419,
+    "h": 108
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 516,
+   "fimFrame": 517,
+   "box": {
+    "x": 158,
+    "y": 814,
+    "w": 415,
+    "h": 108
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 517,
+   "fimFrame": 518,
+   "box": {
+    "x": 154,
+    "y": 814,
+    "w": 419,
+    "h": 72
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 518,
+   "fimFrame": 519,
+   "box": {
+    "x": 154,
+    "y": 701,
+    "w": 419,
+    "h": 221
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 519,
+   "fimFrame": 522,
+   "box": {
+    "x": 164,
+    "y": 820,
+    "w": 393,
+    "h": 60
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 522,
+   "fimFrame": 556,
+   "box": {
+    "x": 52,
+    "y": 746,
+    "w": 619,
+    "h": 60
+   },
+   "iou": 0.8505,
+   "texto": "PARA PODER DECIR",
+   "herdado": false
+  },
+  {
+   "iniFrame": 556,
+   "fimFrame": 576,
+   "box": {
+    "x": 197,
+    "y": 751,
+    "w": 324,
+    "h": 55
+   },
+   "iou": 0.7819,
+   "texto": "TE LO DIJE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 576,
+   "fimFrame": 604,
+   "box": {
+    "x": 117,
+    "y": 743,
+    "w": 486,
+    "h": 72
+   },
+   "iou": 0.8094,
+   "texto": "QUE NO SERVÍA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 604,
+   "fimFrame": 623,
+   "box": {
+    "x": 222,
+    "y": 746,
+    "w": 275,
+    "h": 60
+   },
+   "iou": 0.8256,
+   "texto": "Y ESA ES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 623,
+   "fimFrame": 634,
+   "box": {
+    "x": 254,
+    "y": 746,
+    "w": 211,
+    "h": 55
+   },
+   "iou": 0.8129,
+   "texto": "JUSTO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 634,
+   "fimFrame": 654,
+   "box": {
+    "x": 129,
+    "y": 746,
+    "w": 464,
+    "h": 63
+   },
+   "iou": 0.8313,
+   "texto": "LA QUE MEJOR",
+   "herdado": false
+  },
+  {
+   "iniFrame": 654,
+   "fimFrame": 696,
+   "box": {
+    "x": 75,
+    "y": 743,
+    "w": 570,
+    "h": 69
+   },
+   "iou": 0.8228,
+   "texto": "LO HACE ADEMÁS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 702,
+   "fimFrame": 732,
+   "box": {
+    "x": 72,
+    "y": 746,
+    "w": 576,
+    "h": 60
+   },
+   "iou": 0.7993,
+   "texto": "ESTO NO DEPENDE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 732,
+   "fimFrame": 759,
+   "box": {
+    "x": 133,
+    "y": 743,
+    "w": 454,
+    "h": 78
+   },
+   "iou": 0.8359,
+   "texto": "DE QUE CREAS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 759,
+   "fimFrame": 779,
+   "box": {
+    "x": 157,
+    "y": 751,
+    "w": 406,
+    "h": 58
+   },
+   "iou": 0.7568,
+   "texto": "EL LODO QUE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 779,
+   "fimFrame": 787,
+   "box": {
+    "x": 322,
+    "y": 751,
+    "w": 76,
+    "h": 50
+   },
+   "iou": 0.8573,
+   "texto": "SE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 787,
+   "fimFrame": 805,
+   "box": {
+    "x": 153,
+    "y": 743,
+    "w": 415,
+    "h": 63
+   },
+   "iou": 0.8238,
+   "texto": "METIÓ ENTRE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 805,
+   "fimFrame": 847,
+   "box": {
+    "x": 71,
+    "y": 751,
+    "w": 578,
+    "h": 50
+   },
+   "iou": 0.8142,
+   "texto": "USTEDES NO SABE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 847,
+   "fimFrame": 871,
+   "box": {
+    "x": 165,
+    "y": 743,
+    "w": 390,
+    "h": 63
+   },
+   "iou": 0.7815,
+   "texto": "SI TÚ TIENES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 871,
+   "fimFrame": 881,
+   "box": {
+    "x": 325,
+    "y": 752,
+    "w": 71,
+    "h": 48
+   },
+   "iou": 0.8951,
+   "texto": "FE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 882,
+   "fimFrame": 883,
+   "box": {
+    "x": 170,
+    "y": 696,
+    "w": 54,
+    "h": 23
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 884,
+   "fimFrame": 900,
+   "box": {
+    "x": 237,
+    "y": 751,
+    "w": 246,
+    "h": 50
+   },
+   "iou": 0.3573,
+   "texto": "O NO",
+   "herdado": false
+  }
+ ],
+ "estilo": {
+  "fontId": "poppins-900",
+  "tamPx": 68,
+  "tracking": -0.04,
+  "espaco": 1,
+  "strokePx": 4,
+  "sombra": [
+   5,
+   3
+  ],
+  "corTexto": "#ffffff",
+  "corDestaque": "#feef00",
+  "corTraco": "#000000",
+  "caixaDestaque": null,
+  "palavrasPorPagina": 3,
+  "linhas": 1,
+  "baseY": 801,
+  "centroX": 360
+ },
+ "atrasoSec": 0.133,
+ "pegada": [
+  {
+   "iniFrame": 3,
+   "fimFrame": 11,
+   "areaPx": 7642
+  },
+  {
+   "iniFrame": 11,
+   "fimFrame": 41,
+   "areaPx": 19877
+  },
+  {
+   "iniFrame": 49,
+   "fimFrame": 69,
+   "areaPx": 16124
+  },
+  {
+   "iniFrame": 69,
+   "fimFrame": 93,
+   "areaPx": 21184
+  },
+  {
+   "iniFrame": 93,
+   "fimFrame": 121,
+   "areaPx": 16004
+  },
+  {
+   "iniFrame": 121,
+   "fimFrame": 147,
+   "areaPx": 17080
+  },
+  {
+   "iniFrame": 147,
+   "fimFrame": 170,
+   "areaPx": 17541
+  },
+  {
+   "iniFrame": 170,
+   "fimFrame": 187,
+   "areaPx": 7286
+  },
+  {
+   "iniFrame": 192,
+   "fimFrame": 198,
+   "areaPx": 4533
+  },
+  {
+   "iniFrame": 198,
+   "fimFrame": 220,
+   "areaPx": 10528
+  },
+  {
+   "iniFrame": 220,
+   "fimFrame": 254,
+   "areaPx": 15708
+  },
+  {
+   "iniFrame": 254,
+   "fimFrame": 274,
+   "areaPx": 7263
+  },
+  {
+   "iniFrame": 274,
+   "fimFrame": 331,
+   "areaPx": 19319
+  },
+  {
+   "iniFrame": 331,
+   "fimFrame": 351,
+   "areaPx": 5416
+  },
+  {
+   "iniFrame": 351,
+   "fimFrame": 374,
+   "areaPx": 16535
+  },
+  {
+   "iniFrame": 374,
+   "fimFrame": 391,
+   "areaPx": 6698
+  },
+  {
+   "iniFrame": 391,
+   "fimFrame": 415,
+   "areaPx": 17536
+  },
+  {
+   "iniFrame": 415,
+   "fimFrame": 434,
+   "areaPx": 9779
+  },
+  {
+   "iniFrame": 434,
+   "fimFrame": 448,
+   "areaPx": 8949
+  },
+  {
+   "iniFrame": 448,
+   "fimFrame": 457,
+   "areaPx": 6004
+  },
+  {
+   "iniFrame": 457,
+   "fimFrame": 464,
+   "areaPx": 3433
+  },
+  {
+   "iniFrame": 464,
+   "fimFrame": 488,
+   "areaPx": 15975
+  },
+  {
+   "iniFrame": 488,
+   "fimFrame": 498,
+   "areaPx": 5357
+  },
+  {
+   "iniFrame": 498,
+   "fimFrame": 514,
+   "areaPx": 10677
+  },
+  {
+   "iniFrame": 514,
+   "fimFrame": 515,
+   "areaPx": 23515
+  },
+  {
+   "iniFrame": 515,
+   "fimFrame": 516,
+   "areaPx": 16883
+  },
+  {
+   "iniFrame": 516,
+   "fimFrame": 517,
+   "areaPx": 14163
+  },
+  {
+   "iniFrame": 517,
+   "fimFrame": 518,
+   "areaPx": 17188
+  },
+  {
+   "iniFrame": 518,
+   "fimFrame": 519,
+   "areaPx": 36955
+  },
+  {
+   "iniFrame": 519,
+   "fimFrame": 522,
+   "areaPx": 10818
+  },
+  {
+   "iniFrame": 522,
+   "fimFrame": 556,
+   "areaPx": 18344
+  },
+  {
+   "iniFrame": 556,
+   "fimFrame": 576,
+   "areaPx": 8733
+  },
+  {
+   "iniFrame": 576,
+   "fimFrame": 604,
+   "areaPx": 14606
+  },
+  {
+   "iniFrame": 604,
+   "fimFrame": 623,
+   "areaPx": 7331
+  },
+  {
+   "iniFrame": 623,
+   "fimFrame": 634,
+   "areaPx": 5859
+  },
+  {
+   "iniFrame": 634,
+   "fimFrame": 654,
+   "areaPx": 13545
+  },
+  {
+   "iniFrame": 654,
+   "fimFrame": 696,
+   "areaPx": 16286
+  },
+  {
+   "iniFrame": 702,
+   "fimFrame": 732,
+   "areaPx": 17477
+  },
+  {
+   "iniFrame": 732,
+   "fimFrame": 759,
+   "areaPx": 13788
+  },
+  {
+   "iniFrame": 759,
+   "fimFrame": 779,
+   "areaPx": 11578
+  },
+  {
+   "iniFrame": 779,
+   "fimFrame": 787,
+   "areaPx": 2541
+  },
+  {
+   "iniFrame": 787,
+   "fimFrame": 805,
+   "areaPx": 12961
+  },
+  {
+   "iniFrame": 805,
+   "fimFrame": 847,
+   "areaPx": 17078
+  },
+  {
+   "iniFrame": 847,
+   "fimFrame": 871,
+   "areaPx": 11189
+  },
+  {
+   "iniFrame": 871,
+   "fimFrame": 881,
+   "areaPx": 2320
+  },
+  {
+   "iniFrame": 882,
+   "fimFrame": 883,
+   "areaPx": 11
+  },
+  {
+   "iniFrame": 884,
+   "fimFrame": 900,
+   "areaPx": 7004
+  }
+ ],
+ "cortes": [
+  34,
+  38,
+  41,
+  48,
+  51,
+  55,
+  124,
+  128,
+  132,
+  137,
+  141,
+  145,
+  147,
+  184,
+  187,
+  188,
+  189,
+  192,
+  193,
+  386,
+  387,
+  388,
+  389,
+  390,
+  391,
+  394,
+  395,
+  513,
+  514,
+  515,
+  516,
+  517,
+  518,
+  519,
+  522,
+  523,
+  760
+ ],
+ "artefato": null,
+ "caixa": false,
+ "faixa": [
+  695,
+  922
+ ],
+ "quadros": 900,
+ "fps": 30,
+ "veredito": {
+  "swap": false,
+  "reason": "animated",
+  "gates": {
+   "duracao_s": 30,
+   "alfabeto_fora": 0,
+   "emoji_legenda": 0,
+   "cobertura": 0.973,
+   "contorno": 1,
+   "linhas": 1,
+   "animacao": 0.1,
+   "iou_mediana": 0.809,
+   "herdados": 0.1915,
+   "estilo_var": 0.1029,
+   "fundo_lap": 67.11,
+   "pessoa_rosto": 1,
+   "pessoa_fala": 0.8710045662100456
+  }
+ }
+}

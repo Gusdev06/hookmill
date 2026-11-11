@@ -3,6 +3,7 @@ import { Composition, Folder, type CalculateMetadataFunction } from 'remotion';
 import amostra from '../public/fixtures/amostra.json';
 import { Criativo } from './Criativo';
 import { RemixKeep } from './RemixKeep';
+import { LegendaSwap } from './LegendaSwap';
 import { AutoEdit } from './AutoEdit';
 import { TemplatesRegistrados } from './templates/registro';
 import { calcularMoldura, MolduraPrototipo } from './prototipos/molduras/Moldura';
@@ -13,6 +14,7 @@ import { CASOS, casoTrilha, TRILHA_TEMPLATES } from './molduras/casos';
 import { casosZhTw } from './molduras/casos-cjk';
 import { HERO_MILL, HeroMill } from './landing/HeroMill';
 import { FRAME_COMPOSITION_ID, molduraSchema } from './lib/molduras';
+import { LEGENDA_SWAP_COMPOSITION_ID, legendaSwapSchema, type LegendaSwapProps } from './lib/legendaSwap';
 import { AUTO_EDIT_COMPOSITION_ID, autoEditSchema, duracaoAutoEdit, SAFE_AREA, type AutoEditProps, COMPOSITION_ID, criativoSchema, duracaoEmFrames, FORMATOS, FPS, REMIX_COMPOSITION_ID, remixKeepSchema, type CriativoProps, type RemixKeepProps } from './lib';
 
 // Tamanho e duração saem das props (formato + soma das cenas + end card).
@@ -64,6 +66,18 @@ const remixExemplo: RemixKeepProps = {
   }],
 };
 
+// legenda-swap (troca-texto §15.6, F2): tamanho, fps e nº de quadros = os do campeão (a placa tem os mesmos).
+const calcularSwap: CalculateMetadataFunction<LegendaSwapProps> = async ({ props }) => ({
+  durationInFrames: props.canvas.frameCount, fps: props.canvas.fps, width: props.canvas.width, height: props.canvas.height,
+});
+const swapExemplo: LegendaSwapProps = {
+  canvas: { width: 704, height: 1280, fps: 30, frameCount: 90 }, baseVideoUrl: 'fixtures/cena-1.mp4',
+  trechos: [{ iniFrame: 0, fimFrame: 45, texto: 'IF HE CALLS' }, { iniFrame: 45, fimFrame: 90, texto: 'YOU AFTER MIDNIGHT' }],
+  words: [{ word: 'if', startSec: 0.1, endSec: 0.4 }, { word: 'he', startSec: 0.4, endSec: 0.7 }, { word: 'calls', startSec: 0.7, endSec: 1.2 }, { word: 'you', startSec: 1.6, endSec: 1.9 }, { word: 'after', startSec: 1.9, endSec: 2.3 }, { word: 'midnight', startSec: 2.3, endSec: 3 }],
+  atrasoSec: 0.1,
+  estilo: { fontId: 'gabarito-900', tamPx: 58, tracking: 0, espaco: 0.5, strokePx: 3, sombra: [1, 2], corTexto: '#ffffff', corDestaque: '#fcf000', corTraco: '#000000', caixaDestaque: null, baseY: 900, centroX: 352 },
+};
+
 // auto-edit (variacao-auto-v1 §7.2): tamanho do formato, duração = soma do timeline (+2 s no ENDCARD).
 const calcularAuto: CalculateMetadataFunction<AutoEditProps> = async ({ props }) => ({
   durationInFrames: duracaoAutoEdit(props, FPS),
@@ -98,6 +112,17 @@ export const RemotionRoot: React.FC = () => (
       fps={30}
       width={1080}
       height={1920}
+    />
+    <Composition
+      id={LEGENDA_SWAP_COMPOSITION_ID}
+      component={LegendaSwap}
+      schema={legendaSwapSchema}
+      defaultProps={swapExemplo}
+      calculateMetadata={calcularSwap}
+      durationInFrames={90}
+      fps={30}
+      width={704}
+      height={1280}
     />
     <Composition
       id={REMIX_COMPOSITION_ID}

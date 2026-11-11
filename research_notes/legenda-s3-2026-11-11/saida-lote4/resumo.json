@@ -1,0 +1,42 @@
+{
+ "60": {
+  "detectar": {
+   "s": 35.47,
+   "custoUsd": 0.0014641550112375
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "font_mismatch",
+   "gates": {
+    "duracao_s": 37.166666666666664,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "iou_mediana": 0,
+    "pessoa_rosto": 0,
+    "pessoa_fala": 0
+   }
+  },
+  "estilo": {
+   "fontId": "montserrat-700",
+   "tamPx": 0,
+   "tracking": 0,
+   "espaco": 1,
+   "strokePx": 0,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 3,
+   "linhas": 1
+  },
+  "trechos": 0,
+  "atrasoSec": 0,
+  "caixa": false,
+  "faixa": null,
+  "quadros": 1115
+ }
+}

@@ -3,12 +3,13 @@
 // (buildFrameInput / buildHeadlineInput / buildAutoEditInput do maquina-video, que rodam `decidirLegenda` e lançam
 // CAPTION_PROTECTED / HEADLINE_NO_ROOM): no `allowed` com textos de amostra; na validação com os textos reais do plano.
 import type { AutoVariationType, EditMap, FrameTemplateId, ProtectedBand, TranscriptWord } from '@maquina/contratos';
-import { TEXT_LIMITS } from '@maquina/video';
+import { TEXT_LIMITS, type SwapLegendaInfo } from '@maquina/video';
 import type { FrameSpec } from '../integracoes/contrato';
 import { buildAutoEditInput, type AutoEditContext } from '../render/auto-edit';
 import { buildFrameInput } from '../render/frame';
 import { buildHeadlineInput } from '../render/headline';
 import { semLegendaQueimada } from '../campeoes/faixas-protegidas';
+import type { CaptionTrack } from '../medicao/troca/legenda';
 import { ehCopia, type HeadlineInfo } from './headline-plano';
 
 export type CaptionBlockReason = 'face_cut' | 'no_room';
@@ -26,6 +27,8 @@ export interface CaptionGuardSource {
   brandName: string;
   language: string;
   brandColor: string | null;
+  /** F2: só na decisão por peça (`decidirSwapReal` liga): troca de legenda pronta para este campeão */
+  swap?: SwapLegendaInfo | null;
 }
 
 /** Item do plano visto pela guarda (tipo + params finais, os mesmos que vão pro `payload.params`). */
@@ -123,6 +126,7 @@ function ctxDe(s: CaptionGuardSource, type: AutoVariationType, params: Record<st
     renderId: 'plan', type, params: { ...params, type } as unknown as AutoEditContext['params'], language: s.language,
     source: { videoUrl: 'about:blank', ...s.source } as AutoEditContext['source'],
     editMap, words: s.words, silences: s.silences, blocks: s.blocks, hookEndSec: s.hookEndSec, palette: s.palette, brandName: s.brandName, page: null,
+    ...(s.swap && { swap: s.swap }),
   };
 }
 
@@ -168,17 +172,33 @@ function decide(s: CaptionGuardSource, item: CaptionGuardItem): CaptionBlockReas
  * Guarda do lote. `bands` vazio (sem legenda queimada, ou com a versão sem legenda) = nada bloqueado e `check` sempre passa.
  * `frame` = marca/idioma da tela das molduras (os mesmos do FrameSpec do plano).
  */
+/** Decisão por peça quando a troca de legenda está pronta (§15.6.5 `avoid` → `swap` → `blocked`). A real é do video
+ *  (`decidirLegenda` em `legendaProtegida.ts`, com `checarResiduo`): quando sair, entra aqui por `opts.swap.decidir`. */
+export type DecidirSwap = (i: { item: CaptionGuardItem; reason: CaptionBlockReason; track: CaptionTrack; s: CaptionGuardSource }) => 'swap' | 'blocked';
+/** Padrão até o video injetar a decisão real: BLOQUEIA (o formato segue fora com `burned_captions`, como hoje). O video
+ *  troca `swapDecisao.decidir` (ou passa `opts.swap.decidir`) quando `decidirLegenda` com `swap` existir. */
+/** DECISÃO REAL (F2, 12/11): refaz o builder do item com a troca ligada (`ctx.swap`), que roda `decidirLegenda`/`decidirLegendaAutoEdit` com `swap`
+ *  (§15.6.5: avoid → swap → bloqueado, com `checarResiduo`). Passou sem CAPTION_PROTECTED = 'swap'. Sem placa de verdade no plano (só a decisão). */
+export const decidirSwapReal: DecidirSwap = ({ item, s }) => (decide({ ...s, swap: { swap: true, plateReady: true, plateUrl: null } }, item) === null ? 'swap' : 'blocked');
+export const swapDecisao: { decidir: DecidirSwap } = { decidir: decidirSwapReal };
+
 export function captionGuardOf(
   s: CaptionGuardSource,
   bands: ProtectedBand[],
-  opts: { templates: readonly FrameTemplateId[]; frame: { brand: FrameSpec['brand']; screenLanguage: string; faceAtSec: number | null }; headline: HeadlineInfo | null },
+  opts: { templates: readonly FrameTemplateId[]; frame: { brand: FrameSpec['brand']; screenLanguage: string; faceAtSec: number | null }; headline: HeadlineInfo | null;
+    /** F2: `veredito.swap` e placa CAPTION READY. Presente = o que o `avoid` bloquearia passa por `decidir` (padrão: bloqueia). */
+    swap?: { track: CaptionTrack; decidir?: DecidirSwap } | null },
 ): CaptionGuard {
   if (!bands.length) return { bands: [], blocked: [], check: () => null };
   // troca-texto-queimado-v1 §15.5.4 item 7 (F1b): o `replace` copiado (caixa ou solto) não pinta fora do texto antigo mais o
   // novo, e o novo nunca cruza a banda (portão `near_caption` na medida): isento de `protectedBands` e de `burned_captions`
   const copia = ehCopia(opts.headline);
-  const guard = (item: CaptionGuardItem) =>
-    (copia && item.type === 'HEADLINE' && (item.params as { mode?: string }).mode === 'replace' ? null : decide(s, item));
+  const guard = (item: CaptionGuardItem): CaptionBlockReason | null => {
+    if (copia && item.type === 'HEADLINE' && (item.params as { mode?: string }).mode === 'replace') return null;
+    const r = decide(s, item);
+    if (r && opts.swap && (opts.swap.decidir ?? swapDecisao.decidir)({ item, reason: r, track: opts.swap.track, s }) === 'swap') return null;
+    return r;
+  };
   const blocked: CaptionBlocked[] = [];
   for (const t of opts.templates) {
     let reason: CaptionBlockReason | null = null;

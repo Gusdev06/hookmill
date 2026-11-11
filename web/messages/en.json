@@ -2882,7 +2882,7 @@
         "proof": "proof",
         "page": "product page",
         "planning": "pieces and rules",
-        "preparing_plate": "erasing the old headline"
+        "preparing_plate": "erasing the old text"
       },
       "timeLeft": "Time left",
       "canClose": "You can close this page. The plan waits for you in Home › Waiting for you.",
@@ -4385,6 +4385,24 @@
         "title": "This video's headline can't be rewritten",
         "body": "It was left out of this plan."
       }
+    },
+    "swapped": "Captions redone, same words",
+    "swapWhy": "Captions can't be redone: {reason}.",
+    "swapReason": {
+      "not_detected": "the captions couldn't be read",
+      "no_outline": "the captions have no outline",
+      "font_mismatch": "no font close to the captions'",
+      "style_unstable": "the caption style changes along the video",
+      "no_person": "no one is speaking on screen",
+      "busy_background": "the background is too busy to erase",
+      "multi_line": "the captions run on more than one line",
+      "animated": "the captions are animated",
+      "script_unsupported": "this alphabet isn't supported",
+      "caption_emoji": "the captions have emoji",
+      "too_long": "the video is over 60 s",
+      "plate_rejected": "the old captions can't be erased cleanly",
+      "plate_failed": "erasing the old captions failed",
+      "color_shift": "the colors would shift when erasing"
     }
   },
   "metaTemplates": {
@@ -5570,7 +5588,7 @@
         "blocks": "Finding hook, body and call to action",
         "brain": "Checking face, captions and your Brain",
         "fits": "Checking that {name} fits and writing the texts",
-        "plate": "Erasing the old headline"
+        "plate": "Erasing the old text"
       },
       "canLeave": "You can leave this page. We keep the template picked and show the plan when you come back.",
       "yourTemplate": "Your template",

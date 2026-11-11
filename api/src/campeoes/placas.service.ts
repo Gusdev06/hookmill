@@ -7,11 +7,13 @@ import type { EditMap, HeadlineLook } from '@maquina/contratos';
 import { Prisma, type ChampionPlate } from '@prisma/client';
 import { StorageService } from '../arquivos/storage.service';
 import { JobsService } from '../jobs/jobs.service';
-import { HEADLINE_PLATE_VERSION, TROCA_TEXTO, type TrocaTextoPort } from '../medicao/troca/porta';
+import { CAPTION_LAYER_KEY, CAPTION_PLATE_VERSION, type CaptionTrack } from '../medicao/troca/legenda';
+import { HEADLINE_PLATE_VERSION, TROCA_TEXTO, type PlacaHeadlineResult, type TrocaLegendaPort, type TrocaTextoPort } from '../medicao/troca/porta';
 import { PrismaService } from '../prisma/prisma.service';
 import type { HeadlinePlateState, PlateImplMode } from '../iteracao/headline-plano';
 import { camadaAlvo } from '../iteracao/headline-plano';
-import { editMapOf } from './champion-views';
+import { editMapOf, transcriptOf } from './champion-views';
+import { captionBoxOf, captionSwapLigado, legendaMaxSecDoEnv, temCamadaLegenda, type CaptionPlateState, type EditMapLegenda } from './legenda-troca';
 
 export const TROCA_CONFIG = Symbol('TROCA_CONFIG');
 /** O que o backend lê de `trocaConfig` (medicao/troca): o modo e a lista de workspaces liberados (vazio = todos). */
@@ -26,6 +28,10 @@ const TRAVA_VENCIDA_MS = 15 * 60_000;
 
 const estadoDe = (r: Pick<ChampionPlate, 'status' | 'reason' | 'version'>): HeadlinePlateState => ({ status: r.status, reason: r.reason, version: r.version });
 
+/** A porta que o backend injeta: a da headline (F1b) e, se a implementação já tiver, a da legenda (F2). Dobles do F1b só têm a 1ª. */
+type PortaInjetada = TrocaTextoPort & Partial<TrocaLegendaPort>;
+type AlvoPlaca = { kind: 'HEADLINE' | 'CAPTION'; layerKey: string; version: number };
+
 @Injectable()
 export class PlacasService {
   private readonly log = new Logger('Placas');
@@ -37,13 +43,15 @@ export class PlacasService {
   private readonly agendadas = new Set<string>();
   /** Última falha da medida por campeão (ms), pra galeria não repetir medida que falha a cada leitura. */
   private readonly falhaEm = new Map<string, number>();
+  /** F2: detecções da legenda em voo por campeão (a de depois da análise e a do AUTO_PLAN não detectam 2 vezes). */
+  private readonly legendaEmVoo = new Map<string, Promise<EditMapLegenda | null>>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly jobs: JobsService,
     @Inject(TROCA_CONFIG) private readonly cfg: TrocaLiberacao,
-    @Optional() @Inject(TROCA_TEXTO) private readonly troca: TrocaTextoPort | null,
+    @Optional() @Inject(TROCA_TEXTO) private readonly troca: PortaInjetada | null,
   ) {}
 
   /** Modo da troca para o workspace: 'off' se desligada, sem porta ou fora de PLATE_WORKSPACE_IDS. */
@@ -59,11 +67,20 @@ export class PlacasService {
   }
 
   /** O que o contexto do plano precisa: modo e placa vigente da camada medida (se for solta). */
-  async trocaDoCampeao(workspaceId: string, championId: string, editMap: EditMap | null): Promise<{ plateImpl: PlateImplMode; plate: HeadlinePlateState | null }> {
+  async trocaDoCampeao(workspaceId: string, championId: string, editMap: EditMap | null): Promise<{ plateImpl: PlateImplMode; plate: HeadlinePlateState | null; captionPlate: CaptionPlateState | null }> {
     const plateImpl = this.implPara(workspaceId);
     const look = editMap?.headlineLook;
     const plate = plateImpl !== 'off' && look?.kind === 'loose' ? await this.estado(championId, look.layerId) : null;
-    return { plateImpl, plate };
+    // F2: só olha a placa da legenda se a leitura achou legenda que pode ser trocada (`veredito.swap`)
+    const track = (editMap as EditMapLegenda | null)?.captionTrack;
+    const captionPlate = captionSwapLigado() && plateImpl !== 'off' && track?.veredito.swap ? await this.estadoLegenda(championId) : null;
+    return { plateImpl, plate, captionPlate };
+  }
+
+  /** F2: linha vigente da placa CAPTION do campeão. null = nunca pedida. */
+  async estadoLegenda(championId: string): Promise<CaptionPlateState | null> {
+    const r = await this.prisma.championPlate.findUnique({ where: { championId_kind_layerKey_version: { championId, kind: 'CAPTION', layerKey: CAPTION_LAYER_KEY, version: CAPTION_PLATE_VERSION } } });
+    return r ? estadoDe(r) : null;
   }
 
   /**
@@ -94,7 +111,8 @@ export class PlacasService {
     return this.jobs.detach(null, `medida da headline do campeão ${championId}`, async () => {
       const c = await this.prisma.champion.findUnique({ where: { id: championId }, select: { workspaceId: true, teardown: { select: { editMap: true } } } });
       if (!c || this.implPara(c.workspaceId) === 'off') return;
-      await this.medirSeFalta({ workspaceId: c.workspaceId, championId, editMap: editMapOf(c.teardown?.editMap) });
+      const em = await this.medirSeFalta({ workspaceId: c.workspaceId, championId, editMap: editMapOf(c.teardown?.editMap) });
+      await this.detectarLegendaSeFalta({ workspaceId: c.workspaceId, championId, editMap: em });
     });
   }
 
@@ -143,19 +161,75 @@ export class PlacasService {
   }
 
   /**
+   * F2 (§15.6.1, §15.6.5): detecta a legenda queimada na leitura e grava `editMap.captionTrack` (null = sem legenda). Só quando a
+   * troca está ligada, a porta tem `detectarLegenda` e o mapa ainda não tem o campo. Sem camada `caption` grava null sem chamar a
+   * função (custo zero). Falha da porta = não grava (o formato segue fora como no F1b; detecta de novo no próximo lote).
+   */
+  async detectarLegendaSeFalta(i: { workspaceId: string; championId: string; batchId?: string | null; jobId?: string | null; editMap: EditMap | null }): Promise<EditMapLegenda | null> {
+    const m = i.editMap as EditMapLegenda | null;
+    if (!captionSwapLigado()) return m;
+    if (!m || this.implPara(i.workspaceId) === 'off' || !this.troca?.detectarLegenda) return m;
+    if (m.captionTrack !== undefined) return m;
+    const voo = this.legendaEmVoo.get(i.championId);
+    if (voo) { await voo.catch(() => undefined); const td = await this.prisma.teardown.findUnique({ where: { championId: i.championId }, select: { editMap: true } }); const r = editMapOf(td?.editMap) as EditMapLegenda | null; return r && r.captionTrack !== undefined ? { ...m, captionTrack: r.captionTrack } : m; }
+    const p = this.detectarLegenda(i, m);
+    this.legendaEmVoo.set(i.championId, p);
+    try { return await p; } finally { if (this.legendaEmVoo.get(i.championId) === p) this.legendaEmVoo.delete(i.championId); }
+  }
+
+  private async detectarLegenda(i: { workspaceId: string; championId: string; batchId?: string | null; jobId?: string | null }, m: EditMapLegenda): Promise<EditMapLegenda | null> {
+    let track: CaptionTrack | null = null;
+    if (temCamadaLegenda(m)) {
+      const c = await this.prisma.champion.findUnique({ where: { id: i.championId }, select: { videoFile: true, durationSec: true, teardown: { select: { transcript: true, measurements: true } } } });
+      if (!c?.videoFile) return m;
+      const dur = Number((c.teardown?.measurements as { durationSec?: number } | null)?.durationSec ?? c.durationSec ?? 0);
+      try {
+        const r = await this.troca!.detectarLegenda!({
+          workspaceId: i.workspaceId, championId: i.championId, videoUrl: await this.storage.signedUrl(c.videoFile), editMap: m,
+          words: transcriptOf(c.teardown?.transcript as never)?.words ?? [], durationSec: dur, captionBox: captionBoxOf(m), legendaMaxSec: legendaMaxSecDoEnv(process.env.LEGENDA_MAX_SEC),
+        });
+        track = r.captionTrack;
+        await this.custo({ workspaceId: i.workspaceId, championId: i.championId, batchId: i.batchId ?? null, jobId: i.jobId ?? null, op: 'detectar_legenda', costUsd: r.costUsd });
+        this.log.log(`campeão ${i.championId}: legenda detectada em ${r.ms} ms (${track ? (track.veredito.swap ? 'swap ok' : track.veredito.reason) : 'sem legenda'})`);
+      } catch (e) {
+        this.log.warn(`campeão ${i.championId}: detecção da legenda falhou (${(e as Error).message}); formatos com legenda seguem fora`);
+        return m;
+      }
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const td = await tx.teardown.findUnique({ where: { championId: i.championId }, select: { editMap: true } });
+      const atual = editMapOf(td?.editMap);
+      if (!atual) return;
+      await tx.teardown.update({ where: { championId: i.championId }, data: { editMap: { ...atual, captionTrack: track } as unknown as Prisma.InputJsonValue } });
+    });
+    return { ...m, captionTrack: track };
+  }
+
+  /** F2: garante a placa CAPTION (só com `veredito.swap`) e espera até `esperaSec`, como a da headline. */
+  async garantirPlacaLegenda(i: { workspaceId: string; championId: string; createdById: string; batchId?: string | null; track: CaptionTrack; esperaSec?: number }): Promise<CaptionPlateState | null> {
+    if (this.implPara(i.workspaceId) === 'off' || !this.troca?.placaLegenda || !i.track.veredito.swap) return null;
+    const id = await this.enfileirar(i, { kind: 'CAPTION', layerKey: CAPTION_LAYER_KEY, version: CAPTION_PLATE_VERSION }, (jobId, plateId) => this.rodarLegenda(jobId, plateId, i.track));
+    return this.esperarPlaca(id, i.championId, i.esperaSec);
+  }
+
+  /**
    * Garante a placa da headline solta e espera até `esperaSec` (§16.5). READY/REJECTED/FAILED já gravados = sem job (não
    * reprocessa). QUEUED/RUNNING de outro lote = só espera. Devolve o estado ao fim da espera (QUEUED/RUNNING = não ficou pronta).
    */
   async garantirPlaca(i: { workspaceId: string; championId: string; createdById: string; batchId?: string | null; look: HeadlineLook; esperaSec?: number }): Promise<HeadlinePlateState | null> {
     if (this.implPara(i.workspaceId) === 'off' || i.look.kind !== 'loose') return null;
-    const id = await this.enfileirar(i);
-    const fim = Date.now() + (i.esperaSec ?? (Number(process.env.PLATE_WAIT_SEC) || ESPERA_PADRAO_SEC)) * 1000;
+    const id = await this.enfileirar(i, { kind: 'HEADLINE', layerKey: i.look.layerId, version: HEADLINE_PLATE_VERSION }, (jobId, plateId) => this.rodar(jobId, plateId, i.look));
+    return this.esperarPlaca(id, i.championId, i.esperaSec);
+  }
+
+  private async esperarPlaca(id: string, championId: string, esperaSec?: number): Promise<HeadlinePlateState | null> {
+    const fim = Date.now() + (esperaSec ?? (Number(process.env.PLATE_WAIT_SEC) || ESPERA_PADRAO_SEC)) * 1000;
     for (;;) {
       const r = await this.prisma.championPlate.findUnique({ where: { id } });
       if (!r) return null;
       if (r.status !== 'QUEUED' && r.status !== 'RUNNING') return estadoDe(r);
       if (Date.now() >= fim) {
-        this.log.warn(`placa ${id} (campeão ${i.championId}) não ficou pronta na espera; headline_pending neste lote`);
+        this.log.warn(`placa ${id} (campeão ${championId}) não ficou pronta na espera; fica pendente neste lote`);
         return estadoDe(r);
       }
       await new Promise((ok) => setTimeout(ok, this.pollMs));
@@ -163,8 +237,8 @@ export class PlacasService {
   }
 
   /** Cria (ou retoma, se a trava venceu) a linha e solta o job. Devolve o id da linha. */
-  private async enfileirar(i: { workspaceId: string; championId: string; createdById: string; batchId?: string | null; look: HeadlineLook }): Promise<string> {
-    const key = { championId: i.championId, kind: 'HEADLINE' as const, layerKey: i.look.layerId, version: HEADLINE_PLATE_VERSION };
+  private async enfileirar(i: { workspaceId: string; championId: string; createdById: string; batchId?: string | null }, alvo: AlvoPlaca, exec: (jobId: string, plateId: string) => Promise<void>): Promise<string> {
+    const key = { championId: i.championId, ...alvo };
     let row = await this.prisma.championPlate.findUnique({ where: { championId_kind_layerKey_version: key } });
     let dono = false;
     if (!row) {
@@ -183,25 +257,34 @@ export class PlacasService {
     if (dono) {
       const job = await this.jobs.create({
         workspaceId: i.workspaceId, type: 'CHAMPION_PLATE', createdById: i.createdById,
-        input: { plateId: row.id, championId: i.championId, layerKey: key.layerKey, version: key.version, batchId: i.batchId ?? null },
+        input: { plateId: row.id, championId: i.championId, kind: key.kind, layerKey: key.layerKey, version: key.version, batchId: i.batchId ?? null },
       });
       const plateId = row.id;
-      void this.jobs.detach(job.id, `placa ${plateId}`, () => this.rodar(job.id, plateId, i.look));
+      void this.jobs.detach(job.id, `placa ${plateId}`, () => exec(job.id, plateId));
     }
     return row.id;
   }
 
-  /** O job: RUNNING → porta → READY (arquivo + custo) | REJECTED | FAILED. Nunca deixa a linha presa em RUNNING. */
-  private async rodar(jobId: string, plateId: string, look: HeadlineLook): Promise<void> {
+  /** O job da headline: RUNNING → porta → READY (arquivo + custo) | REJECTED | FAILED. Nunca deixa a linha presa em RUNNING. */
+  private rodar(jobId: string, plateId: string, look: HeadlineLook): Promise<void> {
+    return this.rodarPlaca(jobId, plateId, 'placa_headline', (row, videoUrl, outputKey) => this.troca!.placaHeadline({ workspaceId: row.workspaceId, championId: row.championId, videoUrl, look, version: row.version, outputKey }));
+  }
+
+  /** F2: o mesmo job para a placa da legenda (`placaLegenda`; `reason` vira `CaptionSwapReason`). */
+  private rodarLegenda(jobId: string, plateId: string, captionTrack: CaptionTrack): Promise<void> {
+    return this.rodarPlaca(jobId, plateId, 'placa_legenda', (row, videoUrl, outputKey) => this.troca!.placaLegenda!({ workspaceId: row.workspaceId, championId: row.championId, videoUrl, captionTrack, version: row.version, outputKey }));
+  }
+
+  private async rodarPlaca(jobId: string, plateId: string, op: string, chamar: (row: ChampionPlate, videoUrl: string, outputKey: string) => Promise<PlacaHeadlineResult>): Promise<void> {
     const row = await this.prisma.championPlate.update({ where: { id: plateId }, data: { status: 'RUNNING' } });
     await this.jobs.stage(jobId, 'erasing', 10);
     try {
       const ch = await this.prisma.champion.findUniqueOrThrow({ where: { id: row.championId }, select: { videoFile: true } });
       if (!ch.videoFile) throw new Error('campeão sem vídeo');
       const outputKey = this.storage.newKey(row.workspaceId, 'CHAMPION_PLATE', 'video/mp4');
-      const r = await this.troca!.placaHeadline({ workspaceId: row.workspaceId, championId: row.championId, videoUrl: await this.storage.signedUrl(ch.videoFile), look, version: row.version, outputKey });
+      const r = await chamar(row, await this.storage.signedUrl(ch.videoFile), outputKey);
       await this.jobs.stage(jobId, 'checking', 90);
-      await this.custo({ workspaceId: row.workspaceId, championId: row.championId, batchId: null, jobId, op: 'placa_headline', costUsd: r.costUsd });
+      await this.custo({ workspaceId: row.workspaceId, championId: row.championId, batchId: null, jobId, op, costUsd: r.costUsd });
       const metrics = { ...r.metrics, ms: r.ms } as Prisma.InputJsonValue;
       if (r.status === 'READY') {
         const file = await this.storage.registerObject(outputKey, { workspaceId: row.workspaceId, kind: 'CHAMPION_PLATE', mimeType: 'video/mp4', sizeBytes: r.sizeBytes ?? 0 });

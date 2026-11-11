@@ -370,8 +370,9 @@ export function captionOverrideOf(payload: unknown): boolean {
 }
 
 /** §2.2 `IteratePiece.captionNote`: o render vigente saiu no modo `replace` (recorte + a nossa legenda no estilo da original). */
-export function captionNoteOf(renderInput: unknown): 'replaced' | null {
-  return (renderInput as { captionMode?: string } | null)?.captionMode === 'replace' ? 'replaced' : null;
+export function captionNoteOf(renderInput: unknown): 'replaced' | 'swapped' | null {
+  const mode = (renderInput as { captionMode?: string } | null)?.captionMode;
+  return mode === 'replace' ? 'replaced' : mode === 'swap' ? 'swapped' : null;
 }
 
 /** §4.2: o 9:16 vigente falhou com a legenda tampada já num Retry (tentativa ≥ 2 deste formato) → a peça sugere Leave out.

@@ -1,0 +1,89 @@
+{
+ "54": {
+  "detectar": {
+   "s": 70.378,
+   "custoUsd": 0.0033011732686000004
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "no_person",
+   "gates": {
+    "duracao_s": 33.93333333333333,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.9513,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0,
+    "iou_mediana": 0.4973,
+    "herdados": 0.125,
+    "estilo_var": 0.027,
+    "fundo_lap": 34.98,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.743801652892562
+   }
+  },
+  "estilo": {
+   "fontId": "archivo-w125-900",
+   "tamPx": 35,
+   "tracking": 0,
+   "espaco": 0.5,
+   "strokePx": 4,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 1,
+   "linhas": 1,
+   "baseY": 986,
+   "centroX": 362
+  },
+  "trechos": 48,
+  "atrasoSec": -0.017,
+  "caixa": false,
+  "faixa": [
+   926,
+   1009
+  ],
+  "quadros": 1018,
+  "placa": {
+   "status": "READY",
+   "reason": null,
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1018,
+    "pedaco_max_s": 45.859,
+    "pico_MB": 535,
+    "quadros_placa": 1018,
+    "conferir_s": 15.855,
+    "janelas": 58,
+    "janelas_ruins_pct": 0.10344827586206896,
+    "ruim_gancho_s": 0,
+    "ruim_pct": 0.10344827586206896,
+    "lisura_min": 0.46821277737617495,
+    "trem_max": 11.159568899841636,
+    "degrau_max": 4.805644734700521,
+    "letra_p95_pct": 0,
+    "fora_buraco_media": 1.2163766435042085,
+    "salto_emenda_db_min": 30.31538219130305,
+    "cor_deslocamento": 1.2163766435042085
+   },
+   "sizeBytes": 25887674,
+   "costUsd": 0.009289116491262501,
+   "ms": 63946,
+   "pioresQuadros": [
+    232,
+    438,
+    677,
+    808,
+    823,
+    988
+   ],
+   "s": 66.743
+  }
+ }
+}

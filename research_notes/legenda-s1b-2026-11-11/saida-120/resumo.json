@@ -1,0 +1,57 @@
+{
+ "120": {
+  "detectar": {
+   "s": 133.786,
+   "custoUsd": 0.00622580307618125
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "not_detected",
+   "gates": {
+    "duracao_s": 128.13333333333333,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.7403,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0.0248,
+    "iou_mediana": 0.5153,
+    "herdados": 0.5419,
+    "estilo_var": 0,
+    "fundo_lap": 35.41,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.9318435754189944
+   }
+  },
+  "estilo": {
+   "fontId": "gabarito-900",
+   "tamPx": 67,
+   "tracking": 0.02,
+   "espaco": 1,
+   "strokePx": 3,
+   "sombra": [
+    0,
+    1
+   ],
+   "corTexto": "#d1d0d0",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": {
+    "cor": "#2563eb",
+    "raioPx": 4
+   },
+   "palavrasPorPagina": 2,
+   "linhas": 1,
+   "baseY": 1040,
+   "centroX": 379
+  },
+  "trechos": 203,
+  "atrasoSec": 0.233,
+  "caixa": true,
+  "faixa": [
+   900,
+   1040
+  ],
+  "quadros": 3844
+ }
+}

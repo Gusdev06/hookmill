@@ -199,8 +199,28 @@ export const faixasProtegidasNaSaidaLista = (p: ListaChecavel & { format: keyof 
   return out;
 };
 
+/** Troca de legenda (troca-texto §15.6, F2): o que `decidirLegenda` precisa saber do `captionTrack` e da placa. Sem pixel, sem Node. */
+export interface SwapLegendaInfo {
+  /** `captionTrack.veredito.swap` (portões antes da placa) */
+  swap: boolean;
+  /** `champion_plates` CAPTION READY (portões depois da placa); false = ainda sem placa ou reprovada: não oferece */
+  plateReady: boolean;
+  /** URL da placa (`champion_plates` CAPTION READY): vira o vídeo da peça. Ausente = só decide (o plano), sem trocar a fonte */
+  plateUrl?: string | null;
+  /** a legenda nova no estilo MEDIDO da original (`legendaDoCaptionTrack`): palavras e páginas da original, sem pontuação, caixa do destaque. Ausente = a `legenda` padrão do builder */
+  legenda?: MolduraProps['captions'] | null;
+  /** religa a regra antiga: a faixa antiga tem de ficar escondida por opaco (`checarResiduo`). Padrão false (S3, 12/11) */
+  exigirResiduo?: boolean;
+  /** retângulos opacos que, na saída, escondem o que está embaixo (a moldura os informa; vazio = só vale 'fora do quadro') */
+  opacos?: ElementoOpaco[];
+}
+export interface ElementoOpaco extends Rect { startSec?: number; endSec?: number }
+
 export type DecisaoLegenda =
   | { mode: 'avoid'; input: MolduraProps; check: ChecagemLegenda }
+  /** `swap`: a placa vira a base e a legenda nova (mesmas palavras) entra no lugar da antiga. `raised`: algo cobre esse lugar, a legenda
+   *  sobe, e a faixa antiga (já apagada, mas com o retoque à vista) está escondida por elemento opaco ou fora do quadro (`checarResiduo`) */
+  | { mode: 'swap'; input: MolduraProps; check: ChecagemLegenda; raised: boolean; /** como a faixa antiga ficou escondida: enquadramento do builder, só pelo rosto, ou recorte sem a faixa */ via?: 'builder' | 'rosto' | 'recorte' }
   | { mode: 'replace'; input: MolduraProps; check: ChecagemLegenda; contentBox: Rect }
   | { mode: 'blocked'; reason: 'face_cut' | 'no_room'; check: ChecagemLegenda };
 
@@ -236,10 +256,83 @@ export const recorteSemLegenda = (p: Pick<MolduraProps, 'video'>, m: EditMapLike
 };
 
 /**
+ * Retângulos OPACOS que cada moldura desenha por cima do vídeo (px da saída), na geometria do próprio layout (F2, 12/11). Só entra o que o JSX da
+ * moldura pinta com cor sólida (`backgroundColor` sem alfa) e o que o layout mede: translúcido (`rgba`, véus, barra de comentários do live) NÃO conta, e o
+ * que eu não conferi no código fica de fora (o resíduo então não passa: bloqueia, nunca inventa opacidade). Cantos arredondados: o retângulo encolhe
+ * 0,29 × raio, que tira os cantos descobertos. Moldura cujo vídeo fica DENTRO de um quadro (gossip, post, read_caption) e o live não pintam nada opaco sobre ele.
+ */
+export const opacosDoLayout = (L: FrameLayout): ElementoOpaco[] => {
+  const n = L.n as Record<string, number>;
+  const enc = (r: Rect, raio: number): Rect => {
+    const d = Math.round(0.29 * raio);
+    return { x: r.x + d, y: r.y + d, w: Math.max(0, r.w - 2 * d), h: Math.max(0, r.h - 2 * d) };
+  };
+  const W = L.canvas.w;
+  switch (L.id) {
+    case 'question_box': // cartão: cabeçalho em degradê + corpo branco, por cima do vídeo cheio
+      return [enc({ x: n.cardX, y: n.cardY, w: n.cardW, h: n.cardH }, n.radius)];
+    case 'ranking': { // cartão branco; linhas da lista só quando `opaco` (senão rgba 0,62)
+      const out = [enc(L.slots.card, n.cardRadius)];
+      if (n.opaco === 1) for (let i = 0; i < (L.items?.length ?? 0); i++) out.push(enc({ x: 12, y: n.listY + i * (n.itemH + n.itemGap), w: W - 24, h: n.itemH }, 28));
+      return out;
+    }
+    case 'split_stack': // faixa vermelha #E5231B na emenda
+      return [L.slots.band];
+    case 'split_torn': // papel rasgado: encolhe o rasgo (±7 px) e a rotação de 1,6°
+      return [{ x: L.slots.strip.x + 12, y: L.slots.strip.y + 26, w: L.slots.strip.w - 24, h: L.slots.strip.h - 52 }];
+    case 'story': { // cartão de cima + bloco verde + cartão branco do texto (embaixo do grupo); o apoio é só texto
+      const col = L.slots.column, g = L.slots.grupo;
+      const verdeH = L.text.headline.height + 2 * n.greenPadY + 6, copiaH = L.text.copy.height + 2 * n.copyPadY;
+      const verdeW = Math.min(col.w, 820 + 2 * n.greenPadX), copiaW = Math.min(col.w, 876 + 2 * n.copyPadX);
+      return [
+        enc(L.slots.cartao, 36),
+        enc({ x: (W - verdeW) / 2, y: g.y, w: verdeW, h: verdeH }, 26),
+        enc({ x: (W - copiaW) / 2, y: g.y + g.h - copiaH, w: copiaW, h: copiaH }, 30),
+      ];
+    }
+    default:
+      return [];
+  }
+};
+
+/** AutoEdit: o que cobre o vídeo e é opaco. NATIVE_SEARCH: a tela branca da busca, por `introSec` segundos (a faixa dos tempos depois dela segue à vista). */
+export const opacosDoAutoEdit = (p: AutoEditProps): ElementoOpaco[] => {
+  const { width: W, height: H } = FORMATOS[p.format];
+  if (p.params.type === 'NATIVE_SEARCH') return [{ x: 0, y: 0, w: W, h: H, startSec: 0, endSec: p.params.introSec }];
+  return [];
+};
+
+/**
+ * §15.6.5 `checarResiduo`: a faixa ANTIGA da legenda (apagada na placa, mas com o retoque ainda à vista) só pode ficar sem texto novo em cima se, em
+ * toda a área visível dela, algum elemento opaco a esconde ou ela está fora do quadro. Amostra a faixa em grade de 4 px (a área à vista é a da
+ * faixa ∩ saída ∩ vídeo visível); tolera 1 % da área sem cobertura. O apagado à vista sem texto foi reprovado na S2 (W2): na dúvida, não oferece.
+ */
+export const checarResiduo = (p: MolduraProps, opacos: ElementoOpaco[], L: FrameLayout = layoutDaPeca(p)): { ok: boolean; hits: { atSec: number; descobertoPx: number }[] } => {
+  const { width: W, height: H } = FORMATOS[p.format];
+  const vis = visivel(p, L.videoBox);
+  const hits: { atSec: number; descobertoPx: number }[] = [];
+  for (const b of p.video.protectedBands ?? []) {
+    const at = naPeca(b, p.video.timeline);
+    if (at === null) continue;
+    const r = faixaNaSaida(b, p, L.videoBox);
+    const x0 = Math.max(r.x, 0, vis.x), y0 = Math.max(r.y, 0, vis.y), x1 = Math.min(r.x + r.w, W, vis.x + vis.w), y1 = Math.min(r.y + r.h, H, vis.y + vis.h);
+    if (x1 - x0 < 1 || y1 - y0 < 1) continue;   // fora do quadro ou fora do vídeo visível: nada à vista
+    const ativos = opacos.filter((o) => (o.startSec === undefined || at >= o.startSec) && (o.endSec === undefined || at < o.endSec));
+    let total = 0, livre = 0;
+    for (let y = y0; y < y1; y += 4) for (let x = x0; x < x1; x += 4) {
+      total++;
+      if (!ativos.some((o) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h)) livre++;
+    }
+    if (total && livre / total > 0.01) hits.push({ atSec: at, descobertoPx: Math.round((livre / total) * (x1 - x0) * (y1 - y0)) });
+  }
+  return { ok: hits.length === 0, hits };
+};
+
+/**
  * §3: desviar → recortar e legendar → não oferecer. `p` = o input montado (com protectedBands); `m` = o editMap (rosto);
  * `legenda` = a nossa legenda no estilo da original (palavras do campeão), usada no passo 2.
  */
-export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: MolduraProps['captions'] | null, forcar?: 'replace'): DecisaoLegenda => {
+export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: MolduraProps['captions'] | null, forcar?: 'replace', swap?: SwapLegendaInfo): DecisaoLegenda => {
   if (!p.video.protectedBands?.length) return { mode: 'avoid', input: p, check: { ok: true, hits: [] } };
   const base = { ...p, captionMode: 'avoid' as const, captions: undefined };
   // Revisão 29/10: o vídeo PREENCHE a caixa (cover). Os candidatos vêm em ordem: cover com o foco deslizando no eixo
@@ -259,6 +352,50 @@ export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: 
       passa ??= { input: c, check };
     }
     if (passa) return { mode: 'avoid', ...passa };
+    // F2 (§15.4, §15.6.5): avoid → swap → não oferecido. Com `swap`, o `replace` (recorte + legenda nossa) não entra.
+    // REGRA DE RESÍDUO (decisão de 12/11, por delegação do Gusta): com a placa READY nos limites apertados, o apagado à vista SEM nada por cima foi aprovado na
+    // S3 (versões `-sem`); logo a faixa antiga NÃO precisa estar coberta. A legenda nova vai para onde o layout tem espaço, sem cobrir o rosto nem elemento da
+    // moldura. `checarResiduo` (faixa escondida por opaco) só vale quando a placa NÃO está pronta, que é sempre bloqueio; fica exportado e `exigirResiduo` o religa.
+    if (swap) {
+      if (!swap.swap || !swap.plateReady) return { mode: 'blocked', reason: 'no_room', check: ca };
+      // entrada da troca: a PLACA como vídeo (legenda antiga já apagada), sem faixa protegida (nada a desviar), com a NOSSA legenda (as palavras e páginas da original)
+      const { protectedBands: _pb, ...videoSemFaixa } = p.video;
+      const src = p.video.source;
+      const nossa = swap.legenda ?? legenda;
+      const monta = (reframe: MolduraProps['video']['reframe'], contentBox?: Rect): MolduraProps => ({
+        ...p, captionMode: 'avoid',
+        video: { ...videoSemFaixa, reframe, ...(contentBox && { contentBox }), source: { ...src, videoUrl: swap.plateUrl ?? src.videoUrl } },
+        ...(nossa?.words.length ? { captions: nossa } : {}),
+      });
+      // candidatos de enquadramento, do que menos mexe ao que mais mexe: (1) o do builder, (2) só pelo rosto, (3) recorte sem a faixa, só se o zoom extra for ≤ 25 %
+      // (numa moldura de tela cheia, recortar 60 % da altura vira zoom de 70 % e corta o rosto)
+      const vb0 = layoutDaPeca(p).videoBox;
+      const cbRec0 = recorteSemLegenda(p, m);
+      const C0 = p.video.contentBox ?? { x: 0, y: 0, w: src.width, h: src.height };
+      const zoom = (c: Rect) => Math.max(vb0.w / c.w, vb0.h / c.h);
+      const cbRec = cbRec0 && zoom(cbRec0) / zoom(C0) <= 1.25 ? cbRec0 : null;
+      const cands: Array<{ via: 'builder' | 'rosto' | 'recorte'; e: MolduraProps }> = [
+        { via: 'builder', e: monta(p.video.reframe) },
+        { via: 'rosto', e: monta(reframeNaCaixa(vb0, src, m, 1080, p.video.contentBox ?? null, null) as MolduraProps['video']['reframe']) },
+        ...(cbRec ? [{ via: 'recorte' as const, e: monta(reframeNaCaixa(vb0, src, m, 1080, cbRec, null) as MolduraProps['video']['reframe'], cbRec) }] : []),
+      ];
+      let entrada: MolduraProps | null = null; let via: 'builder' | 'rosto' | 'recorte' = 'builder';
+      for (const c of cands) {
+        const Le = layoutDaPeca(c.e);
+        if (nossa?.words.length) {
+          // a legenda nova TEM de ter onde entrar, longe do rosto do vídeo (faceSafeBand mapeada à saída) e de todo bloco da moldura
+          const rosto = c.e.video.faceSafeBand ? [faixaNaSaida(c.e.video.faceSafeBand, c.e, Le.videoBox)] : [];
+          if (!caixaLegendaMoldura(c.e, Le, rosto)) continue;
+        }
+        if (swap.exigirResiduo) {
+          const comFaixa: MolduraProps = { ...c.e, video: { ...c.e.video, protectedBands: p.video.protectedBands } };
+          if (!checarResiduo(comFaixa, swap.opacos ?? opacosDoLayout(Le), Le).ok) continue;
+        }
+        entrada = c.e; via = c.via; break;
+      }
+      if (!entrada) return { mode: 'blocked', reason: 'no_room', check: ca };
+      return { mode: 'swap', input: entrada, check: { ok: true, hits: [] }, raised: !ca.ok, via };
+    }
     return { mode: 'blocked', reason: 'no_room', check: ca };
   }
   const cb = recorteSemLegenda(p, m);
@@ -355,10 +492,27 @@ export const checarLegendaAutoEdit = (p: AutoEditProps): ChecagemLegenda => {
 
 export type DecisaoLegendaAutoEdit =
   | { mode: 'avoid' | 'replace'; input: AutoEditProps; check: ChecagemLegenda }
+  | { mode: 'swap'; input: AutoEditProps; check: ChecagemLegenda; raised: boolean }
   | { mode: 'blocked'; reason: 'face_cut' | 'no_room'; check: ChecagemLegenda };
 
-/** §3 no AutoEdit: desviar (o reenquadramento já leva a faixa) → recortar e legendar no estilo da original → bloquear. */
-export const decidirLegendaAutoEdit = (p: AutoEditProps, m: EditMapLike | null, legenda: AutoEditProps['captions'] | null, forcar?: 'replace'): DecisaoLegendaAutoEdit => {
+/** `checarResiduo` do AutoEdit: as faixas antigas NA SAÍDA (já cortadas pelo quadro) só podem ficar sem texto novo se algum elemento opaco as cobre. */
+export const checarResiduoAutoEdit = (p: AutoEditProps, opacos: ElementoOpaco[]): { ok: boolean; hits: { atSec: number; descobertoPx: number }[] } => {
+  const hits: { atSec: number; descobertoPx: number }[] = [];
+  for (const f of faixasProtegidasNaSaidaAutoEdit({ ...p, captionMode: 'avoid' } as AutoEditProps).filter((x) => x.kind === 'original')) {
+    // o opaco só esconde a faixa se estiver lá durante o intervalo INTEIRO dela (a busca do NATIVE_SEARCH dura `introSec`; a faixa dura o vídeo)
+    const ativos = opacos.filter((o) => (o.startSec === undefined || o.startSec <= f.startSec + 1e-6) && (o.endSec === undefined || o.endSec >= f.endSec - 1e-6));
+    let total = 0, livre = 0;
+    for (let y = f.y; y < f.y + f.h; y += 4) for (let x = f.x; x < f.x + f.w; x += 4) {
+      total++;
+      if (!ativos.some((o) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h)) livre++;
+    }
+    if (total && livre / total > 0.01) hits.push({ atSec: f.startSec, descobertoPx: Math.round((livre / total) * f.w * f.h) });
+  }
+  return { ok: hits.length === 0, hits };
+};
+
+/** §3 no AutoEdit: desviar (o reenquadramento já leva a faixa) → [F2: trocar a legenda sobre a placa] → recortar e legendar no estilo da original → bloquear. */
+export const decidirLegendaAutoEdit = (p: AutoEditProps, m: EditMapLike | null, legenda: AutoEditProps['captions'] | null, forcar?: 'replace', swap?: SwapLegendaInfo): DecisaoLegendaAutoEdit => {
   if (!p.protectedBands?.length) return { mode: 'avoid', input: p, check: { ok: true, hits: [] } };
   // revisão 29/10: mesmos candidatos da moldura (cover com o foco deslizando primeiro; afastar só o necessário)
   const candidatos = enquadramentosPreservandoLegenda({ source: p.source, contentBox: p.contentBox, protectedBands: p.protectedBands, reframe: p.reframe, timeline: p.timeline } as MolduraProps['video'], areaVideoAutoEdit(p))
@@ -369,6 +523,15 @@ export const decidirLegendaAutoEdit = (p: AutoEditProps, m: EditMapLike | null, 
     for (const c of candidatos.length ? candidatos : [a]) {
       const check = c === a ? ca : checarLegendaAutoEdit(c);
       if (check.ok) return { mode: 'avoid', input: c, check };
+    }
+    if (swap) {
+      if (!swap.swap || !swap.plateReady) return { mode: 'blocked', reason: 'no_room', check: ca };
+      const { protectedBands: _pb, ...resto } = p;
+      // mesma regra do moldura (12/11): com a placa READY a faixa antiga não precisa estar coberta; `exigirResiduo` religa a regra antiga
+      const nossa = swap.legenda ?? legenda;
+      const entrada = { ...resto, captionMode: 'avoid', source: { ...p.source, videoUrl: swap.plateUrl ?? p.source.videoUrl }, ...(nossa?.words.length ? { captions: nossa as AutoEditProps['captions'] } : {}) } as AutoEditProps;
+      if (swap.exigirResiduo && !checarResiduoAutoEdit(p, swap.opacos ?? opacosDoAutoEdit(p)).ok) return { mode: 'blocked', reason: 'no_room', check: ca };
+      return { mode: 'swap', input: entrada, check: { ok: true, hits: [] }, raised: !ca.ok };
     }
     return { mode: 'blocked', reason: 'no_room', check: ca };
   }

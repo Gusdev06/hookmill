@@ -1,5 +1,5 @@
 // legenda-protegida-v1 (26/10): faixa protegida, checagem geométrica e decisão desviar → recortar → bloquear.
-import { checarLegendaProtegida, decidirLegenda, enquadramentosPreservandoLegenda, faixasProtegidasDe, layoutDaPeca, pinturaNaCaixa, recorteSemLegenda, reframeNaCaixa, unionBand, type EditMapLike, type MolduraProps } from '../src/lib';
+import { checarLegendaProtegida, checarResiduo, decidirLegenda, enquadramentosPreservandoLegenda, faixasProtegidasDe, layoutDaPeca, pinturaNaCaixa, recorteSemLegenda, reframeNaCaixa, unionBand, type EditMapLike, type MolduraProps } from '../src/lib';
 
 const src = { width: 1080, height: 1920 };
 const mapa = (caption: { x: number; y: number; w: number; h: number }, rostoY = 0.1): EditMapLike & { fps: number } => ({
@@ -122,5 +122,43 @@ describe('pontas de 26/10', () => {
     expect(decidirLegenda(input(m, 'question_box', { question: 'Por que eu travo?' }), m, null, 'replace').mode).toBe('replace');
     const m2 = mapa({ x: 0, y: 500, w: 1080, h: 140 }, 0.1);
     expect(decidirLegenda(input(m2, 'live', {}), m2, null, 'replace').mode).toBe('blocked');
+  });
+});
+
+describe('troca de legenda (F2): avoid → swap → bloqueado; checarResiduo', () => {
+  const m = mapa({ x: 150, y: 1000, w: 780, h: 140 });
+  const livre = input(m, 'meme', { pov: 'Uma pergunta', cta: 'Saiba mais' });
+  it('sem swap, nada muda (a decisão é a de antes)', () => {
+    const a = decidirLegenda(livre, m, null);
+    expect(['avoid', 'blocked']).toContain(a.mode);
+  });
+  it('o avoid passa: segue avoid mesmo com a placa pronta (preferido)', () => {
+    const a = decidirLegenda(livre, m, null, undefined, { swap: true, plateReady: true });
+    expect(a.mode).toBe(decidirLegenda(livre, m, null).mode);
+  });
+  it('sem avoid possível: placa READY troca (regra nova, 12/11); sem placa ou sem swap não oferece; `exigirResiduo` religa a regra antiga; nunca cai em replace', () => {
+    const mg = mapa({ x: 0, y: 100, w: 1080, h: 1700 });
+    const coberta = input(mg, 'live', {});
+    const sem = decidirLegenda(coberta, mg, null);
+    expect(sem.mode).toBe('blocked');   // a fixture TEM de bloquear o avoid, senão o resto não prova nada
+    const com = decidirLegenda(coberta, mg, null, undefined, { swap: true, plateReady: true, plateUrl: 'placa.mp4' });
+    expect(com.mode).toBe('swap');
+    if (com.mode === 'swap') { expect(com.input.video.source.videoUrl).toBe('placa.mp4'); expect(com.input.video.protectedBands).toBeUndefined(); }
+    expect(decidirLegenda(coberta, mg, null, undefined, { swap: true, plateReady: false }).mode).toBe('blocked');
+    expect(decidirLegenda(coberta, mg, null, undefined, { swap: false, plateReady: true }).mode).toBe('blocked');
+    // regra antiga religada: a faixa antiga ficaria à vista sem nada que a esconda
+    expect(decidirLegenda(coberta, mg, null, undefined, { swap: true, plateReady: true, exigirResiduo: true, opacos: [] }).mode).toBe('blocked');
+    expect(decidirLegenda(coberta, mg, null, undefined, { swap: true, plateReady: true, exigirResiduo: true, opacos: [{ x: 0, y: 0, w: 1080, h: 1920 }] }).mode).toBe('swap');
+  });
+  it('checarResiduo: faixa escondida por elemento opaco ou fora do quadro passa; à vista não', () => {
+    const p = { ...livre, video: { ...livre.video, protectedBands: [{ x: 100, y: 1000, w: 800, h: 150, startSec: 0, endSec: 30 }] } } as MolduraProps;
+    const L = layoutDaPeca(p);
+    const r = checarResiduo(p, []);
+    expect(r.ok).toBe(false);
+    expect(r.hits[0].descobertoPx).toBeGreaterThan(0);
+    expect(checarResiduo(p, [{ x: 0, y: 0, w: 1080, h: 1920 }], L).ok).toBe(true);
+    expect(checarResiduo(p, [{ x: 0, y: 0, w: 1080, h: 1920, startSec: 40, endSec: 50 }], L).ok).toBe(false);   // opaco em outro tempo
+    const fora = { ...p, video: { ...p.video, protectedBands: [{ x: 100, y: 5000, w: 800, h: 150, startSec: 0, endSec: 30 }] } } as MolduraProps;
+    expect(checarResiduo(fora, []).ok).toBe(true);
   });
 });

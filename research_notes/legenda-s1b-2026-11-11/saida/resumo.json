@@ -1,0 +1,215 @@
+{
+ "13": {
+  "detectar": {
+   "s": 83.602,
+   "custoUsd": 0.003937388082693749
+  },
+  "veredito": {
+   "swap": true,
+   "reason": null,
+   "gates": {
+    "duracao_s": 21.066666666666666,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 1,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0.025,
+    "iou_mediana": 0.7752,
+    "herdados": 0.0625,
+    "estilo_var": 0.0179,
+    "fundo_lap": 37.12,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.9145569620253164
+   }
+  },
+  "estilo": {
+   "fontId": "poppins-900",
+   "tamPx": 56,
+   "tracking": -0.04,
+   "espaco": 1,
+   "strokePx": 3,
+   "sombra": [
+    0,
+    2
+   ],
+   "corTexto": "#fffefe",
+   "corDestaque": "#fcf000",
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 2,
+   "linhas": 1,
+   "baseY": 511,
+   "centroX": 359.5
+  },
+  "trechos": 32,
+  "atrasoSec": 0.123,
+  "caixa": false,
+  "faixa": [
+   247,
+   665
+  ],
+  "quadros": 632,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 632,
+    "pedaco_max_s": 49.428,
+    "pico_MB": 728,
+    "quadros_placa": 632,
+    "conferir_s": 9.145,
+    "janelas": 39,
+    "janelas_ruins_pct": 0.41025641025641024,
+    "ruim_gancho_s": 3,
+    "ruim_pct": 0.41025641025641024,
+    "lisura_min": 0.23264376180512564,
+    "trem_max": 3.236862223824472,
+    "degrau_max": 6.307523345947265,
+    "letra_p95_pct": 0.988,
+    "fora_buraco_media": 1.0989573831606212,
+    "salto_emenda_db_min": 21.243327713861003,
+    "cor_deslocamento": 0
+   },
+   "sizeBytes": null,
+   "costUsd": 0.008409920982875,
+   "ms": 62773,
+   "s": 65.862
+  }
+ },
+ "02": {
+  "detectar": {
+   "s": 101.859,
+   "custoUsd": 0.0049699703561875
+  },
+  "veredito": {
+   "swap": true,
+   "reason": null,
+   "gates": {
+    "duracao_s": 30,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.9013,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0,
+    "iou_mediana": 0.7508,
+    "herdados": 0.0312,
+    "estilo_var": 0.0208,
+    "fundo_lap": 38.89,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.9253333333333333
+   }
+  },
+  "estilo": {
+   "fontId": "gabarito-700",
+   "tamPx": 49,
+   "tracking": 0.02,
+   "espaco": 1.6,
+   "strokePx": 4,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#fafcfa",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": {
+    "cor": "#2563eb",
+    "raioPx": 4
+   },
+   "palavrasPorPagina": 2,
+   "linhas": 1,
+   "baseY": 987,
+   "centroX": 357.5
+  },
+  "trechos": 32,
+  "atrasoSec": 0.247,
+  "caixa": true,
+  "faixa": [
+   921,
+   1017
+  ],
+  "quadros": 900,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 900,
+    "pedaco_max_s": 43.813,
+    "pico_MB": 554,
+    "quadros_placa": 900,
+    "conferir_s": 10.968,
+    "janelas": 48,
+    "janelas_ruins_pct": 0.4375,
+    "ruim_gancho_s": 2.5,
+    "ruim_pct": 0.4375,
+    "lisura_min": 0.468395737806956,
+    "trem_max": 14.834475196543583,
+    "degrau_max": 5.871411387125651,
+    "letra_p95_pct": 0,
+    "fora_buraco_media": 1.0289359862691843,
+    "salto_emenda_db_min": 26.523402110020058,
+    "cor_deslocamento": 1.0289359862691843
+   },
+   "sizeBytes": null,
+   "costUsd": 0.0090286576370125,
+   "ms": 58867,
+   "s": 61.605
+  }
+ },
+ "05": {
+  "detectar": {
+   "s": 96.635,
+   "custoUsd": 0.00456924559640625
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "animated",
+   "gates": {
+    "duracao_s": 30,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.973,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0.1,
+    "iou_mediana": 0.809,
+    "herdados": 0.1915,
+    "estilo_var": 0.1029,
+    "fundo_lap": 67.11,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.8710045662100456
+   }
+  },
+  "estilo": {
+   "fontId": "poppins-900",
+   "tamPx": 68,
+   "tracking": -0.04,
+   "espaco": 1,
+   "strokePx": 4,
+   "sombra": [
+    5,
+    3
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": "#feef00",
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 3,
+   "linhas": 1,
+   "baseY": 801,
+   "centroX": 360
+  },
+  "trechos": 47,
+  "atrasoSec": 0.133,
+  "caixa": false,
+  "faixa": [
+   695,
+   922
+  ],
+  "quadros": 900
+ }
+}

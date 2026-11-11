@@ -20,6 +20,7 @@
     "dist",
     "src",
     "public/fonts",
+    "public/fonts-legenda",
     "public/thumbnails"
   ],
   "scripts": {

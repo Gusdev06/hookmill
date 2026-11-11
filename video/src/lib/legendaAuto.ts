@@ -8,7 +8,7 @@ import { FORMATOS, type VideoFormat } from './formatos';
 // preto, palavra da vez na cor da marca. Funções puras: a composição e os builders da API usam as mesmas.
 
 export { captionsAutoSchema, type CaptionsAuto } from './captionsSchema';
-export type PalavraPeca = { word: string; startSec: number; endSec: number };
+export type PalavraPeca = { word: string; startSec: number; endSec: number; pg?: number };
 
 /** zh e ja escrevem sem espaço: as palavras do Whisper se juntam sem espaço e a página conta caracteres (≤ 8). ko tem espaço. */
 export const semEspaco = (language: string) => /^(zh|ja)/i.test(language);
@@ -20,7 +20,7 @@ export const palavrasNaPeca = (words: PalavraPeca[], timeline: { startSec: numbe
   for (const t of timeline) {
     const a = Math.round(t.startSec * fps) / fps, b = Math.round(t.endSec * fps) / fps;
     for (const w of words) {
-      if (w.startSec >= a - 1e-6 && w.startSec < b) out.push({ word: w.word.trim(), startSec: at + (w.startSec - a), endSec: at + (Math.min(w.endSec, b) - a) });
+      if (w.startSec >= a - 1e-6 && w.startSec < b) out.push({ word: w.word.trim(), startSec: at + (w.startSec - a), endSec: at + (Math.min(w.endSec, b) - a), ...(w.pg !== undefined && { pg: w.pg }) });
     }
     at += b - a;
   }
@@ -30,6 +30,13 @@ export const palavrasNaPeca = (words: PalavraPeca[], timeline: { startSec: numbe
 export interface PaginaAuto { startSec: number; endSec: number; palavras: PalavraPeca[] }
 /** Páginas: latino/ko = 2-4 palavras (quebra em fim de frase e pausa); zh/ja = até 8 caracteres, sem espaço. */
 export const paginasLegendaAuto = (words: PalavraPeca[], language: string, ateSec: number, maxPalavras = 4): PaginaAuto[] => {
+  // F2: páginas da legenda ORIGINAL (todas as palavras trazem `pg`): agrupa por página, fim = início da próxima (A7), a última até `ateSec`
+  if (words.length && words.every((w) => w.pg !== undefined)) {
+    const por = new Map<number, PalavraPeca[]>();
+    for (const w of words) por.set(w.pg!, [...(por.get(w.pg!) ?? []), w]);
+    const ps = [...por.values()].sort((a, b) => a[0].startSec - b[0].startSec);
+    return ps.map((palavras, i) => ({ startSec: palavras[0].startSec, endSec: i + 1 < ps.length ? ps[i + 1][0].startSec : Math.max(ateSec, palavras[palavras.length - 1].endSec), palavras }));
+  }
   if (!semEspaco(language)) return paginar(words, { maxPalavras, maxChars: 24, ateSec });
   // CJK: cada "palavra" do Whisper pode ter 1+ caracteres; conta caracteres, sem o +1 do espaço
   const paginas: PaginaAuto[] = [];
@@ -104,11 +111,11 @@ export { temCJK };
 
 /** Caixa da legenda na Moldura (§2.2): dentro da videoBox (o vídeo com o áudio), no terço de baixo, fora de todo slot de
  *  texto da moldura, do rosto redondo e das faixas de texto queimado; acima da área segura. */
-export const caixaLegendaMoldura = (p: Pick<MolduraProps, 'format' | 'video' | 'safeArea' | 'captions'>, L: FrameLayout): CaixaLegenda | null => {
+export const caixaLegendaMoldura = (p: Pick<MolduraProps, 'format' | 'video' | 'safeArea' | 'captions'>, L: FrameLayout, extras: Rect[] = []): CaixaLegenda | null => {
   const H = FORMATOS[p.format].height;
   const faixas = faixasNaSaida(p.video.burnedTextBands, p.video.source, p.video.reframe, L.videoBox, p.video.contentBox ?? null)
     .map((f) => ({ x: L.videoBox.x, y: f.y0, w: L.videoBox.w, h: f.y1 - f.y0 }));
-  const obst = [...Object.values(L.slots), ...(L.faceBox ? [L.faceBox] : []), ...faixas];
+  const obst = [...Object.values(L.slots), ...(L.faceBox ? [L.faceBox] : []), ...faixas, ...extras];
   let tamanho = Math.max(LEGENDA_MIN_PX, Math.min(LEGENDA_PX[p.format], Math.round(L.videoBox.w / 15)));
   // legenda refeita no estilo da original: o tamanho relativo dela, levado pra escala do vídeo na caixa
   const st = (p as { captions?: { style?: { sizeRel: number } } }).captions?.style;

@@ -16,6 +16,7 @@ export * from './autoEdit';
 export * from './cores';
 export * from './molduras';
 export * from './legendaAuto';
+export * from './legendaSwap';
 export * from './legendaProtegida';
 export * from './templatesFormato';
 export * from './listaOverlay';

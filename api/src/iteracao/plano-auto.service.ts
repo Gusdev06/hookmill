@@ -14,6 +14,7 @@ import { CLAUDE_SERVICE, integracoesMode, isIntegracaoError, type AutoHeadlineDr
 import { alvosPorLinha } from '../integracoes/claude/headline-fit';
 import { encaixarHeadline } from '../integracoes/claude/laco-headline';
 import { PlacasService } from '../campeoes/placas.service';
+import type { CaptionPlateState, EditMapLegenda } from '../campeoes/legenda-troca';
 import { ehCopia, medidaLegivel, medirTexto, type HeadlinePlateState, type PlateImplMode } from './headline-plano';
 import { JobsService } from '../jobs/jobs.service';
 import { draftOf } from '../ofertas/ofertas.service';
@@ -64,7 +65,15 @@ export function captionBlockedOf(ctx: PlanCtx, allowed: AllowedType[], removed: 
     ...allowedFrames(ctx).filter((f) => f.blockedReason === 'burned_captions').map((f) => ({ type: 'FRAME' as const, template: f.template })),
   ];
   for (const r of removed) if (!out.some((o) => o.type === r.type && o.template === r.template && o.listTemplate === r.listTemplate)) out.push(r);
-  return out.length ? { captionBlocked: out.map((o) => ({ ...o, reason: 'burned_captions' as const })) } : {};
+  // F2 (aviso do frontend): `swapReason` = por que a troca de legenda não resgatou o formato (vem do vídeo ou da placa)
+  const swapReason = ctx.captionSwap?.state === 'blocked' ? ctx.captionSwap.reason : null;
+  return out.length ? { captionBlocked: out.map((o) => ({ ...o, reason: 'burned_captions' as const, ...(swapReason && { swapReason }) })) } : {};
+}
+
+/** F2: o fit `burned_captions` do lote de template leva `swapReason` (o mesmo nome do `captionBlocked[]` da view do plano). */
+export function withSwapReason<F extends { reason: string | null }>(fit: F, ctx: PlanCtx): F & { swapReason?: string } {
+  const r = ctx.captionSwap?.state === 'blocked' ? ctx.captionSwap.reason : null;
+  return fit.reason === 'burned_captions' && r ? { ...fit, swapReason: r } : fit;
 }
 
 /** Frase humana dos códigos assíncronos do lote AUTO (fallback EN; o web traduz pelo code). */
@@ -158,7 +167,7 @@ export class PlanoAutoService {
       await this.prisma.variationBatch.update({ where: { id: b.id }, data: { insight: { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed)), ...(cleanVersion && { cleanVersion }) } as unknown as Prisma.InputJsonValue } });
       // template que não cabe (legenda queimada ou motivo duro): plano pronto SEM peça e sem chamar o Claude; o fit diz por quê
       if (tpl && !allowed.some((a) => a.max > 0)) {
-        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed)), ...(cleanVersion && { cleanVersion }) }, fit!, sel?.fits);
+        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed)), ...(cleanVersion && { cleanVersion }) }, withSwapReason(fit!, ctx), sel?.fits);
         return;
       }
 
@@ -232,7 +241,7 @@ export class PlanoAutoService {
       });
       if (!items.length && tpl && removedByCaption.length) {
         // template tirado pela legenda queimada: plano sem peça + faixa `soft` (saídas: versão sem legenda, outro template)
-        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed, removedByCaption)), ...(cleanVersion && { cleanVersion }) }, { level: 'soft', reason: 'burned_captions' }, sel?.fits);
+        await this.readyEmpty(b.id, jobId, { ...partialInsight(ctx, flags, swaps), captionsAuto: !!ctx.captionsAuto, headlineBlocked: headlineBlockedOf(ctx), ...blockedOf(captionBlockedOf(ctx, allowed, removedByCaption)), ...(cleanVersion && { cleanVersion }) }, withSwapReason({ level: 'soft', reason: 'burned_captions' }, ctx), sel?.fits);
         return;
       }
       if (!items.length) throw new AutoPlanError('PLAN_INVALID', 'planning', 'No compatible pieces remain after caption validation');
@@ -332,7 +341,7 @@ export class PlanoAutoService {
   }
 
   /** Contexto das regras com a guarda da legenda (o mesmo do plano). */
-  private guardedCtx(b: PlanBatch, captured: boolean, troca: { plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final?: boolean } | null = null): PlanCtx {
+  private guardedCtx(b: PlanBatch, captured: boolean, troca: { plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final?: boolean; captionPlate?: CaptionPlateState | null } | null = null): PlanCtx {
     const ctxSrc = { offer: b.offer, workspace: b.workspace, champion: b.champion, teardown: b.champion.teardown, troca };
     const ctx = withCaptionGuard(planCtxOf(ctxSrc, this.media, { captured }), { ...ctxSrc, video: b.champion.videoFile, language: b.language });
     // templates-creditos-v1 A6: COLD_OPEN/ENDCARD só no lote de template que tem a chave (o Iterate normal segue sem)
@@ -416,10 +425,12 @@ export class PlanoAutoService {
    * HEADLINE puder entrar e a pessoa não tiver pedido outra coisa, enfileira a placa e espera (≤ 180 s). Devolve o estado
    * final da troca pro contexto: placa ainda não pronta vira `headline_pending` neste lote (`final`). Desligada = F1a.
    */
-  private async prepararHeadline(b: PlanBatch, jobId: string, captured: boolean): Promise<{ plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final: true }> {
+  private async prepararHeadline(b: PlanBatch, jobId: string, captured: boolean): Promise<{ plateImpl: PlateImplMode; plate: HeadlinePlateState | null; captionPlate: CaptionPlateState | null; final: true }> {
     const td = b.champion.teardown!;
     const em0 = editMapOf(td.editMap);
-    const em = await this.placas.medirSeFalta({ workspaceId: b.workspaceId, championId: b.championId, batchId: b.id, jobId, editMap: em0 });
+    let em = await this.placas.medirSeFalta({ workspaceId: b.workspaceId, championId: b.championId, batchId: b.id, jobId, editMap: em0 });
+    // F2 (§15.6.1): a leitura também guarda `captionTrack`; campeão antigo detecta aqui (null = sem legenda queimada)
+    em = await this.placas.detectarLegendaSeFalta({ workspaceId: b.workspaceId, championId: b.championId, batchId: b.id, jobId, editMap: em });
     if (em !== em0) (td as { editMap: unknown }).editMap = em as unknown as EditMap;
     let troca = await this.placas.trocaDoCampeao(b.workspaceId, b.championId, em);
     if (troca.plateImpl === 'off') return { ...troca, final: true };
@@ -430,7 +441,21 @@ export class PlanoAutoService {
       const plate = await this.placas.garantirPlaca({ workspaceId: b.workspaceId, championId: b.championId, createdById: b.createdById, batchId: b.id, look: h.look });
       troca = { ...troca, plate };
     }
+    // F2 (§15.6.5): `swap` aprovado e algum formato do lote só sai com ele = placa CAPTION antes do plano (mesmo item `preparing_plate`)
+    const track = (em as EditMapLegenda | null)?.captionTrack;
+    if (ctx0.captionSwap?.state === 'needs_plate' && track && this.querLegenda(b, ctx0)) {
+      await this.jobs.stage(jobId, 'preparing_plate', AUTO_PLAN_STAGES.preparing_plate);
+      const captionPlate = await this.placas.garantirPlacaLegenda({ workspaceId: b.workspaceId, championId: b.championId, createdById: b.createdById, batchId: b.id, track });
+      troca = { ...troca, captionPlate };
+    }
     return { ...troca, final: true };
+  }
+
+  /** §15.6.5: a placa da legenda só roda se algum formato do lote (do template, se for lote de template) está fora por `burned_captions`. */
+  private querLegenda(b: PlanBatch, ctx0: PlanCtx): boolean {
+    const blocked = ctx0.caption?.blocked ?? [];
+    const tpl = templateSettingsOf(b.settings);
+    return (tpl ? captionBlockedForTemplate(blocked, tpl.keys) : blocked).length > 0;
   }
 
   /** §16.5: a placa só roda se o HEADLINE está no `allowed` do lote (template incluído) e na seleção da pessoa. */

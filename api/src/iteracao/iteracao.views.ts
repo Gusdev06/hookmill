@@ -124,7 +124,7 @@ export class IteracaoViews {
         autoGenerate: true,
         productionStage: await this.aiStage(b.id, b.status),
       }),
-      fit: tpl.fit ? { level: tpl.fit.level, reason: tpl.fit.reason } : { level: 'unknown', reason: 'not_read' },
+      fit: tpl.fit ? { level: tpl.fit.level, reason: tpl.fit.reason, ...((tpl.fit as { swapReason?: string }).swapReason && { swapReason: (tpl.fit as { swapReason?: string }).swapReason }) } : { level: 'unknown', reason: 'not_read' },
       texts: items.map((i) => ({ pieceId: i.id, items: editableTextsOf(i.autoType, ((i.payload as { params?: Record<string, unknown> } | null)?.params) ?? null) })).filter((t) => t.items.length),
     };
   }

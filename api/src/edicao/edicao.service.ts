@@ -1,5 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { HEADLINE_PLATE_VERSION } from '../medicao/troca/porta';
+import type { CaptionTrack } from '../medicao/troca/legenda';
+import { CAPTION_LAYER_KEY, CAPTION_PLATE_VERSION } from '../medicao/troca/legenda';
 import type { EditResponse, EditSettings, Render, Template } from '@maquina/contratos';
 import type { Creative, Prisma, VideoFormat } from '@prisma/client';
 import { rm } from 'node:fs/promises';
@@ -33,7 +35,7 @@ import { RENDER_PORTS } from '../render/render.module';
 import type { RenderPorts } from '../render/portas';
 import { decidirWebhook, lambdaConfig, prazoEstourado, type LambdaConfig } from '../render/lambda';
 import { UpdateEditDto } from './edicao.dto';
-import { normalizarDoc, resolverProps } from '@maquina/video';
+import { legendaDoCaptionTrack, normalizarDoc, resolverProps } from '@maquina/video';
 import { EDITABLE, aplicarMudancaDeSettings, definidos, cenaPronta, docJson, editDocOf, montarScratchSource } from './editor-doc';
 import { anunciarEdicao } from './editor-saves';
 import { EditorExportService } from './editor-export.service';
@@ -975,6 +977,8 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       blocks: teardownBlocks?.length ? teardownBlocks : insight?.blocks ?? [],
       hookEndSec: typeof sections.hook?.data?.endSec === 'number' ? sections.hook.data.endSec : null,
       palette: meas.palette ?? [], brandName: ws.name, page,
+      // F2 (troca de legenda): placa CAPTION READY do campeão → o builder pode trocar a legenda (decidirLegenda com `swap`); sem placa = bloqueia como antes
+      swap: clean ? null : await this.swapDaLegenda(c.championId, editMap, transcriptOf(ch.teardown?.transcript)?.words ?? [], batch.language, video.height ?? editMap?.height ?? 1920),
       // kit-marca-v1 §5: logo do kit (URL assinada na hora); sem logo = iniciais
       brandLogo: await resolverLogoDaMarca({ prisma: this.prisma as never, storage: this.storage }, c.workspaceId, payload.params ?? null),
     };
@@ -1001,6 +1005,18 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       this.kick();
       return null;
     }
+  }
+
+  /** F2: `veredito.swap` + placa CAPTION READY (versão vigente) = `ctx.swap` com a URL assinada da placa; senão null. */
+  private async swapDaLegenda(championId: string | null, editMap: EditMap | null, words: TranscriptWord[], language: string, sourceHeight: number): Promise<AutoEditContext['swap']> {
+    const t = (editMap as (EditMap & { captionTrack?: (CaptionTrack & { veredito?: { swap?: boolean } }) | null }) | null)?.captionTrack;
+    if (!championId || !t?.veredito?.swap) return null;
+    const pl = await this.prisma.championPlate.findUnique({
+      where: { championId_kind_layerKey_version: { championId, kind: 'CAPTION', layerKey: CAPTION_LAYER_KEY, version: CAPTION_PLATE_VERSION } },
+      include: { file: true },
+    });
+    // a legenda nova no estilo MEDIDO da original (palavras e páginas do detector, sem pontuação, caixa do destaque)
+    return pl?.status === 'READY' && pl.file ? { swap: true, plateReady: true, plateUrl: await this.storage.signedUrl(pl.file), legenda: legendaDoCaptionTrack(t as never, words, language, sourceHeight) as never } : null;
   }
 
   /** §16.5: URL assinada da placa READY (versão vigente do método) da camada; null = sem placa (o build lança HEADLINE_PENDING). */

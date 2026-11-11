@@ -37,10 +37,10 @@ export function captureScenarioFromUrl() {
   const mf = new URLSearchParams(window.location.search).get("mockframes")
   if (mf === "off") sessionStorage.removeItem("mock:frames")
   else if (mf === "all") sessionStorage.setItem("mock:frames", "all")
-  // legenda-protegida-v1 (web-mock): ?mockcaptions=burned|covered|legacy (champion with burned-in captions; covered = the 1st FRAME's 1st render fails CAPTION_COVERED; legacy = pieces made before F1a, with the retired fields); =off clears
+  // legenda-protegida-v1 (web-mock): ?mockcaptions=burned|covered|legacy (champion with burned-in captions; covered = the 1st FRAME's 1st render fails CAPTION_COVERED; legacy = pieces made before F1a, with the retired fields; troca-texto F2: swap = burned captions erased and redone with the same words (`captionNote: 'swapped'`, `preparing_plate` wait), swapblocked = they can't be, with the `CaptionSwapReason` of each format left out); =off clears
   const mc = new URLSearchParams(window.location.search).get("mockcaptions")
   if (mc === "off") sessionStorage.removeItem("mock:captions")
-  else if (mc === "burned" || mc === "covered" || mc === "legacy") sessionStorage.setItem("mock:captions", mc)
+  else if (mc === "burned" || mc === "covered" || mc === "legacy" || mc === "swap" || mc === "swapblocked") sessionStorage.setItem("mock:captions", mc)
   // troca-texto-queimado-v1 §16 (F1b, web-mock): ?mockheadline=box|loose|close (the champion's headline is copied: box, erased +
   // redrawn with the `preparing_plate` wait, or loose with "Closest font") or a blocked reason: pending|near_caption|font_far|
   // plate_rejected|no_fit|over_face|moves|low_confidence; =off clears (the F1a default: headline_pending)

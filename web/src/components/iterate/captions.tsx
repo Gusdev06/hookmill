@@ -23,6 +23,8 @@ import { FrameIcon, Tag, useTypeName } from "./parts"
  *    "This format needs the video without captions" + "Send the version without captions";
  *  - the clean version: POST /champions/:id/clean-version { uploadId } (422 CLEAN_VERSION_MISMATCH { reason });
  *  - "Captions redone in the original style" on a piece with `captionNote: 'replaced'`.
+ * troca-texto-queimado-v1 §15.4 (F2): burned captions are first erased and redrawn with the same words (`captionNote: 'swapped'`).
+ * Only when that can't be done does a format stay out, and the list says why (`CaptionSwapReason`, §15.8) next to the way out.
  * troca-texto-queimado-v1 §15.3 (F1a): nothing covers the captions anymore, so "Generate anyway", "Undo" and the "Covers the
  * captions" badge are gone. Old data may still carry `captionBlocked[].forced` and `captionOverride`: both are ignored.
  */
@@ -32,6 +34,19 @@ type Limits = Pick<ChampionConfig, "mimeTypes" | "maxBytes">
 /** `insight.headlineBlocked`: why HEADLINE isn't in the plan. Not in AutoInsight yet (the API marks it TRANSITION). */
 export const headlineBlockedOf = (batch: IterateBatch) =>
   (batch.insight as { headlineBlocked?: { reason: string; mode: string } | null } | null | undefined)?.headlineBlocked ?? null
+
+/**
+ * troca-texto-queimado-v1 §15.8 (F2): why the captions couldn't be redone. The contract (`contratos/`) doesn't carry the field on
+ * `captionBlocked[]` yet: accepted as `swapReason`, or as `reason` itself when it is one of these. null = no reason (F1a data).
+ */
+export const SWAP_REASONS = new Set([
+  "not_detected", "no_outline", "font_mismatch", "style_unstable", "no_person", "busy_background", "multi_line", "animated",
+  "script_unsupported", "caption_emoji", "too_long", "plate_rejected", "plate_failed", "color_shift",
+])
+export const swapReasonOf = (x: { reason?: string | null; swapReason?: string | null } | null | undefined): string | null => {
+  const r = x?.swapReason ?? x?.reason
+  return r && SWAP_REASONS.has(r) ? r : null
+}
 
 /** Error line of the clean version (mismatch by reason, else the generic translation). */
 function useCleanError() {
@@ -162,6 +177,7 @@ export function CaptionBlocked({ batch, className, collapsed = false }: { batch:
               {x.template ? t("frameNamed", { name: tf(x.template) }) : typeName(x.type)}
             </span>
             <span className="text-fg-3">{t("needsClean")}</span>
+            {swapReasonOf(x) ? <span className="basis-full text-fg-3">{t("swapWhy", { reason: t(`swapReason.${swapReasonOf(x)}` as never) })}</span> : null}
           </li>
         ))}
       </ul>
@@ -315,17 +331,18 @@ export function CleanVersionStatus({ batch }: { batch: IterateBatch }) {
   )
 }
 
-/** "Captions redone in the original style" (captionNote 'replaced'). */
+/** "Captions redone in the original style" (captionNote 'replaced') · "Captions redone, same words" ('swapped', F2). */
 export function CaptionNote({ p, className }: { p: IteratePiece; className?: string }) {
   const t = useTranslations("captions")
-  if (p.captionNote !== "replaced") return null
+  const note = p.captionNote as "replaced" | "swapped" | null | undefined
+  if (note !== "replaced" && note !== "swapped") return null
   return (
     <Tag tone="info" className={className}>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2" />
         <path d="M7 12h3M12 12h5M7 15.5h6M15 15.5h2" />
       </svg>
-      {t("replaced")}
+      {t(note === "swapped" ? "swapped" : "replaced")}
     </Tag>
   )
 }

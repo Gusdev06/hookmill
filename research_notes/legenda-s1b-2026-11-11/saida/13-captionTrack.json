@@ -1,0 +1,637 @@
+{
+ "version": 1,
+ "trechos": [
+  {
+   "iniFrame": 0,
+   "fimFrame": 3,
+   "box": {
+    "x": 562,
+    "y": 550,
+    "w": 27,
+    "h": 15
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 3,
+   "fimFrame": 19,
+   "box": {
+    "x": 232,
+    "y": 464,
+    "w": 256,
+    "h": 91
+   },
+   "iou": 0.7767,
+   "texto": "CADA DÍA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 19,
+   "fimFrame": 55,
+   "box": {
+    "x": 113,
+    "y": 275,
+    "w": 492,
+    "h": 280
+   },
+   "iou": 0.2448,
+   "texto": "28 MILES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 55,
+   "fimFrame": 74,
+   "box": {
+    "x": 113,
+    "y": 275,
+    "w": 427,
+    "h": 280
+   },
+   "iou": 0.3628,
+   "texto": "DE PERSONAS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 74,
+   "fimFrame": 98,
+   "box": {
+    "x": 113,
+    "y": 275,
+    "w": 492,
+    "h": 280
+   },
+   "iou": 0.5822,
+   "texto": "LLENAN EL TEMPLO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 98,
+   "fimFrame": 128,
+   "box": {
+    "x": 140,
+    "y": 464,
+    "w": 441,
+    "h": 51
+   },
+   "iou": 0.744,
+   "texto": "DE SAN HIPÓLITO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 128,
+   "fimFrame": 143,
+   "box": {
+    "x": 182,
+    "y": 443,
+    "w": 375,
+    "h": 68
+   },
+   "iou": 0.6974,
+   "texto": "EN LA CIUDAD",
+   "herdado": false
+  },
+  {
+   "iniFrame": 143,
+   "fimFrame": 174,
+   "box": {
+    "x": 154,
+    "y": 457,
+    "w": 413,
+    "h": 58
+   },
+   "iou": 0.7962,
+   "texto": "DE MÉXICO VAN",
+   "herdado": false
+  },
+  {
+   "iniFrame": 174,
+   "fimFrame": 197,
+   "box": {
+    "x": 153,
+    "y": 455,
+    "w": 415,
+    "h": 56
+   },
+   "iou": 0.7471,
+   "texto": "POR SAN JUDAS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 197,
+   "fimFrame": 228,
+   "box": {
+    "x": 137,
+    "y": 471,
+    "w": 444,
+    "h": 40
+   },
+   "iou": 0.7658,
+   "texto": "TADEO EL SANTO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 228,
+   "fimFrame": 247,
+   "box": {
+    "x": 155,
+    "y": 471,
+    "w": 410,
+    "h": 40
+   },
+   "iou": 0.7829,
+   "texto": "DE LAS CAUSAS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 247,
+   "fimFrame": 265,
+   "box": {
+    "x": 239,
+    "y": 464,
+    "w": 242,
+    "h": 51
+   },
+   "iou": 0.7737,
+   "texto": "DIFÍCILES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 265,
+   "fimFrame": 294,
+   "box": {
+    "x": 128,
+    "y": 471,
+    "w": 462,
+    "h": 40
+   },
+   "iou": 0.7539,
+   "texto": "Y DESESPERADAS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 294,
+   "fimFrame": 305,
+   "box": {
+    "x": 312,
+    "y": 471,
+    "w": 94,
+    "h": 40
+   },
+   "iou": 0.778,
+   "texto": "Y SI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 305,
+   "fimFrame": 327,
+   "box": {
+    "x": 145,
+    "y": 471,
+    "w": 430,
+    "h": 40
+   },
+   "iou": 0.801,
+   "texto": "ALGUIEN TE DIJO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 327,
+   "fimFrame": 344,
+   "box": {
+    "x": 182,
+    "y": 471,
+    "w": 358,
+    "h": 47
+   },
+   "iou": 0.8002,
+   "texto": "QUE TU AMOR",
+   "herdado": false
+  },
+  {
+   "iniFrame": 344,
+   "fimFrame": 357,
+   "box": {
+    "x": 224,
+    "y": 471,
+    "w": 272,
+    "h": 40
+   },
+   "iou": 0.7493,
+   "texto": "YA ES UNA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 357,
+   "fimFrame": 367,
+   "box": {
+    "x": 267,
+    "y": 471,
+    "w": 187,
+    "h": 40
+   },
+   "iou": 0.8243,
+   "texto": "CAUSA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 367,
+   "fimFrame": 389,
+   "box": {
+    "x": 248,
+    "y": 471,
+    "w": 225,
+    "h": 39
+   },
+   "iou": 0.8035,
+   "texto": "PERDIDA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 389,
+   "fimFrame": 405,
+   "box": {
+    "x": 205,
+    "y": 471,
+    "w": 311,
+    "h": 40
+   },
+   "iou": 0.8038,
+   "texto": "A LO MEJOR",
+   "herdado": false
+  },
+  {
+   "iniFrame": 405,
+   "fimFrame": 409,
+   "box": {
+    "x": 323,
+    "y": 471,
+    "w": 74,
+    "h": 40
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 409,
+   "fimFrame": 421,
+   "box": {
+    "x": 250,
+    "y": 471,
+    "w": 220,
+    "h": 40
+   },
+   "iou": 0.801,
+   "texto": "LE TOCA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 421,
+   "fimFrame": 450,
+   "box": {
+    "x": 153,
+    "y": 471,
+    "w": 414,
+    "h": 40
+   },
+   "iou": 0.7633,
+   "texto": "A ESA PERSONA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 450,
+   "fimFrame": 480,
+   "box": {
+    "x": 160,
+    "y": 471,
+    "w": 401,
+    "h": 40
+   },
+   "iou": 0.8031,
+   "texto": "DECIDIRLO HAY",
+   "herdado": false
+  },
+  {
+   "iniFrame": 480,
+   "fimFrame": 507,
+   "box": {
+    "x": 129,
+    "y": 471,
+    "w": 462,
+    "h": 40
+   },
+   "iou": 0.7728,
+   "texto": "SIETE ORACIONES",
+   "herdado": false
+  },
+  {
+   "iniFrame": 507,
+   "fimFrame": 524,
+   "box": {
+    "x": 211,
+    "y": 471,
+    "w": 298,
+    "h": 40
+   },
+   "iou": 0.7988,
+   "texto": "SAGRADAS",
+   "herdado": false
+  },
+  {
+   "iniFrame": 524,
+   "fimFrame": 543,
+   "box": {
+    "x": 228,
+    "y": 471,
+    "w": 266,
+    "h": 40
+   },
+   "iou": 0.7797,
+   "texto": "DEL AMOR",
+   "herdado": false
+  },
+  {
+   "iniFrame": 543,
+   "fimFrame": 560,
+   "box": {
+    "x": 202,
+    "y": 471,
+    "w": 317,
+    "h": 39
+   },
+   "iou": 0.7293,
+   "texto": "HAZ EL TEST",
+   "herdado": false
+  },
+  {
+   "iniFrame": 560,
+   "fimFrame": 581,
+   "box": {
+    "x": 178,
+    "y": 471,
+    "w": 365,
+    "h": 40
+   },
+   "iou": 0.76,
+   "texto": "DE UN MINUTO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 581,
+   "fimFrame": 602,
+   "box": {
+    "x": 198,
+    "y": 471,
+    "w": 324,
+    "h": 40
+   },
+   "iou": 0.8193,
+   "texto": "Y DESCUBRE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 602,
+   "fimFrame": 616,
+   "box": {
+    "x": 212,
+    "y": 464,
+    "w": 296,
+    "h": 51
+   },
+   "iou": 0.7318,
+   "texto": "CUÁL ES LA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 616,
+   "fimFrame": 632,
+   "box": {
+    "x": 286,
+    "y": 471,
+    "w": 146,
+    "h": 40
+   },
+   "iou": 0.8397,
+   "texto": "TUYA",
+   "herdado": false
+  }
+ ],
+ "estilo": {
+  "fontId": "poppins-900",
+  "tamPx": 56,
+  "tracking": -0.04,
+  "espaco": 1,
+  "strokePx": 3,
+  "sombra": [
+   0,
+   2
+  ],
+  "corTexto": "#fffefe",
+  "corDestaque": "#fcf000",
+  "corTraco": "#000000",
+  "caixaDestaque": null,
+  "palavrasPorPagina": 2,
+  "linhas": 1,
+  "baseY": 511,
+  "centroX": 359.5
+ },
+ "atrasoSec": 0.123,
+ "pegada": [
+  {
+   "iniFrame": 0,
+   "fimFrame": 3,
+   "areaPx": 39
+  },
+  {
+   "iniFrame": 3,
+   "fimFrame": 19,
+   "areaPx": 6234
+  },
+  {
+   "iniFrame": 19,
+   "fimFrame": 55,
+   "areaPx": 15039
+  },
+  {
+   "iniFrame": 55,
+   "fimFrame": 74,
+   "areaPx": 12290
+  },
+  {
+   "iniFrame": 74,
+   "fimFrame": 98,
+   "areaPx": 14638
+  },
+  {
+   "iniFrame": 98,
+   "fimFrame": 128,
+   "areaPx": 10240
+  },
+  {
+   "iniFrame": 128,
+   "fimFrame": 143,
+   "areaPx": 8179
+  },
+  {
+   "iniFrame": 143,
+   "fimFrame": 174,
+   "areaPx": 9900
+  },
+  {
+   "iniFrame": 174,
+   "fimFrame": 197,
+   "areaPx": 9446
+  },
+  {
+   "iniFrame": 197,
+   "fimFrame": 228,
+   "areaPx": 9845
+  },
+  {
+   "iniFrame": 228,
+   "fimFrame": 247,
+   "areaPx": 8978
+  },
+  {
+   "iniFrame": 247,
+   "fimFrame": 265,
+   "areaPx": 5896
+  },
+  {
+   "iniFrame": 265,
+   "fimFrame": 294,
+   "areaPx": 10897
+  },
+  {
+   "iniFrame": 294,
+   "fimFrame": 305,
+   "areaPx": 1797
+  },
+  {
+   "iniFrame": 305,
+   "fimFrame": 327,
+   "areaPx": 9883
+  },
+  {
+   "iniFrame": 327,
+   "fimFrame": 344,
+   "areaPx": 8244
+  },
+  {
+   "iniFrame": 344,
+   "fimFrame": 357,
+   "areaPx": 5873
+  },
+  {
+   "iniFrame": 357,
+   "fimFrame": 367,
+   "areaPx": 4249
+  },
+  {
+   "iniFrame": 367,
+   "fimFrame": 389,
+   "areaPx": 5703
+  },
+  {
+   "iniFrame": 389,
+   "fimFrame": 405,
+   "areaPx": 6936
+  },
+  {
+   "iniFrame": 405,
+   "fimFrame": 409,
+   "areaPx": 1967
+  },
+  {
+   "iniFrame": 409,
+   "fimFrame": 421,
+   "areaPx": 4652
+  },
+  {
+   "iniFrame": 421,
+   "fimFrame": 450,
+   "areaPx": 9584
+  },
+  {
+   "iniFrame": 450,
+   "fimFrame": 480,
+   "areaPx": 9250
+  },
+  {
+   "iniFrame": 480,
+   "fimFrame": 507,
+   "areaPx": 11069
+  },
+  {
+   "iniFrame": 507,
+   "fimFrame": 524,
+   "areaPx": 7097
+  },
+  {
+   "iniFrame": 524,
+   "fimFrame": 543,
+   "areaPx": 6372
+  },
+  {
+   "iniFrame": 543,
+   "fimFrame": 560,
+   "areaPx": 6723
+  },
+  {
+   "iniFrame": 560,
+   "fimFrame": 581,
+   "areaPx": 8797
+  },
+  {
+   "iniFrame": 581,
+   "fimFrame": 602,
+   "areaPx": 7688
+  },
+  {
+   "iniFrame": 602,
+   "fimFrame": 616,
+   "areaPx": 6227
+  },
+  {
+   "iniFrame": 616,
+   "fimFrame": 632,
+   "areaPx": 2985
+  }
+ ],
+ "cortes": [
+  106,
+  112,
+  114,
+  115,
+  197
+ ],
+ "artefato": "artefatos/13.npz",
+ "caixa": false,
+ "faixa": [
+  247,
+  665
+ ],
+ "quadros": 632,
+ "fps": 30,
+ "veredito": {
+  "swap": true,
+  "reason": null,
+  "gates": {
+   "duracao_s": 21.066666666666666,
+   "alfabeto_fora": 0,
+   "emoji_legenda": 0,
+   "cobertura": 1,
+   "contorno": 1,
+   "linhas": 1,
+   "animacao": 0.025,
+   "iou_mediana": 0.7752,
+   "herdados": 0.0625,
+   "estilo_var": 0.0179,
+   "fundo_lap": 37.12,
+   "pessoa_rosto": 1,
+   "pessoa_fala": 0.9145569620253164
+  }
+ }
+}

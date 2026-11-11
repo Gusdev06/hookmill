@@ -187,7 +187,9 @@ function fitOf(t: MTemplate, tr: Traits): TemplateFit {
   if (t.key === "HEADLINE" && tr.writtenHeadline && !headlineCopied()) return { level: "hard", reason: headlineBlockedReason() ?? "headline_pending" }
   if (t.needs.includes("face") && !tr.face) return { level: "hard", reason: "no_face" }
   if (t.needs.includes("min_25s") && tr.durationSec < 25) return { level: "hard", reason: "short_video" }
-  if (t.needs.includes("clean_face") && tr.captions) return { level: "soft", reason: "burned_captions" }
+  // troca-texto F2 (?mockcaptions=swap|swapblocked): swap = the captions are redone (fits); swapblocked = left out, with the gate's reason
+  const mc = typeof window === "undefined" ? null : sessionStorage.getItem("mock:captions")
+  if (t.needs.includes("clean_face") && tr.captions && mc !== "swap") return { level: "soft", reason: mc === "swapblocked" ? "no_outline" : "burned_captions" }
   return { level: "ok", reason: null }
 }
 

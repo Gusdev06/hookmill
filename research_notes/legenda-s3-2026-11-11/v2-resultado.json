@@ -1,0 +1,122 @@
+{
+ "00": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "poppins-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "02": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "poppins-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "05": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "gabarito-900",
+   "corTexto": "#f6f6f6",
+   "corDestaque": "#bfbb20",
+   "corTraco": "#000000"
+  }
+ },
+ "07": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "montserrat-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "09": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "montserrat-900",
+   "corTexto": "#eef1f4",
+   "corDestaque": "#f5ed39",
+   "corTraco": "#000000"
+  }
+ },
+ "11": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "gabarito-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "26": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "gabarito-900",
+   "corTexto": "#f6f6f6",
+   "corDestaque": "#bfba1f",
+   "corTraco": "#000000"
+  }
+ },
+ "27": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "archivo-w125-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "29": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "gabarito-900",
+   "corTexto": "#fffefd",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "30": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "manrope-800",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "37": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "archivo-w125-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ },
+ "54": {
+  "ok": true,
+  "sem_traducao_em": [],
+  "estilo": {
+   "fontId": "archivo-w125-900",
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000"
+  }
+ }
+}

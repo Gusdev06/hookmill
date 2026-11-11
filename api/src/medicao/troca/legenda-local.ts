@@ -1,0 +1,27 @@
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+const R = './';
+const { ExecutorLocal, pastaPython } = require(R + 'executor-local');
+const { TrocaTextoOrquestrada } = require(R + 'orquestra');
+const SP = process.env.SP!;
+const store = path.join(SP, 'store'); mkdirSync(store, { recursive: true });
+const ex = new ExecutorLocal({ python: 'python3', pyDir: pastaPython(null), fontesDir: '/x' }, { putFile: async (k: string, f: string) => { const d = path.join(store, k.replace(/\//g, '_')); copyFileSync(f, d); } });
+const prova = { renderizar: async () => [] };
+const o = new TrocaTextoOrquestrada(ex, prova, { log: console });
+const V = process.env.V || '13';
+const { execFileSync } = require('node:child_process');
+const pr = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=width,height,nb_read_packets', '-of', 'json', SP + `/v${V}.mp4`]).toString()).streams[0];
+const NQ = Number(pr.nb_read_packets), WW = Number(pr.width), HH = Number(pr.height);
+const w = JSON.parse(readFileSync(SP + `/w${V}.json`, 'utf8'));
+const words = w.segments.flatMap((s: any) => s.words.map((x: any) => ({ word: x.word, startSec: x.start, endSec: x.end })));
+const layer = { id: 'cap', kind: 'caption', startFrame: 0, endFrame: NQ, box: { x: 0, y: 560, w: WW, h: 150 }, background: { kind: 'none', color: null, box: null }, style: { fontId: 'montserrat-700', uppercase: true, fontSizePx: 40, lineHeight: 1.1, color: '#fff', highlightColor: null, strokeColor: '#000', strokeWidthPx: 3, shadow: true, align: 'center' }, text: null, wordsPerPage: 3, source: 'vision' };
+const m = { version: 1, width: WW, height: HH, fps: 30, frameCount: NQ, cells: [], faceTrack: [{ startFrame: 0, endFrame: NQ, region: { x: 0, y: 0, w: WW, h: HH }, fullFrame: true, facesMax: 1, minScore: .9, faceInRegion: [{ atFrame: 0, box: { x: .3, y: .15, w: .4, h: .3 } }] }], layers: [layer], overlaysOverFace: [], profile: null, keepEdit: {}, protectedBands: [] };
+(async () => {
+  const t0 = Date.now();
+  const d = await o.detectarLegenda({ workspaceId: 'w', championId: V, videoUrl: SP + `/v${V}.mp4`, editMap: m, words, durationSec: NQ / 30, fontIdVisao: null, artefatoKey: `art/${V}.npz` });
+  console.log('detectar', (Date.now() - t0) / 1000, JSON.stringify(d.captionTrack!.veredito), d.captionTrack!.estilo.fontId, d.captionTrack!.trechos.length, 'pegada', d.captionTrack!.pegada.length, 'cortes', d.captionTrack!.cortes);
+  if (!d.captionTrack!.veredito.swap) return;
+  const t1 = Date.now();
+  const p = await o.placaLegenda({ workspaceId: 'w', championId: V, videoUrl: SP + `/v${V}.mp4`, captionTrack: d.captionTrack!, version: 1, outputKey: `placas/${V}.mp4` });
+  console.log('placa', (Date.now() - t1) / 1000, JSON.stringify(p));
+})().catch((e) => { console.error(e); process.exit(1); });

@@ -1,0 +1,925 @@
+{
+ "version": 1,
+ "trechos": [
+  {
+   "iniFrame": 6,
+   "fimFrame": 12,
+   "box": {
+    "x": 312,
+    "y": 952,
+    "w": 96,
+    "h": 36
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 12,
+   "fimFrame": 44,
+   "box": {
+    "x": 212,
+    "y": 948,
+    "w": 296,
+    "h": 45
+   },
+   "iou": 0.5348,
+   "texto": "IGNORANDO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 59,
+   "fimFrame": 82,
+   "box": {
+    "x": 228,
+    "y": 952,
+    "w": 263,
+    "h": 36
+   },
+   "iou": 0.5365,
+   "texto": "BLOCCATA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 82,
+   "fimFrame": 114,
+   "box": {
+    "x": 273,
+    "y": 952,
+    "w": 175,
+    "h": 36
+   },
+   "iou": 0.3657,
+   "texto": "ALLORA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 114,
+   "fimFrame": 128,
+   "box": {
+    "x": 264,
+    "y": 952,
+    "w": 192,
+    "h": 36
+   },
+   "iou": 0.4336,
+   "texto": "SMETTI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 128,
+   "fimFrame": 170,
+   "box": {
+    "x": 219,
+    "y": 947,
+    "w": 282,
+    "h": 46
+   },
+   "iou": 0.473,
+   "texto": "SCRIVERGLI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 170,
+   "fimFrame": 195,
+   "box": {
+    "x": 264,
+    "y": 952,
+    "w": 192,
+    "h": 36
+   },
+   "iou": 0.4341,
+   "texto": "SMETTI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 195,
+   "fimFrame": 221,
+   "box": {
+    "x": 202,
+    "y": 948,
+    "w": 317,
+    "h": 45
+   },
+   "iou": 0.4881,
+   "texto": "SUPPLICARE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 221,
+   "fimFrame": 236,
+   "box": {
+    "x": 266,
+    "y": 950,
+    "w": 188,
+    "h": 39
+   },
+   "iou": 0.4071,
+   "texto": "QUELLO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 236,
+   "fimFrame": 264,
+   "box": {
+    "x": 257,
+    "y": 948,
+    "w": 206,
+    "h": 45
+   },
+   "iou": 0.5087,
+   "texto": "NON È LA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 275,
+   "fimFrame": 290,
+   "box": {
+    "x": 212,
+    "y": 952,
+    "w": 296,
+    "h": 36
+   },
+   "iou": 0.5822,
+   "texto": "MANCANZA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 290,
+   "fimFrame": 314,
+   "box": {
+    "x": 239,
+    "y": 952,
+    "w": 242,
+    "h": 36
+   },
+   "iou": 0.4635,
+   "texto": "D AMORE È",
+   "herdado": false
+  },
+  {
+   "iniFrame": 314,
+   "fimFrame": 330,
+   "box": {
+    "x": 272,
+    "y": 948,
+    "w": 176,
+    "h": 45
+   },
+   "iou": 0.5374,
+   "texto": "FANGO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 330,
+   "fimFrame": 370,
+   "box": {
+    "x": 215,
+    "y": 952,
+    "w": 290,
+    "h": 36
+   },
+   "iou": 0.5612,
+   "texto": "DELUSIONE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 370,
+   "fimFrame": 389,
+   "box": {
+    "x": 259,
+    "y": 948,
+    "w": 202,
+    "h": 45
+   },
+   "iou": 0.4219,
+   "texto": "E AGISCE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 389,
+   "fimFrame": 397,
+   "box": {
+    "x": 280,
+    "y": 952,
+    "w": 161,
+    "h": 36
+   },
+   "iou": 0.5108,
+   "texto": "PIANO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 397,
+   "fimFrame": 423,
+   "box": {
+    "x": 217,
+    "y": 948,
+    "w": 287,
+    "h": 45
+   },
+   "iou": 0.4624,
+   "texto": "SPIRITUALE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 423,
+   "fimFrame": 451,
+   "box": {
+    "x": 299,
+    "y": 952,
+    "w": 123,
+    "h": 36
+   },
+   "iou": 0.5937,
+   "texto": "PUOI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 451,
+   "fimFrame": 465,
+   "box": {
+    "x": 230,
+    "y": 948,
+    "w": 260,
+    "h": 45
+   },
+   "iou": 0.489,
+   "texto": "PIANGERE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 465,
+   "fimFrame": 475,
+   "box": {
+    "x": 254,
+    "y": 950,
+    "w": 212,
+    "h": 39
+   },
+   "iou": 0.5035,
+   "texto": "QUANTO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 475,
+   "fimFrame": 504,
+   "box": {
+    "x": 295,
+    "y": 952,
+    "w": 130,
+    "h": 36
+   },
+   "iou": 0.6646,
+   "texto": "VUOI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 504,
+   "fimFrame": 522,
+   "box": {
+    "x": 263,
+    "y": 952,
+    "w": 195,
+    "h": 36
+   },
+   "iou": 0.5615,
+   "texto": "FINCHÉ",
+   "herdado": false
+  },
+  {
+   "iniFrame": 522,
+   "fimFrame": 544,
+   "box": {
+    "x": 267,
+    "y": 948,
+    "w": 186,
+    "h": 45
+   },
+   "iou": 0.4875,
+   "texto": "NON LO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 544,
+   "fimFrame": 578,
+   "box": {
+    "x": 246,
+    "y": 952,
+    "w": 229,
+    "h": 36
+   },
+   "iou": 0.5015,
+   "texto": "RESTERÀ",
+   "herdado": false
+  },
+  {
+   "iniFrame": 580,
+   "fimFrame": 594,
+   "box": {
+    "x": 256,
+    "y": 950,
+    "w": 209,
+    "h": 39
+   },
+   "iou": 0.5524,
+   "texto": "QUESTO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 594,
+   "fimFrame": 611,
+   "box": {
+    "x": 270,
+    "y": 952,
+    "w": 180,
+    "h": 36
+   },
+   "iou": 0.5548,
+   "texto": "ESISTE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 611,
+   "fimFrame": 623,
+   "box": {
+    "x": 256,
+    "y": 952,
+    "w": 209,
+    "h": 36
+   },
+   "iou": 0.5138,
+   "texto": "CATENA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 623,
+   "fimFrame": 630,
+   "box": {
+    "x": 287,
+    "y": 952,
+    "w": 147,
+    "h": 36
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 630,
+   "fimFrame": 639,
+   "box": {
+    "x": 281,
+    "y": 952,
+    "w": 158,
+    "h": 36
+   },
+   "iou": 0.5244,
+   "texto": "SETTE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 639,
+   "fimFrame": 662,
+   "box": {
+    "x": 218,
+    "y": 948,
+    "w": 284,
+    "h": 45
+   },
+   "iou": 0.4979,
+   "texto": "PREGHIERE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 662,
+   "fimFrame": 694,
+   "box": {
+    "x": 281,
+    "y": 952,
+    "w": 158,
+    "h": 36
+   },
+   "iou": 0.5238,
+   "texto": "SETTE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 694,
+   "fimFrame": 714,
+   "box": {
+    "x": 273,
+    "y": 952,
+    "w": 174,
+    "h": 36
+   },
+   "iou": 0.4161,
+   "texto": "GIORNI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 714,
+   "fimFrame": 733,
+   "box": {
+    "x": 222,
+    "y": 948,
+    "w": 276,
+    "h": 44
+   },
+   "iou": 0.4477,
+   "texto": "RIPORTARE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 733,
+   "fimFrame": 741,
+   "box": {
+    "x": 266,
+    "y": 950,
+    "w": 188,
+    "h": 39
+   },
+   "iou": 0.4243,
+   "texto": "QUELLA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 741,
+   "fimFrame": 766,
+   "box": {
+    "x": 241,
+    "y": 952,
+    "w": 238,
+    "h": 36
+   },
+   "iou": 0.5564,
+   "texto": "PERSONA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 766,
+   "fimFrame": 772,
+   "box": {
+    "x": 297,
+    "y": 952,
+    "w": 126,
+    "h": 36
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 772,
+   "fimFrame": 793,
+   "box": {
+    "x": 290,
+    "y": 952,
+    "w": 141,
+    "h": 36
+   },
+   "iou": 0.5665,
+   "texto": "PIEDI",
+   "herdado": false
+  },
+  {
+   "iniFrame": 793,
+   "fimFrame": 814,
+   "box": {
+    "x": 245,
+    "y": 948,
+    "w": 229,
+    "h": 44
+   },
+   "iou": 0.4976,
+   "texto": "IMPORTA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 814,
+   "fimFrame": 825,
+   "box": {
+    "x": 312,
+    "y": 952,
+    "w": 96,
+    "h": 36
+   },
+   "iou": 0.4899,
+   "texto": "STA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 825,
+   "fimFrame": 857,
+   "box": {
+    "x": 244,
+    "y": 952,
+    "w": 233,
+    "h": 36
+   },
+   "iou": 0.4486,
+   "texto": "UN ALTRA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 870,
+   "fimFrame": 895,
+   "box": {
+    "x": 245,
+    "y": 948,
+    "w": 229,
+    "h": 44
+   },
+   "iou": 0.497,
+   "texto": "IMPORTA",
+   "herdado": false
+  },
+  {
+   "iniFrame": 895,
+   "fimFrame": 909,
+   "box": {
+    "x": 275,
+    "y": 952,
+    "w": 170,
+    "h": 36
+   },
+   "iou": 0.4318,
+   "texto": "SE NON",
+   "herdado": false
+  },
+  {
+   "iniFrame": 909,
+   "fimFrame": 936,
+   "box": {
+    "x": 239,
+    "y": 948,
+    "w": 243,
+    "h": 45
+   },
+   "iou": 0.4416,
+   "texto": "VUOLE PIÙ",
+   "herdado": false
+  },
+  {
+   "iniFrame": 939,
+   "fimFrame": 950,
+   "box": {
+    "x": 269,
+    "y": 952,
+    "w": 182,
+    "h": 36
+   },
+   "iou": 0.3774,
+   "texto": "SAPERNE",
+   "herdado": false
+  },
+  {
+   "iniFrame": 950,
+   "fimFrame": 981,
+   "box": {
+    "x": 232,
+    "y": 952,
+    "w": 256,
+    "h": 36
+   },
+   "iou": 0.3777,
+   "texto": "DI TUTTO",
+   "herdado": false
+  },
+  {
+   "iniFrame": 981,
+   "fimFrame": 989,
+   "box": {
+    "x": 319,
+    "y": 952,
+    "w": 83,
+    "h": 36
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 989,
+   "fimFrame": 1000,
+   "box": {
+    "x": 295,
+    "y": 952,
+    "w": 131,
+    "h": 36
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  },
+  {
+   "iniFrame": 1000,
+   "fimFrame": 1018,
+   "box": {
+    "x": 252,
+    "y": 952,
+    "w": 217,
+    "h": 36
+   },
+   "iou": 0,
+   "texto": "",
+   "herdado": true
+  }
+ ],
+ "estilo": {
+  "fontId": "archivo-w125-900",
+  "tamPx": 35,
+  "tracking": 0,
+  "espaco": 0.5,
+  "strokePx": 4,
+  "sombra": [
+   0,
+   0
+  ],
+  "corTexto": "#ffffff",
+  "corDestaque": null,
+  "corTraco": "#000000",
+  "caixaDestaque": null,
+  "palavrasPorPagina": 1,
+  "linhas": 1,
+  "baseY": 986,
+  "centroX": 362
+ },
+ "atrasoSec": -0.017,
+ "pegada": [
+  {
+   "iniFrame": 6,
+   "fimFrame": 12,
+   "areaPx": 1803
+  },
+  {
+   "iniFrame": 12,
+   "fimFrame": 44,
+   "areaPx": 5031
+  },
+  {
+   "iniFrame": 59,
+   "fimFrame": 82,
+   "areaPx": 4518
+  },
+  {
+   "iniFrame": 82,
+   "fimFrame": 114,
+   "areaPx": 2992
+  },
+  {
+   "iniFrame": 114,
+   "fimFrame": 128,
+   "areaPx": 3437
+  },
+  {
+   "iniFrame": 128,
+   "fimFrame": 170,
+   "areaPx": 4731
+  },
+  {
+   "iniFrame": 170,
+   "fimFrame": 195,
+   "areaPx": 3435
+  },
+  {
+   "iniFrame": 195,
+   "fimFrame": 221,
+   "areaPx": 5430
+  },
+  {
+   "iniFrame": 221,
+   "fimFrame": 236,
+   "areaPx": 3397
+  },
+  {
+   "iniFrame": 236,
+   "fimFrame": 264,
+   "areaPx": 3573
+  },
+  {
+   "iniFrame": 275,
+   "fimFrame": 290,
+   "areaPx": 4990
+  },
+  {
+   "iniFrame": 290,
+   "fimFrame": 314,
+   "areaPx": 3927
+  },
+  {
+   "iniFrame": 314,
+   "fimFrame": 330,
+   "areaPx": 3137
+  },
+  {
+   "iniFrame": 330,
+   "fimFrame": 370,
+   "areaPx": 4903
+  },
+  {
+   "iniFrame": 370,
+   "fimFrame": 389,
+   "areaPx": 3452
+  },
+  {
+   "iniFrame": 389,
+   "fimFrame": 397,
+   "areaPx": 2749
+  },
+  {
+   "iniFrame": 397,
+   "fimFrame": 423,
+   "areaPx": 4995
+  },
+  {
+   "iniFrame": 423,
+   "fimFrame": 451,
+   "areaPx": 2230
+  },
+  {
+   "iniFrame": 451,
+   "fimFrame": 465,
+   "areaPx": 4512
+  },
+  {
+   "iniFrame": 465,
+   "fimFrame": 475,
+   "areaPx": 3696
+  },
+  {
+   "iniFrame": 475,
+   "fimFrame": 504,
+   "areaPx": 2181
+  },
+  {
+   "iniFrame": 504,
+   "fimFrame": 522,
+   "areaPx": 3311
+  },
+  {
+   "iniFrame": 522,
+   "fimFrame": 544,
+   "areaPx": 3362
+  },
+  {
+   "iniFrame": 544,
+   "fimFrame": 578,
+   "areaPx": 3978
+  },
+  {
+   "iniFrame": 580,
+   "fimFrame": 594,
+   "areaPx": 3574
+  },
+  {
+   "iniFrame": 594,
+   "fimFrame": 611,
+   "areaPx": 3192
+  },
+  {
+   "iniFrame": 611,
+   "fimFrame": 623,
+   "areaPx": 3481
+  },
+  {
+   "iniFrame": 623,
+   "fimFrame": 630,
+   "areaPx": 2769
+  },
+  {
+   "iniFrame": 630,
+   "fimFrame": 639,
+   "areaPx": 2806
+  },
+  {
+   "iniFrame": 639,
+   "fimFrame": 662,
+   "areaPx": 4938
+  },
+  {
+   "iniFrame": 662,
+   "fimFrame": 694,
+   "areaPx": 2807
+  },
+  {
+   "iniFrame": 694,
+   "fimFrame": 714,
+   "areaPx": 3025
+  },
+  {
+   "iniFrame": 714,
+   "fimFrame": 733,
+   "areaPx": 4741
+  },
+  {
+   "iniFrame": 733,
+   "fimFrame": 741,
+   "areaPx": 3425
+  },
+  {
+   "iniFrame": 741,
+   "fimFrame": 766,
+   "areaPx": 3871
+  },
+  {
+   "iniFrame": 766,
+   "fimFrame": 772,
+   "areaPx": 2076
+  },
+  {
+   "iniFrame": 772,
+   "fimFrame": 793,
+   "areaPx": 2656
+  },
+  {
+   "iniFrame": 793,
+   "fimFrame": 814,
+   "areaPx": 3816
+  },
+  {
+   "iniFrame": 814,
+   "fimFrame": 825,
+   "areaPx": 1807
+  },
+  {
+   "iniFrame": 825,
+   "fimFrame": 857,
+   "areaPx": 3838
+  },
+  {
+   "iniFrame": 870,
+   "fimFrame": 895,
+   "areaPx": 3813
+  },
+  {
+   "iniFrame": 895,
+   "fimFrame": 909,
+   "areaPx": 2780
+  },
+  {
+   "iniFrame": 909,
+   "fimFrame": 936,
+   "areaPx": 4149
+  },
+  {
+   "iniFrame": 939,
+   "fimFrame": 950,
+   "areaPx": 2728
+  },
+  {
+   "iniFrame": 950,
+   "fimFrame": 981,
+   "areaPx": 4320
+  },
+  {
+   "iniFrame": 981,
+   "fimFrame": 989,
+   "areaPx": 1555
+  },
+  {
+   "iniFrame": 989,
+   "fimFrame": 1000,
+   "areaPx": 2080
+  },
+  {
+   "iniFrame": 1000,
+   "fimFrame": 1018,
+   "areaPx": 3636
+  }
+ ],
+ "cortes": [
+  422,
+  577,
+  662,
+  791,
+  939
+ ],
+ "artefato": "artefatos/54.npz",
+ "caixa": false,
+ "faixa": [
+  926,
+  1009
+ ],
+ "quadros": 1018,
+ "fps": 30,
+ "veredito": {
+  "swap": false,
+  "reason": "font_mismatch",
+  "gates": {
+   "duracao_s": 33.93333333333333,
+   "alfabeto_fora": 0,
+   "emoji_legenda": 0,
+   "cobertura": 0.9513,
+   "contorno": 1,
+   "linhas": 1,
+   "animacao": 0,
+   "iou_mediana": 0.4973,
+   "herdados": 0.125,
+   "estilo_var": 0.027,
+   "fundo_lap": 34.98,
+   "pessoa_rosto": 1,
+   "pessoa_fala": 0.743801652892562
+  }
+ }
+}

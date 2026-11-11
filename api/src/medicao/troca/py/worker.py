@@ -32,7 +32,7 @@ def subir(src, url, tipo="application/octet-stream"):
         urllib.request.urlopen(q, timeout=300).read()
 
 
-SAIDAS = {"placa": ("placa.mp4", "video/mp4")}
+SAIDAS = {"placa": ("placa.mp4", "video/mp4"), "d": ("d.npz", "application/octet-stream")}
 
 
 def rodar(ev):
@@ -77,10 +77,17 @@ def rodar(ev):
                 s_ = sonda(n)
                 linhas.append(f"file '{n}'\nduration {s_['n'] / s_['fps']:.9f}\n")
             open("lista.txt", "w").write("".join(linhas))
+            saida_concat = "sem_audio.mp4" if "audio.mp4" in ev.get("get", {}) else "placa.mp4"
             subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", "lista.txt", "-c", "copy",
-                                   "-movflags", "+faststart", "placa.mp4"])
+                                   "-movflags", "+faststart", saida_concat])
+            if saida_concat != "placa.mp4":   # F2: a placa sai COM o áudio do campeão (a moldura toca o áudio do arquivo que recebe como vídeo)
+                subprocess.check_call(["ffmpeg", "-v", "error", "-y", "-i", "sem_audio.mp4", "-i", "audio.mp4", "-map", "0:v", "-map", "1:a?",
+                                       "-c", "copy", "-movflags", "+faststart", "placa.mp4"])   # SEM -shortest: com ele o áudio mais curto cortava 3 quadros do 26 (S3 r3, 12/11)
             from comum import sonda
             r["quadros"] = sonda("placa.mp4")["n"]
+        elif op in ("detectar", "placa_legenda", "conferir_legenda"):
+            import legenda_ops as lo
+            r.update({"detectar": lo.detectar, "placa_legenda": lo.placa, "conferir_legenda": lo.conferir}[op](ev))
         elif op == "conferir":
             import conferir as cf
             r.update(cf.conferir(ev))
@@ -90,6 +97,8 @@ def rodar(ev):
         st = time.time()
         for nome, url in ev.get("put", {}).items():
             arq, tipo = SAIDAS[nome]
+            if not os.path.exists(arq) and nome == "d":   # detectar sem estilo medível: não há d.npz, e isso não é erro
+                continue
             r.setdefault("tam_saida", {})[nome] = os.path.getsize(arq)
             subir(arq, url, tipo)
         r["subir_s"] = round(time.time() - st, 2)

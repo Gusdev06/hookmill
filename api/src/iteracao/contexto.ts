@@ -11,6 +11,7 @@ import { captionsAutoOf, headlineInfoOf, semEsperarPlaca, type HeadlinePlateStat
 import type { MediaRulesPort } from './portas';
 import { type Brain, type InsightFlags, type PlanBlock, type PlanCtx, CUT_MIN_SEC, allowedFrameIds, brainEmpty, codeLanguageOf, screenLangOf } from './regras';
 import { faixasDoCampeao } from '../campeoes/faixas-protegidas';
+import { captionSwapLigado, captionSwapOf, type CaptionPlateState, type EditMapLegenda } from '../campeoes/legenda-troca';
 import { captionGuardOf, type CaptionGuardSource } from './legenda-protegida';
 import { fracaoComRosto, rostoPrincipal, type FaceMapLike } from '@maquina/video';
 import type { ListGeom } from './lista-plano';
@@ -27,7 +28,7 @@ export interface CtxSource {
   teardown: TeardownRow | null;
   /** troca-texto-queimado-v1 §16.5 (F1b): troca ligada pra este workspace e a placa vigente. Ausente = F1a. `final` = o
    *  AUTO_PLAN já esperou o que tinha de esperar: placa ainda não pronta vira `headline_pending` neste lote. */
-  troca?: { plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final?: boolean } | null;
+  troca?: { plateImpl: PlateImplMode; plate: HeadlinePlateState | null; final?: boolean; captionPlate?: CaptionPlateState | null } | null;
 }
 
 export function brainOf(o: OfferRow): Brain {
@@ -156,12 +157,15 @@ export function withCaptionGuard(
     brandColor: src.workspace.brandColor ?? null,
   };
   const base = { ...ctx, caption: null };
+  // F2: troca de legenda. Desligada (`plateImpl` off/ausente) = nada de swap, como no F1b.
+  const swap = captionSwapLigado() && src.troca && src.troca.plateImpl !== 'off' ? captionSwapOf(editMap as EditMapLegenda | null, src.troca.captionPlate ?? null) : null;
   const caption = captionGuardOf(source, bands, {
+    swap: swap && swap.state === 'ready' && (editMap as EditMapLegenda).captionTrack ? { track: (editMap as EditMapLegenda).captionTrack! } : null,
     templates: allowedFrameIds(base),
     frame: { brand: ctx.frame?.brand ?? frameBrandOf(src, m?.palette), screenLanguage: screenLangOf(ctx), faceAtSec: ctx.frame?.faceAtSec ?? null },
     headline: ctx.headline ?? null,
   });
-  return { ...ctx, caption };
+  return { ...ctx, caption, ...(swap && { captionSwap: swap }) };
 }
 
 export function flagsOf(ctx: PlanCtx): InsightFlags {

@@ -46,7 +46,9 @@ export const LegendaAuto: React.FC<{ captions: CaptionsAuto; timeline: { startSe
         {pag.palavras.map((w, i) => (
           <React.Fragment key={i}>
             {espacoAntes(i ? pag.palavras[i - 1].word : null, w.word) ? ' ' : null}
-            <span style={{ color: i === ativa ? corDestaque : corTexto }}>{w.word}</span>
+            {i === ativa && st?.highlightBox
+              ? <span style={{ color: corTexto, backgroundColor: st.highlightBox.color, borderRadius: Math.round(ajuste.size * st.highlightBox.radiusRel), padding: `0 ${Math.round(ajuste.size * 0.16)}px`, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', WebkitTextStroke: undefined }}>{w.word}</span>
+              : <span style={{ color: i === ativa && !st?.highlightBox ? corDestaque : corTexto }}>{w.word}</span>}
           </React.Fragment>
         ))}
       </div>

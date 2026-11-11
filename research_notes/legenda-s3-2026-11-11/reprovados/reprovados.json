@@ -1,0 +1,142 @@
+{
+ "00": {
+  "razao": "font_mismatch",
+  "faixa": [
+   894,
+   1001
+  ],
+  "gates": {
+   "duracao_s": 24.03,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.9699,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.0145,
+   "iou_mediana": 0.4195,
+   "herdados": 0.5658,
+   "estilo_var": 0.0741,
+   "fundo_lap": 13.99
+  }
+ },
+ "26": {
+  "razao": "not_detected",
+  "faixa": [
+   950,
+   1045
+  ],
+  "gates": {
+   "duracao_s": 49.0,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.7947,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.0,
+   "iou_mediana": 0.3676,
+   "herdados": 0.4889,
+   "estilo_var": 0.0,
+   "fundo_lap": 5.32
+  }
+ },
+ "05": {
+  "razao": "not_detected",
+  "faixa": [
+   950,
+   1045
+  ],
+  "gates": {
+   "duracao_s": 49.0,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.794,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.0,
+   "iou_mediana": 0.3674,
+   "herdados": 0.4889,
+   "estilo_var": 0.0,
+   "fundo_lap": 5.33
+  }
+ },
+ "29": {
+  "razao": "not_detected",
+  "faixa": [
+   826,
+   1009
+  ],
+  "gates": {
+   "duracao_s": 39.43,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.597,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.4716,
+   "iou_mediana": 0.374,
+   "herdados": 0.825,
+   "estilo_var": 0.0,
+   "fundo_lap": 47.08
+  }
+ },
+ "11": {
+  "razao": "not_detected",
+  "faixa": [
+   826,
+   1001
+  ],
+  "gates": {
+   "duracao_s": 33.93,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.6383,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.4643,
+   "iou_mediana": 0.2862,
+   "herdados": 0.906,
+   "estilo_var": 0.0,
+   "fundo_lap": 52.72
+  }
+ },
+ "37": {
+  "razao": "font_mismatch",
+  "faixa": [
+   966,
+   1049
+  ],
+  "gates": {
+   "duracao_s": 27.1,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.9967,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.0,
+   "iou_mediana": 0.3593,
+   "herdados": 0.5,
+   "estilo_var": 0.0,
+   "fundo_lap": 28.92
+  }
+ },
+ "02": {
+  "razao": "font_mismatch",
+  "faixa": [
+   754,
+   889
+  ],
+  "gates": {
+   "duracao_s": 24.77,
+   "alfabeto_fora": 0.0,
+   "emoji_legenda": 0.0,
+   "cobertura": 0.9925,
+   "contorno": 1.0,
+   "linhas": 1.0,
+   "animacao": 0.0229,
+   "iou_mediana": 0.2727,
+   "herdados": 0.2059,
+   "estilo_var": 0.0,
+   "fundo_lap": 35.09
+  }
+ }
+}

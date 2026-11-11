@@ -133,7 +133,7 @@ export function buildFrameInput(spec: FrameSpec, ctx: AutoEditContext, format: V
   let final: FrameRenderInput = input;
   if (protectedBands.length) {
     const { kind: _k, renderId: _r, templateId: _t, ...props } = input;
-    const d = decidirLegenda(props as MolduraProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, spec.brand.color), opts.captionMode === 'replace' ? 'replace' : undefined);
+    const d = decidirLegenda(props as MolduraProps, ctx.editMap, legendaNoEstiloDaOriginal(ctx, spec.brand.color), opts.captionMode === 'replace' ? 'replace' : undefined, ctx.swap ?? undefined);
     if (d.mode === 'blocked') throw new CaptionProtectedError(d.reason, d.check.hits);
     final = { kind: 'frame', renderId: ctx.renderId, templateId: 'frame', ...d.input, outputProtectedBands: faixasProtegidasNaSaida(d.input) };
   }

@@ -78,6 +78,7 @@ import { AUTO_PLAN_SYSTEM, autoPlanContext, autoPlanSchemaFor, autoPlanUserMessa
 import { allowedFramesOf } from './auto-plano-moldura';
 import { CHAT_DM_SCHEMA, PERSON_MOTION_SCHEMA, templateDetailMessage } from './auto-plano-template';
 import { LIST_SCHEMAS, listDetailMessage, listTemplatesOf } from './auto-plano-lista';
+import { CAPTION_SWAP, CAPTION_SWAP_SCHEMA, CAPTION_SWAP_SYSTEM, captionSwapMessage, isSwapInput, parseCaptionSwap, swapFramesFromInput, type CaptionSwapVerdict, type CheckCaptionSwapInput } from './checagem-legenda-swap';
 import { CAPTION_CHECK, CAPTION_CHECK_SCHEMA, CAPTION_CHECK_SYSTEM, captionCheckImages, captionCheckMessage, captionFramesFromInput, parseCaptionCheck, type CheckCaptionInputAny, type CheckCaptionVerdict } from './checagem-legenda';
 import { FRAMES_DETAIL_SCHEMA, STATIC_DETAIL_SCHEMA, detailTargets, framesByIndex, framesDetailMessage, mergeDetails, staticDetailMessage } from './auto-plano-detalhe';
 import { languageName } from './auto-plano';
@@ -583,7 +584,10 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
    * legenda-protegida-v1 §4.2: Haiku com visão nos quadros do render pronto confere se a legenda queimada está inteira
    * (ou se a nossa está no lugar, no `replace`). Custo (LLM) no lote/criativo. Falha = erro (o backend marca `skipped`).
    */
-  async checkCaption(i: CheckCaptionInputAny): Promise<CheckCaptionVerdict & Usage> {
+  async checkCaption(i: CheckCaptionSwapInput): Promise<CaptionSwapVerdict & Usage>;
+  async checkCaption(i: CheckCaptionInputAny): Promise<CheckCaptionVerdict & Usage>;
+  async checkCaption(i: CheckCaptionInputAny | CheckCaptionSwapInput): Promise<(CheckCaptionVerdict | CaptionSwapVerdict) & Usage> {
+    if (isSwapInput(i)) return this.checkCaptionSwap(i);
     const frames = captionFramesFromInput(i).slice(0, CAPTION_CHECK.maxFrames);
     if (!frames.length) throw new IntegracaoError('INVALID_SCRIPT', 'caption check: no frame');
     const run = this.opts.runFfmpeg === undefined ? ffmpegRunner(process.env.FFMPEG_PATH || 'ffmpeg') : this.opts.runFfmpeg;
@@ -604,6 +608,32 @@ export class ClaudeLiveService implements ClaudeService, StaticTextCheckPort, Ca
       total += spent;
       this.assertFinished(res);
       return parseCaptionCheck(res.text, { mode: i.mode, frames });
+    });
+    return { ...out, costUsd: round6(total) };
+  }
+
+  /** troca-texto-queimado-v1 §6.2 (F2): modo `swap`, os 6 piores quadros da peça com a legenda refeita; devolve `ghost`/`smear`. */
+  private async checkCaptionSwap(i: CheckCaptionSwapInput): Promise<CaptionSwapVerdict & Usage> {
+    const frames = swapFramesFromInput(i).slice(0, CAPTION_SWAP.maxFrames);
+    if (!frames.length) throw new IntegracaoError('INVALID_SCRIPT', 'caption swap check: no frame');
+    const run = this.opts.runFfmpeg === undefined ? ffmpegRunner(process.env.FFMPEG_PATH || 'ffmpeg') : this.opts.runFfmpeg;
+    let images: ClaudeImage[];
+    try {
+      images = await captionCheckImages({ frames }, run, this.opts.fetchImpl ?? fetch);
+    } catch (e) {
+      throw isIntegracaoError(e) ? e : new IntegracaoError('PROVIDER_ERROR', `caption swap check: could not read the frames (${(e as Error).message})`);
+    }
+    const model = this.opts.textCheckModel || CAPTION_SWAP.model;
+    let total = 0;
+    const out = await this.withRetry('caption swap check', async () => {
+      const res = await this.transport.run({
+        system: CAPTION_SWAP_SYSTEM, images, user: captionSwapMessage({ language: i.language, frames }), schema: CAPTION_SWAP_SCHEMA,
+        maxTokens: CAPTION_SWAP.maxTokens, model, effort: textCheckEffort(model),
+      });
+      const spent = await recordLlmCost(this.costs, { workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, model }, res.usage);
+      total += spent;
+      this.assertFinished(res);
+      return parseCaptionSwap(res.text, { frames });
     });
     return { ...out, costUsd: round6(total) };
   }

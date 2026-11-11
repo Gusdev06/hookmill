@@ -3,7 +3,7 @@ import type { Rect } from '@maquina/contratos';
 
 export const TROCA_EVENTO_VERSAO = 1;
 
-export type TrocaOp = 'versoes' | 'sondar' | 'medir_headline' | 'placa_headline' | 'juntar' | 'conferir';
+export type TrocaOp = 'versoes' | 'sondar' | 'medir_headline' | 'placa_headline' | 'juntar' | 'conferir' | 'detectar' | 'placa_legenda' | 'conferir_legenda';
 
 /** Arquivos: nome local na função → URL (GET/PUT assinado) ou caminho absoluto (local). */
 export interface EventoTroca {
@@ -113,4 +113,32 @@ export interface ResultadoRegua {
   tier: 'same' | 'close' | 'far';
   medidas: MedidaRegua[];
   motivo?: string;
+}
+
+/** Resposta da op `detectar` (py/legenda_ops.py). `detectou: false` = nada com contorno na faixa (só traz `gates`). */
+export interface RespostaDetectarLegenda {
+  detectou: boolean;
+  gates: Record<string, number>;
+  quadros: number;
+  fps: number;
+  tempos?: Record<string, number>;
+  estilo?: {
+    fontId: string; tamPx: number; tracking: number; espaco: number; strokePx: number; sombra: [number, number];
+    corTexto: string; corDestaque: string | null; corTraco: string; caixaDestaque: { cor: string; raioPx: number } | null;
+    palavrasPorPagina: number; linhas: number; baseY: number; centroX: number;
+  };
+  atrasoSec?: number;
+  trechos?: Array<{ iniFrame: number; fimFrame: number; box: [number, number, number, number]; iou: number; texto: string; herdado: boolean }>;
+  pegada?: Array<{ iniFrame: number; fimFrame: number; areaPx: number }>;
+  cortes?: number[];
+  caixa?: boolean;
+  faixa?: [number, number];
+}
+
+/** Resposta de `conferir_legenda` por intervalo; `janelas[].ruim` null = janela sem medida (sem legenda ou com corte). */
+export interface RespostaConferirLegenda {
+  ini: number; fim: number;
+  janelas: Array<{ iniFrame: number; ruim: boolean | null; corte: boolean; lisura: number | null; trem: number | null; degrau: number | null; detalhe: number | null }>;
+  fora_buraco_media: number; fora_buraco_pior: number; fora_valor_soma: number; fora_valor_n: number;
+  letra_valores: number[]; salto_emenda_db: number[]; matriz_desconhecida: boolean; quadros_video: number; quadros_placa: number;
 }

@@ -2,6 +2,7 @@
 // visão, strict, veredito, custo) + fake [mock:caption-covered]. Sem rede.
 import type { TranscriptWord } from './contrato';
 import { CAPTION_CHECK, CAPTION_CHECK_SCHEMA, parseCaptionCheck, textOverlap, type CheckCaptionInput } from './claude/checagem-legenda';
+import { CAPTION_SWAP_SCHEMA, parseCaptionSwap, swapFramesFromInput, type CheckCaptionSwapInput } from './claude/checagem-legenda-swap';
 import { ClaudeLiveService } from './claude/claude.service';
 import { parseEditMap } from './claude/edicao';
 import { schemaStats } from './claude/schema-stats';
@@ -110,5 +111,70 @@ describe('describeEdit: estilo completo da legenda (a refeita copia)', () => {
     const c = d.layers[0];
     expect(c.wordsPerPage).toBe(4);
     expect(c.style).toMatchObject({ fontId: 'montserrat-800', uppercase: false, color: '#FFE082', highlightColor: '#FFFFFF', highlightBackground: '#6C22D6', strokeColor: '#000000', strokeWidthPx: 4, shadow: true, fontSizePx: 58, align: 'center' });
+  });
+});
+
+describe('checkCaption modo swap (F2): ghost e smear nos 6 piores quadros', () => {
+  const SW = [3, 9, 15, 21, 33, 40].map((t) => ({ atSec: t, frameUrl: `https://s/f${t}.png`, bandUrl: `https://s/b${t}.png`, expectedWords: ['no', 'me', 'sale'] }));
+  const IN: CheckCaptionSwapInput = { workspaceId: 'w1', renderId: 'r1', variationBatchId: 'b1', creativeId: 'c1', mode: 'swap', language: 'es', frames: SW };
+  const sr = (frame: number, over: Record<string, unknown> = {}) => ({ frame, captionVisible: true, legible: true, ghost: false, smear: false, seen: 'no me sale', reason: '', ...over });
+  const fr = swapFramesFromInput(IN);
+  const v = (rows: unknown[]) => parseCaptionSwap(JSON.stringify({ frames: rows }), { frames: fr });
+  const all = SW.map((_, k) => sr(k + 1));
+
+  it('Haiku, strict, imagens por quadro, custo gravado, mesmo modelo/teto do modo antigo', async () => {
+    const t = new T({ frames: all });
+    const costs = new MemoryCostStore();
+    const svc = new ClaudeLiveService(t, costs, { model: 'claude-opus-5-5', runFfmpeg: async () => JPG, fetchImpl: jpgFetch });
+    const out = await svc.checkCaption(IN);
+    expect(t.calls[0]).toMatchObject({ model: 'claude-haiku-4-5', effort: null, schema: CAPTION_SWAP_SCHEMA });
+    expect(t.calls[0].images).toHaveLength(12);
+    expect(t.calls[0].user).toContain('the new subtitle should say: "no me sale"');
+    expect(out.status).toBe('ok');
+    expect(out.ghostFrames).toEqual([]);
+    expect(out.costUsd).toBeCloseTo(0.0073, 4);
+    expect(out.costUsd).toBeLessThanOrEqual(CAPTION_CHECK.estimatedUsd);
+    expect(costs.entries).toHaveLength(2); // entrada + saída, como o modo antigo
+    expect(costs.entries.every((e) => e.variationBatchId === 'b1' && e.creativeId === 'c1' && e.kind === 'LLM')).toBe(true);
+    expect(schemaStats(CAPTION_SWAP_SCHEMA)).toMatchObject({ unions: 0, optional: 0 });
+  });
+
+  it('o modo antigo (avoid/replace) segue pelo mesmo método, com o schema antigo', async () => {
+    const t = new T({ frames: FRAMES.map((_, k) => row(k + 1)) });
+    const svc = new ClaudeLiveService(t, new MemoryCostStore(), { model: 'claude-opus-5-5', runFfmpeg: async () => JPG, fetchImpl: jpgFetch });
+    expect((await svc.checkCaption(INPUT)).status).toBe('ok');
+    expect(t.calls[0].schema).toBe(CAPTION_CHECK_SCHEMA);
+  });
+
+  it('veredito: tudo limpo = ok; ghost/smear com motivo em 1 quadro = residue; sem motivo em 1 = tolera; 2 = residue', () => {
+    expect(v(all).status).toBe('ok');
+    const g = v(all.map((r, k) => (k === 1 ? { ...r, ghost: true, reason: 'old letters visible above the new line' } : r)));
+    expect(g).toMatchObject({ status: 'residue', ghostFrames: [1], smearFrames: [] });
+    expect(g.frames[1]).toMatchObject({ index: 1, atSec: 9, ok: false, ghost: true, smear: false, problem: 'ghost', reason: 'old letters visible above the new line' });
+    const s = v(all.map((r, k) => (k === 4 ? { ...r, smear: true, reason: 'blur patch left of the text' } : r)));
+    expect(s).toMatchObject({ status: 'residue', smearFrames: [4] });
+    expect(v(all.map((r, k) => (k === 4 ? { ...r, smear: true, reason: 'none' } : r))).status).toBe('ok');
+    expect(v(all.map((r, k) => (k >= 4 ? { ...r, smear: true, reason: '' } : r))).status).toBe('residue');
+    expect(v(all.map((r, k) => (k === 0 ? { ...r, ghost: true, smear: true, reason: 'both' } : r))).frames[0]).toMatchObject({ ghost: true, smear: true, problem: 'ghost' });
+  });
+
+  it('sem legenda: 1 quadro tolera, 2 reprovam; texto errado e quadro esquecido', () => {
+    expect(v(all.map((r, k) => (k === 2 ? { ...r, captionVisible: false, seen: '' } : r))).status).toBe('ok');
+    expect(v(all.map((r, k) => (k === 2 || k === 3 ? { ...r, captionVisible: false, seen: '' } : r))).status).toBe('residue');
+    expect(v(all.map((r, k) => (k === 0 ? { ...r, seen: 'xyz qwk' } : r))).frames[0].problem).toBe('wrong_text');
+    expect(v(all.slice(0, 5)).frames[5]).toMatchObject({ ok: false, problem: 'missing' });
+    expect(v(all.map((r, k) => (k === 3 ? { ...r, legible: false } : r))).frames[3].problem).toBe('illegible');
+  });
+
+  it('fake determinístico: ok por padrão; [mock:swap-ghost] e [mock:swap-smear] reprovam os 2 primeiros; custo gravado', async () => {
+    const costs = new MemoryCostStore();
+    const f = new FakeClaudeService(costs, { model: 'mock', stepMs: 0 });
+    expect((await f.checkCaption(IN)).status).toBe('ok');
+    const g = await f.checkCaption({ ...IN, notes: '[mock:swap-ghost]' });
+    expect(g).toMatchObject({ status: 'residue', ghostFrames: [0, 1], smearFrames: [] });
+    const s = await f.checkCaption({ ...IN, notes: '[mock:swap-smear]' });
+    expect(s).toMatchObject({ status: 'residue', smearFrames: [0, 1] });
+    expect(costs.entries).toHaveLength(3);
+    await expect(f.checkCaption({ ...IN, notes: '[mock:caption-fail]' })).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE' });
   });
 });

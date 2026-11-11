@@ -569,6 +569,9 @@ export const molduraSchema = z.object({
   /** legenda-protegida-v1 §2: 'avoid' = o layout desvia da legenda queimada; 'replace' = o vídeo foi recortado sem ela
    *  (contentBox − faixa) e a nossa legenda entra no estilo da original */
   captionMode: z.enum(['avoid', 'replace']).optional(),
+  /** F2 (troca de legenda): as faixas de texto queimado (`burnedTextBands`) são a ESCONDER com bloco opaco (o retoque da placa), não a desviar: o layout pula o
+   *  desvio e vai direto à variante que cobre (question_box, ranking, story). Só a entrada da troca liga. */
+  cobrirFaixas: z.boolean().optional(),
   /** faixa da legenda no vídeo renderizado (checagem por visão); a composição ignora */
   outputProtectedBands: z.array(outputProtectedBandSchema).optional(),
   /** editor universal v1 (F-U1, `resolverPropsMoldura`): caixas mexidas/escondidas pelo doc, px do canvas. `de` = caixa do
@@ -658,7 +661,7 @@ export interface FrameLayout {
 }
 
 type Faixa = { y0: number; y1: number; protegida?: boolean };
-type Ctx = { f: VideoFormat; W: number; H: number; safe: { top: number; bottom: number }; ui: FrameUi; slideImage: boolean; cjk: CjkFont; faixas: Faixa[] };
+type Ctx = { cobrir?: boolean; f: VideoFormat; W: number; H: number; safe: { top: number; bottom: number }; ui: FrameUi; slideImage: boolean; cjk: CjkFont; faixas: Faixa[] };
 /** Faixa de texto queimado (px da saída) que encosta em [y0, y1], com 8 px de folga; a de maior sobreposição. */
 const colide = (c: Ctx, y0: number, y1: number): Faixa | null => {
   let melhor: Faixa | null = null, mx = 0;
@@ -706,7 +709,7 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
       const topo = c.safe.top + n.avatar / 2 + 6, fundoMax = c.H - c.safe.bottom;
       let feito = false;
       const yAbaixo = b.y1 + n.avatar / 2 + 24;
-      for (let m = opQ.maxLines; m >= 1 && !feito; m--) {
+      for (let m = opQ.maxLines; m >= 1 && !feito && !c.cobrir; m--) {
         const f = fitC(c, t.question, { ...opQ, maxLines: m });
         if (f.fits && yAbaixo + alturaCartao(f) <= fundoMax && livre(c, yAbaixo - n.avatar / 2, yAbaixo + alturaCartao(f), true)) { q = f; cardH = alturaCartao(f); y = yAbaixo; feito = true; }
       }
@@ -718,7 +721,7 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
         const yCobre = clamp(Math.round(b.y0 - (hL - (b.y1 - b.y0)) / 2), topo, fundoMax - hL);
         if (hL >= b.y1 - b.y0 + 24 && livre(c, yCobre - n.avatar / 2, yCobre + hL, true)) { n.cardW = largo; q = qL; cardH = hL; y = yCobre; feito = true; }
       }
-      if (!feito) {
+      if (!feito && !c.cobrir) {
         const v = clamp(b.y0 - 24 - cardH, topo, fundoMax - cardH);
         if (livre(c, v - n.avatar / 2, v + cardH, true)) y = v;
       }
@@ -865,7 +868,7 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
         { y: b.y1 + 16, h: listH, opaco: 0 }, { y: b.y0 - 16 - listH, h: listH, opaco: 0 },
         { y: Math.max(topoMin, b.y0 - 8), h: listHColada, opaco: 1 }, { y: b.y1 + 8 - listHColada, h: listHColada, opaco: 1 },
       ];
-      const ok = opcoes.find((o) => o.y >= topoMin && o.y + o.h <= fimLista && livre(c, o.y, o.y + o.h, o.opaco === 1));
+      const ok = opcoes.filter((o) => !c.cobrir || o.opaco === 1).find((o) => o.y >= topoMin && o.y + o.h <= fimLista && livre(c, o.y, o.y + o.h, o.opaco === 1));
       if (ok) { listY = ok.y; listH = ok.h; opaco = ok.opaco; if (opaco) n.itemGap = 4; }
     }
     return { videoBox: R(0, 0, c.W, c.H), slots: { card: R(n.cardX, n.cardY, c.W - 2 * n.cardX, cardH), list: R(M, listY, c.W - 2 * M, listH) }, text, items, n: { ...n, itemW, itemH, listY, opaco }, bg: '#000' };
@@ -1011,11 +1014,11 @@ const LAYOUTS: { [K in FrameTemplateId]: (c: Ctx, t: FrameTextsMap[K]) => Lay } 
     const normalOk = livre(c, topoNormal, topoNormal + greenH, true) && (!supH || livre(c, supY, supY + supH + n.gap, false)) && livre(c, fim - copyH, fim, true)
       && livre(c, topoNormal + greenH, topoNormal + greenH + n.gap, false);
     let storyTop = -1, storyCobre = 0;
-    if (!normalOk) {
+    if (!normalOk || (c.cobrir && colide(c, topoNormal, fim))) {
       const b = colide(c, topoNormal, fim)!;
       const t0 = b.y0 - 12, h2 = greenH + 6 + copyH + (supH ? n.gap + supH : 0);
       if (t0 + greenH + 6 + copyH >= b.y1 + 8 && t0 + h2 <= fim && livre(c, t0, t0 + greenH + 6 + copyH, true)) { storyTop = t0; storyCobre = 1; }
-      else if (b.y1 + 16 + grupoH <= fim) storyTop = b.y1 + 16;
+      else if (!c.cobrir && b.y1 + 16 + grupoH <= fim) storyTop = b.y1 + 16;
     }
     // slots de verdade (pra checagem da legenda protegida): o cartão de cima e o bloco de baixo; `column` é só a coluna
     const cartaoH = 2 * n.headPad + alturaLinhaNormal('inter-800', n.headSize) + 2 * n.bodyPadY + 6 + text.question.height;
@@ -1050,6 +1053,8 @@ export const unirFaixas = (fs: Faixa[]) => {
  *  page_capture) pra mostrar dentro do slide da apresentação. */
 export interface FrameLayoutOptions {
   slideImage?: boolean;
+  /** F2: prefere cobrir as faixas com bloco opaco a desviar delas (ver `MolduraProps.cobrirFaixas`) */
+  cobrir?: boolean;
   /** faixas de legenda queimada em px da SAÍDA (faixasNaSaida): os textos sobre o vídeo cheio desviam delas */
   faixas?: Faixa[];
 }
@@ -1060,7 +1065,7 @@ export const opcoesDeLayout = (second: { kind: string } | null | undefined): Fra
 
 export const frameLayout = <K extends FrameTemplateId>(id: K, format: VideoFormat, texts: FrameTextsMap[K], language = 'pt', opts: FrameLayoutOptions = {}): FrameLayout => {
   const { width: W, height: H } = FORMATOS[format];
-  const c: Ctx = { f: format, W, H, safe: FRAME_SAFE[format], ui: frameUi(language), slideImage: !!opts.slideImage && id === 'call', cjk: cjkDe(language), faixas: unirFaixas(opts.faixas ?? []) };
+  const c: Ctx = { cobrir: !!opts.cobrir, f: format, W, H, safe: FRAME_SAFE[format], ui: frameUi(language), slideImage: !!opts.slideImage && id === 'call', cjk: cjkDe(language), faixas: unirFaixas(opts.faixas ?? []) };
   const l = (LAYOUTS[id] as (c: Ctx, t: FrameTextsMap[K]) => Lay)(c, texts);
   return { id, format, canvas: { w: W, h: H }, safe: c.safe, ...l };
 };
@@ -1072,7 +1077,7 @@ export const textosQueNaoCouberam = (l: FrameLayout) => Object.entries(l.text).f
  * Layout da peça inteira (o que a composição desenha e o buildFrameInput valida): frameLayout com a imagem do slide
  * (call) e as faixas de legenda queimada do campeão já mapeadas pra saída (pelo reenquadramento da caixa do vídeo).
  */
-export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'frame' | 'video' | 'second' | 'captionMode'> & Partial<Pick<MolduraProps, 'edicao'>>): FrameLayout => {
+export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'frame' | 'video' | 'second' | 'captionMode'> & Partial<Pick<MolduraProps, 'edicao' | 'cobrirFaixas'>>): FrameLayout => {
   const ev = p.edicao?.video;
   if (ev) {
     // editor F-U2: textos no layout da base (mesmo enquadramento de antes); só a caixa do vídeo muda
@@ -1093,5 +1098,5 @@ export const layoutDaPeca = (p: Pick<MolduraProps, 'format' | 'language' | 'fram
     ...faixasNaSaida(prot, p.video.source, p.video.reframe, L0.videoBox, cb, 0).map((f) => ({ ...f, protegida: true })),
     ...(p.video.faceSafeBand ? faixasNaSaida([{ y: p.video.faceSafeBand.y, h: p.video.faceSafeBand.h, startSec: 0, endSec: p.video.source.durationSec }], p.video.source, p.video.reframe, L0.videoBox, cb, 0).map((f) => ({ ...f, protegida: true })) : []),
   ];
-  return faixas.length ? frameLayout(id, p.format, texts, p.language, { ...base, faixas }) : L0;
+  return faixas.length ? frameLayout(id, p.format, texts, p.language, { ...base, faixas, cobrir: !!p.cobrirFaixas }) : L0;
 };

@@ -58,6 +58,7 @@ describe('wordsAt / cropOf / captionTargetOf', () => {
 describe('peça (pecas.ts)', () => {
   it('captionNote = replaced só no modo replace', () => {
     expect(captionNoteOf({ captionMode: 'replace' })).toBe('replaced');
+    expect(captionNoteOf({ captionMode: 'swap' })).toBe('swapped');
     expect(captionNoteOf({ captionMode: 'avoid' })).toBeNull();
     expect(captionNoteOf(null)).toBeNull();
   });

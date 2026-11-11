@@ -69,6 +69,7 @@ import type { RewriteHeadlineFitInput } from '../contrato';
 import type { CheckStaticTextInput, CheckStaticTextResult, StaticTextCheckPort } from '../contrato';
 import type { CaptionCheckPort, CheckCaptionInput } from '../contrato';
 import type { CheckCaptionInputAny, CheckCaptionVerdict } from '../claude/checagem-legenda';
+import { isSwapInput, type CaptionSwapVerdict, type CheckCaptionSwapInput } from '../claude/checagem-legenda-swap';
 
 /** Erro de grafia determinístico do mock (o defeito real visto no 1k: "volta" → "vólta"). Tira o 1º acento, se houver;
  *  senão põe um agudo na 1ª vogal sem acento. */
@@ -493,10 +494,25 @@ export class FakeClaudeService implements ClaudeService, StaticTextCheckPort, Ca
    * legenda-protegida-v1 §4.2 mock: lê a legenda esperada em todo quadro (ok). `[mock:caption-covered]` nas notas = os
    * quadros do meio com a legenda tampada (`covered`); `[mock:caption-fail]` = a checagem falha (o backend marca `skipped`).
    */
-  async checkCaption(i: CheckCaptionInputAny): Promise<CheckCaptionVerdict & Usage> {
+  async checkCaption(i: CheckCaptionSwapInput): Promise<CaptionSwapVerdict & Usage>;
+  async checkCaption(i: CheckCaptionInputAny): Promise<CheckCaptionVerdict & Usage>;
+  async checkCaption(i: CheckCaptionInputAny | CheckCaptionSwapInput): Promise<(CheckCaptionVerdict | CaptionSwapVerdict) & Usage> {
     await this.pause();
     const notes = i.notes ?? '';
     if (notes.includes('[mock:caption-fail]')) throw new IntegracaoError('PROVIDER_UNAVAILABLE', 'mock caption check failure');
+    if (isSwapInput(i)) {
+      // F2: determinístico. [mock:swap-ghost] = fantasma nos 2 primeiros quadros (os piores); [mock:swap-smear] = borrão nos 2 primeiros.
+      await this.costs.record({ workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0 });
+      const wantGhost = notes.includes('[mock:swap-ghost]');
+      const wantSmear = notes.includes('[mock:swap-smear]');
+      const frames = i.frames.slice(0, 6).map((f, k) => {
+        const ghost = wantGhost && k < 2;
+        const smear = wantSmear && k < 2;
+        const problem = ghost ? ('ghost' as const) : smear ? ('smear' as const) : null;
+        return { index: k, atSec: f.atSec, ok: !problem, ghost, smear, seen: ghost || smear ? (f.expectedWords?.join(' ') ?? 'mock caption') : f.expectedWords?.join(' ') ?? 'mock caption', problem, reason: ghost ? 'mock: old letters visible above the new subtitle' : smear ? 'mock: blur patch where the old subtitle was' : null };
+      });
+      return { status: wantGhost || wantSmear ? 'residue' : 'ok', frames, ghostFrames: frames.filter((f) => f.ghost).map((f) => f.index), smearFrames: frames.filter((f) => f.smear).map((f) => f.index), costUsd: 0 };
+    }
     await this.costs.record({ workspaceId: i.workspaceId, creativeId: i.creativeId, variationBatchId: i.variationBatchId, provider: 'ANTHROPIC', kind: 'LLM', model: this.opts.model, units: 0, unit: 'ktoken_out', amountUsd: 0 });
     const covered = notes.includes('[mock:caption-covered]');
     const n = i.frames.length;

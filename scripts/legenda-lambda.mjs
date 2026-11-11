@@ -32,6 +32,7 @@ const MEM = Number(process.env.PLATE_LAMBDA_MEM_MB || 3008);
 const DIR = path.join(raiz, '.infra', 'legenda-lambda');
 const PY = path.join(raiz, 'api', 'src', 'medicao', 'troca', 'py');
 const FONTES = path.join(raiz, 'video', 'public', 'fonts');
+const FONTES_LEG = path.join(PY, 'fontes_legenda');
 const BASE = { repo: 'lambda/python', tag: '3.12', arch: 'amd64' };
 const ARQ_LAMBDA = 'x86_64';
 // 7.0.2-static; md5 7fa72b652e19bf84c9461e332ea1cdf3 = o .md5 publicado em 06/11
@@ -84,6 +85,9 @@ async function build() {
   mkdirSync(path.join(task, 'fontes', 'licenses'), { recursive: true });
   for (const f of readdirSync(FONTES)) if (f.endsWith('.woff2')) cpSync(path.join(FONTES, f), path.join(task, 'fontes', f));
   for (const f of readdirSync(path.join(FONTES, 'licenses'))) cpSync(path.join(FONTES, 'licenses', f), path.join(task, 'fontes', 'licenses', f));
+  // fontes da LEGENDA (F2, leg_fontes.py): TTFs OFL empacotados em py/fontes_legenda (Gabarito, Poppins 800/900, Montserrat, Archivo, Manrope, Inter, TikTok Sans)
+  mkdirSync(path.join(task, 'fontes_legenda'), { recursive: true });
+  for (const f of readdirSync(FONTES_LEG)) if (f.endsWith('.ttf')) cpSync(path.join(FONTES_LEG, f), path.join(task, 'fontes_legenda', f));
   for (const [n, v] of WHEELS) sh('unzip', ['-q', '-o', await wheel(n, v), '-d', task]);
   // libfribidi em /var/task/lib (está no LD_LIBRARY_PATH da imagem Python da AWS)
   const deb = await baixar(FRIBIDI.url, path.join(DIR, 'cache', path.basename(FRIBIDI.url)), FRIBIDI.sha256);

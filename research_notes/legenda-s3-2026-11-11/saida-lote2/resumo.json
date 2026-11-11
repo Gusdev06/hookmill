@@ -1,0 +1,350 @@
+{
+ "11": {
+  "detectar": {
+   "s": 69.063,
+   "custoUsd": 0.00336501506295
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "not_detected",
+   "gates": {
+    "duracao_s": 33.93333333333333,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.7236,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0.3112,
+    "iou_mediana": 0.3845,
+    "herdados": 0.8993,
+    "estilo_var": 0.0935,
+    "fundo_lap": 47.64,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.6280552603613178
+   }
+  },
+  "estilo": {
+   "fontId": "gabarito-900",
+   "tamPx": 59,
+   "tracking": -0.08,
+   "espaco": 0.2,
+   "strokePx": 3,
+   "sombra": [
+    3,
+    4
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 4,
+   "linhas": 1,
+   "baseY": 897,
+   "centroX": 346
+  },
+  "trechos": 139,
+  "atrasoSec": 0.503,
+  "caixa": false,
+  "faixa": [
+   118,
+   1081
+  ],
+  "quadros": 1018,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1018,
+    "pedaco_max_s": 121.864,
+    "pico_MB": 1587,
+    "quadros_placa": 1018,
+    "conferir_s": 23.855,
+    "janelas": 58,
+    "janelas_ruins_pct": 1,
+    "ruim_gancho_s": 3,
+    "ruim_pct": 1,
+    "lisura_min": 0.19606144167482853,
+    "trem_max": 12.95261302515691,
+    "degrau_max": 10.965449015299479,
+    "letra_p95_pct": 1.583,
+    "fora_buraco_media": 0.9212335932409733,
+    "salto_emenda_db_min": 23.446397242053145,
+    "cor_deslocamento": 0
+   },
+   "sizeBytes": null,
+   "costUsd": 0.024423244676124996,
+   "ms": 147169,
+   "pioresQuadros": [
+    172,
+    300,
+    375,
+    435,
+    615,
+    685
+   ],
+   "s": 149.969
+  }
+ },
+ "27": {
+  "detectar": {
+   "s": 41.946,
+   "custoUsd": 0.00203726240745
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "font_mismatch",
+   "gates": {
+    "duracao_s": 33.9,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.945,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0,
+    "iou_mediana": 0.5005,
+    "herdados": 0.0625,
+    "estilo_var": 0.0278,
+    "fundo_lap": 35.63,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.8171487603305785
+   }
+  },
+  "estilo": {
+   "fontId": "archivo-w125-900",
+   "tamPx": 35,
+   "tracking": 0.02,
+   "espaco": 0.2,
+   "strokePx": 4,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 1,
+   "linhas": 1,
+   "baseY": 984,
+   "centroX": 361
+  },
+  "trechos": 48,
+  "atrasoSec": -0.047,
+  "caixa": false,
+  "faixa": [
+   918,
+   1022
+  ],
+  "quadros": 1017,
+  "placa": {
+   "status": "READY",
+   "reason": null,
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1017,
+    "pedaco_max_s": 44.261,
+    "pico_MB": 534,
+    "quadros_placa": 1017,
+    "conferir_s": 13.2,
+    "janelas": 58,
+    "janelas_ruins_pct": 0.034482758620689655,
+    "ruim_gancho_s": 0,
+    "ruim_pct": 0.034482758620689655,
+    "lisura_min": 0.4581957856814067,
+    "trem_max": 2.0787403732882495,
+    "degrau_max": 3.1988751729329428,
+    "letra_p95_pct": 0,
+    "fora_buraco_media": 1.2064271796196666,
+    "salto_emenda_db_min": 18.77718447875213,
+    "cor_deslocamento": 1.2064271796196666
+   },
+   "sizeBytes": 27093777,
+   "costUsd": 0.008858527088418751,
+   "ms": 59285,
+   "pioresQuadros": [
+    435,
+    631,
+    676,
+    691,
+    736,
+    822
+   ],
+   "s": 62.077
+  }
+ },
+ "54": {
+  "detectar": {
+   "s": 42.805,
+   "custoUsd": 0.0020788281155812503
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "font_mismatch",
+   "gates": {
+    "duracao_s": 33.93333333333333,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.9513,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0,
+    "iou_mediana": 0.4973,
+    "herdados": 0.125,
+    "estilo_var": 0.027,
+    "fundo_lap": 34.98,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.743801652892562
+   }
+  },
+  "estilo": {
+   "fontId": "archivo-w125-900",
+   "tamPx": 35,
+   "tracking": 0,
+   "espaco": 0.5,
+   "strokePx": 4,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#ffffff",
+   "corDestaque": null,
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 1,
+   "linhas": 1,
+   "baseY": 986,
+   "centroX": 362
+  },
+  "trechos": 48,
+  "atrasoSec": -0.017,
+  "caixa": false,
+  "faixa": [
+   918,
+   1022
+  ],
+  "quadros": 1018,
+  "placa": {
+   "status": "READY",
+   "reason": null,
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1018,
+    "pedaco_max_s": 44.125,
+    "pico_MB": 574,
+    "quadros_placa": 1018,
+    "conferir_s": 12.987,
+    "janelas": 60,
+    "janelas_ruins_pct": 0.06666666666666667,
+    "ruim_gancho_s": 0,
+    "ruim_pct": 0.06666666666666667,
+    "lisura_min": 0.47940606077512105,
+    "trem_max": 2.074124011895849,
+    "degrau_max": 3.5854256369850854,
+    "letra_p95_pct": 0,
+    "fora_buraco_media": 1.2089215263197837,
+    "salto_emenda_db_min": 30.31559370092227,
+    "cor_deslocamento": 1.2089215263197837
+   },
+   "sizeBytes": 25322714,
+   "costUsd": 0.00902527950525625,
+   "ms": 59128,
+   "pioresQuadros": [
+    232,
+    378,
+    438,
+    677,
+    692,
+    823
+   ],
+   "s": 61.894
+  }
+ },
+ "05": {
+  "detectar": {
+   "s": 50.835,
+   "custoUsd": 0.0023239140224187503
+  },
+  "veredito": {
+   "swap": false,
+   "reason": "font_mismatch",
+   "gates": {
+    "duracao_s": 49,
+    "alfabeto_fora": 0,
+    "emoji_legenda": 0,
+    "cobertura": 0.9065,
+    "contorno": 1,
+    "linhas": 1,
+    "animacao": 0,
+    "iou_mediana": 0.2425,
+    "herdados": 0.9895,
+    "estilo_var": 0,
+    "fundo_lap": 11.08,
+    "pessoa_rosto": 1,
+    "pessoa_fala": 0.6493860845839018
+   }
+  },
+  "estilo": {
+   "fontId": "gabarito-900",
+   "tamPx": 108,
+   "tracking": -0.08,
+   "espaco": 0.5,
+   "strokePx": 5,
+   "sombra": [
+    0,
+    0
+   ],
+   "corTexto": "#f6f6f6",
+   "corDestaque": "#bfbb20",
+   "corTraco": "#000000",
+   "caixaDestaque": null,
+   "palavrasPorPagina": 2,
+   "linhas": 1,
+   "baseY": 381,
+   "centroX": 358
+  },
+  "trechos": 285,
+  "atrasoSec": 0.82,
+  "caixa": false,
+  "faixa": [
+   110,
+   503
+  ],
+  "quadros": 1470,
+  "placa": {
+   "status": "REJECTED",
+   "reason": "plate_rejected",
+   "metrics": {
+    "pedacos": 4,
+    "quadros": 1470,
+    "pedaco_max_s": 222.299,
+    "pico_MB": 848,
+    "quadros_placa": 1470,
+    "conferir_s": 26.704,
+    "janelas": 72,
+    "janelas_ruins_pct": 0.8611111111111112,
+    "ruim_gancho_s": 3,
+    "ruim_pct": 0.8611111111111112,
+    "lisura_min": 0.32662220299243927,
+    "trem_max": 5.2220442717246875,
+    "degrau_max": 26.06935831705729,
+    "letra_p95_pct": 22.02,
+    "fora_buraco_media": 0.4792728294433064,
+    "salto_emenda_db_min": 15.485874305641161,
+    "cor_deslocamento": 0
+   },
+   "sizeBytes": null,
+   "costUsd": 0.034969723060706254,
+   "ms": 250677,
+   "pioresQuadros": [
+    863,
+    878,
+    893,
+    908,
+    953,
+    983
+   ],
+   "s": 253.447
+  }
+ }
+}

@@ -21,7 +21,7 @@ import { NavIcon } from "@/components/shell/nav-icon"
 import { FlowBar } from "@/components/flow-bar"
 import { AnalyzeScreen } from "@/components/iterate/analyze-screen"
 import { BatchError, BatchSkeleton } from "@/components/iterate/batch-screen"
-import { CleanVersionUpload } from "@/components/iterate/captions"
+import { CleanVersionUpload, swapReasonOf } from "@/components/iterate/captions"
 import { DownloadScreen } from "@/components/iterate/download-screen"
 import { GenerateScreen } from "@/components/iterate/generate-screen"
 import { Bar, Card, HeadlineChange, HeadlineMarks, IterActionBar, IterWrap, PieceKind, TemplateFlowContext, TypeThumb, pieceType, usePieceName } from "@/components/iterate/parts"
@@ -470,6 +470,9 @@ function FitBanner({ batch, tpl }: { batch: IterateBatch; tpl: IterateTemplateRu
   const soft = tpl.fit.level === "soft" || !!batch.insight?.captionBlocked?.length
   const hard = tpl.fit.level === "hard"
   const pending = tpl.fit.reason === "headline_pending"
+  // troca-texto-queimado-v1 §15.8 (F2): the captions couldn't be redone: the reason, in words (fit or the plan's blocked list)
+  const tc = useTranslations("captions")
+  const swapWhy = swapReasonOf(tpl.fit) ?? swapReasonOf(batch.insight?.captionBlocked?.[0])
   // captions blocked some templates of the plan, others stayed: nothing gets covered, part of it just stays out
   const partial = batch.pieces.length > 0
   const replan = useMutation({
@@ -503,6 +506,7 @@ function FitBanner({ batch, tpl }: { batch: IterateBatch; tpl: IterateTemplateRu
     <div role="status" className="grid gap-2.5 rounded-lg border border-status-waiting-edge bg-status-waiting-bg p-3.5 text-status-waiting tablet:px-4">
       <b>{partial ? t("softPartialTitle") : t("softTitle")}</b>
       <p className="m-0 text-fg-2">{partial ? t("softPartialBody") : t("softBody", { name: tpl.name })}</p>
+      {swapWhy ? <p className="m-0 text-fg-3">{tc("swapWhy", { reason: tc(`swapReason.${swapWhy}` as never) })}</p> : null}
       <div className="flex flex-wrap items-start gap-2">
         {cleanSent ? (
           <Button size="sm" variant="brand" disabled={replan.isPending} aria-busy={replan.isPending} onClick={() => replan.mutate()}>
