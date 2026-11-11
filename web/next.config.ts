@@ -8,7 +8,6 @@ const withNextIntl = createNextIntlPlugin()
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@maquina/video"],
-  ...(process.env.TURBOPACK_ROOT && { turbopack: { root: process.env.TURBOPACK_ROOT } }), // worktree: node_modules aponta pro checkout principal
 }
 
 export default withNextIntl(nextConfig)
