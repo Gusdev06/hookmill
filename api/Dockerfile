@@ -67,6 +67,9 @@ RUN npm ci --omit=dev -w api -w video -w contratos \
 COPY --from=build /app/api/dist api/dist
 COPY --from=build /app/api/prisma api/prisma
 COPY --from=build /app/video/dist video/dist
+# troca de texto (headline/legenda): medida e prova leem as TTFs daqui (pastaDeFontes em medicao/troca/prova.ts) — sem elas o Nest não sobe
+COPY --from=build /app/video/public/fonts video/public/fonts
+COPY --from=build /app/video/public/fonts-legenda video/public/fonts-legenda
 COPY scripts/api-start.sh scripts/api-start.sh
 
 ENV NODE_ENV=production \
