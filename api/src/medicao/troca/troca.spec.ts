@@ -389,8 +389,8 @@ describe('troca de texto: legenda (F2, porta + fake)', () => {
   });
 
   it('portões pós-placa apertados: o pior dos que passam passa, logo acima; 09 e 37 reprovam', () => {
-    // pior por medida entre 30, 27, 54, 07 e 26 (Lambda de teste): ruim_pct 0,77 (07), gancho 1,0 (30, 07), letra 3,45 (07), fora 1,22 (54)
-    const pior = { quadros: 900, quadros_placa: 900, ruim_pct: 0.77, ruim_gancho_s: 1.0, letra_p95_pct: 3.45, fora_buraco_media: 1.22, cor_deslocamento: 0 };
+    // pior por medida entre 30, 27, 54, 07 e 26 (Lambda de teste): ruim_pct 0,77 (07), gancho 1,0 (30, 07), letra 4,42 (02, modo livre 12/11; antes 3,45 do 07), fora 1,22 (54)
+    const pior = { quadros: 900, quadros_placa: 900, ruim_pct: 0.77, ruim_gancho_s: 1.0, letra_p95_pct: 4.42, fora_buraco_media: 1.22, cor_deslocamento: 0 };
     expect(avaliarPlacaLegenda(pior)).toBeNull();
     expect(PORTOES_PLACA.ruimPct - pior.ruim_pct).toBeLessThan(0.05);
     expect(PORTOES_PLACA.ruimGanchoS - pior.ruim_gancho_s).toBeLessThanOrEqual(0.5);

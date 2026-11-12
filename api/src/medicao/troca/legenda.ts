@@ -119,7 +119,9 @@ export const PORTOES_LEGENDA = {
  * letra_p95_pct 0,5 → 17 → 4 (07 = 3,45; 09 = 8,44 Lambda / 15 Mac); fora_buraco_media 1,5 → 1,65 → 1,3 (54 = 1,22; 09 = 1,56; 37 = 1,51).
  * O `ruim_pct` não separa o 07 do 09 (0,77 × 0,74): quem reprova o 09 é a letra detectável (as setas) e o fora do buraco.
  */
-export const PORTOES_PLACA = { ruimPct: 0.8, ruimGanchoS: 1.5, letraP95Pct: 4, foraBuracoMedia: 1.3, corDeslocamento: 1.3 } as const;
+// 12/11 (modo livre, decisão do Claude com delegação do Gusta): letra p95 4 → 5 — libera o 02 (4,42, caixa mista) e o 07 em
+// 720p (4,17); o 09 (8,44, setas brancas) segue reprovado. Gancho e cor ficam (o 00 tinha borrão visível).
+export const PORTOES_PLACA = { ruimPct: 0.8, ruimGanchoS: 1.5, letraP95Pct: 5, foraBuracoMedia: 1.3, corDeslocamento: 1.3 } as const;
 
 /**
  * Antes da placa (§15.6.1, tabela 1). Pura e determinística: a mesma no fake, no teste e na orquestra.
