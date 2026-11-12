@@ -122,6 +122,8 @@ const STUCK_SUBMIT_MS = 2 * 60_000;
  *  processo morrer, a recuperação do boot devolve o render; aqui só um teto pra trava de verdade. */
 const STUCK_BUILD_MS = 15 * 60_000;
 const POLL_PARALLEL = 20;
+/** 12/11: finalizações do lambda ao mesmo tempo (download + ffmpeg + upload + checagem na VPS). FINALIZE_PARALLEL no env. */
+const FINALIZE_PARALLEL = Math.max(1, Number(process.env.FINALIZE_PARALLEL) || 3);
 
 type RenderRow = Prisma.RenderGetPayload<{ include: { creative: true } }>;
 /** O que o builder da peça AUTO precisa do render (o editor monta a base com um id próprio, sem linha de render). */
@@ -576,6 +578,8 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   private readonly finalizeTries = new Map<string, number>();
   private pollTimer: NodeJS.Timeout | null = null;
   private polling = false;
+  /** finalizações do lambda em andamento (disparadas pelo poller, sem bloquear o ciclo) */
+  private finalizing = 0;
 
   onModuleInit() {
     for (const p of this.ports.todos()) {
@@ -907,7 +911,17 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     if (snap.state === 'running') return this.writeProgress(r.id, snap, true);
-    if (snap.state === 'done') return this.settle(r.id);
+    if (snap.state === 'done') {
+      // 12/11: o poller NÃO espera a finalização (download + ffmpeg + upload + checagem: minutos na VPS). Antes, um
+      // render pronto segurava o ciclo inteiro e os outros prontos esperavam ~6 min pra serem pegos. Agora dispara e
+      // segue, com no máximo FINALIZE_PARALLEL ao mesmo tempo; quem não couber fica `done` e entra no próximo ciclo.
+      if (this.finalizing >= FINALIZE_PARALLEL) return;
+      this.finalizing++;
+      void this.settle(r.id)
+        .catch((e: unknown) => this.log.warn(`settle ${r.id}: ${(e as Error).message}`))
+        .finally(() => { this.finalizing--; this.kick(); });
+      return;
+    }
     return this.handleFailed(r.id, snap);
   }
 
