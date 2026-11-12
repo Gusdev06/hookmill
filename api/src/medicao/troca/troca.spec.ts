@@ -351,7 +351,7 @@ describe('troca de texto: legenda (F2, porta + fake)', () => {
   ];
 
   it('portões pré-placa apertados: 30, 27, 54, 07 e 26 passam; cada limite fica logo acima do pior deles', () => {
-    for (const [id, g] of Object.entries(APROVADOS)) expect({ id, ...avaliarPortoesLegenda(g) }).toEqual({ id, swap: true, reason: null });
+    for (const [id, g] of Object.entries(APROVADOS)) expect({ id, ...avaliarPortoesLegenda(g) }).toEqual({ id, swap: true, reason: null, estilo: 'copiado' });
     const max = (k: string) => Math.max(...Object.values(APROVADOS).map((g) => g[k]));
     const min = (k: string) => Math.min(...Object.values(APROVADOS).map((g) => g[k]));
     expect(min('cobertura') - PORTOES_LEGENDA.cobertura).toBeLessThan(0.01); expect(PORTOES_LEGENDA.cobertura).toBeLessThanOrEqual(min('cobertura'));
@@ -363,22 +363,29 @@ describe('troca de texto: legenda (F2, porta + fake)', () => {
     expect(min('pessoa_fala') - PORTOES_LEGENDA.pessoaFala).toBeLessThan(0.01);
   });
 
-  it('portões pré-placa: 09, 37 e os fora do escopo reprovam pelo motivo certo', () => {
-    for (const [id, g, motivo] of REPROVADOS) expect({ id, ...avaliarPortoesLegenda(g) }).toEqual({ id, swap: false, reason: motivo });
+  it('modo livre: 09, 37, 00 e 02 trocam com estilo padrão; 29 e 11 (cobertura baixa) seguem bloqueados', () => {
+    for (const [id, g, motivo] of REPROVADOS) {
+      const v = avaliarPortoesLegenda(g);
+      if (motivo === 'not_detected' && g.cobertura < 0.75) expect({ id, ...v }).toEqual({ id, swap: false, reason: 'not_detected', estilo: null });
+      else expect({ id, ...v }).toEqual({ id, swap: true, reason: null, estilo: 'padrao' });
+    }
   });
 
   it('portões pré-placa: ordem da tabela, duração e chave ausente não reprova', () => {
     const bom = APROVADOS['30'];
-    expect(avaliarPortoesLegenda({})).toEqual({ swap: true, reason: null });
+    expect(avaliarPortoesLegenda({})).toEqual({ swap: true, reason: null, estilo: 'copiado' });
     expect(avaliarPortoesLegenda({ ...bom, duracao_s: 61 }).reason).toBe('too_long');
     expect(avaliarPortoesLegenda({ ...bom, duracao_s: 61 }, { legendaMaxSec: 130 }).swap).toBe(true);
     expect(avaliarPortoesLegenda({ ...bom, iou_mediana: 0.482 }).swap).toBe(true);   // 0,482 (120 s) passa o IoU novo: o 120 s só reprova pela cobertura (0,74)
-    expect(avaliarPortoesLegenda({ ...bom, linhas: 2 }).reason).toBe('multi_line');   // 2 linhas continua reprovando (F2b)
+    expect(avaliarPortoesLegenda({ ...bom, linhas: 2 })).toMatchObject({ swap: true, estilo: 'padrao' });   // modo livre: 2 linhas = estilo padrão
+    expect(avaliarPortoesLegenda({ ...bom, linhas: 4 }).reason).toBe('multi_line');
     expect(avaliarPortoesLegenda({ ...bom, contorno: 0, cobertura: 0.5 }).reason).toBe('not_detected');
+    expect(avaliarPortoesLegenda({ ...bom, animacao: 0.4 }).reason).toBe('animated');
     expect(avaliarPortoesLegenda({ ...bom, contorno: 0 }).reason).toBe('no_outline');
-    expect(avaliarPortoesLegenda({ ...bom, pessoa_fala: 0.7 }).reason).toBe('no_person');
+    expect(avaliarPortoesLegenda({ ...bom, pessoa_fala: 0.7 })).toMatchObject({ swap: true, estilo: 'padrao' });
     expect(avaliarPortoesLegenda({ ...bom, alfabeto_fora: 1, duracao_s: 10 }).reason).toBe('script_unsupported');
-    expect(avaliarPortoesLegenda({ ...bom, fundo_lap: 41 }).reason).toBe('busy_background');
+    expect(avaliarPortoesLegenda({ ...bom, fundo_lap: 41 })).toMatchObject({ swap: true, estilo: 'padrao' });
+    expect(avaliarPortoesLegenda({ ...bom, fundo_lap: 46 }).reason).toBe('busy_background');
   });
 
   it('portões pós-placa apertados: o pior dos que passam passa, logo acima; 09 e 37 reprovam', () => {
@@ -469,9 +476,9 @@ describe('troca de texto: legenda (orquestra com executor falso)', () => {
     const longo = await o.detectarLegenda(ped({ durationSec: 90 }));
     expect(longo.captionTrack!.veredito).toMatchObject({ swap: false, reason: 'too_long' });
     expect(ex.eventos).toHaveLength(0);
-    const ex2 = new ExecFalso({ det: detFalso({ gates: { cobertura: 0.97, contorno: 1, iou_mediana: 0.2, herdados: 0.03 } }) });
+    const ex2 = new ExecFalso({ det: detFalso({ gates: { cobertura: 0.97, contorno: 0, iou_mediana: 0.2, herdados: 0.03 } }) });
     const rep = await new TrocaTextoOrquestrada(ex2, provaFalsa).detectarLegenda(ped());
-    expect(rep.captionTrack!.veredito).toMatchObject({ swap: false, reason: 'font_mismatch' });
+    expect(rep.captionTrack!.veredito).toMatchObject({ swap: false, reason: 'no_outline' });
     expect(rep.captionTrack!.artefato).toBeNull();
     expect(ex2.apagados.length).toBe(1);
     await expect(o.detectarLegenda(ped({ artefatoKey: undefined }))).rejects.toBeInstanceOf(ErroTroca);

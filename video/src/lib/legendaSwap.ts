@@ -104,6 +104,8 @@ export interface CaptionTrackLike {
   atrasoSec: number;
   fps: number;
   quadros: number;
+  /** modo livre (12/11): `veredito.estilo === 'padrao'` = o estilo do original não foi copiado; a legenda nova usa o estilo padrão do HookMill */
+  veredito?: { estilo?: 'copiado' | 'padrao' | null };
   estilo: {
     tamPx: number; strokePx: number; corTexto: string; corDestaque: string | null; corTraco: string; sombra: [number, number];
     caixaDestaque?: { cor: string; raioPx: number } | null; palavrasPorPagina: number;
@@ -154,6 +156,8 @@ export function paginasPorTempo(
  * mostra; a transcrição traz pontuação e não vale), com o tempo de cada palavra pela transcrição; cor do texto, traço, caixa da palavra da vez e tamanho
  * são os medidos. A fonte fica nula (as da legenda não estão no catálogo da moldura): Montserrat 800 em caixa alta. Pura.
  */
+/** Estilo padrão do HookMill (modo livre): branco, contorno escuro, destaque no karaokê, caixa alta, 2-3 palavras por página, sem pontuação. */
+export const ESTILO_PADRAO = { texto: '#ffffff', destaque: '#ffd400', traco: '#000000', tracoRel: 0.07, sizeRel: 0.042 } as const;
 export function legendaDoCaptionTrack(t: CaptionTrackLike, words: Array<{ word: string; startSec: number; endSec: number }>, language: string, sourceHeight: number) {
   // atraso da legenda reestimado (o do detector sai do alinhamento por largura e erra); as PALAVRAS são as da transcrição sem pontuação, no tempo da legenda.
   // As páginas ficam a cargo do `paginar` da moldura (frases curtas, até `wordsPerPage`): o detector parte a página a cada palavra que acende no karaokê e não
@@ -162,6 +166,15 @@ export function legendaDoCaptionTrack(t: CaptionTrackLike, words: Array<{ word: 
   const toks = words.map((w) => ({ k: limpaPalavra(w.word), s: w.startSec, e: w.endSec })).filter((w) => w.k);
   const ws = toks.map((w, i) => ({ word: w.k, startSec: Math.max(0, w.s + atrasoSec), endSec: Math.max(0, (toks[i + 1] ? Math.min(w.e, toks[i + 1].s) : w.e) + atrasoSec) }));
   const e = t.estilo;
+  if (t.veredito?.estilo === 'padrao') {
+    return {
+      words: ws, highlightColor: ESTILO_PADRAO.destaque, language,
+      style: {
+        fontId: null as string | null, uppercase: true, color: ESTILO_PADRAO.texto, highlightColor: ESTILO_PADRAO.destaque, strokeColor: ESTILO_PADRAO.traco,
+        strokeWidthRel: ESTILO_PADRAO.tracoRel, sizeRel: ESTILO_PADRAO.sizeRel, shadow: false, wordsPerPage: 3, highlightBox: null,
+      },
+    };
+  }
   return {
     words: ws, highlightColor: e.corDestaque ?? e.corTexto, language,
     style: {

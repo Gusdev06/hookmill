@@ -132,7 +132,8 @@ export function trackFake(i: DetectarLegendaInput, wordsPerPage: number, fontId:
     duracao_s: i.durationSec, alfabeto_fora: 0, emoji_legenda: 0, cobertura: 0.97, contorno: 1, linhas: 1, animacao: 0.01, iou_mediana: 0.76, herdados: 0.03,
     estilo_var: 0.01, pessoa_rosto: 0.98, pessoa_fala: 0.95, fundo_lap: 30, ...(motivo ? GATE_DO_MOTIVO[motivo] : {}),
   };
-  const v = avaliarPortoesLegenda(gates, { legendaMaxSec: i.legendaMaxSec });
+  // motivo forçado = bloqueio (modo livre: motivos de estilo viram 'padrao' nos portões reais, mas o fake força o bloqueio pra UI/teste dos bloqueados)
+  const v = motivo ? { swap: false, reason: motivo, estilo: null } : avaliarPortoesLegenda(gates, { legendaMaxSec: i.legendaMaxSec });
   return {
     version: 1, trechos: paginas,
     estilo: { fontId, tamPx: 47, tracking: 0.02, espaco: 1, strokePx: 3, sombra: [5, 3], corTexto: '#ffffff', corDestaque: '#f9fc09', corTraco: '#000000', caixaDestaque: null, palavrasPorPagina: wordsPerPage, linhas: 1 },
@@ -140,6 +141,6 @@ export function trackFake(i: DetectarLegendaInput, wordsPerPage: number, fontId:
     pegada: paginas.map((p) => ({ iniFrame: p.iniFrame, fimFrame: p.fimFrame, areaPx: box.w * box.h })),
     cortes: [], artefato: v.swap ? `fake/caption-data/${i.championId}.npz` : null, caixa: false, faixa: [box.y, box.y + box.h],
     quadros: m.frameCount, fps: m.fps,
-    veredito: { swap: v.swap, reason: v.reason, gates },
+    veredito: { swap: v.swap, reason: v.reason, estilo: v.estilo, gates },
   };
 }

@@ -63,6 +63,13 @@ describe('legendaSwap (troca de legenda, F2)', () => {
     expect(r.paginas[0].palavras.map((x) => x.texto)).toEqual(['IN', 'THE', 'MORNING']);
   });
 
+  it('legendaDoCaptionTrack: modo livre (estilo padrão) ignora o estilo medido: branco, contorno escuro, destaque, 3 palavras, sem caixa', () => {
+    const l = legendaDoCaptionTrack({ ...track, veredito: { estilo: 'padrao' } }, falas, 'en', 1280);
+    expect(l.style).toMatchObject({ color: '#ffffff', strokeColor: '#000000', uppercase: true, wordsPerPage: 3, highlightBox: null, shadow: false });
+    expect(l.style.sizeRel).toBeCloseTo(0.042, 3);
+    expect(legendaDoCaptionTrack({ ...track, veredito: { estilo: 'copiado' } }, falas, 'en', 1280).style.sizeRel).toBeCloseTo(track.estilo.tamPx / 1280, 3);
+  });
+
   it('legendaDoCaptionTrack: sem pontuação, caixa do destaque medida, sem traço quando há caixa, 1 palavra por página só se o original tem 1', () => {
     const l = legendaDoCaptionTrack(track, falas, 'en', 1280);
     expect(l.words.map((x) => x.word)).toEqual(['IN', 'THE', 'MORNING', 'OKAY']);          // "the," e "morning." viram "THE" e "MORNING"

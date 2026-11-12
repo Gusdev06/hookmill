@@ -53,6 +53,26 @@ def _box_de(seg, y0):
     return [int(xs.min()), int(ys.min()) + y0, int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)]
 
 
+def _estilo_generico(D, ws, W):
+    """Estilo genérico quando o ajuste de fonte falha (modo livre): altura da letra pela mediana dos trechos, traço 3, sem sombra, branco, Montserrat 700,
+    linha de base = a mais baixa mediana dos trechos, centro = o da faixa. Serve só à máscara da placa (traço + sombra) e ao tamanho de referência."""
+    hs, bases, cxs = [], [], []
+    for s in D["segs"]:
+        if s["vazio"] or s["est"].sum() <= 300:
+            continue
+        est = s["est"]; rc = est.sum(1)
+        if rc.max() <= 0:
+            continue
+        rows = np.where(rc >= 0.6 * rc.max())[0]; hs.append(float(rows.max() - rows.min() + 1))
+        ys, xs = np.where(est); bases.append(float(ys.max())); cxs.append(float((xs.min() + xs.max()) / 2))
+    h = float(np.median(hs)) if hs else 30.0
+    spec = {"arq": "Montserrat-Variable.ttf", "var": "Bold"}
+    est = {"fonte_id": "montserrat-700", "fonte": spec, "tam": int(round(h / 0.72)), "tr": 0.0, "esp": 1.0, "stroke": 3, "sombra": [0, 0], "cor_traco": [0, 0, 0],
+           "branco": [255, 255, 255], "amarelo": None, "base": int(np.median(bases)) if bases else int(h), "cx": float(np.median(cxs)) if cxs else W / 2,
+           "alinhamento": {}, "iou_finalistas": []}
+    return est, {"altura_letra_px": h}
+
+
 def detectar(ev, video="video.mp4"):
     t0 = time.time(); T = {}
     info = leg_det.info_de(video); fps = info["fps"]
@@ -77,12 +97,14 @@ def detectar(ev, video="video.mp4"):
             g["contorno"] = P.contorno_sem(video, [cb["x"], cb["y"], cb["w"], cb["h"]], np.where(fala)[0])
         return {"detectou": False, "gates": g, "tempos": {**T, "total_s": round(time.time() - t0, 2)}, "quadros": info["n"], "fps": fps}
     st = time.time()
+    estilo_erro = None
     try:
         est, TT = leg_estilo.ajustar(video, D, words, ev.get("fontIdVisao"))
     except Exception as e:   # noqa: BLE001 — qualquer falha de medida do estilo vira veredito, nunca queda da op
-        # estilo não medível (contorno sem borda, trechos curtos demais...): não é falha da função, é legenda que não dá para copiar (font_mismatch)
-        return {"detectou": True, "estilo_erro": f"{type(e).__name__}: {e}", "gates": {**gates, "iou_mediana": 0.0}, "trechos": [], "pegada": [], "cortes": [],
-                "quadros": info["n"], "fps": fps, "tempos": {**T, "total_s": round(time.time() - t0, 2)}}
+        # MODO LIVRE (12/11): estilo não medível (contorno sem borda, trechos curtos demais, caixa mista...) NÃO impede a troca: a máscara da placa usa parâmetros
+        # genéricos medidos da própria faixa (altura da letra, fundo da linha) e a legenda nova sai no estilo padrão do HookMill (o TS marca `estilo: 'padrao'`)
+        estilo_erro = f"{type(e).__name__}: {e}"
+        est, TT = _estilo_generico(D, ws, int(D["W"]))
     T["estilo_s"] = round(time.time() - st, 2); T.update({"estilo_" + k: v for k, v in TT.items()})
     spec = est["fonte"]; tr, esp = est["tr"], est["esp"]; W = int(D["W"]); y0 = int(D["y0"])
     # trechos, palavras e IoU por trecho
@@ -107,7 +129,7 @@ def detectar(ev, video="video.mp4"):
     T["iou_s"] = round(time.time() - st, 2)
     n_total = len(trechos)
     atrasos = [s["ini"] / fps - ws[al[str(int(s["ini"]))][0]]["ini"] for s in segs_texto if al.get(str(int(s["ini"])))]
-    atraso = float(np.median(atrasos)) if atrasos else 0.0
+    atraso = float(np.median(atrasos)) if atrasos else P.atraso_por_cobertura(D, ws, fps)
     cob, fala = P.cobertura_fala(D, ws, fps, atraso)
     h_letra = float(TT.get("altura_letra_px", 0.0))
     lap_med, lap_max = P.fundo_lap(D)
@@ -140,7 +162,7 @@ def detectar(ev, video="video.mp4"):
     T["total_s"] = round(time.time() - t0, 2)
     return {"detectou": True, "gates": gates, "estilo": est_ts, "atrasoSec": round(atraso, 3), "trechos": trechos, "pegada": pegada,
             "cortes": [int(x) for x in D["tomadas"][1:-1]], "caixa": bool(caixa), "faixa": [int(D["y0"]), int(D["y1"])], "quadros": int(D["N"]), "fps": fps,
-            "fundo_lap_max": round(lap_max, 2), "trechos_fora": n_fora, "faixa_blocos": dinfo.get("faixa_blocos"), "tempos": T, "ranking": est.get("iou_finalistas", [])[:4], "contorno_medido": est.get("contorno_medido")}
+            "estilo_erro": estilo_erro, "fundo_lap_max": round(lap_max, 2), "trechos_fora": n_fora, "faixa_blocos": dinfo.get("faixa_blocos"), "tempos": T, "ranking": est.get("iou_finalistas", [])[:4], "contorno_medido": est.get("contorno_medido")}
 
 
 def _legenda(npz="d.npz"):

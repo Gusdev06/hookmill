@@ -62,8 +62,16 @@ export interface CaptionTrack {
   veredito: CaptionVeredito;
 }
 
+/** 'copiado' = a legenda nova usa o estilo medido do original; 'padrao' = não deu pra copiar (modo livre): estilo padrão do HookMill */
+export type EstiloLegenda = 'copiado' | 'padrao';
+
+/** Limites do que ainda impede a PLACA limpa (modo livre, 12/11). Acima/abaixo disso nem o estilo padrão salva. */
+export const LIMITES_MODO_LIVRE = { cobertura: 0.75, linhas: 3, animacao: 0.3, fundoLap: 45 } as const;
+
 export interface CaptionVeredito {
   swap: boolean;
+  /** só com `swap` true: 'copiado' ou 'padrao' (estilo padrão do HookMill). Ausente em registro antigo = 'copiado' */
+  estilo?: EstiloLegenda | null;
   /** null só quando `swap` é true */
   reason: CaptionSwapReason | null;
   /** números dos portões da §15.6.1 (chaves em `PORTAO_CHAVES`), sem pixel */
@@ -118,16 +126,27 @@ export const PORTOES_PLACA = { ruimPct: 0.8, ruimGanchoS: 1.5, letraP95Pct: 4, f
  * Ordem = a da tabela, para o motivo ser estável. Chave ausente em `g` = portão não medido: NÃO reprova (a op decide
  * se mede; o que vier sem medida cai em `swap` só se a op o devolveu assim).
  */
-export function avaliarPortoesLegenda(g: Record<string, number>, o: { legendaMaxSec?: number } = {}): { swap: boolean; reason: CaptionSwapReason | null } {
+export function avaliarPortoesLegenda(g: Record<string, number>, o: { legendaMaxSec?: number } = {}): { swap: boolean; reason: CaptionSwapReason | null; estilo: EstiloLegenda | null } {
   const max = o.legendaMaxSec ?? LEGENDA_MAX_SEC_PADRAO;
   const P = PORTOES_LEGENDA;
+  const L = LIMITES_MODO_LIVRE;
   const tem = (k: string) => typeof g[k] === 'number' && Number.isFinite(g[k]);
-  const checks: Array<[CaptionSwapReason, boolean]> = [
+  // MODO LIVRE (12/11, decisão do Gusta): o que bloqueia é só o que impede a PLACA limpa (achar a legenda, contorno, fundo, texto fora do alfabeto,
+  // duração). O que só impede COPIAR o estilo vira "estilo padrão" do HookMill: a troca acontece e a legenda nova usa o estilo padrão.
+  const duros: Array<[CaptionSwapReason, boolean]> = [
     ['too_long', tem('duracao_s') && g.duracao_s > max],
     ['script_unsupported', tem('alfabeto_fora') && g.alfabeto_fora >= 1],
+    ['not_detected', tem('cobertura') && g.cobertura < L.cobertura],
+    ['no_outline', tem('contorno') && g.contorno < 1],
+    ['multi_line', tem('linhas') && g.linhas > L.linhas],
+    ['animated', tem('animacao') && g.animacao > L.animacao],
+    ['busy_background', tem('fundo_lap') && g.fundo_lap > L.fundoLap],
+  ];
+  const duro = duros.find(([, falhou]) => falhou);
+  if (duro) return { swap: false, reason: duro[0], estilo: null };
+  const macios: Array<[CaptionSwapReason, boolean]> = [
     ['caption_emoji', tem('emoji_legenda') && g.emoji_legenda >= 1],
     ['not_detected', tem('cobertura') && g.cobertura < P.cobertura],
-    ['no_outline', tem('contorno') && g.contorno < 1],
     ['multi_line', tem('linhas') && g.linhas > P.linhas],
     ['animated', tem('animacao') && g.animacao > P.animacao],
     ['font_mismatch', (tem('iou_mediana') && g.iou_mediana < P.iouMediana) || (tem('herdados') && g.herdados > P.herdados)],
@@ -135,8 +154,8 @@ export function avaliarPortoesLegenda(g: Record<string, number>, o: { legendaMax
     ['no_person', (tem('pessoa_rosto') && g.pessoa_rosto < P.pessoaRosto) || (tem('pessoa_fala') && g.pessoa_fala < P.pessoaFala)],
     ['busy_background', tem('fundo_lap') && g.fundo_lap > P.fundoLap],
   ];
-  const hit = checks.find(([, falhou]) => falhou);
-  return hit ? { swap: false, reason: hit[0] } : { swap: true, reason: null };
+  const macio = macios.find(([, falhou]) => falhou);
+  return { swap: true, reason: null, estilo: macio ? 'padrao' : 'copiado' };
 }
 
 /** `metrics` da placa de legenda (§15.6.1 tabela 2 + §15.6.4). Todos número, sem pixel; vão para `champion_plates.metrics`. */

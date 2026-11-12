@@ -130,3 +130,21 @@ def marcar_fora(D, words, fps, atraso, folga=0.3, minimo_quadros=20):
         if fala[s["ini"]:s["fim"]].mean() < 0.4:
             s["fora"] = True; n += 1
     return n
+
+
+def atraso_por_cobertura(D, words, fps, passo=0.05):
+    """Atraso da legenda quando o alinhamento por largura não existe: o deslocamento (−1 a +1 s) que mais casa os quadros de fala com os trechos de texto."""
+    N = int(D["N"]); bom = np.zeros(N, bool)
+    for s in D["segs"]:
+        if not s["vazio"] and s["est"].sum() > 300:
+            bom[s["ini"]:s["fim"]] = True
+    melhor, nm = 0.0, -1
+    for k in range(-20, 21):
+        d = k * passo; fala = np.zeros(N, bool)
+        for w in words:
+            a, b = int(round((w["ini"] + d) * fps)), int(round((w["fim"] + d) * fps))
+            fala[max(0, a):max(0, min(N, b))] = True
+        n = int((bom & fala).sum())
+        if n > nm or (n == nm and abs(d) < abs(melhor)):
+            melhor, nm = d, n
+    return float(melhor)
