@@ -300,14 +300,21 @@ describe(isLocal ? 'F1a: nada cobre a legenda nem a headline (integração local
     expect([ed.status, ed.error?.code, ed.error?.details?.reason]).toEqual([422, 'EDIT_NOT_SUPPORTED', 'headline_plate_retired']);
   });
 
-  it('checagem por visão: no lote de template a legenda tampada reprova (a isenção de 02/11 acabou)', async () => {
+  // 13/11 (Gusta): nenhum erro chega ao usuário. Legenda tampada = plano B automático (a nossa legenda, captionForce
+  // 'replace'); reprovou de novo = entrega assim mesmo. O render reprovado fica só pra diagnóstico (FAILED + stale).
+  it('checagem por visão: legenda tampada não vira erro; refaz com a nossa legenda e a peça sai pronta', async () => {
     await prisma.offer.update({ where: { id: offerId }, data: { notes: '[mock:caption-covered]' } });
     const b = await planned((await call('POST', '/ad-templates/let-hookmill-pick/use', { championId })).data.id);
     expect(b.data.status).toBe('PLAN_READY');
     const s = await startOf(b.data);
     expect([s.status, s.error]).toEqual([202, undefined]);
     const done = await allDone(b.data.id);
-    expect(done.data.pieces.some((p: Piece) => p.errorCode === 'CAPTION_COVERED')).toBe(true);
+    expect(done.data.pieces.some((p: Piece) => p.errorCode === 'CAPTION_COVERED')).toBe(false);
+    const planoB = await prisma.render.findMany({ where: { creative: { variationBatchId: b.data.id }, errorCode: 'CAPTION_COVERED' }, select: { stale: true, failReason: true } });
+    expect(planoB.length).toBeGreaterThan(0);
+    expect(planoB.every((r) => r.stale && /plano B/.test(r.failReason ?? ''))).toBe(true);
+    const refeitos = await prisma.variationItem.findMany({ where: { batchId: b.data.id, payload: { path: ['captionForce'], equals: 'replace' } }, select: { id: true } });
+    expect(refeitos.length).toBe(planoB.length);
     await prisma.offer.update({ where: { id: offerId }, data: { notes: null } });
   });
 });

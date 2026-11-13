@@ -503,12 +503,20 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
         });
         if (claimed.count !== 1) continue;
         claimedOne = true;
-        await this.process(c.id, port).catch((e) => this.log.error(`render ${c.id}: ${(e as Error).stack ?? e}`));
+        // 13/11: a montagem (IA, downloads, ffmpeg) roda em paralelo, até BUILD_PARALLEL. Antes era 1 por vez e uma
+        // montagem lenta (14 min no lote de 13/11 05:10) segurava a fila inteira em 0 %. O teto de render no ar continua
+        // no hasRoom (RENDERING conta desde o claim): local segue 1 por vez, lambda até RENDER_LAMBDA_MAX_INFLIGHT.
+        this.building++;
+        void this.process(c.id, port)
+          .catch((e) => this.log.error(`render ${c.id}: ${(e as Error).stack ?? e}`))
+          .finally(() => { this.building--; this.kick(); });
         break; // de novo do topo: a prioridade vale a cada render
       }
-      if (!claimedOne) return;
+      if (!claimedOne || this.building >= EdicaoService.BUILD_PARALLEL) return;
     }
   }
+  private building = 0;
+  private static readonly BUILD_PARALLEL = Math.max(1, Number(process.env.RENDER_BUILD_PARALLEL) || 4);
 
   /** `render.updated` no SSE do criativo (a fila, o STATIC e o pedido de formato usam). */
   async publish(renderId: string) {
@@ -779,9 +787,54 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     if (!check) return false;
     await this.prisma.render.update({ where: { id: r.id }, data: { input: { ...(r.input as object), captionCheck: check } as unknown as Prisma.InputJsonValue, ...(check.status === 'covered' && { fileId }) } });
     if (check.status !== 'covered') return false;
-    this.log.warn(`render ${r.id}: legenda queimada tampada (${check.frames.filter((f) => !f.ok).map((f) => `${f.atSec}s`).join(', ')})`);
-    await this.prisma.render.updateMany({ where: { id: r.id }, data: { finalizingAt: null } });
-    await this.failAuto(r, 'CAPTION_COVERED', null);
+    const ruins = check.frames.filter((f) => !f.ok).map((f) => `${f.atSec}s ${f.problem ?? ''}`.trim()).join(', ');
+    // 13/11 (Gusta): nenhum erro chega ao usuário. Plano B automático = refazer com a NOSSA legenda (captionMode 'replace':
+    // a faixa queimada é recortada e a legenda é desenhada por nós). Já estava em 'replace' (ou o tipo não tem o modo) =
+    // entrega assim mesmo e fica só o aviso interno; o veredito segue gravado em `renders.input.captionCheck`.
+    if (await this.refazerComLegendaNossa(r, input)) {
+      this.log.warn(`render ${r.id}: legenda reprovada (${ruins}); plano B automático com a nossa legenda`);
+      return true;
+    }
+    this.log.warn(`render ${r.id}: legenda reprovada (${ruins}) também no plano B; entregue mesmo assim (regra 13/11: nenhum erro ao usuário)`);
+    return false;
+  }
+
+  /**
+   * Plano B da legenda tampada (13/11): o render atual sai de cena (FAILED + stale, só pra diagnóstico) e nasce outro QUEUED
+   * no mesmo formato/prioridade, com `captionForce: 'replace'` no item. O criativo segue RENDERING (a peça nunca mostra
+   * "Falhou"). false = não dá pra refazer (já era 'replace', tipo sem o modo, sem item ou export do editor).
+   */
+  private async refazerComLegendaNossa(r: RenderRow, input: RenderInput): Promise<boolean> {
+    const itemId = r.creative.variationItemId;
+    const modo = (input as unknown as { captionMode?: string }).captionMode;
+    if (!itemId || modo === 'replace' || (input.kind !== 'frame' && input.kind !== 'auto-edit') || isEditorExport(r.settings)) return false;
+    let novo: string | null = null;
+    await this.locks.run(r.creativeId, async () => {
+      await this.prisma.$transaction(async (tx) => {
+        const cur = await tx.render.findUnique({ where: { id: r.id }, select: { status: true, stale: true } });
+        if (!cur || cur.status !== 'RENDERING' || cur.stale) return;
+        const item = await tx.variationItem.findUnique({ where: { id: itemId }, select: { payload: true } });
+        await tx.variationItem.update({
+          where: { id: itemId },
+          data: { payload: { ...((item?.payload as object | null) ?? {}), captionForce: 'replace' } as Prisma.InputJsonValue },
+        });
+        await tx.render.update({
+          where: { id: r.id },
+          data: { status: 'FAILED', stale: true, stage: null, errorCode: 'CAPTION_COVERED', failReason: 'plano B automático: refeito com a nossa legenda', finishedAt: new Date(), finalizingAt: null },
+        });
+        const n = await tx.render.create({
+          data: {
+            workspaceId: r.workspaceId, creativeId: r.creativeId, status: 'QUEUED', format: r.format, engine: r.engine, priority: r.priority,
+            settings: (r.settings ?? {}) as Prisma.InputJsonValue, input: {},
+          },
+          select: { id: true },
+        });
+        novo = n.id;
+      });
+    });
+    if (!novo) return false;
+    await this.publish(novo);
+    this.kick();
     return true;
   }
 

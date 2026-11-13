@@ -26,4 +26,12 @@ describe('refino da legenda sem fundo (captionBox)', () => {
     expect((await refine({ captionBox: async () => null })).box.y).toBe(589);
     expect((await refine({ captionBox: async () => { throw new Error('x'); } })).box.y).toBe(589);
   });
+  // 13/11: campeão cmwemcigz (lote cmwemcii7): legenda "pill" com y da visão na altura do rosto (518) ficava sem refino
+  it('legenda com fundo (pill) também é medida por pixel, e o fundo acompanha a caixa', async () => {
+    const pill: EditLayer = { ...cap, box: { x: 194, y: 518, w: 691, h: 67 }, background: { kind: 'pill', color: '#111111', box: { x: 194, y: 518, w: 691, h: 67 } } };
+    const solidBackground = jest.fn(async () => null);
+    const l = await refine({ captionBox: async () => ({ x: 197, y: 1309, w: 674, h: 81 }), solidBackground }, pill);
+    expect(l).toMatchObject({ box: { y: 1309, h: 81 }, background: { kind: 'pill', color: '#111111', box: { y: 1309, h: 81 } }, source: 'vision+pixel' });
+    expect(solidBackground).not.toHaveBeenCalled();
+  });
 });

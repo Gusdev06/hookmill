@@ -196,11 +196,14 @@ async function refinarSemPrazo(media: MediaAnalysisService, videoPath: string, i
   const out: EditLayer[] = [...i.layers];
   const pend: { k: number; at: number; next: EditLayer }[] = [];
   for (const [k, l] of i.layers.entries()) {
-    if (l.kind === 'caption' && l.background.kind === 'none') {
+    // 13/11: TODA legenda passa pelo pixel, com qualquer fundo. A legenda "pill" caía no `continue` abaixo e ficava com a
+    // caixa da visão; o GPT da Kie (visão desde 11/11) devolveu o y em px da imagem de 768 e a faixa foi pro rosto (y 518
+    // em vez de 1309), o que derrubou 6 de 7 peças com CAPTION_COVERED.
+    if (l.kind === 'caption') {
       out[k] = await refinarLegenda(media, videoPath, l, i.fps, i.words, aviso);
       continue;
     }
-    if (l.kind === 'caption' || l.background.kind === 'none') continue;
+    if (l.background.kind === 'none') continue;
     try {
       const at = r3((l.startFrame + l.endFrame) / 2 / i.fps);
       const sb = await media.solidBackground(videoPath, at, l.box);
@@ -257,7 +260,13 @@ async function refinarLegenda(media: MediaAnalysisService, videoPath: string, l:
   if (!at.length) return l;
   try {
     const box = await media.captionBox(videoPath, at.filter((_, k) => k % Math.max(1, Math.ceil(at.length / 24)) === 0), l.box);
-    return box ? { ...l, box, source: 'vision+pixel' } : l;
+    if (!box) {
+      aviso(`legenda ${l.id}: o pixel não achou a faixa; fica a caixa da visão (${l.box.y}+${l.box.h})`);
+      return l;
+    }
+    // fundo pill/solid acompanha a caixa medida (a da visão pode estar noutra altura)
+    const background = l.background.kind === 'none' ? l.background : { ...l.background, box };
+    return { ...l, box, background, source: 'vision+pixel' };
   } catch (e) {
     aviso(`refino da legenda ${l.id} falhou: ${(e as Error).message}`);
     return l;
