@@ -40,19 +40,30 @@ export interface KieTransportOptions extends SdkTransportOptions {
   client?: Pick<Anthropic, 'beta'>;
 }
 
+/** 13/11: retries do SDK no Claude do Kie (antes ≥ 3, com backoff: minutos perdidos quando o Kie está fora). */
+export const KIE_CLAUDE_RETRIES = 1;
+/** 13/11: depois de uma falha do Claude do Kie, quanto tempo o texto vai direto pro GPT (disjuntor, por processo). */
+export const KIE_CLAUDE_PAUSA_MS = 30 * 60_000;
+let claudeForaAte = 0;
+/** Pros testes. */
+export const reabrirClaudeKie = () => { claudeForaAte = 0; };
+
 export class KieTransport implements ClaudeTransport {
   private readonly text: SdkClaudeTransport;
   private readonly fetchImpl: typeof fetch;
 
   constructor(private readonly opts: KieTransportOptions) {
     // O Kie aceita x-api-key no formato "Bearer <chave>". Sem o beta de fallback (é do servidor da Anthropic).
-    const client = opts.client ?? new Anthropic({ baseURL: KIE_ANTHROPIC_BASE_URL, apiKey: `Bearer ${opts.apiKey}`, maxRetries: Math.max(opts.maxRetries ?? 2, 3), ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}) });
+    const client = opts.client ?? new Anthropic({ baseURL: KIE_ANTHROPIC_BASE_URL, apiKey: `Bearer ${opts.apiKey}`, maxRetries: KIE_CLAUDE_RETRIES, ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}) });
     this.text = new SdkClaudeTransport(client, { model: opts.model, effort: opts.effort, fallbacks: false });
     this.fetchImpl = opts.fetchImpl ?? fetch;
   }
 
   async run(call: ClaudeCall, onText?: OnText): Promise<ClaudeResult> {
     if (call.images?.length) return this.runVision(call, onText);
+    // 13/11 disjuntor: o Claude do Kie falhou em toda chamada vista em 12–13/11 e cada falha custava até ~6 min de retries
+    // antes do GPT. Depois de uma falha, o texto vai direto pro GPT por KIE_CLAUDE_PAUSA_MS; passado isso, tenta o Claude de novo.
+    if (Date.now() < claudeForaAte) return this.runVision(call, onText);
     // o Kie ignora output_config.format (11/11: devolveu campo inventado e sem o obrigatório) → o schema vai no pedido
     try {
       const res = await this.text.run({ ...call, user: `${call.user}\n\n${schemaInstruction(call.schema)}` }, onText);
@@ -62,7 +73,8 @@ export class KieTransport implements ClaudeTransport {
       // vai pro GPT do Kie (mesmo endpoint das imagens), que ficou estável nos testes. Erro de pedido (400) não cai.
       const code = (e as IntegracaoError)?.code;
       if (code !== 'PROVIDER_UNAVAILABLE' && code !== 'PROVIDER_TIMEOUT') throw e;
-      log.warn(`claude do kie indisponível (${code}); caindo pro ${this.opts.visionModel || KIE_VISION_DEFAULT}`);
+      claudeForaAte = Date.now() + KIE_CLAUDE_PAUSA_MS;
+      log.warn(`claude do kie indisponível (${code}); caindo pro ${this.opts.visionModel || KIE_VISION_DEFAULT} (e direto nele pelos próximos ${KIE_CLAUDE_PAUSA_MS / 60000} min)`);
       if (onText) onText(null);
       return this.runVision(call, onText);
     }

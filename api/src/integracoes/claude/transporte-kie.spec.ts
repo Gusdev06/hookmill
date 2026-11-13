@@ -1,4 +1,4 @@
-import { KieTransport, KIE_RESPONSES_URL, buildLlmTransport, llmKeyName, stripJsonFence } from './transporte-kie';
+import { KieTransport, KIE_RESPONSES_URL, KIE_CLAUDE_PAUSA_MS, buildLlmTransport, llmKeyName, reabrirClaudeKie, stripJsonFence } from './transporte-kie';
 import { SdkClaudeTransport } from './transporte';
 import { IntegracaoError } from '../erros';
 
@@ -27,6 +27,7 @@ const okFetch = (calls: { url: string; body: any; headers: any }[], text = '{"a"
   }) as unknown as typeof fetch;
 
 describe('transporte-kie', () => {
+  beforeEach(() => reabrirClaudeKie());
   it('stripJsonFence tira a cerca e deixa JSON puro igual', () => {
     expect(stripJsonFence('```json\n{"a":1}\n```')).toBe('{"a":1}');
     expect(stripJsonFence('```\n{"a":1}\n```')).toBe('{"a":1}');
@@ -88,10 +89,29 @@ describe('transporte-kie', () => {
     expect(r.usage[0].model).toBe('gpt-6-1-sol');
     expect(calls[0].body.input[0].content.map((c: any) => c.type)).toEqual(['input_text']);
 
+    reabrirClaudeKie();
     const calls2: typeof calls = [];
     const t2 = new KieTransport({ apiKey: 'k', model: 'claude-opus-5-5', effort: 'medium', fallbacks: false, client: boom('PROVIDER_ERROR'), fetchImpl: okFetch(calls2) });
     await expect(t2.run({ system: 's', user: 'u', schema, maxTokens: 100 })).rejects.toMatchObject({ code: 'PROVIDER_ERROR' });
     expect(calls2).toHaveLength(0);
+  });
+
+  it('13/11 disjuntor: depois de uma falha do Claude do Kie, o texto vai direto pro GPT por 30 min e depois volta a tentar', async () => {
+    let tentativas = 0;
+    const boom = { beta: { messages: { stream: () => { tentativas++; throw new IntegracaoError('PROVIDER_UNAVAILABLE' as never, 'x'); } } } } as never;
+    const calls: { url: string; body: any; headers: any }[] = [];
+    const t = new KieTransport({ apiKey: 'k', model: 'claude-opus-5-5', effort: 'medium', fallbacks: false, client: boom, fetchImpl: okFetch(calls) });
+    const agora = Date.now();
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(agora);
+    try {
+      await t.run({ system: 's', user: 'u', schema, maxTokens: 100 });
+      await t.run({ system: 's', user: 'u', schema, maxTokens: 100 });
+      expect(tentativas).toBe(1); // a 2ª nem tentou o Claude
+      expect(calls).toHaveLength(2);
+      spy.mockReturnValue(agora + KIE_CLAUDE_PAUSA_MS + 1);
+      await t.run({ system: 's', user: 'u', schema, maxTokens: 100 });
+      expect(tentativas).toBe(2); // passou a pausa: tenta o Claude de novo
+    } finally { spy.mockRestore(); }
   });
 
   it('buildLlmTransport escolhe pelo CLAUDE_PROVIDER', () => {
