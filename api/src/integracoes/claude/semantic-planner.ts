@@ -80,9 +80,10 @@ export class LiveSemanticPlanner implements SemanticPlannerPort {
     if (response.stopReason !== 'end_turn') throw new IntegracaoError('PROVIDER_ERROR', `semantic-v2 incomplete response (${response.stopReason})`);
     let raw: unknown;
     try { raw = JSON.parse(response.text); } catch { throw new IntegracaoError('PROVIDER_ERROR', 'semantic-v2 invalid JSON'); }
+    // 13/11: o motivo de cada candidata descartada volta junto (o lote F09 de 12/11 perdeu as 5 e não dava pra saber por quê);
+    // o serviço grava em jobs.output.rejected
     const { rejected, ...plan } = validateSemanticPlanV2(raw, ctx, req, 'live', cost);
-    void rejected;
-    return plan;
+    return rejected.length ? Object.assign(plan, { rejected }) : plan;
   }
 
   private estimateCall(call: ClaudeCall): number {

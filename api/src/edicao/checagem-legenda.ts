@@ -171,6 +171,22 @@ export function captionCheckOf(res: { status?: 'ok' | 'covered'; frames: QuadroD
   return { status, frames, attempt };
 }
 
+/**
+ * 13/11 (FRAME-GOSSIP-PINK): os instantes saem da faixa medida, que cobre o vídeo todo, inclusive as pausas da fala; numa
+ * pausa a legenda original some e a visão marca `missing`. Quadro `missing` sem palavra falada a ±`folga` s do instante (0,08 s: pausa curta de verdade, 16,02 s entre 15,91 e 16,15)
+ * (no tempo do campeão) não reprova. Sem transcrição = não mexe. `cut`/`covered`/`duplicated` seguem reprovando.
+ */
+export function perdoarPausas(check: CaptionCheck, times: { atSec: number; srcSec: number }[], words: TranscriptWord[], folga = 0.08): CaptionCheck {
+  if (!words.length || check.status !== 'covered') return check;
+  const frames = check.frames.map((f) => {
+    const src = times.find((t) => Math.abs(t.atSec - f.atSec) < 0.02)?.srcSec;
+    if (f.ok || f.problem !== 'missing' || src == null) return f;
+    const fala = words.some((w) => w.endSec >= src - folga && w.startSec <= src + folga);
+    return fala ? f : { ...f, ok: true, problem: null, reason: `sem fala em ${src}s (pausa): legenda ausente é esperada` };
+  });
+  return { ...check, frames, status: frames.some((f) => !f.ok) ? 'covered' : 'ok' };
+}
+
 /** "21.29s missing", "40s covered: card cobre 'você'" ou "77.39s ok". */
 export function quadroNoLog(f: CaptionCheck['frames'][number]): string {
   if (f.ok) return `${f.atSec}s ok`;
@@ -240,7 +256,7 @@ export class ChecagemLegendaService {
         workspaceId: j.workspaceId, creativeId: j.creativeId, variationBatchId: j.variationBatchId, renderId: j.renderId,
         mode: target.mode, language: j.language, frames, notes: j.notes,
       });
-      const check = captionCheckOf(res, j.attempt);
+      const check = perdoarPausas(captionCheckOf(res, j.attempt), times, words);
       this.log.log(`render ${j.renderId}: legenda ${check.status} (${check.frames.map(quadroNoLog).join('; ')})`);
       return check;
     } catch (e) {

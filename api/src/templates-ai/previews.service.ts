@@ -152,7 +152,7 @@ export class AiPreviewsService {
       if (!(await this.stillRunning(jobId))) return; // reinício marcou o job INTERRUPTED durante a chamada: nada a escrever
       const picks = producibleVariationsV2(plan, { format, evidence: evidenceOf(ctx), max: AI_PREVIEW_MAX });
       if (picks.length < AI_PREVIEW_MIN) {
-        await this.jobs.finish(jobId, { status: 'FAILED', errorCode: 'PROVIDER_ERROR', failReason: FAIL_TEXT.plan, output: json({ candidates: plan.variations.length, producible: picks.length }) });
+        await this.jobs.finish(jobId, { status: 'FAILED', errorCode: 'PROVIDER_ERROR', failReason: FAIL_TEXT.plan, output: json({ candidates: plan.variations.length, producible: picks.length, rejected: rejectedOf(plan) }) });
         await this.evaluate(batchId);
         return;
       }
@@ -162,7 +162,7 @@ export class AiPreviewsService {
         const used: string[] = [];
         for (const [index, v] of picks.entries()) await this.createPreview(tx, { batchId, workspaceId: b.workspaceId, format, language: ctx.language, index, variation: v, usedVoices: used });
       }, { timeout: 30000 });
-      await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: json({ version: plan.version, candidates: plan.variations.length, producible: picks.length, costUsd: plan.costUsd }) });
+      await this.jobs.finish(jobId, { status: 'SUCCEEDED', output: json({ version: plan.version, candidates: plan.variations.length, producible: picks.length, costUsd: plan.costUsd, rejected: rejectedOf(plan) }) });
       await this.advanceBatch(batchId);
     } catch (e) {
       this.log.warn(`prévias ${batchId}: ${(e as Error).message}`);
@@ -229,7 +229,7 @@ export class AiPreviewsService {
       if (!(await this.stillRunning(jobId))) return;
       const [pick] = producibleVariationsV2(plan, { format, evidence: evidenceOf(ctx), max: 1, accepted: live });
       if (!pick) {
-        await this.jobs.finish(jobId, { status: 'FAILED', errorCode: 'PROVIDER_ERROR', failReason: FAIL_TEXT.planOne });
+        await this.jobs.finish(jobId, { status: 'FAILED', errorCode: 'PROVIDER_ERROR', failReason: FAIL_TEXT.planOne, output: json({ candidates: plan.variations.length, rejected: rejectedOf(plan) }) });
         await this.failPreview(itemId, 'planning', 'PROVIDER_ERROR', FAIL_TEXT.planOne);
         return;
       }
@@ -490,4 +490,9 @@ export class AiPreviewsService {
     const items = await this.db.variationItem.findMany({ where: { ...(batchId && { batchId }), previewStatus: 'APPROVED', creative: { archivedAt: null, state: { in: [...PRODUCTION_STATES] } } }, select: { id: true }, take: 50 });
     return items.map((i) => i.id);
   }
+}
+
+/** Candidatas que o planejador descartou na validação, com o motivo (planner live; o mock não manda). Pro jobs.output. */
+function rejectedOf(plan: object): { index: number; reason: string }[] {
+  return (plan as { rejected?: { index: number; reason: string }[] }).rejected ?? [];
 }

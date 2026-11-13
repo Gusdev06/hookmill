@@ -72,6 +72,26 @@ describe('checagem e decisão', () => {
     // a legenda tem 1400 px; o cover mostra 1080 de 1920 px → precisa de ~1080/1406 do cover, não do contain (0,56)
     expect(s).toBeLessThan(0.78); expect(s).toBeGreaterThan(0.75);
   });
+  it('13/11 (FRAME-GOSSIP-PINK): mostra a LINHA inteira da legenda quando cabe até 85 % do cover (página mais comprida não corta)', () => {
+    // campeão 720p real: faixa medida 33..705 (uma página); a janela justa nela cortava o "t" de "trasparenza" (página mais larga)
+    const src = { videoUrl: 'x', width: 720, height: 1280, fps: 30, durationSec: 65, hasAudio: true };
+    const v = { source: src, timeline: [{ startSec: 0, endSec: 65 }], joinFadeMs: 40, reframe: { mode: 'cover' as const, focus: { x: 0.513, y: 0 } },
+      protectedBands: [{ x: 33, y: 866, w: 672, h: 305, startSec: 0, endSec: 63.567 }] } as MolduraProps['video'];
+    const box = { w: 490, h: 940 };
+    const [c0] = enquadramentosPreservandoLegenda(v, box);
+    const pt = pinturaNaCaixa(box, src, c0.reframe, c0.contentBox ?? null);
+    const jx = -pt.area.left / pt.s, ww = box.w / pt.s;
+    expect(jx).toBeLessThanOrEqual(18); // linha simétrica em volta do centro (369): 18..720
+    expect(jx + ww).toBeGreaterThanOrEqual(719);
+    expect(c0.reframe.mode === 'cover' && c0.reframe.scale).toBeGreaterThanOrEqual(0.85);
+  });
+  it('13/11: linha que só cabe passando de 85 % do cover = fica a faixa medida (como antes)', () => {
+    const sq = { videoUrl: 'x', width: 1920, height: 1920, fps: 30, durationSec: 30, hasAudio: true };
+    const v = { source: sq, timeline: [{ startSec: 0, endSec: 30 }], joinFadeMs: 40, reframe: { mode: 'cover' as const, focus: { x: 0.5, y: 0.5 } },
+      protectedBands: [{ x: 760, y: 1500, w: 400, h: 150, startSec: 0, endSec: 30 }] } as MolduraProps['video'];
+    const [c0] = enquadramentosPreservandoLegenda(v, { w: 1080, h: 1920 });
+    expect(c0.reframe.mode === 'cover' && c0.reframe.scale).toBeFalsy(); // a faixa medida cabe no cover: a linha (1920) não força faixa de cor
+  });
   it('Caixinha sobre a legenda no meio: o layout desvia (passo 1) e a checagem passa', () => {
     const m = mapa({ x: 150, y: 1000, w: 780, h: 140 });
     const d = decidirLegenda(input(m, 'question_box', { question: 'Por que eu travo?' }), m, null);

@@ -1,5 +1,5 @@
 // legenda-protegida-v1 §4.2: instantes da checagem por visão, palavras esperadas, recorte e o alvo de cada tipo de input.
-import { captionCheckOf, captionCheckTimes, captionTargetOf, cropOf, quadroNoLog, wordsAt } from './checagem-legenda';
+import { captionCheckOf, captionCheckTimes, captionTargetOf, cropOf, perdoarPausas, quadroNoLog, wordsAt } from './checagem-legenda';
 import { captionCoveredTwice, captionNoteOf } from './pecas';
 
 const band = { x: 80, y: 1000, w: 900, h: 220, startSec: 0, endSec: 30 };
@@ -116,5 +116,25 @@ describe('captionCheckOf (F10, 28/10)', () => {
     const c = captionCheckOf({ frames: [q({ ok: false, duplicated: true })] }, 1);
     expect(c.status).toBe('covered');
     expect(c.frames[0]).toEqual({ atSec: 1, ok: false, seen: 'oi', problem: null, reason: null });
+  });
+});
+
+describe('perdoarPausas (13/11, FRAME-GOSSIP-PINK)', () => {
+  // transcrição real: "determina." termina em 15,91 s e "Ecco" começa em 16,15 s; o quadro de 16,02 s caiu na pausa
+  const words = [{ word: 'determina.', startSec: 14.951, endSec: 15.91 }, { word: 'Ecco', startSec: 16.15, endSec: 16.63 }, { word: 'Trasparenza.', startSec: 47.571, endSec: 48.451 }];
+  const times = [{ atSec: 16.02, srcSec: 16.02 }, { atSec: 47.55, srcSec: 47.55 }, { atSec: 48, srcSec: 48 }];
+  const f = (atSec: number, problem: 'missing' | 'cut' | null) => ({ atSec, ok: !problem, seen: null, problem, reason: problem ? 'x' : null });
+  it('missing numa pausa da fala não reprova; o resto segue', () => {
+    const c = perdoarPausas({ status: 'covered', attempt: 1, frames: [f(16.02, 'missing'), f(47.55, null)] }, times, words);
+    expect(c.status).toBe('ok');
+    expect(c.frames[0]).toMatchObject({ ok: true, problem: null });
+  });
+  it('cut continua reprovando; missing com fala no instante também', () => {
+    expect(perdoarPausas({ status: 'covered', attempt: 1, frames: [f(16.02, 'missing'), f(47.55, 'cut')] }, times, words).status).toBe('covered');
+    expect(perdoarPausas({ status: 'covered', attempt: 1, frames: [f(48, 'missing')] }, times, words).status).toBe('covered');
+  });
+  it('sem transcrição não mexe', () => {
+    const c = { status: 'covered' as const, attempt: 1, frames: [f(16.02, 'missing')] };
+    expect(perdoarPausas(c, times, [])).toBe(c);
   });
 });

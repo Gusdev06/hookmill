@@ -429,38 +429,59 @@ export function enquadramentosPreservandoLegenda(video: MolduraProps['video'], b
   if (!band) return [];
   const x = Math.max(0, Math.min(crop.x, band.x)), y = Math.max(0, Math.min(crop.y, band.y));
   const C = { x, y, w: Math.min(source.width, Math.max(crop.x + crop.w, band.x + band.w)) - x, h: Math.min(source.height, Math.max(crop.y + crop.h, band.y + band.h)) - y };
-  const U = { x: Math.max(0, band.x - C.x), y: Math.max(0, band.y - C.y), w: Math.min(band.w, C.w), h: Math.min(band.h, C.h) };
+  const U0 = { x: Math.max(0, band.x - C.x), y: Math.max(0, band.y - C.y), w: Math.min(band.w, C.w), h: Math.min(band.h, C.h) };
   const cover = Math.max(box.w / C.w, box.h / C.h);
   const contain = Math.min(box.w / C.w, box.h / C.h) / cover;
   const M = 3; // px da fonte de folga contra arredondamento do foco (r3)
-  const cabe = Math.min(1, Math.min(box.w / Math.min(C.w, U.w + 2 * M), box.h / Math.min(C.h, U.h + 2 * M)) / cover);
-  const f0 = video.reframe.mode === 'cover' ? video.reframe.focus : { x: 0.5, y: 0.5 };
-  const r3 = (v: number) => Math.round(v * 1000) / 1000;
-  // centros possíveis num eixo (fração da contentBox): janela dentro da contentBox e a envoltória dentro da janela
-  const focos = (f: number, total: number, janela: number, u0: number, u1: number, eixo: 'x' | 'y'): number[] => {
-    if (janela <= total + 0.5 && janela >= total - 0.5) return [f]; // eixo justo: o foco não muda nada
-    // sobra (faixa de cor, caso extremo): inteira de um lado só, nunca um filete em cada ponta. Vertical: em cima
-    // (encosta no texto do topo das molduras) e depois embaixo; horizontal: dividida (simétrica)
-    if (janela > total) return eixo === 'y' ? [0, 1] : [0.5];
-    const lo = Math.max(janela / 2, u1 + M - janela / 2), hi = Math.min(total - janela / 2, u0 - M + janela / 2);
-    if (lo > hi) return [];
-    const perto = Math.min(hi, Math.max(lo, f * total));
-    return [...new Set([perto, lo, hi].map((c) => r3(c / total)))];
-  };
-  const piso = (v: number) => Math.floor(v * 1000) / 1000; // arredonda pra baixo: a janela nunca fica menor que a envoltória
-  const escalas = [...new Set([cabe, ...[0.95, 0.9, 0.85, 0.75, 0.65].map((k) => k * cabe), contain].map((s) => (s >= 0.999 ? 1 : piso(Math.max(contain, Math.min(cabe, s))))))]
-    .sort((a, b) => b - a);
-  const out: MolduraProps['video'][] = [];
-  for (const scale of escalas) {
-    const s = cover * scale, ww = box.w / s, wh = box.h / s;
-    const fx = focos(f0.x, C.w, ww, U.x, U.x + U.w, 'x'), fy = focos(f0.y, C.h, wh, U.y, U.y + U.h, 'y');
-    // ordem: o mais perto do foco original no eixo cortado (no eixo com sobra, a ordem de `focos`; sort é estável)
-    const k = (p: Focus) => (ww < C.w - 0.5 ? Math.abs(p.x - f0.x) : 0) + (wh < C.h - 0.5 ? Math.abs(p.y - f0.y) : 0);
-    const pares = fx.flatMap((a) => fy.map((b) => ({ x: a, y: b }))).sort((p, q) => k(p) - k(q));
-    for (const focus of pares) out.push({ ...video, contentBox: C, reframe: { mode: 'cover' as const, focus, ...(scale < 0.999 && { scale }) } });
+  const cabeDe = (u: Rect) => Math.min(1, Math.min(box.w / Math.min(C.w, u.w + 2 * M), box.h / Math.min(C.h, u.h + 2 * M)) / cover);
+  // 13/11 (FRAME-GOSSIP-PINK): a faixa da legenda tem a largura de UMA página medida; página mais comprida passa dela e a
+  // janela cortava a 1ª letra ("trasparenza"). Primeiro tenta a LINHA inteira da legenda (simétrica em volta do centro
+  // dela, dentro da contentBox), só no menor afastamento que a faz caber; depois, os candidatos de sempre (faixa medida).
+  const sohLegenda = unionBand(video.protectedBands ?? []);
+  const linha = (() => {
+    if (!sohLegenda) return null;
+    const cx = sohLegenda.x - C.x + sohLegenda.w / 2, meia = Math.min(cx, C.w - cx) - M; // M: a folga do arredondamento cabe dentro do quadro
+    if (2 * meia <= U0.w + 2 * M) return null;
+    const x0 = Math.min(U0.x, cx - meia), x1 = Math.max(U0.x + U0.w, cx + meia);
+    return { x: x0, y: U0.y, w: x1 - x0, h: U0.h };
+  })();
+  // decisão de 29/10 (o vídeo preenche a caixa): a linha só entra sem faixa de cor, ou quando a faixa medida já obriga a afastar
+  const linhaCabe = linha && (cabeDe(linha) >= 0.999 || (cabeDe(U0) < 0.999 && cabeDe(linha) >= LINHA_ESCALA_MIN)) ? linha : null;
+  return [...(linhaCabe ? gerar(linhaCabe, true) : []), ...gerar(U0, false)];
+
+  function gerar(U: Rect, soCabe: boolean): MolduraProps['video'][] {
+    const cabe = cabeDe(U);
+    const f0 = video.reframe.mode === 'cover' ? video.reframe.focus : { x: 0.5, y: 0.5 };
+    const r3 = (v: number) => Math.round(v * 1000) / 1000;
+    // centros possíveis num eixo (fração da contentBox): janela dentro da contentBox e a envoltória dentro da janela
+    const focos = (f: number, total: number, janela: number, u0: number, u1: number, eixo: 'x' | 'y'): number[] => {
+      if (janela <= total + 0.5 && janela >= total - 0.5) return [f]; // eixo justo: o foco não muda nada
+      // sobra (faixa de cor, caso extremo): inteira de um lado só, nunca um filete em cada ponta. Vertical: em cima
+      // (encosta no texto do topo das molduras) e depois embaixo; horizontal: dividida (simétrica)
+      if (janela > total) return eixo === 'y' ? [0, 1] : [0.5];
+      const lo = Math.max(janela / 2, u1 + M - janela / 2), hi = Math.min(total - janela / 2, u0 - M + janela / 2);
+      if (lo > hi) return [];
+      const perto = Math.min(hi, Math.max(lo, f * total));
+      return [...new Set([perto, lo, hi].map((c) => r3(c / total)))];
+    };
+    const piso = (v: number) => Math.floor(v * 1000) / 1000; // arredonda pra baixo: a janela nunca fica menor que a envoltória
+    const escalas = [...new Set((soCabe ? [cabe] : [cabe, ...[0.95, 0.9, 0.85, 0.75, 0.65].map((k) => k * cabe), contain]).map((s) => (s >= 0.999 ? 1 : piso(Math.max(contain, Math.min(cabe, s))))))]
+      .sort((a, b) => b - a);
+    const out: MolduraProps['video'][] = [];
+    for (const scale of escalas) {
+      const s = cover * scale, ww = box.w / s, wh = box.h / s;
+      const fx = focos(f0.x, C.w, ww, U.x, U.x + U.w, 'x'), fy = focos(f0.y, C.h, wh, U.y, U.y + U.h, 'y');
+      // ordem: o mais perto do foco original no eixo cortado (no eixo com sobra, a ordem de `focos`; sort é estável)
+      const k = (p: Focus) => (ww < C.w - 0.5 ? Math.abs(p.x - f0.x) : 0) + (wh < C.h - 0.5 ? Math.abs(p.y - f0.y) : 0);
+      const pares = fx.flatMap((a) => fy.map((b) => ({ x: a, y: b }))).sort((p, q) => k(p) - k(q));
+      for (const focus of pares) out.push({ ...video, contentBox: C, reframe: { mode: 'cover' as const, focus, ...(scale < 0.999 && { scale }) } });
+    }
+    return out;
   }
-  return out;
 }
+
+/** Afastamento máximo (fração do cover) aceito pra mostrar a linha inteira da legenda (mesmo piso do `reframeNaCaixa`). */
+export const LINHA_ESCALA_MIN = 0.85;
 
 // ───────────────────────── AutoEdit (CUT, NATIVE_SEARCH, REVIEW) ─────────────────────────
 
