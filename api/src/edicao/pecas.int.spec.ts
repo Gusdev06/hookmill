@@ -224,16 +224,20 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     const done = await until(pieces, (ps) => settled(ps) && ps.every((p) => p.formats!.every((f) => f.state !== 'queued' && f.state !== 'rendering')));
     expect(settled(done)).toBe(true);
     const byCode = Object.fromEntries(done.map((p) => [p.code, p]));
-    expect(byCode['LAYOUT-STORY']).toMatchObject({ status: 'failed', errorCode: 'RENDER_ERROR', retryHint: 'retry', retryUsd: 0, formatsReady: 0 });
-    expect(fmt(byCode['LAYOUT-STORY'], '9x16')).toMatchObject({ state: 'failed', errorCode: 'RENDER_ERROR', requestUsd: 0 });
-    expect(done.filter((p) => p.status === 'ready')).toHaveLength(10);
+    // 13/11 (nenhum erro ao usuário): a 1ª tentativa falha ([mock:render-fail:STORY]) e a peça se refaz sozinha
+    expect(byCode['LAYOUT-STORY']).toMatchObject({ status: 'ready', errorCode: null, formatsReady: 1 });
+    const refeito = await prisma.render.findMany({ where: { creative: { variationItemId: items['LAYOUT-STORY'] }, stale: true }, select: { errorCode: true, failReason: true } });
+    expect(refeito).toEqual([{ errorCode: 'RENDER_ERROR', failReason: 'refeito sozinho 1/2 (RENDER_ERROR)' }]);
+    expect(done.filter((p) => p.status === 'ready')).toHaveLength(11);
 
     // ordem real (startedAt) do Remotion: os 9:16 na ordem do plano; o 1:1 pedido entrou antes de todos os que estavam na fila
     const rs = await prisma.render.findMany({
       where: { creativeId: { in: creativeIds }, engine: 'REMOTION' }, orderBy: { startedAt: 'asc' },
       select: { id: true, format: true, startedAt: true, creative: { select: { variationItem: { select: { index: true } } } } },
     });
-    const verticals = rs.filter((r) => r.format === 'VERTICAL_9_16');
+    // 13/11: o refeito automático é uma linha nova; a ordem da fila vale pela 1ª tentativa de cada peça
+    const vistos = new Set<number>();
+    const verticals = rs.filter((r) => r.format === 'VERTICAL_9_16' && !vistos.has(r.creative.variationItem!.index) && !!vistos.add(r.creative.variationItem!.index));
     expect(verticals.map((r) => r.creative.variationItem!.index)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     const square = rs.find((r) => r.format === 'SQUARE_1_1')!;
     expect(queuedLot.length).toBeGreaterThan(0);
@@ -280,24 +284,18 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     expect((await call('POST', `/iterate/pieces/${cut}/formats`, { format: '9x16' })).error).toMatchObject({ code: 'VALIDATION_ERROR' });
     expect((await call('POST', `/iterate/pieces/${cut}/formats`, { format: '4x5' }, 'C')).status).toBe(403);
     expect((await call('POST', `/iterate/pieces/${cut}/formats`, { format: '4x5' }, 'B')).status).toBe(404);
-    expect((await call('POST', `/iterate/pieces/${items['LAYOUT-STORY']}/formats`, { format: '4x5' })).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'failed', allowed: ['ready'] } });
     const n0 = await prisma.render.count({ where: { creative: { variationItemId: cut } } });
     const again = await call('POST', `/iterate/pieces/${cut}/formats`, { format: '1x1' }); // já pronto
     expect(again.status).toBe(200);
     expect(await prisma.render.count({ where: { creative: { variationItemId: cut } } })).toBe(n0);
 
-    // [mock:format-fail:CUT]: a 1ª tentativa do 4:5 falha → só o formato failed; a peça segue ready, sem erro no item
+    // [mock:format-fail:CUT]: a 1ª tentativa do 4:5 falha → 13/11: refaz sozinho; a peça segue ready, sem erro no item
     const a = await call('POST', `/iterate/pieces/${cut}/formats`, { format: '4x5' });
     expect(a.status).toBe(202);
-    expect(await prisma.render.count({ where: { creative: { variationItemId: cut } } })).toBe(n0 + 1);
-    const failed = await until(() => piece('CUT-15S'), (p) => fmt(p, '4x5').state === 'failed');
-    expect(failed).toMatchObject({ status: 'ready', errorCode: null, formatsReady: 2 });
-    expect(fmt(failed, '4x5')).toMatchObject({ state: 'failed', errorCode: 'RENDER_ERROR', failReason: expect.any(String), requestUsd: 0 });
-    const c = await prisma.creative.findUniqueOrThrow({ where: { id: failed.creativeId! } });
-    expect(c.state).toBe('APPROVED');
-    const retry = await call('POST', `/iterate/pieces/${cut}/formats`, { format: '4x5' });
-    expect(retry.status).toBe(202);
     const ok = await until(() => piece('CUT-15S'), (p) => fmt(p, '4x5').state === 'ready');
+    expect(ok).toMatchObject({ status: 'ready', errorCode: null });
+    const c = await prisma.creative.findUniqueOrThrow({ where: { id: ok.creativeId! } });
+    expect(c.state).toBe('APPROVED');
     expect(ok.formatsReady).toBe(3);
     expect(await prisma.render.count({ where: { creative: { variationItemId: cut } } })).toBe(n0 + 2);
     expect(await prisma.render.count({ where: { creative: { variationItemId: cut }, stale: true, format: 'PORTRAIT_4_5' } })).toBe(1);
@@ -332,15 +330,15 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     const b = await call('GET', `/iterate/${batchId}`);
     expect(b.data.cost).toMatchObject({ imagesUsd: 0.8, analysisUsd: 0, renderUsd: 0, totalUsd: 0.8, generateEstimateUsd: null });
     expect(b.data.summary.videoCreditsUsd).toBe(0);
-    // files = formatos na fila/rodando/prontos das peças não left_out: 10 9:16 + CUT 1:1 + CUT 4:5 + STATIC 4:5
-    expect(b.data.summary.files).toBe(13);
+    // files = formatos na fila/rodando/prontos das peças não left_out: 11 9:16 + CUT 1:1 + CUT 4:5 + STATIC 4:5
+    expect(b.data.summary.files).toBe(14);
     expect(b.data.phase).toBe('download');
     expect(b.data.summary.renderEtaSec).toBe(0);
   });
 
   it('Library: media, formats (só os prontos), filtros variationCode e media=video; VariationRef com code/axis', async () => {
     const all = await call('GET', `/library?variationKind=AUTO_EDIT&limit=50`);
-    expect(all.data).toHaveLength(10);
+    expect(all.data).toHaveLength(11);
     const st = all.data.find((i: any) => i.variation?.code === 'STATIC-F1');
     expect(st).toMatchObject({ media: 'image', variation: { kind: 'AUTO_EDIT', code: 'STATIC-F1', axis: 'DIVERSITY' } });
     expect(st.formats.map((f: any) => f.format)).toEqual(['9x16', '4x5']);
@@ -373,27 +371,17 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     const h = await call('GET', `/creatives?filter=needs_you`);
     expect(h.meta.waitingOnYou).toEqual({ creatives: 0, batches: 1, total: 1 });
     expect(h.meta.counts.needs_you).toBe(0);
-    expect(h.meta.waitingBatches).toEqual([expect.objectContaining({ id: batchId, status: 'PIECES_READY', mode: 'AUTO', readyCount: 10 })]);
+    expect(h.meta.waitingBatches).toEqual([expect.objectContaining({ id: batchId, status: 'PIECES_READY', mode: 'AUTO', readyCount: 11 })]);
     expect(h.data).toHaveLength(0);
   });
 
-  it('Leave out, Retry (só o 9:16 FAILED, grátis), In zip; outro workspace 404; CLIENT só no In zip', async () => {
+  // 13/11: a peça que falhou já se refez sozinha; Leave out e Retry manuais só valem pra failed/left_out
+  it('Leave out e Retry manuais recusam peça pronta; In zip; outro workspace 404; CLIENT só no In zip', async () => {
     const story = items['LAYOUT-STORY'];
-    expect((await call('PATCH', `/iterate/pieces/${story}`, { inZip: false })).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'failed', allowed: ['ready'] } });
     expect((await call('POST', `/iterate/pieces/${story}/retry`, {}, 'C')).status).toBe(403);
     expect((await call('POST', `/iterate/pieces/${story}/leave-out`, {}, 'B')).status).toBe(404);
-    const lo = await call('POST', `/iterate/pieces/${story}/leave-out`, {});
-    expect(lo.status).toBe(200);
-    expect(lo.data).toMatchObject({ status: 'left_out', inZip: false, retryUsd: 0 });
-    expect((await call('POST', `/iterate/pieces/${story}/leave-out`, {})).error.code).toBe('INVALID_STATE');
-
-    const before = await prisma.render.count({ where: { creative: { variationItemId: story } } });
-    const rt = await call('POST', `/iterate/pieces/${story}/retry`, {});
-    expect(rt.status).toBe(202);
-    expect(rt.data.status).toMatch(/queued|rendering/);
-    expect(await prisma.render.count({ where: { creative: { variationItemId: story } } })).toBe(before + 1); // só o 9:16
-    const ok = await until(pieces, (ps) => ps.find((p) => p.id === story)!.status === 'ready');
-    expect(ok.find((p) => p.id === story)).toMatchObject({ status: 'ready', formatsReady: 1, errorCode: null, inZip: false, retryUsd: null });
+    expect((await call('POST', `/iterate/pieces/${story}/leave-out`, {})).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'ready', allowed: ['failed'] } });
+    expect((await call('POST', `/iterate/pieces/${story}/retry`, {})).error).toMatchObject({ code: 'INVALID_STATE', details: { state: 'ready' } });
 
     // CLIENT pode o In zip
     const cl = await call('PATCH', `/iterate/pieces/${story}`, { inZip: true }, 'C');
@@ -475,8 +463,9 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
       return svc.createPieces(tx, { batchId: b2.id, userId: who.A.userId, launchedAt: at });
     });
     svc.launched(lp);
-    const failed = await until(() => svc.pieceById(pid), (p) => p.status === 'failed');
-    expect(failed).toMatchObject({ status: 'failed', errorCode: 'SAFETY_BLOCK', retryHint: 'retry', retryUsd: 0.4, media: 'image', formatsReady: 0 });
+    // 13/11 (nenhum erro ao usuário): recusa do modelo de imagem = a peça sai do lote sozinha (left_out); o Retry segue
+    const failed = await until(() => svc.pieceById(pid), (p) => p.status === 'left_out');
+    expect(failed).toMatchObject({ status: 'left_out', errorCode: 'SAFETY_BLOCK', inZip: false, media: 'image', formatsReady: 0 });
     expect(failed.failReason).toMatch(/refused this concept/);
     const legacyCall = stub.calls.filter((x) => x.creativeId === failed.creativeId);
     expect(legacyCall.map((x) => x.safe)).toEqual([false, true]);
@@ -485,7 +474,7 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     // Retry do STATIC: teto com 1 imagem
     await prisma.workspace.update({ where: { id: who.A.id }, data: { monthlySpendCapUsd: 0.5 } });
     expect((await call('POST', `/iterate/pieces/${pid}/retry`, {})).error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED' });
-    expect((await svc.pieceById(pid)).status).toBe('failed');
+    expect((await svc.pieceById(pid)).status).toBe('left_out');
     await prisma.workspace.update({ where: { id: who.A.id }, data: { monthlySpendCapUsd: null } });
     stub.mode = 'timeout'; // 1ª tentativa TIMEOUT → reenvio igual (não seguro) passa
     const rt = await call('POST', `/iterate/pieces/${pid}/retry`, {});

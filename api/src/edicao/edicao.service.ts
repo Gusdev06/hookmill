@@ -113,6 +113,10 @@ export const AUTO_FAIL_REASON: Record<AutoFailCode, string> = {
   TEMPLATE_TEXT_OVERFLOW: 'The template text does not fit. Leave it out.',
 };
 const AD_NAME_ATTEMPTS = 5;
+/** 13/11 (nenhum erro ao usuário): erros passageiros que a peça de vídeo refaz sozinha, até AUTO_RETRY_MAX vezes por formato. */
+const AUTO_RETRY_CODES = new Set<AutoFailCode>(['RENDER_ERROR', 'RENDER_TIMEOUT', 'BROLL_UNAVAILABLE']);
+const AUTO_RETRY_MAX = 2;
+const AUTO_RETRY_TAG = 'refeito sozinho';
 /** render-lambda-v1 §2.7: 1 tentativa nova no timeout/retryable; finalize até 3x; submit sem externalId há 2 min = fila. */
 const RENDER_MAX_ATTEMPTS = 2;
 const FINALIZE_MAX_TRIES = 3;
@@ -1261,13 +1265,55 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
       this.kick();
       return;
     }
+    // 13/11 (Gusta): nenhum erro chega ao usuário. Erro passageiro = refaz sozinho (até AUTO_RETRY_MAX); esgotou ou é
+    // do tipo "não cabe" = a peça sai do lote sozinha (left_out, fora do zip; o crédito volta pela regra do assentamento).
+    if (await this.refazerSozinho(r, code)) return;
     const reason = AUTO_FAIL_REASON[code];
     await this.prisma.render.updateMany({ where: { id: r.id }, data: { status: 'FAILED', stage: null, errorCode: code, failReason: reason, failedFrame, finishedAt: new Date() } });
     if ((r.format ?? 'VERTICAL_9_16') === 'VERTICAL_9_16' && r.creative.variationItemId) {
       await this.prisma.variationItem.update({ where: { id: r.creative.variationItemId }, data: { errorCode: code, failReason: reason } });
+      const fora = await this.prisma.variationItem.updateMany({ where: { id: r.creative.variationItemId, leftOutAt: null }, data: { leftOutAt: new Date(), inZip: false } });
+      if (fora.count) this.log.warn(`render ${r.id}: ${code} sem plano B; peça deixada de fora sozinha (regra 13/11: nenhum erro ao usuário)`);
     }
     await this.publish(r.id);
     await this.settleAuto(r.creativeId);
+  }
+
+  /**
+   * 13/11: refaz sozinho uma peça de VÍDEO que falhou por erro passageiro: o render atual vira FAILED + stale (diagnóstico)
+   * e nasce outro QUEUED igual. Teto: AUTO_RETRY_MAX refeitos automáticos por formato. false = não refaz.
+   */
+  private async refazerSozinho(r: { id: string; creativeId: string; format: VideoFormat | null }, code: AutoFailCode): Promise<boolean> {
+    if (!AUTO_RETRY_CODES.has(code)) return false;
+    const row = await this.prisma.render.findUnique({ where: { id: r.id } });
+    if (!row || row.engine !== 'REMOTION' || row.stale || isEditorExport(row.settings)) return false;
+    const format = r.format ?? 'VERTICAL_9_16';
+    const feitos = await this.prisma.render.count({ where: { creativeId: r.creativeId, format, stale: true, failReason: { startsWith: AUTO_RETRY_TAG } } });
+    if (feitos >= AUTO_RETRY_MAX) return false;
+    let novo: string | null = null;
+    await this.locks.run(r.creativeId, async () => {
+      await this.prisma.$transaction(async (tx) => {
+        const cur = await tx.render.findUnique({ where: { id: r.id }, select: { status: true, stale: true } });
+        if (!cur || cur.stale || cur.status === 'READY') return;
+        await tx.render.update({
+          where: { id: r.id },
+          data: { status: 'FAILED', stale: true, stage: null, errorCode: code, failReason: `${AUTO_RETRY_TAG} ${feitos + 1}/${AUTO_RETRY_MAX} (${code})`, finishedAt: new Date(), finalizingAt: null },
+        });
+        const n = await tx.render.create({
+          data: {
+            workspaceId: row.workspaceId, creativeId: r.creativeId, status: 'QUEUED', format: row.format, engine: row.engine, priority: row.priority,
+            settings: (row.settings ?? {}) as Prisma.InputJsonValue, input: {},
+          },
+          select: { id: true },
+        });
+        novo = n.id;
+      });
+    });
+    if (!novo) return false;
+    this.log.warn(`render ${r.id}: ${code}; refeito sozinho (${feitos + 1}/${AUTO_RETRY_MAX})`);
+    await this.publish(novo);
+    this.kick();
+    return true;
   }
 
   /**

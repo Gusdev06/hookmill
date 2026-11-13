@@ -227,11 +227,12 @@ describe(isLocal ? 'Render no Lambda: despachante, poller, webhook, settle (inte
     expect((await hook({ externalId: 'ext-velho', renderId: slow!.id, attempt: 9, status: 'success', costUsd: 0.01 })).status).toBe(200);
     expect((await prisma.render.findUniqueOrThrow({ where: { id: slow!.id } })).status).toBe('RENDERING');
 
-    const done = await until(pieces, (ps) => ps.every((p) => ['ready', 'failed'].includes(p.status)));
+    const done = await until(pieces, (ps) => ps.every((p) => ['ready', 'failed', 'left_out'].includes(p.status)));
     const by = Object.fromEntries(done.map((p) => [p.code, p]));
     expect(by['CUT-15S'].status).toBe('ready'); // throttling no 1º submit: voltou pra fila e passou
     expect(by['HOOK-TEXT-2'].status).toBe('ready'); // 1º timeout → tentativa 2 → ok
-    expect(by['LAYOUT-STORY']).toMatchObject({ status: 'failed', errorCode: 'RENDER_TIMEOUT' });
+    // 13/11 (nenhum erro ao usuário): timeout em toda tentativa = refaz sozinho 2x e a peça sai do lote (left_out)
+    expect(by['LAYOUT-STORY']).toMatchObject({ status: 'left_out', errorCode: 'RENDER_TIMEOUT', inZip: false });
     expect(by['COLD-OPEN'].status).toBe('ready');
     expect(by['NATIVE-SEARCH'].status).toBe('ready');
     expect(lambda.maxActive).toBeLessThanOrEqual(2); // RENDER_LAMBDA_MAX_INFLIGHT
@@ -245,14 +246,14 @@ describe(isLocal ? 'Render no Lambda: despachante, poller, webhook, settle (inte
     expect(lambda.released).toEqual(expect.arrayContaining([`ext-${hookR.id}-a2`]));
     // custo: 1 CostEntry por tentativa (externalRef = externalId): 4 prontos + 1º timeout do hook + 2 timeouts do story
     const costs = await prisma.costEntry.findMany({ where: { workspaceId: ws.id, provider: 'AWS_LAMBDA', kind: 'RENDER' } });
-    expect(costs).toHaveLength(7);
-    expect(new Set(costs.map((c) => c.externalRef)).size).toBe(7);
+    expect(costs).toHaveLength(11); // 13/11: + 2 refeitos automáticos da LAYOUT-STORY × 2 tentativas
+    expect(new Set(costs.map((c) => c.externalRef)).size).toBe(11);
     expect(costs.find((c) => c.externalRef === `ext-${hookR.id}-a2`)).toMatchObject({ unit: 'render', creativeId: hookR.creativeId });
 
     // webhook duplicado depois do READY = 200 sem efeito (nem custo novo)
     expect((await hook({ externalId: hookR.externalId, renderId: hookR.id, attempt: 2, status: 'success', costUsd: 0.011 })).status).toBe(200);
     await new Promise((r) => setTimeout(r, 500));
-    expect(await prisma.costEntry.count({ where: { workspaceId: ws.id, provider: 'AWS_LAMBDA' } })).toBe(7);
+    expect(await prisma.costEntry.count({ where: { workspaceId: ws.id, provider: 'AWS_LAMBDA' } })).toBe(11);
     expect((await prisma.render.findUniqueOrThrow({ where: { id: hookR.id } })).status).toBe('READY');
   });
   it('F8: finalize que falha grava o custo do Lambda e apaga a saída; nº de quadros errado falha na 1ª, rede tenta até 3x', async () => {
@@ -273,11 +274,11 @@ describe(isLocal ? 'Render no Lambda: despachante, poller, webhook, settle (inte
       return svc.createPieces(tx, { batchId: b2.id, userId: ws.userId, launchedAt });
     });
     svc.launched(launched);
-    const done = await until(() => svc.pieces({ id: b2.id, workspaceId: ws.id, status: 'LAUNCHED' }), (ps) => ps.every((p) => ['ready', 'failed'].includes(p.status)));
+    const done = await until(() => svc.pieces({ id: b2.id, workspaceId: ws.id, status: 'LAUNCHED' }), (ps) => ps.every((p) => ['ready', 'failed', 'left_out'].includes(p.status)));
     const by = Object.fromEntries(done.map((p) => [p.code, p]));
-    expect(by['F8-CUT-15S']).toMatchObject({ status: 'failed', errorCode: 'RENDER_ERROR' });
+    expect(by['F8-CUT-15S']).toMatchObject({ status: 'left_out', errorCode: 'RENDER_ERROR' }); // 13/11: refeito 2x, depois fora
     expect(by['F8-NATIVE-SEARCH'].status).toBe('ready');
-    expect(by['F8-HOOK-TEXT-2']).toMatchObject({ status: 'failed', errorCode: 'RENDER_ERROR' });
+    expect(by['F8-HOOK-TEXT-2']).toMatchObject({ status: 'left_out', errorCode: 'RENDER_ERROR' });
 
     const renders = await prisma.render.findMany({ where: { workspaceId: ws.id, format: 'VERTICAL_9_16', stale: false, creative: { variationBatchId: b2.id } }, include: { creative: { select: { variationCode: true } } } });
     const of = (code: string) => renders.find((r) => r.creative.variationCode === code)!;

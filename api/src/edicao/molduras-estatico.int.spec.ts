@@ -217,10 +217,9 @@ describe(isLocal ? 'STATIC montado + molduras (integração local)' : 'STATIC mo
     expect(by['FRAME-READ-CAPTION'].formats!.map((f) => f.supported)).toEqual([true, true, true]);
     const r = await prisma.render.findFirstOrThrow({ where: { creativeId: by['FRAME-READ-CAPTION'].creativeId!, format: 'VERTICAL_9_16' } });
     expect(r.input).toMatchObject({ kind: 'frame', templateId: 'frame', frame: { id: 'read_caption', brand } });
-    // [mock:frame-fail:news]: 1ª do 9:16 falha (RENDER_ERROR) → Retry passa
-    expect(by['FRAME-NEWS']).toMatchObject({ status: 'failed', errorCode: 'RENDER_ERROR', retryHint: 'retry', retryUsd: 0 });
-    expect((await call('POST', `/iterate/pieces/${items['FRAME-NEWS']}/retry`, {})).status).toBe(202);
-    expect((await until(() => piece('FRAME-NEWS'), (p) => p.status === 'ready')).status).toBe('ready');
+    // [mock:frame-fail:news]: 1ª do 9:16 falha (RENDER_ERROR) → 13/11: refaz sozinho e sai pronta, sem erro na tela
+    expect(by['FRAME-NEWS']).toMatchObject({ status: 'ready', errorCode: null });
+    expect(await prisma.render.count({ where: { creativeId: by['FRAME-NEWS'].creativeId!, stale: true, failReason: { startsWith: 'refeito sozinho' } } })).toBe(1);
   });
 
   it('§A10.1/1b: Retry de STATIC pronto com texto errado refaz (prioridade 10, cobra, lote segue em download); fica a melhor', async () => {
