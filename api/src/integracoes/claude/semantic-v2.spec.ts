@@ -219,6 +219,18 @@ describe('semantic-v2 — adaptador real (transporte falso)', () => {
     expect(plan.rejected).toEqual([{ index: 1, reason: 'fact reference' }]);
   });
 
+  it('13/11: trecho sem factRefs (GPT da Kie omite) herda os fatos da variação; presente e inválido segue derrubando', () => {
+    const raw = mockPreviewsDraft(ctx, req);
+    for (const v of raw.variations) for (const b of v.beats) delete (b as { factRefs?: unknown }).factRefs;
+    const plan = validateSemanticPlanV2(raw, ctx, req, 'live', 0);
+    expect(plan.rejected).toEqual([]);
+    expect(plan.variations).toHaveLength(raw.variations.length);
+    for (const v of plan.variations) for (const b of v.beats) expect(b.factRefs).toEqual(['mechanism', 'proof', 'cta'].includes(b.role) ? v.factRefs : []);
+    const bad = mockPreviewsDraft(ctx, req);
+    bad.variations[0].beats[0].factRefs = ['offer.fake'];
+    expect(validateSemanticPlanV2(bad, ctx, req, 'live', 0).rejected).toEqual([{ index: 0, reason: 'fact reference' }]);
+  });
+
   it('título longo é cortado na palavra, não derruba a candidata', () => {
     const raw = mockPreviewsDraft(ctx, req);
     raw.variations[0].title = 'Um título bem comprido que passa do limite de sessenta caracteres da tela';

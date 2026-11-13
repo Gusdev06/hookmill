@@ -152,9 +152,13 @@ function variationOf(v: unknown, index: number, ctx: SemanticContextV2, format: 
   if (new Set(changes.map((c) => c.axis)).size !== changes.length) drop('duplicate axis');
   const factRefs = refs(x.factRefs, 1);
   const beats = arr(x.beats, 1, 12).map((b) => {
-    const z = obj(b, ['role', 'speaker', 'text', 'visual', 'factRefs']);
+    // 13/11: o GPT 6.1 Sol (fallback da Kie, schema não estrito) omite beats[].factRefs em TODOS os trechos e o lote F09 de
+    // 12/11 perdeu as 5 candidatas por 'fields'. Ausente = o trecho herda os fatos da variação (já validados abaixo);
+    // presente segue a regra de sempre.
+    const z = obj(b, ['role', 'speaker', 'text', 'visual']);
     const role = one(z.role, ['hook', 'objection', 'mechanism', 'proof', 'cta'] as const);
-    const beatRefs = refs(z.factRefs, ['mechanism', 'proof', 'cta'].includes(role) ? 1 : 0);
+    const precisa = ['mechanism', 'proof', 'cta'].includes(role) ? 1 : 0;
+    const beatRefs = 'factRefs' in z ? refs(z.factRefs, precisa) : precisa ? factRefs : [];
     if (beatRefs.some((id) => !factRefs.includes(id))) drop('unlisted beat fact');
     return { role, speaker: one<AiSpeaker>(z.speaker, speakers), text: str(z.text, 600), visual: str(z.visual, 450), factRefs: beatRefs };
   });
