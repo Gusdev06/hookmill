@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import type { AccountMode, MeResponse } from "@/lib/api/types"
 import { useSession } from "@/components/providers/session-provider"
+import { sessionMeSnapshot } from "@/lib/session/token"
 
 /*
  * GET /auth/me is the one source for the entry rules of onboarding-v2 (§3.1, §3.2, §3.4, §3.5): `user.accountMode`,
@@ -13,7 +14,11 @@ import { useSession } from "@/components/providers/session-provider"
 export const ME_KEY = ["me"] as const
 
 export function useMe() {
-  return useQuery({ queryKey: ME_KEY, queryFn: () => api.auth.me(), staleTime: 60_000 })
+  // 15/11: o /auth/me que veio junto com a sessão (o BFF busca do lado do servidor) abre o app sem mais uma viagem
+  return useQuery({
+    queryKey: ME_KEY, queryFn: () => api.auth.me(), staleTime: 60_000,
+    initialData: () => sessionMeSnapshot()?.data, initialDataUpdatedAt: () => sessionMeSnapshot()?.at,
+  })
 }
 
 /** null (not answered) is treated as AGENCY everywhere but on /start (contract §3.1). */

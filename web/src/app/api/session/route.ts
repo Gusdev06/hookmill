@@ -38,7 +38,10 @@ export async function GET() {
   const rt = await openRefreshToken((await cookies()).get(SESSION_COOKIE)?.value)
   if (!rt) return failure(new AuthFailure("UNAUTHORIZED", 401, "No session."))
   try {
-    return await respond(await authServer.refresh(rt), false)
+    const session = await authServer.refresh(rt)
+    // 15/11: o /auth/me vai junto (o Gate do shell espera por ele); falhou = o navegador busca como antes
+    const me = await authServer.me(session.accessToken)
+    return await respondSession(session, false, me ? { me } : undefined)
   } catch (e) {
     return failure(e)
   }

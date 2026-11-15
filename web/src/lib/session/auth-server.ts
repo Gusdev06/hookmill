@@ -51,6 +51,20 @@ export const authServer = {
   /** fase2-agencia §3.2 POST /workspaces (Bearer = current access token): creates the client and answers tokens for it. */
   createClient: (body: CreateClientBody, accessToken: string) =>
     MOCKING ? mockAuth.createClient(body) : call<CreateClientResponse>("/workspaces", body, accessToken),
+  /**
+   * 15/11 (velocidade): GET /auth/me feito AQUI (Vercel iad1 → API em Boston, milissegundos) junto com o refresh, pra o
+   * navegador não pagar mais uma viagem (~1 s de Bali) antes de abrir o app. null = falhou (o navegador busca sozinho).
+   */
+  me: async (accessToken: string): Promise<unknown | null> => {
+    if (MOCKING) return null
+    try {
+      const res = await fetch(API_URL + "/auth/me", { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store", signal: AbortSignal.timeout(5_000) })
+      const json = await res.json().catch(() => null)
+      return res.ok && json?.success ? json.data : null
+    } catch {
+      return null
+    }
+  },
   logout: async (refreshToken: string, accessToken?: string) => {
     if (MOCKING) return
     await call("/auth/logout", { refreshToken }, accessToken).catch(() => undefined)

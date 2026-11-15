@@ -1,6 +1,6 @@
 "use client"
 
-import type { AuthUser, ClientCard, CreateClientBody, ErrorEnvelope, SignupBody, WorkspaceRef } from "@/lib/api/types"
+import type { AuthUser, ClientCard, CreateClientBody, ErrorEnvelope, MeResponse, SignupBody, WorkspaceRef } from "@/lib/api/types"
 import { ApiError } from "@/lib/api/errors"
 
 /**
@@ -24,6 +24,7 @@ export function getSession() {
 
 export function setSession(s: ClientSession | null) {
   current = s
+  if (!s) sessionMe = null
   listeners.forEach((l) => l(s))
 }
 
@@ -34,7 +35,13 @@ export function subscribeSession(l: (s: ClientSession | null) => void) {
   }
 }
 
-type SessionPayload = { accessToken: string; expiresIn: number; user: AuthUser; workspace: WorkspaceRef }
+type SessionPayload = { accessToken: string; expiresIn: number; user: AuthUser; workspace: WorkspaceRef; me?: MeResponse }
+
+/** 15/11: o GET /auth/me que veio junto com o refresh (o BFF busca do lado do servidor). Vira o dado inicial do useMe. */
+let sessionMe: { data: MeResponse; at: number } | null = null
+export function sessionMeSnapshot() {
+  return sessionMe
+}
 
 export function toClientSession(p: SessionPayload): ClientSession {
   return { accessToken: p.accessToken, expiresAt: Date.now() + p.expiresIn * 1000, user: p.user, workspace: p.workspace }
@@ -46,7 +53,9 @@ export function refreshSession(): Promise<ClientSession | null> {
     inflight = fetch("/api/session", { method: "GET", cache: "no-store", credentials: "same-origin" })
       .then(async (r) => {
         if (!r.ok) return null
-        return toClientSession((await r.json()) as SessionPayload)
+        const p = (await r.json()) as SessionPayload
+        sessionMe = p.me ? { data: p.me, at: Date.now() } : null
+        return toClientSession(p)
       })
       .catch(() => null)
       .then((s) => {
@@ -62,6 +71,7 @@ export function refreshSession(): Promise<ClientSession | null> {
 
 /** Client selector: swaps the session (and the refresh cookie) to another workspace via the BFF. Throws on failure. */
 export async function switchWorkspace(workspaceId: string): Promise<ClientSession> {
+  sessionMe = null // o me guardado é do workspace anterior
   const token = await getAccessToken()
   const r = await fetch("/api/session", {
     method: "PUT",
