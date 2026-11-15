@@ -260,11 +260,45 @@
 .eu .skel i { display: block; height: 34px; border-radius: 8px; background: linear-gradient(90deg, var(--card-2), var(--line) 50%, var(--card-2)); background-size: 200% 100%; animation: eu-sh 1.4s linear infinite; }
 @keyframes eu-sh { to { background-position: -200% 0; } }
 
+/* 16/11 — editor simples (protótipo aprovado): vídeo grande | painel com 3 abas; aparar embaixo do vídeo; 1 aviso */
+.eu .ed.simples { grid-template-columns: minmax(0, 1fr) minmax(340px, 440px); grid-template-areas: "stage panel"; grid-template-rows: auto; }
+.eu .ed.simples .stagewrap { display: flex; flex-direction: column; gap: 12px; }
+.eu .ptabs.tres .ptab { font-weight: 600; font-size: 14px; }
+.eu .ptab[aria-selected="true"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 0 var(--line-strong), 0 0 0 1px var(--line); }
+.eu .trimcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 4px 16px 14px; }
+.eu .trimcard .sec { border-top: 0; }
+.eu .enq { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.eu .enq-op { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.eu .enq-op b { font-size: 13.5px; font-weight: 600; }
+.eu .enq-op small { color: var(--fg-3); font-size: 12px; }
+.eu .enq-op:hover:not(:disabled) { background: var(--card-2); }
+.eu .enq-op[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.eu .enq-op:disabled:not([aria-pressed="true"]) { opacity: .5; }
+.eu details.fino > summary { cursor: pointer; font-size: 13px; color: var(--fg-2); font-weight: 500; list-style-position: inside; }
+.eu details.fino[open] > summary { margin-bottom: 4px; }
+.eu .fino-corpo { display: flex; flex-direction: column; gap: 12px; }
+.eu .fino-corpo > .card { border: 0; padding: 0; background: none; }
+.eu .reset-tudo { align-self: flex-start; border: 0; background: none; color: var(--fg-3); font-size: 12.5px; text-decoration: underline; padding: 4px 2px; }
+.eu .aviso1 { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-radius: 12px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--warn-edge); background: var(--warn-bg); color: var(--warn); }
+.eu .aviso1.bad { border-color: var(--bad-edge); background: var(--bad-bg); color: var(--bad); }
+.eu .aviso1 p { margin: 0; flex: 1; min-width: 180px; }
+.eu .aviso1 .btn { color: var(--fg); }
+/* Textos no editor simples: só o campo e o contador (some a tabela "Em · Linha · De onde veio") */
+.eu .ed.simples .lines { border: 0; gap: 10px; }
+.eu .ed.simples .lrow { grid-template-columns: minmax(0, 1fr); padding: 0; border: 0; background: none; gap: 6px; }
+.eu .ed.simples .lrow.hdr, .eu .ed.simples .lrow .mark, .eu .ed.simples .lrow .at { display: none; }
+.eu .ed.simples .lrow .src { font-size: 12px; color: var(--fg-3); }
+.eu .ed.simples .lrow .src .tag { display: none; }
+.eu .ed.simples .lrow .inp { font-size: 14px; min-height: 40px; }
+.eu .ed.simples .lrow.sel2 { box-shadow: none; }
+.eu .ed.simples .lrow.sel2 .inp { border-color: var(--info); background: var(--info-bg); }
+
 @media (max-width: 1180px) {
   .eu .ed { grid-template-columns: 190px minmax(320px, auto) minmax(320px, 1fr); }
 }
 @media (max-width: 899px) {
   .eu .ed { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel"; grid-template-rows: auto auto; }
+  .eu .ed.simples { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel"; }
   .eu .rail, .eu .tlwrap { display: none; }
   .eu .chips { display: flex; gap: 6px; overflow-x: auto; width: 100%; padding-bottom: 2px; }
   .eu .chips button { flex-shrink: 0; border: 1px solid var(--ink-line); background: var(--ink-2); color: var(--ink-fg-2); border-radius: 999px; padding: 5px 11px; font-size: 12px; min-height: 32px; }

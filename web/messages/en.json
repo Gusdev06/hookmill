@@ -6814,6 +6814,40 @@
         "remix_editor_not_enabled": "Comes in a later step",
         "headline_plate_retired": "This older piece no longer opens in the editor"
       }
+    },
+    "simples": {
+      "salvo": "Saved",
+      "baixar": "Download video",
+      "gerando": "Making the new version {pct}%",
+      "baixarTip": "Downloads the video as it is",
+      "baixarTipNovo": "Makes the version with your changes and downloads it when ready",
+      "aba": {
+        "textos": "Text",
+        "video": "Video",
+        "estilo": "Style"
+      },
+      "semTextos": "This template has no text to edit. Adjust the video or the style in the other tabs.",
+      "estiloDoTexto": "Style of the selected text (font, color, size)",
+      "semVideo": "This piece has no video to frame.",
+      "enquadramento": "Framing",
+      "enqAuto": "Automatic",
+      "enqAutoSub": "Face and caption in view",
+      "enqPerto": "Closer",
+      "enqPertoSub": "Focus on the face",
+      "enqLonge": "Wider",
+      "enqLongeSub": "Shows the whole video",
+      "enqLivre": "Custom",
+      "enqLivreSub": "The way you dragged it",
+      "dicaVideo": "With this tab open, drag the video in the preview to move it and scroll to zoom. To cut the start or the end, use the trim under the video.",
+      "ajusteFinoVideo": "Fine tuning (exact zoom and position)",
+      "ajusteFinoElemento": "Exact position of the selected element (advanced)",
+      "voltarTudo": "Reset everything to the original",
+      "avisoCaption": "The original caption got cut or covered. You can still download it.",
+      "avisoFace": "The face got cut or covered. You can still download it.",
+      "avisoTexto": "A text is over the limit and doesn't fit. Shorten it to download.",
+      "avisoNumero": "There's a number that isn't in the speech or the Brain. Check it in the Text tab.",
+      "enquadrarSozinho": "Frame it for me",
+      "verTexto": "Show the text"
     }
   }
 }

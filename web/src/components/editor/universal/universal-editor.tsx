@@ -3,7 +3,6 @@
 import "./universal.css"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import type { PlayerRef } from "@remotion/player"
@@ -11,15 +10,14 @@ import { api } from "@/lib/api/client"
 import { isApiError } from "@/lib/api/errors"
 import type { EditorExportStage, FormatCode } from "@/lib/api/types"
 import { iterateHref } from "@/lib/routes"
-import { ik } from "@/hooks/use-iterate"
 import { useErrorMessage } from "@/hooks/use-error-message"
 import { useSession } from "@/components/providers/session-provider"
 import { EdIcon } from "@/components/editor/ed-icon"
 import { cn } from "@/lib/utils"
 import { UCtx, type Tab, type U } from "./context"
 import { Canvas } from "./canvas"
-import { LayerRail, Timeline } from "./layers"
-import { LayerTab, TemplateTab } from "./panel"
+import { EstiloTab, TextosTab, VideoTab } from "./abas"
+import { VideoTrimSec } from "./panel"
 import { canExport, checks, clamp, clampFraming, clampVideoBox, docOrEmpty, emptyDoc, framingNow, geoMode, geometryOf, isEmpty, principalOf, resolve, setGeometry, setVideoGeo, timecode } from "./model"
 import { useUniversalSession } from "./use-universal"
 
@@ -81,8 +79,9 @@ export function UniversalEditor({ id }: { id: string }) {
   const fmt = st.manifest.formats.includes(fmtState) ? fmtState : principal
   const [sel, setSel] = useState<string | null>(null)
   const [reframeOn, setReframing] = useState(false)
-  const [tab, setTab] = useState<Tab>("tpl")
+  const [tab, setTab] = useState<Tab>("textos")
   const [guides, setGuides] = useState(false)
+  const [baixando, setBaixando] = useState(false)
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
   const playerRef = useRef<PlayerRef | null>(null)
@@ -99,11 +98,21 @@ export function UniversalEditor({ id }: { id: string }) {
   const fullDur = rFull?.layout.durationSec ?? 0
   const videoFull = useMemo(() => (fullTrim ? { inSec: fullTrim.inSec, outSec: fullTrim.outSec, durationSec: fullDur } : null), [fullTrim, fullDur])
 
+  // 16/11 (editor simples): o clique escolhe a aba pelo tipo do que foi clicado; texto já abre com o campo focado
   const select = useCallback((nid: string | null, toLayer = true) => {
     setSel(nid)
-    if (!nid || st.manifest.layers.find((l) => l.id === nid)?.kind !== "video") setReframing(false)
-    if (nid && toLayer) setTab("lyr")
+    const kind = nid ? st.manifest.layers.find((l) => l.id === nid)?.kind : undefined
+    if (kind !== "video") setReframing(false)
+    if (!nid || !toLayer) return
+    const aba: Tab = kind === "video" ? "video" : kind === "text" || kind === "list" || kind === "chat" || kind === "caption" ? "textos" : "estilo"
+    setTab(aba)
+    if (aba === "textos") requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-text-layer="${CSS.escape(nid)}"]`)?.focus())
   }, [st.manifest.layers])
+  const videoId = st.manifest.layers.find((l) => l.kind === "video" && l.editable.reframe)?.id ?? null
+  const abrirAba = useCallback((a: Tab) => {
+    setTab(a)
+    if (a === "video" && videoId) setSel(videoId)
+  }, [videoId])
   const seek = useCallback((sec: number) => {
     const p = playerRef.current
     const dur = r?.meta.durationInFrames ?? 1
@@ -125,14 +134,20 @@ export function UniversalEditor({ id }: { id: string }) {
   const ro = readOnly || s.running
   const decl = useCallback((lid: string) => st.manifest.layers.find((l) => l.id === lid), [st.manifest.layers])
   const selDecl = sel ? decl(sel) : undefined
-  const reframing = reframeOn && !phone && !ro && selDecl?.kind === "video" && selDecl.editable.reframe
+  // na aba Vídeo, arrastar na prévia já reenquadra (sem o duplo clique de antes)
+  const reframing = (reframeOn || tab === "video") && !phone && !ro && selDecl?.kind === "video" && selDecl.editable.reframe
+  // "Pronto" / Esc do reenquadrar: na aba Vídeo o modo vem da aba, então sair = voltar pros Textos
+  const setReframe = useCallback((v: boolean) => {
+    setReframing(v)
+    if (!v && tab === "video") setTab("textos")
+  }, [tab])
   const pickFmt = useCallback((f: FormatCode) => {
     setFmt(f)
     setReframing(false)
   }, [])
   const ctx: U = {
     id, s, st, doc, fmt, setFmt: pickFmt, principal, r, issues, exportIssues, sel, select, tab, setTab, time, seek, playing, togglePlay, playerRef,
-    phone, guides, setGuides, ro, reframing, setReframing, videoFull, decl, label, userId: session.user.id, t,
+    phone, guides: guides || !!reframing, setGuides, ro, reframing, setReframing: setReframe, videoFull, decl, label, userId: session.user.id, t,
   }
 
   // keyboard (desktop): ⌘Z / ⇧⌘Z, Space, Esc, arrows move 1 px (Shift 10 px), one undo step per burst
@@ -142,7 +157,7 @@ export function UniversalEditor({ id }: { id: string }) {
     keyRef.current = (e: KeyboardEvent) => {
       // Esc leaves reframing from anywhere, even with a slider focused
       if (e.key === "Escape" && reframing) {
-        setReframing(false)
+        setReframe(false)
         return
       }
       const tag = ((e.target as HTMLElement)?.tagName ?? "").toLowerCase()
@@ -215,25 +230,36 @@ export function UniversalEditor({ id }: { id: string }) {
   }, [])
 
   // Download: the piece's 9:16 file from the batch view (on only when there's no edit left to export)
-  const batchQ = useQuery({ queryKey: ik.batch(st.piece?.batchId ?? "-"), queryFn: () => api.iterate.get(st.piece!.batchId), enabled: !!st.piece, staleTime: 30_000 })
-  const file916 = batchQ.data?.pieces.find((p) => p.id === st.piece?.id)?.files.find((f) => f.format === "9x16") ?? null
   const notExported = s.dirtyLocal || (st.dirty && (!isEmpty(doc) || !!st.exported))
   const backHref = st.piece ? iterateHref(st.piece.batchId, "download") : "/library"
 
+  const baixarAgora = useCallback(async () => {
+    try {
+      const d = await api.creatives.download(id, principal)
+      window.location.assign(d.url)
+    } catch (e) {
+      toast(errorMessage(e))
+    }
+  }, [id, principal, errorMessage])
+  // gerou a versão nova pedida pelo "Baixar vídeo" → baixa sozinho; falhou → solta o botão
+  useEffect(() => {
+    if (!baixando) return
+    // async de propósito (lint: sem setState síncrono em efeito); mesmo resultado um microtick depois
+    if (s.justExported !== null && !s.running) {
+      void Promise.resolve().then(() => setBaixando(false))
+      void baixarAgora()
+    } else if (s.exportMut.isError || s.exp?.stage === "failed") void Promise.resolve().then(() => setBaixando(false))
+  }, [baixando, s.justExported, s.running, s.exportMut.isError, s.exp?.stage, baixarAgora])
   const blocked = !canExport(exportIssues)
   const confirmPending = exportIssues.some((i) => i.level === "confirm")
-  const nothing = !notExported
-  const exportOff = readOnly || s.running || s.exportMut.isPending || blocked || nothing || !!s.conflict
-  const exportTitle = readOnly ? t("top.exportReadOnly") : blocked && !confirmPending ? t("top.exportBlocked") : confirmPending ? t("top.exportConfirm") : nothing ? t("top.exportNothing") : t("top.exportTip")
+  const exportTitle = readOnly ? t("top.exportReadOnly") : blocked && !confirmPending ? t("top.exportBlocked") : confirmPending ? t("top.exportConfirm") : t("top.exportTip")
 
   const saveText =
     s.status === "saving" ? t("save.saving")
       : s.status === "error" ? t("save.error")
         : s.status === "invalid" ? t("save.invalid")
           : s.dirtyLocal ? t("save.unsaved")
-            : st.exported && st.exported.revision === s.revision ? t("save.exported", { rev: s.revision ?? 0 })
-              : (s.revision ?? 0) > 0 && notExported ? t("save.notExported", { rev: s.revision ?? 0 })
-                : t("save.saved", { rev: s.revision ?? 0 })
+            : t("simples.salvo")
 
   const copyMine = async () => {
     const lines = [
@@ -276,15 +302,16 @@ export function UniversalEditor({ id }: { id: string }) {
               <span title={s.invalidRule ?? undefined} className={cn("save", (s.dirtyLocal || notExported) && "pending", (s.status === "error" || s.status === "invalid") && "bad")} role="status"><i /><span>{saveText}</span></span>
               <button type="button" className="btn ib" disabled={!s.canUndo || ro} onClick={() => s.undo()} aria-label={t("top.undo")} title={`${t("top.undo")} (⌘Z)`}><EdIcon name="undo" /></button>
               <button type="button" className="btn ib" disabled={!s.canRedo || ro} onClick={() => s.redo()} aria-label={t("top.redo")} title={`${t("top.redo")} (⇧⌘Z)`}><EdIcon name="redo" /></button>
-              <button type="button" className="btn hide-m" disabled={ro || isEmpty(doc)} onClick={() => s.commit(t("hist.resetAll"), () => docOrEmpty(null))}>{t("top.resetAll")}</button>
-              {file916 && !notExported && !s.running ? (
-                <a className="btn" href={file916.url} download={file916.name}>{t("top.download")}</a>
-              ) : (
-                <button type="button" className="btn" disabled title={notExported ? t("top.downloadPending") : undefined}>{t("top.download")}</button>
-              )}
-              <button type="button" className="btn lime" disabled={exportOff} title={exportTitle} onClick={() => s.exportMut.mutate()}>
-                {s.exportMut.isPending ? <span className="spin-ring size-3.5 border-current" aria-hidden="true" /> : null}
-                {t("top.export")}
+              {/* 16/11: um botão só. Com mudança não exportada, gera a versão nova e baixa quando ficar pronta */}
+              <button
+                type="button"
+                className="btn lime baixar"
+                disabled={readOnly || !!s.conflict || s.running || s.exportMut.isPending || baixando || (notExported && (blocked || !!s.blocked?.length))}
+                title={notExported ? (blocked ? exportTitle : t("simples.baixarTipNovo")) : t("simples.baixarTip")}
+                onClick={() => { if (notExported) { setBaixando(true); s.exportMut.mutate() } else void baixarAgora() }}
+              >
+                {s.running || s.exportMut.isPending || baixando ? <span className="spin-ring size-3.5 border-current" aria-hidden="true" /> : null}
+                {s.running && exp ? t("simples.gerando", { pct: exp.stage === "rendering" ? exp.progress : stageIx >= 2 ? 99 : 5 }) : t("simples.baixar")}
               </button>
             </div>
           </header>
@@ -334,7 +361,7 @@ export function UniversalEditor({ id }: { id: string }) {
             <div className="banner ok">
               <div className="txt"><b>{t("banner.doneTitle")}</b> {t("banner.doneBody")}</div>
               <div className="acts">
-                {file916 ? <a className="btn sm" href={file916.url} download={file916.name}>{t("banner.download916")}</a> : null}
+                <button type="button" className="btn sm" onClick={() => void baixarAgora()}>{t("banner.download916")}</button>
                 <Link className="btn sm" href={backHref}>{st.piece ? t("banner.backBatch") : t("top.library")}</Link>
               </div>
             </div>
@@ -343,17 +370,21 @@ export function UniversalEditor({ id }: { id: string }) {
             <div className="banner bad"><div className="txt"><b>{t("banner.invalidTitle")}</b> {t("banner.invalidBody")}</div><div className="acts"><button type="button" className="btn sm" disabled={!s.canUndo} onClick={() => s.undo()}>{t("top.undo")}</button></div></div>
           ) : null}
 
-          <div className="ed">
-            <LayerRail />
-            <div className="stagewrap"><Canvas onFrame={onFrame} onPlaying={setPlaying} /></div>
-            {phone ? null : <div className="tlwrap"><Timeline /></div>}
+          <div className="ed simples">
+            <div className="stagewrap">
+              <Canvas onFrame={onFrame} onPlaying={setPlaying} />
+              {videoId ? <div className="trimcard"><VideoTrimSec /></div> : null}
+            </div>
             <div className="panel">
-              <div className="ptabs" role="group" aria-label={t("panel.aria")}>
-                <button type="button" className="ptab" aria-pressed={tab === "tpl"} onClick={() => setTab("tpl")}>{t("panel.template")} <small>{label("__template")}</small></button>
-                <button type="button" className="ptab" aria-pressed={tab === "lyr"} onClick={() => setTab("lyr")}>{t("panel.layer")} <small>{sel ? label(sel) : t("panel.none")}</small></button>
+              <div className="ptabs tres" role="tablist" aria-label={t("panel.aria")}>
+                {(["textos", "video", "estilo"] as const).map((a) => (
+                  <button key={a} type="button" role="tab" className="ptab" aria-selected={tab === a} onClick={() => abrirAba(a)}>{t(`simples.aba.${a}` as never)}</button>
+                ))}
               </div>
-              {tab === "tpl" ? <TemplateTab /> : <LayerTab />}
-              {phone && !readOnly ? <button type="button" className="btn" disabled={ro || isEmpty(doc)} onClick={() => s.commit(t("hist.resetAll"), () => docOrEmpty(null))}>{t("top.resetAll")}</button> : null}
+              {tab === "textos" ? <TextosTab /> : tab === "video" ? <VideoTab /> : <EstiloTab />}
+              {!readOnly && !isEmpty(doc) ? (
+                <button type="button" className="reset-tudo" disabled={ro} onClick={() => s.commit(t("hist.resetAll"), () => docOrEmpty(null))}>{t("simples.voltarTudo")}</button>
+              ) : null}
             </div>
           </div>
         </div>

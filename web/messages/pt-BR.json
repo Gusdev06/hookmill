@@ -6814,6 +6814,40 @@
         "remix_editor_not_enabled": "Vem num próximo passo",
         "headline_plate_retired": "Esta peça antiga não abre mais no editor"
       }
+    },
+    "simples": {
+      "salvo": "Salvo",
+      "baixar": "Baixar vídeo",
+      "gerando": "Gerando versão nova {pct}%",
+      "baixarTip": "Baixa o vídeo como está",
+      "baixarTipNovo": "Gera a versão com as suas mudanças e baixa quando ficar pronta",
+      "aba": {
+        "textos": "Textos",
+        "video": "Vídeo",
+        "estilo": "Estilo"
+      },
+      "semTextos": "Este modelo não tem textos pra editar. Ajuste o vídeo ou o estilo nas outras abas.",
+      "estiloDoTexto": "Estilo do texto selecionado (fonte, cor, tamanho)",
+      "semVideo": "Esta peça não tem vídeo pra enquadrar.",
+      "enquadramento": "Enquadramento",
+      "enqAuto": "Automático",
+      "enqAutoSub": "Rosto e legenda à vista",
+      "enqPerto": "Mais perto",
+      "enqPertoSub": "Foco no rosto",
+      "enqLonge": "Mais longe",
+      "enqLongeSub": "Mostra o vídeo inteiro",
+      "enqLivre": "Livre",
+      "enqLivreSub": "Do jeito que você arrastou",
+      "dicaVideo": "Com esta aba aberta, arraste o vídeo na prévia pra mover e role pra dar zoom. Pra cortar o começo ou o fim, use o aparar embaixo do vídeo.",
+      "ajusteFinoVideo": "Ajuste fino (zoom e posição exatos)",
+      "ajusteFinoElemento": "Posição exata do elemento selecionado (avançado)",
+      "voltarTudo": "Voltar tudo ao original",
+      "avisoCaption": "A legenda original ficou cortada ou coberta. Dá pra baixar assim mesmo.",
+      "avisoFace": "O rosto ficou cortado ou coberto. Dá pra baixar assim mesmo.",
+      "avisoTexto": "Um texto passou do limite e não cabe. Encurte pra baixar.",
+      "avisoNumero": "Tem um número que não aparece na fala nem no Cérebro. Confira na aba Textos.",
+      "enquadrarSozinho": "Enquadrar sozinho",
+      "verTexto": "Ver o texto"
     }
   }
 }

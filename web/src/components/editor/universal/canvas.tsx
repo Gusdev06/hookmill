@@ -26,7 +26,7 @@ export const pillOf = (i: EditIssue): "face" | "caption" | "text" | "numbers" | 
 
 export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; onPlaying: (p: boolean) => void }) {
   const U = useU()
-  const { t, st, r, sel, select, phone, ro, decl, label, s, fmt, principal, issues, playerRef, guides, setGuides, time, playing, reframing, setReframing, seek } = U
+  const { t, st, r, sel, select, phone, ro, decl, label, s, fmt, principal, issues, playerRef, guides, time, playing, reframing, setReframing, seek } = U
   const wrap = useRef<HTMLElement>(null)
   const frameEl = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -49,7 +49,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
   useEffect(() => {
     if (!reframing) return
     const down = (e: PointerEvent) => {
-      if (!(e.target as Element | null)?.closest?.(".viewport, .ctrl, .panel, .tl, .stage-head")) setReframing(false)
+      if (!(e.target as Element | null)?.closest?.(".viewport, .ctrl, .panel, .tl, .stage-head, .trimcard, .aviso1, .top")) setReframing(false)
     }
     document.addEventListener("pointerdown", down)
     return () => document.removeEventListener("pointerdown", down)
@@ -70,7 +70,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
     const fit = () => {
       const cw = el.clientWidth - 28
       const maxW = phone ? Math.min(380, cw) : cw
-      const maxH = phone ? window.innerHeight * 0.58 : Math.max(380, window.innerHeight - 330)
+      const maxH = phone ? window.innerHeight * 0.58 : Math.max(380, window.innerHeight - 240) // 16/11: sem a coluna de camadas e a linha do tempo, sobra altura pra prévia
       const w = Math.max(160, Math.min(maxW, (maxH * W) / H))
       setSize({ w: Math.round(w), h: Math.round((w * H) / W) })
     }
@@ -250,13 +250,8 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
   return (
     <section ref={wrap} className={cn("stage", reframing && "reframing")} aria-label={t("canvas.aria")}>
       <div className="stage-head">
-        <span>
-          <b>{U.label("__template")}</b> · <span>{W} × {H}</span>
-        </span>
-        <div className="seg tight" role="group" aria-label={t("guides.aria")}>
-          <button type="button" aria-pressed={!guides} onClick={() => setGuides(false)}>{t("guides.off")}</button>
-          <button type="button" aria-pressed={guides} onClick={() => setGuides(true)}>{t("guides.on")}</button>
-        </div>
+        {/* 16/11 (editor simples): sem "1080 × 1920" nem o seletor de guias; as guias aparecem sozinhas ao reenquadrar */}
+        <span><b>{U.label("__template")}</b></span>
       </div>
       <LayerChips />
       {size ? (
@@ -604,32 +599,26 @@ function Scrub({ dur }: { dur: number }) {
   )
 }
 
-/** Live checks under the canvas (§5): red = blocks the Export (click selects the culprit), amber = confirm the number. */
+/**
+ * 16/11 (editor simples): no lugar das pílulas, UMA faixa de aviso só quando há problema, com o conserto num clique.
+ * Legenda/rosto cortados só avisam (dá pra baixar); texto que não cabe ainda trava o download.
+ */
 function Pills() {
-  const { issues, st, t, select, label, r } = useU()
-  const src = st.source as AutoPieceSource
-  const hasFace = st.manifest.clientImage && (src.guard?.faceTrack ?? []).some((x) => (x.role ?? "main") === "main" && x.faceInRegion.length)
-  const hasBand = st.manifest.clientImage && r?.layout.video?.checksCaption !== false && (src.guard?.protectedBands ?? []).length > 0
-  const pill = (key: "face" | "caption" | "text" | "numbers" | "contrast", name: string) => {
-    const list = issues.filter((i) => pillOf(i) === key)
-    if (!list.length) return key === "contrast" ? null : <span key={key} className="chk"><i /><span>{name}</span></span>
-    const o = list[0]
-    const msg = t(`issue.${o.rule}` as never, { layer: o.layerId ? label(o.layerId) : "", n: (o.detail?.numbers ?? [])[0] ?? "", chars: o.detail?.chars ?? 0, max: o.detail?.maxChars ?? 0 } as never)
-    return (
-      <button key={key} type="button" className={cn("chk", o.level === "block" ? "bad" : "warn")} onClick={() => o.layerId && select(o.layerId, true)}>
-        <i />
-        <span>{msg}{list.length > 1 ? ` · +${list.length - 1}` : ""}</span>
-      </button>
-    )
-  }
+  const { issues, t, select, s, fmt, principal, ro } = useU()
+  const de = (k: ReturnType<typeof pillOf>) => issues.filter((i) => pillOf(i) === k)
+  const texto = de("text"), legenda = de("caption"), rosto = de("face"), numero = de("numbers")
+  const enquadrar = () => s.commit(t("hist.autoReframe"), (d) => setVideoGeo(d, fmt, principal, { framing: null }))
+  const corte = legenda.some((i) => i.rule === "caption_cut") || rosto.some((i) => i.rule === "face_cut")
+  const item = texto[0] ? { tom: "bad", msg: t("simples.avisoTexto"), acao: [t("simples.verTexto"), () => texto[0].layerId && select(texto[0].layerId, true)] as const }
+    : legenda[0] ? { tom: "warn", msg: t("simples.avisoCaption"), acao: corte ? [t("simples.enquadrarSozinho"), enquadrar] as const : legenda[0].layerId ? [t("simples.verTexto"), () => select(legenda[0].layerId!, true)] as const : null }
+      : rosto[0] ? { tom: "warn", msg: t("simples.avisoFace"), acao: corte ? [t("simples.enquadrarSozinho"), enquadrar] as const : rosto[0].layerId ? [t("simples.verTexto"), () => select(rosto[0].layerId!, true)] as const : null }
+        : numero[0] ? { tom: "warn", msg: t("simples.avisoNumero"), acao: numero[0].layerId ? [t("simples.verTexto"), () => select(numero[0].layerId!, true)] as const : null }
+          : null
+  if (!item) return null
   return (
-    <div className="checks" aria-live="polite">
-      {!st.manifest.clientImage ? <span className="chk info"><i /><span>{t("pill.noPicture")}</span></span> : null}
-      {hasFace ? pill("face", t("pill.face")) : null}
-      {hasBand ? pill("caption", t("pill.caption")) : null}
-      {pill("text", t("pill.text"))}
-      {pill("numbers", t("pill.numbers"))}
-      {pill("contrast", t("pill.contrast"))}
+    <div className={cn("aviso1", item.tom)} role="status" aria-live="polite">
+      <p>{item.msg}</p>
+      {item.acao ? <button type="button" className="btn sm" disabled={ro} onClick={item.acao[1]}>{item.acao[0]}</button> : null}
     </div>
   )
 }

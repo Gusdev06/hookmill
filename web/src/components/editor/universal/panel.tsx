@@ -104,14 +104,14 @@ const headlineBase = (st: ReturnType<typeof useU>["st"], fmt: ReturnType<typeof 
 
 // ───────────── Template tab: built from manifest.controls ─────────────
 const FIXED = ["appearance", "position", "format"] as const
-export function TemplateTab() {
+export function TemplateTab({ omit = [] }: { omit?: string[] } = {}) {
   const U = useU()
   const { st, t } = U
   if (!U.r) return <section className="card"><div className="skel"><i /><i /><i /><i /><i /></div></section>
   const groups = new Map<string, ControlDecl[]>()
   for (const c of st.manifest.controls) groups.set(c.group, [...(groups.get(c.group) ?? []), c])
   const custom = [...groups.keys()].filter((g) => !["appearance", "position", "format", "content", "guides"].includes(g))
-  const order = [...FIXED, ...custom, "content", "guides"].filter((g) => groups.has(g))
+  const order = [...FIXED, ...custom, "content", "guides"].filter((g) => groups.has(g) && !omit.includes(g))
   return (
     <>
       {order.map((g) => {
@@ -202,7 +202,7 @@ function Control({ c }: { c: ControlDecl }) {
 }
 
 // ───────────── Content: the text table (rows), with time, limit and where each line came from ─────────────
-function ContentCard({ controls }: { controls: ControlDecl[] }) {
+export function ContentCard({ controls }: { controls: ControlDecl[] }) {
   const U = useU()
   const { t, st, r, decl, label } = U
   const textOf = useTexts()
@@ -257,6 +257,7 @@ function ContentRow({ row, prov }: { row: Row; prov: TextProvenance | undefined 
           className={cn("inp", over && "over")}
           value={row.text}
           aria-label={row.label}
+          data-text-layer={row.layerId}
           disabled={ro}
           onFocus={() => sel !== row.layerId && select(row.layerId, false)}
           onChange={(e) => s.typing(`text:${row.path}`, t("hist.text", { layer: row.label }), (d) => setText(d, row.path, e.target.value))}
@@ -384,7 +385,7 @@ export function LayerTab() {
         <div className="sec">
           <div className="sech">{t("lyr.lines")}</div>
           <Memo><span>{t("lyr.linesBody")}</span></Memo>
-          <button type="button" className="btn sm" style={{ alignSelf: "flex-start" }} onClick={() => setTab("tpl")}>{t("lyr.openContent")}</button>
+          <button type="button" className="btn sm" style={{ alignSelf: "flex-start" }} onClick={() => setTab("textos")}>{t("lyr.openContent")}</button>
         </div>
       ) : null}
 
@@ -486,7 +487,7 @@ function Slider({ lab, value, min, max, step, shown, disabled, onChange, onEnd }
 }
 
 /** Fill/Fit, zoom, pan, Auto reframe, Reframe on canvas. Same controls with or without a mouse (§7.4). */
-function VideoFramingSec() {
+export function VideoFramingSec() {
   const U = useU()
   const { t, s, r, doc, fmt, principal, ro, phone, reframing, setReframing } = U
   const format = useFormatter()
@@ -524,7 +525,7 @@ function VideoFramingSec() {
 }
 
 /** Start and end of your video, in seconds of the video itself. Lines outside the trim hide, they aren't deleted (§4). */
-function VideoTrimSec() {
+export function VideoTrimSec() {
   const { t, s, r, ro, time, videoFull, seek } = useU()
   const format = useFormatter()
   const cur = r?.layout.video?.trim

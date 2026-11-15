@@ -7,7 +7,8 @@ import type { EditDocV3, EditIssue, EditorStateV3, FormatCode, LayerDecl } from 
 import type { Resolved } from "./model"
 import type { UniversalSession } from "./use-universal"
 
-export type Tab = "tpl" | "lyr"
+/** 16/11 (editor simples): Textos · Vídeo · Estilo */
+export type Tab = "textos" | "video" | "estilo"
 export interface U {
   id: string
   s: UniversalSession
