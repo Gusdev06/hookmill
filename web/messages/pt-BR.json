@@ -6545,9 +6545,9 @@
     },
     "fix": {
       "caption_covered": "Tire de cima da área vermelha, ou ligue as guias pra ver. Dá pra exportar assim mesmo.",
-      "face_covered": "Deixe pelo menos 90% do rosto livre.",
+      "face_covered": "Deixe pelo menos 90% do rosto livre. Dá pra exportar assim mesmo.",
       "caption_cut": "Afaste o zoom ou use o Reenquadrar automático. Dá pra exportar assim mesmo.",
-      "face_cut": "Afaste o zoom ou use o Reenquadrar automático.",
+      "face_cut": "Afaste o zoom ou use o Reenquadrar automático. Dá pra exportar assim mesmo.",
       "text_overflow": "Aumente a caixa ou encurte o texto.",
       "too_long": "Encurte o texto.",
       "low_contrast": "Escolha uma cor de texto ou de fundo com mais contraste."

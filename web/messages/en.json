@@ -6545,9 +6545,9 @@
     },
     "fix": {
       "caption_covered": "Move it off the red area, or turn on guides to see it. You can still export.",
-      "face_covered": "Keep at least 90% of the face clear.",
+      "face_covered": "Keep at least 90% of the face clear. You can still export.",
       "caption_cut": "Zoom out or use Auto reframe. You can still export.",
-      "face_cut": "Zoom out or use Auto reframe.",
+      "face_cut": "Zoom out or use Auto reframe. You can still export.",
       "text_overflow": "Make the box bigger or the text shorter.",
       "too_long": "Shorten the text.",
       "low_contrast": "Pick a text or background color with more contrast."

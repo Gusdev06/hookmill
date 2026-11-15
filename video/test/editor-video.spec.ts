@@ -249,9 +249,9 @@ describe('caption_cut e face_cut', () => {
     const i = is.find((x) => x.rule === 'caption_cut')!;
     expect(i).toMatchObject({ level: 'warn', layerId: 'video', format: '9x16', atSec: 0 });
     expect(i.detail!.visiblePct).toBeLessThan(99);
-    // zoom 3x também corta o rosto (face_cut/face_covered seguem block); a legenda cortada sozinha não trava mais
-    expect(is.filter((x) => x.level === 'block').map((x) => x.rule)).not.toContain('caption_cut');
-    expect(exportLiberado(is.filter((x) => !x.rule.startsWith('face_')))).toBe(true);
+    // 16/11 (Gusta: "ele reenquadra do jeito que quiser"): legenda e rosto cortados só avisam; o export fica liberado
+    expect(is.filter((x) => x.level === 'block')).toEqual([]);
+    expect(exportLiberado(is)).toBe(true);
     expect(validarDocMoldura(d, base)).toEqual([]);
     expect(regras(base, video({ framing: null })).map((x) => x.rule)).not.toContain('caption_cut');
   });
@@ -268,10 +268,10 @@ describe('caption_cut e face_cut', () => {
     expect(is.map((x) => x.rule)).not.toContain('caption_cut');
     expect(is.map((x) => x.rule)).not.toContain('caption_covered');
   });
-  it('rosto: pan que tira o rosto da caixa bloqueia; enquadrado, não', () => {
+  it('rosto: pan que tira o rosto da caixa avisa (16/11: não trava); enquadrado, não', () => {
     const base = demoProps('question_box');
     const fora = regras(base, video({ framing: { fit: 'cover', zoom: 1, panX: 1, panY: 0 } })).find((x) => x.rule === 'face_cut')!;
-    expect(fora).toMatchObject({ level: 'block', layerId: 'video' });
+    expect(fora).toMatchObject({ level: 'warn', layerId: 'video' });
     expect(fora.detail!.visiblePct).toBeLessThan(90);
     const auto = resolverPropsMoldura(base, null, F9).layout.video!;
     expect(regras(base, video({ framing: auto.framing })).map((x) => x.rule)).not.toContain('face_cut');

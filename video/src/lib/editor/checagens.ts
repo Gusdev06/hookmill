@@ -89,7 +89,7 @@ export const checarEdicao = (layout: EditLayout, guard: EditorGuard | null, text
         const frac = area(rc, l.rect) / (rc.w * rc.h);
         if (frac > 0.1) { ruins++; pior = Math.max(pior, frac); if (primeiro === null) primeiro = t; }
       }
-      if (n && ruins / n > 0.1) issue({ rule: 'face_covered', level: 'block', layerId: l.id, itemId: null, atSec: r3(primeiro ?? l.fromSec), detail: { coveredPct: Math.round(pior * 100) } });
+      if (n && ruins / n > 0.1) issue({ rule: 'face_covered', level: 'warn', layerId: l.id, itemId: null, atSec: r3(primeiro ?? l.fromSec), detail: { coveredPct: Math.round(pior * 100) } });
     }
   }
 
@@ -126,7 +126,7 @@ export const checarEdicao = (layout: EditLayout, guard: EditorGuard | null, text
       const frac = vis ? (vis.w * vis.h) / ar : 0;
       if (frac < 0.9) { ruins++; pior = Math.min(pior, frac); if (primeiro === null) primeiro = t; }
     }
-    if (n && ruins / n > 0.1) issue({ rule: 'face_cut', level: 'block', layerId: v.layerId, itemId: null, atSec: r3(primeiro ?? 0), detail: { visiblePct: Math.round(pior * 100) } });
+    if (n && ruins / n > 0.1) issue({ rule: 'face_cut', level: 'warn', layerId: v.layerId, itemId: null, atSec: r3(primeiro ?? 0), detail: { visiblePct: Math.round(pior * 100) } });
   }
 
   // textos: não coube no piso (block), longo demais (block), número fora da fala/Brain (confirm), contraste baixo (warn)
