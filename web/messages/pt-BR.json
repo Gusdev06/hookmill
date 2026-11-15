@@ -6544,9 +6544,9 @@
       "no_client_image": "Sem imagem sua"
     },
     "fix": {
-      "caption_covered": "Tire de cima da área vermelha, ou ligue as guias pra ver.",
+      "caption_covered": "Tire de cima da área vermelha, ou ligue as guias pra ver. Dá pra exportar assim mesmo.",
       "face_covered": "Deixe pelo menos 90% do rosto livre.",
-      "caption_cut": "Afaste o zoom ou use o Reenquadrar automático.",
+      "caption_cut": "Afaste o zoom ou use o Reenquadrar automático. Dá pra exportar assim mesmo.",
       "face_cut": "Afaste o zoom ou use o Reenquadrar automático.",
       "text_overflow": "Aumente a caixa ou encurte o texto.",
       "too_long": "Encurte o texto.",

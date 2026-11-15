@@ -52,8 +52,9 @@
 .eu .pbar i { display: block; height: 100%; background: var(--info); transition: width .3s; }
 @keyframes eu-pu { to { opacity: .25; } }
 
-/* grid */
-.eu .ed { display: grid; grid-template-columns: 210px minmax(360px, auto) minmax(380px, 1fr); grid-template-areas: "rail stage panel" "tl tl panel"; gap: 14px; margin-top: 12px; align-items: start; }
+/* grid — 15/11: grid-template-rows auto 1fr: o painel (2 linhas) cresce sem esticar a linha do player; antes, a cada
+   seleção/aviso o player e a linha do tempo pulavam */
+.eu .ed { display: grid; grid-template-columns: 210px minmax(360px, auto) minmax(380px, 1fr); grid-template-areas: "rail stage panel" "tl tl panel"; grid-template-rows: auto 1fr; gap: 14px; margin-top: 12px; align-items: start; }
 .eu .rail { grid-area: rail; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 10px; min-width: 0; }
 .eu .stagewrap { grid-area: stage; min-width: 0; }
 .eu .panel { grid-area: panel; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
@@ -97,7 +98,10 @@
 .eu .scrub .rail2 { position: absolute; left: 0; right: 0; top: 15px; height: 4px; border-radius: 2px; background: var(--ink-3); }
 .eu .scrub .prog { position: absolute; left: 0; top: 15px; height: 4px; border-radius: 2px; background: var(--ink-fg-2); }
 .eu .scrub .head { position: absolute; top: 8px; width: 2px; height: 18px; background: var(--ink-fg); margin-left: -1px; }
-.eu .checks { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+/* 15/11: sempre 1 linha (rola de lado): aviso que aparece/some não muda a altura do player nem empurra a linha do tempo */
+.eu .checks { width: 100%; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.eu .checks::-webkit-scrollbar { display: none; }
+.eu .checks > * { flex: none; }
 .eu .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; border-radius: 999px; padding: 3px 9px; border: 1px solid var(--ink-line); background: var(--ink-2); color: var(--ink-fg-2); white-space: nowrap; max-width: 100%; }
 .eu .chk span { overflow: hidden; text-overflow: ellipsis; }
 .eu .chk i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok-dot); display: block; flex: none; }
@@ -260,7 +264,7 @@
   .eu .ed { grid-template-columns: 190px minmax(320px, auto) minmax(320px, 1fr); }
 }
 @media (max-width: 899px) {
-  .eu .ed { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel"; }
+  .eu .ed { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel"; grid-template-rows: auto auto; }
   .eu .rail, .eu .tlwrap { display: none; }
   .eu .chips { display: flex; gap: 6px; overflow-x: auto; width: 100%; padding-bottom: 2px; }
   .eu .chips button { flex-shrink: 0; border: 1px solid var(--ink-line); background: var(--ink-2); color: var(--ink-fg-2); border-radius: 999px; padding: 5px 11px; font-size: 12px; min-height: 32px; }

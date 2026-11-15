@@ -62,7 +62,7 @@ export const checarEdicao = (layout: EditLayout, guard: EditorGuard | null, text
   const camadas = cobridoras(layout);
   const trimIn = v?.trim.inSec ?? 0;
 
-  // legenda queimada coberta (block): a faixa (já com folga) projetada no canvas, recortada à caixa do vídeo
+  // legenda queimada coberta (warn desde 15/11, Gusta: avisa e deixa exportar): a faixa (já com folga) projetada no canvas, recortada à caixa do vídeo
   if (guard && v && v.checksCaption && guard.protectedBands.length) {
     for (const l of camadas) {
       for (const b of guard.protectedBands) {
@@ -70,7 +70,7 @@ export const checarEdicao = (layout: EditLayout, guard: EditorGuard | null, text
         if (!r) continue;
         const de = Math.max(l.fromSec, b.startSec - trimIn), ate = Math.min(l.toSec, b.endSec - trimIn);
         if (ate <= de || area(r, l.rect) <= 0) continue;
-        issue({ rule: 'caption_covered', level: 'block', layerId: l.id, itemId: null, atSec: r3(Math.max(0, de)), detail: { coveredPct: Math.round((area(r, l.rect) / (r.w * r.h)) * 100) } });
+        issue({ rule: 'caption_covered', level: 'warn', layerId: l.id, itemId: null, atSec: r3(Math.max(0, de)), detail: { coveredPct: Math.round((area(r, l.rect) / (r.w * r.h)) * 100) } });
         break;
       }
     }
@@ -112,7 +112,7 @@ export const checarEdicao = (layout: EditLayout, guard: EditorGuard | null, text
           if (primeiro === null || at < primeiro) primeiro = at;
         }
       }
-      if (primeiro !== null) issue({ rule: 'caption_cut', level: 'block', layerId: v.layerId, itemId: null, atSec: r3(primeiro), detail: { visiblePct: Math.round(pior * 100) } });
+      if (primeiro !== null) issue({ rule: 'caption_cut', level: 'warn', layerId: v.layerId, itemId: null, atSec: r3(primeiro), detail: { visiblePct: Math.round(pior * 100) } });
     }
     let n = 0, ruins = 0, primeiro: number | null = null, pior = 1;
     for (let t = 0; t < layout.durationSec; t += 0.25) {

@@ -242,14 +242,16 @@ describe('caption_cut e face_cut', () => {
     const r = resolverPropsMoldura(base, null, F9);
     expect(checarEdicao(r.layout, guard, r.textos, null, null).map((i) => i.rule)).not.toContain('caption_cut');
   });
-  it('zoom que corta a legenda bloqueia; o autosave não depende disso; voltar ao auto libera', () => {
+  it('zoom que corta a legenda avisa (15/11: não trava o export); voltar ao auto limpa', () => {
     const base = comLegenda();
     const d = video({ framing: { fit: 'cover', zoom: 3, panX: 0, panY: 0.5 } });
     const is = regras(base, d);
     const i = is.find((x) => x.rule === 'caption_cut')!;
-    expect(i).toMatchObject({ level: 'block', layerId: 'video', format: '9x16', atSec: 0 });
+    expect(i).toMatchObject({ level: 'warn', layerId: 'video', format: '9x16', atSec: 0 });
     expect(i.detail!.visiblePct).toBeLessThan(99);
-    expect(exportLiberado(is)).toBe(false);
+    // zoom 3x também corta o rosto (face_cut/face_covered seguem block); a legenda cortada sozinha não trava mais
+    expect(is.filter((x) => x.level === 'block').map((x) => x.rule)).not.toContain('caption_cut');
+    expect(exportLiberado(is.filter((x) => !x.rule.startsWith('face_')))).toBe(true);
     expect(validarDocMoldura(d, base)).toEqual([]);
     expect(regras(base, video({ framing: null })).map((x) => x.rule)).not.toContain('caption_cut');
   });

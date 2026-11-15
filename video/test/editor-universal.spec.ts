@@ -167,8 +167,8 @@ describe('checarEdicao (§6.2)', () => {
     const sobre = vazio({ layers: [{ id: 'box:card', rect: { x: card0.rect.x, y: burned.rect.y - 0.01, w: card0.rect.w, h: card0.rect.h } }] });
     const r1 = resolverPropsMoldura(base, sobre, { format: '9x16' });
     const i1 = checarEdicao(r1.layout, GUARDA(base), r1.textos, { numbers: [] }, sobre);
-    expect(i1).toEqual(expect.arrayContaining([expect.objectContaining({ rule: 'caption_covered', level: 'block', layerId: 'box:card', format: '9x16', atSec: 0 })]));
-    expect(exportLiberado(i1)).toBe(false);
+    expect(i1).toEqual(expect.arrayContaining([expect.objectContaining({ rule: 'caption_covered', level: 'warn', layerId: 'box:card', format: '9x16', atSec: 0 })]));
+    expect(exportLiberado(i1)).toBe(true); // 15/11 (Gusta): legenda coberta só avisa
     // rosto: 0.41..0.67 × 0.1..0.45 do arquivo, projetado pela pintura da caixa
     const v = r0.layout.video!;
     const rosto = { x: v.sourceRect.x + 0.45 * v.sourceRect.w, y: v.sourceRect.y + 0.15 * v.sourceRect.h, w: 0.2 * v.sourceRect.w, h: 0.2 * v.sourceRect.h };

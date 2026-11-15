@@ -143,10 +143,9 @@ export class EditorExportService {
         language, notes, input, outputPath, output, attempt: 1,
       });
       if (cc) await this.mergeInput(r.id, { captionCheck: cc });
-      if (cc?.status === 'covered') {
-        const bad = cc.frames.find((f) => !f.ok);
-        return { ok: false, code: 'CAPTION_COVERED', detail: { rule: 'caption_covered', atSec: bad?.atSec ?? null, layerId: null } };
-      }
+      // 15/11 (Gusta): no editor a escolha é do usuário. Legenda tampada só fica registrada (captionCheck) e o editor
+      // já avisou antes de exportar; o arquivo sai.
+      if (cc?.status === 'covered') this.log.warn(`export ${r.id}: legenda queimada tampada no export do editor; entregue (decisão do usuário)`);
     }
 
     // 2. textos editados (D-E1-5): a visão diz se cada um aparece legível no quadro em que ele está na tela

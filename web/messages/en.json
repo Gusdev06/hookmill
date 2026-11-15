@@ -6544,9 +6544,9 @@
       "no_client_image": "No picture of you"
     },
     "fix": {
-      "caption_covered": "Move it off the red area, or turn on guides to see it.",
+      "caption_covered": "Move it off the red area, or turn on guides to see it. You can still export.",
       "face_covered": "Keep at least 90% of the face clear.",
-      "caption_cut": "Zoom out or use Auto reframe.",
+      "caption_cut": "Zoom out or use Auto reframe. You can still export.",
       "face_cut": "Zoom out or use Auto reframe.",
       "text_overflow": "Make the box bigger or the text shorter.",
       "too_long": "Shorten the text.",
