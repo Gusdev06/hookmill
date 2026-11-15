@@ -344,14 +344,29 @@ export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: 
   // forcar 'replace' (Retry antigo depois de CAPTION_COVERED): pula o desvio e vai direto pro recorte
   const ca = forcar === 'replace' ? { ok: false, hits: [{ element: 'forced_replace', atSec: 0, overlapPx: 0 }] } : checarLegendaProtegida(a);
   if (forcar !== 'replace') {
-    let passa: { input: MolduraProps; check: ChecagemLegenda } | null = null;
-    for (const c of candidatos.length ? candidatos : [a]) {
-      const check = c === a ? ca : checarLegendaProtegida(c);
-      if (!check.ok) continue;
-      if (!textosQueNaoCouberam(layoutDaPeca(c)).length) return { mode: 'avoid', input: c, check };
-      passa ??= { input: c, check };
+    // 15/11 (Gusta): "se queimar a legenda, refaz ela" — o vídeo nunca encolhe com faixa de cor do lado se der pra refazer.
+    // Ordem: (1) manter a original com o vídeo PREENCHENDO a caixa; (2) recortar a original e pôr a NOSSA (foco no rosto);
+    // (3) só sem a nossa legenda (ou com o recorte bloqueado): manter a original afastando o vídeo (o que cria as faixas).
+    const afastado = (c: MolduraProps) => { const s = (c.video.reframe as { scale?: number }).scale; return typeof s === 'number' && s < 0.999; };
+    const tentar = (lista: MolduraProps[]) => {
+      let passa: { input: MolduraProps; check: ChecagemLegenda } | null = null;
+      for (const c of lista) {
+        const check = c === a ? ca : checarLegendaProtegida(c);
+        if (!check.ok) continue;
+        if (!textosQueNaoCouberam(layoutDaPeca(c)).length) return { input: c, check };
+        passa ??= { input: c, check };
+      }
+      return passa;
+    };
+    const todos = candidatos.length ? candidatos : [a];
+    const cheio = tentar(todos.filter((c) => !afastado(c)));
+    if (cheio) return { mode: 'avoid', ...cheio };
+    if (!swap && legenda?.words.length) {
+      const refeita = refazer();
+      if (refeita.mode === 'replace') return refeita;
     }
-    if (passa) return { mode: 'avoid', ...passa };
+    const encolhido = tentar(todos.filter(afastado));
+    if (encolhido) return { mode: 'avoid', ...encolhido };
     // F2 (§15.4, §15.6.5): avoid → swap → não oferecido. Com `swap`, o `replace` (recorte + legenda nossa) não entra.
     // REGRA DE RESÍDUO (decisão de 12/11, por delegação do Gusta): com a placa READY nos limites apertados, o apagado à vista SEM nada por cima foi aprovado na
     // S3 (versões `-sem`); logo a faixa antiga NÃO precisa estar coberta. A legenda nova vai para onde o layout tem espaço, sem cobrir o rosto nem elemento da
@@ -398,19 +413,24 @@ export const decidirLegenda = (p: MolduraProps, m: EditMapLike | null, legenda: 
     }
     return { mode: 'blocked', reason: 'no_room', check: ca };
   }
-  const cb = recorteSemLegenda(p, m);
-  if (!cb) return { mode: 'blocked', reason: 'face_cut', check: ca };
-  const L0 = layoutDaPeca(a);
-  const src = p.video.source;
-  const second = p.second?.kind === 'champion_segment' && L0.secondBox ? { ...p.second, reframe: reframeNaCaixa(L0.secondBox, src, m, 1080, cb) } : p.second;
-  const r: MolduraProps = {
-    ...p, captionMode: 'replace', second,
-    video: { ...p.video, contentBox: cb, reframe: reframeNaCaixa(L0.videoBox, src, m, 1080, cb) },
-    ...(legenda?.words.length ? { captions: legenda } : {}),
-  };
-  const cr = checarLegendaProtegida(r);
-  if (!cr.ok) return { mode: 'blocked', reason: 'no_room', check: cr };
-  return { mode: 'replace', input: r, check: cr, contentBox: cb };
+  return refazer();
+
+  /** Recorta a legenda queimada fora (foco no rosto) e põe a NOSSA no lugar. */
+  function refazer(): DecisaoLegenda {
+    const cb = recorteSemLegenda(p, m);
+    if (!cb) return { mode: 'blocked', reason: 'face_cut', check: ca };
+    const L0 = layoutDaPeca(a);
+    const src = p.video.source;
+    const second = p.second?.kind === 'champion_segment' && L0.secondBox ? { ...p.second, reframe: reframeNaCaixa(L0.secondBox, src, m, 1080, cb) } : p.second;
+    const r: MolduraProps = {
+      ...p, captionMode: 'replace', second,
+      video: { ...p.video, contentBox: cb, reframe: reframeNaCaixa(L0.videoBox, src, m, 1080, cb) },
+      ...(legenda?.words.length ? { captions: legenda } : {}),
+    };
+    const cr = checarLegendaProtegida(r);
+    if (!cr.ok) return { mode: 'blocked', reason: 'no_room', check: cr };
+    return { mode: 'replace', input: r, check: cr, contentBox: cb };
+  }
 };
 
 /**

@@ -131,10 +131,21 @@ describe('pontas de 26/10', () => {
     expect(r).not.toBeNull();
     expect(r.y + r.h).toBeLessThanOrEqual(faixasProtegidasDe(m as never, src)[0].y);
     const leg = { words: [{ word: 'oi', startSec: 0, endSec: 1 }], highlightColor: '#FF0', language: 'pt' };
-    // 29/10: sem o recorte automático (revisão 28/10), o desvio acha lugar pra legenda de rodapé, com o vídeo cheio na largura
+    // 15/11 (Gusta): manter a original só se o vídeo PREENCHER a caixa; senão refaz a legenda (nada de faixa de cor do lado)
     const d = decidirLegenda(input(m, 'live', {}), m, leg);
-    expect(d.mode).toBe('avoid');
-    if (d.mode === 'avoid') expect(d.check.hits).toEqual([]);
+    expect(d.mode).toBe('replace');
+    if (d.mode === 'replace') expect((d.input.video.reframe as { scale?: number }).scale).toBeUndefined();
+    // sem a nossa legenda (sem palavras) não dá pra refazer: aí ainda vale manter a original afastando o vídeo
+    expect(decidirLegenda(input(m, 'live', {}), m, null).mode).toBe('avoid');
+  });
+  it('15/11: talking head com legenda baixa (campeão cmwemcigz) refaz a legenda em vez de encolher o vídeo com faixas', () => {
+    const m = mapa({ x: 169, y: 1322, w: 725, h: 63 }, 0.05);
+    const leg = { words: [{ word: 'E', startSec: 0, endSec: 0.3 }, { word: 'se', startSec: 0.3, endSec: 0.6 }], highlightColor: '#FF0', language: 'it' };
+    for (const [tpl, extra] of [['live', {}], ['question_box', { question: 'E se compri un PDF?' }]] as const) {
+      const d = decidirLegenda(input(m, tpl, extra as never), m, leg);
+      const escala = d.mode === 'avoid' || d.mode === 'replace' ? (d.input.video.reframe as { scale?: number }).scale : undefined;
+      expect([tpl, d.mode === 'blocked' ? d.mode : 'ok', escala]).toEqual([tpl, 'ok', undefined]);
+    }
   });
   it("'replace' forçado (Retry depois de CAPTION_COVERED) pula o desvio; sem como recortar = blocked", () => {
     const m = mapa({ x: 150, y: 1000, w: 780, h: 140 }, 0.05);
