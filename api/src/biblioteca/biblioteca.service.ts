@@ -45,7 +45,7 @@ export class BibliotecaService {
     const limit = q.limit ?? DEFAULT_LIMIT;
     // amostra-gratis-v1 §3: peça de lote travado não entra na Library (o arquivo original não sai por URL assinada)
     const base: Prisma.CreativeWhereInput = { workspaceId: auth.workspaceId, archivedAt: null, state: 'APPROVED', ...(await this.amostra.libraryFilter(auth.workspaceId)) };
-    const rows = await this.prisma.creative.findMany({
+    const [rows, offers] = await Promise.all([this.prisma.creative.findMany({
       where: {
         AND: [base, q.offerId ? { offerId: q.offerId } : {}, q.winners ? { isWinner: true } : {},
           q.championId ? { championId: q.championId } : {}, q.variationKind ? { variationKind: q.variationKind } : {},
@@ -54,20 +54,19 @@ export class BibliotecaService {
       include: INCLUDE,
       orderBy: [{ approvedAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
-    });
-    const p = page(rows, limit, (r) => r.approvedAt ?? r.updatedAt);
-    const offers = await this.prisma.offer.findMany({
+    }), this.prisma.offer.findMany({
       where: { workspaceId: auth.workspaceId, creatives: { some: base } },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
-    });
-    const items: LibraryItemAuto[] = [];
-    for (const c of p.items) {
+    })]);
+    const p = page(rows, limit, (r) => r.approvedAt ?? r.updatedAt);
+    // 15/11: os itens montam em paralelo (antes 1 por vez: URLs assinadas e consultas em fila, 2,6 s na tela)
+    const montados = await Promise.all(p.items.map(async (c): Promise<LibraryItemAuto | null> => {
       const video = await this.views.file(c.finalRender?.file);
-      if (!video) continue; // aprovado sem arquivo de render (dado inconsistente): não lista
+      if (!video) return null; // aprovado sem arquivo de render (dado inconsistente): não lista
       const thumb = (await this.views.file(c.thumbnail)) ?? (await this.views.file(c.selectedFace?.file)) ?? video;
       const by = c.approvedBy ?? { id: c.createdById, name: '' };
-      items.push({
+      return {
         id: c.id,
         name: c.name,
         offer: c.offer,
@@ -83,8 +82,9 @@ export class BibliotecaService {
         adName: c.adName,
         media: c.finalRender?.file?.mimeType === 'image/png' ? 'image' : 'video',
         formats: await this.formatsOf(c.renders),
-      });
-    }
+      };
+    }));
+    const items = montados.filter((x): x is LibraryItemAuto => x !== null);
     return { items, meta: { nextCursor: p.nextCursor, offers } };
   }
 
