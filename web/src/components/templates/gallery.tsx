@@ -3,9 +3,9 @@
 import { useDeferredValue, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useFormatter, useTranslations } from "next-intl"
 import type { CreditsSummary, TemplateCard, TemplateCategory, TemplateSourceRef } from "@/lib/api/types"
-import { pickedFromParams, sourceFromParams, templateAdHref, templateSelectionHref, templatesHref, CREDITS_HREF } from "@/lib/routes"
+import { pickedFromParams, sourceFromParams, templateAdHref, templateRunHref, templateSelectionHref, templatesHref, CREDITS_HREF } from "@/lib/routes"
 import { cn } from "@/lib/utils"
 import { Reveal } from "@/components/ui/reveal"
 import { SAMPLE_TEMPLATE_CARDS } from "@/lib/skeleton-samples"
@@ -21,7 +21,7 @@ import { IterActionBar } from "@/components/iterate/parts"
 import { UnlockDialog } from "@/components/iterate/sample"
 import { useSession } from "@/components/providers/session-provider"
 import { useErrorMessage } from "@/hooks/use-error-message"
-import { useTemplateList } from "@/hooks/use-templates"
+import { useTemplateList, useTemplateRuns } from "@/hooks/use-templates"
 import { AI_CHIPS, AI_SOON, FORMAT_CHIP, aiFormatOf, type AiChip } from "@/lib/ai-previews"
 import { AI_PREVIEWS } from "@/lib/flags"
 import { AiPricePill, Tbd } from "./ai-parts"
@@ -163,6 +163,7 @@ export function TemplatesGallery() {
       ) : source ? (
         <PinnedAd source={source} read={q.data?.fitsFor?.read ?? null} />
       ) : null}
+      <RecentRuns />
       {use.state.offers ? (
         <OfferPick offers={use.state.offers} value={offerId} onChange={setOfferId} />
       ) : null}
@@ -748,3 +749,35 @@ function DetailDialog({ card, credits, sel, onClose, onUse }: { card: TemplateCa
   )
 }
 
+
+/** 20/11 (pedido do Gusta): os últimos lotes da conta no topo da galeria — pra voltar pra um lote depois de sair dele.
+ *  Usa GET /ad-templates/runs (todo lote de template vira um uso, com ou sem crédito). Some quando não há lote. */
+function RecentRuns() {
+  const t = useTranslations("adTemplates.recent")
+  const format = useFormatter()
+  const q = useTemplateRuns()
+  const rows = (q.data?.pages.flatMap((p) => p.items) ?? []).slice(0, 4)
+  if (!rows.length) return null
+  return (
+    <section className="grid gap-2" aria-labelledby="recent-runs-h">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="recent-runs-h" className="eyebrow m-0">{t("title")}</h2>
+        <Link href={CREDITS_HREF} className="text-xs text-fg-2 underline-offset-2 hover:underline">{t("all")}</Link>
+      </div>
+      <ul className="m-0 grid list-none grid-cols-1 gap-2 p-0 tablet:grid-cols-2 desktop:grid-cols-4">
+        {rows.map((r) => (
+          <li key={r.id} className="min-w-0">
+            <Link href={templateRunHref(r.batchId)} className="grid gap-1 rounded-md border border-line bg-card px-3 py-2.5 text-[13px] hover:border-line-strong hover:bg-card-2">
+              <b className="block truncate">{r.selection ? t("selection", { n: r.selection.slugs.length }) : r.templateName}</b>
+              <span className="flex min-w-0 items-center gap-1.5 text-xs text-fg-3">
+                <span className={cn("size-1.5 shrink-0 rounded-full", r.status === "RESERVED" ? "bg-info" : r.status === "SETTLED" ? "bg-ok" : "bg-fg-3")} aria-hidden="true" />
+                <span className="shrink-0">{t(`status.${r.status}`)}</span>
+                <span className="truncate">· {r.championName} · {format.dateTime(new Date(r.createdAt), { month: "short", day: "numeric" })}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

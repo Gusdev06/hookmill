@@ -5412,6 +5412,16 @@
     }
   },
   "adTemplates": {
+    "recent": {
+      "title": "Seus lotes recentes",
+      "all": "Ver todos",
+      "status": {
+        "DRAFT": "Não gerado",
+        "RESERVED": "Gerando",
+        "SETTLED": "Concluído"
+      },
+      "selection": "Sua seleção · {n} templates"
+    },
     "exampleAria": "Vídeo de exemplo de {name}",
     "example": "EXEMPLO",
     "soon": "Em breve",
