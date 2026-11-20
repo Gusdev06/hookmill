@@ -261,12 +261,16 @@
 @keyframes eu-sh { to { background-position: -200% 0; } }
 
 /* 16/11 — editor simples (protótipo aprovado): vídeo grande | painel com 3 abas; aparar embaixo do vídeo; 1 aviso */
-.eu .ed.simples { grid-template-columns: minmax(0, 1fr) minmax(340px, 440px); grid-template-areas: "stage panel"; grid-template-rows: auto; }
+.eu .ed.simples { grid-template-columns: minmax(0, 1fr) minmax(340px, 440px); grid-template-areas: "stage panel" "trim panel"; grid-template-rows: auto 1fr; row-gap: 12px; }
+.eu .ed.simples > .panel { grid-row: 1 / span 2; }
+.eu .ed.simples > .trimcard { grid-area: trim; min-width: 0; }
 .eu .ed.simples .stagewrap { display: flex; flex-direction: column; gap: 12px; }
 .eu .ptabs.tres .ptab { font-weight: 600; font-size: 14px; }
 .eu .ptab[aria-selected="true"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 0 var(--line-strong), 0 0 0 1px var(--line); }
 .eu .trimcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 4px 16px 14px; }
 .eu .trimcard .sec { border-top: 0; }
+/* 20/11 (QA B6): a faixa de aviso fica por cima do véu do reenquadrar */
+.eu .stage.reframing .aviso1 { position: relative; z-index: 60; }
 .eu .enq { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .eu .enq-op { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .eu .enq-op b { font-size: 13.5px; font-weight: 600; }
@@ -292,13 +296,16 @@
 .eu .ed.simples .lrow .inp { font-size: 14px; min-height: 40px; }
 .eu .ed.simples .lrow.sel2 { box-shadow: none; }
 .eu .ed.simples .lrow.sel2 .inp { border-color: var(--info); background: var(--info-bg); }
+/* 20/11 (QA B2): numa coluna só, nenhum filho pode cair numa coluna implícita (.inv e .src pediam a coluna 3 → o campo encolhia) */
+.eu .ed.simples .lrow > * { grid-column: 1 / -1; }
 
 @media (max-width: 1180px) {
   .eu .ed { grid-template-columns: 190px minmax(320px, auto) minmax(320px, 1fr); }
 }
 @media (max-width: 899px) {
   .eu .ed { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel"; grid-template-rows: auto auto; }
-  .eu .ed.simples { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel"; }
+  .eu .ed.simples { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "panel" "trim"; grid-template-rows: auto auto auto; }
+  .eu .ed.simples > .panel { grid-area: panel; }
   .eu .rail, .eu .tlwrap { display: none; }
   .eu .chips { display: flex; gap: 6px; overflow-x: auto; width: 100%; padding-bottom: 2px; }
   .eu .chips button { flex-shrink: 0; border: 1px solid var(--ink-line); background: var(--ink-2); color: var(--ink-fg-2); border-radius: 999px; padding: 5px 11px; font-size: 12px; min-height: 32px; }

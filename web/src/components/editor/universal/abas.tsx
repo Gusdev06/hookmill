@@ -3,6 +3,7 @@
 // 16/11 (protótipo aprovado pelo Gusta, "editor simples"): o painel em 3 abas com palavras comuns.
 // Textos = os textos da peça (o que mais se mexe); Vídeo = enquadrar com botões (arrastar no vídeo também funciona);
 // Estilo = cor, formato e o ajuste fino do elemento clicado. A lógica (doc, histórico, checagens) é a mesma de antes.
+import { useState } from "react"
 import type { ControlDecl } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
 import { useU } from "./context"
@@ -33,18 +34,25 @@ export function TextosTab() {
 /** Vídeo: Automático · Mais perto · Mais longe (+ os controles de sempre). Arrastar na prévia move o vídeo. */
 export function VideoTab() {
   const U = useU()
-  const { t, s, r, doc, fmt, principal, ro, st } = U
+  const { t, s, r, doc, fmt, principal, ro, st, phone } = U
+  // 20/11 (QA B3): o enquadramento que o "Mais perto" gravou; se o vídeo mudar depois disso (arrastou/rolou), é "Livre"
+  const [pertoGravado, setPertoGravado] = useState<string | null>(null)
   const temVideo = st.manifest.layers.some((l) => l.kind === "video" && l.editable.reframe)
   if (!temVideo) return <section className="card"><p className="sub" style={{ margin: 0 }}>{t("simples.semVideo")}</p></section>
   const f = framingNow(r, doc, fmt, principal)
   const auto = r?.layout.video?.auto ?? !videoGeo(doc, fmt, principal).framing
-  const modo: "auto" | "perto" | "longe" | "livre" = auto ? "auto" : f.fit === "contain_blur" ? "longe" : f.zoom > 1.01 ? "perto" : "livre"
+  const chave = (x: { fit: string; zoom: number; panX: number; panY: number }) => [x.fit, x.zoom.toFixed(3), x.panX.toFixed(3), x.panY.toFixed(3)].join("|")
+  const modo: "auto" | "perto" | "longe" | "livre" = auto ? "auto" : f.fit === "contain_blur" ? "longe"
+    : pertoGravado !== null ? (pertoGravado === chave(f) ? "perto" : "livre")
+      : f.zoom > 1.01 ? "perto" : "livre"
   const aplicar = (qual: "auto" | "perto" | "longe") => {
     if (qual === "auto") return s.commit(t("hist.autoReframe"), (d) => setVideoGeo(d, fmt, principal, { framing: null }))
     if (qual === "longe") return s.commit(t("hist.reframe"), (d) => setVideoGeo(d, fmt, principal, { framing: { fit: "contain_blur", zoom: 1, panX: 0, panY: 0 } }))
     const atual = framingNow(r, doc, fmt, principal)
     const zoom = Math.min(ZOOM_MAX, (atual.fit === "cover" ? atual.zoom : 1) + 0.35)
-    return s.commit(t("hist.reframe"), (d) => setVideoGeo(d, fmt, principal, { framing: clampFraming({ ...atual, fit: "cover", zoom }) }))
+    const novo = clampFraming({ ...atual, fit: "cover", zoom })
+    setPertoGravado(chave(novo))
+    return s.commit(t("hist.reframe"), (d) => setVideoGeo(d, fmt, principal, { framing: novo }))
   }
   const ops: [typeof modo, string, string][] = [
     ["auto", t("simples.enqAuto"), t("simples.enqAutoSub")],
@@ -63,7 +71,7 @@ export function VideoTab() {
             </button>
           ))}
         </div>
-        <p className="hint" style={{ margin: "10px 0 0" }}>{t("simples.dicaVideo")}</p>
+        <p className="hint" style={{ margin: "10px 0 0" }}>{t(phone ? "simples.dicaVideoCelular" : "simples.dicaVideo")}</p>
       </section>
       <details className="card fino">
         <summary>{t("simples.ajusteFinoVideo")}</summary>

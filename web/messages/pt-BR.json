@@ -6609,8 +6609,8 @@
     },
     "content": {
       "lines": "{n, plural, one {# linha} other {# linhas}}",
-      "sub": "Toda linha é editável. Cada uma guarda de onde veio.",
-      "subTimed": "Toda linha é editável. O tempo é onde ela aparece no vídeo; clique pra ir até lá. Cada uma guarda de onde veio.",
+      "sub": "Toda linha é editável.",
+      "subTimed": "Toda linha é editável.",
       "at": "Em",
       "line": "Linha",
       "from": "Origem",
@@ -6839,6 +6839,7 @@
       "enqLivre": "Livre",
       "enqLivreSub": "Do jeito que você arrastou",
       "dicaVideo": "Com esta aba aberta, arraste o vídeo na prévia pra mover e role pra dar zoom. Pra cortar o começo ou o fim, use o aparar embaixo do vídeo.",
+      "dicaVideoCelular": "Use os botões acima pra enquadrar o vídeo. Pra cortar o começo ou o fim, use o aparar mais abaixo na tela.",
       "ajusteFinoVideo": "Ajuste fino (zoom e posição exatos)",
       "ajusteFinoElemento": "Posição exata do elemento selecionado (avançado)",
       "voltarTudo": "Voltar tudo ao original",

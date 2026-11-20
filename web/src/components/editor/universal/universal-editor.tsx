@@ -245,11 +245,11 @@ export function UniversalEditor({ id }: { id: string }) {
   useEffect(() => {
     if (!baixando) return
     // async de propósito (lint: sem setState síncrono em efeito); mesmo resultado um microtick depois
-    if (s.justExported !== null && !s.running) {
+    if (s.justExported !== null && !s.running && !s.exportMut.isPending) {
       void Promise.resolve().then(() => setBaixando(false))
       void baixarAgora()
     } else if (s.exportMut.isError || s.exp?.stage === "failed") void Promise.resolve().then(() => setBaixando(false))
-  }, [baixando, s.justExported, s.running, s.exportMut.isError, s.exp?.stage, baixarAgora])
+  }, [baixando, s.justExported, s.running, s.exportMut.isPending, s.exportMut.isError, s.exp?.stage, baixarAgora])
   const blocked = !canExport(exportIssues)
   const confirmPending = exportIssues.some((i) => i.level === "confirm")
   const exportTitle = readOnly ? t("top.exportReadOnly") : blocked && !confirmPending ? t("top.exportBlocked") : confirmPending ? t("top.exportConfirm") : t("top.exportTip")
@@ -308,7 +308,8 @@ export function UniversalEditor({ id }: { id: string }) {
                 className="btn lime baixar"
                 disabled={readOnly || !!s.conflict || s.running || s.exportMut.isPending || baixando || (notExported && (blocked || !!s.blocked?.length))}
                 title={notExported ? (blocked ? exportTitle : t("simples.baixarTipNovo")) : t("simples.baixarTip")}
-                onClick={() => { if (notExported) { setBaixando(true); s.exportMut.mutate() } else void baixarAgora() }}
+                // 20/11 (QA B1): limpa o "acabou de exportar" da vez anterior no mesmo clique; senão o efeito abaixo baixava a versão velha antes do export novo
+                onClick={() => { if (notExported) { s.clearJustExported(); setBaixando(true); s.exportMut.mutate() } else void baixarAgora() }}
               >
                 {s.running || s.exportMut.isPending || baixando ? <span className="spin-ring size-3.5 border-current" aria-hidden="true" /> : null}
                 {s.running && exp ? t("simples.gerando", { pct: exp.stage === "rendering" ? exp.progress : stageIx >= 2 ? 99 : 5 }) : t("simples.baixar")}
@@ -373,8 +374,9 @@ export function UniversalEditor({ id }: { id: string }) {
           <div className="ed simples">
             <div className="stagewrap">
               <Canvas onFrame={onFrame} onPlaying={setPlaying} />
-              {videoId ? <div className="trimcard"><VideoTrimSec /></div> : null}
             </div>
+            {/* 20/11 (QA B5): o aparar é uma área própria; no celular vem depois das abas */}
+            {videoId ? <div className="trimcard"><VideoTrimSec /></div> : null}
             <div className="panel">
               <div className="ptabs tres" role="tablist" aria-label={t("panel.aria")}>
                 {(["textos", "video", "estilo"] as const).map((a) => (

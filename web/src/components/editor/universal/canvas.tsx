@@ -70,7 +70,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
     const fit = () => {
       const cw = el.clientWidth - 28
       const maxW = phone ? Math.min(380, cw) : cw
-      const maxH = phone ? window.innerHeight * 0.58 : Math.max(380, window.innerHeight - 240) // 16/11: sem a coluna de camadas e a linha do tempo, sobra altura pra prévia
+      const maxH = phone ? window.innerHeight * 0.58 : Math.max(380, window.innerHeight - 330) // 16/11: prévia maior; 20/11 (QA B6): deixa o aparar aparecer na dobra a 1440x900
       const w = Math.max(160, Math.min(maxW, (maxH * W) / H))
       setSize({ w: Math.round(w), h: Math.round((w * H) / W) })
     }
