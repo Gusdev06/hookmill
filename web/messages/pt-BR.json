@@ -6786,7 +6786,8 @@
       "burned": "Legenda queimada",
       "headline": "Headline",
       "headlineBox": "Faixa da headline",
-      "box": "Caixa · {name}"
+      "box": "Caixa · {name}",
+      "caption": "Legenda"
     },
     "boxName": {
       "card": "cartão",
@@ -6858,7 +6859,48 @@
       "avisoTexto": "Um texto passou do limite e não cabe. Encurte pra baixar.",
       "avisoNumero": "Tem um número que não aparece na fala nem no Cérebro. Confira na aba Textos.",
       "enquadrarSozinho": "Enquadrar sozinho",
-      "verTexto": "Ver o texto"
+      "verTexto": "Ver o texto",
+      "cap": {
+        "title": "Legenda",
+        "sub": "do HookMill",
+        "hintDesktop": "Arraste a legenda na prévia ou use os botões.",
+        "hintPhone": "Use os botões pra mexer na legenda.",
+        "position": "Posição",
+        "higher": "Mais alto",
+        "lower": "Mais baixo",
+        "home": "Voltar ao lugar",
+        "posHome": "Posição original",
+        "posUp": "Subiu {n}%",
+        "posDown": "Desceu {n}%",
+        "size": "Tamanho",
+        "sm": "Pequena",
+        "md": "Média",
+        "lg": "Grande",
+        "color": "Cor do texto",
+        "highlight": "Cor da palavra falada",
+        "outlineNote": "O contorno muda sozinho pra legenda sempre dar pra ler.",
+        "snap": "Encaixou na posição original",
+        "appUi": "interface do app",
+        "grip": "Arraste pra subir ou descer a legenda",
+        "taken": "Essa cor já está na outra opção",
+        "tagFace": "rosto",
+        "tagTitle": "título",
+        "warnFace": "A legenda está em cima do rosto. Dá pra baixar assim mesmo.",
+        "warnText": "A legenda está em cima do título. Dá pra baixar assim mesmo.",
+        "warnBoth": "A legenda está em cima do rosto e do título. Dá pra baixar assim mesmo.",
+        "warnSafe": "A legenda está fora da área segura, então o Reels ou o TikTok pode cobrir. Dá pra baixar assim mesmo.",
+        "burnedChip": "Legenda do vídeo",
+        "burnedInfo": "Essa legenda já vem dentro do vídeo, então não dá pra mover nem mudar.",
+        "burnedPanel": "Esta peça usa a legenda original do vídeo. Ela faz parte da imagem e não dá pra mover nem mudar.",
+        "goFraming": "Ver enquadramento",
+        "c_ffffff": "Branco",
+        "c_ffe14a": "Amarelo",
+        "c_c8f03c": "Verde-limão",
+        "c_111111": "Preto",
+        "c_3ddc84": "Verde",
+        "c_ff5fa2": "Rosa",
+        "c_4aa8ff": "Azul"
+      }
     }
   }
 }

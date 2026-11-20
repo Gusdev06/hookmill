@@ -38,6 +38,8 @@ export const layerStyleSchema = z.object({
   uppercase: z.boolean(),
   shadow: z.boolean(),
   align: z.enum(['left', 'center', 'right']),
+  /** legenda móvel (20/11): tamanho da NOSSA legenda nas peças de molduras; sem isso, o padrão (média) */
+  size: z.enum(['sm', 'md', 'lg']).optional(),
 });
 
 /** Camada já resolvida pelo aplicarDoc/resolverProps (editor-v1 §7.1): a composição não sabe o que é doc.

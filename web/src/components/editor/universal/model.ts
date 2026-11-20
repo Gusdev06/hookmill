@@ -2,7 +2,7 @@
 // comes from the resolver's `EditLayout` (§5: "layout é a fonte única da geometria"); nothing is re-measured in the DOM.
 import type { ComponentType } from "react"
 import {
-  LIMITES_DOC_V3, Moldura, RemixKeep, checarEdicao, comVideoEditado, exportLiberado, metadadosMoldura, metadadosRemix, resolverPropsHeadline, resolverPropsMoldura,
+  LEGENDA_TRANSFORM_FIXO, LIMITES_DOC_V3, Moldura, RemixKeep, checarEdicao, comVideoEditado, exportLiberado, metadadosMoldura, metadadosRemix, resolverPropsHeadline, resolverPropsMoldura,
   type MetadadosPlayer, type MolduraProps, type RemixKeepProps, type TextoEditor,
 } from "@maquina/video/player"
 import type {
@@ -189,3 +189,57 @@ export const timecode = (t: number) => {
 }
 export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 export const visibleChars = (s: string) => s.replace(/\*/g, "").length
+
+// ───────────── caption (legenda móvel, 20/11): the layer `caption` = OUR caption; only vertical, 3 sizes, 2 colors ─────────────
+export const CAPTION_ID = "caption"
+export type CaptionSize = "sm" | "md" | "lg"
+const round4 = (v: number) => Math.round(v * 1e4) / 1e4
+/** Center of the caption box (fraction of the canvas height) saved for this format; null = the template's own place. */
+export const captionY = (d: EditDocV3, fmt: FormatCode, principal: FormatCode): number | null => geometryOf(d, CAPTION_ID, fmt, principal).transform?.y ?? null
+/** Drops what's left empty after an edit, so "back to original" leaves the doc empty again (and the Save/Download state honest). */
+function pruneCaption(d: EditDocV3): EditDocV3 {
+  d.layers = d.layers.filter((l) => l.id !== CAPTION_ID || Object.keys(l).some((k) => k !== "id"))
+  for (const l of d.layers) if (l.id === CAPTION_ID && l.style && !Object.keys(l.style).length) delete l.style
+  d.layers = d.layers.filter((l) => l.id !== CAPTION_ID || Object.keys(l).some((k) => k !== "id"))
+  if (d.formatOverrides) {
+    for (const [f, g] of Object.entries(d.formatOverrides)) {
+      if (!g) continue
+      g.layers = g.layers.filter((l) => Object.keys(l).some((k) => k !== "id"))
+      if (!g.layers.length && !g.video) delete d.formatOverrides[f as FormatCode]
+    }
+    if (!Object.keys(d.formatOverrides).length) delete d.formatOverrides
+  }
+  return d
+}
+/** One position per format (formatOverrides for the non-principal ones). y = null puts it back where the template had it. */
+export function setCaptionY(d: EditDocV3, fmt: FormatCode, principal: FormatCode, y: number | null): EditDocV3 {
+  if (y !== null) return setGeometry(d, CAPTION_ID, fmt, principal, { transform: { ...LEGENDA_TRANSFORM_FIXO, y: round4(y) } })
+  const n = clone(d)
+  if (fmt === principal) {
+    const l = n.layers.find((x) => x.id === CAPTION_ID)
+    if (l) delete l.transform
+  } else {
+    const g = n.formatOverrides?.[fmt]
+    if (g) g.layers = g.layers.filter((x) => x.id !== CAPTION_ID)
+  }
+  return pruneCaption(n)
+}
+/** Size and colors apply to every format. null = the default (it leaves the doc). */
+export function setCaptionStyle(d: EditDocV3, p: { size?: CaptionSize | null; color?: string | null; highlightColor?: string | null }): EditDocV3 {
+  const n = clone(d)
+  let l = n.layers.find((x) => x.id === CAPTION_ID)
+  if (!l) {
+    l = { id: CAPTION_ID }
+    n.layers.push(l)
+  }
+  const st = { ...(l.style ?? {}) } as Record<string, unknown>
+  for (const [k, v] of Object.entries(p)) {
+    if (v === undefined) continue
+    const key = k === "size" || k === "color" || k === "highlightColor" ? k : null
+    if (!key) continue
+    if (v === null || (key === "size" && v === "md")) delete st[key]
+    else st[key] = v
+  }
+  l.style = st as never
+  return pruneCaption(n)
+}

@@ -9,6 +9,8 @@ const P = {
   x: <path d="M4 4l8 8M12 4l-8 8" />,
   left: <path d="M10 4L6 8l4 4" />,
   right: <path d="M6 4l4 4-4 4" />,
+  up: <path d="M4 10l4-4 4 4" />,
+  down: <path d="M4 6l4 4 4-4" />,
   refresh: (<><path d="M13 8a5 5 0 1 1-1.5-3.6" /><path d="M13 3v3h-3" /></>),
   play: <path d="M5 3.5v9l7.5-4.5z" fill="currentColor" stroke="none" />,
   pause: <path d="M5.5 3.5v9M10.5 3.5v9" />,

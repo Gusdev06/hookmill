@@ -123,7 +123,18 @@ export const caixaLegendaMoldura = (p: Pick<MolduraProps, 'format' | 'video' | '
     const pt = pinturaNaCaixa(L.videoBox, p.video.source, p.video.reframe, p.video.contentBox ?? null);
     tamanho = Math.max(LEGENDA_MIN_PX, Math.min(Math.round(LEGENDA_PX[p.format] * 1.3), Math.round(st.sizeRel * p.video.source.height * pt.s)));
   }
-  return caixaDaLegenda(L.videoBox, H - L.safe.bottom, obst, tamanho);
+  const base0 = caixaDaLegenda(L.videoBox, H - L.safe.bottom, obst, tamanho);
+  // legenda móvel (20/11): tamanho do editor (Pequena/Média/Grande) e centro escolhido; sem edição, o caminho de sempre
+  const ed = (p as { captions?: { edicao?: { cy?: number; scale?: number } } }).captions?.edicao;
+  if (ed && (ed.cy !== undefined || (ed.scale && ed.scale !== 1))) {
+    // o que a pessoa escolheu vale (pode ir até a borda; só avisa), sem desviar de nada. Sem posição nova, o pé da caixa fica onde estava
+    const t = Math.max(Math.round(LEGENDA_MIN_PX * 0.8), Math.round((base0?.tamanho ?? tamanho) * (ed.scale ?? 1))); // Média = o tamanho de hoje
+    const area = L.videoBox, margemX = Math.max(40, area.w * 0.06), h = Math.ceil(2 * t * LEGENDA_LH);
+    const pe = base0 ? base0.box.y + base0.box.h : Math.min(area.y + area.h - area.h * 0.04, H - L.safe.bottom);
+    const y = Math.round(Math.min(H - h, Math.max(0, ed.cy !== undefined ? ed.cy * H - h / 2 : pe - h)));
+    return { box: { x: area.x + margemX, y, w: Math.round(area.w - 2 * margemX), h }, maxLinhas: 2, tamanho: t, maxPalavras: 4 };
+  }
+  return base0;
 };
 
 /** Caixa da legenda no AutoEdit (§2.2): terço de baixo da área do vídeo, acima da UI do formato (safeArea). REVIEW: o

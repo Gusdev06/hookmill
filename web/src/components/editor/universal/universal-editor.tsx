@@ -20,6 +20,7 @@ import { EstiloTab, TextosTab, VideoTab } from "./abas"
 import { VideoTrimSec } from "./panel"
 import { canExport, checks, clamp, clampFraming, clampVideoBox, docOrEmpty, emptyDoc, framingNow, geoMode, geometryOf, isEmpty, principalOf, resolve, setGeometry, setVideoGeo, timecode } from "./model"
 import { useUniversalSession } from "./use-universal"
+import { STEP_KEY, STEP_KEY_SHIFT, useCaptionModel } from "./legenda"
 
 const PHONE_MQ = "(max-width: 899px)"
 function usePhone() {
@@ -50,6 +51,7 @@ export function useLabels(templateKey: string | null) {
     if (id === "video:2") return t("layer.video2")
     if (id === "brand") return t("layer.brand")
     if (id === "burned") return t("layer.burned")
+    if (id === "caption") return t("layer.caption")
     if (id === "headline") return t("layer.headline")
     if (id === "headline:box") return t("layer.headlineBox")
     if (id.startsWith("slot:")) {
@@ -104,7 +106,7 @@ export function UniversalEditor({ id }: { id: string }) {
     const kind = nid ? st.manifest.layers.find((l) => l.id === nid)?.kind : undefined
     if (kind !== "video") setReframing(false)
     if (!nid || !toLayer) return
-    const aba: Tab = kind === "video" ? "video" : kind === "text" || kind === "list" || kind === "chat" || kind === "caption" ? "textos" : "estilo"
+    const aba: Tab = kind === "video" ? "video" : kind === "text" || kind === "list" || kind === "chat" ? "textos" : "estilo"
     setTab(aba)
     if (aba === "textos") requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-text-layer="${CSS.escape(nid)}"]`)?.focus())
   }, [st.manifest.layers])
@@ -145,9 +147,10 @@ export function UniversalEditor({ id }: { id: string }) {
     setFmt(f)
     setReframing(false)
   }, [])
+  const cap = useCaptionModel({ st, doc, fmt, principal, r, issues, s, t: t as never, ro })
   const ctx: U = {
     id, s, st, doc, fmt, setFmt: pickFmt, principal, r, issues, exportIssues, sel, select, tab, setTab, time, seek, playing, togglePlay, playerRef,
-    phone, guides: guides || !!reframing, setGuides, ro, reframing, setReframing: setReframe, videoFull, decl, label, userId: session.user.id, t,
+    phone, guides: guides || !!reframing, setGuides, ro, reframing, setReframing: setReframe, videoFull, cap, stick: phone && tab === "estilo" && cap.has, decl, label, userId: session.user.id, t,
   }
 
   // keyboard (desktop): ⌘Z / ⇧⌘Z, Space, Esc, arrows move 1 px (Shift 10 px), one undo step per burst
@@ -177,6 +180,14 @@ export function UniversalEditor({ id }: { id: string }) {
       const d = sel ? decl(sel) : undefined
       const L = sel ? r?.layout.layers.find((x) => x.id === sel) : undefined
       const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)
+      if (d?.kind === "caption" && !ro && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault()
+        cap.nudge((e.key === "ArrowUp" ? -1 : 1) * (e.shiftKey ? STEP_KEY_SHIFT : STEP_KEY))
+        if (arrowT.current) clearTimeout(arrowT.current)
+        arrowT.current = setTimeout(() => s.endTyping(), 400)
+        return
+      }
+      if (d?.kind === "caption" && arrow) return
       if (arrow && reframing && r) {
         e.preventDefault()
         const st2 = e.shiftKey ? 10 : 1
@@ -296,12 +307,12 @@ export function UniversalEditor({ id }: { id: string }) {
               <Link href={backHref}>{st.piece ? t("top.batch") : t("top.library")}</Link>
               <span aria-hidden="true">/</span>
               <b>{label("__template")}</b>
-              {st.code ? <span className="code">{st.code}</span> : null}
+              {st.code ? <span className="code hide-s">{st.code}</span> : null}
             </div>
             <div className="tools">
               <span title={s.invalidRule ?? undefined} className={cn("save", (s.dirtyLocal || notExported) && "pending", (s.status === "error" || s.status === "invalid") && "bad")} role="status"><i /><span>{saveText}</span></span>
               <button type="button" className="btn ib" disabled={!s.canUndo || ro} onClick={() => s.undo()} aria-label={t("top.undo")} title={`${t("top.undo")} (⌘Z)`}><EdIcon name="undo" /></button>
-              <button type="button" className="btn ib" disabled={!s.canRedo || ro} onClick={() => s.redo()} aria-label={t("top.redo")} title={`${t("top.redo")} (⇧⌘Z)`}><EdIcon name="redo" /></button>
+              <button type="button" className="btn ib redo" disabled={!s.canRedo || ro} onClick={() => s.redo()} aria-label={t("top.redo")} title={`${t("top.redo")} (⇧⌘Z)`}><EdIcon name="redo" /></button>
               {/* 16/11: um botão só. Com mudança não exportada, gera a versão nova e baixa quando ficar pronta */}
               <button
                 type="button"
@@ -371,7 +382,7 @@ export function UniversalEditor({ id }: { id: string }) {
             <div className="banner bad"><div className="txt"><b>{t("banner.invalidTitle")}</b> {t("banner.invalidBody")}</div><div className="acts"><button type="button" className="btn sm" disabled={!s.canUndo} onClick={() => s.undo()}>{t("top.undo")}</button></div></div>
           ) : null}
 
-          <div className="ed simples">
+          <div className={cn("ed simples", phone && tab === "estilo" && cap.has && "stick")}>
             <div className="stagewrap">
               <Canvas onFrame={onFrame} onPlaying={setPlaying} />
             </div>

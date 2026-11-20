@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Player } from "@remotion/player"
-import { LIMITES_DOC_V3, carregarFontes, type RemixKeepProps } from "@maquina/video/player"
+import { LEGENDA_FAIXA_SEGURA, LIMITES_DOC_V3, carregarFontes, type RemixKeepProps } from "@maquina/video/player"
 import type { AutoPieceSource, EditDocV3, EditIssue, LayerTransform, Rect, VideoFraming } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
+import { EdIcon } from "@/components/editor/ed-icon"
 import { useU } from "./context"
 import { LayerChips } from "./layers"
-import { baseOf, canMove, clamp, clampFraming, clampVideoBox, framingNow, geoMode, geometryOf, setGeometry, setVideoGeo, timecode, videoUrlOf } from "./model"
+import { SNAP } from "./legenda"
+import { baseOf, canMove, setCaptionY, clamp, clampFraming, clampVideoBox, framingNow, geoMode, geometryOf, setGeometry, setVideoGeo, timecode, videoUrlOf } from "./model"
 
 /** App UI bands (px of the 1080-wide canvas) per format, as in the approved prototype. */
 const UI_BANDS: Record<string, { t: number; b: number }> = { "9x16": { t: 200, b: 340 }, "4x5": { t: 60, b: 110 }, "1x1": { t: 50, b: 50 } }
@@ -18,15 +20,16 @@ interface Drag {
 }
 
 /** Issue → which pill it lights (§5). */
-export const pillOf = (i: EditIssue): "face" | "caption" | "text" | "numbers" | "contrast" | null =>
-  i.rule === "face_covered" || i.rule === "face_cut" ? "face"
+export const pillOf = (i: EditIssue): "face" | "caption" | "text" | "numbers" | "contrast" | "capwarn" | null =>
+  i.rule === "caption_over_face" || i.rule === "caption_over_text" || i.rule === "caption_off_safe" ? "capwarn"
+    : i.rule === "face_covered" || i.rule === "face_cut" ? "face"
     : i.rule === "caption_covered" || i.rule === "caption_cut" ? "caption"
       : i.rule === "text_overflow" || i.rule === "too_long" ? "text"
         : i.rule === "invented_number" ? "numbers" : i.rule === "low_contrast" ? "contrast" : null
 
 export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; onPlaying: (p: boolean) => void }) {
   const U = useU()
-  const { t, st, r, sel, select, phone, ro, decl, label, s, fmt, principal, issues, playerRef, guides, time, playing, reframing, setReframing, seek } = U
+  const { t, st, r, sel, select, phone, ro, decl, label, s, fmt, principal, issues, playerRef, guides, time, playing, reframing, setReframing, seek, cap, stick } = U
   const wrap = useRef<HTMLElement>(null)
   const frameEl = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -35,6 +38,8 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
   const [muted, setMuted] = useState(true)
   const [snap, setSnap] = useState<{ v?: boolean; h?: boolean }>({})
   const [readout, setReadout] = useState<string | null>(null)
+  const [capDrag, setCapDrag] = useState(false)
+  const [capSnap, setCapSnap] = useState(false)
   const drag = useRef<Drag | null>(null)
   const W = r?.layout.canvas.width ?? 1080
   const H = r?.layout.canvas.height ?? 1920
@@ -70,7 +75,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
     const fit = () => {
       const cw = el.clientWidth - 28
       const maxW = phone ? Math.min(380, cw) : cw
-      const maxH = phone ? window.innerHeight * 0.58 : Math.max(380, window.innerHeight - 330) // 16/11: prévia maior; 20/11 (QA B6): deixa o aparar aparecer na dobra a 1440x900
+      const maxH = phone ? (stick ? 270 : window.innerHeight * 0.58) : Math.max(380, window.innerHeight - 330) // 16/11: prévia maior; 20/11 (QA B6): deixa o aparar aparecer na dobra a 1440x900
       const w = Math.max(160, Math.min(maxW, (maxH * W) / H))
       setSize({ w: Math.round(w), h: Math.round((w * H) / W) })
     }
@@ -82,7 +87,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
       ro2.disconnect()
       window.removeEventListener("resize", fit)
     }
-  }, [W, H, phone])
+  }, [W, H, phone, stick])
   const k = size ? size.w / W : 1
 
   useEffect(() => {
@@ -142,6 +147,37 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
     const isVideo = d?.kind === "video"
     if (sel !== id) select(id)
     if (phone || ro || !d || !L || !canMove(d)) return
+    if (d.kind === "caption") {
+      // legenda: só sobe e desce; encaixa na posição original; grava um passo no desfazer por gesto
+      const y0 = L.rect.y + L.rect.h / 2, hh = L.rect.h, sy = e.clientY, def = cap.def
+      let moved = false
+      e.preventDefault()
+      const onMoveC = (ev: PointerEvent) => {
+        const dyp = ev.clientY - sy
+        if (!moved && Math.abs(dyp) < 3) return
+        if (!moved) {
+          moved = true
+          s.begin(t("hist.move", { layer: label(id) }))
+          setCapDrag(true)
+        }
+        let yc = clamp(y0 + dyp / k / H, hh / 2, Math.max(hh / 2, 1 - hh / 2))
+        const snapped = def !== null && Math.abs(yc - def) < SNAP
+        if (snapped) yc = def
+        setCapSnap(snapped)
+        s.live((doc) => setCaptionY(doc, fmt, principal, snapped ? null : yc))
+      }
+      const onUpC = () => {
+        window.removeEventListener("pointermove", onMoveC)
+        window.removeEventListener("pointerup", onUpC)
+        window.removeEventListener("pointercancel", onUpC)
+        setCapDrag(false)
+        setCapSnap(false)
+      }
+      window.addEventListener("pointermove", onMoveC)
+      window.addEventListener("pointerup", onUpC)
+      window.addEventListener("pointercancel", onUpC)
+      return
+    }
     if (mode === "move" && !d.editable.move) return
     if (mode !== "move" && !d.editable.resize) return
     const fr = frameEl.current?.getBoundingClientRect()
@@ -236,13 +272,22 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
   }
   const faceSeg = src.guard?.faceTrack.find((x) => (x.role ?? "main") === "main" && x.faceInRegion.length)
   const facePx = faceSeg ? { x: faceSeg.region.x + faceSeg.faceInRegion[0].box.x * faceSeg.region.w, y: faceSeg.region.y + faceSeg.faceInRegion[0].box.y * faceSeg.region.h, w: faceSeg.faceInRegion[0].box.w * faceSeg.region.w, h: faceSeg.faceInRegion[0].box.h * faceSeg.region.h } : null
-  const faceR = guides && facePx && st.manifest.clientImage ? proj(facePx) : null
+  const faceAny = facePx && st.manifest.clientImage ? proj(facePx) : null
+  const faceR = guides ? faceAny : null
   const bandRs = guides && st.manifest.clientImage && v?.checksCaption !== false ? (src.guard?.protectedBands ?? []).map(proj).filter((x): x is Rect => !!x) : []
   const ui = UI_BANDS[fmt]
   const px = (rf: Rect) => ({ left: rf.x * W * k, top: rf.y * H * k, width: rf.w * W * k, height: rf.h * H * k })
 
   const showCover = !fontsReady || s.building
   const selBad = !!sel && badIds.has(sel)
+  const capSel = selD?.kind === "caption" && !reframing
+  const capWarnOn = cap.has && cap.warn.any && !capDrag
+  const capRect = cap.layer?.rect ?? null
+  const capText = capRect ? layers.find((l) => l.kind === "text" && l.rect.w > 0 && (() => {
+    const y0 = Math.max(l.rect.y, capRect.y), y1 = Math.min(l.rect.y + l.rect.h, capRect.y + capRect.h)
+    const x0 = Math.max(l.rect.x, capRect.x), x1 = Math.min(l.rect.x + l.rect.w, capRect.x + capRect.w)
+    return x1 > x0 && (y1 - y0) / capRect.h > 0.15
+  })()) ?? null : null
   const handles = !!selL && !!selD && !phone && !ro && canMove(selD) && selD.editable.resize
   const sideHandles = handles && !!selD && geoMode(st, selD).mode === "transform"
   const canReframe = !phone && !ro && selD?.kind === "video" && selD.editable.reframe
@@ -255,7 +300,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
       </div>
       <LayerChips />
       {size ? (
-        <div ref={frameEl} className={cn("viewport", reframing && "reframing")} style={{ width: size.w, height: size.h }} onPointerDown={() => select(null)}>
+        <div ref={frameEl} className={cn("viewport", reframing && "reframing", capDrag && "capdrag")} style={{ width: size.w, height: size.h }} onPointerDown={() => select(null)}>
           {fontsReady && r ? (
             <Player
               ref={(p) => {
@@ -288,6 +333,15 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
             </>
           ) : null}
 
+          {capSel && !guides ? (
+            <>
+              <div className="g-ui" style={{ top: 0, height: `${LEGENDA_FAIXA_SEGURA[fmt].top * 100}%` }}><span>{t("simples.cap.appUi")}</span></div>
+              <div className="g-ui" style={{ bottom: 0, height: `${(1 - LEGENDA_FAIXA_SEGURA[fmt].bottom) * 100}%` }}><span>{t("simples.cap.appUi")}</span></div>
+            </>
+          ) : null}
+          {capWarnOn && cap.warn.face && faceAny && !guides ? <div className="g-rect g-warn" style={px(faceAny)}><span>{t("simples.cap.tagFace")}</span></div> : null}
+          {capWarnOn && cap.warn.text && capText ? <div className="g-rect g-warn" style={px(capText.rect)}><span>{t("simples.cap.tagTitle")}</span></div> : null}
+          {capDrag && cap.def !== null ? <i className="cap-orig" style={{ top: cap.def * H * k }}><span>{t("simples.cap.posHome")}</span></i> : null}
           {hits.map((l) => {
             const d = decl(l.id)
             const movable = !phone && !ro && !!d && canMove(d) && d.editable.move
@@ -295,7 +349,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
               <button
                 key={l.id}
                 type="button"
-                className={cn("hit", badIds.has(l.id) && "badL", movable && "move")}
+                className={cn("hit", badIds.has(l.id) && "badL", movable && "move", d?.kind === "caption" && "capH")}
                 style={px(l.rect)}
                 onPointerDown={(e) => start(e, l.id, "move")}
                 onDoubleClick={() => {
@@ -312,8 +366,9 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
           {selL && reframing ? <Reframer k={k} frameEl={frameEl} setSnap={setSnap} setReadout={setReadout} /> : null}
 
           {selL && !reframing ? (
-            <div className={cn("sel", selBad && "bad")} style={px(selL.rect)}>
-              <span className="tagx">{label(selL.id)}</span>
+            <div className={cn("sel", selBad && "bad", selD?.kind === "caption" && "capsel", capWarnOn && "warn", selD?.kind === "burned" && "lockd")} style={px(selL.rect)}>
+              <span className="tagx">{selD?.kind === "burned" ? t("simples.cap.burnedChip") : label(selL.id)}</span>
+              {selD?.kind === "caption" && !phone && !ro ? <i className="capgrip" title={t("simples.cap.grip")} onPointerDown={(e) => start(e, selL.id, "move")}><EdIcon name="up" /><EdIcon name="down" /></i> : null}
               {canReframe ? (
                 <button type="button" className="rf-cta" onPointerDown={(e) => e.stopPropagation()} onClick={() => setReframing(true)}>
                   {t("reframe.cta")}
@@ -334,6 +389,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
               ) : null}
             </div>
           ) : null}
+          {capSnap ? <span className="capchip" style={{ right: 6, top: (cap.def ?? 0.5) * H * k + 4 }}>{t("simples.cap.snap")}</span> : null}
           {snap.v ? <i className="g-center" style={{ left: ((reframing && v ? v.box.x + v.box.w / 2 : 0.5) * W) * k }} /> : null}
           {snap.h ? <i className="g-mid" style={{ top: ((reframing && v ? v.box.y + v.box.h / 2 : 0.5) * H) * k }} /> : null}
           {readout && selL ? <span className="readout" style={{ left: (selL.rect.x + selL.rect.w / 2) * W * k, top: Math.max(2, selL.rect.y * H * k - 40) }}>{readout}</span> : null}
@@ -374,7 +430,7 @@ export function Canvas({ onFrame, onPlaying }: { onFrame: (f: number) => void; o
           <svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor" />{muted ? <path d="M11 6l4 4M15 6l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /> : null}</svg>
         </button>
       </div>
-      <Pills />
+      <Pills capDrag={capDrag} />
     </section>
   )
 }
@@ -603,17 +659,29 @@ function Scrub({ dur }: { dur: number }) {
  * 16/11 (editor simples): no lugar das pílulas, UMA faixa de aviso só quando há problema, com o conserto num clique.
  * Legenda/rosto cortados só avisam (dá pra baixar); texto que não cabe ainda trava o download.
  */
-function Pills() {
-  const { issues, t, select, s, fmt, principal, ro } = useU()
+function Pills({ capDrag }: { capDrag: boolean }) {
+  const { issues, t, select, s, fmt, principal, ro, cap, sel, tab, setTab, decl, st } = useU()
   const de = (k: ReturnType<typeof pillOf>) => issues.filter((i) => pillOf(i) === k)
+  const capw = de("capwarn")
   const texto = de("text"), legenda = de("caption"), rosto = de("face"), numero = de("numbers")
   const enquadrar = () => s.commit(t("hist.autoReframe"), (d) => setVideoGeo(d, fmt, principal, { framing: null }))
   const corte = legenda.some((i) => i.rule === "caption_cut") || rosto.some((i) => i.rule === "face_cut")
+  const verEnq = () => {
+    setTab("video")
+    const v = st.manifest.layers.find((l) => l.kind === "video" && l.editable.reframe)?.id
+    if (v) select(v, true)
+  }
+  const capMsg = capw.some((i) => i.rule === "caption_over_face") && capw.some((i) => i.rule === "caption_over_text") ? t("simples.cap.warnBoth")
+    : capw.some((i) => i.rule === "caption_over_face") ? t("simples.cap.warnFace") : capw.some((i) => i.rule === "caption_over_text") ? t("simples.cap.warnText") : t("simples.cap.warnSafe")
+  const burnedInfo = sel && decl(sel)?.kind === "burned" && tab === "estilo"
+  if (capDrag) return null
   const item = texto[0] ? { tom: "bad", msg: t("simples.avisoTexto"), acao: [t("simples.verTexto"), () => texto[0].layerId && select(texto[0].layerId, true)] as const }
-    : legenda[0] ? { tom: "warn", msg: t("simples.avisoCaption"), acao: corte ? [t("simples.enquadrarSozinho"), enquadrar] as const : legenda[0].layerId ? [t("simples.verTexto"), () => select(legenda[0].layerId!, true)] as const : null }
-      : rosto[0] ? { tom: "warn", msg: t("simples.avisoFace"), acao: corte ? [t("simples.enquadrarSozinho"), enquadrar] as const : rosto[0].layerId ? [t("simples.verTexto"), () => select(rosto[0].layerId!, true)] as const : null }
-        : numero[0] ? { tom: "warn", msg: t("simples.avisoNumero"), acao: numero[0].layerId ? [t("simples.verTexto"), () => select(numero[0].layerId!, true)] as const : null }
-          : null
+    : capw[0] && cap.has ? { tom: "warn", msg: capMsg, acao: [t("simples.cap.home"), cap.home] as const }
+      : burnedInfo ? { tom: "info", msg: t("simples.cap.burnedInfo"), acao: [t("simples.cap.goFraming"), verEnq] as const }
+        : legenda[0] ? { tom: "warn", msg: t("simples.avisoCaption"), acao: corte ? [t("simples.enquadrarSozinho"), enquadrar] as const : legenda[0].layerId ? [t("simples.verTexto"), () => select(legenda[0].layerId!, true)] as const : null }
+          : rosto[0] ? { tom: "warn", msg: t("simples.avisoFace"), acao: corte ? [t("simples.enquadrarSozinho"), enquadrar] as const : rosto[0].layerId ? [t("simples.verTexto"), () => select(rosto[0].layerId!, true)] as const : null }
+            : numero[0] ? { tom: "warn", msg: t("simples.avisoNumero"), acao: numero[0].layerId ? [t("simples.verTexto"), () => select(numero[0].layerId!, true)] as const : null }
+              : null
   if (!item) return null
   return (
     <div className={cn("aviso1", item.tom)} role="status" aria-live="polite">

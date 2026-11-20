@@ -8,6 +8,8 @@
 import { FORMATOS, FPS } from '../formatos';
 import { corDaMarca, duracaoMoldura, FRAME_MIN_FONT_PX, layoutDaPeca, pinturaNaCaixa, TEXT_LIMITS, type FrameLayout, type FrameTemplateId, type MolduraProps, type Rect } from '../molduras';
 import { faixasProtegidasNaSaida } from '../legendaProtegida';
+import { caixaLegendaMoldura } from '../legendaAuto';
+import { CAPTION_LAYER_ID, edicaoDaLegenda, validarLegendaDoc } from './legenda';
 import { enquadrarVideo, limitesDoVideo, mesmaCaixa, timelineAparada, trimDoDoc, videoNoFormato, visivelNoCanvas, type FonteDoVideo } from './video';
 import type { LayerId } from '../editor';
 import { CODIGO_DO_FORMATO, FORMATO_DO_CODIGO, FORMAT_CODES, camadaDoDoc, corHex, docV3De, docV3Vazio, editavel, fracaoParaPx, geometriaDaCamada, pxParaFracao, validarEstruturaAuto, NADA } from './comum';
@@ -88,6 +90,8 @@ const slotsDeCaixa = (id: FrameTemplateId, base: MolduraProps): string[] => {
 };
 const temBrand = (base: MolduraProps) => FORMAT_CODES.some((f) => !!layoutDaPeca({ ...base, format: FORMATO_DO_CODIGO[f] }).slots.brand);
 const temSegunda = (base: MolduraProps) => FORMAT_CODES.some((f) => !!layoutDaPeca({ ...base, format: FORMATO_DO_CODIGO[f] }).secondBox);
+/** A legenda é a NOSSA (captionMode 'replace', com palavras): vira a camada `caption`, movível na vertical (legenda móvel, 20/11). */
+const temNossaLegenda = (base: MolduraProps) => base.captionMode === 'replace' && !!base.captions?.words.length;
 const temQueimada = (base: MolduraProps) => base.captionMode !== 'replace' && (base.video.protectedBands?.length ?? 0) > 0;
 
 // ───────────────────────── manifesto ─────────────────────────
@@ -114,6 +118,8 @@ export const manifestoMoldura = (base: MolduraProps, formats: FormatCode[] = [..
     const comVideo = CAIXAS_COM_VIDEO[id]?.includes(s);
     layers.push({ id: `box:${s}`, kind: 'box', labelKey: lbl(`box:${s}`), editable: comVideo ? { ...NADA } : editavel({ move: true, resize: true, hide: true }), limits: null, optional: !comVideo, lockedReason: null, leavesEmptyCover: false });
   }
+  // legenda móvel: só vertical (o eixo é regra da camada; o validador recusa x/escala/largura fora do marcador), tamanho e cores no `style`
+  if (temNossaLegenda(base)) layers.push({ id: CAPTION_LAYER_ID, kind: 'caption', labelKey: 'editor.layer.caption', editable: editavel({ move: true, style: true }), limits: { maxChars: null, maxLines: null, minFontPx: null }, optional: false, lockedReason: null, leavesEmptyCover: false });
   if (temQueimada(base)) layers.push({ id: 'burned', kind: 'burned', labelKey: 'editor.layer.burned', editable: { ...NADA }, limits: null, optional: false, lockedReason: 'burned_caption_pixels', leavesEmptyCover: false });
   // vídeo do cliente: caixa, enquadramento e aparar (F-U2; não gira). 2ª fonte: travada até o F-U3
   const tl = base.video.timeline;
@@ -238,6 +244,7 @@ export const resolverPropsMoldura = (base: MolduraProps, doc: AnyEditDoc | null 
   let props: MolduraProps;
   let editados = new Set<string>();
   let videoEditado = false;
+  let legendaMexida = false;
   let framingFinal: VideoFraming | null = null;
   const { width: W, height: H } = FORMATOS[base.format];
   if (docV3Vazio(d)) props = base;
@@ -266,10 +273,15 @@ export const resolverPropsMoldura = (base: MolduraProps, doc: AnyEditDoc | null 
       gravarPath(texts, c.path, l.text);
     }
     props = { ...base, frame: { ...base.frame, texts, brand } as MolduraProps['frame'] };
+    // legenda móvel (20/11): posição/tamanho/cores da nossa legenda vão em `captions.edicao` (o resto da peça não muda)
+    const el = temNossaLegenda(base) ? edicaoDaLegenda(dd, fmt, principal) : null;
+    if (el) { props = { ...props, captions: { ...base.captions!, edicao: el } }; legendaMexida = true; }
     const atuais = textosAtuais(props);
     editados = new Set([...atuais].filter(([k, v]) => textosBase.get(k) !== v).map(([k]) => k));
     const rv = comVideo(props, dd, fmt, principal, W, H);
     props = rv.props; videoEditado = rv.editado; framingFinal = rv.framing;
+    // a checagem por visão confere a faixa onde a legenda foi parar
+    if (legendaMexida && props.outputProtectedBands) props = { ...props, outputProtectedBands: faixasProtegidasNaSaida(props) };
   }
 
   // layout de hoje com os textos novos; depois as caixas mexidas/escondidas
@@ -332,6 +344,10 @@ export const resolverPropsMoldura = (base: MolduraProps, doc: AnyEditDoc | null 
   for (const [lid, r] of finais) if (lid.startsWith('box:')) layers.push(camadaLayout(lid, 'box', r));
   // caixas que existem em outro formato e não neste: camada invisível (a lista de camadas é a mesma nos 3 formatos)
   for (const s of slotsDeCaixa(props.frame.id, base)) if (!finais.has(`box:${s}`)) layers.push(camadaLayout(`box:${s}`, 'box', null));
+  if (temNossaLegenda(base)) {
+    const cx = caixaLegendaMoldura(props, L);
+    layers.push(camadaLayout(CAPTION_LAYER_ID, 'caption', cx ? cx.box : null, { fontPx: cx ? r2(cx.tamanho) : null }));
+  }
   if (temQueimada(base)) {
     const fs = faixasProtegidasNaSaida(props).filter((f) => f.kind === 'original');
     if (fs.length) {
@@ -374,7 +390,13 @@ export const validarDocMoldura = (doc: AnyEditDoc | null | undefined, base: Mold
   const manifest = ctx?.manifest ?? manifestoMoldura(base);
   const r = resolverPropsMoldura(base, doc, { format: manifest.formats[0], principal: manifest.formats[0] });
   const atuais = textosAtuais(r.props);
-  return validarEstruturaAuto(doc, manifest, (path) => atuais.get(path) ?? null);
+  const erros = validarEstruturaAuto(doc, manifest, (path) => atuais.get(path) ?? null);
+  // legenda móvel (20/11): só vertical, lista de cores, texto ≠ palavra falada (cores efetivas = as da peça quando o doc não escolhe)
+  if (temNossaLegenda(base)) {
+    const st = base.captions!.style;
+    erros.push(...validarLegendaDoc(docV3De(doc), { color: st?.color ?? '#ffffff', highlight: (st ? st.highlightColor ?? st.color : base.captions!.highlightColor) ?? '' }));
+  }
+  return erros;
 };
 
 /** Textos da base (sem doc) por caminho: o `normalizarDocV3` tira do doc o que voltou a ser igual. */

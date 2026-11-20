@@ -7,6 +7,7 @@ import { useState } from "react"
 import type { ControlDecl } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
 import { useU } from "./context"
+import { LegendaCard, LegendaTravada } from "./legenda"
 import { ContentCard, LayerTab, TemplateTab, VideoFramingSec } from "./panel"
 import { ZOOM_MAX, clampFraming, framingNow, setVideoGeo, videoGeo } from "./model"
 
@@ -15,7 +16,7 @@ export function TextosTab() {
   const { st, sel, decl, t } = useU()
   const content = st.manifest.controls.filter((c): c is ControlDecl => c.group === "content")
   const d = sel ? decl(sel) : undefined
-  const textoSel = d && (d.kind === "text" || d.kind === "list" || d.kind === "chat" || d.kind === "caption")
+  const textoSel = d && (d.kind === "text" || d.kind === "list" || d.kind === "chat")
   return (
     <>
       {content.length ? <ContentCard controls={content} /> : (
@@ -88,6 +89,8 @@ export function EstiloTab() {
   const elemento = d && d.kind !== "video" && d.kind !== "text" && d.kind !== "list" && d.kind !== "chat" && d.kind !== "caption"
   return (
     <>
+      <LegendaCard />
+      <LegendaTravada />
       <TemplateTab omit={["content", "guides"]} />
       {elemento ? (
         <details className="card fino">

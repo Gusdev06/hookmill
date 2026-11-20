@@ -5,6 +5,7 @@
 // item_out_of_range entra junto dos itens com tempo (F-U3).
 import { textoVisivel } from '../molduras';
 import { docV3De, numerosNaoConfirmados } from './comum';
+import { CAPTION_LAYER_ID, LEGENDA_FAIXA_SEGURA, legendaEditada } from './legenda';
 import type { AnyEditDoc, EditIssue, EditLayout, EditLayoutLayer, EditorFacts, EditorGuard, RectFracao, TextoEditor } from './tipos';
 
 const area = (a: RectFracao, b: RectFracao) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
@@ -127,6 +128,29 @@ export const checarEdicao = (layout: EditLayout, guard: EditorGuard | null, text
       if (frac < 0.9) { ruins++; pior = Math.min(pior, frac); if (primeiro === null) primeiro = t; }
     }
     if (n && ruins / n > 0.1) issue({ rule: 'face_cut', level: 'warn', layerId: v.layerId, itemId: null, atSec: r3(primeiro ?? 0), detail: { visiblePct: Math.round(pior * 100) } });
+  }
+
+  // legenda móvel (20/11): só AVISA (rosto, título, fora da faixa segura do app) e só depois que a pessoa mexeu na legenda; nunca trava o Baixar
+  const cap = layout.layers.find((l) => l.id === CAPTION_LAYER_ID && l.kind === 'caption' && l.visible && l.rect.w > 0 && l.rect.h > 0);
+  const dc = docV3De(doc);
+  if (cap && legendaEditada(dc)) {
+    const faixa = LEGENDA_FAIXA_SEGURA[fmt];
+    if (cap.rect.y < faixa.top - 1e-3 || cap.rect.y + cap.rect.h > faixa.bottom + 1e-3) issue({ rule: 'caption_off_safe', level: 'warn', layerId: cap.id, itemId: null, atSec: null, detail: null });
+    const sobre = (r: RectFracao) => { const c = corta(cap.rect, r); return !!c && c.h / cap.rect.h > 0.15; };
+    const texto = layout.layers.find((l) => l.kind === 'text' && l.visible && l.rect.w > 0 && l.rect.h > 0 && l.fromSec < cap.toSec && l.toSec > cap.fromSec && sobre(l.rect));
+    if (texto) issue({ rule: 'caption_over_text', level: 'warn', layerId: cap.id, itemId: null, atSec: r3(Math.max(0, texto.fromSec)), detail: null });
+    if (guard && v && guard.faceTrack.some((s) => (s.role ?? 'main') === 'main' && s.faceInRegion.length)) {
+      let n = 0, ruins = 0, primeiro: number | null = null;
+      for (let t = cap.fromSec; t < cap.toSec; t += 0.25) {
+        const f = rostoEm(guard, t + trimIn);
+        if (!f) continue;
+        const rc = corta(noCanvas(f, guard, v), v.box);
+        if (!rc) continue;
+        n++;
+        if (sobre(rc)) { ruins++; if (primeiro === null) primeiro = t; }
+      }
+      if (n && ruins / n > 0.1) issue({ rule: 'caption_over_face', level: 'warn', layerId: cap.id, itemId: null, atSec: r3(primeiro ?? cap.fromSec), detail: null });
+    }
   }
 
   // textos: não coube no piso (block), longo demais (block), número fora da fala/Brain (confirm), contraste baixo (warn)

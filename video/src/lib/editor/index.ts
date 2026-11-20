@@ -7,3 +7,4 @@ export { HEADLINE_CAPTION_LAYER_ID, HEADLINE_TEXT_LAYER_ID, ID_EDITOR_DA_CAMADA_
 export { checarEdicao, exportLiberado, razaoDeContraste } from './checagens';
 export { manifestoDe, normalizarDocV3, templateKeyEditavel, type OpcoesManifesto } from './manifesto';
 export { comVideoEditado, limitesDoVideo } from './video';
+export { CAPTION_LAYER_ID, LEGENDA_CORES_PALAVRA, LEGENDA_CORES_TEXTO, LEGENDA_FAIXA_SEGURA, LEGENDA_TAMANHOS, LEGENDA_TRANSFORM_FIXO, contornoDaCor, edicaoDaLegenda, legendaEditada, validarLegendaDoc, type TamanhoLegenda } from './legenda';

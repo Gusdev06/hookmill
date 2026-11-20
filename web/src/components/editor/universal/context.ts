@@ -6,6 +6,7 @@ import type { PlayerRef } from "@remotion/player"
 import type { EditDocV3, EditIssue, EditorStateV3, FormatCode, LayerDecl } from "@/lib/api/types"
 import type { Resolved } from "./model"
 import type { UniversalSession } from "./use-universal"
+import type { CapModel } from "./legenda"
 
 /** 16/11 (editor simples): Textos · Vídeo · Estilo */
 export type Tab = "textos" | "video" | "estilo"
@@ -41,6 +42,10 @@ export interface U {
   setReframing: (v: boolean) => void
   /** your video before any trim: the scale of the timeline and the limits of the trim */
   videoFull: { inSec: number; outSec: number; durationSec: number } | null
+  /** legenda móvel (20/11): a nossa legenda como camada (posição, tamanho, cores, avisos) */
+  cap: CapModel
+  /** celular, aba Estilo com legenda nossa: o vídeo fica fixo no topo, menor */
+  stick: boolean
   decl: (id: string) => LayerDecl | undefined
   label: (id: string) => string
   userId: string

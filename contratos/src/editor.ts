@@ -66,6 +66,8 @@ export interface LayerStyle {
   uppercase: boolean;
   shadow: boolean;
   align: 'left' | 'center' | 'right';
+  /** legenda móvel (20/11): tamanho da nossa legenda nas molduras (Pequena/Média/Grande = 0,8/1/1,23). Ausente = média */
+  size?: 'sm' | 'md' | 'lg';
 }
 
 export interface CaptionWordFix {
@@ -380,6 +382,7 @@ export type EditIssueRule =
   | 'caption_covered' | 'face_covered' | 'caption_cut' | 'face_cut' | 'text_overflow' | 'too_long'   // block
   | 'invented_number'                                                                               // confirm
   | 'low_contrast'                                                                                  // warn
+  | 'caption_over_face' | 'caption_over_text' | 'caption_off_safe'                                  // warn (legenda móvel 20/11: só avisa, nunca trava o Baixar)
   | 'item_out_of_range' | 'no_client_image';                                                        // info
 export type EditIssueLevel = 'block' | 'confirm' | 'warn' | 'info';
 export interface EditIssue {

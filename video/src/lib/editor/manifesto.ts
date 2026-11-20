@@ -65,7 +65,11 @@ export const normalizarDocV3 = (doc: AnyEditDoc | null | undefined, base: Moldur
     if (rectValido(l.rect) && rectNaFaixa(l.rect) && (dl.editable.move || dl.editable.resize)) n.rect = rect4(l.rect);
     if (typeof l.text === 'string' && dl.editable.text && l.text !== textos.get(`layer:${l.id}`)) n.text = l.text.slice(0, 300);
     if (corHex(l.fill) && dl.editable.fill) n.fill = l.fill;
-    if (l.style && dl.editable.style && Object.keys(l.style).length) n.style = { ...l.style };
+    if (l.style && dl.editable.style && Object.keys(l.style).length) {
+      n.style = { ...l.style };
+      // legenda móvel: tamanho médio é o padrão (some do doc)
+      if (l.id === 'caption' && n.style.size === 'md') delete n.style.size;
+    }
     if (l.timing && dl.editable.timing) n.timing = l.timing;
     porCamada.set(l.id, n);
   }

@@ -6786,7 +6786,8 @@
       "burned": "Burned caption",
       "headline": "Headline",
       "headlineBox": "Headline band",
-      "box": "Box · {name}"
+      "box": "Box · {name}",
+      "caption": "Caption"
     },
     "boxName": {
       "card": "card",
@@ -6858,7 +6859,48 @@
       "avisoTexto": "A text is over the limit and doesn't fit. Shorten it to download.",
       "avisoNumero": "There's a number that isn't in the speech or the Brain. Check it in the Text tab.",
       "enquadrarSozinho": "Frame it for me",
-      "verTexto": "Show the text"
+      "verTexto": "Show the text",
+      "cap": {
+        "title": "Caption",
+        "sub": "by HookMill",
+        "hintDesktop": "Drag the caption on the preview or use the buttons.",
+        "hintPhone": "Use the buttons to move the caption.",
+        "position": "Position",
+        "higher": "Higher",
+        "lower": "Lower",
+        "home": "Back in place",
+        "posHome": "Original position",
+        "posUp": "Moved up {n}%",
+        "posDown": "Moved down {n}%",
+        "size": "Size",
+        "sm": "Small",
+        "md": "Medium",
+        "lg": "Large",
+        "color": "Text color",
+        "highlight": "Spoken word color",
+        "outlineNote": "The outline adjusts itself so the caption is always readable.",
+        "snap": "Snapped to original position",
+        "appUi": "app interface",
+        "grip": "Drag to move the caption up or down",
+        "taken": "Already used by the other color",
+        "tagFace": "face",
+        "tagTitle": "title",
+        "warnFace": "The caption covers the face. You can still download.",
+        "warnText": "The caption covers the title. You can still download.",
+        "warnBoth": "The caption covers the face and the title. You can still download.",
+        "warnSafe": "The caption is outside the safe area, so Reels or TikTok may cover it. You can still download.",
+        "burnedChip": "Video caption",
+        "burnedInfo": "This caption is part of the video, so it can't be moved or changed.",
+        "burnedPanel": "This piece uses the video's original caption. It's part of the image and can't be moved or changed.",
+        "goFraming": "Open framing",
+        "c_ffffff": "White",
+        "c_ffe14a": "Yellow",
+        "c_c8f03c": "Lime",
+        "c_111111": "Black",
+        "c_3ddc84": "Green",
+        "c_ff5fa2": "Pink",
+        "c_4aa8ff": "Blue"
+      }
     }
   }
 }

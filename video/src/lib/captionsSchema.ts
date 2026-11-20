@@ -17,6 +17,11 @@ export const captionsAutoSchema = z.object({
     /** F2: a palavra da vez ganha uma caixa de cor atrás (o `caixaDestaque` medido da original); `radiusRel` = raio ÷ tamanho da letra */
     highlightBox: z.object({ color: z.string(), radiusRel: z.number().min(0) }).nullable().optional(),
   }).optional(),
+  /** Legenda móvel (20/11): o que o editor mexeu na NOSSA legenda (captionMode 'replace'). Ausente = o padrão (render idêntico).
+   *  `cy` = centro da caixa (fração da altura do canvas); `scale` = fator do tamanho (0,8 / 1 / 1,23); cores em hex; `stroke` = contorno derivado da cor do texto. */
+  edicao: z.object({
+    cy: z.number().optional(), scale: z.number().positive().optional(), color: z.string().optional(), highlight: z.string().optional(), stroke: z.string().optional(),
+  }).optional(),
 });
 
 /** legenda-protegida-v1 §1: faixa protegida (px do arquivo do campeão, já com folga), com o intervalo em que aparece. */

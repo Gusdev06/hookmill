@@ -125,7 +125,9 @@ export interface EditLayout {
 }
 export type EditIssueRule =
   | 'caption_covered' | 'face_covered' | 'caption_cut' | 'face_cut' | 'text_overflow' | 'too_long'
-  | 'invented_number' | 'low_contrast' | 'item_out_of_range' | 'no_client_image';
+  | 'invented_number' | 'low_contrast' | 'item_out_of_range' | 'no_client_image'
+  // legenda móvel (20/11): só avisam
+  | 'caption_over_face' | 'caption_over_text' | 'caption_off_safe';
 export type EditIssueLevel = 'block' | 'confirm' | 'warn' | 'info';
 export interface EditIssue {
   rule: EditIssueRule;

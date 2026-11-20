@@ -29,9 +29,13 @@ export const LegendaAuto: React.FC<{ captions: CaptionsAuto; timeline: { startSe
   // destaque, contorno, caixa alta, sombra); sem fonte do catálogo, Montserrat 800 com o resto da original (D-LP2)
   const st = captions.style;
   const fonte = st?.fontId && st.fontId in FONT_CATALOG ? FONT_CATALOG[st.fontId as keyof typeof FONT_CATALOG] : { family: MONTSERRAT, weight: 800 };
-  const contorno = st ? (st.strokeColor ? Math.max(1, Math.round(ajuste.size * st.strokeWidthRel)) : 0) : Math.max(3, Math.round(ajuste.size * 0.09));
-  const corTexto = st?.color ?? '#fff';
-  const corDestaque = st ? st.highlightColor ?? st.color : captions.highlightColor;
+  // legenda móvel (20/11): cores escolhidas no editor por cima do estilo; o contorno vem derivado da cor do texto
+  const ed = captions.edicao;
+  const corContorno = ed?.stroke ?? st?.strokeColor ?? null;
+  const larguraRel = st ? (st.strokeColor || !ed?.stroke ? st.strokeWidthRel : 0.08) : 0;
+  const contorno = st ? (corContorno ? Math.max(1, Math.round(ajuste.size * larguraRel)) : 0) : Math.max(3, Math.round(ajuste.size * 0.09));
+  const corTexto = ed?.color ?? st?.color ?? '#fff';
+  const corDestaque = ed?.highlight ?? (st ? st.highlightColor ?? st.color : captions.highlightColor);
   return (
     <div data-layer="captions-auto" style={{
       position: 'absolute', left: caixa.box.x, top: caixa.box.y, width: caixa.box.w, height: caixa.box.h,
@@ -39,7 +43,7 @@ export const LegendaAuto: React.FC<{ captions: CaptionsAuto; timeline: { startSe
     }}>
       <div style={{
         width: caixa.box.w, textAlign: 'center', fontFamily: fonte.family, fontWeight: fonte.weight, fontSize: ajuste.size, lineHeight: LEGENDA_LH,
-        color: corTexto, WebkitTextStroke: contorno ? `${contorno * 2}px ${st?.strokeColor ?? '#000'}` : undefined, paintOrder: 'stroke fill', lineBreak: 'strict',
+        color: corTexto, WebkitTextStroke: contorno ? `${contorno * 2}px ${ed?.stroke ?? st?.strokeColor ?? '#000'}` : undefined, paintOrder: 'stroke fill', lineBreak: 'strict',
         textTransform: st?.uppercase ? 'uppercase' : 'none',
         wordBreak: /^ko/i.test(lang) ? 'keep-all' : 'normal', textShadow: !st || st.shadow ? '0 4px 14px rgba(0,0,0,0.45)' : undefined,
       }}>
@@ -47,7 +51,7 @@ export const LegendaAuto: React.FC<{ captions: CaptionsAuto; timeline: { startSe
           <React.Fragment key={i}>
             {espacoAntes(i ? pag.palavras[i - 1].word : null, w.word) ? ' ' : null}
             {i === ativa && st?.highlightBox
-              ? <span style={{ color: corTexto, backgroundColor: st.highlightBox.color, borderRadius: Math.round(ajuste.size * st.highlightBox.radiusRel), padding: `0 ${Math.round(ajuste.size * 0.16)}px`, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', WebkitTextStroke: undefined }}>{w.word}</span>
+              ? <span style={{ color: corTexto, backgroundColor: ed?.highlight ?? st.highlightBox.color, borderRadius: Math.round(ajuste.size * st.highlightBox.radiusRel), padding: `0 ${Math.round(ajuste.size * 0.16)}px`, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', WebkitTextStroke: undefined }}>{w.word}</span>
               : <span style={{ color: i === ativa && !st?.highlightBox ? corDestaque : corTexto }}>{w.word}</span>}
           </React.Fragment>
         ))}
