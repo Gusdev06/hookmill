@@ -246,7 +246,7 @@ export const resolverPropsMoldura = (base: MolduraProps, doc: AnyEditDoc | null 
     const texts = JSON.parse(JSON.stringify(base.frame.texts)) as Record<string, unknown>;
     const brand = { ...base.frame.brand };
     const cor = dd.templateOpts?.brand;
-    if (corHex(cor)) brand.color = cor.slice(0, 7);
+    if (corHex(cor)) { brand.color = cor.slice(0, 7); brand.accent = cor.slice(0, 7); } // accent: destaque dos 15 templates de cor fixa
     for (const c of CAMPOS_MOLDURA[base.frame.id]) {
       if (c.lista) {
         const atual = lerPath(texts, c.path);

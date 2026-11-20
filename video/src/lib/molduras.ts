@@ -531,7 +531,9 @@ export const faceSourceSchema = z.discriminatedUnion('kind', [
 const frameDe = <K extends FrameTemplateId>(id: K) => z.object({
   id: z.literal(id), texts: frameTextsSchemas[id] as (typeof frameTextsSchemas)[K],
   /** = FrameBrand do contrato (backend preenche): nome = offer.name, handle = workspace normalizado, cor da marca */
-  brand: z.object({ name: z.string().min(1), handle: z.string().min(1), initials: z.string(), color: z.string(), logo: brandLogoSchema.nullable().optional() }),
+  brand: z.object({ name: z.string().min(1), handle: z.string().min(1), initials: z.string(), color: z.string(), logo: brandLogoSchema.nullable().optional(),
+    /** cor de destaque escolhida no editor ("Cor da marca"): só o editor grava; sem ela cada template usa a cor fixa dele */
+    accent: z.string().optional() }),
   // kit-marca-v1 §5: `logo` = logo do kit (URL assinada pela API); ausente/null = iniciais
 });
 const frameSchema = z.discriminatedUnion('id', [

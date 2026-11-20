@@ -85,6 +85,10 @@ const GUARDA = (p: MolduraProps): EditorGuard => ({
 });
 
 describe('resolverPropsMoldura com doc', () => {
+  it('sem cor escolhida não existe accent (cada template segue com a cor dele)', () => {
+    const r = resolverPropsMoldura(demoProps('direct_offer', 'VERTICAL_9_16'), vazio({ layers: [{ id: 'slot:cta', text: 'Compre' }] }), { format: '9x16' });
+    expect(r.props.frame.brand.accent).toBeUndefined();
+  });
   it('texto, item, cor da marca e caixa mexida/escondida', () => {
     const base = demoProps('ranking', 'VERTICAL_9_16');
     const doc = vazio({
@@ -94,6 +98,7 @@ describe('resolverPropsMoldura com doc', () => {
     });
     const r = resolverPropsMoldura(base, doc, { format: '9x16' });
     expect(r.props.frame.brand.color).toBe('#FF0000');
+    expect(r.props.frame.brand.accent).toBe('#FF0000'); // destaque dos templates de cor fixa
     expect((r.props.frame.texts as { title: string }).title).toBe('O que destrava');
     expect((r.props.frame.texts as { items: string[] }).items[1]).toBe('Dormir torto');
     const card = r.props.edicao!.camadas.find((c) => c.id === 'box:card')!;

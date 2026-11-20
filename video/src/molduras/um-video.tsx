@@ -2,7 +2,7 @@
 // tamanhos vêm do frameLayout (9:16 = protótipo; 4:5 e 1:1 = layout próprio).
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { Caixa, Entra, FONTE, Grao, Principal, RostoImg, SOMBRA, Texto, useEntrada, useQuique, Veu, type PropsTpl } from './base';
+import { acentoDe, legivelSobre, mixar, rgbaDe, textoSobre, Caixa, Entra, FONTE, Grao, Principal, RostoImg, SOMBRA, Texto, useEntrada, useQuique, Veu, type PropsTpl } from './base';
 import { Balao, Coracao, Compartilhar, Enviar, Fechar, Lua, Mais, Medalha, Repostar, SetaBaixo, Trofeu } from './icones';
 import { alturaLinhaNormal, iniciais, semArroba, type MolduraProps } from '../lib/molduras';
 import { LogoMarca } from '../componentes/LogoMarca';
@@ -43,6 +43,7 @@ export const Caixinha: React.FC<PropsTpl<'question_box'>> = ({ p, L, cor, ui }) 
 
 // ---------------------------------------------------------------- Meme
 export const Meme: React.FC<PropsTpl<'meme'>> = ({ p, L }) => {
+  const A = legivelSobre(acentoDe(p) ?? '#FFD43B', '#050505'); // destaque: palavra marcada e seta
   const q = useQuique(12);
   const n = L.n;
   return (
@@ -50,7 +51,7 @@ export const Meme: React.FC<PropsTpl<'meme'>> = ({ p, L }) => {
       <Camada id="slot:pov">
         <div style={{ position: 'absolute', left: M, top: n.textY, width: L.canvas.w - 2 * M, height: n.textH, display: 'flex', alignItems: 'flex-end' }}>
           <Entra atraso={2}>
-            <Texto fit={L.text.pov} fonte="inter-800" largura={L.canvas.w - 2 * M} cor="#fff" destaque={{ fontFamily: FONTE.mont, fontWeight: 900, color: '#FFD43B' }} />
+            <Texto fit={L.text.pov} fonte="inter-800" largura={L.canvas.w - 2 * M} cor="#fff" destaque={{ fontFamily: FONTE.mont, fontWeight: 900, color: A }} />
           </Entra>
         </div>
       </Camada>
@@ -63,7 +64,7 @@ export const Meme: React.FC<PropsTpl<'meme'>> = ({ p, L }) => {
             <Entra atraso={12}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                 <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: n.ctaSize, color: '#fff' }}>{p.frame.texts.cta}</span>
-                <SetaBaixo tam={n.arrow} cor="#FFD43B" espessura={3} style={{ transform: `translateY(${q}px)` }} />
+                <SetaBaixo tam={n.arrow} cor={A} espessura={3} style={{ transform: `translateY(${q}px)` }} />
               </div>
             </Entra>
           </div>
@@ -75,6 +76,7 @@ export const Meme: React.FC<PropsTpl<'meme'>> = ({ p, L }) => {
 
 // ---------------------------------------------------------------- Cinema
 export const Cinema: React.FC<PropsTpl<'cinema'>> = ({ p, L }) => {
+  const A = legivelSobre(acentoDe(p) ?? '#E9B872', '#17140F'); // destaque: palavra marcada e fio dourado
   const abre = useEntrada(8, 90, 20);
   const { videoBox: v, n } = L;
   const h = v.h * Math.min(1, Math.max(0, abre));
@@ -83,7 +85,7 @@ export const Cinema: React.FC<PropsTpl<'cinema'>> = ({ p, L }) => {
       <Camada id="box:text">
         <div style={{ position: 'absolute', left: 90, top: n.textY, width: 900, height: n.textH, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: n.gap }}>
           <Entra atraso={2} dist={30}>
-            <Texto fit={L.text.question} fonte="montserrat-800" largura={900} cor="#F5EFE6" alinhar="center" style={{ letterSpacing: '-0.02em', textShadow: '0 6px 30px rgba(0,0,0,0.6)' }} destaque={{ color: '#E9B872' }} />
+            <Texto fit={L.text.question} fonte="montserrat-800" largura={900} cor="#F5EFE6" alinhar="center" style={{ letterSpacing: '-0.02em', textShadow: '0 6px 30px rgba(0,0,0,0.6)' }} destaque={{ color: A }} />
           </Entra>
           {L.text.subtitle ? (
             <Entra atraso={10} dist={20}>
@@ -99,7 +101,7 @@ export const Cinema: React.FC<PropsTpl<'cinema'>> = ({ p, L }) => {
       <Camada id="brand">
         <Entra atraso={18} style={{ position: 'absolute', left: 0, width: L.canvas.w, top: L.slots.brand.y, display: 'flex', justifyContent: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }}>
-            <div style={{ width: 120, height: 2, backgroundColor: '#E9B872', opacity: 0.8 }} />
+            <div style={{ width: 120, height: 2, backgroundColor: A, opacity: 0.8 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: n.brandSize * 0.6 }}>
               {p.frame.brand.logo ? <LogoMarca logo={p.frame.brand.logo} tam={Math.round(n.brandSize * 1.9)} forma="quadrado" raio={n.brandSize * 0.4} reserva={null} /> : null}
               <span style={{ fontFamily: FONTE.mont, fontWeight: 800, fontSize: n.brandSize, letterSpacing: '0.32em', color: '#A69F94', textTransform: 'uppercase' }}>{p.frame.brand.name}</span>
@@ -114,6 +116,10 @@ export const Cinema: React.FC<PropsTpl<'cinema'>> = ({ p, L }) => {
 
 // ---------------------------------------------------------------- Notícia (news)
 export const Noticia: React.FC<PropsTpl<'news'>> = ({ p, L }) => {
+  const a = acentoDe(p);
+  const A = a ?? '#D7261E'; // pílula, fio do subtítulo
+  const AT = a ? legivelSobre(a, '#F3EFE8') : '#D7261E'; // destaque no título (texto sobre o bege)
+  const ASeta = a ? legivelSobre(a, '#111111') : '#FF4136'; // seta sobre o botão escuro
   const f = useCurrentFrame();
   const pisca = 0.55 + 0.45 * Math.abs(Math.sin(f / 9));
   const q = useQuique(8);
@@ -126,17 +132,17 @@ export const Noticia: React.FC<PropsTpl<'news'>> = ({ p, L }) => {
       <Camada id="box:header">
         <div style={{ position: 'absolute', left: M, top: n.top, width: larg, display: 'flex', flexDirection: 'column', gap: n.gap }}>
           <Entra de="esquerda" atraso={0}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, backgroundColor: '#D7261E', padding: `${n.pillPadY}px ${n.pillPadX}px`, borderRadius: 8, boxShadow: SOMBRA.leve }}>
-              <div style={{ width: n.pillDot, height: n.pillDot, borderRadius: 99, backgroundColor: '#fff', opacity: pisca }} />
-              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.pillSize, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{t.topic}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, backgroundColor: A, padding: `${n.pillPadY}px ${n.pillPadX}px`, borderRadius: 8, boxShadow: SOMBRA.leve }}>
+              <div style={{ width: n.pillDot, height: n.pillDot, borderRadius: 99, backgroundColor: a ? textoSobre(a) : '#fff', opacity: pisca }} />
+              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.pillSize, color: a ? textoSobre(a) : '#fff', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{t.topic}</span>
             </div>
           </Entra>
           <Entra atraso={5}>
-            <Texto fit={L.text.headline} fonte="montserrat-900" largura={larg} cor="#111" style={{ letterSpacing: '-0.02em' }} destaque={{ color: '#D7261E' }} />
+            <Texto fit={L.text.headline} fonte="montserrat-900" largura={larg} cor="#111" style={{ letterSpacing: '-0.02em' }} destaque={{ color: AT }} />
           </Entra>
           {L.text.dek ? (
             <Entra atraso={9}>
-              <div style={{ borderLeft: '6px solid #D7261E', paddingLeft: 22 }}>
+              <div style={{ borderLeft: `6px solid ${A}`, paddingLeft: 22 }}>
                 <Texto fit={L.text.dek} fonte="inter-600" largura={larg - 28} cor="#3B3B3B" />
               </div>
             </Entra>
@@ -150,7 +156,7 @@ export const Noticia: React.FC<PropsTpl<'news'>> = ({ p, L }) => {
         <Entra atraso={16} style={{ position: 'absolute', left: cta.x, top: cta.y, width: cta.w }}>
           <div style={{ backgroundColor: '#111', borderRadius: 10, padding: `${n.ctaPadY}px 0`, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 18, boxShadow: L.format === 'VERTICAL_9_16' ? undefined : SOMBRA.cartao }}>
             <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.ctaSize, color: '#fff', letterSpacing: '0.02em', textTransform: 'uppercase' }}>{t.cta}</span>
-            <SetaBaixo tam={n.arrow} cor="#FF4136" espessura={3.2} style={{ transform: `translateY(${q}px)` }} />
+            <SetaBaixo tam={n.arrow} cor={ASeta} espessura={3.2} style={{ transform: `translateY(${q}px)` }} />
           </div>
         </Entra>
       </Camada>
@@ -160,6 +166,7 @@ export const Noticia: React.FC<PropsTpl<'news'>> = ({ p, L }) => {
 
 // ---------------------------------------------------------------- Ranking
 export const Ranking: React.FC<PropsTpl<'ranking'>> = ({ p, L, ui }) => {
+  const a = acentoDe(p);
   const { n } = L;
   const items = L.items ?? [];
   const card = L.slots.card;
@@ -175,7 +182,7 @@ export const Ranking: React.FC<PropsTpl<'ranking'>> = ({ p, L, ui }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
                 <Trofeu tam={n.trophy} />
                 <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.rankSize, color: '#0F0F12', letterSpacing: '-0.02em' }}>{ui.ranking}</span>
-                <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.topSize, color: '#fff', backgroundColor: '#E5231B', padding: '8px 18px', borderRadius: 14, transform: 'rotate(-3deg)' }}>{ui.top} {items.length}</span>
+                <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.topSize, color: a ? textoSobre(a) : '#fff', backgroundColor: a ?? '#E5231B', padding: '8px 18px', borderRadius: 14, transform: 'rotate(-3deg)' }}>{ui.top} {items.length}</span>
               </div>
               <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: n.titleSize, color: '#4B4B55' }}>{p.frame.texts.title}</span>
             </div>
@@ -246,7 +253,10 @@ export const OfertaDireta: React.FC<PropsTpl<'direct_offer'>> = ({ p, L, ui }) =
   const q = useQuique(10);
   const f = useCurrentFrame();
   const brilho = 0.35 + 0.25 * Math.sin(f / 10);
-  const verde = '#3DDC84';
+  const a = acentoDe(p);
+  const verde = a ? legivelSobre(a, '#0A0F1E') : '#3DDC84'; // preço e destaque (texto sobre o fundo escuro)
+  const base = a ?? '#3DDC84'; // botão
+  const sobreBotao = a ? textoSobre(a, '#062814') : '#062814';
   const { n, videoBox: v } = L;
   const t = p.frame.texts;
   const larg = L.canvas.w - 2 * M;
@@ -274,7 +284,7 @@ export const OfertaDireta: React.FC<PropsTpl<'direct_offer'>> = ({ p, L, ui }) =
           <Entra de="pop" atraso={26}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 22, height: n.priceH }}>
               <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: n.onlySize, color: '#fff', whiteSpace: 'nowrap' }}>{ui.only}</span>
-              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.priceSize, color: verde, letterSpacing: '-0.03em', whiteSpace: 'nowrap', textShadow: `0 0 60px rgba(61,220,132,${brilho})` }}>{t.price.to}</span>
+              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.priceSize, color: verde, letterSpacing: '-0.03em', whiteSpace: 'nowrap', textShadow: `0 0 60px ${rgbaDe(verde, brilho)}` }}>{t.price.to}</span>
             </div>
           </Entra>
         </div>
@@ -282,9 +292,9 @@ export const OfertaDireta: React.FC<PropsTpl<'direct_offer'>> = ({ p, L, ui }) =
       <Camada id="slot:cta">
         <div style={{ position: 'absolute', left: M, top: n.ctaY, width: larg, display: 'flex', justifyContent: 'center' }}>
           <Entra atraso={32}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, backgroundColor: verde, borderRadius: 999, padding: `${n.ctaPadY}px ${n.ctaPadX}px`, boxShadow: '0 12px 40px rgba(61,220,132,0.35)' }}>
-              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.ctaSize, color: '#062814' }}>{t.cta}</span>
-              <SetaBaixo tam={n.arrow} cor="#062814" espessura={3.2} style={{ transform: `translateY(${q}px)` }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, backgroundColor: base, borderRadius: 999, padding: `${n.ctaPadY}px ${n.ctaPadX}px`, boxShadow: `0 12px 40px ${rgbaDe(base, 0.35)}` }}>
+              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.ctaSize, color: sobreBotao }}>{t.cta}</span>
+              <SetaBaixo tam={n.arrow} cor={sobreBotao} espessura={3.2} style={{ transform: `translateY(${q}px)` }} />
             </div>
           </Entra>
         </div>
@@ -298,22 +308,24 @@ export const Story: React.FC<PropsTpl<'story'>> = ({ p, L, cor, ui }) => {
   const { n } = L;
   const col = L.slots.column;
   // bloco de baixo; `cobre` = legenda queimada do campeão no caminho: verde e texto colados (cobrem a faixa), apoio por último
+  const a = acentoDe(p);
+  const base = a ?? '#22C55E'; // faixa do título
   const verde = (
     <Entra key="verde" de="pop" atraso={12}>
-      <div style={{ backgroundColor: '#22C55E', borderRadius: 26, padding: `${n.greenPadY}px ${n.greenPadX}px`, boxShadow: '0 14px 40px rgba(34,197,94,0.35)', border: '3px solid rgba(255,255,255,0.35)' }}>
-        <Texto fit={L.text.headline} fonte="montserrat-900" largura={820} cor="#fff" alinhar="center" style={{ textShadow: '0 2px 0 rgba(0,0,0,0.18)' }} />
+      <div style={{ backgroundColor: base, borderRadius: 26, padding: `${n.greenPadY}px ${n.greenPadX}px`, boxShadow: `0 14px 40px ${rgbaDe(base, 0.35)}`, border: '3px solid rgba(255,255,255,0.35)' }}>
+        <Texto fit={L.text.headline} fonte="montserrat-900" largura={820} cor={a ? textoSobre(a) : '#fff'} alinhar="center" style={{ textShadow: a && textoSobre(a) !== '#ffffff' ? 'none' : '0 2px 0 rgba(0,0,0,0.18)' }} />
       </div>
     </Entra>
   );
   const apoio = L.text.support ? (
     <Entra key="apoio" atraso={18}>
-      <Texto fit={L.text.support} fonte="inter-800" largura={900} cor="#fff" alinhar="center" style={{ textShadow: SOMBRA.texto }} destaque={{ color: '#86EFAC' }} />
+      <Texto fit={L.text.support} fonte="inter-800" largura={900} cor="#fff" alinhar="center" style={{ textShadow: SOMBRA.texto }} destaque={{ color: a ? mixar(a, '#ffffff', 0.45) : '#86EFAC' }} />
     </Entra>
   ) : null;
   const texto = (
     <Entra key="texto" atraso={24}>
       <div style={{ backgroundColor: '#fff', borderRadius: 30, padding: `${n.copyPadY}px ${n.copyPadX}px`, boxShadow: SOMBRA.cartao }}>
-        <Texto fit={L.text.copy} fonte="inter-600" largura={876} cor="#1E1E24" destaque={{ fontWeight: 800, color: '#0F0F12', backgroundColor: '#FFE98A', padding: '0 6px', borderRadius: 6 }} />
+        <Texto fit={L.text.copy} fonte="inter-600" largura={876} cor="#1E1E24" destaque={{ fontWeight: 800, color: '#0F0F12', backgroundColor: a ? mixar(a, '#ffffff', 0.6) : '#FFE98A', padding: '0 6px', borderRadius: 6 }} />
       </div>
     </Entra>
   );
@@ -347,6 +359,7 @@ export const Story: React.FC<PropsTpl<'story'>> = ({ p, L, cor, ui }) => {
 
 // ---------------------------------------------------------------- Leia a legenda (read_caption)
 export const LeiaALegenda: React.FC<PropsTpl<'read_caption'>> = ({ p, L, ui }) => {
+  const a = acentoDe(p);
   const q = useQuique(12);
   const { n } = L;
   const larg = L.canvas.w - 2 * M;
@@ -358,7 +371,7 @@ export const LeiaALegenda: React.FC<PropsTpl<'read_caption'>> = ({ p, L, ui }) =
         <div style={{ position: 'absolute', left: M, width: larg, top: n.headlineY, display: 'flex', justifyContent: 'center' }}>
           <Entra de="escala" atraso={4}>
             <Texto fit={L.text.headline} fonte="montserrat-900" largura={larg} cor="#fff" alinhar="center" style={{ letterSpacing: '-0.02em', textShadow: SOMBRA.texto }}
-              destaque={{ color: '#111', backgroundColor: '#FFD43B', padding: '0 12px', borderRadius: 10, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', textShadow: 'none' }} />
+              destaque={{ color: a ? textoSobre(a) : '#111', backgroundColor: a ?? '#FFD43B', padding: '0 12px', borderRadius: 10, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', textShadow: 'none' }} />
           </Entra>
         </div>
       </Camada>
@@ -378,6 +391,7 @@ export const LeiaALegenda: React.FC<PropsTpl<'read_caption'>> = ({ p, L, ui }) =
 
 // ---------------------------------------------------------------- POV + depoimento (pov_testimonial)
 export const PovDepoimento: React.FC<PropsTpl<'pov_testimonial'>> = ({ p, L }) => {
+  const A = legivelSobre(acentoDe(p) ?? '#FFD43B', '#16161A'); // seta do botão
   const f = useCurrentFrame();
   const pulso = 1 + 0.025 * Math.sin(f / 7);
   const { n, videoBox: v } = L;
@@ -398,7 +412,7 @@ export const PovDepoimento: React.FC<PropsTpl<'pov_testimonial'>> = ({ p, L }) =
         <Entra atraso={16} style={{ position: 'absolute', left: cta.x, top: cta.y, width: cta.w }}>
           <div style={{ transform: `scale(${pulso})`, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 18, backgroundColor: '#16161A', borderRadius: 999, padding: `${n.ctaPadY}px 0`, boxShadow: SOMBRA.cartao }}>
             <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.ctaSize, color: '#fff', letterSpacing: '0.02em', textTransform: 'uppercase' }}>{p.frame.texts.cta}</span>
-            <SetaBaixo tam={n.arrow} cor="#FFD43B" espessura={3.2} />
+            <SetaBaixo tam={n.arrow} cor={A} espessura={3.2} />
           </div>
         </Entra>
       </Camada>
@@ -421,6 +435,10 @@ export const Live: React.FC<PropsTpl<'live'>> = ({ p, L, ui }) => {
   // os corações recomeçam a cada 9 s (o protótipo tinha 8 s de peça; o campeão inteiro é bem mais longo)
   const ciclo = 9 * fps;
   const fc = f % ciclo;
+  const a = acentoDe(p);
+  const anelCor = a ? `linear-gradient(135deg, ${a}, ${mixar(a, '#ffffff', 0.3)})` : 'linear-gradient(135deg, #FF2D55, #FF8A3D)';
+  const selo = a ? `linear-gradient(135deg, ${a}, ${mixar(a, '#000000', 0.2)})` : 'linear-gradient(135deg, #FF2D55, #FF5E3A)';
+  const corCoracao = (c: string) => (!a || c === '#FFFFFF' ? c : c === '#FF3B6B' ? a : c === '#FF9F1C' ? mixar(a, '#ffffff', 0.35) : mixar(a, '#000000', 0.25));
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       <Principal p={p} caixa={L.videoBox} zoom={1.02} />
@@ -429,13 +447,13 @@ export const Live: React.FC<PropsTpl<'live'>> = ({ p, L, ui }) => {
       <Camada id="box:header">
         <div style={{ position: 'absolute', left: 44, right: 44, top: n.headTop, display: 'flex', alignItems: 'center', gap: 20 }}>
           <Entra de="esquerda" atraso={2} style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1 }}>
-            <div style={{ width: n.avatar, height: n.avatar, borderRadius: 999, padding: 5, background: 'linear-gradient(135deg, #FF2D55, #FF8A3D)', transform: `scale(${anel})` }}>
+            <div style={{ width: n.avatar, height: n.avatar, borderRadius: 999, padding: 5, background: anelCor, transform: `scale(${anel})` }}>
               <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: '4px solid #000' }}>
                 <RostoImg p={p} />
               </div>
             </div>
             <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: n.handleSize, color: '#fff', textShadow: SOMBRA.texto }}>{semArroba(p.frame.brand.handle)}</span>
-            <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.badgeSize, color: '#fff', letterSpacing: '0.08em', background: 'linear-gradient(135deg, #FF2D55, #FF5E3A)', padding: '8px 18px', borderRadius: 10 }}>{ui.live}</span>
+            <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.badgeSize, color: a ? textoSobre(mixar(a, '#000000', 0.1)) : '#fff', letterSpacing: '0.08em', background: selo, padding: '8px 18px', borderRadius: 10 }}>{ui.live}</span>
           </Entra>
           <Entra de="pop" atraso={6}><Fechar tam={n.close} cor="#fff" espessura={2.6} /></Entra>
         </div>
@@ -448,7 +466,7 @@ export const Live: React.FC<PropsTpl<'live'>> = ({ p, L, ui }) => {
         const x = c.x + Math.sin(pr * Math.PI * 2 + i) * 26;
         const tam = c.t * n.heartScale;
         const o = interpolate(pr, [0, 0.15, 0.75, 1], [0, 1, 1, 0]);
-        return <Coracao key={i} cheio tam={tam} cor={c.cor} style={{ position: 'absolute', left: x - tam / 2, top: y, opacity: o, transform: `scale(${0.7 + 0.5 * Math.min(1, pr * 3)})`, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }} />;
+        return <Coracao key={i} cheio tam={tam} cor={corCoracao(c.cor)} style={{ position: 'absolute', left: x - tam / 2, top: y, opacity: o, transform: `scale(${0.7 + 0.5 * Math.min(1, pr * 3)})`, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }} />;
       })}
       <Camada id="box:bar">
         <div style={{ position: 'absolute', left: 44, right: 44, top: n.barY, height: n.barH, display: 'flex', alignItems: 'center', gap: 24 }}>

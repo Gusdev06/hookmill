@@ -350,3 +350,36 @@ export const RostoImg: React.FC<{ p: MolduraProps }> = ({ p }) => {
 
 /** Props comuns de cada template. */
 export type PropsTpl<K extends MolduraProps['frame']['id']> = { p: MolduraProps & { frame: Extract<MolduraProps['frame'], { id: K }> }; L: FrameLayout; cor: string; ui: import('../lib/molduras').FrameUi };
+
+// ---------------------------------------------------------------- Cor de destaque escolhida no editor (`brand.accent`)
+// Sem `accent` o template usa a cor fixa dele (render idêntico ao de antes). Com `accent`, ela vira o destaque do template
+// inteiro (preço, CTA, palavra marcada, faixa, seta); texto em cima dela e cores derivadas (brilho, sombra) seguem a cor.
+const rgbDe = (hex: string): [number, number, number] => {
+  const h = hex.length === 4 ? hex.slice(1).split('').map((c) => c + c).join('') : hex.slice(1);
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+};
+const hexDe = (r: number, g: number, b: number) => `#${[r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')}`;
+/** Luminância relativa (WCAG) de um hex. */
+export const luminancia = (hex: string) => {
+  const [r, g, b] = rgbDe(hex).map((v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+export const contraste = (a: string, b: string) => { const x = luminancia(a), y = luminancia(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+/** A cor de destaque do editor (hex válido) ou `undefined` = cada template mantém a cor fixa dele. */
+export const acentoDe = (p: MolduraProps): string | undefined => {
+  const a = p.frame.brand.accent;
+  return typeof a === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a) ? a : undefined;
+};
+/** `rgba(...)` de um hex com alfa (a mesma cor fixa em hex dá o mesmo rgba de antes). */
+export const rgbaDe = (hex: string, alfa: number) => { const [r, g, b] = rgbDe(hex); return `rgba(${r},${g},${b},${alfa})`; };
+/** Mistura `hex` com `outro` (t = parte do outro, 0-1). */
+export const mixar = (hex: string, outro: string, t: number) => { const a = rgbDe(hex), b = rgbDe(outro); return hexDe(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t); };
+/** Texto sobre um fundo `hex` de destaque: branco ou o escuro, o que contrasta mais. */
+export const textoSobre = (hex: string, escuro = '#111111') => (contraste(hex, '#ffffff') >= contraste(hex, escuro) ? '#ffffff' : escuro);
+/** Cor de destaque usada COMO TEXTO/seta sobre `fundo`: escurece ou clareia até ter contraste >= `min` (amarelo claro sobre bege some). */
+export const legivelSobre = (hex: string, fundo: string, min = 3) => {
+  if (contraste(hex, fundo) >= min) return hex;
+  const alvo = luminancia(fundo) > 0.4 ? '#000000' : '#ffffff';
+  for (let t = 0.1; t <= 1.0001; t += 0.1) { const c = mixar(hex, alvo, t); if (contraste(c, fundo) >= min) return c; }
+  return alvo;
+};

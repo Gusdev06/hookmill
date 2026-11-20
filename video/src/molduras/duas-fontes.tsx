@@ -3,7 +3,7 @@
 import React from 'react';
 import { AbsoluteFill, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { resolverSrc } from '../componentes/midia';
-import { Entra, FONTE, Principal, RostoImg, Segunda, SOMBRA, Texto, useEntrada, type PropsTpl } from './base';
+import { acentoDe, legivelSobre, mixar, rgbaDe, textoSobre, Entra, FONTE, Principal, RostoImg, Segunda, SOMBRA, Texto, useEntrada, type PropsTpl } from './base';
 import { Balao, Brilho, Camera, Check, Coracao, Desligar, Enviar, Estouro, Joinha, Mais, Mao, MicMudo, Microfone, Salvar, Sorriso, Tela } from './icones';
 import { MarcaLua } from './um-video';
 import { Camada } from './camada';
@@ -44,6 +44,8 @@ const LadoALado: React.FC<{ p: MolduraProps; L: FrameLayout; raio?: number; bord
 
 // ---------------------------------------------------------------- Choquei (gossip_page), sem selo de verificado (D9)
 export const Choquei: React.FC<PropsTpl<'gossip_page'>> = ({ p, L, ui }) => {
+  const a = acentoDe(p) ? legivelSobre(acentoDe(p)!, '#0B0B0D') : undefined;
+  const anel = a ? `linear-gradient(135deg, ${a}, ${mixar(a, '#000000', 0.25)})` : 'linear-gradient(135deg, #FACC15, #EF4444)';
   const t = p.frame.texts;
   const ini = t.pageName.split(' ').filter((x) => x.length > 2).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
   const cinza = '#A1A1AA';
@@ -55,7 +57,7 @@ export const Choquei: React.FC<PropsTpl<'gossip_page'>> = ({ p, L, ui }) => {
         <div style={{ position: 'absolute', left: M, width: L.canvas.w - 2 * M, top: n.top, display: 'flex', flexDirection: 'column', gap: n.gap }}>
           <Entra atraso={0} dist={30}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-              <div style={{ width: n.avatar, height: n.avatar, borderRadius: 999, padding: 5, background: 'linear-gradient(135deg, #FACC15, #EF4444)' }}>
+              <div style={{ width: n.avatar, height: n.avatar, borderRadius: 999, padding: 5, background: anel }}>
                 <div style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: '#111', border: '4px solid #0B0B0D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.initSize, color: '#FACC15' }}>{ini}</div>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -66,12 +68,12 @@ export const Choquei: React.FC<PropsTpl<'gossip_page'>> = ({ p, L, ui }) => {
             </div>
           </Entra>
           <Entra atraso={4}>
-            <Texto fit={L.text.headline} fonte="inter-600" largura={L.canvas.w - 2 * M} cor="#E4E4E7" destaque={{ fontWeight: 800, color: '#fff', backgroundColor: 'rgba(250,204,21,0.22)', boxShadow: 'inset 0 -0.18em 0 rgba(250,204,21,0.9)' }} />
+            <Texto fit={L.text.headline} fonte="inter-600" largura={L.canvas.w - 2 * M} cor="#E4E4E7" destaque={{ fontWeight: 800, color: '#fff', backgroundColor: rgbaDe(a ?? '#FACC15', 0.22), boxShadow: `inset 0 -0.18em 0 ${rgbaDe(a ?? '#FACC15', 0.9)}` }} />
           </Entra>
         </div>
       </Camada>
       <LadoALado p={p} L={L} raio={n.radius} />
-      <Rosto p={p} caixa={L.faceBox!} borda="#0B0B0D" anel="linear-gradient(135deg, #FACC15, #EF4444)" />
+      <Rosto p={p} caixa={L.faceBox!} borda="#0B0B0D" anel={anel} />
       <Camada id="box:icons">
         <div style={{ position: 'absolute', left: ic.x, width: ic.w, top: ic.y, display: 'flex', alignItems: 'center', gap: 40 }}>
           <Coracao tam={n.icon} cor="#fff" /><Balao tam={n.icon} cor="#fff" /><Enviar tam={n.icon - 2} cor="#fff" />
@@ -84,6 +86,8 @@ export const Choquei: React.FC<PropsTpl<'gossip_page'>> = ({ p, L, ui }) => {
 
 // ---------------------------------------------------------------- Tela dividida (split_stack)
 export const TelaDividida: React.FC<PropsTpl<'split_stack'>> = ({ p, L }) => {
+  const a = acentoDe(p);
+  const sobre = a ? textoSobre(a) : '#fff';
   const H = L.canvas.h, W = L.canvas.w;
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
@@ -96,8 +100,8 @@ export const TelaDividida: React.FC<PropsTpl<'split_stack'>> = ({ p, L }) => {
       <Camada id="box:band">
         <div style={{ position: 'absolute', left: 0, width: W, top: H / 2 - 150, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Entra de="escala" atraso={8} rot={-2}>
-            <div style={{ backgroundColor: '#E5231B', padding: `${L.n.bandPadY}px 50px`, boxShadow: '0 10px 0 rgba(0,0,0,0.35), 0 24px 60px rgba(0,0,0,0.45)', width: 1000 }}>
-              <Texto fit={L.text.headline} fonte="montserrat-900" largura={900} caixaAlta cor="#fff" alinhar="center" style={{ letterSpacing: '-0.01em' }} destaque={{ color: '#FFE14D' }} />
+            <div style={{ backgroundColor: a ?? '#E5231B', padding: `${L.n.bandPadY}px 50px`, boxShadow: '0 10px 0 rgba(0,0,0,0.35), 0 24px 60px rgba(0,0,0,0.45)', width: 1000 }}>
+              <Texto fit={L.text.headline} fonte="montserrat-900" largura={900} caixaAlta cor={sobre} alinhar="center" style={{ letterSpacing: '-0.01em' }} destaque={a ? { color: sobre, textDecoration: 'underline', textDecorationThickness: '0.09em', textUnderlineOffset: '0.14em' } : { color: '#FFE14D' }} />
             </div>
           </Entra>
         </div>
@@ -117,6 +121,7 @@ const rasgo = (largura: number, altura: number, semente: number) => {
   return [...topo, ...base].join(' ');
 };
 export const TelaDividida2: React.FC<PropsTpl<'split_torn'>> = ({ p, L }) => {
+  const a = acentoDe(p);
   const larg = L.n.stripW; const alt = L.n.stripH;
   const W = L.canvas.w, H = L.canvas.h;
   return (
@@ -141,7 +146,7 @@ export const TelaDividida2: React.FC<PropsTpl<'split_torn'>> = ({ p, L }) => {
               <div style={{ position: 'absolute', right: 150, bottom: -12, width: 130, height: 46, backgroundColor: 'rgba(255,240,170,0.75)', transform: 'rotate(6deg)' }} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Texto fit={L.text.headline} fonte="archivo-black-400" largura={900} cor="#141414" alinhar="center"
-                  destaque={{ backgroundColor: '#FFE14D', padding: '0 10px', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }} />
+                  destaque={{ backgroundColor: a ?? '#FFE14D', ...(a ? { color: textoSobre(a, '#141414') } : {}), padding: '0 10px', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }} />
               </div>
             </div>
           </Entra>
@@ -182,15 +187,15 @@ const Controles: React.FC<{ L: FrameLayout }> = ({ L }) => {
   );
 };
 
-const Etiqueta: React.FC<{ nome: string; mudo?: boolean; menor?: boolean }> = ({ nome, mudo, menor }) => (
+const Etiqueta: React.FC<{ nome: string; mudo?: boolean; menor?: boolean; cor?: string }> = ({ nome, mudo, menor, cor = CORES_CALL.destaque }) => (
   <div style={{ position: 'absolute', left: 22, bottom: 22, display: 'flex', alignItems: 'center', gap: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 14, padding: '10px 20px' }}>
-    {mudo ? <MicMudo tam={menor ? 28 : 32} cor="#fff" /> : <Microfone tam={menor ? 28 : 32} cor={CORES_CALL.destaque} />}
+    {mudo ? <MicMudo tam={menor ? 28 : 32} cor="#fff" /> : <Microfone tam={menor ? 28 : 32} cor={cor} />}
     <span style={{ fontFamily: FONTE.inter, fontWeight: 800, fontSize: menor ? 28 : 32, color: '#fff' }}>{nome}</span>
   </div>
 );
 
 /** Moldura do quadro de quem fala: anel que pulsa leve. */
-const anelFala = (f: number, ativo: boolean) => (ativo ? `0 0 0 ${5 + 2 * Math.abs(Math.sin(f / 6))}px ${CORES_CALL.destaque}` : 'none');
+const anelFala = (f: number, ativo: boolean, cor = CORES_CALL.destaque) => (ativo ? `0 0 0 ${5 + 2 * Math.abs(Math.sin(f / 6))}px ${cor}` : 'none');
 
 const REACOES = [Coracao, Joinha, Brilho, Coracao, Sorriso, Joinha];
 const Reacoes: React.FC<{ base: number; x0: number; subida: number }> = ({ base, x0, subida }) => {
@@ -291,6 +296,7 @@ export const Meet: React.FC<PropsTpl<'call'>> = ({ p, L, cor, ui }) => {
 };
 
 export const MeetDialogo: React.FC<PropsTpl<'call_dialog'>> = ({ p, L }) => {
+  const A = acentoDe(p) ? legivelSobre(acentoDe(p)!, CORES_CALL.fundo) : CORES_CALL.destaque; // anel de quem fala e microfone
   const f = useCurrentFrame();
   const t = p.frame.texts;
   const a = L.videoBox, b = L.secondBox!;
@@ -299,9 +305,9 @@ export const MeetDialogo: React.FC<PropsTpl<'call_dialog'>> = ({ p, L }) => {
     <AbsoluteFill style={{ backgroundColor: CORES_CALL.fundo }}>
       <Camada id="box:bar"><BarraTopo titulo={t.title} L={L} /></Camada>
       <Entra de="escala" atraso={3} style={{ position: 'absolute', left: a.x, top: a.y, width: a.w, height: a.h }}>
-        <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: L.n.radius, boxShadow: anelFala(f, true) }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: L.n.radius, boxShadow: anelFala(f, true, A) }}>
           <Principal p={p} caixa={{ x: 0, y: 0, w: a.w, h: a.h }} raio={L.n.radius} />
-          <Etiqueta nome={t.names[0]} menor={menor} />
+          <Etiqueta nome={t.names[0]} menor={menor} cor={A} />
         </div>
       </Entra>
       <Entra de="escala" atraso={7} style={{ position: 'absolute', left: b.x, top: b.y, width: b.w, height: b.h }}>
@@ -317,6 +323,7 @@ export const MeetDialogo: React.FC<PropsTpl<'call_dialog'>> = ({ p, L }) => {
 
 // ---------------------------------------------------------------- Fofoca 1 (gossip_white)
 export const Fofoca1: React.FC<PropsTpl<'gossip_white'>> = ({ p, L, ui }) => {
+  const A = acentoDe(p) ? legivelSobre(acentoDe(p)!, '#FFFFFF') : '#E5231B'; // rótulo e palavra marcada (texto sobre branco)
   const { n } = L;
   const hd = L.slots.header;
   return (
@@ -325,12 +332,12 @@ export const Fofoca1: React.FC<PropsTpl<'gossip_white'>> = ({ p, L, ui }) => {
         <div style={{ position: 'absolute', left: hd.x, width: hd.w, top: hd.y, height: hd.h, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: n.gap }}>
           <Entra atraso={0} dist={20}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: n.dot, height: n.dot, borderRadius: 99, backgroundColor: '#E5231B' }} />
-              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.labelSize, color: '#E5231B', letterSpacing: '0.16em' }}>{ui.exclusive}</span>
+              <div style={{ width: n.dot, height: n.dot, borderRadius: 99, backgroundColor: A }} />
+              <span style={{ fontFamily: FONTE.mont, fontWeight: 900, fontSize: n.labelSize, color: A, letterSpacing: '0.16em' }}>{ui.exclusive}</span>
             </div>
           </Entra>
           <Entra atraso={4}>
-            <Texto fit={L.text.headline} fonte="montserrat-900" largura={hd.w} cor="#0E0E10" style={{ letterSpacing: '-0.025em' }} destaque={{ color: '#E5231B' }} />
+            <Texto fit={L.text.headline} fonte="montserrat-900" largura={hd.w} cor="#0E0E10" style={{ letterSpacing: '-0.025em' }} destaque={{ color: A }} />
           </Entra>
         </div>
       </Camada>
@@ -342,20 +349,22 @@ export const Fofoca1: React.FC<PropsTpl<'gossip_white'>> = ({ p, L, ui }) => {
 
 // ---------------------------------------------------------------- Fofoca 2 (gossip_pink): bordas rosa com retícula + selo estourado
 export const Fofoca2: React.FC<PropsTpl<'gossip_pink'>> = ({ p, L, ui }) => {
+  const a = acentoDe(p);
+  const AT = a ? legivelSobre(a, '#FFFFFF') : '#E0007A'; // palavra marcada sobre o cartão branco
   const f = useCurrentFrame();
   const selo = useEntrada(18, 240, 9);
   const balanco = Math.sin(f / 9) * 3;
   const { n } = L;
   const card = L.slots.card, seal = L.slots.seal;
   return (
-    <AbsoluteFill style={{ backgroundColor: '#FF3EA5' }}>
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(120,0,70,0.45) 22%, transparent 24%)', backgroundSize: '26px 26px', opacity: 0.7 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(70% 55% at 50% 52%, rgba(255,62,165,0) 0%, rgba(255,62,165,0.35) 60%, rgba(160,0,90,0.35) 100%)' }} />
+    <AbsoluteFill style={{ backgroundColor: a ?? '#FF3EA5' }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `radial-gradient(${a ? rgbaDe(mixar(a, '#000000', 0.53), 0.45) : 'rgba(120,0,70,0.45)'} 22%, transparent 24%)`, backgroundSize: '26px 26px', opacity: 0.7 }} />
+      <div style={{ position: 'absolute', inset: 0, background: a ? `radial-gradient(70% 55% at 50% 52%, ${rgbaDe(a, 0)} 0%, ${rgbaDe(a, 0.35)} 60%, ${rgbaDe(mixar(a, '#000000', 0.37), 0.35)} 100%)` : 'radial-gradient(70% 55% at 50% 52%, rgba(255,62,165,0) 0%, rgba(255,62,165,0.35) 60%, rgba(160,0,90,0.35) 100%)' }} />
       <Camada id="box:card">
         <div style={{ position: 'absolute', left: card.x, width: card.w, top: card.y }}>
           <Entra de="escala" atraso={2} rot={-1.5}>
             <div style={{ backgroundColor: '#fff', padding: `${n.padY}px 40px`, boxShadow: '10px 10px 0 #111' }}>
-              <Texto fit={L.text.headline} fonte="montserrat-900" largura={card.w - 80} cor="#111" alinhar="center" style={{ letterSpacing: '-0.02em' }} destaque={{ color: '#E0007A' }} />
+              <Texto fit={L.text.headline} fonte="montserrat-900" largura={card.w - 80} cor="#111" alinhar="center" style={{ letterSpacing: '-0.02em' }} destaque={{ color: AT }} />
             </div>
           </Entra>
         </div>
