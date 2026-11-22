@@ -116,6 +116,10 @@ describe('validação (só vertical, lista de cores)', () => {
     expect(erros(vazio({ layers: [{ id: 'caption', text: 'oi' }] }))).toContain('layers[0].text:not_editable');
     expect(erros(vazio({ layers: [{ id: 'caption', visible: false }] }))).toContain('layers[0].visible:not_editable');
   });
+  it('chave do estilo com undefined (como chega do DTO da API) não é erro (QA 22/11)', () => {
+    const st = { fontId: undefined, background: undefined, strokeColor: undefined, size: 'lg', color: '#ffe14a', highlightColor: '#4aa8ff' } as never;
+    expect(erros(vazio({ layers: [{ id: 'caption', style: st }] }))).toEqual([]);
+  });
   it('peça sem a nossa legenda: a camada caption não existe (unknown_layer)', () => {
     expect(validarDocMoldura(yDoc(0.4), demoProps('question_box')).map((e) => e.rule)).toContain('unknown_layer');
   });

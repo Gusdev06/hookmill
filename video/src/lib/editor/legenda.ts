@@ -75,7 +75,8 @@ export const validarLegendaDoc = (d: EditDocV3 | null | undefined, efetivas?: { 
     transform(f, l.transform);
     if (l.rect != null) err(`${f}.rect`, 'not_editable');
     if (l.style) {
-      for (const k of Object.keys(l.style)) if (!['color', 'highlightColor', 'size'].includes(k)) err(`${f}.style.${k}`, 'not_editable');
+      // 22/11 (QA): campo ausente chega como chave com undefined (DTO da API com class fields) — só conta o que veio preenchido
+      for (const [k, v] of Object.entries(l.style)) if (v !== undefined && !['color', 'highlightColor', 'size'].includes(k)) err(`${f}.style.${k}`, 'not_editable');
       if (l.style.size !== undefined && !(l.style.size in LEGENDA_TAMANHOS)) err(`${f}.style.size`, 'bad_template_opt_value');
       if (l.style.color !== undefined && !naLista(LEGENDA_CORES_TEXTO, l.style.color)) err(`${f}.style.color`, 'bad_color');
       if (l.style.highlightColor != null && !naLista(LEGENDA_CORES_PALAVRA, l.style.highlightColor)) err(`${f}.style.highlightColor`, 'bad_color');

@@ -42,6 +42,8 @@ export class LayerStyleDto implements Partial<LayerStyle> {
   @IsOptional() @IsBoolean() uppercase?: boolean;
   @IsOptional() @IsBoolean() shadow?: boolean;
   @IsOptional() @IsIn(['left', 'center', 'right']) align?: LayerStyle['align'];
+  /** legenda móvel (20/11): só a camada `caption` (P/M/G); o validarDoc recusa nas outras */
+  @IsOptional() @IsIn(['sm', 'md', 'lg']) size?: 'sm' | 'md' | 'lg';
 }
 
 /** editor-universal-v1 §4: caixa em fração do canvas (a faixa -0,25..1,25 é regra do validarDoc: rect_out_of_range). */
