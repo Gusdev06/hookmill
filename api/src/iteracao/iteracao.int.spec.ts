@@ -390,9 +390,11 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     expect((await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n })).error).toMatchObject({ code: 'ESTIMATE_CHANGED', details: { estimateUsd: 0.8 } });
     expect((await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n, expectedCostUsd: 0.7 })).error.code).toBe('ESTIMATE_CHANGED');
     // teto
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.A.id, role: 'OWNER' } } }, data: { access: 'PAID' } }); // 22/11: dono INTERNAL não tem teto; o teto se prova com dono PAID
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { monthlySpendCapUsd: 0.1 } });
     expect((await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n, expectedCostUsd: 0.8 })).error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED' });
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { monthlySpendCapUsd: null } });
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.A.id, role: 'OWNER' } } }, data: { access: 'INTERNAL' } });
     expect((await call('GET', `/iterate/${cr.data.id}`)).data.status).toBe('PLAN_READY');
     // 0,73 × 1,10 ≥ 0,80: passa (tolerância de 10 %)
     const ok = await call('POST', `/iterate/${cr.data.id}/start`, { expectedPieces: n, expectedCostUsd: 0.73 });
@@ -485,10 +487,12 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
   });
 
   it('teto de gasto: 409 SPEND_CAP_EXCEEDED antes de criar', async () => {
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.A.id, role: 'OWNER' } } }, data: { access: 'PAID' } }); // 22/11: dono INTERNAL não tem teto; o teto se prova com dono PAID
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { monthlySpendCapUsd: 0.0001 } });
     const before = await prisma.variationBatch.count({ where: { workspaceId: ws.A.id } });
     const r = await call('POST', '/iterate', { creativeId });
     await prisma.workspace.update({ where: { id: ws.A.id }, data: { monthlySpendCapUsd: null } });
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.A.id, role: 'OWNER' } } }, data: { access: 'INTERNAL' } });
     expect(r.error.code).toBe('SPEND_CAP_EXCEEDED');
     expect(await prisma.variationBatch.count({ where: { workspaceId: ws.A.id } })).toBe(before);
   });

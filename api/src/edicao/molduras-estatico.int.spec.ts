@@ -242,10 +242,12 @@ describe(isLocal ? 'STATIC montado + molduras (integração local)' : 'STATIC mo
     // ready sem mismatch = 409
     expect((await call('POST', `/iterate/pieces/${items['STATIC-F1']}/retry`, {})).error).toMatchObject({ code: 'INVALID_STATE' });
     // teto mensal: 409 SPEND_CAP_EXCEEDED { spentUsd, capUsd, estimateUsd }
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.id, role: 'OWNER' } } }, data: { access: 'PAID' } }); // 22/11: dono INTERNAL não tem teto; o teto se prova com dono PAID
     await prisma.workspace.update({ where: { id: ws.id }, data: { monthlySpendCapUsd: 0.1 } });
     const cap = await call('POST', `/iterate/pieces/${pid}/retry`, {});
     expect(cap.error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED', details: { capUsd: 0.1, estimateUsd: 0.4 } });
     await prisma.workspace.update({ where: { id: ws.id }, data: { monthlySpendCapUsd: null } });
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.id, role: 'OWNER' } } }, data: { access: 'INTERNAL' } });
   });
 
   it('§B4: formato que a moldura não tem = 409 format_not_supported e supported false; com ele = 202', async () => {

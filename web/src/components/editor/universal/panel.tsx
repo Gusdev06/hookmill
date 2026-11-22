@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { useFormatter } from "next-intl"
 import type { RemixKeepProps } from "@maquina/video/player"
 import type { ControlDecl, EditIssue, LayerStyle, LayerTransform, Rect, TextProvenance, VideoFraming } from "@/lib/api/types"
@@ -31,6 +31,39 @@ export function Seg({ value, options, onChange, disabled, label, tight }: { valu
     </div>
   )
 }
+/** 22/11 (pedido do Gusta): a bolinha de arco-íris que abre a paleta do sistema pra arrastar e escolher qualquer cor.
+ *  Enquanto arrasta, a prévia muda ao vivo e tudo vira um passo só no desfazer (startGesture/endGesture). */
+export function CorLivre({ value, onChange, disabled, label, selected, round }: { value: string | null; onChange: (v: string) => void; disabled?: boolean; label: string; selected?: boolean; round?: boolean }) {
+  const { s, t } = useU()
+  const ref = useRef<HTMLInputElement>(null)
+  const key = `cor:${useId()}`
+  // QA 22/11 (B1): depende só do endGesture (estável); com `s` inteiro o cleanup rodava a cada render e quebrava o gesto em N passos
+  const { endGesture } = s
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.addEventListener("change", endGesture)
+    el.addEventListener("blur", endGesture)
+    return () => { el.removeEventListener("change", endGesture); el.removeEventListener("blur", endGesture); endGesture() }
+  }, [endGesture])
+  const atual = value && HEX.test(value) ? value.toLowerCase() : "#ff0000"
+  return (
+    <label className={cn("sw livre", round && "redondo", disabled && "dis")} title={t("simples.corLivre" as never)} aria-pressed={!!selected} style={selected && value ? { ["--livre" as string]: value } : undefined}>
+      <input
+        ref={ref}
+        type="color"
+        value={atual}
+        disabled={disabled}
+        aria-label={`${label} · ${t("simples.corLivre" as never)}`}
+        onChange={(e) => {
+          s.startGesture(key)
+          onChange(e.target.value.toUpperCase())
+        }}
+      />
+    </label>
+  )
+}
+
 export function Swatches({ value, onChange, extra = [], disabled, label }: { value: string | null; onChange: (v: string) => void; extra?: (string | null | undefined)[]; disabled?: boolean; label: string }) {
   const list = [...new Set([...SW, ...extra.filter((x): x is string => !!x && HEX.test(x)).map((x) => x.toUpperCase())])]
   const [hex, setHex] = useState<{ base: string | null; v: string } | null>(null)
@@ -40,6 +73,7 @@ export function Swatches({ value, onChange, extra = [], disabled, label }: { val
       {list.map((c) => (
         <button key={c} type="button" className="sw" style={{ background: c }} aria-label={c} aria-pressed={(value ?? "").toLowerCase() === c.toLowerCase()} disabled={disabled} onClick={() => onChange(c)} />
       ))}
+      <CorLivre label={label} value={value} disabled={disabled} selected={!!value && !list.some((c) => c.toLowerCase() === value.toLowerCase())} onChange={onChange} />
       <input
         className="inp hex"
         value={shown}

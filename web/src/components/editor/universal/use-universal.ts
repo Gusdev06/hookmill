@@ -251,10 +251,6 @@ export function useUniversalSession(id: string) {
     docRef.current = n
     setDoc(n)
   }, [])
-  const commit = useCallback((label: string, fn: (d: EditDocV3) => EditDocV3) => {
-    begin(label)
-    live(fn)
-  }, [begin, live])
   const typing = useCallback((field: string, label: string, fn: (d: EditDocV3) => EditDocV3) => {
     if (typingField.current !== field) {
       begin(label)
@@ -262,7 +258,23 @@ export function useUniversalSession(id: string) {
     }
     live(fn)
   }, [begin, live])
+  // 22/11 (seletor de cor livre): enquanto a pessoa arrasta na paleta, cada commit vira o mesmo passo do desfazer
+  const gestureRef = useRef<string | null>(null)
+  const commit = useCallback((label: string, fn: (d: EditDocV3) => EditDocV3) => {
+    if (gestureRef.current) return typing(gestureRef.current, label, fn)
+    begin(label)
+    live(fn)
+  }, [begin, live, typing])
   const endTyping = useCallback(() => {
+    typingField.current = null
+  }, [])
+  const startGesture = useCallback((key: string) => {
+    if (gestureRef.current === key) return
+    gestureRef.current = key
+    typingField.current = null
+  }, [])
+  const endGesture = useCallback(() => {
+    gestureRef.current = null
     typingField.current = null
   }, [])
   const step = useCallback((from: "past" | "future") => {
@@ -296,10 +308,10 @@ export function useUniversalSession(id: string) {
       q, st, doc, revision, status: (isBlocked ? "invalid" : status === "invalid" ? "saving" : status) as SaveStatus, invalidRule: isBlocked ? invalid!.rule : null,
       dirtyLocal, savedAt, conflict, readOnly, building,
       canUndo: hist.past.length > 0, canRedo: hist.future.length > 0,
-      begin, live, commit, typing, endTyping, undo, redo, save, loadTheirs,
+      begin, live, commit, typing, endTyping, startGesture, endGesture, undo, redo, save, loadTheirs,
       exp, running, exportMut, recheckMut, justExported, clearJustExported: () => setJustExported(null), blocked,
     }),
-    [q, st, doc, revision, status, isBlocked, invalid, dirtyLocal, savedAt, conflict, readOnly, building, hist, begin, live, commit, typing, endTyping, undo, redo, save, loadTheirs, exp, running, exportMut, recheckMut, justExported, blocked]
+    [q, st, doc, revision, status, isBlocked, invalid, dirtyLocal, savedAt, conflict, readOnly, building, hist, begin, live, commit, typing, endTyping, startGesture, endGesture, undo, redo, save, loadTheirs, exp, running, exportMut, recheckMut, justExported, blocked]
   )
 }
 export type UniversalSession = ReturnType<typeof useUniversalSession>

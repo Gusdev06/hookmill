@@ -86,13 +86,12 @@ describe('variação IA: HTTP + PostgreSQL, integração mock sem gasto', () => 
     await db.champion.update({ where: { id: a.championId }, data: { status: 'READY' } });
     expect(plan).not.toHaveBeenCalled();
   });
-  it('respeita oferta incompleta, teto e exclusão comercial de SAMPLE', async () => {
+  it('respeita oferta incompleta e exclusão comercial de SAMPLE', async () => {
     await db.offer.update({ where: { id: a.offerId }, data: { cta: null } });
     expect((await call('POST', '/ai-variations', a.token, body())).status).toBe(422);
     await db.offer.update({ where: { id: a.offerId }, data: { cta: 'Veja a demonstração.' } });
-    await db.workspace.update({ where: { id: a.workspaceId }, data: { monthlySpendCapUsd: 0 } }); estimate.mockReturnValue(0.5);
-    expect((await call('POST', '/ai-variations', a.token, body())).error.code).toBe('SPEND_CAP_EXCEEDED');
-    await db.workspace.update({ where: { id: a.workspaceId }, data: { monthlySpendCapUsd: null } });
+    // 22/11 (Gusta): dono INTERNAL não tem teto mensal (CustosService.cap) e a variação IA só abre pra INTERNAL, então o teto não
+    // alcança esta rota hoje; a regra do teto em si está coberta em custos.service.spec.ts e nas outras suítes (dono PAID).
     await db.user.update({ where: { id: users[0] }, data: { access: 'SAMPLE' } });
     expect((await call('GET', '/ai-variations/config', a.token)).data.reason).toBe('access_required');
     expect((await call('POST', '/ai-variations', a.token, body())).status).toBe(403);

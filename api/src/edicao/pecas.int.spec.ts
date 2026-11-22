@@ -321,11 +321,13 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     expect(stub.calls.filter((x) => x.aspectRatio === '4:5').length).toBe(3);
 
     // teto: gasto do mês + 1 imagem > teto = 409, nada criado (vídeo não passa pelo teto)
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: who.A.id, role: 'OWNER' } } }, data: { access: 'PAID' } }); // 22/11: dono INTERNAL não tem teto; o teto se prova com dono PAID
     await prisma.workspace.update({ where: { id: who.A.id }, data: { monthlySpendCapUsd: 0.5 } });
     const n = await prisma.render.count({ where: { creativeId: ok.creativeId! } });
     expect((await call('POST', `/iterate/pieces/${st}/formats`, { format: '1x1' })).error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED' });
     expect(await prisma.render.count({ where: { creativeId: ok.creativeId! } })).toBe(n);
     await prisma.workspace.update({ where: { id: who.A.id }, data: { monthlySpendCapUsd: null } });
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: who.A.id, role: 'OWNER' } } }, data: { access: 'INTERNAL' } });
 
     const b = await call('GET', `/iterate/${batchId}`);
     expect(b.data.cost).toMatchObject({ imagesUsd: 0.8, analysisUsd: 0, renderUsd: 0, totalUsd: 0.8, generateEstimateUsd: null });
@@ -472,10 +474,12 @@ describe(isLocal ? 'Peças do lote AUTO B2 (integração local)' : 'Peças AUTO 
     expect(legacyCall[0].spec).toEqual({ headline: 'Legacy plan', screenLanguage: 'en', visual: { object: '', scene: '', vibe: '', style: 'ad_graphic', headlinePlacement: 'center' } });
 
     // Retry do STATIC: teto com 1 imagem
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: who.A.id, role: 'OWNER' } } }, data: { access: 'PAID' } }); // 22/11: dono INTERNAL não tem teto; o teto se prova com dono PAID
     await prisma.workspace.update({ where: { id: who.A.id }, data: { monthlySpendCapUsd: 0.5 } });
     expect((await call('POST', `/iterate/pieces/${pid}/retry`, {})).error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED' });
     expect((await svc.pieceById(pid)).status).toBe('left_out');
     await prisma.workspace.update({ where: { id: who.A.id }, data: { monthlySpendCapUsd: null } });
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: who.A.id, role: 'OWNER' } } }, data: { access: 'INTERNAL' } });
     stub.mode = 'timeout'; // 1ª tentativa TIMEOUT → reenvio igual (não seguro) passa
     const rt = await call('POST', `/iterate/pieces/${pid}/retry`, {});
     expect(rt.status).toBe(202);

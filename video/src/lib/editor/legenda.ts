@@ -1,5 +1,5 @@
 // Legenda móvel (20/11, spec design/spec-legenda-movel-2026-11-20.md): a NOSSA legenda (captionMode 'replace') das molduras vira a
-// camada `caption` do editor. Move só na vertical, 3 tamanhos, 2 cores. Puro (sem React); o resolver, as checagens, a validação e o
+// camada `caption` do editor. Move só na vertical, 3 tamanhos, 2 cores (22/11: qualquer hex; as listas são só as bolinhas sugeridas). Puro (sem React); o resolver, as checagens, a validação e o
 // web leem daqui, pra prévia e render baterem.
 // Guarda no doc, sem tipo novo: `layers[caption].transform.y` = centro da caixa (fração da altura; x = 0,5, scale 1, boxWidth 1 são
 // marcadores fixos); `style.size` | `style.color` | `style.highlightColor`. Posição por formato mora em formatOverrides[fmt].
@@ -45,9 +45,9 @@ export const edicaoDaLegenda = (d: EditDocV3 | null | undefined, fmt: FormatCode
   const sz = l?.style?.size;
   if (sz && sz !== 'md' && sz in LEGENDA_TAMANHOS) out.scale = LEGENDA_TAMANHOS[sz];
   const cor = l?.style?.color;
-  if (corHex(cor) && naLista(LEGENDA_CORES_TEXTO, cor)) { out.color = cor; out.stroke = contornoDaCor(cor); }
+  if (corHex(cor)) { out.color = cor; out.stroke = contornoDaCor(cor); }
   const hl = l?.style?.highlightColor;
-  if (corHex(hl) && naLista(LEGENDA_CORES_PALAVRA, hl)) out.highlight = hl;
+  if (corHex(hl)) out.highlight = hl;
   return Object.keys(out).length ? out : null;
 };
 
@@ -78,8 +78,8 @@ export const validarLegendaDoc = (d: EditDocV3 | null | undefined, efetivas?: { 
       // 22/11 (QA): campo ausente chega como chave com undefined (DTO da API com class fields) — só conta o que veio preenchido
       for (const [k, v] of Object.entries(l.style)) if (v !== undefined && !['color', 'highlightColor', 'size'].includes(k)) err(`${f}.style.${k}`, 'not_editable');
       if (l.style.size !== undefined && !(l.style.size in LEGENDA_TAMANHOS)) err(`${f}.style.size`, 'bad_template_opt_value');
-      if (l.style.color !== undefined && !naLista(LEGENDA_CORES_TEXTO, l.style.color)) err(`${f}.style.color`, 'bad_color');
-      if (l.style.highlightColor != null && !naLista(LEGENDA_CORES_PALAVRA, l.style.highlightColor)) err(`${f}.style.highlightColor`, 'bad_color');
+      if (l.style.color !== undefined && !corHex(l.style.color)) err(`${f}.style.color`, 'bad_color');
+      if (l.style.highlightColor != null && !corHex(l.style.highlightColor)) err(`${f}.style.highlightColor`, 'bad_color');
       const c = l.style.color ?? efetivas?.color, h = l.style.highlightColor ?? efetivas?.highlight;
       if (c && h && mesmaCor(c, h)) err(`${f}.style.highlightColor`, 'bad_color');
     }

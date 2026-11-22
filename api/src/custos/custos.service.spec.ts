@@ -27,6 +27,14 @@ describe('CustosService (teto de gasto)', () => {
     expect(err.details).toEqual({ spentUsd: 150, capUsd: 200, estimateUsd: 50.01 });
   });
 
+  it('22/11: workspace com OWNER INTERNAL não tem teto, mesmo com monthlySpendCapUsd gravado', async () => {
+    const { s, prisma } = svc(50, 10);
+    prisma.workspace.findUnique.mockResolvedValue({ monthlySpendCapUsd: new Prisma.Decimal(10), memberships: [{ userId: 'u' }] });
+    await expect(s.assertWithinCap('w', 5)).resolves.toBeUndefined();
+    expect(await s.cap('w')).toBeNull();
+    expect(prisma.workspace.findUnique.mock.calls[0][0].select.memberships.where).toEqual({ role: 'OWNER', user: { access: 'INTERNAL' } });
+  });
+
   it('sem teto (null) nunca bloqueia; o gasto do mês filtra pelo workspace e pelo mês', async () => {
     const { s, prisma } = svc(1e6, null);
     await expect(s.assertWithinCap('w', 1e6)).resolves.toBeUndefined();

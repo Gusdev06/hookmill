@@ -94,7 +94,7 @@ describe('resolver', () => {
   });
 });
 
-describe('validação (só vertical, lista de cores)', () => {
+describe('validação (só vertical, cor hex livre)', () => {
   const base = nossa();
   const erros = (d: EditDocV3) => validarDocMoldura(d, base).map((e) => `${e.field}:${e.rule}`);
   it('doc bom passa; cor da lista e tamanho passam', () => {
@@ -107,8 +107,9 @@ describe('validação (só vertical, lista de cores)', () => {
     expect(erros(vazio({ layers: [{ id: 'caption', rect: { x: 0, y: 0.5, w: 0.5, h: 0.1 } }] }))).toContain('layers[0].rect:not_editable');
     expect(erros(yDoc(1.2))).toContain('layers[0].transform.y:rect_out_of_range');
   });
-  it('cor fora da lista, texto = palavra falada, texto e fonte/contorno não editáveis', () => {
-    expect(erros(vazio({ layers: [{ id: 'caption', style: { color: '#123456' } }] }))).toContain('layers[0].style.color:bad_color');
+  it('cor livre (22/11) aceita qualquer hex; texto = palavra falada, texto e fonte/contorno não editáveis', () => {
+    expect(erros(vazio({ layers: [{ id: 'caption', style: { color: '#123456', highlightColor: '#ab12cd' } }] }))).toEqual([]);
+    expect(erros(vazio({ layers: [{ id: 'caption', style: { color: 'vermelho' } }] }))).toContain('layers[0].style.color:bad_color');
     expect(erros(vazio({ layers: [{ id: 'caption', style: { color: '#ffe14a' } }] }))).toContain('layers[0].style.highlightColor:bad_color'); // a palavra falada padrão já é amarela
     expect(erros(vazio({ layers: [{ id: 'caption', style: { color: '#ffffff', highlightColor: '#ffffff' } }] }))).toContain('layers[0].style.highlightColor:bad_color');
     expect(erros(vazio({ layers: [{ id: 'caption', style: { size: 'xl' as never } }] }))).toContain('layers[0].style.size:bad_template_opt_value');

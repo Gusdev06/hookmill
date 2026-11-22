@@ -70,8 +70,14 @@ export class CustosService {
     return round4((num(recorded._sum.amountUsd) ?? 0) - (num(sample._sum.amountUsd) ?? 0) + (num(open._sum.estimatedUsd) ?? 0));
   }
 
+  /** 22/11 (Gusta): workspace com algum OWNER INTERNAL (equipe) não tem teto mensal, qualquer que seja o monthlySpendCapUsd gravado.
+   *  Olha a conta direto (não o TEST_MODE), pra o modo teste não tirar o teto de todo mundo. */
   async cap(workspaceId: string): Promise<number | null> {
-    const ws = await this.prisma.workspace.findUnique({ where: { id: workspaceId }, select: { monthlySpendCapUsd: true } });
+    const ws = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { monthlySpendCapUsd: true, memberships: { where: { role: 'OWNER', user: { access: 'INTERNAL' } }, select: { userId: true }, take: 1 } },
+    });
+    if (ws?.memberships?.length) return null;
     return num(ws?.monthlySpendCapUsd);
   }
 

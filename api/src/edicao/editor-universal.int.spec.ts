@@ -470,12 +470,14 @@ describe(isLocal ? 'Editor universal F-U1 (integração local)' : 'Editor univer
     } finally {
       delete (cfg as unknown as Record<string, unknown>).editorExportsPerDay;
     }
+    await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.id, role: 'OWNER' } } }, data: { access: 'PAID' } }); // 22/11: dono INTERNAL não tem teto; o teto se prova com dono PAID
     await prisma.workspace.update({ where: { id: ws.id }, data: { monthlySpendCapUsd: 0.01 } });
     try {
       const cap = await call('POST', `/creatives/${id}/editor/export`, { revision: rev });
       expect(cap.error).toMatchObject({ code: 'SPEND_CAP_EXCEEDED', details: { estimateUsd: 0.04 } });
     } finally {
       await prisma.workspace.update({ where: { id: ws.id }, data: { monthlySpendCapUsd: null } });
+      await prisma.user.updateMany({ where: { memberships: { some: { workspaceId: ws.id, role: 'OWNER' } } }, data: { access: 'INTERNAL' } });
     }
     expect(await prisma.render.count({ where: { creativeId: id } })).toBe(antes);
   });

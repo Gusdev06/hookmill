@@ -211,6 +211,15 @@
 .eu .sws { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .eu .sw { width: 26px; height: 26px; border-radius: 7px; border: 1px solid rgba(0,0,0,.15); padding: 0; }
 .eu .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--fg); }
+/* 22/11: bolinha de cor livre (abre a paleta do sistema); escolhida = mostra a cor dentro do anel de arco-íris */
+.eu .sw.livre { position: relative; cursor: pointer; overflow: hidden; border: 1px solid rgba(0,0,0,.15);
+  background: conic-gradient(from 0deg, #ff3b3b, #ffd23b, #3bff6e, #3bd8ff, #3b4bff, #d93bff, #ff3b3b); }
+.eu .sw.livre::after { content: ""; position: absolute; inset: 5px; border-radius: inherit; background: var(--livre, transparent); }
+.eu .sw.livre:not([aria-pressed="true"])::after { background: radial-gradient(circle, rgba(255,255,255,.9) 0 30%, transparent 32%); inset: 0; }
+.eu .sw.livre[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--fg); }
+.eu .sw.livre.redondo { border-radius: 50%; }
+.eu .sw.livre.dis { opacity: .4; cursor: not-allowed; }
+.eu .sw.livre input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: inherit; border: 0; padding: 0; }
 .eu .sws .hex { width: 92px; min-height: 28px; font-family: var(--font-mono); font-size: 12px; padding: 3px 7px; }
 .eu .memo { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--fg-2); background: var(--card-2); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; }
 .eu .memo svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: var(--fg-3); }

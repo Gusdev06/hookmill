@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { EdIcon } from "@/components/editor/ed-icon"
 import { useU } from "./context"
 import { CAPTION_ID, baseOf, captionY, clamp, layoutLayer, resolve, setCaptionStyle, setCaptionY, type CaptionSize, type Resolved } from "./model"
-import { Seg } from "./panel"
+import { CorLivre, Seg } from "./panel"
 import type { UniversalSession } from "./use-universal"
 
 /** Toque anda 2 %; segurar anda contínuo (0,8 % a cada 50 ms depois de 380 ms). Setas: 1 % (Shift 5 %). */
@@ -170,6 +170,7 @@ function CapSwatches({ lista, value, other, onChange, label, disabled }: { lista
           />
         )
       })}
+      <CorLivre round label={label} value={value} disabled={disabled} selected={!!value && !lista.some((c) => mesma(c, value))} onChange={(c) => !mesma(c, other) && onChange(c)} />
     </div>
   )
 }
