@@ -8,6 +8,7 @@ import type {
   ProviderTaskStore,
   TaskFinish,
   TaskProvider,
+  TaskRepoint,
 } from '../portas';
 
 /** Store em memória (testes e scripts). Mesmo comportamento observável do Prisma. */
@@ -96,6 +97,13 @@ export class MemoryTaskStore implements ProviderTaskStore {
   readonly polled = new Map<string, number>();
   async markPolled(id: string) {
     this.polled.set(id, (this.polled.get(id) ?? 0) + 1);
+  }
+
+  async repoint(id: string, fromExternalId: string, to: TaskRepoint): Promise<ProviderTaskRecord | null> {
+    const t = this.tasks.get(id);
+    if (!t || t.status !== 'SUBMITTED' || t.externalId !== fromExternalId) return null;
+    Object.assign(t, to);
+    return { ...t };
   }
 }
 

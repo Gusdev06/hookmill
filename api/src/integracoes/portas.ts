@@ -82,6 +82,19 @@ export interface ProviderTaskStore {
   listStale(before: Date, excludePrefix: string, limit: number, provider?: TaskProvider, kinds?: ProviderTaskKind[]): Promise<ProviderTaskRecord[]>;
   /** Marca a última consulta do reconciliador (debug / não martelar a mesma task). */
   markPolled(id: string): Promise<void>;
+  /**
+   * 27/11: troca de provedor da MESMA task (transcrição do Kie que falhou → Whisper da WaveSpeed). Compare-and-set:
+   * só troca se ainda estiver SUBMITTED e com o `fromExternalId`; devolve null se outro caminho mexeu antes.
+   */
+  repoint(id: string, fromExternalId: string, to: TaskRepoint): Promise<ProviderTaskRecord | null>;
+}
+
+export interface TaskRepoint {
+  provider: TaskProvider;
+  model: string;
+  externalId: string;
+  input: Record<string, unknown>;
+  estimatedUsd: number;
 }
 
 export interface NewCostEntry {

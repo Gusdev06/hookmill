@@ -8,6 +8,7 @@ import type {
   ProviderTaskStore,
   TaskFinish,
   TaskProvider,
+  TaskRepoint,
 } from '../portas';
 
 /** Só o que a integracoes usa do client (o PrismaService do backend estende PrismaClient). */
@@ -128,6 +129,16 @@ export class PrismaTaskStore implements ProviderTaskStore {
 
   async markPolled(id: string) {
     await this.db.providerTask.updateMany({ where: { id }, data: { lastPolledAt: new Date() } });
+  }
+
+  async repoint(id: string, fromExternalId: string, to: TaskRepoint) {
+    const { count } = await this.db.providerTask.updateMany({
+      where: { id, status: 'SUBMITTED', externalId: fromExternalId },
+      data: { provider: to.provider, model: to.model, externalId: to.externalId, input: to.input as Prisma.InputJsonValue, estimatedUsd: new Prisma.Decimal(to.estimatedUsd) },
+    });
+    if (count === 0) return null;
+    const r = await this.db.providerTask.findUnique({ where: { id } });
+    return r ? toRecord(r) : null;
   }
 }
 

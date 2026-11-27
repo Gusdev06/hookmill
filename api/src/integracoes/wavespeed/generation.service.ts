@@ -47,6 +47,8 @@ import type { KieJobsClient, KieRecord } from '../kie/jobs';
 /** externalId das tasks recusadas na submissão (nunca existiram na WaveSpeed). */
 export const REJECTED_PREFIX = 'rejected_';
 const MOCK_PREFIX = 'mock_';
+/** 27/11: falhas do Kie na criação da transcrição que caem no Whisper (indisponível, 5xx, 429, sem saldo, resposta sem taskId). */
+const KIE_FAILOVER_CODES: readonly string[] = ['PROVIDER_UNAVAILABLE', 'RATE_LIMITED', 'PROVIDER_ERROR', 'PROVIDER_TIMEOUT'];
 
 export interface WaveSpeedGenOptions {
   /** URL pública do webhook; null = WAVESPEED_WEBHOOKS=off (só reconciliador). */
@@ -112,6 +114,8 @@ export class WaveSpeedGenerationService implements GenerationService {
   private readonly now: () => number;
   /** URL de entrada → URL da WaveSpeed já subida (o mesmo rosto entra em 3-5 cenas; sobe uma vez só). */
   private readonly uploaded = new Map<string, Promise<string>>();
+  /** tasks com a troca Kie → Whisper em andamento (webhook e reconciliador não trocam a mesma task duas vezes) */
+  private readonly failingOver = new Set<string>();
   private readonly prompts: MediaPrompts;
 
   constructor(
@@ -239,7 +243,15 @@ export class WaveSpeedGenerationService implements GenerationService {
   /** Cena (v1), campeão (feature 2) ou take (§13.5). Sem `language` = detecção automática do Whisper (`auto`). */
   async submitTranscribe(i: { workspaceId: string; sceneId?: string; championId?: string; takeId?: string; mediaUrl: string; language?: string }): Promise<Submitted> {
     one('submitTranscribe', { sceneId: i.sceneId, championId: i.championId, takeId: i.takeId });
-    if (this.opts.kie) return this.submitTranscribeKie(this.opts.kie, i);
+    if (this.opts.kie) {
+      try {
+        return await this.submitTranscribeKie(this.opts.kie, i);
+      } catch (e) {
+        // 27/11: o Kie recusou a criação (fora do ar, 5xx, 429, sem saldo, upload falhou) → Whisper, sem o usuário ver erro
+        if (!(e instanceof IntegracaoError) || !KIE_FAILOVER_CODES.includes(e.code)) throw e;
+        this.log.warn(`transcribe: kie createTask failed (${e.code}: ${e.message}); falling back to ${TRANSCRIBE_MODEL.providerModel}`);
+      }
+    }
     const body = { video: await this.reachable(i.mediaUrl, 'media'), language: i.language ? whisperLanguage(i.language) : 'auto', task: 'transcribe', enable_timestamps: true };
     const sec = await this.mediaSeconds(i.mediaUrl, i.sceneId ?? null, i.takeId ?? null);
     return this.submit('TRANSCRIBE', TRANSCRIBE_MODEL.providerModel, body, { workspaceId: i.workspaceId, sceneId: i.sceneId, championId: i.championId, takeId: i.takeId, input: { ...i } }, Math.ceil(sec) * TRANSCRIBE_MODEL.usdPerSecond);
@@ -254,6 +266,39 @@ export class WaveSpeedGenerationService implements GenerationService {
     const taskId = await kie.createTask(KIE_TRANSCRIBE_MODEL.providerModel, body);
     const rec = await this.tasks.create({ workspaceId: i.workspaceId, provider: 'KIE', kind: 'TRANSCRIBE', model: KIE_TRANSCRIBE_MODEL.providerModel, externalId: taskId, input: { ...i, request: body }, estimatedUsd: est, sceneId: i.sceneId, championId: i.championId, takeId: i.takeId });
     return { providerTaskId: rec.id, externalId: rec.externalId, estimatedUsd: est };
+  }
+
+  /**
+   * 27/11 (Tordan: Kie "The service is busy" 2x seguidas derrubou a leitura do vídeo): transcrição do Kie que falha ou
+   * estoura o tempo NÃO fecha a task; a MESMA task é reenviada ao Whisper da WaveSpeed (provider/model/externalId trocados),
+   * então quem espera (análise do campeão, take, cena, troca) só vê o resultado final. Uma vez só: task que já é
+   * WAVESPEED não entra aqui. true = segue rodando no Whisper; false = não deu, fecha como falha normal.
+   */
+  private async failoverTranscribe(t: ProviderTaskRecord, why: string): Promise<boolean> {
+    if (t.provider !== 'KIE' || t.kind !== 'TRANSCRIBE' || this.failingOver.has(t.id)) return false;
+    const mediaUrl = String(t.input.mediaUrl ?? '');
+    if (!mediaUrl) return false;
+    this.failingOver.add(t.id);
+    try {
+      // o registro em mãos pode estar velho (mesmo tick do reconciliador): quem manda é o banco
+      const cur = await this.tasks.get(t.id);
+      if (!cur || cur.status !== 'SUBMITTED' || cur.provider !== 'KIE' || cur.externalId !== t.externalId) return cur?.status === 'SUBMITTED';
+      const language = typeof t.input.language === 'string' && t.input.language ? whisperLanguage(t.input.language) : 'auto';
+      const body = { video: await this.reachable(mediaUrl, 'media'), language, task: 'transcribe', enable_timestamps: true };
+      const sec = await this.mediaSeconds(mediaUrl, t.sceneId, t.takeId);
+      const p = await this.client.submit(TRANSCRIBE_MODEL.providerModel, body, this.opts.webhookUrl);
+      const input = { ...t.input, request: body, fallbackFrom: { provider: 'KIE', model: t.model, externalId: t.externalId, reason: String(why).slice(0, 500) } };
+      const rec = await this.tasks.repoint(t.id, t.externalId, { provider: 'WAVESPEED', model: TRANSCRIBE_MODEL.providerModel, externalId: p.id, input, estimatedUsd: round4(Math.ceil(sec) * TRANSCRIBE_MODEL.usdPerSecond) });
+      if (!rec) return true; // outro caminho já mexeu na task (fechou ou trocou): nada a fechar aqui
+      this.log.warn(`transcribe ${t.id}: kie ${t.externalId} failed (${why}); resubmitted to ${TRANSCRIBE_MODEL.providerModel} as ${p.id}`);
+      if (finalStatus(p)) setImmediate(() => void this.process(rec, fromWs(p)).catch((err) => this.log.error(err)));
+      return true;
+    } catch (e) {
+      this.log.warn(`transcribe ${t.id}: whisper fallback failed too: ${(e as Error).message}`);
+      return false;
+    } finally {
+      this.failingOver.delete(t.id);
+    }
   }
 
   /** URL que o Kie baixa: a pública (assinada de horas serve); privada/local sobe pro armazenamento do Kie. */
@@ -313,6 +358,7 @@ export class WaveSpeedGenerationService implements GenerationService {
         if (!out) continue;
         await this.tasks.markPolled(t.id);
         if (await this.process(t, out)) closed++;
+        else if (tooOld && (await this.failoverTranscribe(t, 'reconciler: no result after timeout'))) continue;
         else if (tooOld && (await this.close(t, 'TIMEOUT', 'PROVIDER_TIMEOUT', [], { lastStatus: out.lastStatus }, 'reconciler: no result after timeout'))) closed++;
       } catch (e) {
         if (e instanceof IntegracaoError && e.code === 'TASK_NOT_FOUND' && tooOld) {
@@ -400,6 +446,7 @@ export class WaveSpeedGenerationService implements GenerationService {
   /** true = a task terminou (agora ou antes); false = ainda rodando no provedor. */
   private async process(t: ProviderTaskRecord, o: Outcome): Promise<boolean> {
     if (!o.fin) return false;
+    if (o.fin.status !== 'COMPLETED' && (await this.failoverTranscribe(t, o.error ?? o.fin.errorCode ?? o.fin.status))) return false;
     let { status, errorCode } = o.fin;
     let outputUrls = status === 'COMPLETED' ? o.outputs : [];
     let output: Record<string, unknown> = o.output;

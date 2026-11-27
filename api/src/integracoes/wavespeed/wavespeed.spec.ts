@@ -301,15 +301,62 @@ describe('WaveSpeedGenerationService', () => {
     expect(costs.entries[0]).toMatchObject({ provider: 'KIE', kind: 'TRANSCRIBE', units: 9, amountUsd: 0.0003 });
   });
 
-  it('transcrição pelo Kie: state fail fecha FAILED sem custo', async () => {
-    const { svc, costs, events, clock } = setup({
-      kie: (c) => c.url.endsWith('/createTask') ? json(200, { code: 200, data: { taskId: 'k2' } }) : json(200, { code: 200, data: { taskId: 'k2', state: 'fail', failMsg: 'audio unreadable', failCode: '500' } }),
+  // 27/11 (Tordan): o Kie respondeu "The service is busy" 2x e a leitura do vídeo morreu. Agora a MESMA task segue no Whisper.
+  const busy = (c: Call) => c.url.endsWith('/createTask') ? json(200, { code: 200, data: { taskId: 'k2' } }) : json(200, { code: 200, data: { taskId: 'k2', state: 'fail', failMsg: 'The service is busy. Please try again later.', failCode: '500' } });
+  const whisper = { segments: [{ text: 'Para tudo', start: 0, end: 1, words: [{ word: 'Para', start: 0, end: 0.4 }, { word: 'tudo', start: 0.4, end: 1 }] }] };
+
+  it('transcrição pelo Kie: state fail NÃO fecha a task; a mesma task vai pro Whisper e termina COMPLETED', async () => {
+    const { svc, costs, events, clock, tasks, calls } = setup({
+      probe: 8.5, kie: busy,
+      result: (c) => (c.url === 'https://cdn/out.json' ? new Response(JSON.stringify(whisper)) : envelope({})),
     });
+    const s = await svc.submitTranscribe({ workspaceId: 'w', championId: 'c1', mediaUrl: 'https://cdn.x/clip.m4a' });
+    clock.now += 10_000;
+    expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(0); // segue rodando
+    expect(events).toHaveLength(0); // quem espera não vê a falha do Kie
+    const t = tasks.tasks.get(s.providerTaskId)!;
+    expect(t).toMatchObject({ provider: 'WAVESPEED', model: 'wavespeed-ai/openai-whisper-with-video', externalId: 'p1', status: 'SUBMITTED', estimatedUsd: 0.018 });
+    expect(t.input.fallbackFrom).toMatchObject({ provider: 'KIE', externalId: 'k2', reason: 'The service is busy. Please try again later.' });
+    const sub = calls.find((c) => c.url.includes('openai-whisper-with-video'))!;
+    expect(JSON.parse(String(sub.init!.body))).toMatchObject({ video: 'https://cdn.x/clip.m4a', language: 'auto', enable_timestamps: true });
+    // o laço do Kie não acha mais a task; ela não é reenviada de novo
+    expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(0);
+    expect(calls.filter((c) => c.url.includes('openai-whisper-with-video'))).toHaveLength(1);
+    await svc.handleWebhook({ id: 'p1', status: 'completed', outputs: ['https://cdn/out.json'] });
+    expect(await svc.parseWords(s.providerTaskId)).toEqual([{ word: 'Para', startSec: 0, endSec: 0.4 }, { word: 'tudo', startSec: 0.4, endSec: 1 }]);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ kind: 'TRANSCRIBE', status: 'COMPLETED', championId: 'c1' });
+    expect(costs.entries).toHaveLength(1);
+    expect(costs.entries[0]).toMatchObject({ provider: 'WAVESPEED', kind: 'TRANSCRIBE', units: 9, amountUsd: 0.018 });
+  });
+
+  it('transcrição pelo Kie: Kie falha e o Whisper também recusa → aí sim FAILED PROVIDER_ERROR, sem custo', async () => {
+    const { svc, costs, events, clock } = setup({ kie: busy, submit: () => json(500, { code: 500, message: 'down' }) });
     await svc.submitTranscribe({ workspaceId: 'w', sceneId: 's1', mediaUrl: 'https://cdn.x/clip.mp4' });
     clock.now += 10_000;
     expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(1);
     expect(events[0]).toMatchObject({ status: 'FAILED', errorCode: 'PROVIDER_ERROR' });
     expect(costs.entries).toHaveLength(0);
+  });
+
+  it('transcrição pelo Kie: createTask fora do ar (5xx) ou sem saldo (402) → nasce direto no Whisper', async () => {
+    for (const code of [500, 402, 429]) {
+      const { svc, tasks, calls } = setup({ probe: 8.5, kie: () => json(200, { code, msg: 'nope' }) });
+      const s = await svc.submitTranscribe({ workspaceId: 'w', takeId: 't1', mediaUrl: 'https://cdn.x/clip.mp4', language: 'pt-BR' });
+      expect(tasks.tasks.get(s.providerTaskId)).toMatchObject({ provider: 'WAVESPEED', kind: 'TRANSCRIBE', externalId: 'p1', takeId: 't1' });
+      expect(calls.filter((c) => c.url.includes('openai-whisper-with-video'))).toHaveLength(1);
+    }
+  });
+
+  it('transcrição pelo Kie: parada até o TIMEOUT → Whisper antes de desistir', async () => {
+    const { svc, events, clock, tasks } = setup({
+      kie: (c) => c.url.endsWith('/createTask') ? json(200, { code: 200, data: { taskId: 'k3' } }) : json(200, { code: 200, data: { taskId: 'k3', state: 'generating' } }),
+    });
+    const s = await svc.submitTranscribe({ workspaceId: 'w', championId: 'c1', mediaUrl: 'https://cdn.x/clip.mp4' });
+    clock.now += RECONCILE.kie.timeoutMs + 60_000 + 1_000_000; // o MemoryTaskStore usa o relógio real no submittedAt
+    expect(await svc.reconcile({ minAgeMs: 3_000, timeoutMs: RECONCILE.kie.timeoutMs, provider: 'KIE' })).toBe(0);
+    expect(events).toHaveLength(0);
+    expect(tasks.tasks.get(s.providerTaskId)).toMatchObject({ provider: 'WAVESPEED', status: 'SUBMITTED', externalId: 'p1' });
   });
 
   it('TTS: custo por caractere; sem ffprobe o lipsync usa a fala da cena', async () => {
