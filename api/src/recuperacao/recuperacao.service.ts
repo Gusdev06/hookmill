@@ -19,6 +19,7 @@ import { aiPreviewsOf } from '../templates-ai/contract';
  *  2. renders RENDERING → QUEUED (a fila pega de novo), menos os do Remotion Lambda já submetidos (o poller retoma);
  *  3. tasks da WaveSpeed que terminaram e não foram tratadas (API caiu no meio) → orquestrador;
  *  4. cena/rosto pendente sem task viva → FAILED INTERRUPTED (o usuário regera).
+ *  5. (27/11) lote AUTO (Templates/Iterate) que caiu por INTERRUPTED nesta rodada → retomado sozinho pelo caminho do retry.
  * BOOT_RECOVERY=off desliga a rodada automática do boot: SÓ pros testes de integração, em que vários processos
  * da API dividem o banco local e a retomada de um mataria o trabalho em andamento do outro (em produção há uma instância).
  */
@@ -42,11 +43,13 @@ export class RecuperacaoService implements OnApplicationBootstrap {
 
   onApplicationBootstrap() {
     if (process.env.BOOT_RECOVERY === 'off') return;
-    void this.recover().catch((e) => this.log.error(`retomada falhou: ${(e as Error).stack ?? e}`));
+    // 27/11: BOOT_RESUME=off desliga só a retomada automática dos lotes interrompidos (o resto da rodada segue)
+    void this.recover({ resume: process.env.BOOT_RESUME !== 'off' }).catch((e) => this.log.error(`retomada falhou: ${(e as Error).stack ?? e}`));
   }
 
   /** `workspaceId` restringe a retomada a um workspace (testes); o boot roda sem filtro. */
-  async recover(opts: { workspaceId?: string } = {}): Promise<{ jobs: number; renders: number; tasks: number; scenes: number; faces: number }> {
+  async recover(opts: { workspaceId?: string; resume?: boolean } = {}): Promise<{ jobs: number; renders: number; tasks: number; scenes: number; faces: number; resumed: number }> {
+    const startedAt = new Date();
     const ws = opts.workspaceId ? { workspaceId: opts.workspaceId } : {};
     // 1. jobs
     // templates-ia-previas-v1 §3.3: job do planejador das prévias ainda QUEUED = nenhuma chamada feita; fica QUEUED e o sweep do
@@ -128,7 +131,9 @@ export class RecuperacaoService implements OnApplicationBootstrap {
     }
 
     if (!opts.workspaceId) this.edicao.kick();
-    const r = { jobs: jobs.length, renders: renders.count, tasks: tasks.length, scenes, faces };
+    // 5. (27/11) lote AUTO que esta rodada marcou INTERRUPTED volta sozinho, por último (depois de tudo acima assentar)
+    const resumed = opts.resume ? await this.iteracao.resumeInterrupted(startedAt, opts.workspaceId) : 0;
+    const r = { jobs: jobs.length, renders: renders.count, tasks: tasks.length, scenes, faces, resumed };
     if (Object.values(r).some(Boolean)) this.log.log(`retomada: ${JSON.stringify(r)}`);
     return r;
   }

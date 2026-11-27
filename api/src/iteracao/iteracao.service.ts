@@ -701,4 +701,40 @@ export class IteracaoService {
     for (const championId of new Set(analyzing.map((b) => b.championId))) await this.advanceFromChampion(championId);
     return planning.length + analyzing.length;
   }
+
+  /**
+   * 27/11 (Gusta): lote AUTO que caiu por INTERRUPTED no reinício da API (deploy com gente usando) volta sozinho pelo MESMO
+   * caminho do "Try again" (`retry`: teto de gasto, máquina de estados, análise reaproveitada). `since` = início da rodada de
+   * retomada: só os lotes que ESTA rodada interrompeu. Trava de laço: se o lote/campeão já teve 2 jobs INTERRUPTED na última
+   * hora, a própria retomada pode estar derrubando o processo, então fica em ANALYSIS_FAILED pro usuário decidir.
+   */
+  async resumeInterrupted(since: Date, workspaceId?: string): Promise<number> {
+    const rows = await this.prisma.variationBatch.findMany({
+      where: { ...(workspaceId && { workspaceId }), mode: 'AUTO', status: 'ANALYSIS_FAILED', errorCode: 'INTERRUPTED', updatedAt: { gte: since }, champion: { archivedAt: null } },
+      select: { id: true, workspaceId: true, championId: true, createdById: true },
+    });
+    let resumed = 0;
+    for (const b of rows) {
+      const crashes = await this.prisma.job.count({
+        where: { errorCode: 'INTERRUPTED', createdAt: { gte: new Date(Date.now() - RESUME_WINDOW_MS) }, OR: [{ variationBatchId: b.id }, { championId: b.championId, variationBatchId: null }] }, // plano do lote ou análise do campeão dele
+      });
+      if (crashes > RESUME_MAX_CRASHES) {
+        this.log.warn(`lote ${b.id}: ${crashes} interrupções em 1 h; não retomo sozinho`);
+        continue;
+      }
+      try {
+        // o dono do lote é quem clicaria no "Try again"; o papel não entra na regra do retry
+        await this.retry({ userId: b.createdById, workspaceId: b.workspaceId, role: 'OWNER' }, b.id);
+        this.log.log(`lote ${b.id}: interrompido pelo reinício, retomado sozinho`);
+        resumed++;
+      } catch (e) {
+        this.log.warn(`lote ${b.id}: não deu pra retomar sozinho (${(e as Error).message}); segue ANALYSIS_FAILED`);
+      }
+    }
+    return resumed;
+  }
 }
+
+/** Retomada automática: 1 por lote; a 2ª interrupção dentro da janela deixa o lote parado. */
+const RESUME_WINDOW_MS = 60 * 60_000;
+const RESUME_MAX_CRASHES = 1;

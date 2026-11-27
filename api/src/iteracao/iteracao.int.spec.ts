@@ -26,6 +26,7 @@ import { hashPassword } from '../common/util/crypto';
 import { CLAUDE_SERVICE, type AutoPlanDraft, type AutoPlanInput, type ClaudeService } from '../integracoes';
 import { configureApp } from '../main';
 import { IteracaoService } from './iteracao.service';
+import { JobsService } from '../jobs/jobs.service';
 import { PAGE_CAPTURE, type PageCapturePort } from './portas';
 
 const isLocal = /@(localhost|127\.0\.0\.1)(:\d+)?\//.test(process.env.DATABASE_URL ?? '');
@@ -505,6 +506,32 @@ describe(isLocal ? 'Iterate B1 (integração local)' : 'Iterate B1 [pulado: DATA
     const r = await call('GET', `/iterate/${b.id}`);
     expect(r.data.status).toBe('ANALYSIS_FAILED');
     expect(r.data.error).toMatchObject({ code: 'INTERRUPTED', action: 'try_again' });
+  });
+
+  it('retomada automática (27/11): lote interrompido pelo reinício volta sozinho; 2ª interrupção em 1 h fica parada', async () => {
+    const svc = app.get(IteracaoService);
+    const since = new Date();
+    const b = await prisma.variationBatch.create({
+      data: { workspaceId: ws.A.id, championId, offerId, mode: 'AUTO', status: 'PLANNING', language: 'en', requests: [], createdById: ws.A.userId },
+    });
+    const dead = () => prisma.job.create({
+      data: { workspaceId: ws.A.id, type: 'AUTO_PLAN', status: 'FAILED', errorCode: 'INTERRUPTED', input: { batchId: b.id }, variationBatchId: b.id, championId, offerId, createdById: ws.A.userId },
+    });
+    await dead();
+    await svc.recover(ws.A.id);
+    expect((await call('GET', `/iterate/${b.id}`)).data.error).toMatchObject({ code: 'INTERRUPTED' });
+    expect(await svc.resumeInterrupted(since, ws.A.id)).toBe(1);
+    await app.get(JobsService).idle();
+    const back = await call('GET', `/iterate/${b.id}`);
+    expect(['PLANNING', 'PLAN_READY']).toContain(back.data.status);
+    expect(back.data.error ?? null).toBeNull();
+    // lote de outra rodada (antes do `since`) não é tocado; e a 2ª queda na mesma hora não retoma sozinha
+    const since2 = new Date();
+    await prisma.variationBatch.update({ where: { id: b.id }, data: { status: 'PLANNING' } });
+    await dead();
+    await svc.recover(ws.A.id);
+    expect(await svc.resumeInterrupted(since2, ws.A.id)).toBe(0);
+    expect((await call('GET', `/iterate/${b.id}`)).data).toMatchObject({ status: 'ANALYSIS_FAILED', error: { code: 'INTERRUPTED', action: 'try_again' } });
   });
 
   it('D4 foto do produto: upload PRODUCT_IMAGE (assinatura conferida) → PUT/DELETE /offers/:id/product-image', async () => {
