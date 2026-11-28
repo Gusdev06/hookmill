@@ -812,6 +812,9 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     const itemId = r.creative.variationItemId;
     const modo = (input as unknown as { captionMode?: string }).captionMode;
     if (!itemId || modo === 'replace' || (input.kind !== 'frame' && input.kind !== 'auto-edit') || isEditorExport(r.settings)) return false;
+    // 28/11: o recorte tem que caber ANTES de jogar fora o render pronto. Sem isso o plano B nascia, o builder recusava
+    // (CAPTION_PROTECTED) e a peça saía do lote com o vídeo já renderizado (3 de 3 peças de um cliente em 27/11).
+    if (!(await this.recorteViavel(r))) return false;
     let novo: string | null = null;
     await this.locks.run(r.creativeId, async () => {
       await this.prisma.$transaction(async (tx) => {
@@ -840,6 +843,67 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
     await this.publish(novo);
     this.kick();
     return true;
+  }
+
+  /** Ensaio do plano B: monta o input no modo 'replace' sem renderizar. Só CAPTION_PROTECTED diz "não cabe". */
+  private async recorteViavel(r: RenderRow): Promise<boolean> {
+    try {
+      const ctx = await this.autoContext(r.id, r.creative);
+      await this.inputAuto(r, ctx, r.format ?? 'VERTICAL_9_16', { novaSegundaFonte: false, opts: { captionMode: 'replace' } });
+      return true;
+    } catch (e) {
+      return (e as { code?: string })?.code !== 'CAPTION_PROTECTED';
+    }
+  }
+
+  /**
+   * 28/11: resgate das peças que o plano B antigo derrubou. Peça RENDER_FAILED com CAPTION_PROTECTED no item, `captionForce:
+   * 'replace'` posto pelo plano B automático (prova: render stale CAPTION_COVERED "plano B automático") → volta pra fila no
+   * modo 'avoid'; se a checagem reprovar de novo, o `recorteViavel` segura e a peça é entregue. Uma vez por peça (o
+   * `captionForce` sai de 'replace'). Não passa por crédito nem pela trava da amostra: a falha foi nossa.
+   */
+  async resgatarLegendaBloqueada(since: Date, workspaceId?: string): Promise<number> {
+    const creatives = await this.prisma.creative.findMany({
+      where: { ...(workspaceId && { workspaceId }), state: 'RENDER_FAILED', archivedAt: null, variationItemId: { not: null }, stateChangedAt: { gte: since } },
+      select: { id: true, workspaceId: true, variationItemId: true },
+    });
+    let n = 0;
+    for (const c of creatives) {
+      const item = await this.prisma.variationItem.findUnique({ where: { id: c.variationItemId! }, select: { errorCode: true, payload: true } });
+      if (item?.errorCode !== 'CAPTION_PROTECTED' || (item.payload as { captionForce?: string } | null)?.captionForce !== 'replace') continue;
+      const planoB = await this.prisma.render.findFirst({
+        where: { creativeId: c.id, stale: true, errorCode: 'CAPTION_COVERED', failReason: { startsWith: 'plano B automático' } }, orderBy: { createdAt: 'desc' },
+      });
+      if (!planoB) continue;
+      let novo: string | null = null;
+      await this.locks.run(c.id, async () => {
+        await this.prisma.$transaction(async (tx) => {
+          const cur = await tx.creative.findUnique({ where: { id: c.id }, select: { state: true } });
+          if (cur?.state !== 'RENDER_FAILED') return;
+          await this.sm.transition({ tx, creativeId: c.id, event: 'RENDER', from: 'RENDER_FAILED', to: 'RENDERING' });
+          await tx.render.updateMany({ where: { creativeId: c.id, format: planoB.format, stale: false, status: 'FAILED' }, data: { stale: true } });
+          const r = await tx.render.create({
+            data: {
+              workspaceId: c.workspaceId, creativeId: c.id, status: 'QUEUED', format: planoB.format, engine: planoB.engine, priority: planoB.priority,
+              settings: (planoB.settings ?? {}) as Prisma.InputJsonValue, input: {},
+            },
+            select: { id: true },
+          });
+          await tx.variationItem.update({
+            where: { id: c.variationItemId! },
+            data: { leftOutAt: null, inZip: true, errorCode: null, failReason: null, payload: { ...((item.payload as object | null) ?? {}), captionForce: 'avoid' } as Prisma.InputJsonValue },
+          });
+          novo = r.id;
+        });
+      });
+      if (!novo) continue;
+      this.log.warn(`criativo ${c.id}: peça derrubada pelo plano B da legenda voltou pra fila (render ${novo})`);
+      this.sm.announce(c.id);
+      await this.publish(novo);
+      n++;
+    }
+    if (n) this.kick();
+    return n;
   }
 
   /** §10: CostEntry AWS_LAMBDA/RENDER por tentativa (externalRef = externalId, único) + `renders.cost_usd`. Só lambda. */
@@ -1101,12 +1165,12 @@ export class EdicaoService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Builder de hoje da peça AUTO (sem doc). `novaSegundaFonte: false` (editor) = não resolve 2ª fonte nova (custo). */
-  private async inputAuto(r: AutoRow, ctx: AutoEditContext, format: VideoFormat, o: { novaSegundaFonte: boolean }): Promise<RenderInput> {
+  private async inputAuto(r: AutoRow, ctx: AutoEditContext, format: VideoFormat, o: { novaSegundaFonte: boolean; opts?: OpcoesDeBuild }): Promise<RenderInput> {
     // headline-e-legenda-v1 §2: legenda automática do lote (campeão sem legenda queimada) em toda peça de vídeo
     const captions = await this.captionsDoLote(r, ctx);
     const tipo = ctx.type as string;
     // legenda-protegida §4.2: o Retry depois de CAPTION_COVERED grava `captionForce` no item → vai direto pro recorte
-    const opts = await this.buildOpts(r);
+    const opts = o.opts ?? (await this.buildOpts(r));
     if (tipo === 'HEADLINE') {
       // §1.3: troca/acrescenta a headline pelo remix-keep (buildHeadlineInput do video), no aspecto do campeão
       const p = ctx.params as unknown as { mode: 'replace' | 'add'; text: string; highlight: string | null; language?: string; copy?: string | null };

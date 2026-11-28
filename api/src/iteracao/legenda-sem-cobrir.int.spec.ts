@@ -22,6 +22,7 @@ import { promisify } from 'node:util';
 import { AppModule } from '../app.module';
 import { hashPassword } from '../common/util/crypto';
 import { ChecagemLegendaService, captionTargetOf } from '../edicao/checagem-legenda';
+import { EdicaoService } from '../edicao/edicao.service';
 import { configureApp } from '../main';
 import type { RenderInput } from '../render/contrato';
 import { IteracaoService } from './iteracao.service';
@@ -315,6 +316,40 @@ describe(isLocal ? 'F1a: nada cobre a legenda nem a headline (integração local
     expect(planoB.every((r) => r.stale && /plano B/.test(r.failReason ?? ''))).toBe(true);
     const refeitos = await prisma.variationItem.findMany({ where: { batchId: b.data.id, payload: { path: ['captionForce'], equals: 'replace' } }, select: { id: true } });
     expect(refeitos.length).toBe(planoB.length);
+    await prisma.offer.update({ where: { id: offerId }, data: { notes: null } });
+  });
+
+  // 28/11: o recorte do plano B não cabe (CAPTION_PROTECTED) → o render pronto NÃO é jogado fora; a peça sai pronta com ele.
+  // Antes: nascia o plano B, o builder recusava e a peça saía do lote (3 de 3 peças de um cliente em 27/11).
+  it('legenda tampada e o recorte não cabe: entrega o render que já existe, sem plano B e sem derrubar a peça', async () => {
+    const edicao = app.get(EdicaoService);
+    const spy = jest.spyOn(edicao as unknown as { recorteViavel: () => Promise<boolean> }, 'recorteViavel').mockResolvedValue(false);
+    await prisma.offer.update({ where: { id: offerId }, data: { notes: '[mock:caption-covered]' } });
+    const b = await planned((await call('POST', '/ad-templates/let-hookmill-pick/use', { championId })).data.id);
+    expect([(await startOf(b.data)).status]).toEqual([202]);
+    const done = await allDone(b.data.id);
+    expect(spy).toHaveBeenCalled();
+    expect(done.data.pieces.every((p: Piece) => p.status === 'ready' && p.errorCode === null)).toBe(true);
+    expect(await prisma.render.count({ where: { creative: { variationBatchId: b.data.id }, errorCode: { in: ['CAPTION_COVERED', 'CAPTION_PROTECTED'] } } })).toBe(0);
+    expect(await prisma.variationItem.count({ where: { batchId: b.data.id, payload: { path: ['captionForce'], equals: 'replace' } } })).toBe(0);
+
+    // resgate do boot: recria o estado que o plano B antigo deixava (render pronto stale + CAPTION_PROTECTED + peça fora)
+    const p = done.data.pieces.find((x: Piece) => x.files.length > 0) as Piece;
+    const item = await prisma.variationItem.findUniqueOrThrow({ where: { id: p.id } });
+    const pronto = await prisma.render.findFirstOrThrow({ where: { creativeId: p.creativeId, status: 'READY', stale: false, format: 'VERTICAL_9_16' } });
+    await prisma.render.update({ where: { id: pronto.id }, data: { status: 'FAILED', stale: true, errorCode: 'CAPTION_COVERED', failReason: 'plano B automático: refeito com a nossa legenda' } });
+    await prisma.render.create({ data: { workspaceId: wsId, creativeId: p.creativeId, status: 'FAILED', format: 'VERTICAL_9_16', engine: 'REMOTION', priority: pronto.priority, settings: pronto.settings as Prisma.InputJsonValue, input: {}, errorCode: 'CAPTION_PROTECTED', failReason: 'x', finishedAt: new Date() } });
+    await prisma.creative.update({ where: { id: p.creativeId }, data: { state: 'RENDER_FAILED', stateChangedAt: new Date(), finalRenderId: null, approvedAt: null } });
+    await prisma.variationItem.update({ where: { id: p.id }, data: { errorCode: 'CAPTION_PROTECTED', failReason: 'x', leftOutAt: new Date(), inZip: false, payload: { ...(item.payload as object), captionForce: 'replace' } as Prisma.InputJsonValue } });
+    const since = new Date(Date.now() - 3_600_000);
+    expect(await edicao.resgatarLegendaBloqueada(since, wsId)).toBe(1);
+    const volta = await until(() => call('GET', `/iterate/${b.data.id}`), (r) => TERMINAL.includes((r.data.pieces.find((x: Piece) => x.id === p.id) as Piece).status));
+    const peca = volta.data.pieces.find((x: Piece) => x.id === p.id) as Piece;
+    expect([peca.status, peca.errorCode, peca.files.length > 0]).toEqual(['ready', null, true]);
+    const depois = await prisma.variationItem.findUniqueOrThrow({ where: { id: p.id } });
+    expect([(depois.payload as { captionForce?: string }).captionForce, depois.leftOutAt, depois.inZip]).toEqual(['avoid', null, true]);
+    expect(await edicao.resgatarLegendaBloqueada(since, wsId)).toBe(0); // uma vez por peça
+    spy.mockRestore();
     await prisma.offer.update({ where: { id: offerId }, data: { notes: null } });
   });
 });

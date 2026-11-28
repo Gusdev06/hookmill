@@ -20,6 +20,7 @@ import { aiPreviewsOf } from '../templates-ai/contract';
  *  3. tasks da WaveSpeed que terminaram e não foram tratadas (API caiu no meio) → orquestrador;
  *  4. cena/rosto pendente sem task viva → FAILED INTERRUPTED (o usuário regera).
  *  5. (27/11) lote AUTO (Templates/Iterate) que caiu por INTERRUPTED nesta rodada → retomado sozinho pelo caminho do retry.
+ *  6. (28/11) peça derrubada pelo plano B antigo da legenda (CAPTION_PROTECTED depois de renderizar) volta pra fila, 1x por peça.
  * BOOT_RECOVERY=off desliga a rodada automática do boot: SÓ pros testes de integração, em que vários processos
  * da API dividem o banco local e a retomada de um mataria o trabalho em andamento do outro (em produção há uma instância).
  */
@@ -48,7 +49,7 @@ export class RecuperacaoService implements OnApplicationBootstrap {
   }
 
   /** `workspaceId` restringe a retomada a um workspace (testes); o boot roda sem filtro. */
-  async recover(opts: { workspaceId?: string; resume?: boolean } = {}): Promise<{ jobs: number; renders: number; tasks: number; scenes: number; faces: number; resumed: number }> {
+  async recover(opts: { workspaceId?: string; resume?: boolean } = {}): Promise<{ jobs: number; renders: number; tasks: number; scenes: number; faces: number; resumed: number; rescued: number }> {
     const startedAt = new Date();
     const ws = opts.workspaceId ? { workspaceId: opts.workspaceId } : {};
     // 1. jobs
@@ -133,7 +134,9 @@ export class RecuperacaoService implements OnApplicationBootstrap {
     if (!opts.workspaceId) this.edicao.kick();
     // 5. (27/11) lote AUTO que esta rodada marcou INTERRUPTED volta sozinho, por último (depois de tudo acima assentar)
     const resumed = opts.resume ? await this.iteracao.resumeInterrupted(startedAt, opts.workspaceId) : 0;
-    const r = { jobs: jobs.length, renders: renders.count, tasks: tasks.length, scenes, faces, resumed };
+    // 6. (28/11) peças dos últimos 7 dias que o plano B da legenda derrubou com o vídeo já pronto
+    const rescued = opts.resume ? await this.edicao.resgatarLegendaBloqueada(new Date(Date.now() - 7 * 24 * 3_600_000), opts.workspaceId) : 0;
+    const r = { jobs: jobs.length, renders: renders.count, tasks: tasks.length, scenes, faces, resumed, rescued };
     if (Object.values(r).some(Boolean)) this.log.log(`retomada: ${JSON.stringify(r)}`);
     return r;
   }
